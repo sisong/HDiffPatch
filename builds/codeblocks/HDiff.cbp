@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="HDiff" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Option virtualFolders="libHDiffPatch/HDiff/;libHDiffPatch/HDiff/private_diff/;libHDiffPatch/;libHDiffPatch/HPatch/;" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/HDiff" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/HDiff" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="../../diff_demo.cpp" />
+		<Unit filename="../../libHDiffPatch/HDiff/diff.cpp">
+			<Option virtualFolder="libHDiffPatch/HDiff/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/diff.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/diff_base.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/bytes_rle.cpp">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/bytes_rle.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/sais.hxx">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/suffix_string.cpp">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/suffix_string.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="libHDiffPatch/HPatch/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HPatch/patch.h">
+			<Option virtualFolder="libHDiffPatch/HPatch/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HPatch/patch_base.h">
+			<Option virtualFolder="libHDiffPatch/HPatch/" />
+		</Unit>
+		<Extensions>
+			<envvars />
+			<code_completion />
+			<lib_finder disable_auto="1" />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
