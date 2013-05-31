@@ -19,12 +19,12 @@ uses like this:
   
 ---
 *  
-    HDiff runs in O(newSize+oldSize) time,and requires newSize*5+oldSize+O(1) bytes of memory.  
-    *--HDiff算法时间复杂度O(newSize+oldSize),内存使用newSize\*5+oldSize+O(1)字节。*  
-    HPatch runs in O(newSize+oldSize) time,and requires newSize+oldSize+O(1) bytes of memory.  
-    *--HPatch算法时间复杂度O(newSize+oldSize),内存使用newSize+oldSize+O(1)字节。*  
-    newSize or oldSize < 2G Byte.  
-    *--新数据和老数据的大小都不要超过2G字节。*  
+    HDiff runs in O(oldSize+newSize) time,and requires oldSize*5+newSize+O(1) bytes of memory.  
+    *--HDiff算法时间复杂度O(oldSize+newSize),内存使用oldSize\*5+newSize+O(1)字节。*  
+    HPatch runs in O(oldSize+newSize) time,and requires oldSize+newSize+O(1) bytes of memory.  
+    *--HPatch算法时间复杂度O(oldSize+newSize),内存使用oldSize+newSize+O(1)字节。*  
+    oldSize or newSize < 2G Byte.  
+    *--oldSize或newSize的大小都不要超过2G字节。*  
   
 ---
 by housisong@gmail.com  
