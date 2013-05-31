@@ -1,6 +1,7 @@
 HDiffPatch
 ================
-Version 1.0
+Version 1.0  
+byte data Diff & Patch  C\C++ library.  
 
 ---
 uses like this:
