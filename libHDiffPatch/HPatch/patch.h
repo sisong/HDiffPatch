@@ -3,7 +3,7 @@
 //  HPatch
 //
 /*
- This is the HDiffPatch copyright.
+ This is the HPatch copyright.
  
  Copyright (c) 2012-2013 HouSisong All Rights Reserved.
  

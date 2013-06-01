@@ -3,8 +3,6 @@
 //后缀字符串的一个实现.
 //
 /*
- This is the HDiffPatch copyright.
- 
  Copyright (c) 2012-2013 HouSisong All Rights Reserved.
  
  Permission is hereby granted, free of charge, to any person
