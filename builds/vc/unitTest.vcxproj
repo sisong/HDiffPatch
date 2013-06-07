@@ -100,6 +100,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <CompileAs>Default</CompileAs>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

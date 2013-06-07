@@ -39,22 +39,24 @@
 
 namespace hdiffpatch {
 
-    #include "../HPatch/patch_base.h"
+#include "../HPatch/patch_base.h"
+typedef signed   int  TInt32;
 
-//变长32bit正整数编码方案(x bit额外类型标志位,x<=3),从高位开始输出1-5byte:
+//变长正整数编码方案(x bit额外类型标志位,x<=3),从高位开始输出1-1+sizeof(TUInt)byte:
 // x0*  7-x bit
 // x1* 0*  7+7-x bit
 // x1* 1* 0*  7+7+7-x bit
 // x1* 1* 1* 0*  7+7+7+7-x bit
 // x1* 1* 1* 1* 0*  7+7+7+7+7-x bit
-
-static void pack32BitWithTag(std::vector<TByte>& out_code,TUInt32 iValue,int highBit,const int kTagBit){//写入并前进指针.
+// ...
+template<class TUInt>
+static void packUIntWithTag(std::vector<TByte>& out_code,TUInt iValue,int highBit,const int kTagBit){//写入并前进指针.
     const int kMaxPack32BitTagBit=3;
     assert((0<=kTagBit)&&(kTagBit<=kMaxPack32BitTagBit));
     assert((highBit>>kTagBit)==0);
-    const int kMaxPack32BitSize=5;
+    const int kMaxPack32BitSize=1+sizeof(TUInt);
     const unsigned int kMaxValueWithTag=(1<<(7-kTagBit))-1;
-
+    
     TByte codeBuf[kMaxPack32BitSize];
     TByte* codeEnd=codeBuf;
     while (iValue>kMaxValueWithTag) {
@@ -67,11 +69,21 @@ static void pack32BitWithTag(std::vector<TByte>& out_code,TUInt32 iValue,int hig
         out_code.push_back((*codeEnd) | (((codeBuf!=codeEnd)?1:0)<<7));
     }
 }
-
-inline static void pack32Bit(std::vector<TByte>& out_code,TUInt32 iValue){
-    pack32BitWithTag(out_code,iValue,0,0);
+    
+    
+inline static void pack32BitWithTag(std::vector<TByte>& out_code,TUInt32 iValue,int highBit,const int kTagBit){//写入并前进指针.
+    packUIntWithTag(out_code,iValue,highBit,kTagBit);
+}
+ 
+template<class TUInt>
+inline static void packUInt(std::vector<TByte>& out_code,TUInt iValue){
+    packUIntWithTag(out_code,iValue,0,0);
 }
 
+inline static void pack32Bit(std::vector<TByte>& out_code,TUInt32 iValue){
+    packUInt(out_code,iValue);
+}
+    
 }//end namespac hdiffpatch
 
 #endif

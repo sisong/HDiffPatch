@@ -76,8 +76,8 @@ int main(int argc, const char * argv[]){
 
     std::vector<TByte> oldData; readFile(oldData,oldFileName);
     std::vector<TByte> newData; readFile(newData,newFileName);
-    const int oldDataSize=(int)oldData.size();
-    const int newDataSize=(int)newData.size();
+    const unsigned int oldDataSize=(int)oldData.size();
+    const unsigned int newDataSize=(int)newData.size();
 
     std::vector<TByte> diffData;
     diffData.push_back(newDataSize);

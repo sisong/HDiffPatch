@@ -38,15 +38,13 @@
 
 namespace hdiffpatch {
 
-//todo:对程序文件进行特殊处理:优化大量的偏移地址,比如利用PE文件格式得到old和new数据的所有的偏移地址,进行某种特殊编码 将diff生成的数据缩小到几分之一?!
 //todo:寻找更短的线,允许重叠,然后优化一个路径算法.
-//todo:匹配oldData较差的区域,使其对newData也进行匹配(当前位置之前的较长的匹配位置)
 //todo:不同数据类型需要更适合的默认参数?
 ////////
 const int kMinMatchLength=6; //最小搜寻覆盖长度.
 const int kMinSangleMatchLength=15; //最小独立覆盖长度.  //二进制8-22 文本: 14-22
 const int kUnLinkLength=3; //搜索时不能合并的代价.
-const int kMinTrustMatchLength=1024; //确认选定该覆盖线(优化一些速度)
+const int kMinTrustMatchLength=1024; //(贪婪)选定该覆盖线(优化一些速度).
 const int kMaxLinkSpaceLength=128; //允许合并的最近长度.
 
 struct TOldCover;

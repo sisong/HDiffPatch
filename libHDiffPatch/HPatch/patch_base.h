@@ -32,8 +32,11 @@
 #ifndef HPatch_patch_base_h
 #define HPatch_patch_base_h
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4819)  //for utf-8 source code
+#endif
+
 typedef unsigned char TByte;
-typedef signed   int  TInt32;
 typedef unsigned int  TUInt32;
 
 //数据用rle压缩后的包类型2bit

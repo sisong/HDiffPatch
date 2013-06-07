@@ -39,7 +39,7 @@ namespace {
         static void save(std::vector<TByte>& out_code,const TByte* src,const TByte* src_end,int rle_parameter){
             assert(rle_parameter>=TBytesRle::kRle_bestSize);
             assert(rle_parameter<=TBytesRle::kRle_bestUnRleSpeed);
-            const int kRleMinZipSize=rle_parameter; //增大则压缩率变小,解压稍快; 1时,压缩率最大.
+            const int kRleMinZipSize=rle_parameter; //增大则压缩率变小,解压稍快.
             const int kRleMinSameSize=kRleMinZipSize+1;
             std::vector<TByte> codeBuf;
             std::vector<TByte> ctrlBuf;

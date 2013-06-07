@@ -557,7 +557,7 @@ typedef typename std::iterator_traits<sarray_type>::value_type savalue_type;
   assert((std::numeric_limits<savalue_type>::min)() == (std::numeric_limits<index_type>::min)());
   if((n < 0) || (k <= 0)) { return -1; }
   if(n <= 1) { if(n == 1) { SA[0] = 0; } return 0; }
-  return saisxx_private::suffixsort(T, SA, 0, n, k, false);
+  return saisxx_private::suffixsort(T, SA, (index_type)0, n, k, false);
 }
 
 /**
