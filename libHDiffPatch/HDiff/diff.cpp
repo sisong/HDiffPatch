@@ -44,7 +44,7 @@ namespace hdiffpatch {
 const int kMinMatchLength=6; //最小搜寻覆盖长度.
 const int kMinSangleMatchLength=15; //最小独立覆盖长度.  //二进制8-22 文本: 14-22
 const int kUnLinkLength=3; //搜索时不能合并的代价.
-const int kMinTrustMatchLength=1024; //(贪婪)选定该覆盖线(优化一些速度).
+const int kMinTrustMatchLength=1024*4; //(贪婪)选定该覆盖线(优化一些速度).
 const int kMaxLinkSpaceLength=128; //允许合并的最近长度.
 
 struct TOldCover;
@@ -63,23 +63,31 @@ struct TOldCover {
     TInt32  newPos;
     TInt32  oldPos;
     TInt32  length;
-    inline bool isCanLink(const TOldCover& next){
+    inline TOldCover():newPos(0),oldPos(0),length(0) { }
+    inline TOldCover(TInt32 _newPos,TInt32 _oldPos,TInt32 _length):newPos(_newPos),oldPos(_oldPos),length(_length) { }
+    inline TOldCover(const TOldCover& cover):newPos(cover.newPos),oldPos(cover.oldPos),length(cover.length) { }
+    
+    inline bool isCanLink(const TOldCover& next)const{
         return ((oldPos-newPos==next.oldPos-next.newPos))&&(linkSpaceLength(next)<=kMaxLinkSpaceLength);
     }
-    inline TInt32 linkSpaceLength(const TOldCover& next){
+    inline TInt32 linkSpaceLength(const TOldCover& next)const{
         return next.oldPos-(oldPos+length);
     }
 };
 
-static inline TInt32 getEqLength(const TByte* ssData,const TByte* oldData_end,const TByte* newData,const TByte* newData_end){
-    TInt32 result=0;
-    while ((ssData!=oldData_end)&&(newData!=newData_end)&&(*ssData==*newData)) {
-        ++ssData; ++newData; ++result;
+static inline TInt32 getEqualLength(const TByte* oldData,const TByte* oldData_end,const TByte* newData,const TByte* newData_end){
+    const int newDataLength=(TInt32)(newData_end-newData);
+    TInt32 maxEqualLength=(TInt32)(oldData_end-oldData);
+    if (newDataLength<maxEqualLength)
+        maxEqualLength=newDataLength;
+    for (TInt32 i=0; i<maxEqualLength; ++i) {
+        if (oldData[i]!=newData[i])
+            return i;
     }
-    return result;
+    return maxEqualLength;
 }
 
-static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const TByte* newData_end,TInt32* pos,TInt32* length,int kMinMatchLength){
+static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const TByte* newData_end,TInt32* out_pos,TInt32* out_length,int kMinMatchLength){
     const char* ssbegin=sstring.ssbegin;
     const char* ssend=sstring.ssend;
     if (ssend-ssbegin<=0) return false;
@@ -87,10 +95,10 @@ static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const
     TInt32  bestPos=-1;
     TInt32 bestLength=kMinMatchLength-1;
     TSuffixIndex sai=sstring.lower_bound((const char*)newData,(const char*)newData_end);
-    ;
+
     for (TInt32 i=sai; i>=sai-1; --i) {
         if ((i<0)||(i>=ssend-ssbegin)) continue;
-        TInt32 curLength=getEqLength((const TByte*)ssbegin+SA[i],(const TByte*)ssend,(const TByte*)newData,(const TByte*)newData_end);
+        TInt32 curLength=getEqualLength((const TByte*)ssbegin+SA[i],(const TByte*)ssend,newData,newData_end);
         if (curLength>bestLength){
             bestPos=SA[i];
             bestLength=curLength;
@@ -99,15 +107,15 @@ static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const
     
     bool isMatched=(bestPos>=0);
     if (isMatched){
-        *pos=bestPos;
-        *length=bestLength;
+        *out_pos=bestPos;
+        *out_length=bestLength;
     }
     return isMatched;
 }
 
-static TInt32 getLinkEqCount(TInt32 newPos,TInt32 newPos_end,TInt32 oldPos,const TDiffData& diff){
+static TInt32 getLinkEqualCount(TInt32 newPos,TInt32 newPos_end,TInt32 oldPos,const TDiffData& diff){
     TInt32 eqCount=0;
-    for (TInt32 i=0; i<newPos_end-newPos; ++i) {
+    for (TInt32 i=0; i<(newPos_end-newPos); ++i) {
         if (oldPos+i>=(diff.oldData_end-diff.oldData)){
             if (diff.newData[newPos+i]==0)
                 ++eqCount;
@@ -131,26 +139,18 @@ static void search_cover(TDiffData& diff){
         bool isMatched=getBestMatch(sstring,diff.newData+newPos,diff.newData_end, &curOldPos,&curLength,curMinMatchLength);
         if (isMatched){
             //assert(curLength>=curMinMatchLength);
-            const TInt32 matchLinkEqLength=curLength+getLinkEqCount(lastNewPos,newPos,curOldPos,diff);
-            const TInt32 lastLinkEqLength=getLinkEqCount(lastNewPos,newPos+curLength,lastOldPos,diff);
+            const TInt32 matchLinkEqLength=curLength+getLinkEqualCount(lastNewPos,newPos,curOldPos,diff);
+            const TInt32 lastLinkEqLength=getLinkEqualCount(lastNewPos,newPos+curLength,lastOldPos,diff);
             if (matchLinkEqLength<lastLinkEqLength+kUnLinkLength){//use link
                 const TInt32 length=std::min((TInt32)(diff.oldData_end-diff.oldData-lastOldPos),newPos-lastNewPos);
                 if (diff.cover.empty()){
-                    diff.cover.push_back(TOldCover());
-                    TOldCover& curCover=diff.cover.back();
-                    curCover.newPos=lastNewPos;
-                    curCover.oldPos=lastOldPos;
-                    curCover.length=length;
+                    diff.cover.push_back(TOldCover(lastNewPos,lastOldPos,length));
                 }else{
                     TOldCover& curCover=diff.cover.back();
                     curCover.length+=length;
                 }
             }else{ //use match
-                diff.cover.push_back(TOldCover());
-                TOldCover& curCover=diff.cover.back();
-                curCover.newPos=newPos;
-                curCover.oldPos=curOldPos;
-                curCover.length=curLength;
+                diff.cover.push_back(TOldCover(newPos,curOldPos,curLength));
             }
             curMinMatchLength=kMinMatchLength;
             newPos+=curLength;
@@ -185,7 +185,7 @@ static void select_cover(TDiffData& diff){
             }
         }
         if (!isNeedSave){//单覆盖是否保留.
-            const TInt32 linkEqLength=getLinkEqCount(cover[i].newPos,cover[i].newPos+cover[i].length,(TInt32)(diff.oldData_end-diff.oldData),diff);
+            const TInt32 linkEqLength=getLinkEqualCount(cover[i].newPos,cover[i].newPos+cover[i].length,(TInt32)(diff.oldData_end-diff.oldData),diff);
             isNeedSave=(cover[i].length-linkEqLength>=kMinSangleMatchLength);
         }
         

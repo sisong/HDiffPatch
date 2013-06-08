@@ -54,7 +54,7 @@
         std::vector<TInt>   R;          //Rank 后缀字符串排名.
         inline const TInt lower_bound_withR(TSuffixIndex curString)const { return R[curString]; }
 
-        void LCP_create(); //must R_create();
+        void LCP_create(); //need R_create();
         std::vector<TInt>   LCP;        //lcp(i,i+1)  相邻后缀字符串之间的最长公共前缀.
         //todo:inline const Int32 getEqualLength_withLCP(TSuffixIndex aString,TSuffixIndex bString)const;
     };

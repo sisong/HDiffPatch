@@ -173,7 +173,8 @@ void TSuffixString::R_create(){
 }
 
 void TSuffixString::LCP_create(){
-    assert(!R.empty());
+    if (R.empty())
+        R_create();
     LCP.resize(SA.size());
     _LCP_create(ssbegin,(TInt)SA.size(),&SA[0],&R[0],&LCP[0]);
 }

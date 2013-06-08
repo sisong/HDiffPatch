@@ -40,14 +40,16 @@
 #include "libHDiffPatch/HPatch/patch.h"
 using namespace hdiffpatch;
 
-static bool test(const TByte* newData,const TByte* newData_end,const TByte* oldData,const TByte* oldData_end,const char* tag){
+static bool test(const TByte* newData,const TByte* newData_end,const TByte* oldData,const TByte* oldData_end,const char* tag,int* out_diffSize=0){
     std::vector<TByte> diffData;
     create_diff(newData,newData_end,oldData,oldData_end, diffData);
+    if (out_diffSize!=0)
+        *out_diffSize=(int)diffData.size();
     if (!check_diff(newData,newData_end,oldData,oldData_end, &diffData[0], &diffData[0]+diffData.size())){
         printf("error!!! tag:%s\n",tag);
         return false;
     }else{
-        printf("ok! %s newSize:%d oldSize%d diffSize:%d\n",tag,(int)(newData_end-newData),(int)(oldData_end-oldData),(int)diffData.size());
+        printf("ok! %s newSize:%d oldSize:%d diffSize:%d\n",tag,(int)(newData_end-newData),(int)(oldData_end-oldData),(int)diffData.size());
         return true;
     }
 }
@@ -76,20 +78,22 @@ int main(int argc, const char * argv[]){
 
     const int kRandTestCount=100000;
     const int kMaxDataSize=1024*8;
-    const int kMaxCopyCount=33;
-    const int kMaxCopyLength=512+256;
+    const int kMaxCopyCount=60;
     std::vector<int> seeds(kRandTestCount);
     //srand( (unsigned int)time(0) );
     for (int i=0; i<kRandTestCount; ++i)
         seeds[i]=rand();
-
+    
+    double sumNewSize=0;
+    double sumOldSize=0;
+    double sumDiffSize=0;
     for (int i=0; i<kRandTestCount; ++i) {
         char tag[50];
         sprintf(tag, "error==%d testSeed=%d",errorCount,seeds[i]);
         srand(seeds[i]);
 
         const int oldSize=(int)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxDataSize);
-        const int newSize=oldSize+(int)((rand()*(1.0/RAND_MAX)-0.5)*oldSize);
+        const int newSize=oldSize+(int)((rand()*(1.0/RAND_MAX)-0.45)*oldSize);
         std::vector<TByte> _newData(newSize);
         TByte* newData=0; if (!_newData.empty()) newData=&_newData[0];
         std::vector<TByte> _oldData(oldSize);
@@ -98,9 +102,10 @@ int main(int argc, const char * argv[]){
             newData[i]=rand();
         for (int i=0; i<oldSize; ++i)
             oldData[i]=rand();
-        const int copyCount=(int)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxCopyCount);
+        const int copyCount=1+(int)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount);
+        const int kMaxCopyLength=1+rand()*(1.0/RAND_MAX)*oldSize*0.8;
         for (int i=0; i<copyCount; ++i) {
-            const int length=1+(int)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxCopyLength);
+            const int length=1+(int)(rand()*(1.0/RAND_MAX)*kMaxCopyLength);
             if ((length>oldSize)||(length>newSize)) {
                 continue;
             }
@@ -108,10 +113,15 @@ int main(int argc, const char * argv[]){
             const int newPos=(newSize-length==0)?0:rand()%(newSize-length);
             memcpy(&newData[0]+newPos, &oldData[0]+oldPos, length);
         }
-        errorCount+=!test(&newData[0],&newData[0]+newSize,&oldData[0],&oldData[0]+oldSize,tag);
+        int diffSize=0;
+        errorCount+=!test(&newData[0],&newData[0]+newSize,&oldData[0],&oldData[0]+oldSize,tag,&diffSize);
+        sumNewSize+=newSize;
+        sumOldSize+=oldSize;
+        sumDiffSize+=diffSize;
     }
-
-    printf("\ncheck errorCount:%d\n",errorCount);
+    
+    printf("\nchecked:%d  errorCount:%d\n",kRandTestCount,errorCount);
+    printf("newSize:100%% oldSize:%2.2f%% diffSize:%2.2f%%\n",sumOldSize*100.0/sumNewSize,sumDiffSize*100.0/sumNewSize);
     return errorCount;
 }
 

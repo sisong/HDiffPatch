@@ -85,10 +85,10 @@ hpatch_BOOL patch(TByte* newData,TByte* newData_end,
         addLength=unpack32Bit(&code_length, code_length_end);
         inc_oldPos_sign=(*code_inc_oldPos)>>(8-1);
         inc_oldPos=unpack32BitWithTag(&code_inc_oldPos, code_inc_oldPos_end, 1);
-        if (inc_oldPos_sign!=0)
-            oldPos=oldPosBack-inc_oldPos;
-        else
+        if (inc_oldPos_sign==0)
             oldPos=oldPosBack+inc_oldPos;
+        else
+            oldPos=oldPosBack-inc_oldPos;
 #ifdef PATCH_RUN_MEM_SAFE_CHECK
         if ((oldPos>(TUInt32)(oldData_end-oldData))||(addLength>(TUInt32)(oldData_end-oldData-oldPos))) return hpatch_FALSE;
         if ((newPos>(TUInt32)(newData_end-newData))||(addLength>(TUInt32)(newData_end-newData-newPos))) return hpatch_FALSE;
