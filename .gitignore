@@ -7,5 +7,5 @@ Release
 *.~*
 *.depend
 *.layout
-
 *.filters
+*.xccheckout

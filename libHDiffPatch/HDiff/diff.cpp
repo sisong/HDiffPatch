@@ -141,7 +141,7 @@ static void search_cover(TDiffData& diff){
             //assert(curLength>=curMinMatchLength);
             const TInt32 matchLinkEqLength=curLength+getLinkEqualCount(lastNewPos,newPos,curOldPos,diff);
             const TInt32 lastLinkEqLength=getLinkEqualCount(lastNewPos,newPos+curLength,lastOldPos,diff);
-            if (matchLinkEqLength<lastLinkEqLength+kUnLinkLength){//use link
+            if ((matchLinkEqLength<lastLinkEqLength+kUnLinkLength)&&(newPos-lastNewPos>=kMinMatchLength)){//use link
                 const TInt32 length=std::min((TInt32)(diff.oldData_end-diff.oldData-lastOldPos),newPos-lastNewPos);
                 if (diff.cover.empty()){
                     diff.cover.push_back(TOldCover(lastNewPos,lastOldPos,length));
