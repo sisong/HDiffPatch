@@ -43,7 +43,7 @@ namespace hdiffpatch {
 ////////
 const int kMinMatchLength=6; //最小搜寻覆盖长度.
 const int kMinSangleMatchLength=15; //最小独立覆盖长度.  //二进制8-22 文本: 14-22
-const int kUnLinkLength=3; //搜索时不能合并的代价.
+const int kUnLinkLength=4; //搜索时不能合并的代价.
 const int kMinTrustMatchLength=1024*4; //(贪婪)选定该覆盖线(优化一些速度).
 const int kMaxLinkSpaceLength=128; //允许合并的最近长度.
 
@@ -139,24 +139,25 @@ static void search_cover(TDiffData& diff){
         bool isMatched=getBestMatch(sstring,diff.newData+newPos,diff.newData_end, &curOldPos,&curLength,curMinMatchLength);
         if (isMatched){
             //assert(curLength>=curMinMatchLength);
-            const TInt32 matchLinkEqLength=curLength+getLinkEqualCount(lastNewPos,newPos,curOldPos,diff);
-            const TInt32 lastLinkEqLength=getLinkEqualCount(lastNewPos,newPos+curLength,lastOldPos,diff);
-            if ((matchLinkEqLength<lastLinkEqLength+kUnLinkLength)&&(newPos-lastNewPos>=kMinMatchLength)){//use link
-                const TInt32 length=std::min((TInt32)(diff.oldData_end-diff.oldData-lastOldPos),newPos-lastNewPos);
+            const TInt32 lastLinkEqLength=getLinkEqualCount(newPos,newPos+curLength,lastOldPos+(newPos-lastNewPos),diff);
+            if ((curLength<lastLinkEqLength+kUnLinkLength)&&(newPos-lastNewPos>0)){//use link
+                const TInt32 eqLength=getEqualLength(diff.oldData+lastOldPos+(newPos-lastNewPos), diff.oldData_end,diff.newData+newPos, diff.newData_end);
+                const TInt32 length=std::min((TInt32)(diff.oldData_end-diff.oldData-lastOldPos),newPos-lastNewPos+eqLength);
                 if (diff.cover.empty()){
                     diff.cover.push_back(TOldCover(lastNewPos,lastOldPos,length));
                 }else{
                     TOldCover& curCover=diff.cover.back();
                     curCover.length+=length;
                 }
+                newPos+=curLength;//not eqLength?;
             }else{ //use match
                 diff.cover.push_back(TOldCover(newPos,curOldPos,curLength));
+                newPos+=curLength;
             }
-            curMinMatchLength=kMinMatchLength;
-            newPos+=curLength;
             TOldCover& curCover=diff.cover.back();
             lastOldPos=curCover.oldPos+curCover.length;
             lastNewPos=curCover.newPos+curCover.length;
+            curMinMatchLength=kMinMatchLength;
         }else{
             ++newPos;
             --curMinMatchLength;
