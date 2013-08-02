@@ -27,7 +27,7 @@ uses like this:
 
 ```
 ===================================================================================================================
-         Program               Uncompressed Compressed Compressed BSDiff-4.3-x64 HDiff-1.0-x64 HDiffb+zip2 HDiff+7z
+         Program               Uncompressed Compressed Compressed BSDiff-4.3-x64 HDiff-1.0-x64 HDiff+bzip2 HDiff+7z
 (newVersion<--oldVersion)          (tar)      (bzip2)     (7z)     (with bzip2)  (Uncompressed)
 -------------------------------------------------------------------------------------------------------------------
 apache-maven-2.2.1-src <--2.0.11    5150720   1213258    1175464       115723        312852      105941       93996
