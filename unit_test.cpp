@@ -61,6 +61,7 @@ static bool test(const char* newStr,const char* oldStr,const char* error_tag){
 }
 
 int main(int argc, const char * argv[]){
+    clock_t time1=clock();
     int errorCount=0;
     errorCount+=!test("", "", "1");
     errorCount+=!test("", "1", "2");
@@ -79,9 +80,9 @@ int main(int argc, const char * argv[]){
 
     const int kRandTestCount=100000;
     const int kMaxDataSize=1024*8;
-    const int kMaxCopyCount=60;
+    const int kMaxCopyCount=120;
     std::vector<int> seeds(kRandTestCount);
-    //srand( (unsigned int)time(0) );
+    srand(0);
     for (int i=0; i<kRandTestCount; ++i)
         seeds[i]=rand();
     
@@ -103,10 +104,10 @@ int main(int argc, const char * argv[]){
             newData[i]=rand();
         for (int i=0; i<oldSize; ++i)
             oldData[i]=rand();
-        const int copyCount=1+(int)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount);
+        const int copyCount=0+(int)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount);
         const int kMaxCopyLength=1+rand()*(1.0/RAND_MAX)*oldSize*0.8;
         for (int i=0; i<copyCount; ++i) {
-            const int length=1+(int)(rand()*(1.0/RAND_MAX)*kMaxCopyLength);
+            const int length=1+(int)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxCopyLength);
             if ((length>oldSize)||(length>newSize)) {
                 continue;
             }
@@ -123,6 +124,9 @@ int main(int argc, const char * argv[]){
     
     printf("\nchecked:%d  errorCount:%d\n",kRandTestCount,errorCount);
     printf("newSize:100%% oldSize:%2.2f%% diffSize:%2.2f%%\n",sumOldSize*100.0/sumNewSize,sumDiffSize*100.0/sumNewSize);
+    clock_t time2=clock();
+    printf("\nrun time:%.0f ms\n",(time2-time1)*(1000.0/CLOCKS_PER_SEC));
+    
     return errorCount;
 }
 

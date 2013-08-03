@@ -38,14 +38,13 @@
 
 namespace hdiffpatch {
 
-//todo:寻找更短的线,允许重叠,然后优化一个路径算法.
-//todo:不同数据类型需要更适合的默认参数?
+//todo:寻找更短的线,允许重叠,(考虑编码代价权重)然后优化一个路径算法.
 ////////
-const int kMinMatchLength=6; //最小搜寻覆盖长度.
-const int kMinSangleMatchLength=15; //最小独立覆盖长度.  //二进制8-22 文本: 14-22
+const int kMinMatchLength=7; //最小搜寻覆盖长度.
+const int kMinSangleMatchLength=17; //最小独立覆盖长度. 17 //二进制8-10(best)-21 文本: 17-21
 const int kUnLinkLength=4; //搜索时不能合并的代价.
-const int kMinTrustMatchLength=1024*4; //(贪婪)选定该覆盖线(优化一些速度).
-const int kMaxLinkSpaceLength=128; //允许合并的最近长度.
+const int kMinTrustMatchLength=1024*8; //(贪婪)选定该覆盖线(优化一些速度).
+const int kMaxLinkSpaceLength=128; //跨覆盖线合并时,允许合并的最远距离.
 
 struct TOldCover;
 
@@ -59,6 +58,7 @@ struct TDiffData{
     std::vector<TOldCover>  cover;
 };
 
+//覆盖线.
 struct TOldCover {
     TInt32  newPos;
     TInt32  oldPos;
@@ -67,16 +67,17 @@ struct TOldCover {
     inline TOldCover(TInt32 _newPos,TInt32 _oldPos,TInt32 _length):newPos(_newPos),oldPos(_oldPos),length(_length) { }
     inline TOldCover(const TOldCover& cover):newPos(cover.newPos),oldPos(cover.oldPos),length(cover.length) { }
     
-    inline bool isCanLink(const TOldCover& next)const{
+    inline bool isCanLink(const TOldCover& next)const{//覆盖线是否在同一条直线上.
         return ((oldPos-newPos==next.oldPos-next.newPos))&&(linkSpaceLength(next)<=kMaxLinkSpaceLength);
     }
-    inline TInt32 linkSpaceLength(const TOldCover& next)const{
+    inline TInt32 linkSpaceLength(const TOldCover& next)const{//覆盖线间的间距.
         return next.oldPos-(oldPos+length);
     }
 };
 
-static inline TInt32 getEqualLength(const TByte* oldData,const TByte* oldData_end,const TByte* newData,const TByte* newData_end){
-    const int newDataLength=(TInt32)(newData_end-newData);
+//查找相等的字符串长度.
+static TInt32 getEqualLength(const TByte* oldData,const TByte* oldData_end,const TByte* newData,const TByte* newData_end){
+    const TInt32 newDataLength=(TInt32)(newData_end-newData);
     TInt32 maxEqualLength=(TInt32)(oldData_end-oldData);
     if (newDataLength<maxEqualLength)
         maxEqualLength=newDataLength;
@@ -87,17 +88,22 @@ static inline TInt32 getEqualLength(const TByte* oldData,const TByte* oldData_en
     return maxEqualLength;
 }
 
+//得到最好的一个匹配长度和其位置.
 static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const TByte* newData_end,TInt32* out_pos,TInt32* out_length,int kMinMatchLength){
     const char* ssbegin=sstring.ssbegin;
     const char* ssend=sstring.ssend;
     if (ssend-ssbegin<=0) return false;
-    const TSuffixIndex* SA=&sstring.SA[0];
     TInt32  bestPos=-1;
     TInt32 bestLength=kMinMatchLength-1;
-    TSuffixIndex sai=sstring.lower_bound((const char*)newData,(const char*)newData_end);
+    
+    const char* s_newData_end=(const char*)newData_end;
+    if (newData_end-newData>kMinTrustMatchLength)
+        s_newData_end=(const char*)newData+kMinTrustMatchLength;
+    TSuffixIndex sai=sstring.lower_bound((const char*)newData,s_newData_end);
 
+    const TSuffixIndex* SA=&sstring.SA[0];
     for (TInt32 i=sai; i>=sai-1; --i) {
-        if ((i<0)||(i>=ssend-ssbegin)) continue;
+        if ((i<0)||(i>=(ssend-ssbegin))) continue;
         TInt32 curLength=getEqualLength((const TByte*)ssbegin+SA[i],(const TByte*)ssend,newData,newData_end);
         if (curLength>bestLength){
             bestPos=SA[i];
@@ -113,6 +119,7 @@ static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const
     return isMatched;
 }
 
+//获得区域内当作覆盖时的收益.
 static TInt32 getLinkEqualCount(TInt32 newPos,TInt32 newPos_end,TInt32 oldPos,const TDiffData& diff){
     TInt32 eqCount=0;
     for (TInt32 i=0; i<(newPos_end-newPos); ++i) {
@@ -126,48 +133,46 @@ static TInt32 getLinkEqualCount(TInt32 newPos,TInt32 newPos_end,TInt32 oldPos,co
     return eqCount;
 }
 
+
+//寻找合适的覆盖线.
 static void search_cover(TDiffData& diff){
     const TSuffixString sstring((const char*)diff.oldData,(const char*)diff.oldData_end);
     
     TInt32 newPos=0;
-    TInt32 curMinMatchLength=kMinMatchLength;
     TInt32 lastOldPos=0;
     TInt32 lastNewPos=0;
     while (diff.newData_end-(diff.newData+newPos)>=kMinMatchLength) {
         TInt32 curOldPos;
-        TInt32 curLength;
-        bool isMatched=getBestMatch(sstring,diff.newData+newPos,diff.newData_end, &curOldPos,&curLength,curMinMatchLength);
+        TInt32 curEqLength;
+        bool isMatched=getBestMatch(sstring,diff.newData+newPos,diff.newData_end, &curOldPos,&curEqLength,kMinMatchLength);
         if (isMatched){
-            //assert(curLength>=curMinMatchLength);
-            const TInt32 lastLinkEqLength=getLinkEqualCount(newPos,newPos+curLength,lastOldPos+(newPos-lastNewPos),diff);
-            if ((curLength<lastLinkEqLength+kUnLinkLength)&&(newPos-lastNewPos>0)){//use link
-                const TInt32 eqLength=getEqualLength(diff.oldData+lastOldPos+(newPos-lastNewPos), diff.oldData_end,diff.newData+newPos, diff.newData_end);
-                const TInt32 length=std::min((TInt32)(diff.oldData_end-diff.oldData-lastOldPos),newPos-lastNewPos+eqLength);
+            assert(curEqLength>=kMinMatchLength);
+            const TInt32 lastLinkEqLength=getLinkEqualCount(newPos,newPos+curEqLength,lastOldPos+(newPos-lastNewPos),diff);
+            if ((curEqLength<lastLinkEqLength+kUnLinkLength)&&(newPos-lastNewPos>0)){//use link
+                const TInt32 linkEqLength=getEqualLength(diff.oldData+lastOldPos+(newPos-lastNewPos), diff.oldData_end,diff.newData+newPos, diff.newData_end);
+                const TInt32 linkLength=(newPos-lastNewPos)+linkEqLength;
                 if (diff.cover.empty()){
-                    diff.cover.push_back(TOldCover(lastNewPos,lastOldPos,length));
+                    diff.cover.push_back(TOldCover(lastNewPos,lastOldPos,linkLength));
                 }else{
                     TOldCover& curCover=diff.cover.back();
-                    curCover.length+=length;
+                    curCover.length+=linkLength;
                 }
-                newPos+=curLength;//not eqLength?;
+                newPos+=std::max(linkEqLength,curEqLength);//实际等价于+=curEqLength;
             }else{ //use match
-                diff.cover.push_back(TOldCover(newPos,curOldPos,curLength));
-                newPos+=curLength;
+                diff.cover.push_back(TOldCover(newPos,curOldPos,curEqLength));
+                newPos+=curEqLength;
             }
             TOldCover& curCover=diff.cover.back();
             lastOldPos=curCover.oldPos+curCover.length;
             lastNewPos=curCover.newPos+curCover.length;
-            curMinMatchLength=kMinMatchLength;
         }else{
-            ++newPos;
-            --curMinMatchLength;
-            if (curMinMatchLength<kMinMatchLength)
-                curMinMatchLength=kMinMatchLength;
+            ++newPos;//下一个需要匹配的字符串.
+            //匹配不成功时,速度会比较慢.
         }
     }
 }
     
-
+//选择合适的覆盖线,去掉不合适的.
 static void select_cover(TDiffData& diff){
     std::vector<TOldCover>&  cover=diff.cover;
     
@@ -203,6 +208,7 @@ static void select_cover(TDiffData& diff){
 }
     
     
+    //得到可以扩展位置的长度.
     static TInt32 getCanExtendLength(TInt32 oldPos,TInt32 newPos,int inc,TInt32 newPos_min,TInt32 newPos_end,const TDiffData& diff){
         const float kMinSameRatio=0.4f;
         const float kMinTustSameRatio=0.55f;
@@ -227,9 +233,9 @@ static void select_cover(TDiffData& diff){
         
         return curBestLength;
     }
-
+    
+//尝试延长覆盖区域.
 static void extend_cover(TDiffData& diff){
-    //尝试延长覆盖区域.
     std::vector<TOldCover>&  cover=diff.cover;
     
     TInt32 lastNewPos=0;
@@ -255,7 +261,7 @@ static void extend_cover(TDiffData& diff){
     }
 }
 
-    
+//用覆盖线得到差异数据.
 static void sub_cover(TDiffData& diff){
     std::vector<TOldCover>& cover=diff.cover;
     const TByte*            newData=diff.newData;
@@ -281,7 +287,7 @@ static void sub_cover(TDiffData& diff){
     }
 }
 
-
+//diff结果序列化输出.
 static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_serializeDiffStream){
     const TInt32 ctrlCount=(TInt32)diff.cover.size();
     std::vector<TByte> length_buf;
@@ -339,8 +345,9 @@ void create_diff(const TByte* newData,const TByte* newData_end,const TByte* oldD
     diff.oldData_end=oldData_end;
     
     search_cover(diff);
+    extend_cover(diff);//先尝试扩展.
     select_cover(diff);
-    extend_cover(diff);
+    extend_cover(diff);//select_cover会删除一些覆盖线,所以重新扩展.
     sub_cover(diff);
     serialize_diff(diff,out_diff);
 }

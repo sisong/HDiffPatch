@@ -1,6 +1,6 @@
 HDiffPatch
 ================
-Version 1.0.1  
+Version 1.0.2  
 byte data Diff & Patch  C\C++ library.  
 
 ---
@@ -22,7 +22,7 @@ uses like this:
     oldSize or newSize < 2G Byte.  
   
 ===
-**HDiff1.0 vs  BSDiff4.3 :**    
+**HDiff1.0.0 vs  BSDiff4.3 :**    
     system: Windows7-x64 ,  CPU: i7 2.3G , Memroy: 6G DDR3 1600MHz, 7Zip use LZMA2  
 
 ```
