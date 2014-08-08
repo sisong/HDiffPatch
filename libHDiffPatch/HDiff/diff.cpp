@@ -40,11 +40,11 @@ namespace hdiffpatch {
 
 //todo:寻找更短的线,允许重叠,(考虑编码代价权重)然后优化一个路径算法.
 ////////
-const int kMinMatchLength=7; //最小搜寻覆盖长度.
-const int kMinSangleMatchLength=17; //最小独立覆盖长度. 17 //二进制8-10(best)-21 文本: 17-21
-const int kUnLinkLength=4; //搜索时不能合并的代价.
-const int kMinTrustMatchLength=1024*8; //(贪婪)选定该覆盖线(优化一些速度).
-const int kMaxLinkSpaceLength=128; //跨覆盖线合并时,允许合并的最远距离.
+const int kMinMatchLength=7;            //最小搜寻覆盖长度.
+const int kMinSangleMatchLength=17;     //最小独立覆盖长度. 17 //二进制8-10(best)-21 文本: 17-21
+const int kUnLinkLength=4;              //搜索时不能合并的代价.
+const int kMinTrustMatchLength=1024*8;  //(贪婪)选定该覆盖线(优化一些速度).
+const int kMaxLinkSpaceLength=128;      //跨覆盖线合并时,允许合并的最远距离.
 
 struct TOldCover;
 
@@ -53,9 +53,9 @@ struct TDiffData{
     const TByte*            newData_end;
     const TByte*            oldData;
     const TByte*            oldData_end;
-    std::vector<TByte>      newDataSubDiff;
-    std::vector<TByte>      newDataDiff;
-    std::vector<TOldCover>  cover;
+    std::vector<TOldCover>  cover;          //选出的覆盖线.
+    std::vector<TByte>      newDataDiff;    //集中储存newData中没有被覆盖线覆盖住的字节数据.
+    std::vector<TByte>      newDataSubDiff; //newData中的每个数值减去对应的cover线条的oldData数值和newDataDiff的数值.
 };
 
 //覆盖线.

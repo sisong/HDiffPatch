@@ -33,6 +33,9 @@
 #include "assert.h" //assert
 #include "patch_base.h"
 
+//PATCH_RUN_MEM_SAFE_CHECK用来启动内存访问越界检查.
+#define PATCH_RUN_MEM_SAFE_CHECK
+
 static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,const TByte* rle_code,const TByte* rle_code_end);
 static void addData(TByte* dst,const TByte* src,TUInt32 length);
 static TUInt32 unpack32BitWithTag(const TByte** src_code,const TByte* src_code_end,const int kTagBit);
