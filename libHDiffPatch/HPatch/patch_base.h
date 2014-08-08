@@ -33,7 +33,8 @@
 #define HPatch_patch_base_h
 
 #ifdef _MSC_VER
-#pragma warning(disable : 4819)  //for utf-8 source code
+//for utf-8 source code
+#pragma warning(disable : 4819)
 #endif
 
 typedef unsigned char TByte;

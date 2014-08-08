@@ -116,7 +116,7 @@ int main(int argc, const char * argv[]){
         for (int i=0; i<oldSize; ++i)
             oldData[i]=rand();
         const int copyCount=0+(int)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount);
-        const int kMaxCopyLength=1+rand()*(1.0/RAND_MAX)*oldSize*0.8;
+        const int kMaxCopyLength=(int)(1+rand()*(1.0/RAND_MAX)*oldSize*0.8);
         for (int i=0; i<copyCount; ++i) {
             const int length=1+(int)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxCopyLength);
             if ((length>oldSize)||(length>newSize)) {

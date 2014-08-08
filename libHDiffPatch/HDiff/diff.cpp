@@ -210,25 +210,34 @@ static void select_cover(TDiffData& diff){
     
     //得到可以扩展位置的长度.
     static TInt32 getCanExtendLength(TInt32 oldPos,TInt32 newPos,int inc,TInt32 newPos_min,TInt32 newPos_end,const TDiffData& diff){
-        const float kMinSameRatio=0.4f;
-        const float kMinTustSameRatio=0.55f;
+        //todo:更准确的代价模型?
         const int   kSmoothLength=4;
+        typedef TInt32 TFixedFloat10000;
+        //const float kMinSameRatio=0.40f;
+        const TFixedFloat10000 kMinSameRatio=4000;
+        //const float kMinTustSameRatio=0.65f;
+        const TFixedFloat10000 kMinTustSameRatio=6500;
         
+        //float curBestSameRatio=0;
+        TFixedFloat10000 curBestSameRatio=0;
         TInt32 curBestLength=0;
-        float curBestSameRatio=0;
         TInt32 curSameCount=0;
         for (TInt32 length=1; (oldPos>=0)&&(oldPos<(diff.oldData_end-diff.oldData))
-                            &&(newPos>=newPos_min)&&(newPos<newPos_end); ++length,oldPos+=inc,newPos+=inc) {
+             &&(newPos>=newPos_min)&&(newPos<newPos_end); ++length,oldPos+=inc,newPos+=inc) {
             if (diff.oldData[oldPos]==diff.newData[newPos]){
                 ++curSameCount;
-                const float curSameRatio=(float)curSameCount/(length+kSmoothLength);
+                
+                //const float curSameRatio=((float)curSameCount)/(length+kSmoothLength);
+                if (curSameCount>= ((1<<30)/10000)) break; //for curSameCount*10000
+                const TFixedFloat10000 curSameRatio=curSameCount*10000/(length+kSmoothLength);
+                
                 if ((curSameRatio>=curBestSameRatio)||(curSameRatio>=kMinTustSameRatio)){
                     curBestSameRatio=curSameRatio;
                     curBestLength=length;
                 }
             }
         }
-        if (curBestSameRatio<kMinSameRatio)//ok
+        if ((curBestSameRatio<kMinSameRatio)||(curBestLength<=2))//ok
             curBestLength=0;
         
         return curBestLength;
