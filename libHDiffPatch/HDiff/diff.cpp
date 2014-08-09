@@ -38,10 +38,9 @@
 
 namespace hdiffpatch {
 
-//todo:寻找更短的线,允许重叠,(考虑编码代价权重)然后优化一个路径算法.
 ////////
 const int kMinMatchLength=7;            //最小搜寻覆盖长度.
-const int kMinSangleMatchLength=17;     //最小独立覆盖长度. 17 //二进制8-10(best)-21 文本: 17-21
+const int kMinSangleMatchLength=17;     //最小独立覆盖长度. //二进制8-10(best)-21 文本: 17-21
 const int kUnLinkLength=4;              //搜索时不能合并的代价.
 const int kMinTrustMatchLength=1024*8;  //(贪婪)选定该覆盖线(优化一些速度).
 const int kMaxLinkSpaceLength=128;      //跨覆盖线合并时,允许合并的最远距离.
@@ -210,13 +209,12 @@ static void select_cover(TDiffData& diff){
     
     //得到可以扩展位置的长度.
     static TInt32 getCanExtendLength(TInt32 oldPos,TInt32 newPos,int inc,TInt32 newPos_min,TInt32 newPos_end,const TDiffData& diff){
-        //todo:更准确的代价模型?
         const int   kSmoothLength=4;
         typedef TInt32 TFixedFloat10000;
         //const float kMinSameRatio=0.40f;
-        const TFixedFloat10000 kMinSameRatio=4000;
+        const TFixedFloat10000 kExtendMinSameRatio=4000;
         //const float kMinTustSameRatio=0.65f;
-        const TFixedFloat10000 kMinTustSameRatio=6500;
+        const TFixedFloat10000 kExtendMinTustSameRatio=6500;
         
         //float curBestSameRatio=0;
         TFixedFloat10000 curBestSameRatio=0;
@@ -231,13 +229,13 @@ static void select_cover(TDiffData& diff){
                 if (curSameCount>= ((1<<30)/10000)) break; //for curSameCount*10000
                 const TFixedFloat10000 curSameRatio=curSameCount*10000/(length+kSmoothLength);
                 
-                if ((curSameRatio>=curBestSameRatio)||(curSameRatio>=kMinTustSameRatio)){
+                if ((curSameRatio>=curBestSameRatio)||(curSameRatio>=kExtendMinTustSameRatio)){
                     curBestSameRatio=curSameRatio;
                     curBestLength=length;
                 }
             }
         }
-        if ((curBestSameRatio<kMinSameRatio)||(curBestLength<=2))//ok
+        if ((curBestSameRatio<kExtendMinSameRatio)||(curBestLength<=2))//ok
             curBestLength=0;
         
         return curBestLength;

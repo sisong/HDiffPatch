@@ -73,6 +73,7 @@ int main(int argc, const char * argv[]){
     const char* oldFileName=argv[1];
     const char* newFileName=argv[2];
     const char* outDiffFileName=argv[3];
+    printf("old:\"%s\"  new:\"%s\" out:\"%s\"\n",oldFileName,newFileName,outDiffFileName);
 
     std::vector<TByte> oldData; readFile(oldData,oldFileName);
     std::vector<TByte> newData; readFile(newData,newFileName);
