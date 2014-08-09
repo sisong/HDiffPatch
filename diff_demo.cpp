@@ -97,7 +97,7 @@ int main(int argc, const char * argv[]){
         printf("check diff data ok!\n");
     }
     writeFile(diffData,outDiffFileName);
-    printf("out diff file ok!\nnewDataSize: %d\noldDataSize: %d\ndiffDataSize: %d",newDataSize,oldDataSize,(int)diffData.size());
+    printf("out diff file ok!\nnewDataSize: %d\noldDataSize: %d\ndiffDataSize: %d\n",newDataSize,oldDataSize,(int)diffData.size());
     return 0;
 }
 

@@ -32,9 +32,6 @@
 #ifndef HPatch_patch_h
 #define HPatch_patch_h
 
-//PATCH_RUN_MEM_SAFE_CHECK用来启动内存访问越界检查.
-#define PATCH_RUN_MEM_SAFE_CHECK
-
 #ifdef __cplusplus
 extern "C"
 {

@@ -40,11 +40,11 @@ namespace hdiffpatch {
 
 //todo:寻找更短的线,允许重叠,(考虑编码代价权重)然后优化一个路径算法.
 ////////
-const int kMinMatchLength=7; //最小搜寻覆盖长度.
-const int kMinSangleMatchLength=17; //最小独立覆盖长度. 17 //二进制8-10(best)-21 文本: 17-21
-const int kUnLinkLength=4; //搜索时不能合并的代价.
-const int kMinTrustMatchLength=1024*8; //(贪婪)选定该覆盖线(优化一些速度).
-const int kMaxLinkSpaceLength=128; //跨覆盖线合并时,允许合并的最远距离.
+const int kMinMatchLength=7;            //最小搜寻覆盖长度.
+const int kMinSangleMatchLength=17;     //最小独立覆盖长度. 17 //二进制8-10(best)-21 文本: 17-21
+const int kUnLinkLength=4;              //搜索时不能合并的代价.
+const int kMinTrustMatchLength=1024*8;  //(贪婪)选定该覆盖线(优化一些速度).
+const int kMaxLinkSpaceLength=128;      //跨覆盖线合并时,允许合并的最远距离.
 
 struct TOldCover;
 
@@ -53,9 +53,9 @@ struct TDiffData{
     const TByte*            newData_end;
     const TByte*            oldData;
     const TByte*            oldData_end;
-    std::vector<TByte>      newDataSubDiff;
-    std::vector<TByte>      newDataDiff;
-    std::vector<TOldCover>  cover;
+    std::vector<TOldCover>  cover;          //选出的覆盖线.
+    std::vector<TByte>      newDataDiff;    //集中储存newData中没有被覆盖线覆盖住的字节数据.
+    std::vector<TByte>      newDataSubDiff; //newData中的每个数值减去对应的cover线条的oldData数值和newDataDiff的数值.
 };
 
 //覆盖线.
@@ -210,25 +210,34 @@ static void select_cover(TDiffData& diff){
     
     //得到可以扩展位置的长度.
     static TInt32 getCanExtendLength(TInt32 oldPos,TInt32 newPos,int inc,TInt32 newPos_min,TInt32 newPos_end,const TDiffData& diff){
-        const float kMinSameRatio=0.4f;
-        const float kMinTustSameRatio=0.55f;
+        //todo:更准确的代价模型?
         const int   kSmoothLength=4;
+        typedef TInt32 TFixedFloat10000;
+        //const float kMinSameRatio=0.40f;
+        const TFixedFloat10000 kMinSameRatio=4000;
+        //const float kMinTustSameRatio=0.65f;
+        const TFixedFloat10000 kMinTustSameRatio=6500;
         
+        //float curBestSameRatio=0;
+        TFixedFloat10000 curBestSameRatio=0;
         TInt32 curBestLength=0;
-        float curBestSameRatio=0;
         TInt32 curSameCount=0;
         for (TInt32 length=1; (oldPos>=0)&&(oldPos<(diff.oldData_end-diff.oldData))
-                            &&(newPos>=newPos_min)&&(newPos<newPos_end); ++length,oldPos+=inc,newPos+=inc) {
+             &&(newPos>=newPos_min)&&(newPos<newPos_end); ++length,oldPos+=inc,newPos+=inc) {
             if (diff.oldData[oldPos]==diff.newData[newPos]){
                 ++curSameCount;
-                const float curSameRatio=(float)curSameCount/(length+kSmoothLength);
+                
+                //const float curSameRatio=((float)curSameCount)/(length+kSmoothLength);
+                if (curSameCount>= ((1<<30)/10000)) break; //for curSameCount*10000
+                const TFixedFloat10000 curSameRatio=curSameCount*10000/(length+kSmoothLength);
+                
                 if ((curSameRatio>=curBestSameRatio)||(curSameRatio>=kMinTustSameRatio)){
                     curBestSameRatio=curSameRatio;
                     curBestLength=length;
                 }
             }
         }
-        if (curBestSameRatio<kMinSameRatio)//ok
+        if ((curBestSameRatio<kMinSameRatio)||(curBestLength<=2))//ok
             curBestLength=0;
         
         return curBestLength;

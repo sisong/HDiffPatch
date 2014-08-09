@@ -76,7 +76,18 @@ int main(int argc, const char * argv[]){
     errorCount+=!test("a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr", "asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr", "11");
     errorCount+=!test("123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1", "asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr", "12");
     errorCount+=!test("a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1", "asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr", "13");
-    errorCount+=!test("a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1", "a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1", "14");
+    
+    {
+        const char* _strData14="a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1";
+        const TByte* data14=(const TByte*)_strData14;
+        const int dataSize=(int)strlen(_strData14);
+        int diffSize14=0;
+        errorCount+=!test(data14, data14+dataSize,data14, data14+dataSize, "14",&diffSize14);
+        if (diffSize14>=dataSize){
+            ++errorCount;
+            printf("error!!! tag:%s\n","14 test diff size");
+        }
+    }
 
     const int kRandTestCount=100000;
     const int kMaxDataSize=1024*8;
@@ -105,7 +116,7 @@ int main(int argc, const char * argv[]){
         for (int i=0; i<oldSize; ++i)
             oldData[i]=rand();
         const int copyCount=0+(int)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount);
-        const int kMaxCopyLength=1+rand()*(1.0/RAND_MAX)*oldSize*0.8;
+        const int kMaxCopyLength=(int)(1+rand()*(1.0/RAND_MAX)*oldSize*0.8);
         for (int i=0; i<copyCount; ++i) {
             const int length=1+(int)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxCopyLength);
             if ((length>oldSize)||(length>newSize)) {
