@@ -32,11 +32,6 @@
 #ifndef HPatch_patch_base_h
 #define HPatch_patch_base_h
 
-#ifdef _MSC_VER
-//for utf-8 source code
-#pragma warning(disable : 4819)
-#endif
-
 typedef unsigned char TByte;
 typedef unsigned int  TUInt32;
 
