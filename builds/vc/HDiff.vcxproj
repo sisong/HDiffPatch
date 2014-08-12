@@ -164,12 +164,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\libHDiffPatch\HDiff\diff.h" />
-    <ClInclude Include="..\..\libHDiffPatch\HDiff\diff_base.h" />
     <ClInclude Include="..\..\libHDiffPatch\HDiff\private_diff\bytes_rle.h" />
+    <ClInclude Include="..\..\libHDiffPatch\HDiff\private_diff\pack_uint.h" />
     <ClInclude Include="..\..\libHDiffPatch\HDiff\private_diff\sais.hxx" />
     <ClInclude Include="..\..\libHDiffPatch\HDiff\private_diff\suffix_string.h" />
     <ClInclude Include="..\..\libHDiffPatch\HPatch\patch.h" />
-    <ClInclude Include="..\..\libHDiffPatch\HPatch\patch_base.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

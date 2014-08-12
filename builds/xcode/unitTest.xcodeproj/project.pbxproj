@@ -27,9 +27,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		801FA5621999090000F7E57B /* pack_uint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pack_uint.h; sourceTree = "<group>"; };
 		D6BD9BA117578491004886DE /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
 		D6BD9BA217578491004886DE /* diff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diff.h; sourceTree = "<group>"; };
-		D6BD9BA317578491004886DE /* diff_base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diff_base.h; sourceTree = "<group>"; };
 		D6BD9BA517578491004886DE /* bytes_rle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bytes_rle.cpp; sourceTree = "<group>"; };
 		D6BD9BA617578491004886DE /* bytes_rle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bytes_rle.h; sourceTree = "<group>"; };
 		D6BD9BA717578491004886DE /* sais.hxx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = sais.hxx; sourceTree = "<group>"; };
@@ -37,7 +37,6 @@
 		D6BD9BA917578491004886DE /* suffix_string.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = suffix_string.h; sourceTree = "<group>"; };
 		D6BD9BAB17578491004886DE /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 		D6BD9BAC17578491004886DE /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
-		D6BD9BAD17578491004886DE /* patch_base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_base.h; sourceTree = "<group>"; };
 		D6BD9BAE17578491004886DE /* unit_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = unit_test.cpp; path = ../../unit_test.cpp; sourceTree = "<group>"; };
 		D6CB33611664FD2900AB34B7 /* unitTest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = unitTest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -68,7 +67,6 @@
 			children = (
 				D6BD9BA117578491004886DE /* diff.cpp */,
 				D6BD9BA217578491004886DE /* diff.h */,
-				D6BD9BA317578491004886DE /* diff_base.h */,
 				D6BD9BA417578491004886DE /* private_diff */,
 			);
 			path = HDiff;
@@ -77,6 +75,7 @@
 		D6BD9BA417578491004886DE /* private_diff */ = {
 			isa = PBXGroup;
 			children = (
+				801FA5621999090000F7E57B /* pack_uint.h */,
 				D6BD9BA517578491004886DE /* bytes_rle.cpp */,
 				D6BD9BA617578491004886DE /* bytes_rle.h */,
 				D6BD9BA717578491004886DE /* sais.hxx */,
@@ -91,7 +90,6 @@
 			children = (
 				D6BD9BAB17578491004886DE /* patch.c */,
 				D6BD9BAC17578491004886DE /* patch.h */,
-				D6BD9BAD17578491004886DE /* patch_base.h */,
 			);
 			path = HPatch;
 			sourceTree = "<group>";
@@ -139,7 +137,7 @@
 		D6CB33591664FD2900AB34B7 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0500;
+				LastUpgradeCheck = 0510;
 				ORGANIZATIONNAME = HouSisong;
 			};
 			buildConfigurationList = D6CB335C1664FD2900AB34B7 /* Build configuration list for PBXProject "unitTest" */;

@@ -38,7 +38,7 @@
 #include <stdlib.h>
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HPatch/patch.h"
-using namespace hdiffpatch;
+typedef unsigned char TByte;
 
 static bool test(const TByte* newData,const TByte* newData_end,const TByte* oldData,const TByte* oldData_end,const char* tag,int* out_diffSize=0){
     std::vector<TByte> diffData;

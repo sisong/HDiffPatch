@@ -3,7 +3,7 @@
 //快速解压的一个通用字节流压缩rle算法.
 //
 /*
- Copyright (c) 2012-2013 HouSisong All Rights Reserved.
+ Copyright (c) 2012-2014 HouSisong All Rights Reserved.
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -27,8 +27,8 @@
  OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef WH_BYTES_RLE_H_
-#define WH_BYTES_RLE_H_
+#ifndef __BYTES_RLE_H_
+#define __BYTES_RLE_H_
 
 #include <vector>
     
@@ -38,4 +38,4 @@ public:
     static void save(std::vector<unsigned char>& out_code,const unsigned char* src,const unsigned char* src_end,int rle_parameter=kRle_default);
 };
 
-#endif //WH_BYTES_RLE_H_
+#endif //__BYTES_RLE_H_

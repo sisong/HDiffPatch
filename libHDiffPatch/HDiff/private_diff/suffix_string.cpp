@@ -3,7 +3,7 @@
 //后缀字符串的一个实现.
 //
 /*
- Copyright (c) 2012-2013 HouSisong All Rights Reserved.
+ Copyright (c) 2012-2014 HouSisong All Rights Reserved.
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation

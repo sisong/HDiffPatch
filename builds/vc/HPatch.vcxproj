@@ -157,7 +157,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\libHDiffPatch\HPatch\patch.h" />
-    <ClInclude Include="..\..\libHDiffPatch\HPatch\patch_base.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

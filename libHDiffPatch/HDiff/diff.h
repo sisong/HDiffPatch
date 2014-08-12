@@ -5,7 +5,7 @@
 /*
  This is the HDiff copyright.
  
- Copyright (c) 2012-2013 HouSisong All Rights Reserved.
+ Copyright (c) 2012-2014 HouSisong All Rights Reserved.
  (The MIT License)
  
  Permission is hereby granted, free of charge, to any person
@@ -33,7 +33,7 @@
 #ifndef HDiff_diff_h
 #define HDiff_diff_h
 
-#include "diff_base.h"
+#include <vector>
 
 //生成diff数据.
 void create_diff(const unsigned char* newData,const unsigned char* newData_end,const unsigned char* oldData,const unsigned char* oldData_end,std::vector<unsigned char>& out_diff);

@@ -27,7 +27,6 @@
 		D6553CB3165FA1A9009D4C44 /* HPatch */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HPatch; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6BD9BCA17578601004886DE /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 		D6BD9BCB17578601004886DE /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
-		D6BD9BCC17578601004886DE /* patch_base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_base.h; sourceTree = "<group>"; };
 		D6BD9BCD17578601004886DE /* patch_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = patch_demo.cpp; path = ../../patch_demo.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -64,7 +63,6 @@
 			children = (
 				D6BD9BCA17578601004886DE /* patch.c */,
 				D6BD9BCB17578601004886DE /* patch.h */,
-				D6BD9BCC17578601004886DE /* patch_base.h */,
 			);
 			name = HPatch;
 			path = ../../libHDiffPatch/HPatch;
