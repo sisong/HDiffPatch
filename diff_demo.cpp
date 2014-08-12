@@ -37,31 +37,38 @@
 #include <stdlib.h>
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HPatch/patch.h"
-
-using namespace hdiffpatch;
+typedef unsigned char  TByte;
+typedef unsigned int TUInt32;
+typedef ptrdiff_t TInt;
 
 void readFile(std::vector<TByte>& data,const char* fileName){
     FILE	* file=fopen(fileName, "rb");
-
+    if (file==0) exit(1);
+    
 	fseek(file,0,SEEK_END);
-	int file_length = (int)ftell(file);
+	TInt file_length = (TInt)ftell(file);
 	fseek(file,0,SEEK_SET);
-
+    
     data.resize(file_length);
+    TInt readed=0;
     if (file_length>0)
-        fread(&data[0],1,file_length,file);
-
+        readed=(TInt)fread(&data[0],1,file_length,file);
+    
     fclose(file);
+    if (readed!=file_length) exit(1);
 }
 
 void writeFile(const std::vector<TByte>& data,const char* fileName){
     FILE	* file=fopen(fileName, "wb");
-
-    int dataSize=(int)data.size();
+    if (file==0) exit(1);
+    
+    TInt dataSize=(TInt)data.size();
+    TInt writed=0;
     if (dataSize>0)
-        fwrite(&data[0], 1,dataSize, file);
-
+        writed=(TInt)fwrite(&data[0], 1,dataSize, file);
+    
     fclose(file);
+    if (writed!=dataSize) exit(1);
 }
 
 
@@ -73,18 +80,24 @@ int main(int argc, const char * argv[]){
     const char* oldFileName=argv[1];
     const char* newFileName=argv[2];
     const char* outDiffFileName=argv[3];
+    printf("old:\"%s\"  new:\"%s\" out:\"%s\"\n",oldFileName,newFileName,outDiffFileName);
 
     std::vector<TByte> oldData; readFile(oldData,oldFileName);
     std::vector<TByte> newData; readFile(newData,newFileName);
-    const unsigned int oldDataSize=(int)oldData.size();
-    const unsigned int newDataSize=(int)newData.size();
+    const TUInt32 kMaxDataSize= (1<<30)-1 + (1<<30);//2G
+    if ((oldData.size()>kMaxDataSize)||(newData.size()>kMaxDataSize)) {
+        printf("not support:old filesize or new filesize too big than 2GB.\n");
+        return 1;
+    }
+    const TUInt32 oldDataSize=(TUInt32)oldData.size();
+    const TUInt32 newDataSize=(TUInt32)newData.size();
 
     std::vector<TByte> diffData;
     diffData.push_back(newDataSize);
     diffData.push_back(newDataSize>>8);
     diffData.push_back(newDataSize>>16);
     diffData.push_back(newDataSize>>24);
-    const int kNewDataSize=4;
+    const TUInt32 kNewDataSize=4;
 
 
     TByte* newData_begin=0; if (!newData.empty()) newData_begin=&newData[0];
@@ -97,7 +110,7 @@ int main(int argc, const char * argv[]){
         printf("check diff data ok!\n");
     }
     writeFile(diffData,outDiffFileName);
-    printf("out diff file ok!\nnewDataSize: %d\noldDataSize: %d\ndiffDataSize: %d\n",newDataSize,oldDataSize,(int)diffData.size());
+    printf("out diff file ok!\nnewDataSize: %d\noldDataSize: %d\ndiffDataSize: %d\n",newDataSize,oldDataSize,(TUInt32)diffData.size());
     return 0;
 }
 

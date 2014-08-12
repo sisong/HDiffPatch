@@ -37,29 +37,37 @@
 #include <stdlib.h>
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char TByte;
+typedef size_t TUInt;
+typedef ptrdiff_t TInt;
 
 void readFile(std::vector<TByte>& data,const char* fileName){
     FILE	* file=fopen(fileName, "rb");
+    if (file==0) exit(1);
 
 	fseek(file,0,SEEK_END);
-	int file_length = (int)ftell(file);
+	TInt file_length = (TInt)ftell(file);
 	fseek(file,0,SEEK_SET);
 
     data.resize(file_length);
+    TInt readed=0;
     if (file_length>0)
-        fread(&data[0],1,file_length,file);
+        readed=(TInt)fread(&data[0],1,file_length,file);
 
     fclose(file);
+    if (readed!=file_length) exit(1);
 }
 
 void writeFile(const std::vector<TByte>& data,const char* fileName){
     FILE	* file=fopen(fileName, "wb");
+    if (file==0) exit(1);
 
-    int dataSize=(int)data.size();
+    TInt dataSize=(TInt)data.size();
+    TInt writed=0;
     if (dataSize>0)
-        fwrite(&data[0], 1,dataSize, file);
+        writed=(TInt)fwrite(&data[0], 1,dataSize, file);
 
     fclose(file);
+    if (writed!=dataSize) exit(1);
 }
 
 int main(int argc, const char * argv[]){
@@ -73,16 +81,16 @@ int main(int argc, const char * argv[]){
 
     std::vector<TByte> oldData; readFile(oldData,oldFileName);
     std::vector<TByte> diffData; readFile(diffData,diffFileName);
-    const int oldDataSize=(int)oldData.size();
-    const int diffDataSize=(int)diffData.size();
-    const int kNewDataSizeSavedSize=4;
+    const TUInt oldDataSize=(TUInt)oldData.size();
+    const TUInt diffDataSize=(TUInt)diffData.size();
+    const TUInt kNewDataSizeSavedSize=4;
     if (diffDataSize<kNewDataSizeSavedSize){
         printf("diffDataSize error!");
         return 1;
     }
 
     std::vector<TByte> newData;
-    const int newDataSize=diffData[0] | (diffData[1]<<8)| (diffData[2]<<16)| (diffData[3]<<24);
+    const TUInt newDataSize=diffData[0] | (diffData[1]<<8)| (diffData[2]<<16)| (diffData[3]<<24);
     newData.resize(newDataSize);
     TByte* newData_begin=0; if (!newData.empty()) newData_begin=&newData[0];
     const TByte* oldData_begin=0; if (!oldData.empty()) oldData_begin=&oldData[0];

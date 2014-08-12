@@ -3,7 +3,7 @@
 //后缀字符串的一个实现.
 //
 /*
- Copyright (c) 2012-2013 HouSisong All Rights Reserved.
+ Copyright (c) 2012-2014 HouSisong All Rights Reserved.
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -28,8 +28,8 @@
 */
 
 
-#ifndef WH_SUFFIX_STRING_H_
-#define WH_SUFFIX_STRING_H_
+#ifndef __SUFFIX_STRING_H_
+#define __SUFFIX_STRING_H_
 #include <vector>
 #include "string.h" //for strlen
 
@@ -56,7 +56,7 @@
 
         void LCP_create(); //need R_create();
         std::vector<TInt>   LCP;        //lcp(i,i+1)  相邻后缀字符串之间的最长公共前缀.
-        //todo:inline const Int32 getEqualLength_withLCP(TSuffixIndex aString,TSuffixIndex bString)const;
+        //todo:inline const TInt getEqualLength_withLCP(TSuffixIndex aString,TSuffixIndex bString)const;
     };
 
-#endif //WH_SUFFIX_STRING_H_
+#endif //__SUFFIX_STRING_H_
