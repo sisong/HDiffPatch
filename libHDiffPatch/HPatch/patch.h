@@ -39,9 +39,9 @@ extern "C"
     
 #define hpatch_BOOL   int
 #define hpatch_FALSE  0
-//#define hpatch_TRUE   (!hpatch_FALSE)
     
-hpatch_BOOL patch(unsigned char* newData,unsigned char* newData_end,
+//if patch false return hpatch_FALSE
+hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
             const unsigned char* oldData,const unsigned char* oldData_end,
             const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
     

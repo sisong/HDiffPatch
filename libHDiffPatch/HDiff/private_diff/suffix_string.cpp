@@ -33,156 +33,77 @@
 #include <stdexcept>
 #include "sais.hxx"
 
+//#define IS_TEST_USE_STD_SORT
+
 namespace {
-    
-typedef TSuffixString::TInt TInt;
-    
-static bool getStringIsEqual(const char* str0,const char* str0End,const char* str1,const char* str1End){
-    const TInt strSize=(TInt)(str0End-str0);
-    if (strSize!=(str1End-str1))
-        return false;
-    for (TInt i=0;i<strSize;++i){
-        if (str0[i]!=str1[i])
-            return false;
-    }
-    return true;
-}
 
 static bool getStringIsLess(const char* str0,const char* str0End,const char* str1,const char* str1End){
-    while ((str0!=str0End)&&(str1!=str1End)) {
-        unsigned char a=*str0; ++str0;
-        unsigned char b=*str1; ++str1;
-        if(a!=b){
-            return a<b;
-        }
+    TSAInt L0=(TSAInt)(str0End-str0);
+    TSAInt L1=(TSAInt)(str1End-str1);
+#ifdef IS_TEST_USE_STD_SORT
+    const int kMaxCmpLength=1024*4;
+    if (L0>kMaxCmpLength) L0=kMaxCmpLength;
+    if (L1>kMaxCmpLength) L1=kMaxCmpLength;
+#endif
+    TSAInt LMin;
+    if (L0<L1) LMin=L0; else LMin=L1;
+    for (int i=0; i<LMin; ++i){
+        TSAInt sub=TSAInt(((unsigned char*)str0)[i])-TSAInt(((unsigned char*)str1)[i]);
+        if (sub==0) continue;
+        return sub<0;
     }
-    return (str1!=str1End);
+    return (L0<L1);
 }
 
 struct StringToken{
-private:
-    const char* m_begin;
-    const char* m_end;
-public:
-public:
-    inline StringToken():m_begin(0),m_end(0){}
-    inline StringToken(const StringToken& value):m_begin(value.m_begin),m_end(value.m_end){}
-    inline explicit StringToken(const char* _begin,const char* _end){ reset(_begin,_end); }
-    inline void reset(const char* _begin,const char* _end){ m_begin=_begin; m_end=_end; }
-    inline const char* begin()const { return m_begin; }
-    inline const char* end()const { return m_end; }
-    inline void swap(StringToken& value){ std::swap(m_begin,value.m_begin); std::swap(m_end,value.m_end); }
-    
-    inline bool operator==(const StringToken& value)const{
-        return getStringIsEqual(m_begin,m_end,value.m_begin,value.m_end);
-    }
-    inline bool operator !=(const StringToken& value)const{ return !(*this==value); }
-    inline TInt getStringLength()const{ return (TInt)(m_end-m_begin); }
-    inline bool operator <(const StringToken& value)const{
-        return getStringIsLess(m_begin,m_end,value.m_begin,value.m_end);
-    }
+    const char* begin;
+    const char* end;
+    inline explicit StringToken(const char* _begin,const char* _end):begin(_begin),end(_end){}
 };
 
 class TSuffixString_compare{
 public:
     inline TSuffixString_compare(const char* begin,const char* end):m_begin(begin),m_end(end){}
-     inline bool operator()(const TSuffixIndex s0,const StringToken& s1)const{
-        return StringToken(m_begin+s0,m_end)<s1;
+     inline bool operator()(const TSAInt s0,const StringToken& s1)const{
+         return getStringIsLess(m_begin+s0,m_end,s1.begin,s1.end);
     }
-    inline bool operator()(const StringToken& s0,const TSuffixIndex s1)const{
-        return s0<StringToken(m_begin+s1,m_end);
+    inline bool operator()(const StringToken& s0,const TSAInt s1)const{
+        return getStringIsLess(s0.begin,s0.end,m_begin+s1,m_end);
     }
-    inline bool operator()(const StringToken& s0,const StringToken& s1)const{
-        return s0<s1;
-    }
-    inline bool operator()(const TSuffixIndex s0,const TSuffixIndex s1)const{
-        return StringToken(m_begin+s0,m_end)<StringToken(m_begin+s1,m_end);
+    inline bool operator()(const TSAInt s0,const TSAInt s1)const{
+        return getStringIsLess(m_begin+s0,m_end,m_begin+s1,m_end);
     }
 private:
     const char* m_begin;
     const char* m_end;
 };
 
-    /*
-    static void _suffixString_create(const char* src,const char* src_end,Vector<TSuffixIndex>* out_sstring){
-        Vector<TInt>& sstring=*out_sstring;
-        //init sstring
-        TInt size=(TInt)(src_end-src);
-        sstring.resize(size);
-        if (size<=0) return;
-        for (TInt i=0;i<size;++i)
-            sstring[i]=i;
-        
-        //sort sstring
-        std::sort<TInt*,const TSuffixString_compare&>(&sstring[0],&sstring[0]+size,TSuffixString_compare(src,src_end));
-    }*/
+static void _suffixString_create(const char* src,const char* src_end,TSuffixString::TSArray& out_sstring){
+    TSAInt size=(TSAInt)(src_end-src);
+    out_sstring.resize(size);
+    if (size<=0) return;
     
-    //*
-    static void _suffixString_create(const char* src,const char* src_end,std::vector<TSuffixIndex>* out_sstring){
-        std::vector<TSuffixIndex>& sstring=*out_sstring;
-        //init sstring
-        TInt size=(TInt)(src_end-src);
-        sstring.resize(size);
-        if (size<=0) return;
-        if (saisxx((const unsigned char*)src, &sstring[0], size) !=0){
-            throw std::runtime_error("suffixString_create() error.");
-        }
-    }//*/
-    
-    
-    static void _LCP_create(const char* T,TInt n,const TInt* SA,const TInt* R,TInt* LCP){
-        /* //not need R ,but slow
-        if (n>0)
-            LCP[n-1]=0;
-        for (int i = 1; i < n; ++i) {
-            int l = 0;
-            while (((SA[i]+l)!=n)&&((SA[i-1]+l)!=n)&&(T[SA[i]+l]==T[SA[i-1]+l]))
-                ++l;
-            LCP[i-1] = l;
-        }
-        return;
-        //*/
-        
-        if (n>0)
-            LCP[n-1]=0;
-        for (int h = 0, i = 0; i < n; i++){
-            if (R[i] == 0) continue;
-            int j = SA[R[i]-1];
-            while ((i+h!=n)&&(j+h!=n)&&(T[i+h] == T[j+h])) ++h;
-            LCP[R[i]-1] = h;
-            if (h > 0) --h;
-        }
-    }
-    
-    static void _Rank_create(const char* T,TInt n,const TInt* SA,TInt* R){
-        for (TInt i=0;i<n;++i){
-            R[SA[i]]=i;
-        }
-    }
-    
+#ifdef IS_TEST_USE_STD_SORT //test uses std::sort, but slow
+    for (TSAInt i=0;i<size;++i) out_sstring[i]=i;
+    std::sort<TSAInt*,const TSuffixString_compare&>(&out_sstring[0],&out_sstring[0]+size,TSuffixString_compare(src,src_end));
+#else
+    if (saisxx((const unsigned char*)src, &out_sstring[0], size) !=0)
+        throw std::runtime_error("suffixString_create() error.");
+#endif
+}
+
 }//end namespace
 
-TSuffixString::TSuffixString(const char* src_begin,const char* src_end)
-:ssbegin(src_begin),ssend(src_end){
-    _suffixString_create(src_begin,src_end,&SA);
+TSuffixString::TSuffixString(const char* _src_begin,const char* _src_end)
+:src_begin(_src_begin),src_end(_src_end){
+    _suffixString_create(src_begin,src_end,*(TSArray*)&SA);
 }
 
-void TSuffixString::R_create(){
-    R.resize(SA.size());
-    _Rank_create(ssbegin, (TInt)SA.size(), &SA[0],&R[0]);
-}
-
-void TSuffixString::LCP_create(){
-    if (R.empty())
-        R_create();
-    LCP.resize(SA.size());
-    _LCP_create(ssbegin,(TInt)SA.size(),&SA[0],&R[0],&LCP[0]);
-}
-
-TInt TSuffixString::lower_bound(const char* str,const char* str_end)const{
+TSAInt TSuffixString::lower_bound(const char* str,const char* str_end)const{
     if (SA.empty()) return 0;
-    const TSuffixIndex* pos=std::lower_bound<const TSuffixIndex*,StringToken,const TSuffixString_compare&>
-        (&SA[0],&SA[0]+SA.size(),StringToken(str,str_end),TSuffixString_compare(ssbegin,ssend));
-    return (TInt)(pos-&SA[0]);
+    const TSAInt* SA0=&SA[0];
+    const TSAInt* pos=std::lower_bound<const TSAInt*,StringToken,const TSuffixString_compare&>
+            (SA0,SA0+SA.size(),StringToken(str,str_end),TSuffixString_compare(src_begin,src_end));
+    return (TSAInt)(pos-SA0);
 }
 

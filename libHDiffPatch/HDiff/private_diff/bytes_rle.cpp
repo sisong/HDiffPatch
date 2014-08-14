@@ -32,6 +32,7 @@
 
 namespace {
     #include "pack_uint.h"
+    
     typedef unsigned char TByte;
     typedef size_t TUInt;
 
@@ -82,8 +83,8 @@ namespace {
 
     static void rle_save(std::vector<TByte>& out_ctrlBuf,std::vector<TByte>& out_codeBuf,
                          const TByte* src,const TByte* src_end,int rle_parameter){
-        assert(rle_parameter>=TBytesRle::kRle_bestSize);
-        assert(rle_parameter<=TBytesRle::kRle_bestUnRleSpeed);
+        assert(rle_parameter>=kRle_bestSize);
+        assert(rle_parameter<=kRle_bestUnRleSpeed);
         const TUInt kRleMinSameSize=rle_parameter+1;//增大则压缩率变小,解压稍快.
 
         const TByte* notSame=src;
@@ -109,10 +110,9 @@ namespace {
         }
     }
 
-
 }//end namespace
 
-void TBytesRle::save(std::vector<TByte>& out_code,const TByte* src,const TByte* src_end,int rle_parameter){
+void bytesRLE_save(std::vector<TByte>& out_code,const TByte* src,const TByte* src_end,int rle_parameter){
     std::vector<TByte> ctrlBuf;
     std::vector<TByte> codeBuf;
 

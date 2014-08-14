@@ -31,32 +31,17 @@
 #ifndef __SUFFIX_STRING_H_
 #define __SUFFIX_STRING_H_
 #include <vector>
-#include "string.h" //for strlen
 
-    typedef int TSuffixIndex;
-
-    class TSuffixString{
-    public:
-        typedef int TInt;
-
-        TSuffixString(const char* src_begin,const char* src_end);
-
-        typedef std::vector<TSuffixIndex>   TSuffixArray;
-
-        const char*const    ssbegin;//原字符串.
-        const char*const    ssend;
-        TSuffixArray        SA;     //排好序的后缀字符串数组.
-        inline TInt size()const { return (TInt)(ssend-ssbegin); }
-        TInt lower_bound(const char* str,const char* str_end)const;//return index in SA
-        inline const TInt lower_bound(const char* c_str)const { return lower_bound(c_str,c_str+strlen(c_str)); }
-
-        void R_create();
-        std::vector<TInt>   R;          //Rank 后缀字符串排名.
-        inline const TInt lower_bound_withR(TSuffixIndex curString)const { return R[curString]; }
-
-        void LCP_create(); //need R_create();
-        std::vector<TInt>   LCP;        //lcp(i,i+1)  相邻后缀字符串之间的最长公共前缀.
-        //todo:inline const TInt getEqualLength_withLCP(TSuffixIndex aString,TSuffixIndex bString)const;
-    };
+typedef int TSAInt;
+class TSuffixString{
+public:
+    typedef std::vector<TSAInt>   TSArray;
+    
+    TSuffixString(const char* src_begin,const char* src_end);
+    const char*const    src_begin;//原字符串.
+    const char*const    src_end;
+    const TSArray       SA;     //排好序的后缀字符串数组.
+    TSAInt lower_bound(const char* str,const char* str_end)const;//return index in SA
+};
 
 #endif //__SUFFIX_STRING_H_

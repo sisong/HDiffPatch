@@ -37,8 +37,6 @@
 #include "private_diff/bytes_rle.h"
 #include "../HPatch/patch.h"
 
-
-
 namespace{
     #include "private_diff/pack_uint.h"
 
@@ -48,12 +46,11 @@ namespace{
     //typedef signed int    TInt;
     typedef ptrdiff_t     TInt;
 
-
 ////////
 const int kMinMatchLength=7;            //最小搜寻覆盖长度.
 const int kMinSangleMatchLength=17;     //最小独立覆盖长度. //二进制8-10(best)-21 文本: 17-21
 const int kUnLinkLength=4;              //搜索时不能合并的代价.
-const int kMinTrustMatchLength=1024*8;  //(贪婪)选定该覆盖线(优化一些速度).
+const int kMinTrustMatchLength=1024*16;  //(贪婪)选定该覆盖线(优化一些速度).
 const int kMaxLinkSpaceLength=128;      //跨覆盖线合并时,允许合并的最远距离.
 
 struct TOldCover;
@@ -100,21 +97,21 @@ static TInt getEqualLength(const TByte* oldData,const TByte* oldData_end,const T
 
 //得到最好的一个匹配长度和其位置.
 static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const TByte* newData_end,TInt* out_pos,TInt* out_length,int kMinMatchLength){
-    const char* ssbegin=sstring.ssbegin;
-    const char* ssend=sstring.ssend;
-    if (ssend-ssbegin<=0) return false;
+    const char* src_begin=sstring.src_begin;
+    const char* src_end=sstring.src_end;
+    if (src_end-src_begin<=0) return false;
     TInt  bestPos=-1;
     TInt bestLength=kMinMatchLength-1;
 
     const char* s_newData_end=(const char*)newData_end;
     if (newData_end-newData>kMinTrustMatchLength)
         s_newData_end=(const char*)newData+kMinTrustMatchLength;
-    TSuffixIndex sai=sstring.lower_bound((const char*)newData,s_newData_end);
+    TSAInt sai=sstring.lower_bound((const char*)newData,s_newData_end);
 
-    const TSuffixIndex* SA=&sstring.SA[0];
+    const TSAInt* SA=&sstring.SA[0];
     for (TInt i=sai; i>=sai-1; --i) {
-        if ((i<0)||(i>=(ssend-ssbegin))) continue;
-        TInt curLength=getEqualLength((const TByte*)ssbegin+SA[i],(const TByte*)ssend,newData,newData_end);
+        if ((i<0)||(i>=(src_end-src_begin))) continue;
+        TInt curLength=getEqualLength((const TByte*)src_begin+SA[i],(const TByte*)src_end,newData,newData_end);
         if (curLength>bestLength){
             bestPos=SA[i];
             bestLength=curLength;
@@ -341,13 +338,11 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_seriali
     std::vector<TByte> rleData;
     const TByte* newDataSubDiff_begin=0;
     if (!diff.newDataSubDiff.empty()) newDataSubDiff_begin=&diff.newDataSubDiff[0];
-    TBytesRle::save(rleData,newDataSubDiff_begin,newDataSubDiff_begin+diff.newDataSubDiff.size(),TBytesRle::kRle_bestSize);
+    bytesRLE_save(rleData,newDataSubDiff_begin,newDataSubDiff_begin+diff.newDataSubDiff.size(),kRle_bestSize);
     out_serializeDiffStream.insert(out_serializeDiffStream.end(),rleData.begin(),rleData.end());
 }
 
 }//end namespace
-
-//------------------------------------------------------------------------------------------------------------------------
 
 void create_diff(const TByte* newData,const TByte* newData_end,const TByte* oldData,const TByte* oldData_end,std::vector<TByte>& out_diff){
     assert(newData<=newData_end);
