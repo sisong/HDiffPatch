@@ -32,16 +32,24 @@
 #define __SUFFIX_STRING_H_
 #include <vector>
 
-typedef int TSAInt;
 class TSuffixString{
 public:
-    typedef std::vector<TSAInt>   TSArray;
+    typedef ptrdiff_t     TInt;
     
     TSuffixString(const char* src_begin,const char* src_end);
     const char*const    src_begin;//原字符串.
     const char*const    src_end;
-    const TSArray       SA;     //排好序的后缀字符串数组.
-    TSAInt lower_bound(const char* str,const char* str_end)const;//return index in SA
+    TInt SA(TInt i)const;//SA[]排好序的后缀字符串数组.
+    TInt lower_bound(const char* str,const char* str_end)const;//return index in SA
+private:
+    typedef int TInt32;
+    std::vector<TInt32>    m_SA_small;
+    std::vector<TInt>      m_SA_large;
+    inline bool isUseLarge()const{
+        if (sizeof(TInt)<=sizeof(TInt32)) return  false;
+        const TInt kMaxDataSize_small= (1<<30)-1 + (1<<30);//2G
+        return (src_end-src_begin>kMaxDataSize_small);
+    }
 };
 
 #endif //__SUFFIX_STRING_H_

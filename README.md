@@ -1,25 +1,24 @@
 **HDiffPatch**
 ================
-Version 1.0.4  
+Version 1.0.5  
 byte data Diff & Patch  C\C++ library.  
 
 ---
-uses like this:
+uses:
 
 *  **create_diff(newData,oldData,out diffData);**
   
-  release the diffData for update oldData.  
-  (using LZMA or ZIP compress the diffData before release is a better option. )  
+   release the diffData for update oldData.  
+   (using LZMA or ZIP compress the diffData before release is a better option. )  
   
 *  **bool patch(out newData,oldData,diffData);**
   
-  ok  
+   ok  
   
 ---
 *  
-    HDiff runs in O(oldSize+newSize) time,and requires oldSize*5+newSize+O(1) bytes of memory.  
-    HPatch runs in O(oldSize+newSize) time,and requires oldSize+newSize+O(1) bytes of memory.  
-    oldSize or newSize < 2G Byte.  
+    **HPatch** runs in O(oldSize+newSize) time , and requires oldSize+newSize+O(1) bytes of memory.  (oldSize and newSize <2^63 Byte)
+    **HDiff** runs in O(oldSize+newSize) time , and if oldSize < 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize >= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory. 
   
 ===
 **HDiff1.0.0 vs  BSDiff4.3 :**    

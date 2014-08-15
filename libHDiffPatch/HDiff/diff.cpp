@@ -106,14 +106,14 @@ static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const
     const char* s_newData_end=(const char*)newData_end;
     if (newData_end-newData>kMinTrustMatchLength)
         s_newData_end=(const char*)newData+kMinTrustMatchLength;
-    TSAInt sai=sstring.lower_bound((const char*)newData,s_newData_end);
+    TInt sai=sstring.lower_bound((const char*)newData,s_newData_end);
 
-    const TSAInt* SA=&sstring.SA[0];
     for (TInt i=sai; i>=sai-1; --i) {
         if ((i<0)||(i>=(src_end-src_begin))) continue;
-        TInt curLength=getEqualLength((const TByte*)src_begin+SA[i],(const TByte*)src_end,newData,newData_end);
+        TInt curPos=sstring.SA(i);
+        TInt curLength=getEqualLength((const TByte*)src_begin+curPos,(const TByte*)src_end,newData,newData_end);
         if (curLength>bestLength){
-            bestPos=SA[i];
+            bestPos=curPos;
             bestLength=curLength;
         }
     }
@@ -347,9 +347,6 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_seriali
 void create_diff(const TByte* newData,const TByte* newData_end,const TByte* oldData,const TByte* oldData_end,std::vector<TByte>& out_diff){
     assert(newData<=newData_end);
     assert(oldData<=oldData_end);
-    const TInt kMaxDataSize= (1<<30)-1 + (1<<30);//2G
-    assert(newData_end-newData<=kMaxDataSize);
-    assert(oldData_end-oldData<=kMaxDataSize);
     TDiffData diff;
     diff.newData=newData;
     diff.newData_end=newData_end;
