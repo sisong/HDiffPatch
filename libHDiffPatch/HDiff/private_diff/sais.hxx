@@ -287,7 +287,7 @@ typedef typename std::iterator_traits<string_type>::value_type char_type;
 }
 template<typename string_type, typename sarray_type,
          typename bucketC_type, typename bucketB_type, typename index_type>
-int
+index_type
 computeBWT(string_type T, sarray_type SA, bucketC_type C, bucketB_type B,
            index_type n, index_type k, bool recount) {
 typedef typename std::iterator_traits<string_type>::value_type char_type;
@@ -419,7 +419,7 @@ typedef typename std::iterator_traits<string_type>::value_type char_type;
 /* find the suffix array SA of T[0..n-1] in {0..k}^n
    use a working space (excluding s and SA) of at most 2n+O(1) for a constant alphabet */
 template<typename string_type, typename sarray_type, typename index_type>
-int
+index_type
 suffixsort(string_type T, sarray_type SA,
            index_type fs, index_type n, index_type k,
            bool isbwt) {
@@ -548,7 +548,7 @@ typedef typename std::iterator_traits<string_type>::value_type char_type;
  * @return 0 if no error occurred, -1 or -2 otherwise.
  */
 template<typename string_type, typename sarray_type, typename index_type>
-int
+index_type
 saisxx(string_type T, sarray_type SA, index_type n, index_type k = 256) {
 typedef typename std::iterator_traits<sarray_type>::value_type savalue_type;
   assert((std::numeric_limits<index_type>::min)() < 0);

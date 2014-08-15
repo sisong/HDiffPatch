@@ -31,6 +31,7 @@
 
 #include <iostream>
 #include <string>
+#include <time.h>
 #include <vector>
 #include <stdio.h>
 #include <string.h>
@@ -91,6 +92,7 @@ int main(int argc, const char * argv[]){
     }
     const TUInt32 oldDataSize=(TUInt32)oldData.size();
     const TUInt32 newDataSize=(TUInt32)newData.size();
+    clock_t time1=clock();
 
     std::vector<TByte> diffData;
     diffData.push_back(newDataSize);
@@ -111,6 +113,9 @@ int main(int argc, const char * argv[]){
     }
     writeFile(diffData,outDiffFileName);
     printf("out diff file ok!\nnewDataSize: %d\noldDataSize: %d\ndiffDataSize: %d\n",newDataSize,oldDataSize,(TUInt32)diffData.size());
+    clock_t time2=clock();
+    printf("\nrun time:%.0f ms\n",(time2-time1)*(1000.0/CLOCKS_PER_SEC));
+
     return 0;
 }
 
