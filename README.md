@@ -17,8 +17,8 @@ uses:
   
 ---
 *  
-    **HPatch** runs in O(oldSize+newSize) time , and requires oldSize+newSize+O(1) bytes of memory.  (oldSize and newSize <2^63 Byte)
-    **HDiff** runs in O(oldSize+newSize) time , and if oldSize < 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize >= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory. 
+    **HPatch** runs in O(oldSize+newSize) time , and requires oldSize+newSize+O(1) bytes of memory.  (oldSize and newSize \<2^63 Byte)
+    **HDiff** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory. 
   
 ===
 **HDiff1.0.0 vs  BSDiff4.3 :**    

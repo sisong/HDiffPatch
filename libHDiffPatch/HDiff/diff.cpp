@@ -36,9 +36,9 @@
 #include "private_diff/suffix_string.h"
 #include "private_diff/bytes_rle.h"
 #include "../HPatch/patch.h"
+#include "private_diff/pack_uint.h"
 
 namespace{
-    #include "private_diff/pack_uint.h"
 
     typedef unsigned char TByte;
     //typedef unsigned int  TUInt;

@@ -29,9 +29,9 @@
 
 #include "bytes_rle.h"
 #include "assert.h"
+#include "pack_uint.h"
 
 namespace {
-    #include "pack_uint.h"
     
     typedef unsigned char TByte;
     typedef size_t TUInt;
