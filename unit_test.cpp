@@ -36,20 +36,23 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "math.h"
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char TByte;
+typedef ptrdiff_t TInt;
 
-static bool test(const TByte* newData,const TByte* newData_end,const TByte* oldData,const TByte* oldData_end,const char* tag,int* out_diffSize=0){
+static bool test(const TByte* newData,const TByte* newData_end,const TByte* oldData,const TByte* oldData_end,const char* tag,size_t* out_diffSize=0){
     std::vector<TByte> diffData;
+    printf("%s newSize:%ld oldSize:%ld ",tag, (newData_end-newData), (oldData_end-oldData));
     create_diff(newData,newData_end,oldData,oldData_end, diffData);
     if (out_diffSize!=0)
-        *out_diffSize=(int)diffData.size();
+        *out_diffSize=diffData.size();
     if (!check_diff(newData,newData_end,oldData,oldData_end, &diffData[0], &diffData[0]+diffData.size())){
-        printf("error!!! tag:%s\n",tag);
+        printf("\n  error!!! tag:%s\n",tag);
         return false;
     }else{
-        printf("ok! %s newSize:%d oldSize:%d diffSize:%d\n",tag,(int)(newData_end-newData),(int)(oldData_end-oldData),(int)diffData.size());
+        printf(" ok! diffSize:%ld\n",diffData.size());
         return true;
     }
 }
@@ -62,7 +65,7 @@ static bool test(const char* newStr,const char* oldStr,const char* error_tag){
 
 int main(int argc, const char * argv[]){
     clock_t time1=clock();
-    int errorCount=0;
+    TInt errorCount=0;
     errorCount+=!test("", "", "1");
     errorCount+=!test("", "1", "2");
     errorCount+=!test("1", "", "3");
@@ -80,8 +83,8 @@ int main(int argc, const char * argv[]){
     {
         const char* _strData14="a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1";
         const TByte* data14=(const TByte*)_strData14;
-        const int dataSize=(int)strlen(_strData14);
-        int diffSize14=0;
+        const size_t dataSize=strlen(_strData14);
+        size_t diffSize14=0;
         errorCount+=!test(data14, data14+dataSize,data14, data14+dataSize, "14",&diffSize14);
         if (diffSize14>=dataSize){
             ++errorCount;
@@ -89,9 +92,8 @@ int main(int argc, const char * argv[]){
         }
     }
 
-    const int kRandTestCount=100000;
-    const int kMaxDataSize=1024*8;
-    const int kMaxCopyCount=120;
+    const TInt kRandTestCount=100000;
+    const TInt kMaxDataSize=1024*16;
     std::vector<int> seeds(kRandTestCount);
     srand(0);
     for (int i=0; i<kRandTestCount; ++i)
@@ -100,44 +102,47 @@ int main(int argc, const char * argv[]){
     double sumNewSize=0;
     double sumOldSize=0;
     double sumDiffSize=0;
-    for (int i=0; i<kRandTestCount; ++i) {
+    for (TInt i=0; i<kRandTestCount; ++i) {
         char tag[50];
-        sprintf(tag, "error==%d testSeed=%d",errorCount,seeds[i]);
+        sprintf(tag, "error==%ld testSeed=%d",errorCount,seeds[i]);
         srand(seeds[i]);
 
-        const int oldSize=(int)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxDataSize);
-        const int newSize=oldSize+(int)((rand()*(1.0/RAND_MAX)-0.45)*oldSize);
+        //const TInt oldSize=((TInt)1<<31)-1+i;
+        //const TInt newSize=(TInt)(oldSize*1.05);
+        const TInt oldSize=(TInt)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxDataSize);
+        const TInt newSize=(TInt)(oldSize+(rand()*(1.0/RAND_MAX)-0.45)*oldSize);
+        const TInt kMaxCopyCount=sqrt(oldSize);
         std::vector<TByte> _newData(newSize);
         TByte* newData=0; if (!_newData.empty()) newData=&_newData[0];
         std::vector<TByte> _oldData(oldSize);
         TByte* oldData=0; if (!_oldData.empty()) oldData=&_oldData[0];
-        for (int i=0; i<newSize; ++i)
+        for (TInt i=0; i<newSize; ++i)
             newData[i]=rand();
-        for (int i=0; i<oldSize; ++i)
+        for (TInt i=0; i<oldSize; ++i)
             oldData[i]=rand();
-        const int copyCount=0+(int)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount);
-        const int kMaxCopyLength=(int)(1+rand()*(1.0/RAND_MAX)*oldSize*0.8);
-        for (int i=0; i<copyCount; ++i) {
-            const int length=1+(int)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxCopyLength);
-            if ((length>oldSize)||(length>newSize)) {
+        const TInt copyCount=0+(TInt)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount*4);
+        const TInt kMaxCopyLength=(TInt)(1+rand()*(1.0/RAND_MAX)*kMaxCopyCount*4);
+        for (TInt i=0; i<copyCount; ++i) {
+            const TInt length=1+(TInt)(rand()*(1.0/RAND_MAX)*kMaxCopyLength);
+            if ((length>oldSize*4/5)||(length>newSize*4/5)) {
                 continue;
             }
-            const int oldPos=(oldSize-length==0)?0:rand()%(oldSize-length);
-            const int newPos=(newSize-length==0)?0:rand()%(newSize-length);
+            const TInt oldPos=(oldSize-length==0)?0:(TInt)(rand()*(1.0/RAND_MAX)*(oldSize-length));
+            const TInt newPos=(newSize-length==0)?0:(TInt)(rand()*(1.0/RAND_MAX)*(newSize-length));
             memcpy(&newData[0]+newPos, &oldData[0]+oldPos, length);
         }
-        int diffSize=0;
+        size_t diffSize=0;
         errorCount+=!test(&newData[0],&newData[0]+newSize,&oldData[0],&oldData[0]+oldSize,tag,&diffSize);
         sumNewSize+=newSize;
         sumOldSize+=oldSize;
         sumDiffSize+=diffSize;
     }
     
-    printf("\nchecked:%d  errorCount:%d\n",kRandTestCount,errorCount);
+    printf("\nchecked:%ld  errorCount:%ld\n",kRandTestCount,errorCount);
     printf("newSize:100%% oldSize:%2.2f%% diffSize:%2.2f%%\n",sumOldSize*100.0/sumNewSize,sumDiffSize*100.0/sumNewSize);
     clock_t time2=clock();
     printf("\nrun time:%.0f ms\n",(time2-time1)*(1000.0/CLOCKS_PER_SEC));
     
-    return errorCount;
+    return (int)errorCount;
 }
 
