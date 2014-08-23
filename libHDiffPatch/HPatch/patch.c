@@ -37,8 +37,8 @@ typedef unsigned char TByte;
 //typedef unsigned int  TUInt;
 typedef size_t  TUInt;
 
-//PATCH_RUN_MEM_SAFE_CHECK用来启动内存访问越界检查.
-#define PATCH_RUN_MEM_SAFE_CHECK
+//__RUN_MEM_SAFE_CHECK用来启动内存访问越界检查.
+#define __RUN_MEM_SAFE_CHECK
 
 static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,const TByte* rle_code,const TByte* rle_code_end);
 static void addData(TByte* dst,const TByte* src,TUInt length);
@@ -65,22 +65,22 @@ hpatch_BOOL patch(TByte* newData,TByte* newData_end,
         inc_newPosSize=unpackUInt(&serializedDiff, serializedDiff_end);
         inc_oldPosSize=unpackUInt(&serializedDiff, serializedDiff_end);
         newDataDiffSize=unpackUInt(&serializedDiff, serializedDiff_end);
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
         if (lengthSize>(TUInt)(serializedDiff_end-serializedDiff)) return hpatch_FALSE;
 #endif
         code_lengths=serializedDiff;     serializedDiff+=lengthSize;
         code_lengths_end=serializedDiff;
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
         if (inc_newPosSize>(TUInt)(serializedDiff_end-serializedDiff)) return hpatch_FALSE;
 #endif
         code_inc_newPos=serializedDiff; serializedDiff+=inc_newPosSize;
         code_inc_newPos_end=serializedDiff;
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
         if (inc_oldPosSize>(TUInt)(serializedDiff_end-serializedDiff)) return hpatch_FALSE;
 #endif
         code_inc_oldPos=serializedDiff; serializedDiff+=inc_oldPosSize;
         code_inc_oldPos_end=serializedDiff;
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
         if (newDataDiffSize>(TUInt)(serializedDiff_end-serializedDiff)) return hpatch_FALSE;
 #endif
         code_newDataDiff=serializedDiff; serializedDiff+=newDataDiffSize;
@@ -109,13 +109,13 @@ hpatch_BOOL patch(TByte* newData,TByte* newData_end,
                 oldPos=oldPosBack+inc_oldPos;
             else
                 oldPos=oldPosBack-inc_oldPos;
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
             if ((oldPos>(TUInt)(oldData_end-oldData))||(addLength>(TUInt)(oldData_end-oldData-oldPos))) return hpatch_FALSE;
             if ((newPos>(TUInt)(newData_end-newData))||(addLength>(TUInt)(newData_end-newData-newPos))) return hpatch_FALSE;
 #endif
             if (newPos>newPos_end){
                 copyLength=newPos-newPos_end;
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
                 if (copyLength>(TUInt)(code_newDataDiff_end-code_newDataDiff)) return hpatch_FALSE;
 #endif
                 memcpy(newData+newPos_end,code_newDataDiff,copyLength);
@@ -129,7 +129,7 @@ hpatch_BOOL patch(TByte* newData,TByte* newData_end,
         newDataSize=(TUInt)(newData_end-newData);
         if (newPos_end<newDataSize){
             TUInt copyLength=newDataSize-newPos_end;
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
             if (copyLength>(TUInt)(code_newDataDiff_end-code_newDataDiff)) return hpatch_FALSE;
 #endif
             memcpy(newData+newPos_end,code_newDataDiff,copyLength);
@@ -150,14 +150,14 @@ hpatch_BOOL patch(TByte* newData,TByte* newData_end,
 // x1* 1* 1* 1* 0*  7+7+7+7+7-x bit
 // ......
 static TUInt unpackUIntWithTag(const TByte** src_code,const TByte* src_code_end,const int kTagBit){//读出整数并前进指针.
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
     const int kPackMaxTagBit=7;
 #endif
     TUInt           value;
     TByte           code;
     const TByte*    pcode=*src_code;
     
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
     assert((0<=kTagBit)&&(kTagBit<=kPackMaxTagBit));
     if (src_code_end-pcode<=0) return 0;
 #endif
@@ -165,7 +165,7 @@ static TUInt unpackUIntWithTag(const TByte** src_code,const TByte* src_code_end,
     value=code&((1<<(7-kTagBit))-1);
     if ((code&(1<<(7-kTagBit)))!=0){
         do {
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
             assert((value>>(sizeof(value)*8-7))==0);
             if (src_code_end==pcode) break;
 #endif
@@ -211,7 +211,7 @@ static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,const TByte
     const TByte*    ctrlBuf,*ctrlBuf_end;
     
     TUInt ctrlSize= unpackUInt(&rle_code,rle_code_end);
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
     if (ctrlSize>(TUInt)(rle_code_end-rle_code)) return hpatch_FALSE;
 #endif
     ctrlBuf=rle_code;
@@ -220,7 +220,7 @@ static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,const TByte
     while (ctrlBuf_end-ctrlBuf>0){
         enum TByteRleType type=(enum TByteRleType)((*ctrlBuf)>>(8-kByteRleType_bit));
         TUInt length= 1 + unpackUIntWithTag(&ctrlBuf,ctrlBuf_end,kByteRleType_bit);
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
         if (length>(TUInt)(out_dataEnd-out_data)) return hpatch_FALSE;
 #endif
         switch (type){
@@ -233,7 +233,7 @@ static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,const TByte
                 out_data+=length;
             }break;
             case kByteRleType_rle:{
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
                 if (1>(TUInt)(rle_code_end-rle_code)) return hpatch_FALSE;
 #endif
                 memset(out_data,*rle_code,length);
@@ -241,7 +241,7 @@ static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,const TByte
                 out_data+=length;
             }break;
             case kByteRleType_unrle:{
-#ifdef PATCH_RUN_MEM_SAFE_CHECK
+#ifdef __RUN_MEM_SAFE_CHECK
                 if (length>(TUInt)(rle_code_end-rle_code)) return hpatch_FALSE;
 #endif
                 memcpy(out_data,rle_code,length);
