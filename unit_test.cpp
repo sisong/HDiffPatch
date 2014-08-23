@@ -111,7 +111,7 @@ int main(int argc, const char * argv[]){
         //const TInt newSize=(TInt)(oldSize*1.05);
         const TInt oldSize=(TInt)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxDataSize);
         const TInt newSize=(TInt)(oldSize+(rand()*(1.0/RAND_MAX)-0.45)*oldSize);
-        const TInt kMaxCopyCount=sqrt(oldSize);
+        const TInt kMaxCopyCount=(TInt)sqrt((double)oldSize);
         std::vector<TByte> _newData(newSize);
         TByte* newData=0; if (!_newData.empty()) newData=&_newData[0];
         std::vector<TByte> _oldData(oldSize);
