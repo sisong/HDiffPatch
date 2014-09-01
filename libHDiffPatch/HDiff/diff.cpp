@@ -35,24 +35,28 @@
 #include <vector>
 #include "private_diff/suffix_string.h"
 #include "private_diff/bytes_rle.h"
-#include "../HPatch/patch.h"
 #include "private_diff/pack_uint.h"
+#include "../HPatch/patch.h"
 
 namespace{
 
     typedef unsigned char TByte;
-    //typedef unsigned int  TUInt;
     typedef size_t        TUInt;
-    //typedef signed int    TInt;
     typedef ptrdiff_t     TInt;
+    typedef size_t TFixedFloatSmooth; //一个定点数.
+    const TFixedFloatSmooth kFixedFloatSmooth_base=1024*8;
+    const int kMinTrustMatchLength=1024*16;  //(贪婪)选定该覆盖线(优化一些速度).
 
-////////
-const int kMinMatchLength=7;            //最小搜寻覆盖长度.
-const int kMinSangleMatchLength=17;     //最小独立覆盖长度. //二进制8-10(best)-21 文本: 17-21
-const int kUnLinkLength=4;              //搜索时不能合并的代价.
-const int kMinTrustMatchLength=1024*16;  //(贪婪)选定该覆盖线(优化一些速度).
-const int kMaxLinkSpaceLength=128;      //跨覆盖线合并时,允许合并的最远距离.
+    const int kMinMatchLength=7;            //最小搜寻覆盖长度.
+    const int kMinSangleMatchLength=17;     //最小独立覆盖长度. //二进制8-10(best)-21 文本: 17-21
+    const int kUnLinkLength=4;              //搜索时不能合并的代价.
+    const int kMaxLinkSpaceLength=128;      //跨覆盖线合并时,允许合并的最远距离.
+    
+    const unsigned int kSmoothLength=4;
+    const TFixedFloatSmooth kExtendMinSameRatio=(TFixedFloatSmooth)(0.4f*kFixedFloatSmooth_base +0.5f);
+    const TFixedFloatSmooth kExtendMinTustSameRatio=(TFixedFloatSmooth)(0.65f*kFixedFloatSmooth_base +0.5f);
 
+    
 struct TOldCover;
 
 struct TDiffData{
@@ -217,25 +221,20 @@ static void select_cover(TDiffData& diff){
 
     //得到可以扩展位置的长度.
     static TInt getCanExtendLength(TInt oldPos,TInt newPos,int inc,TInt newPos_min,TInt newPos_end,const TDiffData& diff){
-        const int   kSmoothLength=4;
-        typedef TInt TFixedFloat10000;
-        //const float kMinSameRatio=0.40f;
-        const TFixedFloat10000 kExtendMinSameRatio=4000;
-        //const float kMinTustSameRatio=0.65f;
-        const TFixedFloat10000 kExtendMinTustSameRatio=6500;
 
         //float curBestSameRatio=0;
-        TFixedFloat10000 curBestSameRatio=0;
+        TFixedFloatSmooth curBestSameRatio=0;
         TInt curBestLength=0;
-        TInt curSameCount=0;
-        for (TInt length=1; (oldPos>=0)&&(oldPos<(diff.oldData_end-diff.oldData))
+        TUInt curSameCount=0;
+        const TFixedFloatSmooth kLimitSameCount=(~(TFixedFloatSmooth)0)/kFixedFloatSmooth_base;
+        for (TUInt length=1; (oldPos>=0)&&(oldPos<(diff.oldData_end-diff.oldData))
              &&(newPos>=newPos_min)&&(newPos<newPos_end); ++length,oldPos+=inc,newPos+=inc) {
             if (diff.oldData[oldPos]==diff.newData[newPos]){
                 ++curSameCount;
 
                 //const float curSameRatio=((float)curSameCount)/(length+kSmoothLength);
-                if (curSameCount>= ((1<<30)/10000)) break; //for curSameCount*10000
-                const TFixedFloat10000 curSameRatio=curSameCount*10000/(length+kSmoothLength);
+                if (curSameCount>= kLimitSameCount) break; //for curSameCount*kFixedFloatSmooth_base
+                const TFixedFloatSmooth curSameRatio=curSameCount*kFixedFloatSmooth_base/(length+kSmoothLength);
 
                 if ((curSameRatio>=curBestSameRatio)||(curSameRatio>=kExtendMinTustSameRatio)){
                     curBestSameRatio=curSameRatio;
