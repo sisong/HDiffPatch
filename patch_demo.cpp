@@ -30,77 +30,95 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
-#include <stdio.h>
+#include "assert.h"
+#include <time.h>
 #include <string.h>
 #include <stdlib.h>
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char TByte;
-typedef size_t TUInt;
-typedef ptrdiff_t TInt;
+typedef size_t      TUInt;
+typedef ptrdiff_t   TInt;
 
 void readFile(std::vector<TByte>& data,const char* fileName){
-    FILE	* file=fopen(fileName, "rb");
-    if (file==0) exit(1);
-
-	fseek(file,0,SEEK_END);
-	TInt file_length = (TInt)ftell(file);
-	fseek(file,0,SEEK_SET);
-
-    data.resize(file_length);
-    TInt readed=0;
-    if (file_length>0)
-        readed=(TInt)fread(&data[0],1,file_length,file);
-
-    fclose(file);
-    if (readed!=file_length) exit(1);
+    std::ifstream file(fileName);
+    file.seekg(0,std::ios::end);
+    std::streampos file_length=file.tellg();
+    assert(file_length>=0);
+    file.seekg(0,std::ios::beg);
+    size_t needRead=(size_t)file_length;
+    if (needRead!=file_length) {
+        file.close();
+        exit(1);
+    }
+    data.resize(needRead);
+    file.read((char*)&data[0], needRead);
+    std::streamsize readed=file.gcount();
+    file.close();
+    if (readed!=(std::streamsize)file_length)  exit(1);
 }
 
 void writeFile(const std::vector<TByte>& data,const char* fileName){
-    FILE	* file=fopen(fileName, "wb");
-    if (file==0) exit(1);
-
-    TInt dataSize=(TInt)data.size();
-    TInt writed=0;
-    if (dataSize>0)
-        writed=(TInt)fwrite(&data[0], 1,dataSize, file);
-
-    fclose(file);
-    if (writed!=dataSize) exit(1);
+    std::ofstream file(fileName);
+    file.write((const char*)&data[0], data.size());
+    file.close();
 }
 
 int main(int argc, const char * argv[]){
+    clock_t time0=clock();
     if (argc!=4) {
-        printf("patch command parameter:\n oldFileName diffFileName outNewFileName\n");
+        std::cout<<"patch command parameter:\n oldFileName diffFileName outNewFileName\n";
         return 0;
     }
     const char* oldFileName=argv[1];
     const char* diffFileName=argv[2];
     const char* outNewFileName=argv[3];
+    std::cout<<"old :\"" <<oldFileName<< "\"\ndiff:\""<<diffFileName<<"\"\nout :\""<<outNewFileName<<"\"\n";
 
-    std::vector<TByte> oldData; readFile(oldData,oldFileName);
     std::vector<TByte> diffData; readFile(diffData,diffFileName);
-    const TUInt oldDataSize=(TUInt)oldData.size();
-    const TUInt diffDataSize=(TUInt)diffData.size();
-    const TUInt kNewDataSizeSavedSize=4;
-    if (diffDataSize<kNewDataSizeSavedSize){
-        printf("diffDataSize error!");
-        return 1;
+    const TUInt diffFileDataSize=(TUInt)diffData.size();
+    if (diffFileDataSize<4){
+        std::cout<<"diffFileDataSize error!\n";
+        exit(2);
     }
+    TUInt kNewDataSizeSavedSize=-1;
+    TUInt newDataSize=diffData[0] | (diffData[1]<<8)| (diffData[2]<<16);
+    if (diffData[3]!=0xFF){
+        kNewDataSizeSavedSize=4;
+        newDataSize |=(diffData[3]<<24);
+    }else{
+        kNewDataSizeSavedSize=9;
+        if ((sizeof(TUInt)<=4)||(diffFileDataSize<9)){
+            std::cout<<"diffFileDataSize error!\n";
+            exit(2);
+        }
+        newDataSize |=(diffData[4]<<24);
+        const TUInt highSize=diffData[5] | (diffData[6]<<8)| (diffData[7]<<16)| (diffData[8]<<24);
+        newDataSize |=((highSize<<16)<<16);
+    }
+    
+    std::vector<TByte> oldData; readFile(oldData,oldFileName);
+    const TUInt oldDataSize=(TUInt)oldData.size();
 
     std::vector<TByte> newData;
-    const TUInt newDataSize=diffData[0] | (diffData[1]<<8)| (diffData[2]<<16)| (diffData[3]<<24);
     newData.resize(newDataSize);
     TByte* newData_begin=0; if (!newData.empty()) newData_begin=&newData[0];
     const TByte* oldData_begin=0; if (!oldData.empty()) oldData_begin=&oldData[0];
+    clock_t time1=clock();
     if (!patch(newData_begin,newData_begin+newDataSize,oldData_begin,oldData_begin+oldDataSize,
-               &diffData[0]+kNewDataSizeSavedSize, &diffData[0]+diffDataSize)){
-        printf("patch run error!");
-        return 2;
+               &diffData[0]+kNewDataSizeSavedSize, &diffData[0]+diffFileDataSize)){
+        printf("  patch run error!!!\n");
+        exit(3);
     }
+    clock_t time2=clock();
     writeFile(newData,outNewFileName);
-    printf("patch ok!");
+    clock_t time3=clock();
+    std::cout<<"  patch ok!\n";
+    std::cout<<"oldDataSize : "<<oldDataSize<<"\ndiffDataSize: "<<diffData.size()<<"\nnewDataSize : "<<newDataSize<<"\n";
+    std::cout<<"\npatch   time:"<<(time2-time1)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
+    std::cout<<"all run time:"<<(time3-time0)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
     return 0;
 }
 
