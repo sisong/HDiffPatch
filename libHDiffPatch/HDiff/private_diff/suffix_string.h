@@ -35,20 +35,31 @@
 class TSuffixString{
 public:
     typedef ptrdiff_t     TInt;
-    
+    TSuffixString();
     TSuffixString(const char* src_begin,const char* src_end);
-    const char*const    src_begin;//原字符串.
-    const char*const    src_end;
-    TInt SA(TInt i)const;//SA[]排好序的后缀字符串数组.
+    void resetSuffixString(const char* src_begin,const char* src_end);
+    
+    inline const char* src_begin()const{ return m_src_begin; }
+    inline const char* src_end()const{ return m_src_end; }
+    inline size_t SASize()const{ return (size_t)(m_src_end-m_src_begin); }
+    
+    inline TInt SA(TInt i)const{//return m_SA[i];//排好序的后缀字符串数组.
+        if (isUseLargeSA())
+            return m_SA_large[i];
+        else
+            return m_SA_small[i];
+    }
     TInt lower_bound(const char* str,const char* str_end)const;//return index in SA
 private:
     typedef int TInt32;
-    std::vector<TInt32>    m_SA_small;
-    std::vector<TInt>      m_SA_large;
-    inline bool isUseLarge()const{
+    const char*         m_src_begin;//原字符串.
+    const char*         m_src_end;
+    std::vector<TInt32> m_SA_small;
+    std::vector<TInt>   m_SA_large;
+    inline bool isUseLargeSA()const{
         if (sizeof(TInt)<=sizeof(TInt32)) return  false;
-        const TInt kMaxDataSize_small= (1<<30)-1 + (1<<30);//2G
-        return (src_end-src_begin>kMaxDataSize_small);
+        static const size_t kMaxDataSize_small= (1<<30)-1 + (1<<30);//2G
+        return (SASize()>(size_t)kMaxDataSize_small);
     }
 };
 
