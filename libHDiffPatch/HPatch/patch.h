@@ -48,6 +48,44 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
 #ifdef __cplusplus
 }
 #endif
+
     
+//patch by stream
+#include "stddef.h" //size_t
+#ifdef __cplusplus
+extern "C"
+{
+#endif
     
+    typedef void* hpatch_TStreamInputHandle;
+    //maxStreamCacheSize >=64
+    
+    typedef struct hpatch_TStreamInput{
+        hpatch_TStreamInputHandle   streamHandle;
+        size_t                      maxStreamCacheSize;
+        size_t                      streamSize;
+        void                        (*read)  (hpatch_TStreamInputHandle streamHandle,const size_t readFromPos,
+            unsigned char* out_data,unsigned char* out_data_end); //(out_buf_end-out_buf)<=maxStreamCacheSize
+        //        const unsigned char*        (*read)  (hpatch_TStreamInputHandle streamHandle,
+            //const size_t readFromPos,const size_t readSize); //readSize<=maxStreamCacheSize
+
+    } hpatch_TStreamInput;
+    
+    typedef struct hpatch_TStreamOutput{
+        hpatch_TStreamInputHandle   streamHandle;
+        size_t                      streamSize;
+        void                        (*write)  (hpatch_TStreamInputHandle streamHandle,
+            const unsigned char* data,const unsigned char* data_end); //(data_end-data)<=maxStreamCacheSize
+    } hpatch_TStreamOutput;
+    
+    static const int kPatchTempMemBufSize=1024;
+    hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
+                             const struct hpatch_TStreamInput*  oldData,
+                             const struct hpatch_TStreamInput*  serializedDiff);
+    
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

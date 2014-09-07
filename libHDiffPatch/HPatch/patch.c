@@ -29,7 +29,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "patch.h"
-#include "string.h" //memcpy memset size_t
+#include "string.h" //memcpy memset
 #include "assert.h" //assert
 
 typedef unsigned char TByte;
@@ -45,7 +45,7 @@ static void addData(TByte* dst,const TByte* src,TUInt length);
 static TUInt unpackUIntWithTag(const TByte** src_code,const TByte* src_code_end,const int kTagBit);
 #define unpackUInt(src_code,src_code_end) unpackUIntWithTag(src_code,src_code_end,0)
 
-hpatch_BOOL patch(TByte* newData,TByte* newData_end,
+hpatch_BOOL patch(TByte* out_newData,TByte* out_newData_end,
             const TByte* oldData,const TByte* oldData_end,
             const TByte* serializedDiff,const TByte* serializedDiff_end){
     const TByte *code_lengths, *code_lengths_end,
@@ -54,17 +54,15 @@ hpatch_BOOL patch(TByte* newData,TByte* newData_end,
                 *code_newDataDiff, *code_newDataDiff_end;
     TUInt       ctrlCount;
     
-    assert(newData<=newData_end);
+    assert(out_newData<=out_newData_end);
     assert(oldData<=oldData_end);
     assert(serializedDiff<=serializedDiff_end);
+    ctrlCount=unpackUInt(&serializedDiff, serializedDiff_end);
     {   //head
-        TUInt lengthSize,inc_newPosSize,inc_oldPosSize,newDataDiffSize;
-        
-        ctrlCount=unpackUInt(&serializedDiff, serializedDiff_end);
-        lengthSize=unpackUInt(&serializedDiff, serializedDiff_end);
-        inc_newPosSize=unpackUInt(&serializedDiff, serializedDiff_end);
-        inc_oldPosSize=unpackUInt(&serializedDiff, serializedDiff_end);
-        newDataDiffSize=unpackUInt(&serializedDiff, serializedDiff_end);
+        TUInt lengthSize=unpackUInt(&serializedDiff, serializedDiff_end);
+        TUInt inc_newPosSize=unpackUInt(&serializedDiff, serializedDiff_end);
+        TUInt inc_oldPosSize=unpackUInt(&serializedDiff, serializedDiff_end);
+        TUInt newDataDiffSize=unpackUInt(&serializedDiff, serializedDiff_end);
 #ifdef __RUN_MEM_SAFE_CHECK
         if (lengthSize>(TUInt)(serializedDiff_end-serializedDiff)) return hpatch_FALSE;
 #endif
@@ -88,21 +86,23 @@ hpatch_BOOL patch(TByte* newData,TByte* newData_end,
     }
     
     //decode rle ; rle data begin==serializedDiff;
-    if (!_bytesRle_load(newData, newData_end, serializedDiff, serializedDiff_end))
+    if (!_bytesRle_load(out_newData, out_newData_end, serializedDiff, serializedDiff_end))
         return hpatch_FALSE;
     
     {   //patch
-        TUInt i,oldPosBack,newPos_end,newDataSize;
-        
-        oldPosBack=0;
-        newPos_end=0;
+        const TUInt newDataSize=(TUInt)(out_newData_end-out_newData);
+        TUInt oldPosBack=0;
+        TUInt newPos_end=0;
+        TUInt i;
         for (i=0; i<ctrlCount; ++i){
-            TUInt inc_newPos,newPos,addLength;
-            TUInt oldPos,inc_oldPos,inc_oldPos_sign,copyLength;
+            TUInt oldPos,inc_oldPos,inc_oldPos_sign;
             
-            inc_newPos=unpackUInt(&code_inc_newPos, code_inc_newPos_end);
-            newPos=newPos_end+inc_newPos;
-            addLength=unpackUInt(&code_lengths, code_lengths_end);
+            TUInt copyLength=unpackUInt(&code_inc_newPos, code_inc_newPos_end);
+            TUInt newPos=newPos_end+copyLength;
+            TUInt addLength=unpackUInt(&code_lengths, code_lengths_end);
+#ifdef __RUN_MEM_SAFE_CHECK
+            if (code_inc_oldPos>=code_inc_oldPos_end) return hpatch_FALSE;
+#endif
             inc_oldPos_sign=(*code_inc_oldPos)>>(8-1);
             inc_oldPos=unpackUIntWithTag(&code_inc_oldPos, code_inc_oldPos_end, 1);
             if (inc_oldPos_sign==0)
@@ -111,28 +111,26 @@ hpatch_BOOL patch(TByte* newData,TByte* newData_end,
                 oldPos=oldPosBack-inc_oldPos;
 #ifdef __RUN_MEM_SAFE_CHECK
             if ((oldPos>(TUInt)(oldData_end-oldData))||(addLength>(TUInt)(oldData_end-oldData-oldPos))) return hpatch_FALSE;
-            if ((newPos>(TUInt)(newData_end-newData))||(addLength>(TUInt)(newData_end-newData-newPos))) return hpatch_FALSE;
+            if ((newPos>newDataSize)||(addLength>(TUInt)(newDataSize-newPos))) return hpatch_FALSE;
 #endif
-            if (newPos>newPos_end){
-                copyLength=newPos-newPos_end;
+            if (copyLength>0){
 #ifdef __RUN_MEM_SAFE_CHECK
                 if (copyLength>(TUInt)(code_newDataDiff_end-code_newDataDiff)) return hpatch_FALSE;
 #endif
-                memcpy(newData+newPos_end,code_newDataDiff,copyLength);
+                memcpy(out_newData+newPos_end,code_newDataDiff,copyLength);
                 code_newDataDiff+=copyLength;
             }
-            addData(newData+newPos,oldData+oldPos,addLength);
+            addData(out_newData+newPos,oldData+oldPos,addLength);
             oldPosBack=oldPos;
             newPos_end=newPos+addLength;
         }
         
-        newDataSize=(TUInt)(newData_end-newData);
         if (newPos_end<newDataSize){
             TUInt copyLength=newDataSize-newPos_end;
 #ifdef __RUN_MEM_SAFE_CHECK
             if (copyLength>(TUInt)(code_newDataDiff_end-code_newDataDiff)) return hpatch_FALSE;
 #endif
-            memcpy(newData+newPos_end,code_newDataDiff,copyLength);
+            memcpy(out_newData+newPos_end,code_newDataDiff,copyLength);
             code_newDataDiff+=copyLength;
             newPos_end=newDataSize;
         }
@@ -252,4 +250,126 @@ static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,const TByte
     }
     return (ctrlBuf==ctrlBuf_end)&&(rle_code==rle_code_end)&&(out_data==out_dataEnd);
 }
+
+/////////
+//patch by stream
+
+static TUInt unpackUIntWithTag_stream(const struct hpatch_TStreamInput*  serializedDiff,TUInt* readFromPos,const TUInt pos_end,const int kTagBit){
+    assert(0);
+    return -1;
+}
+#define unpackUInt_stream(serializedDiff,readFromPos,pos_end) unpackUIntWithTag_stream(serializedDiff,readFromPos,pos_end,0)
+static TByte getByte_stream(const struct hpatch_TStreamInput*  serializedDiff,TUInt readFromPos){
+    TByte result=0;
+    serializedDiff->read(serializedDiff->streamHandle,readFromPos,&result,(&result)+1);
+    return result;
+}
+
+hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
+                         const struct hpatch_TStreamInput*  oldData,
+                         const struct hpatch_TStreamInput*  serializedDiff){
+    TByte _tempMemBuf[kPatchTempMemBufSize];
+    TByte* tempMemBuf=&_tempMemBuf[0];
+    TByte* tempMemBuf_end=tempMemBuf+kPatchTempMemBufSize;
+    
+    TUInt   code_lengths,code_lengths_end,code_inc_newPos,code_inc_newPos_end,
+            code_inc_oldPos,code_inc_oldPos_end,code_newDataDiff,code_newDataDiff_end;
+    TUInt   ctrlCount;
+    
+    assert(out_newData!=0);
+    assert(out_newData->write!=0);
+    assert(oldData!=0);
+    assert(oldData->read!=0);
+    assert(serializedDiff!=0);
+    assert(serializedDiff->read!=0);
+    assert(serializedDiff->streamSize>0);
+    assert(tempMemBuf<tempMemBuf_end);
+    
+    {   //head
+        TUInt lengthSize,inc_newPosSize,inc_oldPosSize,newDataDiffSize;
+        const TUInt diffPos_end=serializedDiff->streamSize;
+        TUInt diffPos0=0;
+        ctrlCount=unpackUInt_stream(serializedDiff,&diffPos0,diffPos_end);
+        lengthSize=unpackUInt_stream(serializedDiff,&diffPos0,diffPos_end);
+        inc_newPosSize=unpackUInt_stream(serializedDiff,&diffPos0,diffPos_end);
+        inc_oldPosSize=unpackUInt_stream(serializedDiff,&diffPos0,diffPos_end);
+        newDataDiffSize=unpackUInt_stream(serializedDiff,&diffPos0,diffPos_end);
+#ifdef __RUN_MEM_SAFE_CHECK
+        if (lengthSize>(TUInt)(serializedDiff->streamSize-diffPos0)) return hpatch_FALSE;
+#endif
+        code_lengths=diffPos0;     diffPos0+=lengthSize;
+        code_lengths_end=diffPos0;
+#ifdef __RUN_MEM_SAFE_CHECK
+        if (inc_newPosSize>(TUInt)(serializedDiff->streamSize-diffPos0)) return hpatch_FALSE;
+#endif
+        code_inc_newPos=diffPos0; diffPos0+=inc_newPosSize;
+        code_inc_newPos_end=diffPos0;
+#ifdef __RUN_MEM_SAFE_CHECK
+        if (inc_oldPosSize>(TUInt)(serializedDiff->streamSize-diffPos0)) return hpatch_FALSE;
+#endif
+        code_inc_oldPos=diffPos0; diffPos0+=inc_oldPosSize;
+        code_inc_oldPos_end=diffPos0;
+#ifdef __RUN_MEM_SAFE_CHECK
+        if (newDataDiffSize>(TUInt)(serializedDiff->streamSize-diffPos0)) return hpatch_FALSE;
+#endif
+        code_newDataDiff=diffPos0; diffPos0+=newDataDiffSize;
+        code_newDataDiff_end=diffPos0;
+    }
+    
+    //decode rle ; rle data begin==serializedDiff;
+    //if (!_bytesRle_load(newData, newData_end, serializedDiff, serializedDiff_end))
+    //  return hpatch_FALSE;
+    
+    {   //patch
+        const TUInt newDataSize=out_newData->streamSize;
+        TUInt oldPosBack=0;
+        TUInt newPos_end=0;
+        TUInt i;
+        for (i=0; i<ctrlCount; ++i){
+            TUInt oldPos,inc_oldPos,inc_oldPos_sign;
+            
+            TUInt copyLength=unpackUInt_stream(serializedDiff,&code_inc_newPos,code_inc_newPos_end);
+            TUInt newPos=newPos_end+copyLength;
+            TUInt addLength=unpackUInt_stream(serializedDiff,&code_lengths, code_lengths_end);
+#ifdef __RUN_MEM_SAFE_CHECK
+            if (code_inc_oldPos>=code_inc_oldPos_end) return hpatch_FALSE;
+#endif
+            inc_oldPos_sign=getByte_stream(serializedDiff,code_inc_oldPos)>>(8-1);
+            inc_oldPos=unpackUIntWithTag_stream(serializedDiff,&code_inc_oldPos, code_inc_oldPos_end, 1);
+            if (inc_oldPos_sign==0)
+                oldPos=oldPosBack+inc_oldPos;
+            else
+                oldPos=oldPosBack-inc_oldPos;
+#ifdef __RUN_MEM_SAFE_CHECK
+            if ((oldPos>(oldData->streamSize))||(addLength>(TUInt)(oldData->streamSize-oldPos))) return hpatch_FALSE;
+            if ((newPos>newDataSize)||(addLength>(TUInt)(newDataSize-newPos))) return hpatch_FALSE;
+#endif
+            if (copyLength>0){
+#ifdef __RUN_MEM_SAFE_CHECK
+                if (copyLength>(TUInt)(code_newDataDiff_end-code_newDataDiff)) return hpatch_FALSE;
+#endif
+               // memcpy(newData+newPos_end,code_newDataDiff,copyLength);
+                code_newDataDiff+=copyLength;
+            }
+            // addData(newData+newPos,oldData+oldPos,addLength);
+            oldPosBack=oldPos;
+            newPos_end=newPos+addLength;
+        }
+        
+        if (newPos_end<newDataSize){
+            TUInt copyLength=newDataSize-newPos_end;
+#ifdef __RUN_MEM_SAFE_CHECK
+            if (copyLength>(TUInt)(code_newDataDiff_end-code_newDataDiff)) return hpatch_FALSE;
+#endif
+            // memcpy(newData+newPos_end,code_newDataDiff,copyLength);
+            code_newDataDiff+=copyLength;
+            newPos_end=newDataSize;
+        }
+    }
+    
+    return (code_lengths==code_lengths_end)&&(code_inc_newPos==code_inc_newPos_end)
+            &&(code_inc_oldPos==code_inc_oldPos_end)&&(code_newDataDiff==code_newDataDiff_end);
+}
+
+
 
