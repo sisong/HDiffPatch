@@ -4,9 +4,9 @@
 //
 /*
  This is the HDiffPatch copyright.
- 
+
  Copyright (c) 2012-2013 HouSisong All Rights Reserved.
- 
+
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
  files (the "Software"), to deal in the Software without
@@ -15,10 +15,10 @@
  copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following
  conditions:
- 
+
  The above copyright notice and this permission notice shall be
  included in all copies of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -39,18 +39,17 @@
 #include <stdlib.h>
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HPatch/patch.h"
-typedef unsigned char  TByte;
-typedef size_t      TUInt;
-typedef ptrdiff_t   TInt;
+typedef unsigned char   TByte;
+typedef size_t          TUInt;
+typedef ptrdiff_t       TInt;
 
 void readFile(std::vector<TByte>& data,const char* fileName){
     std::ifstream file(fileName);
     file.seekg(0,std::ios::end);
     std::streampos file_length=file.tellg();
-    assert(file_length>=0);
     file.seekg(0,std::ios::beg);
     size_t needRead=(size_t)file_length;
-    if (needRead!=file_length) {
+    if ((file_length<0)||((std::streamsize)needRead!=(std::streamsize)file_length)) {
         file.close();
         exit(1);
     }
@@ -58,7 +57,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
     file.read((char*)&data[0], needRead);
     std::streamsize readed=file.gcount();
     file.close();
-    if (readed!=(std::streamsize)file_length)  exit(1);
+    if ((std::streamsize)needRead!=readed)  exit(1);
 }
 
 void writeFile(const std::vector<TByte>& data,const char* fileName){
@@ -85,23 +84,23 @@ int main(int argc, const char * argv[]){
     const TUInt newDataSize=newData.size();
 
     std::vector<TByte> diffData;
-    diffData.push_back(newDataSize);
-    diffData.push_back(newDataSize>>8);
-    diffData.push_back(newDataSize>>16);
+    diffData.push_back((TByte)newDataSize);
+    diffData.push_back((TByte)(newDataSize>>8));
+    diffData.push_back((TByte)(newDataSize>>16));
     TUInt kNewDataSize=-1;
     if ((newDataSize>>31)==0){
         kNewDataSize=4;
-        diffData.push_back(newDataSize>>24);
+        diffData.push_back((TByte)(newDataSize>>24));
     }else{
         kNewDataSize=9;
         diffData.push_back(0xFF);
-        diffData.push_back(newDataSize>>24);
-        
+        diffData.push_back((TByte)(newDataSize>>24));
+
         const TUInt highSize=((newDataSize>>16)>>16);
-        diffData.push_back(highSize);
-        diffData.push_back(highSize>>8);
-        diffData.push_back(highSize>>16);
-        diffData.push_back(highSize>>24);
+        diffData.push_back((TByte)highSize);
+        diffData.push_back((TByte)(highSize>>8));
+        diffData.push_back((TByte)(highSize>>16));
+        diffData.push_back((TByte)(highSize>>24));
     }
 
     TByte* newData_begin=0; if (!newData.empty()) newData_begin=&newData[0];
