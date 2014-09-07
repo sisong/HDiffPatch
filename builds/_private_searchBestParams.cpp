@@ -44,18 +44,17 @@
 #include "../../zlib/zlib.h"
 #include "../libHDiffPatch/HDiff/private_diff/suffix_string.h"
 
-typedef unsigned char  TByte;
-typedef unsigned int TUInt32;
-typedef ptrdiff_t TInt;
+typedef unsigned char   TByte;
+typedef unsigned int    TUInt32;
+typedef ptrdiff_t       TInt;
 
 void readFile(std::vector<TByte>& data,const char* fileName){
     std::ifstream file(fileName);
     file.seekg(0,std::ios::end);
     std::streampos file_length=file.tellg();
-    assert(file_length>=0);
     file.seekg(0,std::ios::beg);
     size_t needRead=(size_t)file_length;
-    if (needRead!=file_length) {
+    if ((file_length<0)||((std::streamsize)needRead!=(std::streamsize)file_length)) {
         file.close();
         exit(1);
     }
@@ -63,7 +62,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
     file.read((char*)&data[0], needRead);
     std::streamsize readed=file.gcount();
     file.close();
-    if (readed!=(std::streamsize)file_length)  exit(1);
+    if ((std::streamsize)needRead!=readed)  exit(1);
 }
 
 void writeFile(const std::vector<TByte>& data,const char* fileName){
