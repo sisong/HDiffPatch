@@ -106,25 +106,32 @@ namespace {
 
 }//end namespace
 
-TSuffixString::TSuffixString(const char* _src_begin,const char* _src_end)
-:src_begin(_src_begin),src_end(_src_end){
-    assert(((TInt)(src_end-_src_begin))>=0);
-    if (isUseLarge())
-        _suffixString_create(src_begin,src_end,m_SA_large);
-    else
-        _suffixString_create(src_begin,src_end,m_SA_small);
+
+TSuffixString::TSuffixString()
+:m_src_begin(0),m_src_end(0){
 }
 
-TInt TSuffixString::SA(TInt i)const{//return SA value
-    if (isUseLarge())
-        return m_SA_large[i];
-    else
-        return m_SA_small[i];
+TSuffixString::TSuffixString(const char* src_begin,const char* src_end)
+:m_src_begin(0),m_src_end(0){
+    resetSuffixString(src_begin,src_end);
+}
+
+void TSuffixString::resetSuffixString(const char* src_begin,const char* src_end){
+    assert(src_begin<=src_end);
+    m_src_begin=src_begin;
+    m_src_end=src_end;
+    if (isUseLargeSA()){
+        m_SA_small.clear();
+        _suffixString_create(m_src_begin,m_src_end,m_SA_large);
+    }else{
+        m_SA_large.clear();
+        _suffixString_create(m_src_begin,m_src_end,m_SA_small);
+    }
 }
 
 TInt TSuffixString::lower_bound(const char* str,const char* str_end)const{
-    if (isUseLarge())
-        return _lower_bound(m_SA_large,StringToken(str,str_end),TSuffixString_compare(src_begin,src_end));
+    if (isUseLargeSA())
+        return _lower_bound(m_SA_large,StringToken(str,str_end),TSuffixString_compare(m_src_begin,m_src_end));
     else
-        return _lower_bound(m_SA_small,StringToken(str,str_end),TSuffixString_compare(src_begin,src_end));
+        return _lower_bound(m_SA_small,StringToken(str,str_end),TSuffixString_compare(m_src_begin,m_src_end));
 }
