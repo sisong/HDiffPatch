@@ -62,8 +62,8 @@ extern "C"
     
     typedef struct hpatch_TStreamInput{
         hpatch_TStreamInputHandle   streamHandle;
-        size_t                      maxStreamCacheSize;
         size_t                      streamSize;
+        size_t                      maxStreamCacheSize;
         void                        (*read)  (hpatch_TStreamInputHandle streamHandle,const size_t readFromPos,
             unsigned char* out_data,unsigned char* out_data_end); //(out_buf_end-out_buf)<=maxStreamCacheSize
         //        const unsigned char*        (*read)  (hpatch_TStreamInputHandle streamHandle,
