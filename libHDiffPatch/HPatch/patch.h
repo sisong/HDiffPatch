@@ -63,11 +63,8 @@ extern "C"
     typedef struct hpatch_TStreamInput{
         hpatch_TStreamInputHandle   streamHandle;
         size_t                      streamSize;
-        size_t                      maxStreamCacheSize;
         void                        (*read)  (hpatch_TStreamInputHandle streamHandle,const size_t readFromPos,
-            unsigned char* out_data,unsigned char* out_data_end); //(out_buf_end-out_buf)<=maxStreamCacheSize
-        //        const unsigned char*        (*read)  (hpatch_TStreamInputHandle streamHandle,
-            //const size_t readFromPos,const size_t readSize); //readSize<=maxStreamCacheSize
+                                              unsigned char* out_data,unsigned char* out_data_end);
 
     } hpatch_TStreamInput;
     
@@ -75,13 +72,13 @@ extern "C"
         hpatch_TStreamInputHandle   streamHandle;
         size_t                      streamSize;
         void                        (*write)  (hpatch_TStreamInputHandle streamHandle,
-            const unsigned char* data,const unsigned char* data_end); //(data_end-data)<=maxStreamCacheSize
+                                               const unsigned char* data,const unsigned char* data_end);
     } hpatch_TStreamOutput;
     
-    static const int kPatchTempMemBufSize=1024;
     hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
                              const struct hpatch_TStreamInput*  oldData,
-                             const struct hpatch_TStreamInput*  serializedDiff);
+                             const struct hpatch_TStreamInput*  serializedDiff,
+                             unsigned char* tempMemBuf,unsigned char* tempMemBuf_end);
     
 
 #ifdef __cplusplus
