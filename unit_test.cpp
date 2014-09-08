@@ -39,8 +39,54 @@
 #include "math.h"
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HPatch/patch.h"
-typedef unsigned char TByte;
-typedef ptrdiff_t TInt;
+typedef unsigned char   TByte;
+typedef ptrdiff_t       TInt;
+typedef size_t          TUInt;
+
+static void _read_mem_stream(hpatch_TStreamInputHandle streamHandle,const size_t readFromPos,
+                             unsigned char* out_data,unsigned char* out_data_end){
+    const TByte* data=(const TByte*)streamHandle;
+    memcpy(out_data, data+readFromPos, out_data_end-out_data);
+}
+static void _write_mem_stream(hpatch_TStreamInputHandle streamHandle,const size_t writeToPos,
+                              const unsigned char* data,const unsigned char* data_end){
+    TByte* out_dst=(TByte*)streamHandle;
+    memcpy(out_dst+writeToPos,data,data_end-data);
+}
+
+static bool pacth_mem_stream(TByte* newData,TByte* newData_end,
+                              const TByte* oldData,const TByte* oldData_end,const TByte* diff,const TByte* diff_end){
+    struct hpatch_TStreamOutput out_newDataStream;
+    out_newDataStream.streamHandle=newData;
+    out_newDataStream.streamSize=newData_end-newData;
+    out_newDataStream.write=_write_mem_stream;
+    
+    struct hpatch_TStreamInput  oldDataStream;
+    oldDataStream.streamHandle=(void*)oldData;
+    oldDataStream.streamSize=oldData_end-oldData;
+    oldDataStream.read=_read_mem_stream;
+    struct hpatch_TStreamInput  serializedDiffStream;
+    serializedDiffStream.streamHandle=(void*)diff;
+    serializedDiffStream.streamSize=diff_end-diff;
+    serializedDiffStream.read=_read_mem_stream;
+    
+    return patch_stream(&out_newDataStream,&oldDataStream,&serializedDiffStream,0,0);
+}
+
+static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
+                       const TByte* oldData,const TByte* oldData_end,const TByte* diff,const TByte* diff_end){
+    std::vector<TByte> testNewData(newData_end-newData);
+    TByte* testNewData_begin=0;
+    if (!testNewData.empty()) testNewData_begin=&testNewData[0];
+    
+    if (!pacth_mem_stream(testNewData_begin,testNewData_begin+testNewData.size(),oldData,oldData_end, diff,diff_end))
+        return false;
+    for (TUInt i=0; i<(TUInt)testNewData.size(); ++i) {
+        if (testNewData[i]!=newData[i])
+            return false;
+    }
+    return true;
+}
 
 static bool test(const TByte* newData,const TByte* newData_end,const TByte* oldData,const TByte* oldData_end,const char* tag,size_t* out_diffSize=0){
     std::vector<TByte> diffData;
@@ -48,7 +94,8 @@ static bool test(const TByte* newData,const TByte* newData_end,const TByte* oldD
     create_diff(newData,newData_end,oldData,oldData_end, diffData);
     if (out_diffSize!=0)
         *out_diffSize=diffData.size();
-    if (!check_diff(newData,newData_end,oldData,oldData_end, &diffData[0], &diffData[0]+diffData.size())){
+    if ((!check_diff(newData,newData_end,oldData,oldData_end, &diffData[0], &diffData[0]+diffData.size()))
+        ||(!check_diff_stream(newData,newData_end,oldData,oldData_end, &diffData[0], &diffData[0]+diffData.size())) ){
         printf("\n  error!!! tag:%s\n",tag);
         return false;
     }else{

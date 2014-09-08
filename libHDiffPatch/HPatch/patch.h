@@ -71,14 +71,15 @@ extern "C"
     typedef struct hpatch_TStreamOutput{
         hpatch_TStreamInputHandle   streamHandle;
         size_t                      streamSize;
-        void                        (*write)  (hpatch_TStreamInputHandle streamHandle,
+        void                        (*write)  (hpatch_TStreamInputHandle streamHandle,const size_t writeToPos,
                                                const unsigned char* data,const unsigned char* data_end);
+                                               //first writeToPos==0; and next writeToPos=writeToPos+(data_end-data)
     } hpatch_TStreamOutput;
     
     hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
                              const struct hpatch_TStreamInput*  oldData,
                              const struct hpatch_TStreamInput*  serializedDiff,
-                             unsigned char* tempMemBuf,unsigned char* tempMemBuf_end);
+                             unsigned char* tempMemBuf,unsigned char* tempMemBuf_end); //allow tempMemBuf_end,tempMemBuf==null
     
 
 #ifdef __cplusplus
