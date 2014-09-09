@@ -57,29 +57,34 @@ extern "C"
 {
 #endif
     
+//hpatch_StreamPos_t for support big file data
+#ifdef _MSC_VER
+    typedef unsigned __int64        hpatch_StreamPos_t;
+#else
+    typedef unsigned long long      hpatch_StreamPos_t;
+#endif
+    
     typedef void* hpatch_TStreamInputHandle;
-    //maxStreamCacheSize >=64
     
     typedef struct hpatch_TStreamInput{
         hpatch_TStreamInputHandle   streamHandle;
-        size_t                      streamSize;
-        void                        (*read)  (hpatch_TStreamInputHandle streamHandle,const size_t readFromPos,
+        hpatch_StreamPos_t          streamSize;
+        void                        (*read)  (hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
                                               unsigned char* out_data,unsigned char* out_data_end);
 
     } hpatch_TStreamInput;
     
     typedef struct hpatch_TStreamOutput{
         hpatch_TStreamInputHandle   streamHandle;
-        size_t                      streamSize;
-        void                        (*write)  (hpatch_TStreamInputHandle streamHandle,const size_t writeToPos,
+        hpatch_StreamPos_t          streamSize;
+        void                        (*write)  (hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
                                                const unsigned char* data,const unsigned char* data_end);
                                                //first writeToPos==0; and next writeToPos=writeToPos+(data_end-data)
     } hpatch_TStreamOutput;
     
     hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
                              const struct hpatch_TStreamInput*  oldData,
-                             const struct hpatch_TStreamInput*  serializedDiff,
-                             unsigned char* tempMemBuf,unsigned char* tempMemBuf_end); //allow tempMemBuf_end,tempMemBuf==null
+                             const struct hpatch_TStreamInput*  serializedDiff);
     
 
 #ifdef __cplusplus

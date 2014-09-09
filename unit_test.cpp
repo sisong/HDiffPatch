@@ -43,12 +43,12 @@ typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
 
-static void _read_mem_stream(hpatch_TStreamInputHandle streamHandle,const size_t readFromPos,
+static void _read_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
                              unsigned char* out_data,unsigned char* out_data_end){
     const TByte* data=(const TByte*)streamHandle;
     memcpy(out_data, data+readFromPos, out_data_end-out_data);
 }
-static void _write_mem_stream(hpatch_TStreamInputHandle streamHandle,const size_t writeToPos,
+static void _write_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
                               const unsigned char* data,const unsigned char* data_end){
     TByte* out_dst=(TByte*)streamHandle;
     memcpy(out_dst+writeToPos,data,data_end-data);
@@ -70,7 +70,7 @@ static bool pacth_mem_stream(TByte* newData,TByte* newData_end,
     serializedDiffStream.streamSize=diff_end-diff;
     serializedDiffStream.read=_read_mem_stream;
     
-    return patch_stream(&out_newDataStream,&oldDataStream,&serializedDiffStream,0,0);
+    return 0!=patch_stream(&out_newDataStream,&oldDataStream,&serializedDiffStream);
 }
 
 static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
