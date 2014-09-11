@@ -192,6 +192,7 @@ struct TFileStreamInput:public hpatch_TStreamInput{
     TFileStreamInput(const char* fileName):m_file(0),m_offset(0){
         m_file=fopen(fileName, "rb");
         if (m_file==0) exit(1);
+        //setvbuf(m_file, 0, _IONBF, 0);
         fseek(m_file, 0, SEEK_END);
         fpos_t file_length;
         if (0!=fgetpos(m_file,&file_length))
@@ -207,8 +208,10 @@ struct TFileStreamInput:public hpatch_TStreamInput{
         hpatch_StreamPos_t curPos=fileStreamInput.m_offset+readFromPos;
         fpos_t fpos;
         fgetpos(fileStreamInput.m_file, &fpos);
-        fpos=pos2fpos(fpos,curPos);
-        fsetpos(fileStreamInput.m_file,&fpos);
+        if (fpos2pos(fpos)!=curPos) {
+            fpos=pos2fpos(fpos,curPos);
+            fsetpos(fileStreamInput.m_file,&fpos);
+        }
         size_t readed=fread(out_data, 1, (size_t)(out_data_end-out_data), fileStreamInput.m_file);
         assert(readed==(TUInt)(out_data_end-out_data));
     }
