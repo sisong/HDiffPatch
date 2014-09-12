@@ -44,34 +44,33 @@ extern "C"
 hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
             const unsigned char* oldData,const unsigned char* oldData_end,
             const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
-    
+
 #ifdef __cplusplus
 }
 #endif
 
     
-//patch by stream
+//patch_stream()  patch by stream
 #include "stddef.h" //size_t
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-    
-//hpatch_StreamPos_t for support big file data
+
+//hpatch_StreamPos_t for support big file
 #ifdef _MSC_VER
     typedef unsigned __int64        hpatch_StreamPos_t;
 #else
     typedef unsigned long long      hpatch_StreamPos_t;
 #endif
-    
+
     typedef void* hpatch_TStreamInputHandle;
-    
+
     typedef struct hpatch_TStreamInput{
         hpatch_TStreamInputHandle   streamHandle;
         hpatch_StreamPos_t          streamSize;
         void                        (*read)  (hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
                                               unsigned char* out_data,unsigned char* out_data_end);
-
     } hpatch_TStreamInput;
     
     typedef struct hpatch_TStreamOutput{
@@ -81,11 +80,10 @@ extern "C"
                                                const unsigned char* data,const unsigned char* data_end);
                                                //first writeToPos==0; and next writeToPos=writeToPos+(data_end-data)
     } hpatch_TStreamOutput;
-    
-    hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
-                             const struct hpatch_TStreamInput*  oldData,
-                             const struct hpatch_TStreamInput*  serializedDiff);
-    
+
+hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
+                         const struct hpatch_TStreamInput*  oldData,
+                         const struct hpatch_TStreamInput*  serializedDiff);
 
 #ifdef __cplusplus
 }

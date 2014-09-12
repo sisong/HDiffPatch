@@ -44,26 +44,27 @@ typedef ptrdiff_t       TInt;
 
 #define IS_USES_PATCH_STREAM
 
-inline static hpatch_StreamPos_t fpos2pos(const fpos_t& pos){
-#if defined(linux) || defined(__LYNX)
-    //assert(sizeof(pos.__pos)==sizeof(hpatch_StreamPos_t));
+inline static hpatch_StreamPos_t getFilePos64(FILE* file){
+    fpos_t pos;
+    int rt=fgetpos(file, &pos); //support 64bit?
+    assert(rt==0);
+#if defined(__linux) || defined(__linux__)
     return pos.__pos;
 #else //windows macosx
-    //assert(sizeof(pos)==sizeof(hpatch_StreamPos_t));
     return pos;
 #endif
 }
 
-inline static fpos_t pos2fpos(const fpos_t& old_pos,hpatch_StreamPos_t pos){
-#if defined(linux) || defined(__LYNX)
-    //assert(sizeof(old_pos.__pos)==sizeof(hpatch_StreamPos_t));
-    fpos_t result=old_pos;
-    result.__pos=pos;
-    return result;
+inline void setFilePos64(FILE* file,hpatch_StreamPos_t seekPos){
+    fpos_t pos;
+#if defined(__linux) || defined(__linux__)
+    memset(&pos, 0, sizeof(pos));
+    pos.__pos=seekPos; //safe?
 #else //windows macosx
-    //assert(sizeof(pos)==sizeof(hpatch_StreamPos_t));
-    return pos;
+    pos=seekPos;
 #endif
+    int rt=fsetpos(file,&pos); //support 64bit?
+    assert(rt==0);
 }
 
 static hpatch_StreamPos_t readSavedSize(const std::vector<TByte>& diffData,TUInt* out_sizeCodeLength){
@@ -99,20 +100,15 @@ void readFile(std::vector<TByte>& data,const char* fileName){
     FILE* file=fopen(fileName,"rb");
     if (file==0) exit(1);
     fseek(file,0,SEEK_END);
-    fpos_t file_length;
-    if (0!=fgetpos(file,&file_length)){
-        fclose(file);
-        file=0;
-        exit(1);
-    }
+    hpatch_StreamPos_t file_length=getFilePos64(file);
     fseek(file,0,SEEK_SET);
-    hpatch_StreamPos_t needRead=fpos2pos(file_length);
-    if ((size_t)needRead!=needRead){
+    size_t needRead=(size_t)file_length;
+    if (needRead!=file_length){
         fclose(file);
         file=0;
         exit(1);
     }
-    data.resize((size_t)needRead);
+    data.resize(needRead);
 
     TByte* curData=0; if (!data.empty()) curData=&data[0];
     size_t dataSize=data.size();
@@ -189,34 +185,38 @@ int main(int argc, const char * argv[]){
 //IS_USES_PATCH_STREAM
 
 struct TFileStreamInput:public hpatch_TStreamInput{
-    TFileStreamInput(const char* fileName):m_file(0),m_offset(0){
+    TFileStreamInput(const char* fileName):m_file(0),m_offset(0),m_fpos(0){
         m_file=fopen(fileName, "rb");
         if (m_file==0) exit(1);
+        //setvbuf(m_file, 0, _IOFBF, 1024*2);
         //setvbuf(m_file, 0, _IONBF, 0);
         fseek(m_file, 0, SEEK_END);
-        fpos_t file_length;
-        if (0!=fgetpos(m_file,&file_length))
-            exit(1);
+        hpatch_StreamPos_t file_length=getFilePos64(m_file);
         fseek(m_file, 0, SEEK_SET);
         hpatch_TStreamInput::streamHandle=this;
-        hpatch_TStreamInput::streamSize=fpos2pos(file_length);
+        hpatch_TStreamInput::streamSize=file_length;
         hpatch_TStreamInput::read=read_file;
     }
     static void read_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
                           unsigned char* out_data,unsigned char* out_data_end){
         TFileStreamInput& fileStreamInput=*(TFileStreamInput*)streamHandle;
         hpatch_StreamPos_t curPos=fileStreamInput.m_offset+readFromPos;
-        fpos_t fpos;
-        fgetpos(fileStreamInput.m_file, &fpos);
-        if (fpos2pos(fpos)!=curPos) {
-            fpos=pos2fpos(fpos,curPos);
-            fsetpos(fileStreamInput.m_file,&fpos);
+        if (fileStreamInput.m_fpos!=curPos){
+            setFilePos64(fileStreamInput.m_file, curPos);
         }
         size_t readed=fread(out_data, 1, (size_t)(out_data_end-out_data), fileStreamInput.m_file);
         assert(readed==(TUInt)(out_data_end-out_data));
+        fileStreamInput.m_fpos=curPos+readed;
     }
-    FILE*   m_file;
-    TUInt   m_offset;
+    
+    void setHeadSize(TUInt headSize){
+        assert(m_offset==0);
+        m_offset=headSize;
+        hpatch_TStreamInput::streamSize-=headSize;
+    }
+    FILE*               m_file;
+    TUInt               m_offset;
+    hpatch_StreamPos_t  m_fpos;
     ~TFileStreamInput(){
         if (m_file!=0) fclose(m_file);
     }
@@ -234,8 +234,7 @@ static hpatch_StreamPos_t readNewDataSize(TFileStreamInput& diffFileData){
 
     TUInt kNewDataSizeSavedSize=-1;
     const hpatch_StreamPos_t newDataSize=readSavedSize(diffData,&kNewDataSizeSavedSize);
-    diffFileData.m_offset=kNewDataSizeSavedSize;
-    diffFileData.streamSize-=kNewDataSizeSavedSize;
+    diffFileData.setHeadSize(kNewDataSizeSavedSize);//4 or 9 byte
     return newDataSize;
 }
 
