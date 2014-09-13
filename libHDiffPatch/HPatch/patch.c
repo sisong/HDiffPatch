@@ -29,7 +29,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "patch.h"
-#include "string.h" //memcpy memset
+#include "string.h" //memcpy memset size_t
 #include "assert.h" //assert
 
 typedef unsigned char TByte;

@@ -51,7 +51,6 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
 
     
 //patch_stream()  patch by stream
-#include "stddef.h" //size_t
 #ifdef __cplusplus
 extern "C"
 {
