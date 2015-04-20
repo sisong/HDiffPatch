@@ -126,8 +126,7 @@ static TInt getLinkEqualCount(TInt newPos,TInt newPos_end,TInt oldPos,const TDif
     TInt eqCount=0;
     for (TInt i=0; i<(newPos_end-newPos); ++i) {
         if (oldPos+i>=(diff.oldData_end-diff.oldData)){
-            if (diff.newData[newPos+i]==0)
-                ++eqCount;
+            break;
         }else if (diff.newData[newPos+i]==diff.oldData[oldPos+i]){
             ++eqCount;
         }
