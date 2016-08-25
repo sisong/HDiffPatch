@@ -44,8 +44,7 @@ typedef size_t          TUInt;
 typedef ptrdiff_t       TInt;
 
 void readFile(std::vector<TByte>& data,const char* fileName){
-    std::ifstream file(fileName);
-    file.seekg(0,std::ios::end);
+    std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
     std::streampos file_length=file.tellg();
     file.seekg(0,std::ios::beg);
     size_t needRead=(size_t)file_length;
@@ -61,7 +60,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
 }
 
 void writeFile(const std::vector<TByte>& data,const char* fileName){
-    std::ofstream file(fileName);
+    std::ofstream file(fileName, std::ios::out | std::ios::binary | std::ios::trunc);
     file.write((const char*)&data[0], data.size());
     file.close();
 }
