@@ -33,6 +33,7 @@
 #include "diff.h"
 #include "assert.h"
 #include <vector>
+#include <algorithm>
 #include "private_diff/suffix_string.h"
 #include "private_diff/bytes_rle.h"
 #include "private_diff/pack_uint.h"
