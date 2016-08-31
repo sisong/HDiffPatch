@@ -38,7 +38,7 @@ extern "C"
 #endif
     
 #define hpatch_BOOL   int
-#define hpatch_FALSE  0
+static const hpatch_BOOL hpatch_FALSE=0;
     
 //if patch false return hpatch_FALSE
 hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
@@ -50,13 +50,13 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
 #endif
 
     
-//patch_stream()  patch by stream
+//patch_stream()  patch by stream , recommended for use in limited memory systems
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-//hpatch_StreamPos_t for support big file
+//hpatch_StreamPos_t for support large file
 #ifdef _MSC_VER
     typedef unsigned __int64        hpatch_StreamPos_t;
 #else
@@ -66,20 +66,28 @@ extern "C"
     typedef void* hpatch_TStreamInputHandle;
 
     typedef struct hpatch_TStreamInput{
-        hpatch_TStreamInputHandle   streamHandle;
-        hpatch_StreamPos_t          streamSize;
-        void                        (*read)  (hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
-                                              unsigned char* out_data,unsigned char* out_data_end);
+        hpatch_TStreamInputHandle streamHandle;
+        hpatch_StreamPos_t        streamSize;
+        long                      (*read) (hpatch_TStreamInputHandle streamHandle,
+                                           const hpatch_StreamPos_t readFromPos,
+                                           unsigned char* out_data,unsigned char* out_data_end);
+                                           //must return (out_data_end-out_data), otherwise read error
     } hpatch_TStreamInput;
     
     typedef struct hpatch_TStreamOutput{
-        hpatch_TStreamInputHandle   streamHandle;
-        hpatch_StreamPos_t          streamSize;
-        void                        (*write)  (hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
-                                               const unsigned char* data,const unsigned char* data_end);
-                                               //first writeToPos==0; and next writeToPos=writeToPos+(data_end-data)
+        hpatch_TStreamInputHandle streamHandle;
+        hpatch_StreamPos_t        streamSize;
+        long                      (*write)(hpatch_TStreamInputHandle streamHandle,
+                                           const hpatch_StreamPos_t writeToPos,
+                                           const unsigned char* data,const unsigned char* data_end);
+                                           //must return (out_data_end-out_data), otherwise write error
+                                           //first writeToPos==0; the next writeToPos+=(data_end-data)
     } hpatch_TStreamOutput;
+    
+//once I/O (read/write) max byte size
+#define kStreamCacheSize  (1024)
 
+//patch by stream , only used 7*kStreamCacheSize stack memory for I/O cache
 hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
                          const struct hpatch_TStreamInput*  oldData,
                          const struct hpatch_TStreamInput*  serializedDiff);

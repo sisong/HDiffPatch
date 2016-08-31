@@ -43,15 +43,17 @@ typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
 
-static void _read_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
+static long _read_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
                              unsigned char* out_data,unsigned char* out_data_end){
     const TByte* data=(const TByte*)streamHandle;
     memcpy(out_data, data+readFromPos, out_data_end-out_data);
+    return out_data_end-out_data;
 }
-static void _write_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
+static long _write_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
                               const unsigned char* data,const unsigned char* data_end){
     TByte* out_dst=(TByte*)streamHandle;
     memcpy(out_dst+writeToPos,data,data_end-data);
+    return data_end-data;
 }
 
 static bool pacth_mem_stream(TByte* newData,TByte* newData_end,
