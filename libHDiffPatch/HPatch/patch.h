@@ -38,8 +38,8 @@ extern "C"
 #endif
     
 #define hpatch_BOOL   int
-static const hpatch_BOOL hpatch_FALSE=0;
-    
+#define hpatch_FALSE  0
+
 //if patch false return hpatch_FALSE
 hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
             const unsigned char* oldData,const unsigned char* oldData_end,
@@ -71,7 +71,7 @@ extern "C"
         long                      (*read) (hpatch_TStreamInputHandle streamHandle,
                                            const hpatch_StreamPos_t readFromPos,
                                            unsigned char* out_data,unsigned char* out_data_end);
-                                           //must return (out_data_end-out_data), otherwise read error
+                                           //read() must return (out_data_end-out_data), otherwise read error
     } hpatch_TStreamInput;
     
     typedef struct hpatch_TStreamOutput{
@@ -80,7 +80,7 @@ extern "C"
         long                      (*write)(hpatch_TStreamInputHandle streamHandle,
                                            const hpatch_StreamPos_t writeToPos,
                                            const unsigned char* data,const unsigned char* data_end);
-                                           //must return (out_data_end-out_data), otherwise write error
+                                           //write() must return (out_data_end-out_data), otherwise write error
                                            //first writeToPos==0; the next writeToPos+=(data_end-data)
     } hpatch_TStreamOutput;
     
