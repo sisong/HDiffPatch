@@ -197,7 +197,7 @@ struct TFileStreamInput:public hpatch_TStreamInput{
         hpatch_TStreamInput::streamSize=file_length;
         hpatch_TStreamInput::read=read_file;
     }
-    static void read_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
+    static long read_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
                           unsigned char* out_data,unsigned char* out_data_end){
         TFileStreamInput& fileStreamInput=*(TFileStreamInput*)streamHandle;
         hpatch_StreamPos_t curPos=fileStreamInput.m_offset+readFromPos;
@@ -207,6 +207,7 @@ struct TFileStreamInput:public hpatch_TStreamInput{
         size_t readed=fread(out_data, 1, (size_t)(out_data_end-out_data), fileStreamInput.m_file);
         assert(readed==(TUInt)(out_data_end-out_data));
         fileStreamInput.m_fpos=curPos+readed;
+        return (long)readed;
     }
     
     void setHeadSize(TUInt headSize){
@@ -246,11 +247,11 @@ struct TFileStreamOutput:public hpatch_TStreamOutput{
         hpatch_TStreamOutput::streamSize=file_length;
         hpatch_TStreamOutput::write=write_file;
     }
-    static void write_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
+    static long write_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
                            const unsigned char* data,const unsigned char* data_end){
         FILE* m_file=(FILE*)streamHandle;
         size_t writed=fwrite(data,1,(TUInt)(data_end-data),m_file);
-        assert(writed==(TUInt)(data_end-data));
+        return (long)writed;
     }
     FILE*   m_file;
     ~TFileStreamOutput(){

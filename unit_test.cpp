@@ -43,15 +43,17 @@ typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
 
-static void _read_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
+static long _read_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
                              unsigned char* out_data,unsigned char* out_data_end){
     const TByte* data=(const TByte*)streamHandle;
     memcpy(out_data, data+readFromPos, out_data_end-out_data);
+    return (long)(out_data_end-out_data);
 }
-static void _write_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
+static long _write_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
                               const unsigned char* data,const unsigned char* data_end){
     TByte* out_dst=(TByte*)streamHandle;
     memcpy(out_dst+writeToPos,data,data_end-data);
+    return (long)(data_end-data);
 }
 
 static bool pacth_mem_stream(TByte* newData,TByte* newData_end,
@@ -90,7 +92,7 @@ static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
 
 static bool test(const TByte* newData,const TByte* newData_end,const TByte* oldData,const TByte* oldData_end,const char* tag,size_t* out_diffSize=0){
     std::vector<TByte> diffData;
-    printf("%s newSize:%ld oldSize:%ld ",tag, (newData_end-newData), (oldData_end-oldData));
+    printf("%s newSize:%ld oldSize:%ld ",tag, (long)(newData_end-newData), (long)(oldData_end-oldData));
     create_diff(newData,newData_end,oldData,oldData_end, diffData);
     if (out_diffSize!=0)
         *out_diffSize=diffData.size();
@@ -112,7 +114,7 @@ static bool test(const char* newStr,const char* oldStr,const char* error_tag){
 
 int main(int argc, const char * argv[]){
     clock_t time1=clock();
-    TInt errorCount=0;
+    long errorCount=0;
     errorCount+=!test("", "", "1");
     errorCount+=!test("", "1", "2");
     errorCount+=!test("1", "", "3");
@@ -139,8 +141,8 @@ int main(int argc, const char * argv[]){
         }
     }
 
-    const TInt kRandTestCount=100000;
-    const TInt kMaxDataSize=1024*16;
+    const long kRandTestCount=100000;
+    const long kMaxDataSize=1024*16;
     std::vector<int> seeds(kRandTestCount);
     srand(0);
     for (int i=0; i<kRandTestCount; ++i)
