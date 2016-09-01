@@ -1,6 +1,6 @@
 **HDiffPatch**
 ================
-Version 1.1.1  
+Version 1.1.2  
 byte data Diff & Patch  C\C++ library.  
 
 ---
@@ -13,21 +13,23 @@ uses:
   
 *  **bool patch(out newData,oldData,diffData);**
   
-   ok  
+   ok , get the newData. 
   
 ---
 *  
-    **HPatch** runs in O(oldSize+newSize) time , and requires oldSize+newSize+O(1) bytes of memory (patch_stream requires  O(1) bytes of memory).  (oldSize and newSize \<2^63 Byte)   
-    **HDiff** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory. 
+    **HPatch** runs in O(oldSize+newSize) time , and requires oldSize+newSize+O(1) bytes of memory. (oldSize and newSize \<2^63 Byte)     
+    notice: if use **patch_stream()**, min requires O(1) bytes of memory.   
+            
+    **HDiff** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory.    
   
 ===
 **HDiff1.0.0 vs  BSDiff4.3 :**    
-    system: Windows7-x64 ,  CPU: i7 2.3G , Memroy: 6G DDR3 1600MHz, 7Zip use LZMA2  
+    system: Windows7-x64 ,  CPU: i7 2.3G , Memroy: 6G DDR3 1600MHz  
 
 ```
 ===================================================================================================================
-         Program               Uncompressed Compressed Compressed BSDiff-4.3-x64 HDiff-1.0-x64 HDiff+bzip2 HDiff+7z
-(newVersion<--oldVersion)          (tar)      (bzip2)     (7z)     (with bzip2)  (Uncompressed)
+         Program               Uncompressed Compressed Compressed BSDiff-4.3-x64 HDiff-1.0-x64    HDiff     HDiff
+(newVersion<--oldVersion)           (tar)     (bzip2)    (LZMA)       (bzip2)   (Uncompressed)   (bzip2)    (LZMA)
 -------------------------------------------------------------------------------------------------------------------
 apache-maven-2.2.1-src <--2.0.11    5150720   1213258    1175464       115723        312852      105941       93996
 httpd_2.4.4-netware-bin <--2.2.24  22612480   4035904    3459747      2192308       4154954     1961079     1765089
@@ -41,20 +43,20 @@ gcc-src-4.8.0 <--4.7.0            552775680  86438193   64532384     11759496   
 Average Compression                 100.00%    31.76%     28.47%        6.63%        12.21%       6.06%       5.46%
 ===================================================================================================================
 
-================================================
-   Program     I/O+run time(s)   run memory(MB)
-                 BSDiff  HDiff    BSDiff  HDiff
-------------------------------------------------
-apache-maven...    2.1    0.5        42      29
-httpd bin...      13.3    3.9       151     111
-httpd src...      32.3    6.6       330     221
-Firefox...         137     63       849     579
-emacs...           203     47      1466    1026
-eclipse            253    108      1575    1051
-gcc-src...         678    111      4639    3119
-------------------------------------------------
-                 394.62%  100%   145.47%   100%
-================================================
+======================================================
+   Program     I/O+run time(second)   run memory(MB)
+                 BSDiff  HDiff         BSDiff  HDiff
+------------------------------------------------------
+apache-maven...     2.1    0.5           42      29
+httpd bin...       13.3    3.9          151     111
+httpd src...       32.3    6.6          330     221
+Firefox...        137     63            849     579
+emacs...          203     47           1466    1026
+eclipse           253    108           1575    1051
+gcc-src...        678    111           4639    3119
+------------------------------------------------------
+                394.62%  100%        145.47%   100%
+======================================================
 ```
   
 ---
