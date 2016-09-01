@@ -50,7 +50,7 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
 #endif
 
     
-//patch_stream()  patch by stream , recommended for use in limited memory systems
+//patch_stream()  patch by stream , recommended use in limited memory systems
 #ifdef __cplusplus
 extern "C"
 {
