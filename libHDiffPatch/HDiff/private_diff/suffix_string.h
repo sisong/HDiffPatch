@@ -4,7 +4,7 @@
 //
 /*
  Copyright (c) 2012-2014 HouSisong All Rights Reserved.
- 
+
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
  files (the "Software"), to deal in the Software without
@@ -13,10 +13,10 @@
  copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following
  conditions:
- 
+
  The above copyright notice and this permission notice shall be
  included in all copies of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -30,6 +30,7 @@
 
 #ifndef __SUFFIX_STRING_H_
 #define __SUFFIX_STRING_H_
+#include <stddef.h>
 #include <vector>
 
 class TSuffixString{
@@ -38,11 +39,11 @@ public:
     TSuffixString();
     TSuffixString(const char* src_begin,const char* src_end);
     void resetSuffixString(const char* src_begin,const char* src_end);
-    
+
     inline const char* src_begin()const{ return m_src_begin; }
     inline const char* src_end()const{ return m_src_end; }
     inline size_t SASize()const{ return (size_t)(m_src_end-m_src_begin); }
-    
+
     inline TInt SA(TInt i)const{//return m_SA[i];//排好序的后缀字符串数组.
         if (isUseLargeSA())
             return m_SA_large[i];
