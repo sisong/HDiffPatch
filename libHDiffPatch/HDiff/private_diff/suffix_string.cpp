@@ -27,10 +27,13 @@
 */
 
 #include "suffix_string.h"
+#include <assert.h>
 #include <stdio.h>
 #include <algorithm>
 #include <stdexcept>
 #include "sais.hxx"
+#include "divsufsort.h"
+#include "divsufsort64.h"
 
 //#define IS_TEST_USE_STD_SORT
 
@@ -88,8 +91,15 @@ namespace {
         for (TSAInt i=0;i<size;++i) out_sstring[i]=i;
         std::sort<TSAInt*,const TSuffixString_compare&>(&out_sstring[0],&out_sstring[0]+size,TSuffixString_compare(src,src_end));
     #else
-        if (saisxx((const unsigned char*)src, &out_sstring[0],size) !=0)
-            throw std::runtime_error("suffixString_create() error.");
+        //if (saisxx((const unsigned char*)src, &out_sstring[0],size) !=0)
+        //    throw std::runtime_error("suffixString_create() error.");
+        if (sizeof(TSAInt)>4){
+            if (divsufsort64((const unsigned char*)src,(saidx64_t*)&out_sstring[0],(saidx64_t)size) !=0)
+                throw std::runtime_error("suffixString_create() error.");
+        }else{
+          if (divsufsort((const unsigned char*)src,(int*)&out_sstring[0],(int)size) !=0)
+              throw std::runtime_error("suffixString_create() error.");
+        }
     #endif
     }
     

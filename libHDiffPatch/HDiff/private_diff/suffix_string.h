@@ -59,7 +59,7 @@ private:
     std::vector<TInt>   m_SA_large;
     inline bool isUseLargeSA()const{
         if (sizeof(TInt)<=sizeof(TInt32)) return  false;
-        static const size_t kMaxDataSize_small= (1<<30)-1 + (1<<30);//2G
+        static const size_t kMaxDataSize_small= (1<<30)-1 + (1<<30);//2G-1
         return (SASize()>kMaxDataSize_small);
     }
 };

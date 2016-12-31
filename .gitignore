@@ -9,3 +9,4 @@ Release
 *.layout
 *.filters
 *.xccheckout
+*.xcscmblueprint

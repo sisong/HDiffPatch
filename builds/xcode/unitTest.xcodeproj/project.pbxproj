@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D62919711E176691007D44E2 /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D629196F1E176691007D44E2 /* divsufsort.c */; };
 		D6BD9BAF17578491004886DE /* diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BA117578491004886DE /* diff.cpp */; };
 		D6BD9BB017578491004886DE /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BA517578491004886DE /* bytes_rle.cpp */; };
 		D6BD9BB117578491004886DE /* suffix_string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BA817578491004886DE /* suffix_string.cpp */; };
@@ -28,6 +29,8 @@
 
 /* Begin PBXFileReference section */
 		801FA5621999090000F7E57B /* pack_uint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pack_uint.h; sourceTree = "<group>"; };
+		D629196F1E176691007D44E2 /* divsufsort.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = divsufsort.c; sourceTree = "<group>"; };
+		D62919701E176691007D44E2 /* divsufsort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort.h; sourceTree = "<group>"; };
 		D6BD9BA117578491004886DE /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
 		D6BD9BA217578491004886DE /* diff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diff.h; sourceTree = "<group>"; };
 		D6BD9BA517578491004886DE /* bytes_rle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bytes_rle.cpp; sourceTree = "<group>"; };
@@ -52,6 +55,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D629196E1E176691007D44E2 /* libdivsufsort */ = {
+			isa = PBXGroup;
+			children = (
+				D629196F1E176691007D44E2 /* divsufsort.c */,
+				D62919701E176691007D44E2 /* divsufsort.h */,
+			);
+			path = libdivsufsort;
+			sourceTree = "<group>";
+		};
 		D6BD9B9F17578491004886DE /* libHDiffPatch */ = {
 			isa = PBXGroup;
 			children = (
@@ -75,6 +87,7 @@
 		D6BD9BA417578491004886DE /* private_diff */ = {
 			isa = PBXGroup;
 			children = (
+				D629196E1E176691007D44E2 /* libdivsufsort */,
 				801FA5621999090000F7E57B /* pack_uint.h */,
 				D6BD9BA517578491004886DE /* bytes_rle.cpp */,
 				D6BD9BA617578491004886DE /* bytes_rle.h */,
@@ -166,6 +179,7 @@
 				D6BD9BB017578491004886DE /* bytes_rle.cpp in Sources */,
 				D6BD9BB117578491004886DE /* suffix_string.cpp in Sources */,
 				D6BD9BB217578491004886DE /* patch.c in Sources */,
+				D62919711E176691007D44E2 /* divsufsort.c in Sources */,
 				D6BD9BB317578491004886DE /* unit_test.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -211,6 +225,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CFLAGS = "";
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -245,6 +260,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				OTHER_CFLAGS = "";
 				SDKROOT = macosx;
 			};
 			name = Release;
