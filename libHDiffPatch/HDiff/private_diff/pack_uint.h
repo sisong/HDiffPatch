@@ -1,10 +1,8 @@
-//
-//  pack_uint.h
-//  create by housisong
+//pack_uint.h
 //
 /*
- Copyright (c) 2012-2014 HouSisong All Rights Reserved.
- (The MIT License)
+ The MIT License (MIT)
+ Copyright (c) 2012-2017 HouSisong
 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation

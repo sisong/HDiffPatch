@@ -1,10 +1,10 @@
 //suffix_string.h
-//create by housisong
 //后缀字符串的一个实现.
 //
 /*
- Copyright (c) 2012-2014 HouSisong All Rights Reserved.
-
+ The MIT License (MIT)
+ Copyright (c) 2012-2017 HouSisong
+ 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
  files (the "Software"), to deal in the Software without
@@ -13,10 +13,10 @@
  copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following
  conditions:
-
+ 
  The above copyright notice and this permission notice shall be
  included in all copies of the Software.
-
+ 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -60,7 +60,7 @@ private:
     inline bool isUseLargeSA()const{
         if (sizeof(TInt)<=sizeof(TInt32)) return  false;
         static const size_t kMaxDataSize_small= (1<<30)-1 + (1<<30);//2G
-        return (SASize()>(size_t)kMaxDataSize_small);
+        return (SASize()>kMaxDataSize_small);
     }
 };
 
