@@ -35,14 +35,14 @@ extern "C" {
 #define PROJECT_VERSION_FULL "2.0.1-14-g5f60d6f"
 
 /** Define to 1 if you have the header files. **/
-#define HAVE_INTTYPES_H 1
+#define HAVE_INTTYPES_H 0
 #define HAVE_STDDEF_H 1
-#define HAVE_STDINT_H 1
+#define HAVE_STDINT_H 0
 #define HAVE_STDLIB_H 1
 #define HAVE_STRING_H 1
-#define HAVE_STRINGS_H 1
+#define HAVE_STRINGS_H 0
 #define HAVE_MEMORY_H 1
-#define HAVE_SYS_TYPES_H 1
+#define HAVE_SYS_TYPES_H 0
 
 /** for WinIO **/
 /* #undef HAVE_IO_H */
@@ -65,7 +65,11 @@ extern "C" {
 
 /** for inline **/
 #ifndef INLINE
-# define INLINE inline
+#   ifdef _MSC_VER
+#       define INLINE __inline
+#   else
+#       define INLINE inline
+#   endif
 #endif
 
 /** for VC++ warning **/

@@ -30,8 +30,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
-#include <inttypes.h>
+    
+#ifdef _MSC_VER
+#   if (_MSC_VER < 1300)
+    typedef unsigned char   uint8_t;
+    typedef signed int      int32_t;
+#   else
+    typedef unsigned __int8 uint8_t;
+    typedef signed __int32  int32_t;
+#   endif
+#else
+#   include <stdint.h> //for uint8_t,int32_t
+#endif
 
 #ifndef DIVSUFSORT_API
 # ifdef DIVSUFSORT_BUILD_DLL
