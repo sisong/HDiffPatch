@@ -1,11 +1,9 @@
-//
-//  _private_searchBestParams.cpp
-//  HDiff
+//_private_searchBestParams.cpp
+// tool for HDiff
 //
 /*
- This is the HDiffPatch copyright.
- 
- Copyright (c) 2012-2013 HouSisong All Rights Reserved.
+ The MIT License (MIT)
+ Copyright (c) 2012-2017 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation

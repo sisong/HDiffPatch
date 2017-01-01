@@ -1,10 +1,10 @@
 //suffix_string.h
-//create by housisong
 //后缀字符串的一个实现.
 //
 /*
- Copyright (c) 2012-2014 HouSisong All Rights Reserved.
-
+ The MIT License (MIT)
+ Copyright (c) 2012-2017 HouSisong
+ 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
  files (the "Software"), to deal in the Software without
@@ -13,10 +13,10 @@
  copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following
  conditions:
-
+ 
  The above copyright notice and this permission notice shall be
  included in all copies of the Software.
-
+ 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -30,13 +30,24 @@
 
 #ifndef __SUFFIX_STRING_H_
 #define __SUFFIX_STRING_H_
-#include <stddef.h>
 #include <vector>
+#include <stddef.h> //for ptrdiff_t,size_t
+#ifdef _MSC_VER
+#   if (_MSC_VER < 1300)
+        typedef signed int      int32_t;
+#   else
+        typedef signed __int32  int32_t;
+#   endif
+#else
+#   include <stdint.h> //for int32_t
+#endif
 
 class TSuffixString{
 public:
     typedef ptrdiff_t     TInt;
     TSuffixString();
+    
+    //throw std::runtime_error when create SA error
     TSuffixString(const char* src_begin,const char* src_end);
     void resetSuffixString(const char* src_begin,const char* src_end);
 
@@ -48,19 +59,18 @@ public:
         if (isUseLargeSA())
             return m_SA_large[i];
         else
-            return m_SA_small[i];
+            return (TInt)m_SA_limit[i];
     }
     TInt lower_bound(const char* str,const char* str_end)const;//return index in SA
 private:
-    typedef int TInt32;
+    typedef int32_t     TInt32;
     const char*         m_src_begin;//原字符串.
     const char*         m_src_end;
-    std::vector<TInt32> m_SA_small;
+    std::vector<TInt32> m_SA_limit;
     std::vector<TInt>   m_SA_large;
     inline bool isUseLargeSA()const{
-        if (sizeof(TInt)<=sizeof(TInt32)) return  false;
-        static const size_t kMaxDataSize_small= (1<<30)-1 + (1<<30);//2G
-        return (SASize()>(size_t)kMaxDataSize_small);
+        static const int32_t kMaxLimitSize= (1<<30)-1 + (1<<30);//2G-1
+        return (sizeof(TInt)>=sizeof(TInt32)) && (SASize()>(size_t)kMaxLimitSize);
     }
 };
 

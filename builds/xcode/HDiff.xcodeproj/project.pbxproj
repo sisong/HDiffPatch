@@ -11,6 +11,8 @@
 		80D1B2A5199A40A700F6B3A8 /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B29B199A40A700F6B3A8 /* bytes_rle.cpp */; };
 		80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B29F199A40A700F6B3A8 /* suffix_string.cpp */; };
 		80D1B2A7199A40A700F6B3A8 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B2A2199A40A700F6B3A8 /* patch.c */; };
+		D62919A11E17D999007D44E2 /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D62919981E17D999007D44E2 /* divsufsort.c */; };
+		D62919A21E17D999007D44E2 /* divsufsort64.c in Sources */ = {isa = PBXBuildFile; fileRef = D629199B1E17D999007D44E2 /* divsufsort64.c */; };
 		D6BD9BC41757854C004886DE /* diff_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BB41757854C004886DE /* diff_demo.cpp */; };
 /* End PBXBuildFile section */
 
@@ -37,6 +39,16 @@
 		80D1B2A0199A40A700F6B3A8 /* suffix_string.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = suffix_string.h; sourceTree = "<group>"; };
 		80D1B2A2199A40A700F6B3A8 /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 		80D1B2A3199A40A700F6B3A8 /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
+		D62919971E17D999007D44E2 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		D62919981E17D999007D44E2 /* divsufsort.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = divsufsort.c; sourceTree = "<group>"; };
+		D62919991E17D999007D44E2 /* divsufsort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort.c.inc.h; sourceTree = "<group>"; };
+		D629199A1E17D999007D44E2 /* divsufsort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort.h; sourceTree = "<group>"; };
+		D629199B1E17D999007D44E2 /* divsufsort64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = divsufsort64.c; sourceTree = "<group>"; };
+		D629199C1E17D999007D44E2 /* divsufsort64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort64.h; sourceTree = "<group>"; };
+		D629199D1E17D999007D44E2 /* divsufsort_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort_private.h; sourceTree = "<group>"; };
+		D629199E1E17D999007D44E2 /* sssort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sssort.c.inc.h; sourceTree = "<group>"; };
+		D629199F1E17D999007D44E2 /* trsort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = trsort.c.inc.h; sourceTree = "<group>"; };
+		D62919A01E17D999007D44E2 /* utils.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.c.inc.h; sourceTree = "<group>"; };
 		D6BD9BB41757854C004886DE /* diff_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = diff_demo.cpp; path = ../../diff_demo.cpp; sourceTree = "<group>"; };
 		D6CB33611664FD2900AB34B7 /* HDiff */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HDiff; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -75,6 +87,7 @@
 		80D1B29A199A40A700F6B3A8 /* private_diff */ = {
 			isa = PBXGroup;
 			children = (
+				D62919961E17D999007D44E2 /* libdivsufsort */,
 				80D1B29B199A40A700F6B3A8 /* bytes_rle.cpp */,
 				80D1B29C199A40A700F6B3A8 /* bytes_rle.h */,
 				80D1B29D199A40A700F6B3A8 /* pack_uint.h */,
@@ -92,6 +105,23 @@
 				80D1B2A3199A40A700F6B3A8 /* patch.h */,
 			);
 			path = HPatch;
+			sourceTree = "<group>";
+		};
+		D62919961E17D999007D44E2 /* libdivsufsort */ = {
+			isa = PBXGroup;
+			children = (
+				D62919981E17D999007D44E2 /* divsufsort.c */,
+				D629199A1E17D999007D44E2 /* divsufsort.h */,
+				D629199B1E17D999007D44E2 /* divsufsort64.c */,
+				D629199C1E17D999007D44E2 /* divsufsort64.h */,
+				D62919971E17D999007D44E2 /* config.h */,
+				D629199D1E17D999007D44E2 /* divsufsort_private.h */,
+				D62919991E17D999007D44E2 /* divsufsort.c.inc.h */,
+				D629199E1E17D999007D44E2 /* sssort.c.inc.h */,
+				D629199F1E17D999007D44E2 /* trsort.c.inc.h */,
+				D62919A01E17D999007D44E2 /* utils.c.inc.h */,
+			);
+			path = libdivsufsort;
 			sourceTree = "<group>";
 		};
 		D6CB33581664FD2900AB34B7 = {
@@ -137,7 +167,7 @@
 		D6CB33591664FD2900AB34B7 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0730;
+				LastUpgradeCheck = 0820;
 				ORGANIZATIONNAME = HouSisong;
 			};
 			buildConfigurationList = D6CB335C1664FD2900AB34B7 /* Build configuration list for PBXProject "HDiff" */;
@@ -166,6 +196,8 @@
 				80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */,
 				80D1B2A4199A40A700F6B3A8 /* diff.cpp in Sources */,
 				80D1B2A7199A40A700F6B3A8 /* patch.c in Sources */,
+				D62919A21E17D999007D44E2 /* divsufsort64.c in Sources */,
+				D62919A11E17D999007D44E2 /* divsufsort.c in Sources */,
 				D6BD9BC41757854C004886DE /* diff_demo.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -180,16 +212,23 @@
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
@@ -199,7 +238,9 @@
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
@@ -214,19 +255,28 @@
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_STRICT_ALIASING = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				SDKROOT = macosx;

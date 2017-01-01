@@ -1,6 +1,5 @@
-//
-//  patch_demo.cpp
-//  HPatch
+//patch_demo.cpp
+// demo for HPatch
 //
 /*
  This is the HDiffPatch copyright.

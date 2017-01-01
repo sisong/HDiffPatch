@@ -158,6 +158,8 @@
     <ClCompile Include="..\..\diff_demo.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\diff.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\bytes_rle.cpp" />
+    <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\libdivsufsort\divsufsort.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\libdivsufsort\divsufsort64.c" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\suffix_string.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
   </ItemGroup>

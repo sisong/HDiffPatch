@@ -1,9 +1,8 @@
 //bytes_rle.cpp
-//create by housisong
-//快速解压的一个通用字节流压缩rle算法.
 //
 /*
- Copyright (c) 2012-2014 HouSisong All Rights Reserved.
+ The MIT License (MIT)
+ Copyright (c) 2012-2017 HouSisong
 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
