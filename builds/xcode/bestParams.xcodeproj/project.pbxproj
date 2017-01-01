@@ -23,6 +23,10 @@
 		80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B29F199A40A700F6B3A8 /* suffix_string.cpp */; };
 		80D1B2A7199A40A700F6B3A8 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B2A2199A40A700F6B3A8 /* patch.c */; };
 		80D6A84219B73AB30041C1D7 /* _private_searchBestParams.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D6A84119B73AB30041C1D7 /* _private_searchBestParams.cpp */; };
+		D66166271E189F5A005C570A /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D661661E1E189F5A005C570A /* divsufsort.c */; };
+		D66166281E189F5A005C570A /* divsufsort64.c in Sources */ = {isa = PBXBuildFile; fileRef = D66166211E189F5A005C570A /* divsufsort64.c */; };
+		D6C7015E1E17E72C00C19D84 /* (null) in Sources */ = {isa = PBXBuildFile; };
+		D6C7015F1E17E72C00C19D84 /* (null) in Sources */ = {isa = PBXBuildFile; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -70,6 +74,16 @@
 		80D1B2A2199A40A700F6B3A8 /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 		80D1B2A3199A40A700F6B3A8 /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
 		80D6A84119B73AB30041C1D7 /* _private_searchBestParams.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = _private_searchBestParams.cpp; path = ../_private_searchBestParams.cpp; sourceTree = "<group>"; };
+		D661661D1E189F5A005C570A /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
+		D661661E1E189F5A005C570A /* divsufsort.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = divsufsort.c; sourceTree = "<group>"; };
+		D661661F1E189F5A005C570A /* divsufsort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort.c.inc.h; sourceTree = "<group>"; };
+		D66166201E189F5A005C570A /* divsufsort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort.h; sourceTree = "<group>"; };
+		D66166211E189F5A005C570A /* divsufsort64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = divsufsort64.c; sourceTree = "<group>"; };
+		D66166221E189F5A005C570A /* divsufsort64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort64.h; sourceTree = "<group>"; };
+		D66166231E189F5A005C570A /* divsufsort_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort_private.h; sourceTree = "<group>"; };
+		D66166241E189F5A005C570A /* sssort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sssort.c.inc.h; sourceTree = "<group>"; };
+		D66166251E189F5A005C570A /* trsort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = trsort.c.inc.h; sourceTree = "<group>"; };
+		D66166261E189F5A005C570A /* utils.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.c.inc.h; sourceTree = "<group>"; };
 		D6CB33611664FD2900AB34B7 /* bestParams */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bestParams; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -136,6 +150,7 @@
 		80D1B29A199A40A700F6B3A8 /* private_diff */ = {
 			isa = PBXGroup;
 			children = (
+				D661661C1E189F5A005C570A /* libdivsufsort */,
 				80D1B29B199A40A700F6B3A8 /* bytes_rle.cpp */,
 				80D1B29C199A40A700F6B3A8 /* bytes_rle.h */,
 				80D1B29D199A40A700F6B3A8 /* pack_uint.h */,
@@ -153,6 +168,23 @@
 				80D1B2A3199A40A700F6B3A8 /* patch.h */,
 			);
 			path = HPatch;
+			sourceTree = "<group>";
+		};
+		D661661C1E189F5A005C570A /* libdivsufsort */ = {
+			isa = PBXGroup;
+			children = (
+				D661661D1E189F5A005C570A /* config.h */,
+				D661661E1E189F5A005C570A /* divsufsort.c */,
+				D661661F1E189F5A005C570A /* divsufsort.c.inc.h */,
+				D66166201E189F5A005C570A /* divsufsort.h */,
+				D66166211E189F5A005C570A /* divsufsort64.c */,
+				D66166221E189F5A005C570A /* divsufsort64.h */,
+				D66166231E189F5A005C570A /* divsufsort_private.h */,
+				D66166241E189F5A005C570A /* sssort.c.inc.h */,
+				D66166251E189F5A005C570A /* trsort.c.inc.h */,
+				D66166261E189F5A005C570A /* utils.c.inc.h */,
+			);
+			path = libdivsufsort;
 			sourceTree = "<group>";
 		};
 		D6CB33581664FD2900AB34B7 = {
@@ -226,11 +258,15 @@
 			files = (
 				808EEBF119B4BB8C0044C16F /* zutil.c in Sources */,
 				808EEBE919B4BB8C0044C16F /* crc32z.c in Sources */,
+				D66166281E189F5A005C570A /* divsufsort64.c in Sources */,
 				80D1B2A5199A40A700F6B3A8 /* bytes_rle.cpp in Sources */,
 				80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */,
+				D66166271E189F5A005C570A /* divsufsort.c in Sources */,
 				80D1B2A4199A40A700F6B3A8 /* diff.cpp in Sources */,
+				D6C7015E1E17E72C00C19D84 /* (null) in Sources */,
 				80D1B2A7199A40A700F6B3A8 /* patch.c in Sources */,
 				808EEBEF19B4BB8C0044C16F /* trees.c in Sources */,
+				D6C7015F1E17E72C00C19D84 /* (null) in Sources */,
 				808EEBED19B4BB8C0044C16F /* inflate.c in Sources */,
 				808EEBEE19B4BB8C0044C16F /* inftrees.c in Sources */,
 				808EEBE719B4BB8C0044C16F /* adler32.c in Sources */,

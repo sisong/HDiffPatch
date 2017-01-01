@@ -31,11 +31,22 @@
 #include <stdio.h>
 #include <algorithm>
 #include <stdexcept>
-#include "sais.hxx"
-#include "divsufsort.h"
-#include "divsufsort64.h"
 
-//#define IS_TEST_USE_STD_SORT
+#ifndef _SA_SORTBY
+#define _SA_SORTBY
+//#  define _SA_SORTBY_STD_SORT
+//#  define _SA_SORTBY_SAIS
+#   define _SA_SORTBY_DIVSUFSORT
+#endif//_SA_SORTBY
+
+#ifdef _SA_SORTBY_SAIS
+#include "sais.hxx"
+#endif
+#ifdef _SA_SORTBY_DIVSUFSORT
+#include "libdivsufsort/divsufsort.h"
+#include "libdivsufsort/divsufsort64.h"
+#endif
+
 
 namespace {
     typedef TSuffixString::TInt TInt;
@@ -43,7 +54,7 @@ namespace {
     static bool getStringIsLess(const char* str0,const char* str0End,const char* str1,const char* str1End){
         TInt L0=(TInt)(str0End-str0);
         TInt L1=(TInt)(str1End-str1);
-    #ifdef IS_TEST_USE_STD_SORT
+    #ifdef _SA_SORTBY_STD_SORT
         const int kMaxCmpLength=1024*4;
         if (L0>kMaxCmpLength) L0=kMaxCmpLength;
         if (L1>kMaxCmpLength) L1=kMaxCmpLength;
@@ -57,13 +68,13 @@ namespace {
         }
         return (L0<L1);
     }
-    
+
     struct StringToken{
         const char* begin;
         const char* end;
         inline explicit StringToken(const char* _begin,const char* _end):begin(_begin),end(_end){}
     };
-    
+
     class TSuffixString_compare{
     public:
         inline TSuffixString_compare(const char* begin,const char* end):m_begin(begin),m_end(end){}
@@ -84,34 +95,41 @@ namespace {
     template<class TSAInt>
     static void _suffixString_create(const char* src,const char* src_end,std::vector<TSAInt>& out_sstring){
         TSAInt size=(TSAInt)(src_end-src);
+        if (size<0)
+            throw std::runtime_error("suffixString_create() error.");
         out_sstring.resize(size);
         if (size<=0) return;
-        
-    #ifdef IS_TEST_USE_STD_SORT //test uses std::sort, but slow
-        for (TSAInt i=0;i<size;++i) out_sstring[i]=i;
-        std::sort<TSAInt*,const TSuffixString_compare&>(&out_sstring[0],&out_sstring[0]+size,TSuffixString_compare(src,src_end));
-    #else
-        //if (saisxx((const unsigned char*)src, &out_sstring[0],size) !=0)
-        //    throw std::runtime_error("suffixString_create() error.");
-        if (sizeof(TSAInt)>4){
-            if (divsufsort64((const unsigned char*)src,(saidx64_t*)&out_sstring[0],(saidx64_t)size) !=0)
-                throw std::runtime_error("suffixString_create() error.");
-        }else{
-          if (divsufsort((const unsigned char*)src,(int*)&out_sstring[0],(int)size) !=0)
-              throw std::runtime_error("suffixString_create() error.");
-        }
+    #ifdef _SA_SORTBY_STD_SORT
+        for (TSAInt i=0;i<size;++i)
+            out_sstring[i]=i;
+        std::sort<TSAInt*,const TSuffixString_compare&>(&out_sstring[0],&out_sstring[0]+size,
+                                                        TSuffixString_compare(src,src_end));
+        int rt=0;
     #endif
+    #ifdef _SA_SORTBY_SAIS
+        TSAInt rt=saisxx((const unsigned char*)src, &out_sstring[0],size);
+    #endif
+    #ifdef _SA_SORTBY_DIVSUFSORT
+        saint_t rt=-1;
+        if (sizeof(TSAInt)==8)
+            rt=divsufsort64((const unsigned char*)src,(saidx64_t*)&out_sstring[0],(saidx64_t)size);
+        else if (sizeof(TSAInt)==4)
+            rt=divsufsort((const unsigned char*)src,(saidx_t*)&out_sstring[0],(saidx_t)size);
+    #endif
+       if (rt!=0)
+            throw std::runtime_error("suffixString_create() error.");
     }
-    
+
     template<class TSAInt>
-    static TInt _lower_bound(const std::vector<TSAInt>& SA, const StringToken& value,const TSuffixString_compare& comp){
+    static TInt _lower_bound(const std::vector<TSAInt>& SA, const StringToken& value,
+                             const TSuffixString_compare& comp){
         if (SA.empty()) return 0;
         const TSAInt* begin=&SA[0];
         const TSAInt* pos=std::lower_bound<const TSAInt*,StringToken,const TSuffixString_compare&>
             (begin,begin+SA.size(),value,comp);
         return (TInt)(pos-begin);
     }
-    
+
 
 }//end namespace
 
@@ -130,11 +148,12 @@ void TSuffixString::resetSuffixString(const char* src_begin,const char* src_end)
     m_src_begin=src_begin;
     m_src_end=src_end;
     if (isUseLargeSA()){
-        m_SA_small.clear();
+        m_SA_limit.clear();
         _suffixString_create(m_src_begin,m_src_end,m_SA_large);
     }else{
+        assert(sizeof(TInt32)==4);
         m_SA_large.clear();
-        _suffixString_create(m_src_begin,m_src_end,m_SA_small);
+        _suffixString_create(m_src_begin,m_src_end,m_SA_limit);
     }
 }
 
@@ -142,5 +161,5 @@ TInt TSuffixString::lower_bound(const char* str,const char* str_end)const{
     if (isUseLargeSA())
         return _lower_bound(m_SA_large,StringToken(str,str_end),TSuffixString_compare(m_src_begin,m_src_end));
     else
-        return _lower_bound(m_SA_small,StringToken(str,str_end),TSuffixString_compare(m_src_begin,m_src_end));
+        return _lower_bound(m_SA_limit,StringToken(str,str_end),TSuffixString_compare(m_src_begin,m_src_end));
 }

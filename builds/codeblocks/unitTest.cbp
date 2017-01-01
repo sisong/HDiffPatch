@@ -5,7 +5,7 @@
 		<Option title="unitTest" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
-		<Option virtualFolders="libHDiffPatch/;libHDiffPatch/HDiff/;libHDiffPatch/HPatch/;libHDiffPatch/HDiff/private_diff/;" />
+		<Option virtualFolders="libHDiffPatch/;libHDiffPatch/HDiff/;libHDiffPatch/HPatch/;libHDiffPatch/HDiff/private_diff/;libHDiffPatch/HDiff/private_diff/libdivsufsort/;" />
 		<Build>
 			<Target title="Debug">
 				<Option output="bin/Debug/unitTest" prefix_auto="1" extension_auto="1" />
@@ -39,17 +39,43 @@
 		<Unit filename="../../libHDiffPatch/HDiff/diff.h">
 			<Option virtualFolder="libHDiffPatch/HDiff/" />
 		</Unit>
-		<Unit filename="../../libHDiffPatch/HDiff/diff_base.h">
-			<Option virtualFolder="libHDiffPatch/HDiff/" />
-		</Unit>
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/bytes_rle.cpp">
 			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/" />
 		</Unit>
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/bytes_rle.h">
 			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/" />
 		</Unit>
-		<Unit filename="../../libHDiffPatch/HDiff/private_diff/sais.hxx">
-			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/" />
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/config.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/libdivsufsort/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/libdivsufsort/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.c.inc.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/libdivsufsort/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/libdivsufsort/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/libdivsufsort/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/libdivsufsort/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort_private.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/libdivsufsort/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/sssort.c.inc.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/libdivsufsort/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/trsort.c.inc.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/libdivsufsort/" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/utils.c.inc.h">
+			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/libdivsufsort/" />
 		</Unit>
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/suffix_string.cpp">
 			<Option virtualFolder="libHDiffPatch/HDiff/private_diff/" />
