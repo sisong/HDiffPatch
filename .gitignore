@@ -10,3 +10,8 @@ Release
 *.filters
 *.xccheckout
 *.xcscmblueprint
+*.o
+*.a
+*.exe
+diff_demo
+patch_demo
