@@ -13,13 +13,14 @@ CXXFLAGS    += -Wall -Werror -O3
 
 .PHONY: all clean
 
-all: libhdiffpatch.a diff_demo patch_demo
+all: libhdiffpatch.a diff_demo patch_demo unit_test
 
 libhdiffpatch.a: $(HDIFF_OBJ) $(HPATCH_OBJ)
 	$(AR) rcs $@ $^
 
 diff_demo: libhdiffpatch.a
 patch_demo: $(HPATCH_OBJ)
+unit_test: libhdiffpatch.a
 
 clean:
-	rm -f diff_demo patch_demo libhdiffpatch.a $(HDIFF_OBJ) $(HPATCH_OBJ)
+	rm -f diff_demo patch_demo unit_test libhdiffpatch.a $(HDIFF_OBJ) $(HPATCH_OBJ)

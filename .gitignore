@@ -15,3 +15,4 @@ Release
 *.exe
 diff_demo
 patch_demo
+unit_test
