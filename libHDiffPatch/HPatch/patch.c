@@ -167,7 +167,7 @@ hpatch_BOOL patch(TByte* out_newData,TByte* out_newData_end,
 #endif
             memcpy(out_newData+newPosBack,code_newDataDiff,copyLength);
             code_newDataDiff+=copyLength;
-            newPosBack=newDataSize;
+            //newPosBack=newDataSize;
         }
     }
 
@@ -682,7 +682,7 @@ hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
 #endif
             if (!_patch_decode_from_clipOrStream(out_newData,newPosBack,&rle_loader,copyLength,
                                       &code_newDataDiffClip,0,0)) return _hpatch_FALSE;
-            newPosBack=newDataSize;
+            //newPosBack=newDataSize;
         }
     }
 

@@ -184,7 +184,7 @@ int main(int argc, const char * argv[]){
 //IS_USES_PATCH_STREAM
 
 struct TFileStreamInput:public hpatch_TStreamInput{
-    TFileStreamInput(const char* fileName):m_file(0),m_offset(0),m_fpos(0){
+    explicit TFileStreamInput(const char* fileName):m_file(0),m_offset(0),m_fpos(0){
         m_file=fopen(fileName, "rb");
         if (m_file==0) exit(1);
         //setvbuf(m_file, 0, _IOFBF, 1024*2);

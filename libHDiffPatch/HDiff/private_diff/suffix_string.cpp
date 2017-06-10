@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <stdexcept>
 
+//排序方法选择.
 #ifndef _SA_SORTBY
 #define _SA_SORTBY
 //#  define _SA_SORTBY_STD_SORT
@@ -55,7 +56,9 @@ namespace {
         TInt L0=(TInt)(str0End-str0);
         TInt L1=(TInt)(str1End-str1);
     #ifdef _SA_SORTBY_STD_SORT
-        const int kMaxCmpLength=1024*4;
+        const int kMaxCmpLength=1024*4; //警告:这是一个特殊的处理手段,用以避免_suffixString_create在使用std::sort时
+                                        //  某些情况退化到O(n*n)复杂度(运行时间无法接受),设置最大比较长度从而控制算法在
+                                        //  O(kMaxCmpLength*n)复杂度以内,这时排序的结果并不是标准的后缀数组;
         if (L0>kMaxCmpLength) L0=kMaxCmpLength;
         if (L1>kMaxCmpLength) L1=kMaxCmpLength;
     #endif
@@ -102,9 +105,13 @@ namespace {
     #ifdef _SA_SORTBY_STD_SORT
         for (TSAInt i=0;i<size;++i)
             out_sstring[i]=i;
-        std::sort<TSAInt*,const TSuffixString_compare&>(&out_sstring[0],&out_sstring[0]+size,
-                                                        TSuffixString_compare(src,src_end));
         int rt=0;
+        try {
+            std::sort<TSAInt*,const TSuffixString_compare&>(&out_sstring[0],&out_sstring[0]+size,
+                                                            TSuffixString_compare(src,src_end));
+        } catch (...) {
+            rt=-1;
+        }
     #endif
     #ifdef _SA_SORTBY_SAIS
         TSAInt rt=saisxx((const unsigned char*)src, &out_sstring[0],size);
@@ -136,6 +143,15 @@ namespace {
 
 TSuffixString::TSuffixString()
 :m_src_begin(0),m_src_end(0){
+}
+
+void TSuffixString::clear(){
+    m_src_begin=0;
+    m_src_end=0;
+    std::vector<TInt32> _tmp_m;
+    m_SA_limit.swap(_tmp_m);
+    std::vector<TInt> _tmp_g;
+    m_SA_large.swap(_tmp_g);
 }
 
 TSuffixString::TSuffixString(const char* src_begin,const char* src_end)

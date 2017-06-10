@@ -54,6 +54,7 @@ public:
     inline const char* src_begin()const{ return m_src_begin; }
     inline const char* src_end()const{ return m_src_end; }
     inline size_t SASize()const{ return (size_t)(m_src_end-m_src_begin); }
+    void clear();
 
     inline TInt SA(TInt i)const{//return m_SA[i];//排好序的后缀字符串数组.
         if (isUseLargeSA())
