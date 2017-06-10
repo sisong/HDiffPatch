@@ -336,9 +336,12 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_seriali
 }//end namespace
 
 
-void __hdiff_private__create_diff(const TByte* newData,const TByte* newData_end,const TByte* oldData,const TByte* oldData_end,
+void __hdiff_private__create_diff(const TByte* newData,const TByte* newData_end,
+                                  const TByte* oldData,const TByte* oldData_end,
                         std::vector<TByte>& out_diff,const void* _kDiffParams,const TSuffixString* sstring=0){
     
+    assert(newData<=newData_end);
+    assert(oldData<=oldData_end);
     const THDiffPrivateParams& kDiffParams=*(const THDiffPrivateParams*)_kDiffParams;
     TSuffixString _sstring_default(0,0);
     if (sstring==0){
@@ -353,22 +356,21 @@ void __hdiff_private__create_diff(const TByte* newData,const TByte* newData_end,
     diff.oldData_end=oldData_end;
     
     search_cover(diff,*sstring,kDiffParams.kMinMatchLength);
+    sstring=0;
+    _sstring_default.clear();
+    
     extend_cover(diff);//先尝试扩展.
     select_cover(diff,kDiffParams.kMinSingleMatchLength);
     extend_cover(diff);//select_cover会删除一些覆盖线,所以重新扩展.
     sub_cover(diff);
     serialize_diff(diff,out_diff);
-    
 }
 
 void create_diff(const TByte* newData,const TByte* newData_end,
                  const TByte* oldData,const TByte* oldData_end,std::vector<TByte>& out_diff){
     static const THDiffPrivateParams kDiffParams_default={
-                                            9,      //最小搜寻覆盖长度. //二进制:7--9  文本: 9
-                                            23      //最小独立覆盖长度(对diff结果影响较大). //二进制:8--12 文本:17-25
-                                        };
-    assert(newData<=newData_end);
-    assert(oldData<=oldData_end);
+                                        9,   //最小搜寻覆盖长度. //二进制:7--9  文本: 9  apk文件:5-6
+                                        23}; //最小独立覆盖长度(对diff结果影响较大). //二进制:8--12 文本:17-25 apk文件:6-7
     __hdiff_private__create_diff(newData,newData_end,oldData,oldData_end,out_diff,&kDiffParams_default);
 }
 

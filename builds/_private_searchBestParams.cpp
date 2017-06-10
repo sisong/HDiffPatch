@@ -39,8 +39,8 @@
 #include <stdlib.h>
 #include "../libHDiffPatch/HDiff/diff.h"
 #include "../libHDiffPatch/HPatch/patch.h"
-#include "../../zlib/zlib.h"
 #include "../libHDiffPatch/HDiff/private_diff/suffix_string.h"
+#include "../../zlib/zlib.h"
 
 typedef unsigned char   TByte;
 typedef unsigned int    TUInt32;
@@ -110,7 +110,7 @@ int zip_decompress(unsigned char* out_data,unsigned char* out_data_end,const uns
     #define CHUNK (256*1024)
     
     int ret;
-    unsigned have;
+    unsigned int have;
     z_stream strm;
     unsigned char out[CHUNK];
     int totalsize = 0;
@@ -245,7 +245,7 @@ void doDiff(TDiffInfo& di){
 }
 
 
-void getBesTHDiffPrivateParams(const std::vector<std::string>& fileNames){
+void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
     const int kDoCount=(int)fileNames.size()/2;
     std::vector<TDiffInfo> DiList(kDoCount);
     for (int doi=0; doi<kDoCount; ++doi) {
@@ -254,14 +254,15 @@ void getBesTHDiffPrivateParams(const std::vector<std::string>& fileNames){
         curDi.newFileName=fileNames[doi*2+1];
     }
     
-    double bestR=1e308;
+    double bestDiffR=1e308;
     double bestZipDiffR=1e308;
     
-    for (int kMinMatchLength=7; kMinMatchLength<=10; ++kMinMatchLength) {//9
-    for (int kMinSingleMatchLength=kMinMatchLength; kMinSingleMatchLength<=25; ++kMinSingleMatchLength) { //23
+    for (int kMinMatchLength=4; kMinMatchLength<=16; ++kMinMatchLength) {//9
+        for (int kMinSingleMatchLength=kMinMatchLength; kMinSingleMatchLength<=32; ++kMinSingleMatchLength) { //23
         {//for (int kExtendMinSameRatio=0.40f*kFixedFloatSmooth_base; kExtendMinSameRatio<=0.55f*kFixedFloatSmooth_base;kExtendMinSameRatio+=0.01f*kFixedFloatSmooth_base) {
 
-        double sumR=0;
+        double sumDiffR=0;
+        double sumZipDiffR=0;
         size_t sumOldSize=0;
         size_t sumNewSize=0;
         size_t sumDiffSize=0;
@@ -273,17 +274,19 @@ void getBesTHDiffPrivateParams(const std::vector<std::string>& fileNames){
             //curDi.kP.kExtendMinSameRatio=kExtendMinSameRatio;
             
             doDiff(curDi);
-            double curRi=curDi.zipSize*1.0/curDi.newFileSize;
-            sumR+=curRi;
+            double curDiffRi=curDi.diffSize*1.0/curDi.newFileSize;
+            sumDiffR+=curDiffRi;
+            double curZipDiffRi=curDi.zipSize*1.0/curDi.newFileSize;
+            sumZipDiffR+=curZipDiffRi;
             sumNewSize+=curDi.newFileSize;
             sumOldSize+=curDi.oldFileSize;
             sumDiffSize+=curDi.diffSize;
             sumZipDiffSize+=curDi.zipSize;
-            //std::cout<<curDi.asString()<<"\t"<<curRi<<"\n";
+            //std::cout<<curDi.asString()<<"\t"<<curDiffRi<<"\n";
         }
         
-        const double curR=sumR/kDoCount;
-        const double curZipDiffR=sumZipDiffSize*1.0/sumNewSize;
+        const double curDiffR=sumDiffR/kDoCount;
+        const double curZipDiffR=sumZipDiffR/kDoCount;
         {
             TDiffInfo curDi;
             curDi.oldFileName="";
@@ -294,15 +297,17 @@ void getBesTHDiffPrivateParams(const std::vector<std::string>& fileNames){
             curDi.newFileSize=sumNewSize;
             curDi.diffSize=sumDiffSize;
             curDi.zipSize=sumZipDiffSize;
-            if (curR<=bestR){
-                bestR=curR;
-                bestZipDiffR=curZipDiffR;
-                std::cout<<"***"<<curDi.asString()<<"\t"<<curZipDiffR<<"\t"<<curR<<"\t***\n";
-            }else{
-                std::cout<<""<<curDi.asString()<<"\t"<<curZipDiffR<<"\t"<<curR<<"\n";
+            if (curDiffR<=bestDiffR){
+                bestDiffR=curDiffR;
+                std::cout<<"***";
             }
+            std::cout<<curDi.asString()<<"\t"<<curDiffR<<"\t"<<curZipDiffR;
+            if (curZipDiffR<=bestZipDiffR){
+                bestZipDiffR=curZipDiffR;
+                std::cout<<"   ***";
+            }
+            std::cout<<"\n";
         }
-        
     }}}
 }
 
@@ -316,7 +321,7 @@ int main(int argc, const char * argv[]){
         fileNames.push_back(argv[i]);
     }
 
-    getBesTHDiffPrivateParams(fileNames);
+    getBestHDiffPrivateParams(fileNames);
     
     std::cout<<"\nok!\n";
     return 0;
