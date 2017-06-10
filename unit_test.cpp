@@ -4,7 +4,7 @@
 /*
  The MIT License (MIT)
  Copyright (c) 2012-2017 HouSisong
- 
+
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
  files (the "Software"), to deal in the Software without
@@ -13,10 +13,10 @@
  copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following
  conditions:
- 
+
  The above copyright notice and this permission notice shall be
  included in all copies of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -60,7 +60,7 @@ static bool pacth_mem_stream(TByte* newData,TByte* newData_end,
     out_newDataStream.streamHandle=newData;
     out_newDataStream.streamSize=newData_end-newData;
     out_newDataStream.write=_write_mem_stream;
-    
+
     struct hpatch_TStreamInput  oldDataStream;
     oldDataStream.streamHandle=(void*)oldData;
     oldDataStream.streamSize=oldData_end-oldData;
@@ -69,7 +69,7 @@ static bool pacth_mem_stream(TByte* newData,TByte* newData_end,
     serializedDiffStream.streamHandle=(void*)diff;
     serializedDiffStream.streamSize=diff_end-diff;
     serializedDiffStream.read=_read_mem_stream;
-    
+
     return 0!=patch_stream(&out_newDataStream,&oldDataStream,&serializedDiffStream);
 }
 
@@ -78,7 +78,7 @@ static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
     std::vector<TByte> testNewData(newData_end-newData);
     TByte* testNewData_begin=0;
     if (!testNewData.empty()) testNewData_begin=&testNewData[0];
-    
+
     if (!pacth_mem_stream(testNewData_begin,testNewData_begin+testNewData.size(),oldData,oldData_end, diff,diff_end))
         return false;
     for (TUInt i=0; i<(TUInt)testNewData.size(); ++i) {
@@ -99,7 +99,7 @@ static bool test(const TByte* newData,const TByte* newData_end,const TByte* oldD
         printf("\n  error!!! tag:%s\n",tag);
         return false;
     }else{
-        printf(" ok! diffSize:%ld\n",diffData.size());
+        printf(" ok! diffSize:%ld\n", (long)(diffData.size()));
         return true;
     }
 }
@@ -126,7 +126,7 @@ int main(int argc, const char * argv[]){
     errorCount+=!test("a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr", "asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr", "11");
     errorCount+=!test("123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1", "asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr", "12");
     errorCount+=!test("a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1", "asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr", "13");
-    
+
     {
         const char* _strData14="a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1";
         const TByte* data14=(const TByte*)_strData14;
@@ -145,7 +145,7 @@ int main(int argc, const char * argv[]){
     srand(0);
     for (int i=0; i<kRandTestCount; ++i)
         seeds[i]=rand();
-    
+
     double sumNewSize=0;
     double sumOldSize=0;
     double sumDiffSize=0;
@@ -184,12 +184,11 @@ int main(int argc, const char * argv[]){
         sumOldSize+=oldSize;
         sumDiffSize+=diffSize;
     }
-    
+
     printf("\nchecked:%ld  errorCount:%ld\n",kRandTestCount,errorCount);
     printf("newSize:100%% oldSize:%2.2f%% diffSize:%2.2f%%\n",sumOldSize*100.0/sumNewSize,sumDiffSize*100.0/sumNewSize);
     clock_t time2=clock();
     printf("\nrun time:%.0f ms\n",(time2-time1)*(1000.0/CLOCKS_PER_SEC));
-    
+
     return (int)errorCount;
 }
-
