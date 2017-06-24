@@ -592,7 +592,7 @@ hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
     assert(oldData->read!=0);
     assert(serializedDiff!=0);
     assert(serializedDiff->read!=0);
-    assert(serializedDiff->streamSize>0);
+    assert(serializedDiff->streamSize>=0);
 
     {   //head
         TUInt lengthSize,inc_newPosSize,inc_oldPosSize,newDataDiffSize;
