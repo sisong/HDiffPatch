@@ -128,15 +128,39 @@ namespace {
     }
 
     template<class TSAInt>
-    static TInt _lower_bound(const std::vector<TSAInt>& SA, const StringToken& value,
+    static TInt _lower_bound(const TSAInt** cached_pair,
+                             const std::vector<TSAInt>& SA, const StringToken& value,
                              const TSuffixString_compare& comp){
         if (SA.empty()) return 0;
-        const TSAInt* begin=&SA[0];
+        if (value.begin==value.end) return 0;
+        cached_pair+=(*(unsigned char*)value.begin)*2;
+        const TSAInt* begin=cached_pair[0];//&SA[0];//
+        const TSAInt* end=cached_pair[1];//begin+SA.size();//
         const TSAInt* pos=std::lower_bound<const TSAInt*,StringToken,const TSuffixString_compare&>
-            (begin,begin+SA.size(),value,comp);
-        return (TInt)(pos-begin);
+                                          (begin,end,value,comp);
+        return (TInt)(pos-&SA[0]);
     }
 
+    template<class TSAInt>
+    static void _build_pair(TSAInt** pair,std::vector<TSAInt>& SA,const TSuffixString_compare& comp){
+        if (SA.empty()){
+            memset(pair,0, sizeof(TSAInt)*256*2);
+            return;
+        }
+        TSAInt* sa_begin=&SA[0];
+        TSAInt* sa_end=sa_begin+SA.size();
+        char str[1];
+        StringToken value(&str[0],&str[0]+1);
+        TSAInt* pos=sa_begin;
+        for (int c=0;c<255;++c){
+            pair[c*2+0]=pos;
+            str[0]=(char)(c+1);
+            pos=std::lower_bound(pos,sa_end,value,comp);
+            pair[c*2+1]=pos;
+        }
+        pair[255*2+0]=pos;
+        pair[255*2+1]=sa_end;
+    }
 
 }//end namespace
 
@@ -166,16 +190,20 @@ void TSuffixString::resetSuffixString(const char* src_begin,const char* src_end)
     if (isUseLargeSA()){
         m_SA_limit.clear();
         _suffixString_create(m_src_begin,m_src_end,m_SA_large);
+        _build_pair((TInt**)&m_cached_pair[0],m_SA_large,TSuffixString_compare(m_src_begin,m_src_end));
     }else{
         assert(sizeof(TInt32)==4);
         m_SA_large.clear();
         _suffixString_create(m_src_begin,m_src_end,m_SA_limit);
+        _build_pair((TInt32**)&m_cached_pair[0],m_SA_limit,TSuffixString_compare(m_src_begin,m_src_end));
     }
 }
 
 TInt TSuffixString::lower_bound(const char* str,const char* str_end)const{
     if (isUseLargeSA())
-        return _lower_bound(m_SA_large,StringToken(str,str_end),TSuffixString_compare(m_src_begin,m_src_end));
+        return _lower_bound((const TInt**)&m_cached_pair[0],m_SA_large,StringToken(str,str_end),
+                            TSuffixString_compare(m_src_begin,m_src_end));
     else
-        return _lower_bound(m_SA_limit,StringToken(str,str_end),TSuffixString_compare(m_src_begin,m_src_end));
+        return _lower_bound((const TInt32**)&m_cached_pair[0],m_SA_limit,StringToken(str,str_end),
+                            TSuffixString_compare(m_src_begin,m_src_end));
 }
