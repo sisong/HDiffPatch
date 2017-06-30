@@ -62,6 +62,9 @@ public:
         else
             return (TInt)m_SA_limit[i];
     }
+    inline TInt best_match(const char* str,const char* str_end,TInt* out_equal_length)const{//return index in SA
+        //todo:
+    }
     TInt lower_bound(const char* str,const char* str_end)const;//return index in SA
 private:
     typedef int32_t     TInt32;
@@ -69,11 +72,17 @@ private:
     const char*         m_src_end;
     std::vector<TInt32> m_SA_limit;
     std::vector<TInt>   m_SA_large;
-    const void*         m_cached_pair[256*2];
     inline bool isUseLargeSA()const{
         static const int32_t kMaxLimitSize= (1<<30)-1 + (1<<30);//2G-1
-        return (sizeof(TInt)>=sizeof(TInt32)) && (SASize()>(size_t)kMaxLimitSize);
+        return (sizeof(TInt)>sizeof(TInt32)) && (SASize()>(size_t)kMaxLimitSize);
     }
+private:
+    const void*         m_cached_range256[256*2];
+    const void*         m_cached_SA_begin;
+    const void*         m_cached_SA_end;
+    void*               m_best_match_func;
+    void                build_cache();
+    void                clear_cache();
 };
 
 #endif //__SUFFIX_STRING_H_
