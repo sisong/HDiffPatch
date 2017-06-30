@@ -43,7 +43,7 @@ namespace{
     typedef ptrdiff_t     TInt;
     static const int kMinTrustMatchLength=1024*8;  //(贪婪)选定该覆盖线(优化一些速度).
     static const int kUnLinkLength=4;              //搜索时不能合并的代价.
-    static const int kMaxLinkSpaceLength=(1<<10)-1;//跨覆盖线合并时,允许合并的最远距离.
+    static const int kMaxLinkSpaceLength=(1<<9)-1; //跨覆盖线合并时,允许合并的最远距离.
     
     //覆盖线.
     struct TOldCover {
@@ -121,8 +121,9 @@ static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const
 static TInt getLinkEqualCount(TInt newPos,TInt newPos_end,TInt oldPos,const TDiffData& diff){
     TInt eqCount=0;
     bool eq_state=true;
-    const TInt i_end=std::min((newPos_end-newPos),(diff.oldData_end-diff.oldData)-oldPos);
-    for (TInt i=0; i<i_end; ++i) {
+    TInt len=(newPos_end-newPos);
+    if ((oldPos<0)||(oldPos+len>(diff.oldData_end-diff.oldData))) return -kUnLinkLength;
+    for (TInt i=0; i<len; ++i) {
         if (diff.newData[newPos+i]==diff.oldData[oldPos+i]){
             ++eqCount;
             if (eq_state) //认为切换是有成本的;
@@ -147,36 +148,47 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring,int kMinMa
     while (newPos<=maxSearchNewPos) {
         bool isMatched=getBestMatch(sstring,diff.newData+newPos,diff.newData_end,
                                     &curOldPos,&curEqLength,kMinMatchLength);
-        if (isMatched){
-            assert(curEqLength>=kMinMatchLength);
-            const TInt lastLinkEqLength=getLinkEqualCount(newPos,newPos+curEqLength,
-                                                          lastOldPos+(newPos-lastNewPos),diff);
-            if ((curEqLength<lastLinkEqLength+kUnLinkLength)
-                    &&(newPos>0)&&(newPos-lastNewPos<=kMaxLinkSpaceLength)){//是否优先使用上一个匹配的扩展延长.
-                TInt linkExtendLength=(newPos-lastNewPos)
-                                      +lastLinkEqLength*2/3;//扩展大部分，剩下的可能扩展留给extend_cover.
-                linkExtendLength+=getEqualLength(diff.oldData+lastOldPos+linkExtendLength,diff.oldData_end,
-                                                 diff.newData+lastNewPos+linkExtendLength,diff.newData_end);
-                if (linkExtendLength<=0)//几乎不会发生.
-                    linkExtendLength=(newPos-lastNewPos)+curEqLength;
-                if (diff.cover.empty()){
-                    diff.cover.push_back(TOldCover(lastNewPos,lastOldPos,linkExtendLength));
-                }else{
-                    TOldCover& curCover=diff.cover.back();
-                    curCover.length+=linkExtendLength;
-                }
-                newPos=lastNewPos+linkExtendLength;
-            }else{ //use match
-                diff.cover.push_back(TOldCover(newPos,curOldPos,curEqLength));
-                newPos+=curEqLength;
+        if (!isMatched){
+            ++newPos;//下一个需要匹配的字符串(逐位置匹配速度会比较慢).
+            continue;
+        }//else matched
+        //当前的实现选择的覆盖线cover都是不能有重叠的(这明显不是最优策略)
+        assert(curEqLength>=kMinMatchLength);
+        const TInt lastLinkEqLength=getLinkEqualCount(newPos,newPos+curEqLength,
+                                                      lastOldPos+(newPos-lastNewPos),diff);
+        if ((curEqLength<lastLinkEqLength+kUnLinkLength)
+            &&(newPos>0)&&(newPos-lastNewPos<=kMaxLinkSpaceLength)){//是否优先使用上一个匹配的扩展延长.
+            TInt linkExtendLength=(newPos-lastNewPos)+lastLinkEqLength*2/3;//扩展大部分,剩下的可能扩展留给extend_cover.
+            linkExtendLength+=getEqualLength(diff.oldData+lastOldPos+linkExtendLength,diff.oldData_end,
+                                             diff.newData+lastNewPos+linkExtendLength,diff.newData_end);
+            if (linkExtendLength<=0)//几乎不会发生.
+                linkExtendLength=(newPos-lastNewPos)+curEqLength;
+            if (diff.cover.empty()){
+                diff.cover.push_back(TOldCover(lastNewPos,lastOldPos,linkExtendLength));
+            }else{
+                TOldCover& curCover=diff.cover.back();
+                curCover.length+=linkExtendLength;
             }
-            TOldCover& curCover=diff.cover.back();
-            lastOldPos=curCover.oldPos+curCover.length;
-            lastNewPos=curCover.newPos+curCover.length;
-        }else{
-            ++newPos;//下一个需要匹配的字符串.
-            //匹配不成功时,速度会比较慢.
+            newPos=lastNewPos+linkExtendLength;
+        }else{ //use match
+            if (!diff.cover.empty()){//尝试用newPos所在的直线替换diff.cover.back()直线.
+                TOldCover& backCover=diff.cover.back();
+                TInt linkOldPos=curOldPos-(newPos-backCover.newPos);
+                if (linkOldPos!=backCover.oldPos){
+                    TInt backEqLength=getLinkEqualCount(backCover.newPos,backCover.newPos+backCover.length,
+                                                        backCover.oldPos,diff);
+                    TInt newLinkEqLength=getLinkEqualCount(backCover.newPos,backCover.newPos+backCover.length,
+                                                           linkOldPos,diff);
+                    if (backEqLength<=newLinkEqLength)
+                        backCover.oldPos=linkOldPos;
+                }
+            }
+            diff.cover.push_back(TOldCover(newPos,curOldPos,curEqLength));
+            newPos+=curEqLength;
         }
+        TOldCover& curCover=diff.cover.back();
+        lastOldPos=curCover.oldPos+curCover.length;
+        lastNewPos=curCover.newPos+curCover.length;
     }
 }
 
@@ -382,8 +394,8 @@ void __hdiff_private__create_diff(const TByte* newData,const TByte* newData_end,
 void create_diff(const TByte* newData,const TByte* newData_end,
                  const TByte* oldData,const TByte* oldData_end,std::vector<TByte>& out_diff){
     static const THDiffPrivateParams kDiffParams_default={
-                                        9,   //最小搜寻覆盖长度. //二进制:7--9  文本: 9  zip文件:5-7
-                                        18}; //最小独立覆盖长度(对diff结果影响较大). //二进制:8--12 文本:17-25 zip文件:6-9
+                                        8,   //最小搜寻覆盖长度. //二进制:7--9  文本: 9  zip文件:5-7
+                                        21}; //最小独立覆盖长度(对diff结果影响较大). //二进制:8--12 文本:17-25 zip文件:6-9
     __hdiff_private__create_diff(newData,newData_end,oldData,oldData_end,out_diff,&kDiffParams_default);
 }
 
