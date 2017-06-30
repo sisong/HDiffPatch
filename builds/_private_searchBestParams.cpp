@@ -258,7 +258,7 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
     double bestZipDiffR=1e308;
     
     for (int kMinMatchLength=4; kMinMatchLength<=16; ++kMinMatchLength) {//9
-        for (int kMinSingleMatchLength=kMinMatchLength; kMinSingleMatchLength<=32; ++kMinSingleMatchLength) { //23
+        for (int kMinSingleMatchLength=kMinMatchLength; kMinSingleMatchLength<=32; ++kMinSingleMatchLength) { //18
         {//for (int kExtendMinSameRatio=0.40f*kFixedFloatSmooth_base; kExtendMinSameRatio<=0.55f*kFixedFloatSmooth_base;kExtendMinSameRatio+=0.01f*kFixedFloatSmooth_base) {
 
         double sumDiffR=0;
