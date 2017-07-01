@@ -62,10 +62,15 @@ public:
         else
             return (TInt)m_SA_limit[i];
     }
-    inline TInt best_match(const char* str,const char* str_end,TInt* out_equal_length)const{//return index in SA
-        //todo:
+    inline TInt lower_bound(const char* str,const char* str_end)const{//return index in SA
+        if (str!=str_end) {
+            TInt rindex=2*(*(unsigned char*)str);
+            return m_lower_bound(m_cached_range256[rindex],m_cached_range256[rindex+1],
+                                 str,str_end,m_src_begin,m_src_end,m_cached_SA_begin);
+        }else{
+            return 0;
+        }
     }
-    TInt lower_bound(const char* str,const char* str_end)const;//return index in SA
 private:
     typedef int32_t     TInt32;
     const char*         m_src_begin;//原字符串.
@@ -79,8 +84,11 @@ private:
 private:
     const void*         m_cached_range256[256*2];
     const void*         m_cached_SA_begin;
-    const void*         m_cached_SA_end;
-    void*               m_best_match_func;
+    typedef TInt (*t_lower_bound_func)(const void* rbegin,const void* rend,
+                                       const char* str,const char* str_end,
+                                       const char* src_begin,const char* src_end,
+                                       const void* SA_begin);
+    t_lower_bound_func  m_lower_bound;
     void                build_cache();
     void                clear_cache();
 };

@@ -88,33 +88,31 @@ static TInt getEqualLength(const TByte* oldData,const TByte* oldData_end,const T
 }
 
 //得到最好的一个匹配长度和其位置.
-static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const TByte* newData_end,TInt* out_pos,TInt* out_length,int kMinMatchLength){
+static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const TByte* newData_end,
+                         TInt* out_pos,TInt* out_length,int kMinMatchLength){
     const char* src_begin=sstring.src_begin();
     const char* src_end=sstring.src_end();
-    TInt  bestPos=-1;
-    TInt bestLength=kMinMatchLength-1;
+    TInt bestLength=-1;
+    TInt bestPos=-1;
 
     const char* s_newData_end=(const char*)newData_end;
     if (newData_end-newData>kMinTrustMatchLength)
         s_newData_end=(const char*)newData+kMinTrustMatchLength;
     TInt sai=sstring.lower_bound((const char*)newData,s_newData_end);
 
-    for (TInt i=sai; i>=sai-1; --i) {
+    for (TInt i=sai-1; i<=sai; ++i) {
         if ((i<0)||(i>=(src_end-src_begin))) continue;
         TInt curPos=sstring.SA(i);
         TInt curLength=getEqualLength((const TByte*)src_begin+curPos,(const TByte*)src_end,newData,newData_end);
         if (curLength>bestLength){
-            bestPos=curPos;
             bestLength=curLength;
+            bestPos=curPos;
         }
     }
 
-    bool isMatched=(bestPos>=0);
-    if (isMatched){
-        *out_pos=bestPos;
-        *out_length=bestLength;
-    }
-    return isMatched;
+    *out_pos=bestPos;
+    *out_length=bestLength;
+    return (bestLength>=kMinMatchLength);
 }
 
 //粗略估算区域内当作覆盖时的可能收益.

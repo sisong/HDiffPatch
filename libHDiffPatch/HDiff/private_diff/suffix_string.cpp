@@ -126,14 +126,7 @@ namespace {
        if (rt!=0)
             throw std::runtime_error("suffixString_create() error.");
     }
-
-    template<class TSAInt>
-    inline static const TSAInt* _lower_bound(const TSAInt* begin,const TSAInt* end,
-                                             StringToken value,const TSuffixString_compare& comp){
-        return std::lower_bound<const TSAInt*,StringToken,const TSuffixString_compare&>
-                                (begin,end,value,comp);
-    }
-
+    
     template<class TSAInt>
     static void _build_range256(TSAInt* SA_begin,TSAInt* SA_end,
                                 TSAInt** range256,const TSuffixString_compare& comp){
@@ -187,40 +180,68 @@ void TSuffixString::resetSuffixString(const char* src_begin,const char* src_end)
     build_cache();
 }
 
+
+static TInt _string_eq_len(const char* oldData,const char* oldData_end,
+                           const char* newData,const char* newData_end){
+    const TInt newDataLength=(TInt)(newData_end-newData);
+    TInt maxEqualLength=(TInt)(oldData_end-oldData);
+    if (newDataLength<maxEqualLength)
+        maxEqualLength=newDataLength;
+    for (TInt i=0; i<maxEqualLength; ++i) {
+        if (oldData[i]!=newData[i])
+            return i;
+    }
+    return maxEqualLength;
+}
+
+template <class T>
+inline static T* __hack_mem_inc_ptr(T*& i,TInt n) { return i+n; }
+
+template <class T>
+static TInt _lower_bound(const T* rbegin,const T* rend,
+                         const char* str,const char* str_end,
+                         const char* src_begin,const char* src_end,
+                         const T* SA_begin){
+    //*
+    //TInt left_eq=1;
+    //TInt right_eq=1;
+    while (size_t len=(size_t)(rend-rbegin)) {
+        const T* m=__hack_mem_inc_ptr(rbegin,(len>>1));
+        TInt index=*m;
+        //TInt min_eq=std::min(left_eq,right_eq);
+        //TInt middle_eq=min_eq+_string_eq_len(src_begin+index+min_eq,src_end,str+min_eq,str_end);
+        if (getStringIsLess(src_begin+index,src_end,str,str_end)){
+        //if (getStringIsLess(src_begin+index+middle_eq,src_end,str+middle_eq,str_end)){
+            //left_eq=middle_eq;//ok
+            rbegin=m+1;
+        }else{
+            //right_eq=middle_eq;
+            rend=m;
+        }
+    }
+    return rbegin-SA_begin;//*/
+    
+    return std::lower_bound<const T*,StringToken,const TSuffixString_compare&>
+                (rbegin,rend,StringToken(str,str_end),TSuffixString_compare(src_begin,src_end))
+            - SA_begin;
+}
+
 void TSuffixString::clear_cache(){
     memset(&m_cached_range256[0], 0, sizeof(void*)*256*2);
     m_cached_SA_begin=0;
-    m_cached_SA_end=0;
-    m_best_match_func=0;
+    m_lower_bound=0;
 }
 void TSuffixString::build_cache(){
     clear_cache();
     if (isUseLargeSA()){
         m_cached_SA_begin=m_SA_large.empty()?0:&m_SA_large[0];
-        m_cached_SA_end=(TInt*)m_cached_SA_begin+m_SA_large.size();
-        _build_range256((TInt*)m_cached_SA_begin,(TInt*)m_cached_SA_end,
+        _build_range256((TInt*)m_cached_SA_begin,(TInt*)m_cached_SA_begin+m_SA_large.size(),
                         (TInt**)&m_cached_range256[0],TSuffixString_compare(m_src_begin,m_src_end));
+        m_lower_bound=(t_lower_bound_func)_lower_bound<TInt>;
     }else{
         m_cached_SA_begin=m_SA_limit.empty()?0:&m_SA_limit[0];
-        m_cached_SA_end=(TInt32*)m_cached_SA_begin+m_SA_limit.size();
-        _build_range256((TInt32*)m_cached_SA_begin,(TInt32*)m_cached_SA_end,
+        _build_range256((TInt32*)m_cached_SA_begin,(TInt32*)m_cached_SA_begin+m_SA_limit.size(),
                         (TInt32**)&m_cached_range256[0],TSuffixString_compare(m_src_begin,m_src_end));
+        m_lower_bound=(t_lower_bound_func)_lower_bound<TInt32>;
     }
-}
-
-
-
-TInt TSuffixString::lower_bound(const char* str,const char* str_end)const{
-    if (str==str_end) return 0;
-    TInt rindex=2*(*(unsigned char*)str);
-    const void* begin=m_cached_range256[rindex];
-    const void* end=m_cached_range256[rindex+1];
-    if (isUseLargeSA())
-        return _lower_bound((const TInt*)begin,(const TInt*)end,
-                            StringToken(str,str_end),TSuffixString_compare(m_src_begin,m_src_end))
-                    - (const TInt*)m_cached_SA_begin;
-    else
-        return _lower_bound((const TInt32*)begin,(const TInt32*)end,
-                            StringToken(str,str_end),TSuffixString_compare(m_src_begin,m_src_end))
-                    - (const TInt32*)m_cached_SA_begin;
 }
