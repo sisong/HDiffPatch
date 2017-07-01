@@ -71,8 +71,9 @@ public:
             return 0;
         }
     }
-private:
+    
     typedef int32_t     TInt32;
+private:
     const char*         m_src_begin;//原字符串.
     const char*         m_src_end;
     std::vector<TInt32> m_SA_limit;
