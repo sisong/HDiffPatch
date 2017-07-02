@@ -66,8 +66,8 @@ namespace {
         TInt LMin;
         if (L0<L1) LMin=L0; else LMin=L1;
         for (int i=0; i<LMin; ++i){
-            TInt sub=TInt(((unsigned char*)str0)[i])-TInt(((unsigned char*)str1)[i]);
-            if (sub==0) continue;
+            TInt sub=((const unsigned char*)str0)[i]-((const unsigned char*)str1)[i];
+            if (!sub) continue;
             return sub<0;
         }
         return (L0<L1);
@@ -148,26 +148,48 @@ namespace {
 //#define _SA_MATCHBY_STD_LOWER_BOUND
 #ifdef _SA_MATCHBY_STD_LOWER_BOUND
 #else
-    template <class T> inline static T* __hack_mem_inc_ptr(T*& p,TInt n) { return p+n; }
+    template <class T> inline static T* __iterator_next(T*& p,TInt n)
+                                            { return p+n; }//? hack cpu cache speed for xcode.
 #endif
     
     template <class T>
     inline static const T* _lower_bound(const T* rbegin,const T* rend,
-                                    const char* str,const char* str_end,
-                                    const char* src_begin,const char* src_end,
-                                    const T* SA_begin){
+                                        const char* str,const char* str_end,
+                                        const char* src_begin,const char* src_end){
 #ifdef _SA_MATCHBY_STD_LOWER_BOUND
         return std::lower_bound<const T*,StringToken,const TSuffixString_compare&>
                     (rbegin,rend,StringToken(str,str_end),TSuffixString_compare(src_begin,src_end));
 #else
-        //my lower_bound
+        TInt left_eq=1;
+        TInt right_eq=1;
         while (size_t len=(size_t)(rend-rbegin)) {
-            const T* m=__hack_mem_inc_ptr(rbegin,len>>1);
-            //const T* m=rbegin+(len>>1); //same!
-            if (getStringIsLess(src_begin+(*m),src_end,str,str_end))
+            const T* m=__iterator_next(rbegin,len>>1);
+            //const T* m=rbegin+(len>>1);
+            TInt eq_len=(left_eq<=right_eq)?left_eq:right_eq;
+            const char* vs=str+eq_len;
+            const char* ss=src_begin+eq_len+(*m);
+            bool is_less;
+            while (true) {
+                if (vs==str_end) { is_less=false; break; };
+                if (ss==src_end) { is_less=true;  break; };
+                TInt sub=(*(const unsigned char*)ss)-(*(const unsigned char*)vs);
+                if (!sub) {
+                    ++vs;
+                    ++ss;
+                    ++eq_len;
+                    continue;
+                }else{
+                    is_less=(sub<0);
+                    break;
+                }
+            }
+            if (is_less){
+                left_eq=eq_len;
                 rbegin=m+1;
-            else
+            }else{
+                right_eq=eq_len;
                 rend=m;
+            }
         }
         return rbegin;
 #endif
@@ -177,14 +199,14 @@ namespace {
                                   const char* str,const char* str_end,
                                   const char* src_begin,const char* src_end,
                                   const TInt* SA_begin){
-        return _lower_bound(rbegin,rend,str,str_end,src_begin,src_end,SA_begin) - SA_begin;
+        return _lower_bound(rbegin,rend,str,str_end,src_begin,src_end) - SA_begin;
     }
     
     static TInt _lower_bound_TInt32(const TInt32* rbegin,const TInt32* rend,
                                   const char* str,const char* str_end,
                                   const char* src_begin,const char* src_end,
                                   const TInt32* SA_begin){
-        return _lower_bound(rbegin,rend,str,str_end,src_begin,src_end,SA_begin) - SA_begin;
+        return _lower_bound(rbegin,rend,str,str_end,src_begin,src_end) - SA_begin;
     }
 
 }//end namespace
