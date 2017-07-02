@@ -45,6 +45,7 @@
 class TSuffixString{
 public:
     typedef ptrdiff_t     TInt;
+    typedef int32_t       TInt32;
     TSuffixString();
     ~TSuffixString();
     
@@ -63,19 +64,7 @@ public:
         else
             return (TInt)m_SA_limit[i];
     }
-    inline TInt lower_bound(const char* str,const char* str_end)const{//return index in SA
-        if (str_end-str>=2) {
-            int c0=*(const unsigned char*)str;
-            int c1=*(const unsigned char*)(str+1);
-            int rindex=c1*2+(c0<<9);
-            return m_lower_bound_fast(m_cached_range16bit[rindex],m_cached_range16bit[rindex+1],
-                                      str,str_end,m_src_begin,m_src_end,m_cached_SA_begin);
-        }else{
-            return lower_bound_default(str,str_end);
-        }
-    }
-    
-    typedef int32_t     TInt32;
+    TInt lower_bound(const char* str,const char* str_end)const;//return index in SA
 private:
     const char*         m_src_begin;//原字符串.
     const char*         m_src_end;
@@ -85,15 +74,16 @@ private:
         static const int32_t kMaxLimitSize= (1<<30)-1 + (1<<30);//2G-1
         return (sizeof(TInt)>sizeof(TInt32)) && (SASize()>(size_t)kMaxLimitSize);
     }
-    TInt lower_bound_default(const char* str,const char* str_end)const;
 private:
-    void**              m_cached_range16bit;
     const void*         m_cached_SA_begin;
+    const void*         m_cached_SA_end;
+    const void*         m_cached1char_range[256*2];
+    void**              m_cached2char_range;//[256*256*2]
     typedef TInt (*t_lower_bound_func)(const void* rbegin,const void* rend,
                                        const char* str,const char* str_end,
                                        const char* src_begin,const char* src_end,
-                                       const void* SA_begin);
-    t_lower_bound_func  m_lower_bound_fast;
+                                       const void* SA_begin,size_t min_eq);
+    t_lower_bound_func  m_lower_bound;
     void                build_cache();
     void                clear_cache();
 };

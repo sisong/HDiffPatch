@@ -167,7 +167,7 @@ static inline long test(const char* newStr,const char* oldStr,const char* error_
 
 
 void setRandDataSize(int kMaxDataSize,std::vector<TByte>& oldData,std::vector<TByte>& newData,
-                            float sunSizeMin,float subSizeMax){
+                            double sunSizeMin,double subSizeMax){
     const TInt oldSize=(TInt)(rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*kMaxDataSize);
     const TInt newSize=(TInt)(oldSize*(sunSizeMin+rand()*(1.0/RAND_MAX)*(subSizeMax-sunSizeMin)));
     newData.resize(newSize);
