@@ -45,7 +45,9 @@
 class TSuffixString{
 public:
     typedef ptrdiff_t     TInt;
+    typedef int32_t       TInt32;
     TSuffixString();
+    ~TSuffixString();
     
     //throw std::runtime_error when create SA error
     TSuffixString(const char* src_begin,const char* src_end);
@@ -62,17 +64,7 @@ public:
         else
             return (TInt)m_SA_limit[i];
     }
-    inline TInt lower_bound(const char* str,const char* str_end)const{//return index in SA
-        if (str!=str_end) {
-            TInt rindex=2*(*(unsigned char*)str);
-            return m_lower_bound(m_cached_range256[rindex],m_cached_range256[rindex+1],
-                                 str,str_end,m_src_begin,m_src_end,m_cached_SA_begin);
-        }else{
-            return 0;
-        }
-    }
-    
-    typedef int32_t     TInt32;
+    TInt lower_bound(const char* str,const char* str_end)const;//return index in SA
 private:
     const char*         m_src_begin;//原字符串.
     const char*         m_src_end;
@@ -83,12 +75,14 @@ private:
         return (sizeof(TInt)>sizeof(TInt32)) && (SASize()>(size_t)kMaxLimitSize);
     }
 private:
-    const void*         m_cached_range256[256*2];
     const void*         m_cached_SA_begin;
+    const void*         m_cached_SA_end;
+    const void*         m_cached1char_range[256*2];
+    void**              m_cached2char_range;//[256*256*2]
     typedef TInt (*t_lower_bound_func)(const void* rbegin,const void* rend,
                                        const char* str,const char* str_end,
                                        const char* src_begin,const char* src_end,
-                                       const void* SA_begin);
+                                       const void* SA_begin,size_t min_eq);
     t_lower_bound_func  m_lower_bound;
     void                build_cache();
     void                clear_cache();

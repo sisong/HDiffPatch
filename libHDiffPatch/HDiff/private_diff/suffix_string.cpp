@@ -66,8 +66,8 @@ namespace {
         TInt LMin;
         if (L0<L1) LMin=L0; else LMin=L1;
         for (int i=0; i<LMin; ++i){
-            TInt sub=TInt(((unsigned char*)str0)[i])-TInt(((unsigned char*)str1)[i]);
-            if (sub==0) continue;
+            TInt sub=((const unsigned char*)str0)[i]-((const unsigned char*)str1)[i];
+            if (!sub) continue;
             return sub<0;
         }
         return (L0<L1);
@@ -128,46 +128,53 @@ namespace {
             throw std::runtime_error("suffixString_create() error.");
     }
     
-    template<class TSAInt>
-    static void _build_range256(TSAInt* SA_begin,TSAInt* SA_end,
-                                TSAInt** range256,const TSuffixString_compare& comp){
-        char str[1];
-        StringToken value(&str[0],&str[0]+1);
-        TSAInt* pos=SA_begin;
-        for (int c=0;c<255;++c){
-            range256[c*2+0]=pos;
-            str[0]=(char)(c+1);
-            pos=std::lower_bound(pos,SA_end,value,comp);
-            range256[c*2+1]=pos;
-        }
-        range256[255*2+0]=pos;
-        range256[255*2+1]=SA_end;
-    }
-
-    
 //#define _SA_MATCHBY_STD_LOWER_BOUND
 #ifdef _SA_MATCHBY_STD_LOWER_BOUND
 #else
-    template <class T> inline static T* __hack_mem_inc_ptr(T*& p,TInt n) { return p+n; }
+    template <class T> inline static T* __iterator_next(T*& p,TInt n)
+                                            { return p+n; }//? hack cpu cache speed for xcode.
 #endif
     
     template <class T>
     inline static const T* _lower_bound(const T* rbegin,const T* rend,
-                                    const char* str,const char* str_end,
-                                    const char* src_begin,const char* src_end,
-                                    const T* SA_begin){
+                                        const char* str,const char* str_end,
+                                        const char* src_begin,const char* src_end,
+                                        size_t min_eq){
 #ifdef _SA_MATCHBY_STD_LOWER_BOUND
         return std::lower_bound<const T*,StringToken,const TSuffixString_compare&>
                     (rbegin,rend,StringToken(str,str_end),TSuffixString_compare(src_begin,src_end));
 #else
-        //my lower_bound
+        TInt left_eq=min_eq;
+        TInt right_eq=min_eq;
         while (size_t len=(size_t)(rend-rbegin)) {
-            const T* m=__hack_mem_inc_ptr(rbegin,len>>1);
-            //const T* m=rbegin+(len>>1); //same!
-            if (getStringIsLess(src_begin+(*m),src_end,str,str_end))
+            const T* m=__iterator_next(rbegin,len>>1);
+            //const T* m=rbegin+(len>>1);
+            T sIndex=(*m);
+            TInt eq_len=(left_eq<=right_eq)?left_eq:right_eq;
+            const char* vs=str+eq_len;
+            const char* ss=src_begin+eq_len+sIndex;
+            bool is_less;
+            while (true) {
+                if (vs==str_end) { is_less=false; break; };
+                if (ss==src_end) { is_less=true;  break; };
+                TInt sub=(*(const unsigned char*)ss)-(*(const unsigned char*)vs);
+                if (!sub) {
+                    ++vs;
+                    ++ss;
+                    ++eq_len;
+                    continue;
+                }else{
+                    is_less=(sub<0);
+                    break;
+                }
+            }
+            if (is_less){
+                left_eq=eq_len;
                 rbegin=m+1;
-            else
+            }else{
+                right_eq=eq_len;
                 rend=m;
+            }
         }
         return rbegin;
 #endif
@@ -176,22 +183,91 @@ namespace {
     static TInt _lower_bound_TInt(const TInt* rbegin,const TInt* rend,
                                   const char* str,const char* str_end,
                                   const char* src_begin,const char* src_end,
-                                  const TInt* SA_begin){
-        return _lower_bound(rbegin,rend,str,str_end,src_begin,src_end,SA_begin) - SA_begin;
+                                  const TInt* SA_begin,size_t min_eq){
+        return _lower_bound(rbegin,rend,str,str_end,src_begin,src_end,min_eq) - SA_begin;
     }
     
     static TInt _lower_bound_TInt32(const TInt32* rbegin,const TInt32* rend,
                                   const char* str,const char* str_end,
                                   const char* src_begin,const char* src_end,
-                                  const TInt32* SA_begin){
-        return _lower_bound(rbegin,rend,str,str_end,src_begin,src_end,SA_begin) - SA_begin;
+                                  const TInt32* SA_begin,size_t min_eq){
+        return _lower_bound(rbegin,rend,str,str_end,src_begin,src_end,min_eq) - SA_begin;
+    }
+    
+    template<class T>
+    static void _build_range256(const T* SA_begin,const T* SA_end,
+                                const char* src_begin,const char* src_end,
+                                const T** range){
+        char str[1];
+        const T* pos=SA_begin;
+        for (int c=0;c<255;++c){
+            //c string is [c0]
+            range[c*2+0]=pos;
+            str[0]=(char)(c+1);
+            pos=_lower_bound(pos,SA_end,str,str+1,src_begin,src_end,0);//[c+1]
+            range[c*2+1]=pos;
+        }
+        range[255*2+0]=pos;
+        range[255*2+1]=SA_end;
+    }
+
+    
+    template<class T>
+    static void _build_range(const T* SA_begin,const T* SA_end,
+                             const char* src_begin,const char* src_end,
+                             const T** range){
+        char str[2];
+        str[0]=0;
+        str[1]=0;
+        const T* pos=_lower_bound(SA_begin,SA_end,str,str+2,src_begin,src_end,0);//[0,0]
+        for (int cc=0;cc<256*256-1;++cc){
+            int c0=cc>>8;
+            int c1=cc&(256-1);
+            //cc is [c0,c1]
+            range[cc*2+0]=pos;//lower_bound
+            if (c1<255){
+                str[0]=(char)c0;
+                str[1]=(char)(c1+1);
+                pos=_lower_bound(pos,SA_end,str,str+2,src_begin,src_end,0);//[c0,c1+1]
+                range[cc*2+1]=pos;//upper_bound (== next cc lower_bound)
+            }else{//c1==255
+                unsigned char c_head=(unsigned char)(c0+1);
+                str[0]=c_head;
+                pos=_lower_bound(pos,SA_end,str,str+1,src_begin,src_end,0);//[c0+1]
+                range[cc*2+1]=pos;//upper_bound
+                while (pos!=SA_end) { //[c0+1,0] next cc lower_bound
+                    T sIndex=*pos;
+                    const char* ss=src_begin+sIndex;
+                    assert(ss!=src_end);
+                    if ( (src_end-ss>1) || (*(const unsigned char*)ss>c_head) )
+                        break;
+                    ++pos;
+                }
+            }
+            //assert(range[cc*2+1]-range[cc*2+0]>=0);
+        }
+        range[(256*256-1)*2+0]=pos;
+        range[(256*256-1)*2+1]=SA_end;
     }
 
 }//end namespace
 
 
 TSuffixString::TSuffixString()
-:m_src_begin(0),m_src_end(0){
+:m_src_begin(0),m_src_end(0),
+ m_cached2char_range(0){
+     clear_cache();
+}
+
+TSuffixString::TSuffixString(const char* src_begin,const char* src_end)
+:m_src_begin(0),m_src_end(0),
+m_cached2char_range(0){
+    clear_cache();
+    resetSuffixString(src_begin,src_end);
+}
+
+TSuffixString::~TSuffixString(){
+    clear();
 }
 
 void TSuffixString::clear(){
@@ -202,11 +278,6 @@ void TSuffixString::clear(){
     m_SA_limit.swap(_tmp_m);
     std::vector<TInt> _tmp_g;
     m_SA_large.swap(_tmp_g);
-}
-
-TSuffixString::TSuffixString(const char* src_begin,const char* src_end)
-:m_src_begin(0),m_src_end(0){
-    resetSuffixString(src_begin,src_end);
 }
 
 void TSuffixString::resetSuffixString(const char* src_begin,const char* src_end){
@@ -224,23 +295,70 @@ void TSuffixString::resetSuffixString(const char* src_begin,const char* src_end)
     build_cache();
 }
 
+TInt TSuffixString::lower_bound(const char* str,const char* str_end)const{//return index in SA
+    //not use any cached range
+    //return m_lower_bound(m_cached_SA_begin,m_cached_SA_end,
+    //                   str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,0);
+    
+    TInt str_len=str_end-str;
+    if ((str_len>=2)&(m_cached2char_range!=0)){
+        int c0=*(const unsigned char*)str;
+        int c1=*(const unsigned char*)(str+1);
+        int cc=c1+(c0<<8);
+        return m_lower_bound(m_cached2char_range[cc*2+0],m_cached2char_range[cc*2+1],
+                             str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,2);
+    }else{
+        if (str_len) {
+            TInt c=*(unsigned char*)str;
+            return m_lower_bound(m_cached1char_range[c*2+0],m_cached1char_range[c*2+1],
+                                 str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,1);
+        }else{
+            return 0;
+        }
+    }
+}
+
 void TSuffixString::clear_cache(){
-    memset(&m_cached_range256[0], 0, sizeof(void*)*256*2);
+    if (m_cached2char_range){
+        delete []m_cached2char_range;
+        m_cached2char_range=0;
+    }
+    memset(&m_cached1char_range[0],0,sizeof(void*)*256*2);
     m_cached_SA_begin=0;
+    m_cached_SA_end=0;
     m_lower_bound=0;
 }
 
 void TSuffixString::build_cache(){
     clear_cache();
+    
+    const size_t kUsedCacheMinSASize =2*(1<<20); //当字符串较大时再启用大缓存表.
+    if (SASize()>kUsedCacheMinSASize){
+        m_cached2char_range=new void*[256*256*2];
+        memset(m_cached2char_range,0,sizeof(void*)*256*256*2);
+    }
+    
     if (isUseLargeSA()){
-        m_cached_SA_begin=m_SA_large.empty()?0:&m_SA_large[0];
-        _build_range256((TInt*)m_cached_SA_begin,(TInt*)m_cached_SA_begin+m_SA_large.size(),
-                        (TInt**)&m_cached_range256[0],TSuffixString_compare(m_src_begin,m_src_end));
         m_lower_bound=(t_lower_bound_func)_lower_bound_TInt;
+        if (m_SA_large.empty()) return;
+        m_cached_SA_begin=&m_SA_large[0];
+        m_cached_SA_end=&m_SA_large[0]+m_SA_large.size();
+        _build_range256((TInt*)m_cached_SA_begin,(TInt*)m_cached_SA_end,
+                        m_src_begin,m_src_end,(const TInt**)&m_cached1char_range[0]);
+        if (m_cached2char_range){
+            _build_range((TInt*)m_cached_SA_begin,(TInt*)m_cached_SA_end,
+                         m_src_begin,m_src_end,(const TInt**)&m_cached2char_range[0]);
+        }
     }else{
-        m_cached_SA_begin=m_SA_limit.empty()?0:&m_SA_limit[0];
-        _build_range256((TInt32*)m_cached_SA_begin,(TInt32*)m_cached_SA_begin+m_SA_limit.size(),
-                        (TInt32**)&m_cached_range256[0],TSuffixString_compare(m_src_begin,m_src_end));
         m_lower_bound=(t_lower_bound_func)_lower_bound_TInt32;
+        if (m_SA_limit.empty()) return;
+        m_cached_SA_begin=&m_SA_limit[0];
+        m_cached_SA_end=&m_SA_limit[0]+m_SA_limit.size();
+        _build_range256((TInt32*)m_cached_SA_begin,(TInt32*)m_cached_SA_end,
+                        m_src_begin,m_src_end,(const TInt32**)&m_cached1char_range[0]);
+        if (m_cached2char_range){
+            _build_range((TInt32*)m_cached_SA_begin,(TInt32*)m_cached_SA_end,
+                         m_src_begin,m_src_end,(const TInt32**)&m_cached2char_range[0]);
+        }
     }
 }
