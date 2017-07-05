@@ -45,7 +45,7 @@ static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,
                                   const TByte* rle_code,const TByte* rle_code_end);
 static void addData(TByte* dst,const TByte* src,TUInt length);
 static hpatch_BOOL unpackPosWithTag(const TByte** src_code,const TByte* src_code_end,
-                                       const unsigned int kTagBit,hpatch_StreamPos_t* result);
+                                    const unsigned int kTagBit,hpatch_StreamPos_t* result);
 
 static hpatch_BOOL _unpackUIntWithTag(const TByte** src_code,const TByte* src_code_end,
                                       const unsigned int kTagBit,TUInt* result){
@@ -79,8 +79,8 @@ static hpatch_BOOL _unpackUIntWithTag(const TByte** src_code,const TByte* src_co
         unpackUIntWithTagTo(puint,src_code,src_code_end,0)
 
 hpatch_BOOL patch(TByte* out_newData,TByte* out_newData_end,
-            const TByte* oldData,const TByte* oldData_end,
-            const TByte* serializedDiff,const TByte* serializedDiff_end){
+                  const TByte* oldData,const TByte* oldData_end,
+                  const TByte* serializedDiff,const TByte* serializedDiff_end){
     const TByte *code_lengths, *code_lengths_end,
                 *code_inc_newPos, *code_inc_newPos_end,
                 *code_inc_oldPos, *code_inc_oldPos_end,
@@ -327,7 +327,8 @@ static void _TStreamClip_init(struct TStreamClip* sclip,
 #define _TStreamClip_isCacheEmpty(sclip) ( (sclip)->cacheBegin==kStreamCacheSize )
 #define _TStreamClip_cachedSize(sclip)   ( (size_t)(kStreamCacheSize-(sclip)->cacheBegin) )
 #define _TStreamClip_streamSize(sclip)   \
-    ( (TUInt)((sclip)->streamPos_end-(sclip)->streamPos) + (TUInt)_TStreamClip_cachedSize(sclip) )
+    (  (TUInt)((sclip)->streamPos_end-(sclip)->streamPos)  \
+     + (TUInt)_TStreamClip_cachedSize(sclip)  )
 
 static void _TStreamClip_updateCache(struct TStreamClip* sclip){
     TByte* buf0=&sclip->cacheBuf[0];
@@ -456,7 +457,7 @@ static void memSet_add(TByte* dst,const TByte src,size_t length){
 }
 
 static hpatch_BOOL _TBytesRle_load_stream_mem_add(_TBytesRle_load_stream* loader,
-                                           size_t* _decodeSize,TByte** _out_data){
+                                                  size_t* _decodeSize,TByte** _out_data){
     size_t  decodeSize=*_decodeSize;
     TByte* out_data=*_out_data;
     struct TStreamClip* rleCodeClip=&loader->rleCodeClip;
@@ -547,9 +548,9 @@ static hpatch_BOOL _TBytesRle_load_stream_decode_add(_TBytesRle_load_stream* loa
         return _hpatch_FALSE;
 }
 
-static  hpatch_BOOL _patch_decode_from_clipOrStream(const struct hpatch_TStreamOutput* out_newData,TUInt writeToPos,
-                                                    _TBytesRle_load_stream* rle_loader,TUInt decodeLength,
-                                                    struct TStreamClip* srcClip,
+static  hpatch_BOOL _patch_decode_from_clipOrStream(const struct hpatch_TStreamOutput* out_newData,
+                                                    TUInt writeToPos,_TBytesRle_load_stream* rle_loader,
+                                                    TUInt decodeLength,struct TStreamClip* srcClip,
                                                     const struct hpatch_TStreamInput* srcStream,TUInt readPos){
     TByte  _tempMemBuf[kStreamCacheSize];
     TByte* data=&_tempMemBuf[0];
@@ -681,7 +682,7 @@ hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
             if (copyLength>_TStreamClip_streamSize(&code_newDataDiffClip)) return _hpatch_FALSE;
 #endif
             if (!_patch_decode_from_clipOrStream(out_newData,newPosBack,&rle_loader,copyLength,
-                                      &code_newDataDiffClip,0,0)) return _hpatch_FALSE;
+                                                 &code_newDataDiffClip,0,0)) return _hpatch_FALSE;
             //newPosBack=newDataSize;
         }
     }

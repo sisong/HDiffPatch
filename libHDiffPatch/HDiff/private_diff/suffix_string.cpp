@@ -57,8 +57,10 @@
 namespace {
     typedef TSuffixString::TInt   TInt;
     typedef TSuffixString::TInt32 TInt32;
+    typedef TSuffixString::TChar  TChar;
 
-    static bool getStringIsLess(const char* str0,const char* str0End,const char* str1,const char* str1End){
+    static bool getStringIsLess(const TChar* str0,const TChar* str0End,
+                                const TChar* str1,const TChar* str1End){
         TInt L0=(TInt)(str0End-str0);
         TInt L1=(TInt)(str1End-str1);
     #ifdef _SA_SORTBY_STD_SORT
@@ -71,7 +73,7 @@ namespace {
         TInt LMin;
         if (L0<L1) LMin=L0; else LMin=L1;
         for (int i=0; i<LMin; ++i){
-            TInt sub=((const unsigned char*)str0)[i]-((const unsigned char*)str1)[i];
+            TInt sub=str0[i]-str1[i];
             if (!sub) continue;
             return sub<0;
         }
@@ -79,14 +81,14 @@ namespace {
     }
 
     struct StringToken{
-        const char* begin;
-        const char* end;
-        inline explicit StringToken(const char* _begin,const char* _end):begin(_begin),end(_end){}
+        const TChar* begin;
+        const TChar* end;
+        inline explicit StringToken(const TChar* _begin,const TChar* _end):begin(_begin),end(_end){}
     };
 
     class TSuffixString_compare{
     public:
-        inline TSuffixString_compare(const char* begin,const char* end):m_begin(begin),m_end(end){}
+        inline TSuffixString_compare(const TChar* begin,const TChar* end):m_begin(begin),m_end(end){}
         inline bool operator()(const TInt s0,const StringToken& s1)const{
             return getStringIsLess(m_begin+s0,m_end,s1.begin,s1.end);
         }
@@ -97,12 +99,12 @@ namespace {
             return getStringIsLess(m_begin+s0,m_end,m_begin+s1,m_end);
         }
     private:
-        const char* m_begin;
-        const char* m_end;
+        const TChar* m_begin;
+        const TChar* m_end;
     };
 
     template<class TSAInt>
-    static void _suffixString_create(const char* src,const char* src_end,std::vector<TSAInt>& out_sstring){
+    static void _suffixString_create(const TChar* src,const TChar* src_end,std::vector<TSAInt>& out_sstring){
         TSAInt size=(TSAInt)(src_end-src);
         if (size<0)
             throw std::runtime_error("suffixString_create() error.");
@@ -120,14 +122,14 @@ namespace {
         }
     #endif
     #ifdef _SA_SORTBY_SAIS
-        TSAInt rt=saisxx((const unsigned char*)src, &out_sstring[0],size);
+        TSAInt rt=saisxx(src,&out_sstring[0],size);
     #endif
     #ifdef _SA_SORTBY_DIVSUFSORT
         saint_t rt=-1;
         if (sizeof(TSAInt)==8)
-            rt=divsufsort64((const unsigned char*)src,(saidx64_t*)&out_sstring[0],(saidx64_t)size);
+            rt=divsufsort64(src,(saidx64_t*)&out_sstring[0],(saidx64_t)size);
         else if (sizeof(TSAInt)==4)
-            rt=divsufsort((const unsigned char*)src,(saidx_t*)&out_sstring[0],(saidx_t)size);
+            rt=divsufsort(src,(saidx_t*)&out_sstring[0],(saidx_t)size);
     #endif
        if (rt!=0)
             throw std::runtime_error("suffixString_create() error.");
@@ -140,8 +142,8 @@ namespace {
 #endif
     template <class T>
     inline static const T* _lower_bound(const T* rbegin,const T* rend,
-                                        const char* str,const char* str_end,
-                                        const char* src_begin,const char* src_end,
+                                        const TChar* str,const TChar* str_end,
+                                        const TChar* src_begin,const TChar* src_end,
                                         size_t min_eq){
 #ifdef _SA_MATCHBY_STD_LOWER_BOUND
         return std::lower_bound<const T*,StringToken,const TSuffixString_compare&>
@@ -153,13 +155,13 @@ namespace {
             const T* m=__select_mid(rbegin,len);
             T sIndex=(*m);
             TInt eq_len=(left_eq<=right_eq)?left_eq:right_eq;
-            const char* vs=str+eq_len;
-            const char* ss=src_begin+eq_len+sIndex;
+            const TChar* vs=str+eq_len;
+            const TChar* ss=src_begin+eq_len+sIndex;
             bool is_less;
             while (true) {
                 if (vs==str_end) { is_less=false; break; };
                 if (ss==src_end) { is_less=true;  break; };
-                TInt sub=(*(const unsigned char*)ss)-(*(const unsigned char*)vs);
+                TInt sub=(*ss)-(*vs);
                 if (!sub) {
                     ++vs;
                     ++ss;
@@ -183,29 +185,29 @@ namespace {
     }
     
     static TInt _lower_bound_TInt(const TInt* rbegin,const TInt* rend,
-                                  const char* str,const char* str_end,
-                                  const char* src_begin,const char* src_end,
+                                  const TChar* str,const TChar* str_end,
+                                  const TChar* src_begin,const TChar* src_end,
                                   const TInt* SA_begin,size_t min_eq){
         return _lower_bound(rbegin,rend,str,str_end,src_begin,src_end,min_eq) - SA_begin;
     }
     
     static TInt _lower_bound_TInt32(const TInt32* rbegin,const TInt32* rend,
-                                  const char* str,const char* str_end,
-                                  const char* src_begin,const char* src_end,
+                                  const TChar* str,const TChar* str_end,
+                                  const TChar* src_begin,const TChar* src_end,
                                   const TInt32* SA_begin,size_t min_eq){
         return _lower_bound(rbegin,rend,str,str_end,src_begin,src_end,min_eq) - SA_begin;
     }
     
     template<class T>
     static void _build_range256(const T* SA_begin,const T* SA_end,
-                                const char* src_begin,const char* src_end,
+                                const TChar* src_begin,const TChar* src_end,
                                 const T** range){
-        char str[1];
+        TChar str[1];
         const T* pos=SA_begin;
         for (int c=0;c<255;++c){
             //c string is [c0]
             range[c*2+0]=pos;
-            str[0]=(char)(c+1);
+            str[0]=(TChar)(c+1);
             pos=_lower_bound(pos,SA_end,str,str+1,src_begin,src_end,0);//[c+1]
             range[c*2+1]=pos;
         }
@@ -216,9 +218,9 @@ namespace {
     
     template<class T>
     static void _build_range(const T* SA_begin,const T* SA_end,
-                             const char* src_begin,const char* src_end,
+                             const TChar* src_begin,const TChar* src_end,
                              const T** range){
-        char str[2];
+        TChar str[2];
         str[0]=0;
         str[1]=0;
         const T* pos=_lower_bound(SA_begin,SA_end,str,str+2,src_begin,src_end,0);//[0,0]
@@ -228,20 +230,20 @@ namespace {
             //cc is [c0,c1]
             range[cc*2+0]=pos;//lower_bound
             if (c1<255){
-                str[0]=(char)c0;
-                str[1]=(char)(c1+1);
+                str[0]=(TChar)c0;
+                str[1]=(TChar)(c1+1);
                 pos=_lower_bound(pos,SA_end,str,str+2,src_begin,src_end,0);//[c0,c1+1]
                 range[cc*2+1]=pos;//upper_bound (== next cc lower_bound)
             }else{//c1==255
-                unsigned char c_head=(unsigned char)(c0+1);
+                TChar c_head=TChar(c0+1);
                 str[0]=c_head;
                 pos=_lower_bound(pos,SA_end,str,str+1,src_begin,src_end,0);//[c0+1]
                 range[cc*2+1]=pos;//upper_bound
                 while (pos!=SA_end) { //[c0+1,0] next cc lower_bound
                     T sIndex=*pos;
-                    const char* ss=src_begin+sIndex;
+                    const TChar* ss=src_begin+sIndex;
                     assert(ss!=src_end);
-                    if ( (src_end-ss>1) || (*(const unsigned char*)ss>c_head) )
+                    if ( (src_end-ss>1) || ((*ss)>c_head) )
                         break;
                     ++pos;
                 }
@@ -261,7 +263,7 @@ TSuffixString::TSuffixString()
      clear_cache();
 }
 
-TSuffixString::TSuffixString(const char* src_begin,const char* src_end)
+TSuffixString::TSuffixString(const TChar* src_begin,const TChar* src_end)
 :m_src_begin(0),m_src_end(0),
 m_cached2char_range(0){
     clear_cache();
@@ -282,7 +284,7 @@ void TSuffixString::clear(){
     m_SA_large.swap(_tmp_g);
 }
 
-void TSuffixString::resetSuffixString(const char* src_begin,const char* src_end){
+void TSuffixString::resetSuffixString(const TChar* src_begin,const TChar* src_end){
     assert(src_begin<=src_end);
     m_src_begin=src_begin;
     m_src_end=src_end;
@@ -297,20 +299,20 @@ void TSuffixString::resetSuffixString(const char* src_begin,const char* src_end)
     build_cache();
 }
 
-TInt TSuffixString::lower_bound(const char* str,const char* str_end)const{//return index in SA
+TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
     //not use any cached range table
     //return m_lower_bound(m_cached_SA_begin,m_cached_SA_end,
     //                     str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,0);
     
     TInt str_len=str_end-str;
     if ((str_len>=2)&(m_cached2char_range!=0)){
-        int c0=*(const unsigned char*)str;
-        int c1=*(const unsigned char*)(str+1);
+        int c0=str[0];
+        int c1=str[1];
         int cc=c1+(c0<<8);
         return m_lower_bound(m_cached2char_range[cc*2+0],m_cached2char_range[cc*2+1],
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,2);
     }else if (str_len>0) {
-        TInt c=*(unsigned char*)str;
+        TInt c=str[0];
         return m_lower_bound(m_cached1char_range[c*2+0],m_cached1char_range[c*2+1],
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,1);
     }else{

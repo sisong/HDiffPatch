@@ -213,7 +213,7 @@ void doDiff(TDiffInfo& di){
         di.oldFileSize=di.oldData.size();
         di.newFileSize=di.newData.size();
         const TByte* oldData_begin=0; if (!di.oldData.empty()) oldData_begin=&di.oldData[0];
-        di.sstring.resetSuffixString((const char*)oldData_begin,(const char*)oldData_begin+di.oldData.size());
+        di.sstring.resetSuffixString(oldData_begin,oldData_begin+di.oldData.size());
     }
     
     std::vector<TByte> diffData;

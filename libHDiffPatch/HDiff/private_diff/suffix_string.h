@@ -46,15 +46,16 @@ class TSuffixString{
 public:
     typedef ptrdiff_t     TInt;
     typedef int32_t       TInt32;
+    typedef unsigned char TChar;
     TSuffixString();
     ~TSuffixString();
     
     //throw std::runtime_error when create SA error
-    TSuffixString(const char* src_begin,const char* src_end);
-    void resetSuffixString(const char* src_begin,const char* src_end);
+    TSuffixString(const TChar* src_begin,const TChar* src_end);
+    void resetSuffixString(const TChar* src_begin,const TChar* src_end);
 
-    inline const char* src_begin()const{ return m_src_begin; }
-    inline const char* src_end()const{ return m_src_end; }
+    inline const TChar* src_begin()const{ return m_src_begin; }
+    inline const TChar* src_end()const{ return m_src_end; }
     inline size_t SASize()const{ return (size_t)(m_src_end-m_src_begin); }
     void clear();
 
@@ -64,10 +65,10 @@ public:
         else
             return (TInt)m_SA_limit[i];
     }
-    TInt lower_bound(const char* str,const char* str_end)const;//return index in SA
+    TInt lower_bound(const TChar* str,const TChar* str_end)const;//return index in SA
 private:
-    const char*         m_src_begin;//原字符串.
-    const char*         m_src_end;
+    const TChar*        m_src_begin;//原字符串.
+    const TChar*        m_src_end;
     std::vector<TInt32> m_SA_limit;
     std::vector<TInt>   m_SA_large;
     inline bool isUseLargeSA()const{
@@ -80,8 +81,8 @@ private:
     const void*         m_cached1char_range[256*2];
     void**              m_cached2char_range;//[256*256*2]
     typedef TInt (*t_lower_bound_func)(const void* rbegin,const void* rend,
-                                       const char* str,const char* str_end,
-                                       const char* src_begin,const char* src_end,
+                                       const TChar* str,const TChar* str_end,
+                                       const TChar* src_begin,const TChar* src_end,
                                        const void* SA_begin,size_t min_eq);
     t_lower_bound_func  m_lower_bound;
     void                build_cache();

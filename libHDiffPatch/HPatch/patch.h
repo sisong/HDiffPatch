@@ -39,8 +39,8 @@ extern "C"
 
 //if patch false return hpatch_FALSE
 hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
-            const unsigned char* oldData,const unsigned char* oldData_end,
-            const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
+                  const unsigned char* oldData,const unsigned char* oldData_end,
+                  const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
 
 #ifdef __cplusplus
 }
