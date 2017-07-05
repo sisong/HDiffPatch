@@ -41,7 +41,7 @@ namespace{
     typedef size_t        TUInt;
     typedef ptrdiff_t     TInt;
     static const int kMinTrustMatchLength=1024*8;  //(贪婪)选定该覆盖线(优化一些速度).
-    static const int kUnLinkLength=4;              //搜索时不能合并的代价.
+    static const int kUnLinkLength=6;              //搜索时不能合并的代价.
     static const int kMaxLinkSpaceLength=(1<<9)-1; //跨覆盖线合并时,允许合并的最远距离.
     
     //覆盖线.
@@ -389,7 +389,7 @@ void create_diff(const TByte* newData,const TByte* newData_end,
                  const TByte* oldData,const TByte* oldData_end,std::vector<TByte>& out_diff){
     static const THDiffPrivateParams kDiffParams_default={
                                         8,   //最小搜寻覆盖长度. //二进制:7--9  文本: 9  zip文件:5-7
-                                        21}; //最小独立覆盖长度(对diff结果影响较大). //二进制:8--12 文本:17-25 zip文件:6-9
+                                        23}; //最小独立覆盖长度. //二进制:8--12 文本:17-25 zip文件:6-9
     __hdiff_private__create_diff(newData,newData_end,oldData,oldData_end,out_diff,&kDiffParams_default);
 }
 
