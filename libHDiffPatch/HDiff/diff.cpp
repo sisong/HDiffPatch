@@ -27,9 +27,8 @@
 */
 
 #include "diff.h"
-#include "assert.h"
+#include <assert.h>
 #include <vector>
-#include <algorithm>
 #include "private_diff/suffix_string.h"
 #include "private_diff/bytes_rle.h"
 #include "private_diff/pack_uint.h"
@@ -92,14 +91,10 @@ static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const
                          TInt* out_pos,TInt* out_length,int kMinMatchLength){
     const char* src_begin=sstring.src_begin();
     const char* src_end=sstring.src_end();
+    TInt sai=sstring.lower_bound((const char*)newData,(const char*)newData_end);
+    
     TInt bestLength=-1;
     TInt bestPos=-1;
-
-    const char* s_newData_end=(const char*)newData_end;
-    if (newData_end-newData>kMinTrustMatchLength)
-        s_newData_end=(const char*)newData+kMinTrustMatchLength;
-    TInt sai=sstring.lower_bound((const char*)newData,s_newData_end);
-
     for (TInt i=sai-1; i<=sai; ++i) {
         if ((i<0)||(i>=(src_end-src_begin))) continue;
         TInt curPos=sstring.SA(i);
@@ -169,7 +164,7 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring,int kMinMa
             }
             newPos=lastNewPos+linkExtendLength;
         }else{ //use match
-            if (!diff.cover.empty()){//尝试用newPos所在的直线替换diff.cover.back()直线.
+            if (!diff.cover.empty()){//尝试能否用newPos所在的直线延长替换diff.cover.back()直线.
                 TOldCover& backCover=diff.cover.back();
                 TInt linkOldPos=curOldPos-(newPos-backCover.newPos);
                 if (linkOldPos!=backCover.oldPos){
@@ -361,7 +356,8 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_seriali
 
 void __hdiff_private__create_diff(const TByte* newData,const TByte* newData_end,
                                   const TByte* oldData,const TByte* oldData_end,
-                        std::vector<TByte>& out_diff,const void* _kDiffParams,const TSuffixString* sstring=0){
+                                  std::vector<TByte>& out_diff,const void* _kDiffParams,
+                                  const TSuffixString* sstring=0){
     
     assert(newData<=newData_end);
     assert(oldData<=oldData_end);

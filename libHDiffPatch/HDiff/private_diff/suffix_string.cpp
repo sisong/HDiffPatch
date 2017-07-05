@@ -29,7 +29,6 @@
 #include "suffix_string.h"
 #include <assert.h>
 #include <string.h> //memset
-#include <algorithm>
 #include <stdexcept>
 
 //排序方法选择.
@@ -40,12 +39,18 @@
 #   define _SA_SORTBY_DIVSUFSORT
 #endif//_SA_SORTBY
 
+//匹配查找方法选择,是否用std::lower_bound,否则用自定义的实现.
+//#define _SA_MATCHBY_STD_LOWER_BOUND
+
+#if (defined _SA_SORTBY_STD_SORT) || (defined _SA_MATCHBY_STD_LOWER_BOUND)
+    #include <algorithm> //sort,lower_bound
+#endif
 #ifdef _SA_SORTBY_SAIS
-#include "sais.hxx"
+    #include "sais.hxx"
 #endif
 #ifdef _SA_SORTBY_DIVSUFSORT
-#include "libdivsufsort/divsufsort.h"
-#include "libdivsufsort/divsufsort64.h"
+    #include "libdivsufsort/divsufsort.h"
+    #include "libdivsufsort/divsufsort64.h"
 #endif
 
 
@@ -128,13 +133,11 @@ namespace {
             throw std::runtime_error("suffixString_create() error.");
     }
     
-//#define _SA_MATCHBY_STD_LOWER_BOUND
 #ifdef _SA_MATCHBY_STD_LOWER_BOUND
 #else
-    template <class T> inline static T* __iterator_next(T*& p,TInt n)
-                                            { return p+n; }//? hack cpu cache speed for xcode.
+    template <class T> inline static T* __select_mid(T*& p,TInt n) { return p+(n>>1); }
+            //'&' for hack cpu cache speed for xcode, somebody know way?
 #endif
-    
     template <class T>
     inline static const T* _lower_bound(const T* rbegin,const T* rend,
                                         const char* str,const char* str_end,
@@ -147,8 +150,7 @@ namespace {
         TInt left_eq=min_eq;
         TInt right_eq=min_eq;
         while (size_t len=(size_t)(rend-rbegin)) {
-            const T* m=__iterator_next(rbegin,len>>1);
-            //const T* m=rbegin+(len>>1);
+            const T* m=__select_mid(rbegin,len);
             T sIndex=(*m);
             TInt eq_len=(left_eq<=right_eq)?left_eq:right_eq;
             const char* vs=str+eq_len;
@@ -296,9 +298,9 @@ void TSuffixString::resetSuffixString(const char* src_begin,const char* src_end)
 }
 
 TInt TSuffixString::lower_bound(const char* str,const char* str_end)const{//return index in SA
-    //not use any cached range
+    //not use any cached range table
     //return m_lower_bound(m_cached_SA_begin,m_cached_SA_end,
-    //                   str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,0);
+    //                     str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,0);
     
     TInt str_len=str_end-str;
     if ((str_len>=2)&(m_cached2char_range!=0)){
@@ -307,14 +309,12 @@ TInt TSuffixString::lower_bound(const char* str,const char* str_end)const{//retu
         int cc=c1+(c0<<8);
         return m_lower_bound(m_cached2char_range[cc*2+0],m_cached2char_range[cc*2+1],
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,2);
+    }else if (str_len>0) {
+        TInt c=*(unsigned char*)str;
+        return m_lower_bound(m_cached1char_range[c*2+0],m_cached1char_range[c*2+1],
+                             str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,1);
     }else{
-        if (str_len) {
-            TInt c=*(unsigned char*)str;
-            return m_lower_bound(m_cached1char_range[c*2+0],m_cached1char_range[c*2+1],
-                                 str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,1);
-        }else{
-            return 0;
-        }
+        return 0;
     }
 }
 
@@ -326,7 +326,7 @@ void TSuffixString::clear_cache(){
     memset(&m_cached1char_range[0],0,sizeof(void*)*256*2);
     m_cached_SA_begin=0;
     m_cached_SA_end=0;
-    m_lower_bound=0;
+    m_lower_bound=(t_lower_bound_func)_lower_bound_TInt32;//safe
 }
 
 void TSuffixString::build_cache(){

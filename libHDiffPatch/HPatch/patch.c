@@ -26,8 +26,8 @@
  OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "patch.h"
-#include "string.h" //memcpy memset size_t
-#include "assert.h" //assert
+#include <string.h> //memcpy memset size_t
+#include <assert.h> //assert
 
 //__RUN_MEM_SAFE_CHECK用来启动内存访问越界检查,用以防御可能被意外或故意损坏的数据.
 #define __RUN_MEM_SAFE_CHECK

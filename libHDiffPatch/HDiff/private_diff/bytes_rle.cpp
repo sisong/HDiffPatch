@@ -27,7 +27,7 @@
 */
 
 #include "bytes_rle.h"
-#include "assert.h"
+#include <assert.h>
 #include "pack_uint.h"
 
 namespace {
