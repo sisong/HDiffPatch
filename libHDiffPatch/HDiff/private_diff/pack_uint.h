@@ -39,7 +39,8 @@
 // x1* 1* 1* 1* 0*  7+7+7+7+7-x bit
 // ...
 template<class TUInt>
-static void packUIntWithTag(std::vector<unsigned char>& out_code,TUInt iValue,int highBit,const int kTagBit){//写入并前进指针.
+static void packUIntWithTag(std::vector<unsigned char>& out_code,TUInt iValue,
+                            int highBit,const int kTagBit){//写入并前进指针.
     const int kPackMaxTagBit=7;
     assert((0<=kTagBit)&&(kTagBit<=kPackMaxTagBit));
     assert((highBit>>kTagBit)==0);
@@ -52,7 +53,8 @@ static void packUIntWithTag(std::vector<unsigned char>& out_code,TUInt iValue,in
         *codeEnd=iValue&((1<<7)-1); ++codeEnd;
         iValue>>=7;
     }
-    out_code.push_back((unsigned char)( (highBit<<(8-kTagBit)) | iValue | (((codeBuf!=codeEnd)?1:0)<<(7-kTagBit))  ));
+    out_code.push_back((unsigned char)( (highBit<<(8-kTagBit)) | iValue
+                                       | (((codeBuf!=codeEnd)?1:0)<<(7-kTagBit))  ));
     while (codeBuf!=codeEnd) {
         --codeEnd;
         out_code.push_back((*codeEnd) | (((codeBuf!=codeEnd)?1:0)<<7));

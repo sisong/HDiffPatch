@@ -27,7 +27,7 @@
 */
 
 #include "bytes_rle.h"
-#include "assert.h"
+#include <assert.h>
 #include "pack_uint.h"
 
 namespace {
@@ -45,7 +45,8 @@ namespace {
 
     static const int kByteRleType_bit=2;
 
-    static void rle_pushSame(std::vector<TByte>& out_code,std::vector<TByte>& out_ctrl,TByte cur,TUInt count){
+    static void rle_pushSame(std::vector<TByte>& out_code,std::vector<TByte>& out_ctrl,
+                             TByte cur,TUInt count){
         assert(count>0);
         enum TByteRleType type;
         if (cur==0)
@@ -60,7 +61,8 @@ namespace {
             out_code.push_back(cur);
     }
 
-    static void rle_pushNotSame(std::vector<TByte>& out_code,std::vector<TByte>& out_ctrl,const TByte* byteStream,TUInt count){
+    static void rle_pushNotSame(std::vector<TByte>& out_code,std::vector<TByte>& out_ctrl,
+                                const TByte* byteStream,TUInt count){
         assert(count>0);
         if (count==1){
             rle_pushSame(out_code,out_ctrl,*byteStream,1);
@@ -92,7 +94,8 @@ namespace {
             TByte value=*src;
             const TByte* eqEnd=rle_getEqualEnd(src+1,src_end,value);
             const TUInt sameCount=(TUInt)(eqEnd-src);
-            if ( (sameCount>kRleMinSameSize) || ( (sameCount==kRleMinSameSize)&&( (value==0)||(value==255) ) ) ){//可以压缩.
+            if ( (sameCount>kRleMinSameSize) || (  (sameCount==kRleMinSameSize)
+                                                 &&( (value==0)||(value==255) ) ) ){//可以压缩.
                 if (notSame!=src){
                     rle_pushNotSame(out_codeBuf,out_ctrlBuf,notSame,(TUInt)(src-notSame));
                 }
@@ -111,7 +114,8 @@ namespace {
 
 }//end namespace
 
-void bytesRLE_save(std::vector<TByte>& out_code,const TByte* src,const TByte* src_end,int rle_parameter){
+void bytesRLE_save(std::vector<TByte>& out_code,
+                   const TByte* src,const TByte* src_end,int rle_parameter){
     std::vector<TByte> ctrlBuf;
     std::vector<TByte> codeBuf;
 

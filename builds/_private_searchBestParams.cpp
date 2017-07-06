@@ -213,7 +213,7 @@ void doDiff(TDiffInfo& di){
         di.oldFileSize=di.oldData.size();
         di.newFileSize=di.newData.size();
         const TByte* oldData_begin=0; if (!di.oldData.empty()) oldData_begin=&di.oldData[0];
-        di.sstring.resetSuffixString((const char*)oldData_begin,(const char*)oldData_begin+di.oldData.size());
+        di.sstring.resetSuffixString(oldData_begin,oldData_begin+di.oldData.size());
     }
     
     std::vector<TByte> diffData;
@@ -257,8 +257,8 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
     double bestDiffR=1e308;
     double bestZipDiffR=1e308;
     
-    for (int kMinMatchLength=4; kMinMatchLength<=16; ++kMinMatchLength) {//8
-        for (int kMinSingleMatchLength=kMinMatchLength; kMinSingleMatchLength<=32; ++kMinSingleMatchLength) { //21
+    for (int kMinMatchLength=6; kMinMatchLength<=12; ++kMinMatchLength) {
+        for (int kMinSingleMatchLength=kMinMatchLength; kMinSingleMatchLength<=35; ++kMinSingleMatchLength) {
         {//for (int kExtendMinSameRatio=0.40f*kFixedFloatSmooth_base; kExtendMinSameRatio<=0.55f*kFixedFloatSmooth_base;kExtendMinSameRatio+=0.01f*kFixedFloatSmooth_base) {
 
         double sumDiffR=0;
