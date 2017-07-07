@@ -334,7 +334,7 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
     double bestZipDiffR=1e308;
     double bestBz2DiffR=1e308;
     double bestLzmaDiffR=1e308;
-    
+    double bestCompressDiffR=1e308;
     bool isOutSrcSize=false;
     for (int kMinMatchLength=7; kMinMatchLength<=16; ++kMinMatchLength) {
         for (int kMinSingleMatchLength=12; kMinSingleMatchLength<=35; ++kMinSingleMatchLength) {
@@ -378,6 +378,7 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
         const double curZipDiffR=sumZipDiffR/kDoCount;
         const double curBz2DiffR=sumBz2DiffR/kDoCount;
         const double curLzmaDiffR=sumLzmaDiffR/kDoCount;
+        const double curCompressDiffR=(curZipDiffR*2+curBz2DiffR*1+curLzmaDiffR*3)/(2+1+3);
         {
             TDiffInfo curDi;
             curDi.oldFileName="";
@@ -396,6 +397,7 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
             tag+=rToTag(curZipDiffR,bestZipDiffR);
             tag+=rToTag(curBz2DiffR,bestBz2DiffR);
             tag+=rToTag(curLzmaDiffR,bestLzmaDiffR);
+            tag+="| "+rToTag(curCompressDiffR,bestCompressDiffR);
             if (!isOutSrcSize){
                 isOutSrcSize=true;
                 std::cout<<"pat zlab bz2 lzma "<<"\t";
