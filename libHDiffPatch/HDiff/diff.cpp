@@ -141,6 +141,7 @@ static TInt getCoverScore(TInt newPos,TInt oldPos,TInt length,const TDiffData& d
     
 //尝试延长lastCover来完全代替matchCover;
 static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const TDiffData& diff){
+    if (lastCover.length<=0) return false;
     const TInt linkSpaceLength=(matchCover.newPos-(lastCover.newPos+lastCover.length));
     if ((linkSpaceLength>kMaxLinkSpaceLength)||(matchCover.newPos==0))
         return false;
@@ -165,6 +166,7 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     
 //尝试设置lastCover为matchCover所在直线的延长线,实现共线(增加合并可能等);
 static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const TDiffData& diff){
+    if (lastCover.length<=0) return;
     if (lastCover.isCollinear(matchCover)) return; //已经共线;
     TInt linkOldPos=matchCover.oldPos-(matchCover.newPos-lastCover.newPos);
     TInt lastScore=getCoverScore(lastCover.newPos,lastCover.oldPos,lastCover.length,diff);
