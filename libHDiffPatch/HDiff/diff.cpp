@@ -145,8 +145,8 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     if ((linkSpaceLength>kMaxLinkSpaceLength)||(matchCover.newPos==0))
         return false;
     if (lastCover.isCollinear(matchCover)){//已经共线;
-            lastCover.Link(matchCover);
-            return true;
+        lastCover.Link(matchCover);
+        return true;
     }
     TInt linkOldPos=lastCover.oldPos+lastCover.length+linkSpaceLength;
     TInt lastLinkScore=getCoverScore(matchCover.newPos,linkOldPos,matchCover.length,diff);
@@ -155,8 +155,8 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     TInt len=lastCover.length+linkSpaceLength+lastLinkScore*2/3;//扩展大部分,剩下的可能扩展留给extend_cover.
     len+=getEqualLength(diff.newData+lastCover.newPos+len,diff.newData_end,
                         diff.oldData+lastCover.oldPos+len,diff.oldData_end);
-    while (  diff.newData[lastCover.newPos+len-1]
-           !=diff.oldData[lastCover.oldPos+len-1]) {
+    while ((len>0) && (diff.newData[lastCover.newPos+len-1]
+                       !=diff.oldData[lastCover.oldPos+len-1])) {
         --len;
     }
     lastCover.length=len;
