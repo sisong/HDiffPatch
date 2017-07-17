@@ -121,23 +121,22 @@ static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const
 }
 
 //粗略估算区域内当作覆盖时的可能收益.
-static TInt getLinkEqualCount(TInt newPos,TInt newPos_end,TInt oldPos,const TDiffData& diff){
-    TInt len=(newPos_end-newPos);
-    if ((oldPos<0)||(oldPos+len>(diff.oldData_end-diff.oldData)))
+static TInt getCoverScore(TInt newPos,TInt oldPos,TInt length,const TDiffData& diff){
+    if ((oldPos<0)||(oldPos+length>(diff.oldData_end-diff.oldData)))
         return -kUnLinkLength;
-    TInt eqCount=0;
+    TInt eqScore=0;
     bool eq_state=true;
-    for (TInt i=0; i<len; ++i) {
+    for (TInt i=0; i<length; ++i) {
         if (diff.newData[newPos+i]==diff.oldData[oldPos+i]){
-            ++eqCount;
+            ++eqScore;
             if (eq_state) //认为切换是有成本的;
-                ++eqCount;
+                ++eqScore;
             eq_state=true;
         }else{
             eq_state=false;
         }
     }
-    return (eqCount+1)>>1;
+    return (eqScore+1)>>1;
 }
     
 //尝试延长lastCover来完全代替matchCover;
@@ -146,19 +145,18 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     if ((linkSpaceLength>kMaxLinkSpaceLength)||(matchCover.newPos==0))
         return false;
     if (lastCover.isCollinear(matchCover)){//已经共线;
-            lastCover.Link(matchCover);
-            return true;
+        lastCover.Link(matchCover);
+        return true;
     }
     TInt linkOldPos=lastCover.oldPos+lastCover.length+linkSpaceLength;
-    TInt lastLinkEqCount=getLinkEqualCount(matchCover.newPos,matchCover.newPos+matchCover.length,
-                                           linkOldPos,diff);
-    if ((lastLinkEqCount<=0)|(lastLinkEqCount+kUnLinkLength<=matchCover.length))
+    TInt lastLinkScore=getCoverScore(matchCover.newPos,linkOldPos,matchCover.length,diff);
+    if ((lastLinkScore<=0)|(lastLinkScore+kUnLinkLength<=matchCover.length))
         return false;
-    TInt len=lastCover.length+linkSpaceLength+lastLinkEqCount*2/3;//扩展大部分,剩下的可能扩展留给extend_cover.
+    TInt len=lastCover.length+linkSpaceLength+lastLinkScore*2/3;//扩展大部分,剩下的可能扩展留给extend_cover.
     len+=getEqualLength(diff.newData+lastCover.newPos+len,diff.newData_end,
                         diff.oldData+lastCover.oldPos+len,diff.oldData_end);
-    while (  diff.newData[lastCover.newPos+len-1]
-           !=diff.oldData[lastCover.oldPos+len-1]) {
+    while ((len>0) && (diff.newData[lastCover.newPos+len-1]
+                       !=diff.oldData[lastCover.oldPos+len-1])) {
         --len;
     }
     lastCover.length=len;
@@ -169,11 +167,9 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
 static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const TDiffData& diff){
     if (lastCover.isCollinear(matchCover)) return; //已经共线;
     TInt linkOldPos=matchCover.oldPos-(matchCover.newPos-lastCover.newPos);
-    TInt lastEqLength=getLinkEqualCount(lastCover.newPos,lastCover.newPos+lastCover.length,
-                                        lastCover.oldPos,diff);
-    TInt matchLinkEqLength=getLinkEqualCount(lastCover.newPos,lastCover.newPos+lastCover.length,
-                                             linkOldPos,diff);
-    if (lastEqLength<=matchLinkEqLength)
+    TInt lastScore=getCoverScore(lastCover.newPos,lastCover.oldPos,lastCover.length,diff);
+    TInt matchLinkEqLength=getCoverScore(lastCover.newPos,linkOldPos,lastCover.length,diff);
+    if (lastScore<=matchLinkEqLength)
         lastCover.oldPos=linkOldPos;
 }
 
@@ -228,9 +224,9 @@ static void select_cover(TDiffData& diff,int kMinSingleMatchLength){
             }
         }
         if (!isNeedSave){//单覆盖是否保留.
-            TInt linkEqLength=getLinkEqualCount(cover[i].newPos,cover[i].newPos+cover[i].length,
-                                                (TInt)(diff.oldData_end-diff.oldData),diff);
-            isNeedSave=(cover[i].length-linkEqLength>=kMinSingleMatchLength);
+            TInt linkScore=getCoverScore(cover[i].newPos,(TInt)(diff.oldData_end-diff.oldData),
+                                            cover[i].length,diff);
+            isNeedSave=(cover[i].length-linkScore>=kMinSingleMatchLength);
         }
 
         if (isNeedSave){

@@ -26,7 +26,6 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
 */
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -40,7 +39,9 @@
 #include "../libHDiffPatch/HDiff/diff.h"
 #include "../libHDiffPatch/HPatch/patch.h"
 #include "../libHDiffPatch/HDiff/private_diff/suffix_string.h"
-#include "../../zlib/zlib.h"
+#include <bzlib.h>
+#include <zlib.h>
+#include "../../lzma/C/LzmaEnc.h"
 
 typedef unsigned char   TByte;
 typedef unsigned int    TUInt32;
@@ -69,7 +70,49 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
     file.close();
 }
 
-int zip_compress(unsigned char* out_data,unsigned char* out_data_end,const unsigned char* src,const unsigned char* src_end,int zip_parameter){
+int bz2_compress(unsigned char* out_data,unsigned char* out_data_end,
+                 const unsigned char* src,const unsigned char* src_end){
+    unsigned int destLen=(unsigned int)(out_data_end-out_data);
+    int ret = BZ2_bzBuffToBuffCompress((char*)out_data,&destLen,(char *)src,(unsigned int)(src_end-src),9, 0, 0);
+    if(ret != BZ_OK){
+        std::cout <<"|"<<"BZ2_bzBuffToBuffCompress error "<<std::endl;
+        return 0;
+    }
+    return destLen;
+}
+
+static void * __Alloc(ISzAllocPtr p, size_t size){
+    return new char[size];// alloca(size);
+}
+static void __Free(ISzAllocPtr p, void *address){
+    delete [] (char*)address;//free(address);
+}
+
+int lzma_compress(unsigned char* out_data,unsigned char* out_data_end,
+                  const unsigned char* src,const unsigned char* src_end){
+    
+    ISzAlloc alloc={__Alloc,__Free};
+    CLzmaEncHandle p = LzmaEnc_Create(&alloc);
+    SRes res;
+    if (!p) return 0;
+    CLzmaEncProps props;
+    LzmaEncProps_Init(&props);
+    LzmaEncProps_Normalize(&props);
+    props.level=9;
+    props.dictSize=1<<27;
+    res = LzmaEnc_SetProps(p,&props);
+    if (res != SZ_OK) return 0;
+    size_t destLen=(size_t)(out_data_end-out_data);
+    res = LzmaEnc_MemEncode(p, out_data, &destLen, src, src_end-src,
+                            0, 0, &alloc, &alloc);
+    if (res != SZ_OK) return 0;
+    LzmaEnc_Destroy(p, &alloc, &alloc);
+    return (int)destLen;
+}
+
+
+int zip_compress(unsigned char* out_data,unsigned char* out_data_end,
+                 const unsigned char* src,const unsigned char* src_end){
     const unsigned char* _zipSrc=&src[0];
     unsigned char* _zipDst=&out_data[0];
     
@@ -81,7 +124,7 @@ int zip_compress(unsigned char* out_data,unsigned char* out_data_end,const unsig
     c_stream.avail_in = (int)(src_end-src);
     c_stream.next_out = (Bytef*)_zipDst;
     c_stream.avail_out = (unsigned int)(out_data_end-out_data);
-    int ret = deflateInit2(&c_stream, zip_parameter,Z_DEFLATED, 31,8, Z_DEFAULT_STRATEGY);
+    int ret = deflateInit2(&c_stream, Z_BEST_COMPRESSION,Z_DEFLATED, 31,8, Z_DEFAULT_STRATEGY);
     if(ret != Z_OK)
     {
         std::cout <<"|"<<"deflateInit2 error "<<std::endl;
@@ -162,7 +205,7 @@ struct THDiffPrivateParams{
     int kMinSingleMatchLength;
     std::string asString()const{
         std::stringstream str;
-        str<<kMinMatchLength; str<<'\t';
+        str<<kMinMatchLength; str<<',';
         str<<kMinSingleMatchLength;
         
         return str.str();
@@ -180,16 +223,20 @@ struct TDiffInfo{
     THDiffPrivateParams kP;
     size_t              diffSize;
     size_t              zipSize;
+    size_t              bz2Size;
+    size_t              lzmaSize;
     std::string asString()const{
         std::stringstream str;
         
-        str<<getFileName(oldFileName); str<<'\t';
-        str<<getFileName(newFileName); str<<'\t';
-        str<<oldFileSize; str<<'\t';
-        str<<newFileSize; str<<'\t';
+        //str<<getFileName(oldFileName); str<<'\t';
+        //str<<getFileName(newFileName); str<<'\t';
+        //str<<oldFileSize; str<<'\t';
+        //str<<newFileSize; str<<'\t';
         str<<kP.asString(); str<<'\t';
         str<<diffSize; str<<'\t';
-        str<<zipSize;
+        str<<zipSize; str<<'\t';
+        str<<bz2Size; str<<'\t';
+        str<<lzmaSize;
         
         return str.str();
     }
@@ -238,12 +285,41 @@ void doDiff(TDiffInfo& di){
     di.diffSize=diffData.size();
     
     std::vector<TByte> zipData;
-    zipData.resize(diffData.size()*1.2+1024);
-    size_t zipCodeSize=zip_compress(&zipData[0], &zipData[0]+zipData.size(), &diffData[0], &diffData[0]+diffData.size(), Z_BEST_COMPRESSION);
-    assert((zipCodeSize>0)&&(zipCodeSize<=zipData.size()));
-    di.zipSize=zipCodeSize;
+    zipData.resize(diffData.size()*1.3+1024);
+    {
+        size_t zipCodeSize=zip_compress(&zipData[0], &zipData[0]+zipData.size(),
+                                        &diffData[0], &diffData[0]+diffData.size());
+        assert((zipCodeSize>0)&&(zipCodeSize<=zipData.size()));
+        di.zipSize=zipCodeSize;
+    }
+    {
+        size_t zipCodeSize=bz2_compress(&zipData[0], &zipData[0]+zipData.size(),
+                                        &diffData[0], &diffData[0]+diffData.size());
+        assert((zipCodeSize>0)&&(zipCodeSize<=zipData.size()));
+        di.bz2Size=zipCodeSize;
+    }
+    {
+        size_t zipCodeSize=lzma_compress(&zipData[0], &zipData[0]+zipData.size(),
+                                        &diffData[0], &diffData[0]+diffData.size());
+        assert((zipCodeSize>0)&&(zipCodeSize<=zipData.size()));
+        di.lzmaSize=zipCodeSize;
+    }
 }
 
+static std::string rToStr(double R){
+    char buf[256];
+    sprintf(buf,"%0.6f",R);
+    return buf;
+}
+
+static std::string rToTag(double cur,double& best){
+    if (cur<=best){
+        best=cur;
+        return "*";
+    }else{
+        return " ";
+    }
+}
 
 void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
     const int kDoCount=(int)fileNames.size()/2;
@@ -256,17 +332,24 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
     
     double bestDiffR=1e308;
     double bestZipDiffR=1e308;
-    
-    for (int kMinMatchLength=6; kMinMatchLength<=12; ++kMinMatchLength) {
-        for (int kMinSingleMatchLength=kMinMatchLength; kMinSingleMatchLength<=35; ++kMinSingleMatchLength) {
+    double bestBz2DiffR=1e308;
+    double bestLzmaDiffR=1e308;
+    double bestCompressDiffR=1e308;
+    bool isOutSrcSize=false;
+    for (int kMinMatchLength=7; kMinMatchLength<=16; ++kMinMatchLength) {
+        for (int kMinSingleMatchLength=12; kMinSingleMatchLength<=35; ++kMinSingleMatchLength) {
         {//for (int kExtendMinSameRatio=0.40f*kFixedFloatSmooth_base; kExtendMinSameRatio<=0.55f*kFixedFloatSmooth_base;kExtendMinSameRatio+=0.01f*kFixedFloatSmooth_base) {
 
         double sumDiffR=0;
         double sumZipDiffR=0;
+        double sumBz2DiffR=0;
+        double sumLzmaDiffR=0;
         size_t sumOldSize=0;
         size_t sumNewSize=0;
         size_t sumDiffSize=0;
         size_t sumZipDiffSize=0;
+        size_t sumBz2DiffSize=0;
+        size_t sumLzmaDiffSize=0;
         for (size_t doi=0; doi<DiList.size(); ++doi) {
             TDiffInfo& curDi=DiList[doi];
             curDi.kP.kMinMatchLength=kMinMatchLength;
@@ -277,16 +360,25 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
             double curDiffRi=curDi.diffSize*1.0/curDi.newFileSize;
             sumDiffR+=curDiffRi;
             double curZipDiffRi=curDi.zipSize*1.0/curDi.newFileSize;
+            double curBz2DiffRi=curDi.bz2Size*1.0/curDi.newFileSize;
+            double curLzmaDiffRi=curDi.lzmaSize*1.0/curDi.newFileSize;
             sumZipDiffR+=curZipDiffRi;
+            sumBz2DiffR+=curBz2DiffRi;
+            sumLzmaDiffR+=curLzmaDiffRi;
             sumNewSize+=curDi.newFileSize;
             sumOldSize+=curDi.oldFileSize;
             sumDiffSize+=curDi.diffSize;
             sumZipDiffSize+=curDi.zipSize;
+            sumBz2DiffSize+=curDi.bz2Size;
+            sumLzmaDiffSize+=curDi.lzmaSize;
             //std::cout<<curDi.asString()<<"\t"<<curDiffRi<<"\n";
         }
         
         const double curDiffR=sumDiffR/kDoCount;
         const double curZipDiffR=sumZipDiffR/kDoCount;
+        const double curBz2DiffR=sumBz2DiffR/kDoCount;
+        const double curLzmaDiffR=sumLzmaDiffR/kDoCount;
+        const double curCompressDiffR=(curZipDiffR*2+curBz2DiffR*1+curLzmaDiffR*3)/(2+1+3);
         {
             TDiffInfo curDi;
             curDi.oldFileName="";
@@ -297,15 +389,28 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
             curDi.newFileSize=sumNewSize;
             curDi.diffSize=sumDiffSize;
             curDi.zipSize=sumZipDiffSize;
-            if (curDiffR<=bestDiffR){
-                bestDiffR=curDiffR;
-                std::cout<<"***";
+            curDi.bz2Size=sumBz2DiffSize;
+            curDi.lzmaSize=sumLzmaDiffSize;
+            
+            std:: string tag="";
+            tag+=rToTag(curDiffR,bestDiffR);
+            tag+=rToTag(curZipDiffR,bestZipDiffR);
+            tag+=rToTag(curBz2DiffR,bestBz2DiffR);
+            tag+=rToTag(curLzmaDiffR,bestLzmaDiffR);
+            tag+="| "+rToTag(curCompressDiffR,bestCompressDiffR);
+            if (!isOutSrcSize){
+                isOutSrcSize=true;
+                std::cout<<"pat zlab bz2 lzma "<<"\t";
+                std::cout<<"diff( "<<curDi.oldFileSize<<", ";
+                std::cout<<curDi.newFileSize<<")\n";
             }
-            std::cout<<curDi.asString()<<"\t"<<curDiffR<<"\t"<<curZipDiffR;
-            if (curZipDiffR<=bestZipDiffR){
-                bestZipDiffR=curZipDiffR;
-                std::cout<<"   ***";
-            }
+            std::cout<<tag<<"\t";
+            std::cout<<curDi.asString()<<"\t"
+                     <<rToStr(curDiffR)<<"\t"
+                     <<rToStr(curZipDiffR)<<"\t"
+                     <<rToStr(curBz2DiffR)<<"\t"
+                     <<rToStr(curLzmaDiffR);
+            
             std::cout<<"\n";
         }
     }}}
@@ -318,6 +423,7 @@ int main(int argc, const char * argv[]){
     }
     std::vector<std::string> fileNames;
     for (int i=1; i<argc; ++i) {
+        std::cout<<argv[i]<<"\n";
         fileNames.push_back(argv[i]);
     }
 
