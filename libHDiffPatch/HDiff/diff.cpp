@@ -314,24 +314,25 @@ static void sub_cover(TDiffData& diff){
     const TByte*            newData=diff.newData;
     const TByte*            oldData=diff.oldData;
 
+    diff.newDataSubDiff.resize(0);
+    diff.newDataSubDiff.resize(diff.newData_end-diff.newData,0);
+    TByte*  newDataSubDiff=diff.newDataSubDiff.empty()?0:&diff.newDataSubDiff[0];
+    diff.newDataDiff.resize(0);
+    diff.newDataDiff.reserve((diff.newData_end-diff.newData)>>2);
+    
     TInt newPos_end=0;
     for (TInt i=0;i<(TInt)cover.size();++i){
         const TInt newPos=cover[i].newPos;
-        if (newPos>newPos_end){
+        if (newPos>newPos_end)
             diff.newDataDiff.insert(diff.newDataDiff.end(),newData+newPos_end,newData+newPos);
-            diff.newDataSubDiff.resize(newPos,0);
-        }
         const TInt oldPos=cover[i].oldPos;
         const TInt length=cover[i].length;
-        for (TInt i=0; i<length;++i) {
-            diff.newDataSubDiff.push_back(newData[i+newPos]-oldData[i+oldPos]);
-        }
+        for (TInt i=0; i<length;++i)
+            newDataSubDiff[i+newPos]=(newData[i+newPos]-oldData[i+oldPos]);
         newPos_end=newPos+length;
     }
-    if (newPos_end<diff.newData_end-newData){
+    if (newPos_end<diff.newData_end-newData)
         diff.newDataDiff.insert(diff.newDataDiff.end(),newData+newPos_end,diff.newData_end);
-        diff.newDataSubDiff.resize(diff.newData_end-newData,0);
-    }
 }
 
 //diff结果序列化输出.

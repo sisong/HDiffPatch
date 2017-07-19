@@ -45,7 +45,7 @@ namespace {
 
     static const int kByteRleType_bit=2;
 
-    static void rle_pushSame(std::vector<TByte>& out_code,std::vector<TByte>& out_ctrl,
+    static void rle_pushSame(std::vector<TByte>& out_ctrl,std::vector<TByte>& out_code,
                              TByte cur,TUInt count){
         assert(count>0);
         enum TByteRleType type;
@@ -61,11 +61,11 @@ namespace {
             out_code.push_back(cur);
     }
 
-    static void rle_pushNotSame(std::vector<TByte>& out_code,std::vector<TByte>& out_ctrl,
+    static void rle_pushNotSame(std::vector<TByte>& out_ctrl,std::vector<TByte>& out_code,
                                 const TByte* byteStream,TUInt count){
         assert(count>0);
         if (count==1){
-            rle_pushSame(out_code,out_ctrl,*byteStream,1);
+            rle_pushSame(out_ctrl,out_code,(*byteStream),1);
             return;
         }
 
@@ -81,9 +81,11 @@ namespace {
         }
         return src_end;
     }
+    
+}//end namespace
 
-    static void rle_save(std::vector<TByte>& out_ctrlBuf,std::vector<TByte>& out_codeBuf,
-                         const TByte* src,const TByte* src_end,int rle_parameter){
+    void bytesRLE_save(std::vector<TByte>& out_ctrlBuf,std::vector<TByte>& out_codeBuf,
+                       const TByte* src,const TByte* src_end,int rle_parameter){
         assert(rle_parameter>=kRle_bestSize);
         assert(rle_parameter<=kRle_bestUnRleSpeed);
         const TUInt kRleMinSameSize=rle_parameter+1;//增大则压缩率变小,解压稍快.
@@ -97,9 +99,9 @@ namespace {
             if ( (sameCount>kRleMinSameSize) || (  (sameCount==kRleMinSameSize)
                                                  &&( (value==0)||(value==255) ) ) ){//可以压缩.
                 if (notSame!=src){
-                    rle_pushNotSame(out_codeBuf,out_ctrlBuf,notSame,(TUInt)(src-notSame));
+                    rle_pushNotSame(out_ctrlBuf,out_codeBuf,notSame,(TUInt)(src-notSame));
                 }
-                rle_pushSame(out_codeBuf,out_ctrlBuf,value, sameCount);
+                rle_pushSame(out_ctrlBuf,out_codeBuf,value, sameCount);
 
                 src+=sameCount;
                 notSame=src;
@@ -108,18 +110,17 @@ namespace {
             }
         }
         if (notSame!=src_end){
-            rle_pushNotSame(out_codeBuf,out_ctrlBuf,notSame,(TUInt)(src_end-notSame));
+            rle_pushNotSame(out_ctrlBuf,out_codeBuf,notSame,(TUInt)(src_end-notSame));
         }
     }
 
-}//end namespace
 
 void bytesRLE_save(std::vector<TByte>& out_code,
                    const TByte* src,const TByte* src_end,int rle_parameter){
     std::vector<TByte> ctrlBuf;
     std::vector<TByte> codeBuf;
 
-    rle_save(ctrlBuf,codeBuf,src,src_end,rle_parameter);
+    bytesRLE_save(ctrlBuf,codeBuf,src,src_end,rle_parameter);
     packUInt(out_code,(TUInt)ctrlBuf.size());
     out_code.insert(out_code.end(),ctrlBuf.begin(),ctrlBuf.end());
     out_code.insert(out_code.end(),codeBuf.begin(),codeBuf.end());

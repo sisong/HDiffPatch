@@ -38,4 +38,8 @@ void bytesRLE_save(std::vector<unsigned char>& out_code,
                    const unsigned char* src,const unsigned char* src_end,
                    int rle_parameter=kRle_default);
 
+
+void bytesRLE_save(std::vector<unsigned char>& out_ctrlBuf,std::vector<unsigned char>& out_codeBuf,
+                   const unsigned char* src,const unsigned char* src_end,int rle_parameter);
+
 #endif //__BYTES_RLE_H_
