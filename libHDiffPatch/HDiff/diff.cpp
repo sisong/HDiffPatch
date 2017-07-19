@@ -44,6 +44,13 @@ namespace{
     static const int kUnLinkLength=6;              //搜索时不能合并的代价.
     static const int kMaxLinkSpaceLength=(1<<9)-1; //跨覆盖线合并时,允许合并的最远距离.
     
+    inline static void pushBack(std::vector<TByte>& out_buf,const TByte* data,const TByte* data_end){
+        out_buf.insert(out_buf.end(),data,data_end);
+    }
+    inline static void pushBack(std::vector<TByte>& out_buf,const std::vector<TByte>& data){
+        out_buf.insert(out_buf.end(),data.begin(),data.end());
+    }
+    
     //覆盖线.
     struct TOldCover {
         TInt   newPos;
@@ -324,7 +331,7 @@ static void sub_cover(TDiffData& diff){
     for (TInt i=0;i<(TInt)cover.size();++i){
         const TInt newPos=cover[i].newPos;
         if (newPos>newPos_end)
-            diff.newDataDiff.insert(diff.newDataDiff.end(),newData+newPos_end,newData+newPos);
+            pushBack(diff.newDataDiff,newData+newPos_end,newData+newPos);
         const TInt oldPos=cover[i].oldPos;
         const TInt length=cover[i].length;
         for (TInt i=0; i<length;++i)
@@ -332,11 +339,11 @@ static void sub_cover(TDiffData& diff){
         newPos_end=newPos+length;
     }
     if (newPos_end<diff.newData_end-newData)
-        diff.newDataDiff.insert(diff.newDataDiff.end(),newData+newPos_end,diff.newData_end);
+        pushBack(diff.newDataDiff,newData+newPos_end,diff.newData_end);
 }
 
 //diff结果序列化输出.
-static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_serializeDiffStream){
+static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
     const TUInt ctrlCount=(TUInt)diff.cover.size();
     std::vector<TByte> length_buf;
     std::vector<TByte> inc_newPos_buf;
@@ -358,27 +365,58 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_seriali
         }
     }
 
-    packUInt(out_serializeDiffStream, ctrlCount);
-    packUInt(out_serializeDiffStream, (TUInt)length_buf.size());
-    packUInt(out_serializeDiffStream, (TUInt)inc_newPos_buf.size());
-    packUInt(out_serializeDiffStream, (TUInt)inc_oldPos_buf.size());
-    packUInt(out_serializeDiffStream, (TUInt)diff.newDataDiff.size());
-    out_serializeDiffStream.insert(out_serializeDiffStream.end(),
-                                   length_buf.begin(), length_buf.end());
-    out_serializeDiffStream.insert(out_serializeDiffStream.end(),
-                                   inc_newPos_buf.begin(), inc_newPos_buf.end());
-    out_serializeDiffStream.insert(out_serializeDiffStream.end(),
-                                   inc_oldPos_buf.begin(), inc_oldPos_buf.end());
-    out_serializeDiffStream.insert(out_serializeDiffStream.end(),
-                                   diff.newDataDiff.begin(), diff.newDataDiff.end());
-    std::vector<TByte> rleData;
-    const TByte* newDataSubDiff_begin=0;
-    if (!diff.newDataSubDiff.empty())
-        newDataSubDiff_begin=&diff.newDataSubDiff[0];
-    bytesRLE_save(rleData,newDataSubDiff_begin,
-                          newDataSubDiff_begin+diff.newDataSubDiff.size(),kRle_bestSize);
-    out_serializeDiffStream.insert(out_serializeDiffStream.end(),
-                                   rleData.begin(),rleData.end());
+    packUInt(out_diff, ctrlCount);
+    packUInt(out_diff, (TUInt)length_buf.size());
+    packUInt(out_diff, (TUInt)inc_newPos_buf.size());
+    packUInt(out_diff, (TUInt)inc_oldPos_buf.size());
+    packUInt(out_diff, (TUInt)diff.newDataDiff.size());
+    pushBack(out_diff,length_buf);
+    pushBack(out_diff,inc_newPos_buf);
+    pushBack(out_diff,inc_oldPos_buf);
+    pushBack(out_diff,diff.newDataDiff);
+    
+    const TByte* newDataSubDiff_begin=diff.newDataSubDiff.empty()?0:&diff.newDataSubDiff[0];
+    bytesRLE_save(out_diff,newDataSubDiff_begin,
+                  newDataSubDiff_begin+diff.newDataSubDiff.size(),kRle_bestSize);
+}
+    
+static void serialize_compress_diff(const TDiffData& diff,std::vector<TByte>& out_diff,
+                                    hdiff_TCompress* compressHandle){
+    const TUInt ctrlCount=(TUInt)diff.cover.size();
+    std::vector<TByte> cover_buf;
+    {
+        TInt oldPosBack=0;
+        TInt newPos_end=0;
+        for (TUInt i=0; i<ctrlCount; ++i) {
+            packUInt(cover_buf, diff.cover[i].length);
+            assert(diff.cover[i].newPos>=newPos_end);
+            if (diff.cover[i].oldPos>=oldPosBack){ //save inc_oldPos
+                packUIntWithTag(cover_buf,diff.cover[i].oldPos-oldPosBack, 0, 1);
+            }else{
+                packUIntWithTag(cover_buf,oldPosBack-diff.cover[i].oldPos, 1, 1);
+            }
+            packUInt(cover_buf,diff.cover[i].newPos-newPos_end); //save inc_newPos
+            oldPosBack=diff.cover[i].oldPos+diff.cover[i].length;
+            newPos_end=diff.cover[i].newPos+diff.cover[i].length;
+        }
+    }
+    
+    //todo: compress
+    packUInt(out_diff, ctrlCount);
+    packUInt(out_diff, (TUInt)cover_buf.size());
+    packUInt(out_diff, (TUInt)diff.newDataDiff.size());
+    pushBack(out_diff,cover_buf);
+    pushBack(out_diff,diff.newDataDiff);
+    
+    const TByte* newDataSubDiff_begin=diff.newDataSubDiff.empty()?0:&diff.newDataSubDiff[0];
+    std::vector<TByte> rle_ctrlBuf;
+    std::vector<TByte> rle_codeBuf;
+    bytesRLE_save(rle_ctrlBuf,rle_codeBuf,newDataSubDiff_begin,
+                  newDataSubDiff_begin+diff.newDataSubDiff.size(),kRle_bestSize);
+    packUInt(out_diff, (TUInt)rle_ctrlBuf.size());
+    pushBack(out_diff,rle_ctrlBuf);
+    pushBack(out_diff,rle_codeBuf);
+    
 }
 
     struct THDiffPrivateParams{
@@ -389,45 +427,57 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_seriali
 }//end namespace
 
 
-void __hdiff_private__create_diff(const TByte* newData,const TByte* newData_end,
-                                  const TByte* oldData,const TByte* oldData_end,
-                                  std::vector<TByte>& out_diff,const void* _kDiffParams,
-                                  const TSuffixString* sstring=0){
+
+static void __get_diff(const TByte* newData,const TByte* newData_end,
+                       const TByte* oldData,const TByte* oldData_end,
+                       TDiffData&   out_diff,
+                       const THDiffPrivateParams *kDiffParams=0,
+                       const TSuffixString* sstring=0){
     
+    int kMinMatchLength       = 8; //最小搜寻覆盖长度.
+    int kMinSingleMatchLength =24; //最小独立覆盖长度.
+    if (kDiffParams){
+        kMinMatchLength      =kDiffParams->kMinMatchLength;
+        kMinSingleMatchLength=kDiffParams->kMinSingleMatchLength;
+    }
     assert(newData<=newData_end);
     assert(oldData<=oldData_end);
-    const THDiffPrivateParams& kDiffParams=*(const THDiffPrivateParams*)_kDiffParams;
     TSuffixString _sstring_default(0,0);
     if (sstring==0){
         _sstring_default.resetSuffixString(oldData,oldData_end);
         sstring=&_sstring_default;
     }
     
-    TDiffData diff;
+    TDiffData& diff=out_diff;
     diff.newData=newData;
     diff.newData_end=newData_end;
     diff.oldData=oldData;
     diff.oldData_end=oldData_end;
     
-    search_cover(diff,*sstring,kDiffParams.kMinMatchLength);
+    search_cover(diff,*sstring,kMinMatchLength);
     sstring=0;
     _sstring_default.clear();
     
     extend_cover(diff);//先尝试扩展.
-    select_cover(diff,kDiffParams.kMinSingleMatchLength);
+    select_cover(diff,kMinSingleMatchLength);
     extend_cover(diff);//select_cover会删除一些覆盖线,所以重新扩展.
     sub_cover(diff);
+}
+
+void __hdiff_private__create_diff(const TByte* newData,const TByte* newData_end,
+                                  const TByte* oldData,const TByte* oldData_end,
+                                  std::vector<TByte>& out_diff,
+                                  const THDiffPrivateParams* _kDiffParams=0,
+                                  const TSuffixString* sstring=0){
+    TDiffData diff;
+    __get_diff(newData,newData_end,oldData,oldData_end,diff,_kDiffParams,sstring);
     serialize_diff(diff,out_diff);
 }
 
 void create_diff(const TByte* newData,const TByte* newData_end,
                  const TByte* oldData,const TByte* oldData_end,
                  std::vector<TByte>& out_diff){
-    static const THDiffPrivateParams kDiffParams_default={
-                                        8,   //最小搜寻覆盖长度. //二进制:7--9  文本: 9  zip文件:5-7
-                                        24}; //最小独立覆盖长度. //二进制:8--12 文本:17-25 zip文件:6-9
-    __hdiff_private__create_diff(newData,newData_end,
-                                 oldData,oldData_end,out_diff,&kDiffParams_default);
+    __hdiff_private__create_diff(newData,newData_end,oldData,oldData_end,out_diff);
 }
 
 bool check_diff(const TByte* newData,const TByte* newData_end,
@@ -445,6 +495,18 @@ bool check_diff(const TByte* newData,const TByte* newData_end,
             return false;
     }
     return true;
+}
+
+
+
+void create_compress_diff(const unsigned char* newData,const unsigned char* newData_end,
+                          const unsigned char* oldData,const unsigned char* oldData_end,
+                          std::vector<unsigned char>& out_diff,
+                          hdiff_TCompress* compressHandle){
+    assert(compressHandle!=0);
+    TDiffData diff;
+    __get_diff(newData,newData_end,oldData,oldData_end,diff);
+    serialize_compress_diff(diff,out_diff,compressHandle);
 }
 
 

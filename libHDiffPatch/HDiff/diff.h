@@ -40,4 +40,28 @@ bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
                 const unsigned char* oldData,const unsigned char* oldData_end,
                 const unsigned char* diff,const unsigned char* diff_end);
 
+
+//diff by compress
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    
+typedef struct hdiff_TCompress{
+    size_t  (*maxCompressedSize)(hdiff_TCompress* compressHandle,size_t dataSize);
+    //压缩成功返回实际后压缩数据大小,失败返回0.
+    size_t  (*compress)(hdiff_TCompress* compressHandle,
+                        const unsigned char* data,const unsigned char* data_end,
+                        unsigned char* out_code,unsigned char* out_code_end);
+} hdiff_TCompress;
+    
+#ifdef __cplusplus
+}
+#endif
+//支持压缩插件的diff; 需要对应的支持解压缩的patch配合.
+void create_compress_diff(const unsigned char* newData,const unsigned char* newData_end,
+                          const unsigned char* oldData,const unsigned char* oldData_end,
+                          std::vector<unsigned char>& out_diff,
+                          hdiff_TCompress* compressHandle);
+
 #endif
