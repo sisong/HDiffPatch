@@ -414,14 +414,14 @@ static void serialize_compress_diff(const TDiffData& diff,std::vector<TByte>& ou
         TInt oldPos_end=0;
         TInt newPos_end=0;
         for (TUInt i=0; i<ctrlCount; ++i) {
-            packUInt(cover_buf, diff.cover[i].length);
-            assert(diff.cover[i].newPos>=newPos_end);
             if (diff.cover[i].oldPos>=oldPos_end){ //save inc_oldPos
                 packUIntWithTag(cover_buf,diff.cover[i].oldPos-oldPos_end, 0, 1);
             }else{
                 packUIntWithTag(cover_buf,oldPos_end-diff.cover[i].oldPos, 1, 1);
             }
+            assert(diff.cover[i].newPos>=newPos_end);
             packUInt(cover_buf,diff.cover[i].newPos-newPos_end); //save inc_newPos
+            packUInt(cover_buf,diff.cover[i].length);
             oldPos_end=diff.cover[i].oldPos+diff.cover[i].length;//!
             newPos_end=diff.cover[i].newPos+diff.cover[i].length;
         }

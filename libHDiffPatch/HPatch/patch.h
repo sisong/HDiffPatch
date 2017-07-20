@@ -30,8 +30,7 @@
 #define HPatch_patch_h
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
     
 #define hpatch_BOOL   int
@@ -42,16 +41,8 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
                   const unsigned char* oldData,const unsigned char* oldData_end,
                   const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
 
-#ifdef __cplusplus
-}
-#endif
 
-    
 //patch_stream()  patch by stream , recommended use in limited memory systems
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 
 //hpatch_StreamPos_t for support large file
 #ifdef _MSC_VER

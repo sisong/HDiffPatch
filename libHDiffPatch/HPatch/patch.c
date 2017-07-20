@@ -577,16 +577,89 @@ static  hpatch_BOOL _patch_decode_from_clipOrStream(const struct hpatch_TStreamO
     return hpatch_TRUE;
 }
 
+static hpatch_BOOL patchByClip(const struct hpatch_TStreamOutput* out_newData,
+                               const struct hpatch_TStreamInput*  oldData,
+                               struct TStreamClip* code_inc_oldPosClip,
+                               struct TStreamClip* code_inc_newPosClip,
+                               struct TStreamClip* code_lengthsClip,
+                               struct TStreamClip* code_newDataDiffClip,
+                               struct _TBytesRle_load_stream* rle_loader,
+                               const hpatch_StreamPos_t ctrlCount,
+                               int isOldPosBackNeedAddLength){
+    const TUInt newDataSize=out_newData->streamSize;
+    TUInt oldPosBack=0;
+    TUInt newPosBack=0;
+    TUInt i;
+    for (i=0; i<ctrlCount; ++i){
+        TUInt copyLength,addLength, oldPos,inc_oldPos;
+        TByte inc_oldPos_sign;
+        const TByte* pSign;
+        
+#ifdef __RUN_MEM_SAFE_CHECK
+        if (_TStreamClip_isFinish(code_inc_oldPosClip)) return _hpatch_FALSE;
+#endif
+        pSign=_TStreamClip_accessData(code_inc_oldPosClip,1);
+        if (pSign==0) return _hpatch_FALSE;
+        inc_oldPos_sign=(*pSign)>>(8-kSignTagBit);
+        _TStreamClip_unpackUIntWithTagTo(&inc_oldPos,code_inc_oldPosClip,kSignTagBit);
+        if (inc_oldPos_sign==0)
+            oldPos=oldPosBack+inc_oldPos;
+        else
+            oldPos=oldPosBack-inc_oldPos;
+        _TStreamClip_unpackUIntTo(&copyLength,code_inc_newPosClip);
+        _TStreamClip_unpackUIntTo(&addLength,code_lengthsClip);
+        if (copyLength>0){
+#ifdef __RUN_MEM_SAFE_CHECK
+            if (copyLength>(TUInt)(newDataSize-newPosBack)) return _hpatch_FALSE;
+            if (copyLength>_TStreamClip_streamSize(code_newDataDiffClip)) return _hpatch_FALSE;
+#endif
+            if (!_patch_decode_from_clipOrStream(out_newData,newPosBack,rle_loader,copyLength,
+                                                 code_newDataDiffClip,0,0)) return _hpatch_FALSE;
+            newPosBack+=copyLength;
+        }
+#ifdef __RUN_MEM_SAFE_CHECK
+        if ((addLength>(TUInt)(newDataSize-newPosBack))) return _hpatch_FALSE;
+        if ( (oldPos>(oldData->streamSize)) ||
+            (addLength>(TUInt)(oldData->streamSize-oldPos)) ) return _hpatch_FALSE;
+#endif
+        if (!_patch_decode_from_clipOrStream(out_newData,newPosBack,rle_loader,addLength,
+                                             0,oldData,oldPos)) return _hpatch_FALSE;
+        oldPosBack=oldPos;
+        if (isOldPosBackNeedAddLength)
+            oldPosBack+=addLength;
+        newPosBack+=addLength;
+    }
+    
+    if (newPosBack<newDataSize){
+        TUInt copyLength=newDataSize-newPosBack;
+#ifdef __RUN_MEM_SAFE_CHECK
+        if (copyLength>_TStreamClip_streamSize(code_newDataDiffClip)) return _hpatch_FALSE;
+#endif
+        if (!_patch_decode_from_clipOrStream(out_newData,newPosBack,rle_loader,copyLength,
+                                             code_newDataDiffClip,0,0)) return _hpatch_FALSE;
+        //newPosBack=newDataSize;
+    }
+    
+    if (   _TBytesRle_load_stream_isFinish(rle_loader)
+        && _TStreamClip_isFinish(code_lengthsClip)
+        && _TStreamClip_isFinish(code_inc_newPosClip)
+        && _TStreamClip_isFinish(code_inc_oldPosClip)
+        && _TStreamClip_isFinish(code_newDataDiffClip) )
+        return hpatch_TRUE;
+    else
+        return _hpatch_FALSE;
+}
+
 hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
                          const struct hpatch_TStreamInput*  oldData,
                          const struct hpatch_TStreamInput*  serializedDiff){
-    struct TStreamClip              code_lengthsClip;
     struct TStreamClip              code_inc_oldPosClip;
     struct TStreamClip              code_inc_newPosClip;
+    struct TStreamClip              code_lengthsClip;
     struct TStreamClip              code_newDataDiffClip;
     struct _TBytesRle_load_stream   rle_loader;
     TUInt                           ctrlCount;
-
+    
     assert(out_newData!=0);
     assert(out_newData->write!=0);
     assert(oldData!=0);
@@ -594,7 +667,7 @@ hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
     assert(serializedDiff!=0);
     assert(serializedDiff->read!=0);
     assert(serializedDiff->streamSize>=0);
-
+    
     {   //head
         TUInt lengthSize,inc_newPosSize,inc_oldPosSize,newDataDiffSize;
         TUInt diffPos0;
@@ -628,73 +701,15 @@ hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
 #endif
         _TStreamClip_init(&code_newDataDiffClip,serializedDiff,diffPos0,diffPos0+newDataDiffSize);
         diffPos0+=newDataDiffSize;
-
+        
         //rle
         if (!_TBytesRle_load_stream_init(&rle_loader,serializedDiff,diffPos0,diffPos_end)) return _hpatch_FALSE;
     }
-
-    {   //patch
-        const TUInt newDataSize=out_newData->streamSize;
-        TUInt oldPosBack=0;
-        TUInt newPosBack=0;
-        TUInt i;
-        for (i=0; i<ctrlCount; ++i){
-            TUInt copyLength,addLength, oldPos,inc_oldPos;
-            TByte inc_oldPos_sign;
-            const TByte* pSign;
-
-            _TStreamClip_unpackUIntTo(&copyLength,&code_inc_newPosClip);
-            _TStreamClip_unpackUIntTo(&addLength,&code_lengthsClip);
-#ifdef __RUN_MEM_SAFE_CHECK
-            if (_TStreamClip_isFinish(&code_inc_oldPosClip)) return _hpatch_FALSE;
-#endif
-            pSign=_TStreamClip_accessData(&code_inc_oldPosClip,1);
-            if (pSign==0) return _hpatch_FALSE;
-            inc_oldPos_sign=(*pSign)>>(8-kSignTagBit);
-            _TStreamClip_unpackUIntWithTagTo(&inc_oldPos,&code_inc_oldPosClip,kSignTagBit);
-            if (inc_oldPos_sign==0)
-                oldPos=oldPosBack+inc_oldPos;
-            else
-                oldPos=oldPosBack-inc_oldPos;
-            if (copyLength>0){
-#ifdef __RUN_MEM_SAFE_CHECK
-                if (copyLength>(TUInt)(newDataSize-newPosBack)) return _hpatch_FALSE;
-                if (copyLength>_TStreamClip_streamSize(&code_newDataDiffClip)) return _hpatch_FALSE;
-#endif
-                if (!_patch_decode_from_clipOrStream(out_newData,newPosBack,&rle_loader,copyLength,
-                                                     &code_newDataDiffClip,0,0)) return _hpatch_FALSE;
-                newPosBack+=copyLength;
-            }
-#ifdef __RUN_MEM_SAFE_CHECK
-            if ((addLength>(TUInt)(newDataSize-newPosBack))) return _hpatch_FALSE;
-            if ( (oldPos>(oldData->streamSize)) ||
-                 (addLength>(TUInt)(oldData->streamSize-oldPos)) ) return _hpatch_FALSE;
-#endif
-            if (!_patch_decode_from_clipOrStream(out_newData,newPosBack,&rle_loader,addLength,
-                                                 0,oldData,oldPos)) return _hpatch_FALSE;
-            oldPosBack=oldPos;
-            newPosBack+=addLength;
-        }
-
-        if (newPosBack<newDataSize){
-            TUInt copyLength=newDataSize-newPosBack;
-#ifdef __RUN_MEM_SAFE_CHECK
-            if (copyLength>_TStreamClip_streamSize(&code_newDataDiffClip)) return _hpatch_FALSE;
-#endif
-            if (!_patch_decode_from_clipOrStream(out_newData,newPosBack,&rle_loader,copyLength,
-                                                 &code_newDataDiffClip,0,0)) return _hpatch_FALSE;
-            //newPosBack=newDataSize;
-        }
-    }
-
-    if (   _TBytesRle_load_stream_isFinish(&rle_loader)
-        && _TStreamClip_isFinish(&code_lengthsClip)
-        && _TStreamClip_isFinish(&code_inc_newPosClip)
-        && _TStreamClip_isFinish(&code_inc_oldPosClip)
-        && _TStreamClip_isFinish(&code_newDataDiffClip) )
-        return hpatch_TRUE;
-    else
-        return _hpatch_FALSE;
+    
+    return patchByClip(out_newData,oldData,
+                       &code_inc_oldPosClip,&code_inc_newPosClip,&code_lengthsClip,
+                       &code_newDataDiffClip,
+                       &rle_loader, ctrlCount, hpatch_FALSE);
 }
 
 

@@ -252,7 +252,8 @@ struct TDiffInfo{
 void doDiff(TDiffInfo& di){
     extern void __hdiff_private__create_diff(const TByte* newData,const TByte* newData_end,
                                              const TByte* oldData,const TByte* oldData_end,
-                                             std::vector<TByte>& out_diff,const void* kDiffParams,const TSuffixString* sstring);
+                                             std::vector<TByte>& out_diff,const void* kDiffParams,
+                                             const TSuffixString* sstring);
     
     if (di.sstring.SASize()==0){
         readFile(di.oldData,di.oldFileName.c_str());
