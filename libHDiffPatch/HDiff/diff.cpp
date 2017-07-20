@@ -390,8 +390,9 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
         out_code.resize(maxCodeSize);
         const TByte* data0=&data[0];
         TByte* out_code0=&out_code[0];
-        size_t codeSize=compressPlugin->compress(compressPlugin,data0,data0+data.size(),
-                                                 out_code0,out_code0+out_code.size());
+        size_t codeSize=compressPlugin->compress(compressPlugin,
+                                                 out_code0,out_code0+out_code.size(),
+                                                 data0,data0+data.size());
         if ((codeSize>0)&&(codeSize<data.size()))
             out_code.resize(codeSize); //ok
         else
@@ -564,8 +565,8 @@ extern "C" {
         return dataSize;
     }
     static size_t  _nocompress_compress(const hdiff_TCompress* compressPlugin,
-                                        const unsigned char* data,const unsigned char* data_end,
-                                        unsigned char* out_code,unsigned char* out_code_end){
+                                        unsigned char* out_code,unsigned char* out_code_end,
+                                        const unsigned char* data,const unsigned char* data_end){
         return 0;
     }
     static hdiff_TCompress _nocompressPlugin={_nocompress_compressType,

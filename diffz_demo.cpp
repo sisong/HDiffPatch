@@ -82,8 +82,8 @@ extern "C" {
         return dataSize*5/4+16*1024;
     }
     static size_t  _zlib_compress(const hdiff_TCompress* compressPlugin,
-                                  const unsigned char* data,const unsigned char* data_end,
-                                  unsigned char* out_code,unsigned char* out_code_end){
+                                  unsigned char* out_code,unsigned char* out_code_end,
+                                  const unsigned char* data,const unsigned char* data_end){
         z_stream c_stream;
         c_stream.zalloc = (alloc_func)0;
         c_stream.zfree = (free_func)0;
@@ -127,8 +127,8 @@ extern "C" {
         return dataSize*5/4+16*1024;
     }
     static size_t  _bz2_compress(const hdiff_TCompress* compressPlugin,
-                                 const unsigned char* data,const unsigned char* data_end,
-                                 unsigned char* out_code,unsigned char* out_code_end){
+                                 unsigned char* out_code,unsigned char* out_code_end,
+                                 const unsigned char* data,const unsigned char* data_end){
         unsigned int destLen=(unsigned int)(out_code_end-out_code);
         assert(destLen==(out_code_end-out_code));
         int ret = BZ2_bzBuffToBuffCompress((char*)out_code,&destLen,
@@ -160,8 +160,8 @@ extern "C" {
         free(address);      //delete [] (char*)address;//
     }
     static size_t  _lzma_compress(const hdiff_TCompress* compressPlugin,
-                                  const unsigned char* data,const unsigned char* data_end,
-                                  unsigned char* out_code,unsigned char* out_code_end){
+                                  unsigned char* out_code,unsigned char* out_code_end,
+                                  const unsigned char* data,const unsigned char* data_end){
         ISzAlloc alloc={__lzma_Alloc,__lzma_Free};
         CLzmaEncHandle p = LzmaEnc_Create(&alloc);
         if (!p){

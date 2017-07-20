@@ -52,9 +52,9 @@ extern "C"
         const char*  (*compressType)(const hdiff_TCompress* compressPlugin);
         size_t  (*maxCompressedSize)(const hdiff_TCompress* compressPlugin,size_t dataSize);
         //压缩成功返回实际后压缩数据大小,失败返回0.
-        size_t  (*compress)(const hdiff_TCompress* compressPlugin,
-                            const unsigned char* data,const unsigned char* data_end,
-                            unsigned char* out_code,unsigned char* out_code_end);
+        size_t           (*compress)(const hdiff_TCompress* compressPlugin,
+                                     unsigned char* out_code,unsigned char* out_code_end,
+                                     const unsigned char* data,const unsigned char* data_end);
     } hdiff_TCompress;
     
     extern const hdiff_TCompress* hdiff_kNocompressPlugin;//满足接口标准的不压缩数据的“压缩”插件.
