@@ -41,19 +41,23 @@ bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
                 const unsigned char* diff,const unsigned char* diff_end);
 
 
-//diff by compress
+//diff with compress plugin
 #ifdef __cplusplus
 extern "C"
 {
 #endif
     
+//压缩插件接口定义.
 typedef struct hdiff_TCompress{
-    size_t  (*maxCompressedSize)(hdiff_TCompress* compressHandle,size_t dataSize);
+    const char*  (*compressType)(const hdiff_TCompress* compressPlugin);
+    size_t  (*maxCompressedSize)(const hdiff_TCompress* compressPlugin,size_t dataSize);
     //压缩成功返回实际后压缩数据大小,失败返回0.
-    size_t  (*compress)(hdiff_TCompress* compressHandle,
+    size_t  (*compress)(const hdiff_TCompress* compressPlugin,
                         const unsigned char* data,const unsigned char* data_end,
                         unsigned char* out_code,unsigned char* out_code_end);
 } hdiff_TCompress;
+
+extern const hdiff_TCompress* kNocompressPlugin;//满足接口标准的不压缩数据的“压缩”插件.
     
 #ifdef __cplusplus
 }
@@ -62,6 +66,6 @@ typedef struct hdiff_TCompress{
 void create_compress_diff(const unsigned char* newData,const unsigned char* newData_end,
                           const unsigned char* oldData,const unsigned char* oldData_end,
                           std::vector<unsigned char>& out_diff,
-                          hdiff_TCompress* compressHandle);
+                          const hdiff_TCompress* compressPlugin);
 
 #endif
