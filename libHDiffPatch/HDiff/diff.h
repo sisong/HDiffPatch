@@ -57,7 +57,7 @@ typedef struct hdiff_TCompress{
                         unsigned char* out_code,unsigned char* out_code_end);
 } hdiff_TCompress;
 
-extern const hdiff_TCompress* kNocompressPlugin;//满足接口标准的不压缩数据的“压缩”插件.
+extern const hdiff_TCompress* hdiff_kNocompressPlugin;//满足接口标准的不压缩数据的“压缩”插件.
     
 #ifdef __cplusplus
 }

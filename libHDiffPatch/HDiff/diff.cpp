@@ -520,10 +520,10 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
 void __hdiff_private__create_diff(const TByte* newData,const TByte* newData_end,
                                   const TByte* oldData,const TByte* oldData_end,
                                   std::vector<TByte>& out_diff,
-                                  const THDiffPrivateParams* _kDiffParams,
+                                  const void* _kDiffParams,
                                   const TSuffixString* sstring){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,_kDiffParams,sstring);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,(const THDiffPrivateParams*)_kDiffParams,sstring);
     serialize_diff(diff,out_diff);
 }
 
@@ -554,8 +554,7 @@ bool check_diff(const TByte* newData,const TByte* newData_end,
 
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
     static const char*  _nocompress_compressType(const hdiff_TCompress* compressPlugin){
         static const char* kCompressType="uncompress";
@@ -569,10 +568,10 @@ extern "C"
                                         unsigned char* out_code,unsigned char* out_code_end){
         return 0;
     }
-    hdiff_TCompress _nocompressPlugin={ _nocompress_compressType,
-                                        _nocompress_maxCompressedSize,
-                                        _nocompress_compress};
-    const hdiff_TCompress* kNocompressPlugin=&_nocompressPlugin;
+    static hdiff_TCompress _nocompressPlugin={_nocompress_compressType,
+                                               _nocompress_maxCompressedSize,
+                                               _nocompress_compress};
+    const hdiff_TCompress* hdiff_kNocompressPlugin=&_nocompressPlugin;
 #ifdef __cplusplus
 }
 #endif

@@ -39,7 +39,6 @@
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char   TByte;
 typedef size_t          TUInt;
-typedef ptrdiff_t       TInt;
 
 void readFile(std::vector<TByte>& data,const char* fileName){
     std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);

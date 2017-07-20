@@ -14,7 +14,20 @@
 		D690ABBA1F2079E80089DC57 /* divsufsort64.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABAA1F2079E80089DC57 /* divsufsort64.c */; };
 		D690ABBB1F2079E80089DC57 /* suffix_string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABB21F2079E80089DC57 /* suffix_string.cpp */; };
 		D690ABBC1F2079E80089DC57 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABB51F2079E80089DC57 /* patch.c */; };
+		D690AEF91F2096240089DC57 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEF71F2092540089DC57 /* liblzma.a */; };
+		D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFA1F2097C90089DC57 /* libbz2.tbd */; };
+		D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFC1F2097D30089DC57 /* libz.tbd */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D690AEF61F2092540089DC57 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D690AEF21F2092540089DC57 /* lzma.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = D690ABCE1F208EA80089DC57;
+			remoteInfo = lzma;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		D690AB8F1F2078A40089DC57 /* CopyFiles */ = {
@@ -51,6 +64,9 @@
 		D690ABB31F2079E80089DC57 /* suffix_string.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = suffix_string.h; sourceTree = "<group>"; };
 		D690ABB51F2079E80089DC57 /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 		D690ABB61F2079E80089DC57 /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
+		D690AEF21F2092540089DC57 /* lzma.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = lzma.xcodeproj; sourceTree = "<group>"; };
+		D690AEFA1F2097C90089DC57 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		D690AEFC1F2097D30089DC57 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +74,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D690AEF91F2096240089DC57 /* liblzma.a in Frameworks */,
+				D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */,
+				D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -70,6 +89,7 @@
 				D690AB9E1F2079E80089DC57 /* libHDiffPatch */,
 				D690AB9B1F20792A0089DC57 /* diffz_demo.cpp */,
 				D690AB921F2078A40089DC57 /* Products */,
+				D690ABBD1F20832E0089DC57 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -141,6 +161,24 @@
 			path = HPatch;
 			sourceTree = "<group>";
 		};
+		D690ABBD1F20832E0089DC57 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D690AEF21F2092540089DC57 /* lzma.xcodeproj */,
+				D690AEFC1F2097D30089DC57 /* libz.tbd */,
+				D690AEFA1F2097C90089DC57 /* libbz2.tbd */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		D690AEF31F2092540089DC57 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D690AEF71F2092540089DC57 /* liblzma.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -186,12 +224,28 @@
 			mainGroup = D690AB881F2078A40089DC57;
 			productRefGroup = D690AB921F2078A40089DC57 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = D690AEF31F2092540089DC57 /* Products */;
+					ProjectRef = D690AEF21F2092540089DC57 /* lzma.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				D690AB901F2078A40089DC57 /* HDiffZ */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		D690AEF71F2092540089DC57 /* liblzma.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = liblzma.a;
+			remoteRef = D690AEF61F2092540089DC57 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
 		D690AB8D1F2078A40089DC57 /* Sources */ = {
