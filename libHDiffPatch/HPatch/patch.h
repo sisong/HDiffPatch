@@ -58,6 +58,10 @@ hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
 
     
 //patch_decompress() patch with decompress plugin
+    
+    //hpatch_kNodecompressPlugin is pair of hdiff_kNocompressPlugin
+    #define hpatch_kNodecompressPlugin ((hpatch_TDecompress*)0)
+
 //  compressedDiff create by create_compressed_diff()
 //  out pinter can null
 hpatch_BOOL compressedDiffInfo(hpatch_StreamPos_t* out_newDataSize,

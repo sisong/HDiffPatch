@@ -62,12 +62,13 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 }
 
 //===== select compress plugin =====
-//#define _CompressPlugin_no
+#define _CompressPlugin_no
 //#define _CompressPlugin_zlib
-#define _CompressPlugin_bz2
+//#define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
 
 #include "compress_plugin_demo.h"
+#include "decompress_plugin_demo.h"
 
 int main(int argc, const char * argv[]){
     clock_t time0=clock();
@@ -87,15 +88,19 @@ int main(int argc, const char * argv[]){
     
 #ifdef  _CompressPlugin_no
     const hdiff_TCompress* compressPlugin=hdiff_kNocompressPlugin;
+    hpatch_TDecompress* decompressPlugin=hpatch_kNodecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_zlib
     const hdiff_TCompress* compressPlugin=&zlibCompressPlugin;
+    hpatch_TDecompress* decompressPlugin=hpatch_kNodecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_bz2
     const hdiff_TCompress* compressPlugin=&bz2CompressPlugin;
+    hpatch_TDecompress* decompressPlugin=hpatch_kNodecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lzma
     const hdiff_TCompress* compressPlugin=&lzmaCompressPlugin;
+    hpatch_TDecompress* decompressPlugin=hpatch_kNodecompressPlugin;
 #endif
 
     std::vector<TByte> diffData;
@@ -105,12 +110,13 @@ int main(int argc, const char * argv[]){
     create_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
                            diffData,compressPlugin);
     clock_t time2=clock();
-    /*if (!check_diffz(newData_begin,newData_begin+newDataSize,oldData_begin,oldData_begin+oldDataSize, &diffData[0]+kNewDataSize, &diffData[0]+diffData.size(),?)){
+    if (!check_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
+                               &diffData[0],&diffData[0]+diffData.size(),decompressPlugin)){
         std::cout<<"  patch check diffz data error!!!\n";
         exit(2);
     }else{
         std::cout<<"  patch check diffz data ok!\n";
-    }*/
+    }
     writeFile(diffData,outDiffFileName);
     clock_t time3=clock();
     std::cout<<"  out diffz file ok!\n";
