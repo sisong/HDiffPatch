@@ -407,8 +407,8 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
             pushBack(out_diff,compress_code);
     }
     
-static void serialize_compress_diff(const TDiffData& diff,std::vector<TByte>& out_diff,
-                                    const hdiff_TCompress* compressPlugin){
+static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& out_diff,
+                                      const hdiff_TCompress* compressPlugin){
     const TUInt ctrlCount=(TUInt)diff.cover.size();
     std::vector<TByte> cover_buf;
     {
@@ -540,9 +540,8 @@ bool check_diff(const TByte* newData,const TByte* newData_end,
                 const TByte* oldData,const TByte* oldData_end,
                 const TByte* diff,const TByte* diff_end){
     std::vector<TByte> testNewData(newData_end-newData);
-    TByte* testNewData_begin=0;
-    if (!testNewData.empty()) testNewData_begin=&testNewData[0];
-    if (!patch(testNewData_begin,testNewData_begin+testNewData.size(),
+    TByte* testNewData0=testNewData.empty()?0:&testNewData[0];
+    if (!patch(testNewData0,testNewData0+testNewData.size(),
                oldData,oldData_end,
                diff,diff_end))
         return false;
@@ -577,15 +576,37 @@ extern "C" {
 }
 #endif
 
-void create_compress_diff(const unsigned char* newData,const unsigned char* newData_end,
-                          const unsigned char* oldData,const unsigned char* oldData_end,
-                          std::vector<unsigned char>& out_diff,
-                          const hdiff_TCompress* compressPlugin){
+void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
+                            const unsigned char* oldData,const unsigned char* oldData_end,
+                            std::vector<unsigned char>& out_diff,
+                            const hdiff_TCompress* compressPlugin){
     assert(compressPlugin!=0);
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff);
-    serialize_compress_diff(diff,out_diff,compressPlugin);
+    serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 
+bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
+                           const unsigned char* oldData,const unsigned char* oldData_end,
+                           const unsigned char* diff,const unsigned char* diff_end,
+                           hpatch_TDecompress* decompressPlugin){
+    std::vector<TByte> testNewData(newData_end-newData);
+    TByte* testNewData0=testNewData.empty()?0:&testNewData[0];
+    
+    hpatch_TStreamOutput newStream;
+    hpatch_TStreamInput  oldStream;
+    hpatch_TStreamInput  diffStream;
+    memory_as_outputStream(&newStream,testNewData0,testNewData0+testNewData.size());
+    memory_as_inputStream(&oldStream,oldData,oldData_end);
+    memory_as_inputStream(&diffStream,diff,diff_end);
+    
+    if (!patch_decompress(&newStream,&oldStream,&diffStream,decompressPlugin))
+        return false;
+    for (TUInt i=0; i<(TUInt)testNewData.size(); ++i) {
+        if (testNewData[i]!=newData[i])
+            return false;
+    }
+    return true;
+}
 
 

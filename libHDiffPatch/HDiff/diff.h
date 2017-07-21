@@ -30,6 +30,7 @@
 #define HDiff_diff_h
 
 #include <vector>
+#include "../HPatch/patch_types.h"
 
 //生成diff数据.
 void create_diff(const unsigned char* newData,const unsigned char* newData_end,
@@ -41,7 +42,7 @@ bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
                 const unsigned char* diff,const unsigned char* diff_end);
 
 
-//create_compress_diff() diff with compress plugin
+//create_compressed_diff() diff with compress plugin
 #ifdef __cplusplus
 extern "C"
 {
@@ -63,9 +64,14 @@ extern "C"
 }
 #endif
 //支持压缩插件的diff; 需要对应的支持解压缩的patch配合.
-void create_compress_diff(const unsigned char* newData,const unsigned char* newData_end,
-                          const unsigned char* oldData,const unsigned char* oldData_end,
-                          std::vector<unsigned char>& out_diff,
-                          const hdiff_TCompress* compressPlugin);
+void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
+                            const unsigned char* oldData,const unsigned char* oldData_end,
+                            std::vector<unsigned char>& out_diff,
+                            const hdiff_TCompress* compressPlugin);
+//检查生成的压缩的diff数据是否正确.
+bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
+                           const unsigned char* oldData,const unsigned char* oldData_end,
+                           const unsigned char* diff,const unsigned char* diff_end,
+                           hpatch_TDecompress* decompressPlugin);
 
 #endif
