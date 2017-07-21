@@ -413,9 +413,13 @@ static void _TStreamClip_resetPosEnd(struct TStreamClip* sclip,TUInt new_posEnd)
     }
 }
 
+#define  kMaxPackedByte ((sizeof(TUInt)*8+6)/7+1)
+//assert(hpatch_kStreamCacheSize>=kMaxPackedByte);
+struct __private_hpatch_check_kMaxPackedByte {
+    char _[hpatch_kStreamCacheSize-kMaxPackedByte]; };
+
 static hpatch_BOOL _TStreamClip_unpackUIntWithTag(struct TStreamClip* sclip,
                                                   const int kTagBit,TUInt* result){
-#define  kMaxPackedByte ((sizeof(TUInt)*8+6)/7+1)
     TByte* curCode,*codeBegin;
     size_t readSize=kMaxPackedByte;
     const TUInt dataSize=_TStreamClip_streamSize(sclip);
@@ -726,23 +730,23 @@ hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
         _TStreamClip_unpackUIntTo(&newDataDiffSize,diffHeadClip);
         diffPos0=(TUInt)(diffPos_end-_TStreamClip_streamSize(diffHeadClip));
 #ifdef __RUN_MEM_SAFE_CHECK
-        if (lengthSize>(TUInt)(serializedDiff->streamSize-diffPos0)) return _hpatch_FALSE;
+        if (lengthSize>(TUInt)(diffPos_end-diffPos0)) return _hpatch_FALSE;
 #endif
         //eq. _TStreamClip_init(&code_lengthsClip,serializedDiff,diffPos0,diffPos0+lengthSize);
         _TStreamClip_resetPosEnd(&code_lengthsClip,diffPos0+lengthSize);
         diffPos0+=lengthSize;
 #ifdef __RUN_MEM_SAFE_CHECK
-        if (inc_newPosSize>(TUInt)(serializedDiff->streamSize-diffPos0)) return _hpatch_FALSE;
+        if (inc_newPosSize>(TUInt)(diffPos_end-diffPos0)) return _hpatch_FALSE;
 #endif
         _TStreamClip_init(&code_inc_newPosClip,serializedDiff,diffPos0,diffPos0+inc_newPosSize);
         diffPos0+=inc_newPosSize;
 #ifdef __RUN_MEM_SAFE_CHECK
-        if (inc_oldPosSize>(TUInt)(serializedDiff->streamSize-diffPos0)) return _hpatch_FALSE;
+        if (inc_oldPosSize>(TUInt)(diffPos_end-diffPos0)) return _hpatch_FALSE;
 #endif
         _TStreamClip_init(&code_inc_oldPosClip,serializedDiff,diffPos0,diffPos0+inc_oldPosSize);
         diffPos0+=inc_oldPosSize;
 #ifdef __RUN_MEM_SAFE_CHECK
-        if (newDataDiffSize>(TUInt)(serializedDiff->streamSize-diffPos0)) return _hpatch_FALSE;
+        if (newDataDiffSize>(TUInt)(diffPos_end-diffPos0)) return _hpatch_FALSE;
 #endif
         _TStreamClip_init(&code_newDataDiffClip,serializedDiff,diffPos0,diffPos0+newDataDiffSize);
         diffPos0+=newDataDiffSize;
@@ -758,18 +762,93 @@ hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
 }
 
 
+static const int kVersionTypeLen=8;
 
-struct _THDiffzHead{
+typedef struct _THDiffzHead{
+    char VersionType[kVersionTypeLen+1];
+    char compressType[hpatch_kMaxCompressTypeLength+1];
+    TUInt newDataSize;
+    TUInt oldDataSize;
+    TUInt ctrlCount;
     
-};
+    TUInt cover_buf_size;
+    TUInt compress_cover_buf_size;
+    TUInt rle_ctrlBuf_size;
+    TUInt compress_rle_ctrlBuf_size;
+    TUInt rle_codeBuf_size;
+    TUInt compress_rle_codeBuf_size;
+    TUInt newDataDiff_size;
+    TUInt compress_newDataDiff_size;
+} _THDiffzHead;
+
+
+//assert(hpatch_kStreamCacheSize>hpatch_kMaxCompressTypeLength+1);
+struct __private_hpatch_check_kMaxCompressTypeLength {
+    char _[hpatch_kStreamCacheSize-(hpatch_kMaxCompressTypeLength+1)-1];};
+
+static hpatch_BOOL read_diffz_head(_THDiffzHead* out_head,TStreamClip* diffHeadClip){
+    const TByte* versionType=_TStreamClip_readData(diffHeadClip,kVersionTypeLen);
+    if (versionType==0) return _hpatch_FALSE;
+    if (0!=strcmp((const char*)versionType,"HDIFF13&")) return _hpatch_FALSE;
+    
+    //read compressType
+    size_t readLen=hpatch_kMaxCompressTypeLength+1+1;
+    if (readLen>_TStreamClip_streamSize(diffHeadClip))
+        readLen=_TStreamClip_streamSize(diffHeadClip);
+    const TByte* compressType=_TStreamClip_accessData(diffHeadClip,readLen);
+    if (compressType==0) return _hpatch_FALSE;
+    //like strlen()
+    size_t compressTypeLen=0;
+    while (compressTypeLen<readLen) {
+        if (compressType[compressTypeLen]=='\0') break;
+        ++compressTypeLen;
+    }
+    if (compressTypeLen==readLen) return _hpatch_FALSE;
+    _TStreamClip_skipData_noCheck(diffHeadClip,compressTypeLen+1);
+    strcpy(out_head->compressType,(const char*)compressType);
+    
+    _TStreamClip_unpackUIntTo(&out_head->newDataSize,diffHeadClip);
+    _TStreamClip_unpackUIntTo(&out_head->oldDataSize,diffHeadClip);
+    _TStreamClip_unpackUIntTo(&out_head->ctrlCount,diffHeadClip);
+    
+    _TStreamClip_unpackUIntTo(&out_head->cover_buf_size,diffHeadClip);
+    _TStreamClip_unpackUIntTo(&out_head->compress_cover_buf_size,diffHeadClip);
+    _TStreamClip_unpackUIntTo(&out_head->rle_ctrlBuf_size,diffHeadClip);
+    _TStreamClip_unpackUIntTo(&out_head->compress_rle_ctrlBuf_size,diffHeadClip);
+    _TStreamClip_unpackUIntTo(&out_head->rle_codeBuf_size,diffHeadClip);
+    _TStreamClip_unpackUIntTo(&out_head->compress_rle_codeBuf_size,diffHeadClip);
+    _TStreamClip_unpackUIntTo(&out_head->newDataDiff_size,diffHeadClip);
+    _TStreamClip_unpackUIntTo(&out_head->compress_newDataDiff_size,diffHeadClip);
+    return hpatch_TRUE;
+}
 
 hpatch_BOOL compressedDiffInfo(hpatch_StreamPos_t* out_newDataSize,
                                hpatch_StreamPos_t* out_oldDataSize,
-                               int*  out_compressedCount,
                                char* out_compressType,char* out_compressType_end,
+                               int*  out_compressedCount,
                                const struct hpatch_TStreamInput* compressedDiff){
-    //TODO:
-    return _hpatch_FALSE;
+    _THDiffzHead head;
+    TStreamClip  diffHeadClip;
+    _TStreamClip_init(&diffHeadClip,compressedDiff,0,compressedDiff->streamSize);
+    if (!read_diffz_head(&head,&diffHeadClip)) return _hpatch_FALSE;
+    if (out_newDataSize)
+        *out_newDataSize=head.newDataSize;
+    if (out_oldDataSize)
+        *out_oldDataSize=head.oldDataSize;
+    
+    size_t out_compressTypeLen=(out_compressType_end-out_compressType);
+    if (out_compressTypeLen>0){
+        size_t compressTypeLen=strlen(head.compressType);
+        if (out_compressTypeLen<compressTypeLen+1) return _hpatch_FALSE;
+        strcpy(out_compressType,head.compressType);
+    }
+    if (out_compressedCount){
+        *out_compressedCount=((head.compress_cover_buf_size)?1:0)
+                            +((head.compress_rle_ctrlBuf_size)?1:0)
+                            +((head.compress_rle_codeBuf_size)?1:0)
+                            +((head.compress_newDataDiff_size)?1:0);
+    }
+    return hpatch_TRUE;
 }
 
 hpatch_BOOL patch_decompress(const struct hpatch_TStreamOutput* out_newData,

@@ -59,10 +59,11 @@ hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
     
 //patch_decompress() patch with decompress plugin
 //  compressedDiff create by create_compressed_diff()
+//  out pinter can null
 hpatch_BOOL compressedDiffInfo(hpatch_StreamPos_t* out_newDataSize,
                                hpatch_StreamPos_t* out_oldDataSize,
-                               int*  out_compressedCount,//need open hpatch_decompressHandle number
                                char* out_compressType,char* out_compressType_end,
+                               int*  out_compressedCount,//need open hpatch_decompressHandle number
                                const struct hpatch_TStreamInput* compressedDiff);
     
 //patch with decompress, used 5*(hpatch_kStreamCacheSize stack memory) + 4*(decompress used memory)

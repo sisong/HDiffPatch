@@ -231,8 +231,8 @@ int main(int argc, const char * argv[]){
     TByte* newData0=newData.empty()?0:&newData[0];
     const TByte* oldData0=oldData.empty()?0:&oldData[0];
     clock_t time1=clock();
-    create_compress_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
-                         diffData,compressPlugin);
+    create_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
+                           diffData,compressPlugin);
     clock_t time2=clock();
     /*if (!check_diffz(newData_begin,newData_begin+newDataSize,oldData_begin,oldData_begin+oldDataSize, &diffData[0]+kNewDataSize, &diffData[0]+diffData.size(),?)){
         std::cout<<"  patch check diffz data error!!!\n";

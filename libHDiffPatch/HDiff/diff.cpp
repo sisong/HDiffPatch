@@ -393,7 +393,8 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
         size_t codeSize=compressPlugin->compress(compressPlugin,
                                                  out_code0,out_code0+out_code.size(),
                                                  data0,data0+data.size());
-        if ((codeSize>0)&&(codeSize<data.size()))
+        if (codeSize<=0) throw codeSize; //diff error!
+        if (codeSize<data.size())
             out_code.resize(codeSize); //ok
         else
             out_code.clear();
@@ -443,15 +444,17 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     do_compress(compress_rle_codeBuf,rle_codeBuf,compressPlugin);
     do_compress(compress_newDataDiff,diff.newDataDiff,compressPlugin);
 
-    static const unsigned char kVersionType[8+1]="HDIFF13&";
+    static const char kVersionType[8+1]="HDIFF13&";
     const char* compressType="";
     if (!compress_cover_buf.empty()||!compress_rle_ctrlBuf.empty()
-        ||!compress_rle_codeBuf.empty()||!compress_newDataDiff.empty())
-            compressType=compressPlugin->compressType(compressPlugin);
-    pushBack(out_diff,kVersionType,kVersionType+8);
+        ||!compress_rle_codeBuf.empty()||!compress_newDataDiff.empty()){
+        compressType=compressPlugin->compressType(compressPlugin);
+        if (strlen(compressType)>hpatch_kMaxCompressTypeLength) throw compressType; //diff error!
+    }
+    pushBack(out_diff,(const TByte*)kVersionType,
+                      (const TByte*)kVersionType+strlen(kVersionType));
     pushBack(out_diff,(const TByte*)compressType,
                       (const TByte*)compressType+strlen(compressType)+1);
-    
     
     const TUInt newDataSize=(TUInt)(diff.newData_end-diff.newData);
     const TUInt oldDataSize=(TUInt)(diff.oldData_end-diff.oldData);
@@ -557,7 +560,7 @@ bool check_diff(const TByte* newData,const TByte* newData_end,
 extern "C" {
 #endif
     static const char*  _nocompress_compressType(const hdiff_TCompress* compressPlugin){
-        static const char* kCompressType="uncompress";
+        static const char* kCompressType="";
         return kCompressType;
     }
     static size_t  _nocompress_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
@@ -566,7 +569,10 @@ extern "C" {
     static size_t  _nocompress_compress(const hdiff_TCompress* compressPlugin,
                                         unsigned char* out_code,unsigned char* out_code_end,
                                         const unsigned char* data,const unsigned char* data_end){
-        return 0;
+        size_t len=(data_end-data);
+        if (out_code_end-out_code<len) return 0;
+        memcpy(out_code,data,len);
+        return len;
     }
     static hdiff_TCompress _nocompressPlugin={_nocompress_compressType,
                                                _nocompress_maxCompressedSize,
