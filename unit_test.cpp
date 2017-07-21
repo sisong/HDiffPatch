@@ -42,36 +42,17 @@ typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
 //#define _AttackPacth_ON
 
-static long _read_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
-                             unsigned char* out_data,unsigned char* out_data_end){
-    const TByte* data=(const TByte*)streamHandle;
-    memcpy(out_data, data+readFromPos, out_data_end-out_data);
-    return (long)(out_data_end-out_data);
-}
-static long _write_mem_stream(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
-                              const unsigned char* data,const unsigned char* data_end){
-    TByte* out_dst=(TByte*)streamHandle;
-    memcpy(out_dst+writeToPos,data,data_end-data);
-    return (long)(data_end-data);
-}
-
 static bool pacth_mem_stream(TByte* newData,TByte* newData_end,
-                              const TByte* oldData,const TByte* oldData_end,const TByte* diff,const TByte* diff_end){
-    struct hpatch_TStreamOutput out_newDataStream;
-    out_newDataStream.streamHandle=newData;
-    out_newDataStream.streamSize=newData_end-newData;
-    out_newDataStream.write=_write_mem_stream;
-
-    struct hpatch_TStreamInput  oldDataStream;
-    oldDataStream.streamHandle=(void*)oldData;
-    oldDataStream.streamSize=oldData_end-oldData;
-    oldDataStream.read=_read_mem_stream;
-    struct hpatch_TStreamInput  serializedDiffStream;
-    serializedDiffStream.streamHandle=(void*)diff;
-    serializedDiffStream.streamSize=diff_end-diff;
-    serializedDiffStream.read=_read_mem_stream;
-
-    return 0!=patch_stream(&out_newDataStream,&oldDataStream,&serializedDiffStream);
+                              const TByte* oldData,const TByte* oldData_end,
+                             const TByte* diff,const TByte* diff_end){
+    struct hpatch_TStreamOutput out_newStream;
+    struct hpatch_TStreamInput  oldStream;
+    struct hpatch_TStreamInput  diffStream;
+    memory_as_outputStream(&out_newStream,newData,newData_end);
+    memory_as_inputStream(&oldStream,oldData,oldData_end);
+    memory_as_inputStream(&diffStream,diff,diff_end);
+    
+    return 0!=patch_stream(&out_newStream,&oldStream,&diffStream);
 }
 
 static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
