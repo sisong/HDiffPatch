@@ -51,6 +51,7 @@
 		D6C7014F1E17E5BC00C19D84 /* trsort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = trsort.c.inc.h; sourceTree = "<group>"; };
 		D6C701501E17E5BC00C19D84 /* utils.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.c.inc.h; sourceTree = "<group>"; };
 		D6CB33611664FD2900AB34B7 /* unitTest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = unitTest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6E150961F21AFE600C2AD3D /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +102,7 @@
 		D6BD9BAA17578491004886DE /* HPatch */ = {
 			isa = PBXGroup;
 			children = (
+				D6E150961F21AFE600C2AD3D /* patch_types.h */,
 				D6BD9BAB17578491004886DE /* patch.c */,
 				D6BD9BAC17578491004886DE /* patch.h */,
 			);
