@@ -570,7 +570,7 @@ extern "C" {
                                         unsigned char* out_code,unsigned char* out_code_end,
                                         const unsigned char* data,const unsigned char* data_end){
         size_t len=(data_end-data);
-        if (out_code_end-out_code<len) return 0;
+        if ((size_t)(out_code_end-out_code)<len) return 0;
         memcpy(out_code,data,len);
         return len;
     }

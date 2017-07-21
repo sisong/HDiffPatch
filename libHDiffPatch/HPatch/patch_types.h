@@ -62,7 +62,7 @@ extern "C" {
     } hpatch_TStreamOutput;
     
 
-    static const int hpatch_kMaxCompressTypeLength =64;
+    #define hpatch_kMaxCompressTypeLength 64
     
     typedef void*  hpatch_decompressHandle;
     typedef struct hpatch_TDecompress{
