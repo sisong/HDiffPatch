@@ -106,7 +106,7 @@ static const int kDecompressBufSize =1024;
         }
         return (long)(out_part_data_end-out_part_data);
     }
-    static hpatch_TDecompress zlibDecompressPlugin={_zlib_open,_zlib_close,_zlib_decompress_part};
+    static hpatch_TDecompress zlibDecompressPlugin={0,_zlib_open,_zlib_close,_zlib_decompress_part};
 #endif//_CompressPlugin_zlib
     
 #ifdef  _CompressPlugin_bz2
@@ -172,7 +172,7 @@ static const int kDecompressBufSize =1024;
         }
         return (long)(out_part_data_end-out_part_data);
     }
-    static hpatch_TDecompress bz2DecompressPlugin={_bz2_open,_bz2_close,_bz2_decompress_part};
+    static hpatch_TDecompress bz2DecompressPlugin={0,_bz2_open,_bz2_close,_bz2_decompress_part};
 #endif//_CompressPlugin_bz2
     
 #ifdef  _CompressPlugin_lzma
@@ -281,7 +281,7 @@ static const int kDecompressBufSize =1024;
         }
         return (long)(out_part_data_end-out_part_data);
     }
-    static hpatch_TDecompress lzmaDecompressPlugin={_lzma_open,_lzma_close,_lzma_decompress_part};
+    static hpatch_TDecompress lzmaDecompressPlugin={0,_lzma_open,_lzma_close,_lzma_decompress_part};
 #endif//_CompressPlugin_lzma
 
 #endif

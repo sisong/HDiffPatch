@@ -50,9 +50,16 @@ extern "C"
     
     //压缩插件接口定义.
     typedef struct hdiff_TCompress{
+        //插件名称; strlen(result)<=hpatch_kMaxInfoLength
         const char*  (*compressType)(const hdiff_TCompress* compressPlugin);
+        //插件扩展信息大小,函数可以为null;  result<=hpatch_kMaxInfoLength
+        size_t     (*pluginInfoSize)(const hdiff_TCompress* compressPlugin);
+        //通过out_info返回插件扩展信息,函数可以为null;
+        void           (*pluginInfo)(const hdiff_TCompress* compressPlugin,
+                                     unsigned char* out_info,unsigned char* out_info_end);
+        //dataSize大小的数据压缩后最大大小;
         size_t  (*maxCompressedSize)(const hdiff_TCompress* compressPlugin,size_t dataSize);
-        //压缩成功返回实际后压缩数据大小,失败返回0.
+        //压缩数据;压缩成功返回实际后压缩数据大小,失败返回0.
         size_t           (*compress)(const hdiff_TCompress* compressPlugin,
                                      unsigned char* out_code,unsigned char* out_code_end,
                                      const unsigned char* data,const unsigned char* data_end);

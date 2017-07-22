@@ -450,12 +450,22 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     if (!compress_cover_buf.empty()||!compress_rle_ctrlBuf.empty()
         ||!compress_rle_codeBuf.empty()||!compress_newDataDiff.empty()){
         compressType=compressPlugin->compressType(compressPlugin);
-        if (strlen(compressType)>hpatch_kMaxCompressTypeLength) throw compressType; //diff error!
+        if (strlen(compressType)>hpatch_kMaxInfoLength) throw compressType; //diff error!
     }
     pushBack(out_diff,(const TByte*)kVersionType,
                       (const TByte*)kVersionType+strlen(kVersionType));
     pushBack(out_diff,(const TByte*)compressType,
-                      (const TByte*)compressType+strlen(compressType)+1);
+                      (const TByte*)compressType+strlen(compressType)+1);//with '\0'
+    
+    TByte pluginInfo[hpatch_kMaxInfoLength];
+    size_t pluginInfoSize=0;
+    if ((compressPlugin)&&(compressPlugin->pluginInfoSize)){
+        pluginInfoSize=compressPlugin->pluginInfoSize(compressPlugin);
+        if (pluginInfoSize>hpatch_kMaxInfoLength) throw pluginInfoSize; //diff error!
+        compressPlugin->pluginInfo(compressPlugin,pluginInfo,pluginInfo+pluginInfoSize);
+    }
+    packUInt(out_diff,pluginInfoSize);
+    pushBack(out_diff,pluginInfo,pluginInfo+pluginInfoSize);
     
     const TUInt newDataSize=(TUInt)(diff.newData_end-diff.newData);
     const TUInt oldDataSize=(TUInt)(diff.oldData_end-diff.oldData);
