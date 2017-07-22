@@ -63,8 +63,8 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 
 //===== select compress plugin =====
 //#define _CompressPlugin_no
-#define _CompressPlugin_zlib
-//#define _CompressPlugin_bz2
+//#define _CompressPlugin_zlib
+#define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
 
 #include "compress_plugin_demo.h"

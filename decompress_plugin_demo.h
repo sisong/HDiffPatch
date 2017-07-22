@@ -34,9 +34,10 @@
 
 #include "libHDiffPatch/HPatch/patch.h"
 
+static const int kDecompressBufSize =1024;
+
 #ifdef  _CompressPlugin_zlib
 #include "zlib.h"
-    static const int kDecompressBufSize =1024;
     typedef struct _zlib_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
@@ -86,31 +87,24 @@
         self->d_stream.next_out = out_part_data;
         self->d_stream.avail_out =(uInt)(out_part_data_end-out_part_data);
         while (self->d_stream.avail_out>0) {
-            int ret = inflate(&self->d_stream,Z_PARTIAL_FLUSH);
-            switch (ret) {
-                case Z_OK:
-                case Z_STREAM_END:
-                    break;
-                case Z_BUF_ERROR: {
-                    long oldLen=self->d_stream.avail_in;
-                    //assert(oldLen==0) ?
-                    if (oldLen>0) memmove(self->dec_buf,self->d_stream.next_in,oldLen);
-                    self->d_stream.next_in=self->dec_buf;
-                    long readLen=kDecompressBufSize-oldLen;
-                    if (readLen>(self->code_end - self->code_begin))
-                        readLen=(long)(self->code_end - self->code_begin);
-                    if (readLen<=0) return 0;//error;
-                    long readed=self->codeStream->read(self->codeStream->streamHandle,self->code_begin,
-                                                       self->d_stream.next_in+oldLen,
-                                                       self->d_stream.next_in+oldLen+readLen);
-                    if (readed!=readLen) return 0;//error;
-                    self->d_stream.avail_in+=readLen;
-                    self->code_begin+=readLen;
-                } break;
-                default:{
-                    return 0;//error
-                } break;
+            long oldLen=self->d_stream.avail_in;
+            long codeLen=(long)(self->code_end - self->code_begin);
+            if ((oldLen<kDecompressBufSize)&&(codeLen>0)) {
+                if (oldLen>0) memmove(self->dec_buf,self->d_stream.next_in,oldLen);
+                self->d_stream.next_in=self->dec_buf;
+                long readLen=kDecompressBufSize-oldLen;
+                if (readLen>codeLen) readLen=codeLen;
+                if (readLen<=0) return 0;//error;
+                long readed=self->codeStream->read(self->codeStream->streamHandle,self->code_begin,
+                                                   self->dec_buf+oldLen,
+                                                   self->dec_buf+oldLen+readLen);
+                if (readed!=readLen) return 0;//error;
+                self->d_stream.avail_in=oldLen+readLen;
+                self->code_begin+=readLen;
             }
+            int ret = inflate(&self->d_stream,Z_PARTIAL_FLUSH);
+            if ((ret!=Z_OK)&&(ret!=Z_STREAM_END))
+                return 0;//error
         }
         return (long)(out_part_data_end-out_part_data);
     }
@@ -119,6 +113,71 @@
     
 #ifdef  _CompressPlugin_bz2
 #include "bzlib.h"
+    typedef struct _bz2_TDecompress{
+        const struct hpatch_TStreamInput* codeStream;
+        hpatch_StreamPos_t code_begin;
+        hpatch_StreamPos_t code_end;
+        
+        bz_stream       d_stream;
+        unsigned char   dec_buf[kDecompressBufSize];
+    } _bz2_TDecompress;
+    static hpatch_decompressHandle  _bz2_open(struct hpatch_TDecompress* decompressPlugin,
+                                               const char* compressType,
+                                               hpatch_StreamPos_t dataSize,
+                                               const struct hpatch_TStreamInput* codeStream,
+                                               hpatch_StreamPos_t code_begin,
+                                               hpatch_StreamPos_t code_end){
+        if (0!=strcmp(compressType,"bz2")) return 0;
+        //load kWindowBits
+        _bz2_TDecompress* self=(_bz2_TDecompress*)malloc(sizeof(_bz2_TDecompress));
+        if (!self) return 0;
+        memset(self,0,sizeof(_bz2_TDecompress)-kDecompressBufSize);
+        self->codeStream=codeStream;
+        self->code_begin=code_begin;
+        self->code_end=code_end;
+        
+        int ret = BZ2_bzDecompressInit(&self->d_stream,0,0);
+        if (ret!=BZ_OK){ free(self); return 0; }
+        return self;
+    }
+    static void _bz2_close(struct hpatch_TDecompress* decompressPlugin,
+                            hpatch_decompressHandle decompressHandle){
+        _bz2_TDecompress* self=(_bz2_TDecompress*)decompressHandle;
+        int ret=BZ2_bzDecompressEnd(&self->d_stream);
+        assert(ret==BZ_OK);
+        free(self);
+    }
+    static long _bz2_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
+                                      hpatch_decompressHandle decompressHandle,
+                                      unsigned char* out_part_data,unsigned char* out_part_data_end){
+        assert(out_part_data!=out_part_data_end);
+        _bz2_TDecompress* self=(_bz2_TDecompress*)decompressHandle;
+        
+        self->d_stream.next_out =(char*)out_part_data;
+        self->d_stream.avail_out =(unsigned int)(out_part_data_end-out_part_data);
+        while (self->d_stream.avail_out>0) {
+            long oldLen=self->d_stream.avail_in;
+            long codeLen=(long)(self->code_end - self->code_begin);
+            if ((oldLen<kDecompressBufSize)&&(codeLen>0)) {
+                if (oldLen>0) memmove(self->dec_buf,self->d_stream.next_in,oldLen);
+                self->d_stream.next_in=(char*)self->dec_buf;
+                long readLen=kDecompressBufSize-oldLen;
+                if (readLen>codeLen) readLen=codeLen;
+                if (readLen<=0) return 0;//error;
+                long readed=self->codeStream->read(self->codeStream->streamHandle,self->code_begin,
+                                                   self->dec_buf+oldLen,
+                                                   self->dec_buf+oldLen+readLen);
+                if (readed!=readLen) return 0;//error;
+                self->d_stream.avail_in=oldLen+readLen;
+                self->code_begin+=readLen;
+            }
+            int ret = BZ2_bzDecompress(&self->d_stream);
+            if ((ret!=BZ_OK)&&(ret!=BZ_STREAM_END))
+                return 0;//error
+        }
+        return (long)(out_part_data_end-out_part_data);
+    }
+    static hpatch_TDecompress bz2DecompressPlugin={_bz2_open,_bz2_close,_bz2_decompress_part};
 #endif//_CompressPlugin_bz2
     
 #ifdef  _CompressPlugin_lzma
