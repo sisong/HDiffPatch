@@ -58,7 +58,7 @@ extern "C"
                                      const unsigned char* data,const unsigned char* data_end);
     } hdiff_TCompress;
     
-    extern const hdiff_TCompress* hdiff_kNocompressPlugin;//满足接口标准的不压缩数据的“压缩”插件.
+    #define  hdiff_kNocompressPlugin ((const hdiff_TCompress*)0)  //不压缩数据的“压缩”插件.
     
 #ifdef __cplusplus
 }

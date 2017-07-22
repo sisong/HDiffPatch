@@ -384,6 +384,7 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
     static void do_compress(std::vector<TByte>& out_code,const std::vector<TByte>& data,
                             const hdiff_TCompress* compressPlugin){
         out_code.clear();
+        if (!compressPlugin) return;
         if (data.empty()) return;
         size_t maxCodeSize=compressPlugin->maxCompressedSize(compressPlugin,data.size());
         if (maxCodeSize<=0) return;
@@ -555,38 +556,10 @@ bool check_diff(const TByte* newData,const TByte* newData_end,
     return true;
 }
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-    static const char*  _nocompress_compressType(const hdiff_TCompress* compressPlugin){
-        static const char* kCompressType="";
-        return kCompressType;
-    }
-    static size_t  _nocompress_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
-        return dataSize;
-    }
-    static size_t  _nocompress_compress(const hdiff_TCompress* compressPlugin,
-                                        unsigned char* out_code,unsigned char* out_code_end,
-                                        const unsigned char* data,const unsigned char* data_end){
-        size_t len=(data_end-data);
-        if ((size_t)(out_code_end-out_code)<len) return 0;
-        memcpy(out_code,data,len);
-        return len;
-    }
-    static hdiff_TCompress _nocompressPlugin={_nocompress_compressType,
-                                               _nocompress_maxCompressedSize,
-                                               _nocompress_compress};
-    const hdiff_TCompress* hdiff_kNocompressPlugin=&_nocompressPlugin;
-#ifdef __cplusplus
-}
-#endif
-
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                             const unsigned char* oldData,const unsigned char* oldData_end,
                             std::vector<unsigned char>& out_diff,
                             const hdiff_TCompress* compressPlugin){
-    assert(compressPlugin!=0);
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff);
     serialize_compressed_diff(diff,out_diff,compressPlugin);

@@ -14,6 +14,8 @@
 		D6BD9BB317578491004886DE /* unit_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BAE17578491004886DE /* unit_test.cpp */; };
 		D6C701511E17E5BC00C19D84 /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C701481E17E5BC00C19D84 /* divsufsort.c */; };
 		D6C701521E17E5BC00C19D84 /* divsufsort64.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C7014B1E17E5BC00C19D84 /* divsufsort64.c */; };
+		D6E150A01F238B2C00C2AD3D /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E1509E1F238B2C00C2AD3D /* libbz2.tbd */; };
+		D6E150A11F238B2C00C2AD3D /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E1509F1F238B2C00C2AD3D /* libz.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -52,6 +54,8 @@
 		D6C701501E17E5BC00C19D84 /* utils.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.c.inc.h; sourceTree = "<group>"; };
 		D6CB33611664FD2900AB34B7 /* unitTest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = unitTest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6E150961F21AFE600C2AD3D /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
+		D6E1509E1F238B2C00C2AD3D /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		D6E1509F1F238B2C00C2AD3D /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +63,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D6E150A01F238B2C00C2AD3D /* libbz2.tbd in Frameworks */,
+				D6E150A11F238B2C00C2AD3D /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -132,6 +138,7 @@
 				D6BD9BAE17578491004886DE /* unit_test.cpp */,
 				D6BD9B9F17578491004886DE /* libHDiffPatch */,
 				D6CB33621664FD2900AB34B7 /* Products */,
+				D6E1509D1F238B2C00C2AD3D /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -141,6 +148,15 @@
 				D6CB33611664FD2900AB34B7 /* unitTest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D6E1509D1F238B2C00C2AD3D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D6E1509E1F238B2C00C2AD3D /* libbz2.tbd */,
+				D6E1509F1F238B2C00C2AD3D /* libz.tbd */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

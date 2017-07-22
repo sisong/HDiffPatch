@@ -70,22 +70,6 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 #include "compress_plugin_demo.h"
 #include "decompress_plugin_demo.h"
 
-int main(int argc, const char * argv[]){
-    clock_t time0=clock();
-    if (argc!=4) {
-        std::cout<<"diffz command line parameter:\n oldFileName newFileName outDiffFileName\n";
-        return 0;
-    }
-    const char* oldFileName=argv[1];
-    const char* newFileName=argv[2];
-    const char* outDiffFileName=argv[3];
-    std::cout<<"old:\"" <<oldFileName<< "\"\nnew:\""<<newFileName<<"\"\nout:\""<<outDiffFileName<<"\"\n";
-    
-    std::vector<TByte> oldData; readFile(oldData,oldFileName);
-    std::vector<TByte> newData; readFile(newData,newFileName);
-    const size_t oldDataSize=oldData.size();
-    const size_t newDataSize=newData.size();
-    
 #ifdef  _CompressPlugin_no
     const hdiff_TCompress* compressPlugin=hdiff_kNocompressPlugin;
     hpatch_TDecompress* decompressPlugin=hpatch_kNodecompressPlugin;
@@ -103,6 +87,24 @@ int main(int argc, const char * argv[]){
     hpatch_TDecompress* decompressPlugin=&lzmaDecompressPlugin;
 #endif
 
+int main(int argc, const char * argv[]){
+    clock_t time0=clock();
+    if (argc!=4) {
+        std::cout<<"HDiffZ command line parameter:\n oldFileName newFileName outDiffFileName\n";
+        return 0;
+    }
+    const char* oldFileName=argv[1];
+    const char* newFileName=argv[2];
+    const char* outDiffFileName=argv[3];
+    std::cout<<"old:\"" <<oldFileName<< "\"\nnew:\""<<newFileName<<"\"\nout:\""<<outDiffFileName<<"\"\n";
+    
+    std::vector<TByte> oldData; readFile(oldData,oldFileName);
+    std::vector<TByte> newData; readFile(newData,newFileName);
+    const size_t oldDataSize=oldData.size();
+    const size_t newDataSize=newData.size();
+    
+    std::cout<<"HDiffZ with compress plugin: \""<<compressPlugin->compressType(compressPlugin)<<"\"\n";
+
     std::vector<TByte> diffData;
     TByte* newData0=newData.empty()?0:&newData[0];
     const TByte* oldData0=oldData.empty()?0:&oldData[0];
@@ -112,16 +114,16 @@ int main(int argc, const char * argv[]){
     clock_t time2=clock();
     if (!check_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
                                &diffData[0],&diffData[0]+diffData.size(),decompressPlugin)){
-        std::cout<<"  patch check diffz data error!!!\n";
+        std::cout<<"  patch check HDiffZ data error!!!\n";
         exit(2);
     }else{
-        std::cout<<"  patch check diffz data ok!\n";
+        std::cout<<"  patch check HDiffZ data ok!\n";
     }
     writeFile(diffData,outDiffFileName);
     clock_t time3=clock();
-    std::cout<<"  out diffz file ok!\n";
+    std::cout<<"  out HDiffZ file ok!\n";
     std::cout<<"oldDataSize : "<<oldDataSize<<"\nnewDataSize : "<<newDataSize<<"\ndiffDataSize: "<<diffData.size()<<"\n";
-    std::cout<<"\ndiffz   time:"<<(time2-time1)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
+    std::cout<<"\nHDiffZ  time:"<<(time2-time1)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
     std::cout<<"all run time:"<<(time3-time0)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
     
     return 0;

@@ -362,17 +362,17 @@ static void _TStreamClip_init(struct TStreamClip* sclip,
 
 static void _TStreamClip_updateCache(struct TStreamClip* sclip){
     TByte* buf0=&sclip->cacheBuf[0];
-    const TUInt stremSize=(TUInt)(sclip->streamPos_end-sclip->streamPos);
+    const TUInt streamSize=(TUInt)(sclip->streamPos_end-sclip->streamPos);
     size_t readSize=sclip->cacheBegin;
-    if (readSize>stremSize)
-        readSize=(size_t)stremSize;
+    if (readSize>streamSize)
+        readSize=(size_t)streamSize;
     if (readSize==0) return;
     if (!_TStreamClip_isCacheEmpty(sclip)){
         memmove(buf0+(size_t)(sclip->cacheBegin-readSize),
                 buf0+sclip->cacheBegin,_TStreamClip_cachedSize(sclip));
     }
     if (sclip->srcStream->read(sclip->srcStream->streamHandle,sclip->streamPos,
-                               buf0+(size_t)(hpatch_kStreamCacheSize-readSize),buf0+hpatch_kStreamCacheSize)
+                               buf0+(hpatch_kStreamCacheSize-readSize),buf0+hpatch_kStreamCacheSize)
                            == readSize ){
         sclip->cacheBegin-=readSize;
         sclip->streamPos+=readSize;
@@ -884,9 +884,17 @@ hpatch_BOOL compressedDiffInfo(TUInt* out_newDataSize,
                               const char* compressType,hpatch_TDecompress* decompressPlugin){
         TUInt curStreamPos=*pCurStreamPos;
         if (compressedSize==0){
+#ifdef __RUN_MEM_SAFE_CHECK
+            if ((TUInt)(curStreamPos+dataSize)<curStreamPos) return _hpatch_FALSE;
+            if ((TUInt)(curStreamPos+dataSize)>stream->streamSize) return _hpatch_FALSE;
+#endif
             _TStreamClip_init(out_clip,stream,curStreamPos,curStreamPos+dataSize);
             curStreamPos+=dataSize;
         }else{
+#ifdef __RUN_MEM_SAFE_CHECK
+            if ((TUInt)(curStreamPos+compressedSize)<curStreamPos) return _hpatch_FALSE;
+            if ((TUInt)(curStreamPos+compressedSize)>stream->streamSize) return _hpatch_FALSE;
+#endif
             out_stream->base.streamHandle=out_stream;
             out_stream->base.streamSize=dataSize;
             out_stream->base.read=_decompress_read;
@@ -912,9 +920,10 @@ hpatch_BOOL patch_decompress(const struct hpatch_TStreamOutput* out_newData,
     struct TStreamClip              coverClip;
     struct TStreamClip              code_newDataDiffClip;
     struct _TBytesRle_load_stream   rle_loader;
-    _TDecompressInputSteram decompressers[4];
-    hpatch_BOOL  result=hpatch_TRUE;
     _THDiffzHead head;
+    _TDecompressInputSteram decompressers[4];
+    int          i;
+    hpatch_BOOL  result=hpatch_TRUE;
     TUInt        diffPos0=0;
     const TUInt  diffPos_end=compressedDiff->streamSize;
     
@@ -928,11 +937,11 @@ hpatch_BOOL patch_decompress(const struct hpatch_TStreamOutput* out_newData,
         TStreamClip* diffHeadClip=&coverClip;//rename, share address
         _TStreamClip_init(diffHeadClip,compressedDiff,0,diffPos_end);
         if (!read_diffz_head(&head,diffHeadClip)) return _hpatch_FALSE;
-        assert((decompressPlugin!=0)||(head.compressedCount==0));
+        if ((decompressPlugin==0)&&(head.compressedCount!=0)) return _hpatch_FALSE;
         diffPos0=(TUInt)(diffPos_end-_TStreamClip_streamSize(diffHeadClip));
     }
-
-    for (int i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputSteram);++i)
+    
+    for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputSteram);++i)
         decompressers[i].decompressHandle=0;
     _TBytesRle_load_stream_init(&rle_loader);
     
@@ -952,13 +961,15 @@ hpatch_BOOL patch_decompress(const struct hpatch_TStreamOutput* out_newData,
                        head.newDataDiff_size,head.compress_newDataDiff_size,
                        compressedDiff,&diffPos0,head.compressType,
                        decompressPlugin)) _clear_return(_hpatch_FALSE);
-    
+#ifdef __RUN_MEM_SAFE_CHECK
+    if (diffPos0!=diffPos_end) return _hpatch_FALSE;
+#endif
     result=patchByClip(out_newData,oldData,
                        &coverClip,&coverClip,&coverClip,//same
                        &code_newDataDiffClip,
                        &rle_loader, head.ctrlCount, hpatch_TRUE);
 clear:
-    for (int i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputSteram);++i) {
+    for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputSteram);++i) {
         if (decompressers[i].decompressHandle){
             decompressPlugin->close(decompressPlugin,decompressers[i].decompressHandle);
             decompressers[i].decompressHandle=0;
