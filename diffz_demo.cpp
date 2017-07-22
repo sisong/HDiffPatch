@@ -62,8 +62,8 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 }
 
 //===== select compress plugin =====
-#define _CompressPlugin_no
-//#define _CompressPlugin_zlib
+//#define _CompressPlugin_no
+#define _CompressPlugin_zlib
 //#define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
 
@@ -92,15 +92,15 @@ int main(int argc, const char * argv[]){
 #endif
 #ifdef  _CompressPlugin_zlib
     const hdiff_TCompress* compressPlugin=&zlibCompressPlugin;
-    hpatch_TDecompress* decompressPlugin=hpatch_kNodecompressPlugin;
+    hpatch_TDecompress* decompressPlugin=&zlibDecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_bz2
     const hdiff_TCompress* compressPlugin=&bz2CompressPlugin;
-    hpatch_TDecompress* decompressPlugin=hpatch_kNodecompressPlugin;
+    hpatch_TDecompress* decompressPlugin=&bz2DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lzma
     const hdiff_TCompress* compressPlugin=&lzmaCompressPlugin;
-    hpatch_TDecompress* decompressPlugin=hpatch_kNodecompressPlugin;
+    hpatch_TDecompress* decompressPlugin=&lzmaDecompressPlugin;
 #endif
 
     std::vector<TByte> diffData;

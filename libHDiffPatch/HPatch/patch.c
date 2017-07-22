@@ -587,6 +587,7 @@ static  hpatch_BOOL _patch_copy_diff(const struct hpatch_TStreamOutput* out_newD
             decodeStep=(size_t)copyLength;
         if (!_TBytesRle_load_stream_decode_skip(rle_loader,decodeStep)) return _hpatch_FALSE;
         data=_TStreamClip_readData(diff,decodeStep);
+        if (data==0) return _hpatch_FALSE;
         if (decodeStep!=out_newData->write(out_newData->streamHandle,writeToPos,data,data+decodeStep))
             return _hpatch_FALSE;
         writeToPos+=decodeStep;
@@ -791,7 +792,7 @@ struct __private_hpatch_check_kMaxCompressTypeLength {
 static hpatch_BOOL read_diffz_head(_THDiffzHead* out_head,TStreamClip* diffHeadClip){
     const TByte* versionType=_TStreamClip_readData(diffHeadClip,kVersionTypeLen);
     if (versionType==0) return _hpatch_FALSE;
-    if (0!=strcmp((const char*)versionType,"HDIFF13&")) return _hpatch_FALSE;
+    if (0!=memcmp(versionType,"HDIFF13&",kVersionTypeLen)) return _hpatch_FALSE;
     
     {//read compressType
         const TByte* compressType;

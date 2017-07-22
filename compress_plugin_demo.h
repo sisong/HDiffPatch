@@ -46,22 +46,25 @@
     static size_t  _zlib_compress(const hdiff_TCompress* compressPlugin,
                                   unsigned char* out_code,unsigned char* out_code_end,
                                   const unsigned char* data,const unsigned char* data_end){
+        assert(out_code<out_code_end);
+        const unsigned char kWindowBits=16+MAX_WBITS;
+        *out_code=kWindowBits; ++out_code; //out kWindowBits
+        
         z_stream c_stream;
-        c_stream.zalloc = (alloc_func)0;
-        c_stream.zfree = (free_func)0;
-        c_stream.opaque = (voidpf)0;
+        memset(&c_stream,0,sizeof(z_stream));
         c_stream.next_in = (Bytef*)data;
         c_stream.avail_in = (uInt)(data_end-data);
         assert(c_stream.avail_in==(data_end-data));
         c_stream.next_out = (Bytef*)out_code;
         c_stream.avail_out = (uInt)(out_code_end-out_code);
         assert(c_stream.avail_out==(out_code_end-out_code));
-        int ret = deflateInit2(&c_stream, Z_BEST_COMPRESSION,Z_DEFLATED, 31,8, Z_DEFAULT_STRATEGY);
+        int ret = deflateInit2(&c_stream, Z_BEST_COMPRESSION,Z_DEFLATED,
+                               kWindowBits,MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
         if(ret != Z_OK){
             std::cout <<"\ndeflateInit2 error\n";
             return 0;
         }
-        ret = deflate(&c_stream, Z_FINISH);
+        ret = deflate(&c_stream,Z_FINISH);
         if (ret != Z_STREAM_END){
             deflateEnd(&c_stream);
             std::cout <<"\nret != Z_STREAM_END err="<< ret <<std::endl;
@@ -74,7 +77,7 @@
             std::cout <<"\ndeflateEnd error\n";
             return 0;
         }
-        return codeLen;
+        return sizeof(kWindowBits)+codeLen;
     }
     static hdiff_TCompress zlibCompressPlugin={_zlib_compressType,_zlib_maxCompressedSize,_zlib_compress};
 #endif//_CompressPlugin_zlib
