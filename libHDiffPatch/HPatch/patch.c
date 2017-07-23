@@ -837,8 +837,8 @@ static hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,
     return hpatch_TRUE;
 }
 
-hpatch_BOOL compressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
-                               const struct hpatch_TStreamInput* compressedDiff){
+hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
+                                  const struct hpatch_TStreamInput* compressedDiff){
     TStreamClip  diffHeadClip;
     _THDiffzHead head;
     assert(out_diffInfo!=0);

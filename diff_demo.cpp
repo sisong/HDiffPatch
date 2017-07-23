@@ -1,5 +1,6 @@
 //diff_demo.cpp
 // demo for HDiff
+//NOTE: use HDiffZ+HPatchZ support compressed diff data
 //
 /*
  The MIT License (MIT)

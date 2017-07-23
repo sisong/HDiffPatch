@@ -70,19 +70,17 @@ typedef size_t          TUInt;
 #endif
 
 
-static bool pacth_mem_stream(TByte* newData,TByte* newData_end,
-                             const TByte* oldData,const TByte* oldData_end,
-                             const TByte* diff,const TByte* diff_end,bool isDiffz){
+static bool _patch_mem_stream(TByte* newData,TByte* newData_end,
+                              const TByte* oldData,const TByte* oldData_end,
+                              const TByte* diff,const TByte* diff_end){
     struct hpatch_TStreamOutput out_newStream;
     struct hpatch_TStreamInput  oldStream;
     struct hpatch_TStreamInput  diffStream;
     memory_as_outputStream(&out_newStream,newData,newData_end);
     memory_as_inputStream(&oldStream,oldData,oldData_end);
     memory_as_inputStream(&diffStream,diff,diff_end);
-    if (isDiffz)
-        return 0!=patch_decompress(&out_newStream,&oldStream,&diffStream,decompressPlugin);
-    else
-        return 0!=patch_stream(&out_newStream,&oldStream,&diffStream);
+    
+    return 0!=patch_stream(&out_newStream,&oldStream,&diffStream);
 }
 
 static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
@@ -92,8 +90,8 @@ static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
     TByte* testNewData_begin=0;
     if (!testNewData.empty()) testNewData_begin=&testNewData[0];
 
-    if (!pacth_mem_stream(testNewData_begin,testNewData_begin+testNewData.size(),
-                          oldData,oldData_end, diff,diff_end,false))
+    if (!_patch_mem_stream(testNewData_begin,testNewData_begin+testNewData.size(),
+                           oldData,oldData_end,diff,diff_end))
         return false;
     for (TUInt i=0; i<(TUInt)testNewData.size(); ++i) {
         if (testNewData[i]!=newData[i])
@@ -109,10 +107,11 @@ long attackPacth(TByte* out_newData,TByte* out_newData_end,
                         const TByte* diffData,const TByte* diffData_end,
                         const char* error_tag,bool isDiffz){
     if (isDiffz){
-        pacth_mem_stream(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end,true);
+        patch_decompress_mem(out_newData,out_newData_end,oldData,oldData_end,
+                             diffData,diffData_end,decompressPlugin);
     }else{
         bool rt0=patch(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
-        bool rt1=pacth_mem_stream(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end,false);
+        bool rt1=_patch_mem_stream(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
         if (rt0!=rt1){
             printf("\n attackPacth error!!! tag:%s\n",error_tag);
             return 1;
@@ -247,10 +246,8 @@ int main(int argc, const char * argv[]){
     }
 
     const long kRandTestCount=50000;
-    int kMaxDataSize=1024*16;
-#ifdef _AttackPacth_ON
-    kMaxDataSize/=4;
-#endif
+    const int kMaxDataSize=1024*16;
+    
     std::vector<int> seeds(kRandTestCount);
     srand(0);
     for (int i=0; i<kRandTestCount; ++i)

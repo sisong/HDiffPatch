@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D6E150DA1F24764A00C2AD3D /* patchz_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6E150D91F24764A00C2AD3D /* patchz_demo.cpp */; };
+		D6E150DA1F24764A00C2AD3D /* HPatchZ.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6E150D91F24764A00C2AD3D /* HPatchZ.cpp */; };
 		D6E150DF1F24765600C2AD3D /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6E150DC1F24765600C2AD3D /* patch.c */; };
 		D6E150E81F24816400C2AD3D /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E150E61F24816400C2AD3D /* libbz2.tbd */; };
 		D6E150E91F24816400C2AD3D /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E150E71F24816400C2AD3D /* libz.tbd */; };
@@ -37,7 +37,7 @@
 
 /* Begin PBXFileReference section */
 		D6E150CF1F2475E200C2AD3D /* HPatchZ */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HPatchZ; sourceTree = BUILT_PRODUCTS_DIR; };
-		D6E150D91F24764A00C2AD3D /* patchz_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = patchz_demo.cpp; path = ../../patchz_demo.cpp; sourceTree = "<group>"; };
+		D6E150D91F24764A00C2AD3D /* HPatchZ.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HPatchZ.cpp; path = ../../HPatchZ.cpp; sourceTree = "<group>"; };
 		D6E150DC1F24765600C2AD3D /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 		D6E150DD1F24765600C2AD3D /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
 		D6E150DE1F24765600C2AD3D /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
@@ -65,7 +65,7 @@
 			children = (
 				D6E150DB1F24765600C2AD3D /* HPatch */,
 				D6E150E01F24768B00C2AD3D /* decompress_plugin_demo.h */,
-				D6E150D91F24764A00C2AD3D /* patchz_demo.cpp */,
+				D6E150D91F24764A00C2AD3D /* HPatchZ.cpp */,
 				D6E150D01F2475E200C2AD3D /* Products */,
 				D6E150E11F2480A100C2AD3D /* Frameworks */,
 			);
@@ -182,7 +182,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6E150DF1F24765600C2AD3D /* patch.c in Sources */,
-				D6E150DA1F24764A00C2AD3D /* patchz_demo.cpp in Sources */,
+				D6E150DA1F24764A00C2AD3D /* HPatchZ.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

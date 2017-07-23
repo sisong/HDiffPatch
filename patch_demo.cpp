@@ -1,5 +1,6 @@
 //patch_demo.cpp
 // demo for HPatch
+//NOTE: use HDiffZ+HPatchZ support compressed diff data
 //
 /*
  This is the HDiffPatch copyright.
@@ -138,6 +139,7 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
     fclose(file);
 }
 
+//diffFile need create by HDiff
 int main(int argc, const char * argv[]){
     if (argc!=4) {
         std::cout<<"patch command parameter:\n oldFileName diffFileName outNewFileName\n";
@@ -258,6 +260,7 @@ struct TFileStreamOutput:public hpatch_TStreamOutput{
     }
 };
 
+//diffFile need create by HDiff
 int main(int argc, const char * argv[]){
     if (argc!=4) {
         std::cout<<"patch command parameter:\n oldFileName diffFileName outNewFileName\n";

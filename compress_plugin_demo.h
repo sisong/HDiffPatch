@@ -36,7 +36,7 @@
 #include "libHDiffPatch/HDiff/diff.h"
 
 #ifdef  _CompressPlugin_zlib
-#include "zlib.h"
+#include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
     static const char*  _zlib_compressType(const hdiff_TCompress* compressPlugin){
         static const char* kCompressType="zlib";
         return kCompressType;
@@ -84,7 +84,7 @@
 #endif//_CompressPlugin_zlib
     
 #ifdef  _CompressPlugin_bz2
-#include "bzlib.h"
+#include "bzlib.h" // http://www.bzip.org/
     static const char*  _bz2_compressType(const hdiff_TCompress* compressPlugin){
         static const char* kCompressType="bz2";
         return kCompressType;
@@ -110,7 +110,7 @@
 #endif//_CompressPlugin_bz2
     
 #ifdef  _CompressPlugin_lzma
-#include "../lzma/C/LzmaEnc.h"
+#include "../lzma/C/LzmaEnc.h" // http://www.7-zip.org/sdk.html
     static const char*  _lzma_compressType(const hdiff_TCompress* compressPlugin){
         static const char* kCompressType="lzma";
         return kCompressType;

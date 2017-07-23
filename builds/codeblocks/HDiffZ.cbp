@@ -2,13 +2,13 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="unitTest" />
+		<Option title="HDiffZ" />
 		<Option pch_mode="2" />
-		<Option compiler="gcc" />
-		<Option virtualFolders="libHDiffPatch/;libHDiffPatch/HDiff/;libHDiffPatch/HPatch/;libHDiffPatch/HDiff/private_diff/;libHDiffPatch/HDiff/private_diff/libdivsufsort/;" />
+		<Option compiler="icc" />
+		<Option virtualFolders="libHDiffPatch/HDiff/;libHDiffPatch/HDiff/private_diff/;libHDiffPatch/;libHDiffPatch/HPatch/;libHDiffPatch/HDiff/private_diff/libdivsufsort/;" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin/Debug/unitTest" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Debug/HDiffZ" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
@@ -17,7 +17,7 @@
 				</Compiler>
 			</Target>
 			<Target title="Release">
-				<Option output="bin/Release/unitTest" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Release/HDiffZ" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
@@ -26,6 +26,8 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add library="libz" />
+					<Add library="libbz2" />
 				</Linker>
 			</Target>
 		</Build>
@@ -33,6 +35,7 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="../../diffz_demo.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/diff.cpp">
 			<Option virtualFolder="libHDiffPatch/HDiff/" />
 		</Unit>
@@ -90,7 +93,9 @@
 		<Unit filename="../../libHDiffPatch/HPatch/patch.h">
 			<Option virtualFolder="libHDiffPatch/HPatch/" />
 		</Unit>
-		<Unit filename="../../unit_test.cpp" />
+		<Unit filename="../../libHDiffPatch/HPatch/patch_base.h">
+			<Option virtualFolder="libHDiffPatch/HPatch/" />
+		</Unit>
 		<Extensions>
 			<envvars />
 			<code_completion />

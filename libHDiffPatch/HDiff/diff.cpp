@@ -571,15 +571,9 @@ bool check_compressed_diff(const unsigned char* newData,const unsigned char* new
     std::vector<TByte> testNewData(newData_end-newData);
     TByte* testNewData0=testNewData.empty()?0:&testNewData[0];
     
-    hpatch_TStreamOutput newStream;
-    hpatch_TStreamInput  oldStream;
-    hpatch_TStreamInput  diffStream;
-    memory_as_outputStream(&newStream,testNewData0,testNewData0+testNewData.size());
-    memory_as_inputStream(&oldStream,oldData,oldData_end);
-    memory_as_inputStream(&diffStream,diff,diff_end);
-    
-    if (!patch_decompress(&newStream,&oldStream,&diffStream,decompressPlugin))
-        return false;
+    if (!patch_decompress_mem(testNewData0,testNewData0+testNewData.size(),
+                              oldData,oldData_end, diff,diff_end,
+                              decompressPlugin)) return false;
     for (TUInt i=0; i<(TUInt)testNewData.size(); ++i) {
         if (testNewData[i]!=newData[i])
             return false;

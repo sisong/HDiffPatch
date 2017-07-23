@@ -63,15 +63,37 @@ hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
     #define hpatch_kNodecompressPlugin ((hpatch_TDecompress*)0)
 
 //compressedDiff created by create_compressed_diff()
-hpatch_BOOL compressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
-                               const struct hpatch_TStreamInput* compressedDiff);
+hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
+                                  const struct hpatch_TStreamInput* compressedDiff);
+inline static hpatch_BOOL
+    getCompressedDiffInfo_mem(hpatch_compressedDiffInfo* out_diffInfo,
+                              const unsigned char* compressedDiff,
+                              const unsigned char* compressedDiff_end){
+        hpatch_TStreamInput  diffStream;
+        memory_as_inputStream(&diffStream,compressedDiff,compressedDiff_end);
+        return getCompressedDiffInfo(out_diffInfo,&diffStream);
+    }
+
     
 //patch with decompress, used 5*(hpatch_kStreamCacheSize stack memory) + 4*(decompress used memory)
 hpatch_BOOL patch_decompress(const struct hpatch_TStreamOutput* out_newData,
                              const struct hpatch_TStreamInput*  oldData,
                              const struct hpatch_TStreamInput*  compressedDiff,
                              hpatch_TDecompress* decompressPlugin);
-    
+inline static hpatch_BOOL
+    patch_decompress_mem(unsigned char* out_newData,unsigned char* out_newData_end,
+                         const unsigned char* oldData,const unsigned char* oldData_end,
+                         const unsigned char* compressedDiff,const unsigned char* compressedDiff_end,
+                         hpatch_TDecompress* decompressPlugin){
+        hpatch_TStreamOutput newStream;
+        hpatch_TStreamInput  oldStream;
+        hpatch_TStreamInput  diffStream;
+        memory_as_outputStream(&newStream,out_newData,out_newData_end);
+        memory_as_inputStream(&oldStream,oldData,oldData_end);
+        memory_as_inputStream(&diffStream,compressedDiff,compressedDiff_end);
+        return patch_decompress(&newStream,&oldStream,&diffStream,decompressPlugin);
+}
+
 #ifdef __cplusplus
 }
 #endif

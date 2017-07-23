@@ -1,4 +1,4 @@
-//patchz_demo.cpp
+//HPatchZ.cpp
 // patch with decompress plugin
 //
 /*
@@ -121,6 +121,7 @@ struct TFileStreamOutput:public hpatch_TStreamOutput{
 
 #include "decompress_plugin_demo.h"
 
+//diffFile need create by HDiffZ
 int main(int argc, const char * argv[]){
     if (argc!=4) {
         std::cout<<"HPatchZ command parameter:\n oldFileName diffFileName outNewFileName\n";

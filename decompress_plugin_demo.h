@@ -34,10 +34,10 @@
 
 #include "libHDiffPatch/HPatch/patch.h"
 
-static const int kDecompressBufSize =1024;
+static const size_t kDecompressBufSize =1024;
 
 #ifdef  _CompressPlugin_zlib
-#include "zlib.h"
+#include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
     typedef struct _zlib_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
@@ -122,7 +122,7 @@ static const int kDecompressBufSize =1024;
 #endif//_CompressPlugin_zlib
     
 #ifdef  _CompressPlugin_bz2
-#include "bzlib.h"
+#include "bzlib.h" // http://www.bzip.org/
     typedef struct _bz2_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
@@ -200,7 +200,7 @@ static const int kDecompressBufSize =1024;
 #endif//_CompressPlugin_bz2
     
 #ifdef  _CompressPlugin_lzma
-#include "../lzma/C/LzmaDec.h"
+#include "../lzma/C/LzmaDec.h" // http://www.7-zip.org/sdk.html
     typedef struct _lzma_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
