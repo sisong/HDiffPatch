@@ -247,7 +247,10 @@ int main(int argc, const char * argv[]){
     }
 
     const long kRandTestCount=50000;
-    const long kMaxDataSize=1024*16;
+    int kMaxDataSize=1024*16;
+#ifdef _AttackPacth_ON
+    kMaxDataSize/=4;
+#endif
     std::vector<int> seeds(kRandTestCount);
     srand(0);
     for (int i=0; i<kRandTestCount; ++i)

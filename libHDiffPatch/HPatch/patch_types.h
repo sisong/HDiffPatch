@@ -69,6 +69,7 @@ extern "C" {
         hpatch_StreamPos_t  oldDataSize;
         char                compressType[hpatch_kMaxInfoLength+1];
         int                 compressedCount;//need open hpatch_decompressHandle number
+        int                 pluginInfoOffset;
         int                 pluginInfoSize;
         unsigned char       pluginInfo[hpatch_kMaxInfoLength];
     } hpatch_compressedDiffInfo;
@@ -76,11 +77,12 @@ extern "C" {
     typedef void*  hpatch_decompressHandle;
     typedef struct hpatch_TDecompress{
         //当前压缩diff包的信息,函数可以为null;
-        void           (*compressedDiffInfo)(const struct hpatch_TDecompress* decompressPlugin,
-                                             const hpatch_compressedDiffInfo* compressedDiffInfo);
+        void        (*compressedDiffInfo)(const struct hpatch_TDecompress* decompressPlugin,
+                                          const hpatch_compressedDiffInfo* compressedDiffInfo);
+        int                (*is_can_open)(struct hpatch_TDecompress* decompressPlugin,
+                                          const char* compressType);
         //error return 0.
         hpatch_decompressHandle  (*open)(struct hpatch_TDecompress* decompressPlugin,
-                                         const char* compressType,
                                          hpatch_StreamPos_t dataSize,
                                          const struct hpatch_TStreamInput* codeStream,
                                          hpatch_StreamPos_t code_begin,

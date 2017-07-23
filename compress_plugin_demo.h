@@ -138,7 +138,7 @@
         CLzmaEncProps props;
         LzmaEncProps_Init(&props);
         props.level=9;
-        props.dictSize=1<<22; //4M
+        props.dictSize=1<<22; //4M; patch_decompress() decompress need 4*4MB memroy
         LzmaEncProps_Normalize(&props);
         SRes res= LzmaEnc_SetProps(p,&props);
         if (res != SZ_OK){

@@ -27,6 +27,7 @@
 */
 
 #include "diff.h"
+#include <string.h> //strlen
 #include <assert.h>
 #include <vector>
 #include "private_diff/suffix_string.h"
@@ -447,8 +448,7 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
 
     static const char kVersionType[8+1]="HDIFF13&";
     const char* compressType="";
-    if (!compress_cover_buf.empty()||!compress_rle_ctrlBuf.empty()
-        ||!compress_rle_codeBuf.empty()||!compress_newDataDiff.empty()){
+    if (compressPlugin){
         compressType=compressPlugin->compressType(compressPlugin);
         if (strlen(compressType)>hpatch_kMaxInfoLength) throw compressType; //diff error!
     }
@@ -531,17 +531,6 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
 }//end namespace
 
 
-//for test
-void __hdiff_private__create_diff(const TByte* newData,const TByte* newData_end,
-                                  const TByte* oldData,const TByte* oldData_end,
-                                  std::vector<TByte>& out_diff,
-                                  const void* _kDiffParams,
-                                  const TSuffixString* sstring){
-    TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,(const THDiffPrivateParams*)_kDiffParams,sstring);
-    serialize_diff(diff,out_diff);
-}
-
 void create_diff(const TByte* newData,const TByte* newData_end,
                  const TByte* oldData,const TByte* oldData_end,
                  std::vector<TByte>& out_diff){
@@ -597,5 +586,18 @@ bool check_compressed_diff(const unsigned char* newData,const unsigned char* new
     }
     return true;
 }
+
+//for test
+void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* newData_end,
+                                             const TByte* oldData,const TByte* oldData_end,
+                                             std::vector<TByte>& out_diff,
+                                             const hdiff_TCompress* compressPlugin,
+                                             const void* _kDiffParams,
+                                             const TSuffixString* sstring){
+    TDiffData diff;
+    get_diff(newData,newData_end,oldData,oldData_end,diff,(const THDiffPrivateParams*)_kDiffParams,sstring);
+    serialize_compressed_diff(diff,out_diff,compressPlugin);
+}
+
 
 

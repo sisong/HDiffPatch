@@ -780,9 +780,9 @@ typedef struct _THDiffzHead{
 } _THDiffzHead;
 
 
-//assert(hpatch_kStreamCacheSize>=hpatch_kMaxInfoLength+2);
+//assert(hpatch_kStreamCacheSize>=hpatch_kMaxInfoLength+1);
 struct __private_hpatch_check_kMaxCompressTypeLength {
-    char _[hpatch_kStreamCacheSize-(hpatch_kMaxInfoLength+2)];};
+    char _[hpatch_kStreamCacheSize-(hpatch_kMaxInfoLength+1)];};
 
 static hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,
                                    _THDiffzHead* out_head,TStreamClip* diffHeadClip){
@@ -793,16 +793,12 @@ static hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,
     {//read compressType
         const TByte* compressType;
         size_t       compressTypeLen;
-        size_t readLen=hpatch_kMaxInfoLength+1+1;
+        size_t readLen=hpatch_kMaxInfoLength+1;
         if (readLen>_TStreamClip_streamSize(diffHeadClip))
             readLen=(size_t)_TStreamClip_streamSize(diffHeadClip);
         compressType=_TStreamClip_accessData(diffHeadClip,readLen);
         if (compressType==0) return _hpatch_FALSE;
-        compressTypeLen=0;
-        while (compressTypeLen<readLen) {//like strlen()
-            if (compressType[compressTypeLen]=='\0') break;
-            ++compressTypeLen;
-        }
+        compressTypeLen=strnlen((const char*)compressType,readLen);
         if (compressTypeLen==readLen) return _hpatch_FALSE;
         _TStreamClip_skipData_noCheck(diffHeadClip,compressTypeLen+1);
         memcpy(out_diffInfo->compressType,compressType,compressTypeLen+1);
@@ -812,11 +808,13 @@ static hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,
         const TByte* pluginInfo;
         _TStreamClip_unpackUIntTo(&pluginInfoSize,diffHeadClip);
         if (pluginInfoSize>hpatch_kMaxInfoLength) return _hpatch_FALSE;
+        out_diffInfo->pluginInfoOffset=(int)(diffHeadClip->streamPos_end
+                                             - _TStreamClip_streamSize(diffHeadClip));
         pluginInfo=_TStreamClip_accessData(diffHeadClip,(size_t)pluginInfoSize);
         if (pluginInfo==0) return _hpatch_FALSE;
         out_diffInfo->pluginInfoSize=(int)pluginInfoSize;
-        memcpy(out_diffInfo->pluginInfo,pluginInfo,pluginInfoSize);
-        _TStreamClip_skipData_noCheck(diffHeadClip,pluginInfoSize);
+        memcpy(out_diffInfo->pluginInfo,pluginInfo,(size_t)pluginInfoSize);
+        _TStreamClip_skipData_noCheck(diffHeadClip,(size_t)pluginInfoSize);
     }
     
     _TStreamClip_unpackUIntTo(&out_diffInfo->newDataSize,diffHeadClip);
@@ -871,7 +869,7 @@ hpatch_BOOL compressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
     hpatch_BOOL getStreamClip(TStreamClip* out_clip,_TDecompressInputSteram* out_stream,
                               TUInt dataSize,TUInt compressedSize,
                               const hpatch_TStreamInput* stream,TUInt* pCurStreamPos,
-                              const char* compressType,hpatch_TDecompress* decompressPlugin){
+                              hpatch_TDecompress* decompressPlugin){
         TUInt curStreamPos=*pCurStreamPos;
         if (compressedSize==0){
 #ifdef __RUN_MEM_SAFE_CHECK
@@ -889,8 +887,7 @@ hpatch_BOOL compressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
             out_stream->base.streamSize=dataSize;
             out_stream->base.read=_decompress_read;
             out_stream->decompressPlugin=decompressPlugin;
-            out_stream->decompressHandle=decompressPlugin->open(decompressPlugin,compressType,
-                                                                dataSize,stream,
+            out_stream->decompressHandle=decompressPlugin->open(decompressPlugin,dataSize,stream,
                                                                 curStreamPos,curStreamPos+compressedSize);
             if (!out_stream->decompressHandle) return _hpatch_FALSE;
             _TStreamClip_init(out_clip,&out_stream->base,0,out_stream->base.streamSize);
@@ -931,6 +928,8 @@ hpatch_BOOL patch_decompress(const struct hpatch_TStreamOutput* out_newData,
         if ((decompressPlugin==0)&&(diffInfo.compressedCount!=0)) return _hpatch_FALSE;
         if ((decompressPlugin)&&(decompressPlugin->compressedDiffInfo))
             decompressPlugin->compressedDiffInfo(decompressPlugin,&diffInfo);
+        if ((decompressPlugin)&&(diffInfo.compressedCount>0))
+            if (!decompressPlugin->is_can_open(decompressPlugin,diffInfo.compressType)) return _hpatch_FALSE;
         diffPos0=(TUInt)(diffPos_end-_TStreamClip_streamSize(diffHeadClip));
     }
     
@@ -940,22 +939,18 @@ hpatch_BOOL patch_decompress(const struct hpatch_TStreamOutput* out_newData,
     
     if (!getStreamClip(&coverClip,&decompressers[0],
                        head.cover_buf_size,head.compress_cover_buf_size,
-                       compressedDiff,&diffPos0,diffInfo.compressType,
-                       decompressPlugin)) _clear_return(_hpatch_FALSE);
+                       compressedDiff,&diffPos0,decompressPlugin)) _clear_return(_hpatch_FALSE);
     if (!getStreamClip(&rle_loader.ctrlClip,&decompressers[1],
                        head.rle_ctrlBuf_size,head.compress_rle_ctrlBuf_size,
-                       compressedDiff,&diffPos0,diffInfo.compressType,
-                       decompressPlugin)) _clear_return(_hpatch_FALSE);
+                       compressedDiff,&diffPos0,decompressPlugin)) _clear_return(_hpatch_FALSE);
     if (!getStreamClip(&rle_loader.rleCodeClip,&decompressers[2],
                        head.rle_codeBuf_size,head.compress_rle_codeBuf_size,
-                       compressedDiff,&diffPos0,diffInfo.compressType,
-                       decompressPlugin)) _clear_return(_hpatch_FALSE);
+                       compressedDiff,&diffPos0,decompressPlugin)) _clear_return(_hpatch_FALSE);
     if (!getStreamClip(&code_newDataDiffClip,&decompressers[3],
                        head.newDataDiff_size,head.compress_newDataDiff_size,
-                       compressedDiff,&diffPos0,diffInfo.compressType,
-                       decompressPlugin)) _clear_return(_hpatch_FALSE);
+                       compressedDiff,&diffPos0,decompressPlugin)) _clear_return(_hpatch_FALSE);
 #ifdef __RUN_MEM_SAFE_CHECK
-    if (diffPos0!=diffPos_end) return _hpatch_FALSE;
+    if (diffPos0!=diffPos_end) _clear_return(_hpatch_FALSE);
 #endif
     result=patchByClip(out_newData,oldData,
                        &coverClip,&coverClip,&coverClip,//same
