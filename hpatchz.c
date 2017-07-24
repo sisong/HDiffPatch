@@ -1,4 +1,4 @@
-//HPatchZ.cpp
+//hpatchz.c
 // patch with decompress plugin
 //
 /*
@@ -29,50 +29,42 @@
  */
 
 #include <stdio.h>
-#include "assert.h"
-#include <time.h>
-#include <string.h>
-#include <stdlib.h>
+#include <assert.h>
+#include <string.h> //strlen
+#include <time.h>   //clock
 #include "libHDiffPatch/HPatch/patch.h"
 
-static hpatch_BOOL getFilePos64(FILE* file,hpatch_StreamPos_t* out_pos){
-    fpos_t fpos;
-    int ret=fgetpos(file, &fpos); //support 64bit?
-    hpatch_BOOL result=(ret==0);
-    if (result){
-#if defined(__linux) || defined(__linux__)
-        *out_pos=fpos.__pos;
-#else //windows macosx
-        *out_pos=fpos;
+static hpatch_BOOL fileTell64(FILE* file,hpatch_StreamPos_t* out_pos){
+#ifdef _MSC_VER
+    __int64 fpos=_ftelli64(file);
+#else
+    off_t fpos=ftello(file);
 #endif
-    }
+    hpatch_BOOL result=(fpos>=0);
+    if (result) *out_pos=fpos;
     return result;
 }
 
-hpatch_BOOL setFilePos64(FILE* file,hpatch_StreamPos_t seekPos){
-    fpos_t fpos;
-#if defined(__linux) || defined(__linux__)
-    memset(&fpos,0,sizeof(fpos));
-    fpos.__pos=seekPos;
-#else //windows macosx
-    fpos=seekPos;
+hpatch_BOOL fileSeek64(FILE* file,hpatch_StreamPos_t seekPos,int whence){
+#ifdef _MSC_VER
+    int ret=_fseeki64(file,seekPos,whence);
+#else
+    off_t fpos=seekPos;
+    if ((fpos<0)||((hpatch_StreamPos_t)fpos!=seekPos)) return hpatch_FALSE;
+    int ret=fseeko(file,fpos,whence);
 #endif
-    int ret=fsetpos(file,&fpos);
     return (ret==0);
 }
 
-
 static hpatch_BOOL _close_file(FILE** pfile){
-    hpatch_BOOL result=hpatch_TRUE;
     FILE* file=*pfile;
-    if (file!=0){
-        if (0!=fclose(file))
-            result=hpatch_FALSE;
+    if (file){
         *pfile=0;
+        if (0!=fclose(file))
+            return hpatch_FALSE;
     }
-    return result;
+    return hpatch_TRUE;
 }
-
 
 
 typedef struct TFileStreamInput{
@@ -90,14 +82,16 @@ static void TFileStreamInput_init(TFileStreamInput* self){
 
     static long _read_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
                            unsigned char* out_data,unsigned char* out_data_end){
+        unsigned long readLen,readed;
         TFileStreamInput* self=(TFileStreamInput*)streamHandle;
-        size_t readLen=(size_t)(out_data_end-out_data);
+        assert(out_data<=out_data_end);
+        readLen=(unsigned long)(out_data_end-out_data);
         if ((readFromPos+readLen<readFromPos)
             ||(readFromPos+readLen>self->base.streamSize)) _fileError_return;
         if (self->m_fpos!=readFromPos){
-            if (!setFilePos64(self->m_file,readFromPos)) _fileError_return;
+            if (!fileSeek64(self->m_file,readFromPos,SEEK_SET)) _fileError_return;
         }
-        size_t readed=fread(out_data,1,readLen,self->m_file);
+        readed=(unsigned long)fread(out_data,1,readLen,self->m_file);
         if (readed!=readLen) _fileError_return;
         self->m_fpos=readFromPos+readed;
         return (long)readed;
@@ -108,9 +102,9 @@ static hpatch_BOOL TFileStreamInput_open(TFileStreamInput* self,const char* file
     
     self->m_file=fopen(fileName, "rb");
     if (self->m_file==0) return hpatch_FALSE;
-    if (0!=fseek(self->m_file, 0, SEEK_END)) return hpatch_FALSE;
-    if (!getFilePos64(self->m_file,&self->base.streamSize)) return hpatch_FALSE;
-    if (0!=fseek(self->m_file, 0, SEEK_SET)) return hpatch_FALSE;
+    if (!fileSeek64(self->m_file, 0, SEEK_END)) return hpatch_FALSE;
+    if (!fileTell64(self->m_file,&self->base.streamSize)) return hpatch_FALSE;
+    if (!fileSeek64(self->m_file, 0, SEEK_SET)) return hpatch_FALSE;
     
     self->base.streamHandle=self;
     self->base.read=_read_file;
@@ -136,12 +130,14 @@ static void TFileStreamOutput_init(TFileStreamOutput* self){
 
     static long _write_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
                             const unsigned char* data,const unsigned char* data_end){
+        unsigned long writeLen,writed;
         TFileStreamOutput* self=(TFileStreamOutput*)streamHandle;
-        size_t writeLen=(size_t)(data_end-data);
+        assert(data<=data_end);
+        writeLen=(unsigned long)(data_end-data);
         if ((writeToPos!=self->out_length)
             ||(writeToPos+writeLen<writeToPos)
             ||(writeToPos+writeLen>self->base.streamSize)) _fileError_return;
-        size_t writed=fwrite(data,1,writeLen,self->m_file);
+        writed=(unsigned long)fwrite(data,1,writeLen,self->m_file);
         if (writed!=writeLen)  _fileError_return;
         self->out_length+=writed;
         return (long)writed;
@@ -178,32 +174,32 @@ static void check_error(hpatch_BOOL error,int* outExitCode,const char* errorInfo
 
 #include "decompress_plugin_demo.h"
 
-#define _clear_return(info,exitCode) {\
-    if (strlen(info)>0) printf(info); \
+#define _clear_return(info,exitCode) {     \
+    if (strlen(info)>0) printf("%s",info); \
     result=exitCode; \
     goto clear;      \
 }
 
 //diffFile need create by HDiffZ
 int main(int argc, const char * argv[]){
-    if (argc!=4) {
-        printf("HPatchZ command parameter:\n oldFileName diffFileName outNewFileName\n");
-        return 1;
-    }
-    
+    int     result=0;
     clock_t time0=clock();
     clock_t time1;
     clock_t time2;
     clock_t time3;
-    int                 result=0;
     hpatch_TDecompress* decompressPlugin=0;
     TFileStreamInput  oldData;
     TFileStreamInput  diffData;
     TFileStreamOutput newData;
+    if (argc!=4) {
+        printf("HPatchZ command parameter:\n oldFileName diffFileName outNewFileName\n");
+        return 1;
+    }
     TFileStreamInput_init(&oldData);
     TFileStreamInput_init(&diffData);
     TFileStreamOutput_init(&newData);
     {//open file
+        hpatch_compressedDiffInfo diffInfo;
         const char* oldFileName=argv[1];
         const char* diffFileName=argv[2];
         const char* outNewFileName=argv[3];
@@ -212,7 +208,6 @@ int main(int argc, const char * argv[]){
             _clear_return("\nopen oldFile error!\n",2);
         if (!TFileStreamInput_open(&diffData,diffFileName))
             _clear_return("\nopen diffFile error!\n",3);
-        hpatch_compressedDiffInfo diffInfo;
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
             check_error(diffData.fileError,0,"\ndiffFile read error!\n");
             _clear_return("\ngetCompressedDiffInfo() run error!\n",4);
