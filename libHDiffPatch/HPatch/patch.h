@@ -35,7 +35,8 @@ extern "C" {
 #endif
     
 #define hpatch_BOOL   int
-#define hpatch_FALSE  0
+#define hpatch_FALSE  ((int)0)
+#define hpatch_TRUE   ((int)(!hpatch_FALSE))
 
 //if patch() false return hpatch_FALSE
 //  serializedDiff create by create_diff()
