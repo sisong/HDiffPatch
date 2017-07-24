@@ -1,4 +1,4 @@
-//HDiffZ.cpp
+//hdiffz.cpp
 // diff with compress plugin
 //
 /*

@@ -7,21 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D6E150DA1F24764A00C2AD3D /* HPatchZ.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6E150D91F24764A00C2AD3D /* HPatchZ.cpp */; };
+		D6E150DA1F24764A00C2AD3D /* hpatchz.c in Sources */ = {isa = PBXBuildFile; fileRef = D6E150D91F24764A00C2AD3D /* hpatchz.c */; };
 		D6E150DF1F24765600C2AD3D /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6E150DC1F24765600C2AD3D /* patch.c */; };
 		D6E150E81F24816400C2AD3D /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E150E61F24816400C2AD3D /* libbz2.tbd */; };
 		D6E150E91F24816400C2AD3D /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E150E71F24816400C2AD3D /* libz.tbd */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		D6E150EE1F2481BB00C2AD3D /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = D6E150EA1F2481BB00C2AD3D /* lzma.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = D690ABCE1F208EA80089DC57;
-			remoteInfo = lzma;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		D6E150CD1F2475E200C2AD3D /* CopyFiles */ = {
@@ -37,14 +27,13 @@
 
 /* Begin PBXFileReference section */
 		D6E150CF1F2475E200C2AD3D /* HPatchZ */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HPatchZ; sourceTree = BUILT_PRODUCTS_DIR; };
-		D6E150D91F24764A00C2AD3D /* HPatchZ.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HPatchZ.cpp; path = ../../HPatchZ.cpp; sourceTree = "<group>"; };
+		D6E150D91F24764A00C2AD3D /* hpatchz.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hpatchz.c; path = ../../hpatchz.c; sourceTree = "<group>"; };
 		D6E150DC1F24765600C2AD3D /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 		D6E150DD1F24765600C2AD3D /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
 		D6E150DE1F24765600C2AD3D /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
 		D6E150E01F24768B00C2AD3D /* decompress_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = decompress_plugin_demo.h; path = ../../decompress_plugin_demo.h; sourceTree = "<group>"; };
 		D6E150E61F24816400C2AD3D /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		D6E150E71F24816400C2AD3D /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
-		D6E150EA1F2481BB00C2AD3D /* lzma.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = lzma.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,7 +54,7 @@
 			children = (
 				D6E150DB1F24765600C2AD3D /* HPatch */,
 				D6E150E01F24768B00C2AD3D /* decompress_plugin_demo.h */,
-				D6E150D91F24764A00C2AD3D /* HPatchZ.cpp */,
+				D6E150D91F24764A00C2AD3D /* hpatchz.c */,
 				D6E150D01F2475E200C2AD3D /* Products */,
 				D6E150E11F2480A100C2AD3D /* Frameworks */,
 			);
@@ -93,19 +82,10 @@
 		D6E150E11F2480A100C2AD3D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D6E150EA1F2481BB00C2AD3D /* lzma.xcodeproj */,
 				D6E150E61F24816400C2AD3D /* libbz2.tbd */,
 				D6E150E71F24816400C2AD3D /* libz.tbd */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		D6E150EB1F2481BB00C2AD3D /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				D6E150EF1F2481BB00C2AD3D /* liblzma.a */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -153,12 +133,6 @@
 			mainGroup = D6E150C61F2475E200C2AD3D;
 			productRefGroup = D6E150D01F2475E200C2AD3D /* Products */;
 			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = D6E150EB1F2481BB00C2AD3D /* Products */;
-					ProjectRef = D6E150EA1F2481BB00C2AD3D /* lzma.xcodeproj */;
-				},
-			);
 			projectRoot = "";
 			targets = (
 				D6E150CE1F2475E200C2AD3D /* HPatchZ */,
@@ -166,23 +140,13 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXReferenceProxy section */
-		D6E150EF1F2481BB00C2AD3D /* liblzma.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = liblzma.a;
-			remoteRef = D6E150EE1F2481BB00C2AD3D /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-/* End PBXReferenceProxy section */
-
 /* Begin PBXSourcesBuildPhase section */
 		D6E150CB1F2475E200C2AD3D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				D6E150DF1F24765600C2AD3D /* patch.c in Sources */,
-				D6E150DA1F24764A00C2AD3D /* HPatchZ.cpp in Sources */,
+				D6E150DA1F24764A00C2AD3D /* hpatchz.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

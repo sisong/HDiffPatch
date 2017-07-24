@@ -151,7 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\HPatchZ.cpp" />
+    <ClCompile Include="..\..\hpatchz.c" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
   </ItemGroup>
   <ItemGroup>

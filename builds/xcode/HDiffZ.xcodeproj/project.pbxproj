@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D690AB9C1F20792A0089DC57 /* HDiffZ.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690AB9B1F20792A0089DC57 /* HDiffZ.cpp */; };
+		D690AB9C1F20792A0089DC57 /* hdiffz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690AB9B1F20792A0089DC57 /* hdiffz.cpp */; };
 		D690ABB71F2079E80089DC57 /* diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA01F2079E80089DC57 /* diff.cpp */; };
 		D690ABB81F2079E80089DC57 /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA31F2079E80089DC57 /* bytes_rle.cpp */; };
 		D690ABB91F2079E80089DC57 /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA71F2079E80089DC57 /* divsufsort.c */; };
@@ -32,7 +32,7 @@
 
 /* Begin PBXFileReference section */
 		D690AB911F2078A40089DC57 /* HDiffZ */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HDiffZ; sourceTree = BUILT_PRODUCTS_DIR; };
-		D690AB9B1F20792A0089DC57 /* HDiffZ.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HDiffZ.cpp; path = ../../HDiffZ.cpp; sourceTree = "<group>"; };
+		D690AB9B1F20792A0089DC57 /* hdiffz.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hdiffz.cpp; path = ../../hdiffz.cpp; sourceTree = "<group>"; };
 		D690ABA01F2079E80089DC57 /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
 		D690ABA11F2079E80089DC57 /* diff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diff.h; sourceTree = "<group>"; };
 		D690ABA31F2079E80089DC57 /* bytes_rle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bytes_rle.cpp; sourceTree = "<group>"; };
@@ -79,7 +79,7 @@
 				D690AB9E1F2079E80089DC57 /* libHDiffPatch */,
 				D6E150981F223B2700C2AD3D /* compress_plugin_demo.h */,
 				D6E1509A1F223DC100C2AD3D /* decompress_plugin_demo.h */,
-				D690AB9B1F20792A0089DC57 /* HDiffZ.cpp */,
+				D690AB9B1F20792A0089DC57 /* hdiffz.cpp */,
 				D690AB921F2078A40089DC57 /* Products */,
 				D690ABBD1F20832E0089DC57 /* Frameworks */,
 			);
@@ -226,7 +226,7 @@
 				D690ABB71F2079E80089DC57 /* diff.cpp in Sources */,
 				D690ABBA1F2079E80089DC57 /* divsufsort64.c in Sources */,
 				D690ABB91F2079E80089DC57 /* divsufsort.c in Sources */,
-				D690AB9C1F20792A0089DC57 /* HDiffZ.cpp in Sources */,
+				D690AB9C1F20792A0089DC57 /* hdiffz.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
