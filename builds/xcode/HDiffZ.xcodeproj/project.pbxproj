@@ -16,6 +16,7 @@
 		D690ABBC1F2079E80089DC57 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABB51F2079E80089DC57 /* patch.c */; };
 		D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFA1F2097C90089DC57 /* libbz2.tbd */; };
 		D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFC1F2097D30089DC57 /* libz.tbd */; };
+		D6E1512A1F2767CA00C2AD3D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E151291F2767CA00C2AD3D /* liblzma.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -58,6 +59,7 @@
 		D6E150941F21A95200C2AD3D /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
 		D6E150981F223B2700C2AD3D /* compress_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = compress_plugin_demo.h; path = ../../compress_plugin_demo.h; sourceTree = "<group>"; };
 		D6E1509A1F223DC100C2AD3D /* decompress_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = decompress_plugin_demo.h; path = ../../decompress_plugin_demo.h; sourceTree = "<group>"; };
+		D6E151291F2767CA00C2AD3D /* liblzma.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = liblzma.tbd; path = usr/lib/liblzma.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,6 +67,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D6E1512A1F2767CA00C2AD3D /* liblzma.tbd in Frameworks */,
 				D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */,
 				D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */,
 			);
@@ -157,6 +160,7 @@
 		D690ABBD1F20832E0089DC57 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D6E151291F2767CA00C2AD3D /* liblzma.tbd */,
 				D690AEFC1F2097D30089DC57 /* libz.tbd */,
 				D690AEFA1F2097C90089DC57 /* libbz2.tbd */,
 			);

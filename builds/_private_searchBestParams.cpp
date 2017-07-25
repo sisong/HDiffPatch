@@ -34,6 +34,7 @@
 #include "assert.h"
 #include <time.h>
 #include <vector>
+#include <math.h> //pow
 #include <string.h>
 #include <stdlib.h>
 #include "../libHDiffPatch/HDiff/diff.h"
@@ -199,10 +200,10 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
         for (int kMinSingleMatchScore=7; kMinSingleMatchScore<=14; ++kMinSingleMatchScore) {
         {//for (int kExtendMinSameRatio=0.40f*kFixedFloatSmooth_base; kExtendMinSameRatio<=0.55f*kFixedFloatSmooth_base;kExtendMinSameRatio+=0.01f*kFixedFloatSmooth_base) {
 
-        double sumDiffR=0;
-        double sumZipDiffR=0;
-        double sumBz2DiffR=0;
-        double sumLzmaDiffR=0;
+        double sumDiffR=1;
+        double sumZipDiffR=1;
+        double sumBz2DiffR=1;
+        double sumLzmaDiffR=1;
         size_t sumOldSize=0;
         size_t sumNewSize=0;
         size_t sumDiffSize=0;
@@ -217,13 +218,13 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
             
             doDiff(curDi);
             double curDiffRi=curDi.diffSize*1.0/curDi.newFileSize;
-            sumDiffR+=curDiffRi;
             double curZipDiffRi=curDi.zipSize*1.0/curDi.newFileSize;
             double curBz2DiffRi=curDi.bz2Size*1.0/curDi.newFileSize;
             double curLzmaDiffRi=curDi.lzmaSize*1.0/curDi.newFileSize;
-            sumZipDiffR+=curZipDiffRi;
-            sumBz2DiffR+=curBz2DiffRi;
-            sumLzmaDiffR+=curLzmaDiffRi;
+            sumDiffR*=curDiffRi;
+            sumZipDiffR*=curZipDiffRi;
+            sumBz2DiffR*=curBz2DiffRi;
+            sumLzmaDiffR*=curLzmaDiffRi;
             sumNewSize+=curDi.newFileSize;
             sumOldSize+=curDi.oldFileSize;
             sumDiffSize+=curDi.diffSize;
@@ -233,10 +234,10 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
             //std::cout<<curDi.asString()<<"\t"<<curDiffRi<<"\n";
         }
         
-        const double curDiffR=sumDiffR/kDoCount;
-        const double curZipDiffR=sumZipDiffR/kDoCount;
-        const double curBz2DiffR=sumBz2DiffR/kDoCount;
-        const double curLzmaDiffR=sumLzmaDiffR/kDoCount;
+        const double curDiffR=pow(sumDiffR,1.0/kDoCount);
+        const double curZipDiffR=pow(sumZipDiffR,1.0/kDoCount);
+        const double curBz2DiffR=pow(sumBz2DiffR,1.0/kDoCount);
+        const double curLzmaDiffR=pow(sumLzmaDiffR,1.0/kDoCount);
         const double curCompressDiffR=(curZipDiffR*1+curBz2DiffR*1+curLzmaDiffR*1)/(1+1+1);
         {
             TDiffInfo curDi;
