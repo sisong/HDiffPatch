@@ -149,28 +149,45 @@ static bool getBestMatch(const TSuffixString& sstring,const TByte* newData,const
               +_getSizeCost(cover.newPos-lastCover.newPos) + kUnLinkOtherScore;
     }
     
-//粗略估算区域内当作覆盖时的可能收益.
-static TInt getCoverScore(TInt newPos,TInt oldPos,TInt length,const TDiffData& diff){
-    if ((oldPos<0)||(oldPos+length>(diff.oldData_end-diff.oldData)))
-        return -kMinTrustMatchLength;
-    TInt eqScore=0;
-    bool eq_state=true;
-    for (TInt i=0; i<length; ++i) {
-        if (diff.newData[newPos+i]==diff.oldData[oldPos+i]){
-            ++eqScore;
-            if (eq_state) //认为切换是有成本的;
-                ++eqScore;
-            eq_state=true;
-        }else{
-            eq_state=false;
+    //粗略估算区域内当作覆盖时的可能存储成本.
+    static TInt getCoverCost(TInt newPos,TInt oldPos,TInt length,const TDiffData& diff){
+        if ((oldPos<0)||(oldPos+length>(diff.oldData_end-diff.oldData)))
+            return length+kMinTrustMatchLength;
+        TInt cost=0;
+        bool eq_state=true;
+        for (TInt i=0; i<length; ++i) {
+            if (diff.newData[newPos+i]==diff.oldData[oldPos+i]){
+                if (!eq_state) //认为切换是有成本的;
+                    ++cost;
+                eq_state=true;
+            }else{
+                eq_state=false;
+                ++cost;
+            }
         }
+        return cost;
     }
-    return (eqScore+1)>>1;
-}
     
-inline static TInt getCoverScore(const TOldCover& cover,const TDiffData& diff){
-    return getCoverScore(cover.newPos,cover.oldPos,cover.length,diff);
-}
+    inline static TInt getCoverCost(const TOldCover& cover,const TDiffData& diff){
+        return getCoverCost(cover.newPos,cover.oldPos,cover.length,diff);
+    }
+    
+    static TInt getNoCoverCost(TInt newPos,TInt length,const TDiffData& diff){
+        TInt cost=0;
+        bool eq_state=true;
+        for (TInt i=0; i<length; ++i) {
+            if (diff.newData[newPos+i]==0){
+                if (!eq_state) //认为切换是有成本的;
+                    ++cost;
+                eq_state=true;
+            }else{
+                eq_state=false;
+                ++cost;
+            }
+        }
+        return cost;
+    }
+    
     
 //尝试延长lastCover来完全代替matchCover;
 static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const TDiffData& diff){
@@ -183,11 +200,11 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
         return true;
     }
     TInt linkOldPos=lastCover.oldPos+lastCover.length+linkSpaceLength;
-    TInt matchScore=matchCover.length; //==getCoverScore(matchCover,diff);
-    TInt lastLinkScore=getCoverScore(matchCover.newPos,linkOldPos,matchCover.length,diff);
-    if (lastLinkScore<=matchScore-getCoverCtrlCost(matchCover,lastCover))
+    TInt matchCost=getCoverCtrlCost(matchCover,lastCover);
+    TInt lastLinkCost=getCoverCost(matchCover.newPos,linkOldPos,matchCover.length,diff);
+    if (lastLinkCost>=matchCost)
         return false;
-    TInt len=lastCover.length+linkSpaceLength+lastLinkScore*2/3;//扩展大部分,剩下的可能扩展留给extend_cover.
+    TInt len=lastCover.length+linkSpaceLength+matchCover.length*2/3;//扩展大部分,剩下的可能扩展留给extend_cover.
     len+=getEqualLength(diff.newData+lastCover.newPos+len,diff.newData_end,
                         diff.oldData+lastCover.oldPos+len,diff.oldData_end);
     while ((len>0) && (diff.newData[lastCover.newPos+len-1]
@@ -203,9 +220,9 @@ static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const 
     if (lastCover.length<=0) return;
     if (lastCover.isCollinear(matchCover)) return; //已经共线;
     TInt linkOldPos=matchCover.oldPos-(matchCover.newPos-lastCover.newPos);
-    TInt lastScore=getCoverScore(lastCover,diff);
-    TInt matchLinkEqLength=getCoverScore(lastCover.newPos,linkOldPos,lastCover.length,diff);
-    if (lastScore<=matchLinkEqLength)
+    TInt lastCost=getCoverCost(lastCover,diff);
+    TInt matchLinkCost=getCoverCost(lastCover.newPos,linkOldPos,lastCover.length,diff);
+    if (lastCost>=matchLinkCost)
         lastCover.oldPos=linkOldPos;
 }
 
@@ -261,8 +278,9 @@ static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
             }
         }
         if (!isNeedSave){//单覆盖是否保留.
-            TInt coverScoreScore=getCoverScore(covers[i],diff);
-            isNeedSave=(coverScoreScore-getCoverCtrlCost(covers[i],lastCover)>=kMinSingleMatchScore);
+            TInt coverCost=getCoverCost(covers[i],diff)+getCoverCtrlCost(covers[i],lastCover);
+            TInt noCoverCost=getNoCoverCost(covers[i].newPos,covers[i].length,diff);
+            isNeedSave=((noCoverCost-coverCost)>=kMinSingleMatchScore);
         }
 
         if (isNeedSave){
