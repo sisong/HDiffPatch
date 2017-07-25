@@ -77,11 +77,11 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 
 struct THDiffPrivateParams{
     int kMinMatchLength;
-    int kMinSingleMatchLength;
+    int kMinSingleMatchScore;
     std::string asString()const{
         std::stringstream str;
         str<<kMinMatchLength; str<<',';
-        str<<kMinSingleMatchLength;
+        str<<kMinSingleMatchScore;
         
         return str.str();
     }
@@ -196,7 +196,7 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
     double bestCompressDiffR=1e308;
     bool isOutSrcSize=false;
     for (int kMinMatchLength=7; kMinMatchLength<=16; ++kMinMatchLength) {
-        for (int kMinSingleMatchLength=12; kMinSingleMatchLength<=35; ++kMinSingleMatchLength) {
+        for (int kMinSingleMatchScore=7; kMinSingleMatchScore<=14; ++kMinSingleMatchScore) {
         {//for (int kExtendMinSameRatio=0.40f*kFixedFloatSmooth_base; kExtendMinSameRatio<=0.55f*kFixedFloatSmooth_base;kExtendMinSameRatio+=0.01f*kFixedFloatSmooth_base) {
 
         double sumDiffR=0;
@@ -212,7 +212,7 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
         for (size_t doi=0; doi<DiList.size(); ++doi) {
             TDiffInfo& curDi=DiList[doi];
             curDi.kP.kMinMatchLength=kMinMatchLength;
-            curDi.kP.kMinSingleMatchLength=kMinSingleMatchLength;
+            curDi.kP.kMinSingleMatchScore=kMinSingleMatchScore;
             //curDi.kP.kExtendMinSameRatio=kExtendMinSameRatio;
             
             doDiff(curDi);
@@ -243,7 +243,7 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
             curDi.oldFileName="";
             curDi.newFileName="";
             curDi.kP.kMinMatchLength=kMinMatchLength;
-            curDi.kP.kMinSingleMatchLength=kMinSingleMatchLength;
+            curDi.kP.kMinSingleMatchScore=kMinSingleMatchScore;
             curDi.oldFileSize=sumOldSize;
             curDi.newFileSize=sumNewSize;
             curDi.diffSize=sumDiffSize;
