@@ -36,7 +36,7 @@
 #include "../HPatch/patch.h"
 
 
-static const int kDefaultMinMatchScore        = 8; //最小搜寻覆盖收益.
+static const int kDefaultMinMatchScore        = 2; //最小搜寻覆盖收益.
 static const int kDefaultMinSingleMatchScore  =12; //最小独立覆盖收益.
 
 namespace{
@@ -242,12 +242,12 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring,int kMinMa
     while (newPos<=maxSearchNewPos) {
         TInt matchOldPos=0;
         TInt matchEqLength=getBestMatch(&matchOldPos,sstring,diff.newData+newPos,diff.newData_end);
-        if (matchEqLength<kMinMatchLength){
+        TOldCover matchCover(newPos,matchOldPos,matchEqLength);
+        if (matchEqLength-getCoverCtrlCost(matchCover,lastCover)<kMinMatchScore){
             ++newPos;//下一个需要匹配的字符串(逐位置匹配速度会比较慢).
             continue;
         }//else matched
         
-        TOldCover matchCover(newPos,matchOldPos,matchEqLength);
         if (tryLinkExtend(lastCover,matchCover,diff)){//use link
             if (diff.covers.empty())
                 diff.covers.push_back(lastCover);
