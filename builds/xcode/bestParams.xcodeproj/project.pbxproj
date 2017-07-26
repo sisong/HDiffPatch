@@ -14,8 +14,6 @@
 		80D6A84219B73AB30041C1D7 /* _private_searchBestParams.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D6A84119B73AB30041C1D7 /* _private_searchBestParams.cpp */; };
 		D66166271E189F5A005C570A /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D661661E1E189F5A005C570A /* divsufsort.c */; };
 		D66166281E189F5A005C570A /* divsufsort64.c in Sources */ = {isa = PBXBuildFile; fileRef = D66166211E189F5A005C570A /* divsufsort64.c */; };
-		D6C7015E1E17E72C00C19D84 /* (null) in Sources */ = {isa = PBXBuildFile; };
-		D6C7015F1E17E72C00C19D84 /* (null) in Sources */ = {isa = PBXBuildFile; };
 		D6E150B41F23B66D00C2AD3D /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E150B21F23B66D00C2AD3D /* libbz2.tbd */; };
 		D6E150B51F23B66D00C2AD3D /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E150B31F23B66D00C2AD3D /* libz.tbd */; };
 		D6E1512C1F276E1200C2AD3D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E1512B1F276E1200C2AD3D /* liblzma.tbd */; };
@@ -219,9 +217,7 @@
 				80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */,
 				D66166271E189F5A005C570A /* divsufsort.c in Sources */,
 				80D1B2A4199A40A700F6B3A8 /* diff.cpp in Sources */,
-				D6C7015E1E17E72C00C19D84 /* (null) in Sources */,
 				80D1B2A7199A40A700F6B3A8 /* patch.c in Sources */,
-				D6C7015F1E17E72C00C19D84 /* (null) in Sources */,
 				80D6A84219B73AB30041C1D7 /* _private_searchBestParams.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

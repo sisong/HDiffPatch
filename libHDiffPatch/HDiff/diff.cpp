@@ -152,45 +152,41 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
               +_getUIntCost(cover.newPos-lastCover.newPos) + kUnLinkOtherScore;
     }
     
-    //粗略估算区域内当作覆盖时的可能存储成本.
-    static TInt getCoverCost(TInt newPos,TInt oldPos,TInt length,const TDiffData& diff){
+    //粗略估算该区域存储成本.
+    static TInt getRegionCost(const TByte* d,TInt n,const TByte* s=0){
+        int i=0;
+        while ((i<n)&&(d[i]==(s?s[i]:0)))
+            ++i;
+        TInt cost=0;
+        while(i<n){
+            TByte v=(TByte)(d[i]-(s?s[i]:0));
+            TInt i0=i; ++i;
+            while ((i<n)&&(v==(TByte)(d[i]-(s?s[i]:0))))
+                ++i;
+            if ((v==0)|(v==255))
+                ++cost;
+            else
+                cost+=(i-i0<=1)?1:2;
+        }
+        return cost;
+    }
+    
+    //粗略估算 区域内当作覆盖时的可能存储成本.
+    inline static bool checkGetCoverCost(TInt* out_cost,TInt newPos,TInt oldPos,
+                                         TInt length,const TDiffData& diff){
         if ((oldPos<0)||(oldPos+length>(diff.oldData_end-diff.oldData)))
-            return length+kMinTrustMatchLength;
-        TInt cost=0;
-        bool eq_state=true;
-        for (TInt i=0; i<length; ++i) {
-            if (diff.newData[newPos+i]==diff.oldData[oldPos+i]){
-                if (!eq_state) //认为切换是有成本的;
-                    ++cost;
-                eq_state=true;
-            }else{
-                eq_state=false;
-                ++cost;
-            }
-        }
-        return cost;
+            return false;
+        *out_cost=getRegionCost(diff.newData+newPos,length,diff.oldData+oldPos);
+        return true;
     }
-    
     inline static TInt getCoverCost(const TOldCover& cover,const TDiffData& diff){
-        return getCoverCost(cover.newPos,cover.oldPos,cover.length,diff);
+        return getRegionCost(diff.newData+cover.newPos,cover.length,diff.oldData+cover.oldPos);
     }
-    
-    static TInt getNoCoverCost(TInt newPos,TInt length,const TDiffData& diff){
-        TInt cost=0;
-        bool eq_state=true;
-        for (TInt i=0; i<length; ++i) {
-            if (diff.newData[newPos+i]==0){
-                if (!eq_state) //认为切换是有成本的;
-                    ++cost;
-                eq_state=true;
-            }else{
-                eq_state=false;
-                ++cost;
-            }
-        }
-        return cost;
+    //粗略估算 区域内不当作覆盖时的可能存储成本.
+    inline static TInt getNoCoverCost(TInt newPos,TInt length,const TDiffData& diff){
+        return getRegionCost(diff.newData+newPos,length);
     }
-    
+    //粗略估算 使用覆盖线节省的可能存储成本.
     inline static TInt getCoverSorce(const TOldCover& cover,const TOldCover& lastCover,const TDiffData& diff){
         return (getNoCoverCost(cover.newPos,cover.length,diff)
               -getCoverCost(cover,diff))-getCoverCtrlCost(cover,lastCover);
@@ -208,7 +204,8 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     }
     TInt linkOldPos=lastCover.oldPos+lastCover.length+linkSpaceLength;
     TInt matchCost=getCoverCtrlCost(matchCover,lastCover);
-    TInt lastLinkCost=getCoverCost(matchCover.newPos,linkOldPos,matchCover.length,diff);
+    TInt lastLinkCost;
+    if (!checkGetCoverCost(&lastLinkCost,matchCover.newPos,linkOldPos,matchCover.length,diff)) return false;
     if (lastLinkCost>=matchCost)
         return false;
     TInt len=lastCover.length+linkSpaceLength+matchCover.length*2/3;//扩展大部分,剩下的可能扩展留给extend_cover.
@@ -228,7 +225,8 @@ static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const 
     if (lastCover.isCollinear(matchCover)) return; //已经共线;
     TInt linkOldPos=matchCover.oldPos-(matchCover.newPos-lastCover.newPos);
     TInt lastCost=getCoverCost(lastCover,diff);
-    TInt matchLinkCost=getCoverCost(lastCover.newPos,linkOldPos,lastCover.length,diff);
+    TInt matchLinkCost;
+    if (!checkGetCoverCost(&matchLinkCost,lastCover.newPos,linkOldPos,lastCover.length,diff)) return;
     if (lastCost>=matchLinkCost)
         lastCover.oldPos=linkOldPos;
 }
@@ -243,6 +241,7 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring,int kMinMa
         TInt matchOldPos=0;
         TInt matchEqLength=getBestMatch(&matchOldPos,sstring,diff.newData+newPos,diff.newData_end);
         TOldCover matchCover(newPos,matchOldPos,matchEqLength);
+        //if (getCoverSorce(matchCover, lastCover,diff)<kMinMatchScore){//实际效果没有下面的判断好,可能是降低了link的可能性;
         if (matchEqLength-getCoverCtrlCost(matchCover,lastCover)<kMinMatchScore){
             ++newPos;//下一个需要匹配的字符串(逐位置匹配速度会比较慢).
             continue;
@@ -259,7 +258,7 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring,int kMinMa
             diff.covers.push_back(matchCover);
         }
         lastCover=diff.covers.back();
-        newPos=std::max(newPos+1,lastCover.newPos+lastCover.length);
+        newPos=std::max(newPos+1,lastCover.newPos+lastCover.length);//选出的cover不允许重叠,这可能不是最优策略;
     }
 }
 
