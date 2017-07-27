@@ -133,6 +133,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\libHDiffPatch\HDiff\diff.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\bytes_rle.cpp" />
+    <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\compress_detect.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\libdivsufsort\divsufsort.c" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\libdivsufsort\divsufsort64.c" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\suffix_string.cpp" />
@@ -142,11 +143,6 @@
     <ClCompile Include="..\..\unit_test.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\libHDiffPatch\HDiff\diff.h" />
-    <ClInclude Include="..\..\libHDiffPatch\HDiff\private_diff\bytes_rle.h" />
-    <ClInclude Include="..\..\libHDiffPatch\HDiff\private_diff\pack_uint.h" />
-    <ClInclude Include="..\..\libHDiffPatch\HDiff\private_diff\sais.hxx" />
-    <ClInclude Include="..\..\libHDiffPatch\HDiff\private_diff\suffix_string.h" />
     <ClInclude Include="..\..\libHDiffPatch\HPatch\patch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

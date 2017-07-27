@@ -35,6 +35,9 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="../../hpatchz.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
 			<Option compilerVar="CC" />
 			<Option virtualFolder="HPatch/" />
@@ -42,10 +45,6 @@
 		<Unit filename="../../libHDiffPatch/HPatch/patch.h">
 			<Option virtualFolder="HPatch/" />
 		</Unit>
-		<Unit filename="../../libHDiffPatch/HPatch/patch_base.h">
-			<Option virtualFolder="HPatch/" />
-		</Unit>
-		<Unit filename="../../patchz_demo.cpp" />
 		<Extensions>
 			<envvars />
 			<code_completion />

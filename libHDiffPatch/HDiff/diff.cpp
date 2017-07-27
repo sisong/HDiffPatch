@@ -32,19 +32,19 @@
 #include <vector>
 #include "private_diff/suffix_string.h"
 #include "private_diff/bytes_rle.h"
+#include "private_diff/compress_detect.h"
 #include "private_diff/pack_uint.h"
 #include "../HPatch/patch.h"
 
 
-static const int kDefaultMinMatchScore        = 2; //最小搜寻覆盖收益.
-static const int kDefaultMinSingleMatchScore  =12; //最小独立覆盖收益.
+int kMinTrustMatchLength =74; //直接选定该覆盖线.
+int kMinSingleMatchScore = 5; //最小独立覆盖收益.
 
 namespace{
     
     typedef unsigned char TByte;
     typedef size_t        TUInt;
     typedef ptrdiff_t     TInt;
-    static const int kMinTrustMatchLength=1024*8;  //(贪婪)选定该覆盖线(优化一些速度).
     static const int kMaxLinkSpaceLength=(1<<9)-1; //跨覆盖线合并时,允许合并的最远距离.
     
     inline static void pushBack(std::vector<TByte>& out_buf,const TByte* data,const TByte* data_end){
@@ -129,46 +129,11 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
 }
 
     
-    static TInt _getUIntCost(TUInt v){
-        if ((sizeof(TUInt)>4)&&(v>>56)==0) {
-            TInt cost=1;
-            TUInt t;
-            if ((t=(v>>28))) { v=t; cost+=4; }
-            if ((t=(v>>14))) { v=t; cost+=2; }
-            if ((t=(v>> 7))) { v=t; ++cost; }
-            return cost;
-        }else{
-            return 9;
-        }
-    }
-    inline static TInt _getIntCost(TInt v){
-        return _getUIntCost(2*((v>=0)?v:(-v)));
-    }
-    
     //粗略估算覆盖线的控制数据成本;
     inline static TInt getCoverCtrlCost(const TOldCover& cover,const TOldCover& lastCover){
         static const int kUnLinkOtherScore=0;
         return _getIntCost(cover.oldPos-lastCover.oldPos) + _getUIntCost(cover.length)
-              +_getUIntCost(cover.newPos-lastCover.newPos) + kUnLinkOtherScore;
-    }
-    
-    //粗略估算该区域存储成本.
-    static TInt getRegionCost(const TByte* d,TInt n,const TByte* s=0){
-        int i=0;
-        while ((i<n)&&(d[i]==(s?s[i]:0)))
-            ++i;
-        TInt cost=0;
-        while(i<n){
-            TByte v=(TByte)(d[i]-(s?s[i]:0));
-            TInt i0=i; ++i;
-            while ((i<n)&&(v==(TByte)(d[i]-(s?s[i]:0))))
-                ++i;
-            if ((v==0)|(v==255))
-                ++cost;
-            else
-                cost+=(i-i0<=1)?1:2;
-        }
-        return cost;
+        +_getUIntCost(cover.newPos-lastCover.newPos) + kUnLinkOtherScore;
     }
     
     //粗略估算 区域内当作覆盖时的可能存储成本.
@@ -176,20 +141,11 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
                                          TInt length,const TDiffData& diff){
         if ((oldPos<0)||(oldPos+length>(diff.oldData_end-diff.oldData)))
             return false;
-        *out_cost=getRegionCost(diff.newData+newPos,length,diff.oldData+oldPos);
+        *out_cost=(TInt)getRegionRelCost(diff.newData+newPos,length,diff.oldData+oldPos);
         return true;
     }
     inline static TInt getCoverCost(const TOldCover& cover,const TDiffData& diff){
-        return getRegionCost(diff.newData+cover.newPos,cover.length,diff.oldData+cover.oldPos);
-    }
-    //粗略估算 区域内不当作覆盖时的可能存储成本.
-    inline static TInt getNoCoverCost(TInt newPos,TInt length,const TDiffData& diff){
-        return getRegionCost(diff.newData+newPos,length);
-    }
-    //粗略估算 使用覆盖线节省的可能存储成本.
-    inline static TInt getCoverSorce(const TOldCover& cover,const TOldCover& lastCover,const TDiffData& diff){
-        return (getNoCoverCost(cover.newPos,cover.length,diff)
-              -getCoverCost(cover,diff))-getCoverCtrlCost(cover,lastCover);
+        return (TInt)getRegionRelCost(diff.newData+cover.newPos,cover.length,diff.oldData+cover.oldPos);
     }
     
 //尝试延长lastCover来完全代替matchCover;
@@ -206,9 +162,9 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     TInt matchCost=getCoverCtrlCost(matchCover,lastCover);
     TInt lastLinkCost;
     if (!checkGetCoverCost(&lastLinkCost,matchCover.newPos,linkOldPos,matchCover.length,diff)) return false;
-    if (lastLinkCost>=matchCost)
+    if (lastLinkCost>matchCost)
         return false;
-    TInt len=lastCover.length+linkSpaceLength+matchCover.length*2/3;//扩展大部分,剩下的可能扩展留给extend_cover.
+    TInt len=lastCover.length+linkSpaceLength+(matchCover.length*3>>2);//扩展大部分,剩下的可能扩展留给extend_cover.
     len+=getEqualLength(diff.newData+lastCover.newPos+len,diff.newData_end,
                         diff.oldData+lastCover.oldPos+len,diff.oldData_end);
     while ((len>0) && (diff.newData[lastCover.newPos+len-1]
@@ -232,8 +188,9 @@ static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const 
 }
 
 //寻找合适的覆盖线.
-static void search_cover(TDiffData& diff,const TSuffixString& sstring,int kMinMatchScore){
+static void search_cover(TDiffData& diff,const TSuffixString& sstring){
     if (sstring.SASize()<=0) return;
+    static const int kMinMatchScore = 2; //最小搜寻覆盖收益.
     const TInt maxSearchNewPos=(diff.newData_end-diff.newData)-kMinMatchScore;
     TInt newPos=0;
     TOldCover lastCover(0,0,0);
@@ -241,7 +198,6 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring,int kMinMa
         TInt matchOldPos=0;
         TInt matchEqLength=getBestMatch(&matchOldPos,sstring,diff.newData+newPos,diff.newData_end);
         TOldCover matchCover(newPos,matchOldPos,matchEqLength);
-        //if (getCoverSorce(matchCover, lastCover,diff)<kMinMatchScore){//实际效果没有下面的判断好,可能是降低了link的可能性;
         if (matchEqLength-getCoverCtrlCost(matchCover,lastCover)<kMinMatchScore){
             ++newPos;//下一个需要匹配的字符串(逐位置匹配速度会比较慢).
             continue;
@@ -263,8 +219,10 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring,int kMinMa
 }
 
 //选择合适的覆盖线,去掉不合适的.
-static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
+static void select_cover(TDiffData& diff){
     std::vector<TOldCover>&  covers=diff.covers;
+    TCompressDetect  nocover_detect;
+    TCompressDetect  cover_detect;
 
     TOldCover lastCover(0,0,0);
     const TInt coverSize_old=(TInt)covers.size();
@@ -282,15 +240,25 @@ static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
             }
         }
         if (!isNeedSave){//单覆盖是否保留.
-            isNeedSave=(getCoverSorce(covers[i],lastCover,diff)>=kMinSingleMatchScore);
+            TInt noCoverCost=nocover_detect.cost(diff.newData+covers[i].newPos,covers[i].length);
+            TInt coverCost=cover_detect.cost(diff.newData+covers[i].newPos,covers[i].length,
+                                             diff.oldData+covers[i].oldPos);
+            TInt coverSorce=noCoverCost-coverCost-getCoverCtrlCost(covers[i],lastCover);
+            isNeedSave=(coverSorce>=kMinSingleMatchScore);
         }
-
+        
         if (isNeedSave){
             if ((insertIndex>0)&&(covers[insertIndex-1].isCanLink(covers[i]))){//link合并.
                 covers[insertIndex-1].Link(covers[i]);
+                cover_detect.add_chars(diff.newData+lastCover.newPos+lastCover.length,
+                                       covers[insertIndex-1].length-lastCover.length,
+                                       diff.oldData+lastCover.oldPos+lastCover.length);
             }else{
-                covers[insertIndex]=covers[i];
-                ++insertIndex;
+                covers[insertIndex++]=covers[i];
+                nocover_detect.add_chars(diff.newData+lastCover.newPos+lastCover.length,
+                                         covers[i].newPos-(lastCover.newPos+lastCover.length));
+                cover_detect.add_chars(diff.newData+covers[i].newPos,covers[i].length,
+                                       diff.oldData+covers[i].oldPos);
             }
             lastCover=covers[insertIndex-1];
         }
@@ -547,24 +515,11 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     pushCompressCode(out_diff,compress_rle_codeBuf,rle_codeBuf);
     pushCompressCode(out_diff,compress_newDataDiff,diff.newDataDiff);
 }
-
-    struct THDiffPrivateParams{
-        int kMinMatchScore;
-        int kMinSingleMatchScore;
-    };
     
 static void get_diff(const TByte* newData,const TByte* newData_end,
                      const TByte* oldData,const TByte* oldData_end,
                      TDiffData&   out_diff,
-                     const THDiffPrivateParams *kDiffParams=0,
                      const TSuffixString* sstring=0){
-    
-    int kMinMatchScore       = kDefaultMinMatchScore;
-    int kMinSingleMatchScore  = kDefaultMinSingleMatchScore;
-    if (kDiffParams){
-        kMinMatchScore      =kDiffParams->kMinMatchScore;
-        kMinSingleMatchScore=kDiffParams->kMinSingleMatchScore;
-    }
     assert(newData<=newData_end);
     assert(oldData<=oldData_end);
     TSuffixString _sstring_default(0,0);
@@ -579,12 +534,12 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
     diff.oldData=oldData;
     diff.oldData_end=oldData_end;
     
-    search_cover(diff,*sstring,kMinMatchScore);
+    search_cover(diff,*sstring);
     sstring=0;
     _sstring_default.clear();
     
     extend_cover(diff);//先尝试扩展.
-    select_cover(diff,kMinSingleMatchScore);
+    select_cover(diff);
     extend_cover(diff);//select_cover会删除一些覆盖线,所以重新扩展.
     sub_cover(diff);
 }
@@ -647,10 +602,9 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
                                              const TByte* oldData,const TByte* oldData_end,
                                              std::vector<TByte>& out_diff,
                                              const hdiff_TCompress* compressPlugin,
-                                             const void* _kDiffParams,
                                              const TSuffixString* sstring){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,(const THDiffPrivateParams*)_kDiffParams,sstring);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,sstring);
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 

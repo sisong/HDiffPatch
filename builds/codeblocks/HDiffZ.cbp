@@ -35,7 +35,7 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
-		<Unit filename="../../diffz_demo.cpp" />
+		<Unit filename="../../hdiffz.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/diff.cpp">
 			<Option virtualFolder="libHDiffPatch/HDiff/" />
 		</Unit>
@@ -91,9 +91,6 @@
 			<Option virtualFolder="libHDiffPatch/HPatch/" />
 		</Unit>
 		<Unit filename="../../libHDiffPatch/HPatch/patch.h">
-			<Option virtualFolder="libHDiffPatch/HPatch/" />
-		</Unit>
-		<Unit filename="../../libHDiffPatch/HPatch/patch_base.h">
 			<Option virtualFolder="libHDiffPatch/HPatch/" />
 		</Unit>
 		<Extensions>
