@@ -10,7 +10,7 @@ uses:
   
    release the diffData for update oldData.  
    (note: create_diff() out **uncompressed diffData**,   
-    **v2.0.0** can use create_compressed_diff()/patch_decompress() create **compressed diffData**.)   
+    v2.0.0 you can use **create_compressed_diff()**/patch_decompress() create **compressed diffData**.)   
   
 *  **bool patch(out newData,oldData,diffData);**
   
