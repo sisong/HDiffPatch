@@ -56,7 +56,7 @@ size_t getRegionRelCost(const unsigned char* d,size_t n,const unsigned char* sub
     return cost;
 }
 
-static const size_t kCacheSize=1024*1024*2;
+static const size_t kCacheSize=1024*512;
 TCompressDetect::TCompressDetect()
 :m_table(0),m_lastChar(-1),
 m_lastPopChar(-1),m_cacheBegin(0),m_cacheEnd(0){
@@ -67,7 +67,6 @@ TCompressDetect::~TCompressDetect(){
     free(m_table);
     m_table=0;
 }
-
 
 void TCompressDetect::_add_rle(const unsigned char* d,size_t n){
     if (n==0) return;
@@ -99,10 +98,9 @@ void TCompressDetect::_add_rle(const unsigned char* d,size_t n){
     }
 }
 
-#include <stdio.h>
-int kCompressDetectDivBit=12;
-int kCompressDetectMaxBit=8;
 size_t TCompressDetect::_cost_rle(const unsigned char* d,size_t n)const{
+    static const size_t kCompressDetectDivBit=12;
+    static const size_t kCompressDetectMaxBit=12;
     if (n==0) return 0;
     if (m_lastChar<0) return n;
     size_t        codeSize=0;
@@ -110,34 +108,36 @@ size_t TCompressDetect::_cost_rle(const unsigned char* d,size_t n)const{
     for (size_t i=0;i<n;++i) {
         unsigned char cur=d[i];
         size_t rab=m_table->sum2char[last*256+cur];
-        int bit=kCompressDetectMaxBit;
         if (rab>0){
-            bit=1;
-            size_t ra=m_table->sum1char[last];
-            while(rab<(ra>>=1))
+            size_t bit= 1;
+            size_t ra = 1 + m_table->sum1char[last];
+            while((rab<<=1)<ra)
                 ++bit;
-            //printf("%ld,%d:%d ",rab,m_table->sum1char[last],bit);
+            codeSize+=(bit<=kCompressDetectMaxBit)?bit:kCompressDetectMaxBit;
+        }else{
+            codeSize+=kCompressDetectMaxBit;
         }
-        codeSize+=(bit<=kCompressDetectMaxBit)?bit:kCompressDetectMaxBit;
         last=cur;
     }
-    return (codeSize+(kCompressDetectDivBit>>1))/kCompressDetectDivBit;
+    return (codeSize+((kCompressDetectDivBit>>1)+1))/kCompressDetectDivBit;
 }
 
-static const size_t kBufSize=1024*4;
-#define by_step(call)  {\
+static const size_t kBufSize=1024;
+#define by_step(call)     \
+    size_t rleCtrlCost=0; \
     unsigned char rcode[kBufSize];  \
-    while (n>0) {   \
+    while (n>0) {         \
         size_t readLen=kBufSize;    \
         if (readLen>n) readLen=n;   \
         size_t rcodeLen=readLen;\
-        getRegionRelCost(d,readLen,sub,rcode,&rcodeLen);\
+        rleCtrlCost+=getRegionRelCost(d,readLen,sub,rcode,&rcodeLen);\
+        rleCtrlCost-=rcodeLen;  \
         call(rcode,rcodeLen);   \
         d+=readLen;             \
         if (sub) sub+=readLen;  \
         n-=readLen;             \
     }  \
-}
+
 
 void TCompressDetect::add_chars(const unsigned char* d,size_t n,const unsigned char* sub){
     by_step(this->_add_rle);
@@ -146,7 +146,7 @@ void TCompressDetect::add_chars(const unsigned char* d,size_t n,const unsigned c
 size_t TCompressDetect::cost(const unsigned char* d,size_t n,const unsigned char* sub)const{
     size_t result=0;
     by_step(result+=this->_cost_rle);
-    return result;
+    return result+rleCtrlCost;
 }
 
 

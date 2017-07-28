@@ -36,10 +36,6 @@
 #include "private_diff/pack_uint.h"
 #include "../HPatch/patch.h"
 
-
-int kMinTrustMatchLength =74; //直接选定该覆盖线.
-int kMinSingleMatchScore = 5; //最小独立覆盖收益.
-
 namespace{
     
     typedef unsigned char TByte;
@@ -131,7 +127,7 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
     
     //粗略估算覆盖线的控制数据成本;
     inline static TInt getCoverCtrlCost(const TOldCover& cover,const TOldCover& lastCover){
-        static const int kUnLinkOtherScore=0;
+        static const int kUnLinkOtherScore=0;//0--2
         return _getIntCost(cover.oldPos-lastCover.oldPos) + _getUIntCost(cover.length)
         +_getUIntCost(cover.newPos-lastCover.newPos) + kUnLinkOtherScore;
     }
@@ -164,7 +160,7 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     if (!checkGetCoverCost(&lastLinkCost,matchCover.newPos,linkOldPos,matchCover.length,diff)) return false;
     if (lastLinkCost>matchCost)
         return false;
-    TInt len=lastCover.length+linkSpaceLength+(matchCover.length*3>>2);//扩展大部分,剩下的可能扩展留给extend_cover.
+    TInt len=lastCover.length+linkSpaceLength+(matchCover.length*2/3);//扩展大部分,剩下的可能扩展留给extend_cover.
     len+=getEqualLength(diff.newData+lastCover.newPos+len,diff.newData_end,
                         diff.oldData+lastCover.oldPos+len,diff.oldData_end);
     while ((len>0) && (diff.newData[lastCover.newPos+len-1]
@@ -219,7 +215,7 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring){
 }
 
 //选择合适的覆盖线,去掉不合适的.
-static void select_cover(TDiffData& diff){
+static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
     std::vector<TOldCover>&  covers=diff.covers;
     TCompressDetect  nocover_detect;
     TCompressDetect  cover_detect;
@@ -229,14 +225,16 @@ static void select_cover(TDiffData& diff){
     TInt insertIndex=0;
     for (TInt i=0;i<coverSize_old;++i){
         if (covers[i].oldPos<0) continue;//处理已经del的.
-        bool isNeedSave=covers[i].length>=kMinTrustMatchLength;//足够长.
+        bool isNeedSave=false;
         if (!isNeedSave){//向前合并可能.
             if ((insertIndex>0)&&(covers[insertIndex-1].isCanLink(covers[i])))
                 isNeedSave=true;
         }
-        if ((!isNeedSave)&&(i+1<coverSize_old)){//查询向后合并可能link
-            if (covers[i].isCanLink(covers[i+1])){//右邻直接判断.
-                isNeedSave=true;
+        if (i+1<coverSize_old){//查询向后合并可能link
+            for (TInt j=i+1;j<coverSize_old; ++j) {
+                if (!covers[i].isCanLink(covers[j])) break;
+                covers[i].Link(covers[j]);
+                covers[j].oldPos=-1;//del
             }
         }
         if (!isNeedSave){//单覆盖是否保留.
@@ -271,9 +269,8 @@ static void select_cover(TDiffData& diff){
     static TInt getCanExtendLength(TInt oldPos,TInt newPos,int inc,
                                    TInt newPos_min,TInt lastNewEnd,const TDiffData& diff){
         typedef size_t TFixedFloatSmooth; //定点数.
-        static const TFixedFloatSmooth kFixedFloatSmooth_base=1024*8;//定点数小数点位置.
-        static const TFixedFloatSmooth kExtendMinSameRatio=
-                            (TFixedFloatSmooth)(0.463f*kFixedFloatSmooth_base); //0.40--0.55
+        static const TFixedFloatSmooth kFixedFloatSmooth_base=1024;//定点数小数点位置.
+        static const TFixedFloatSmooth kExtendMinSameRatio=474; //0.40--0.55
         static const unsigned int kSmoothLength=4;
 
         TFixedFloatSmooth curBestSameRatio=0;
@@ -518,7 +515,7 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     
 static void get_diff(const TByte* newData,const TByte* newData_end,
                      const TByte* oldData,const TByte* oldData_end,
-                     TDiffData&   out_diff,
+                     TDiffData&   out_diff,int kMinSingleMatchScore,
                      const TSuffixString* sstring=0){
     assert(newData<=newData_end);
     assert(oldData<=oldData_end);
@@ -539,7 +536,7 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
     _sstring_default.clear();
     
     extend_cover(diff);//先尝试扩展.
-    select_cover(diff);
+    select_cover(diff,kMinSingleMatchScore);
     extend_cover(diff);//select_cover会删除一些覆盖线,所以重新扩展.
     sub_cover(diff);
 }
@@ -549,9 +546,9 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
 
 void create_diff(const TByte* newData,const TByte* newData_end,
                  const TByte* oldData,const TByte* oldData_end,
-                 std::vector<TByte>& out_diff){
+                 std::vector<TByte>& out_diff,int kMinSingleMatchScore){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
     serialize_diff(diff,out_diff);
 }
 
@@ -574,9 +571,9 @@ bool check_diff(const TByte* newData,const TByte* newData_end,
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                             const unsigned char* oldData,const unsigned char* oldData_end,
                             std::vector<unsigned char>& out_diff,
-                            const hdiff_TCompress* compressPlugin){
+                            const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 
@@ -602,9 +599,10 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
                                              const TByte* oldData,const TByte* oldData_end,
                                              std::vector<TByte>& out_diff,
                                              const hdiff_TCompress* compressPlugin,
+                                             int kMinSingleMatchScore,
                                              const TSuffixString* sstring){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,sstring);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,sstring);
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 

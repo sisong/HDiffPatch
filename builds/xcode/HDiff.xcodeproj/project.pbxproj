@@ -14,6 +14,7 @@
 		D62919A11E17D999007D44E2 /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D62919981E17D999007D44E2 /* divsufsort.c */; };
 		D62919A21E17D999007D44E2 /* divsufsort64.c in Sources */ = {isa = PBXBuildFile; fileRef = D629199B1E17D999007D44E2 /* divsufsort64.c */; };
 		D6BD9BC41757854C004886DE /* diff_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BB41757854C004886DE /* diff_demo.cpp */; };
+		D6EE50661F2B27A4002854A2 /* compress_detect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6EE50641F2B27A4002854A2 /* compress_detect.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -51,6 +52,8 @@
 		D62919A01E17D999007D44E2 /* utils.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.c.inc.h; sourceTree = "<group>"; };
 		D6BD9BB41757854C004886DE /* diff_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = diff_demo.cpp; path = ../../diff_demo.cpp; sourceTree = "<group>"; };
 		D6CB33611664FD2900AB34B7 /* HDiff */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HDiff; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6EE50641F2B27A4002854A2 /* compress_detect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compress_detect.cpp; sourceTree = "<group>"; };
+		D6EE50651F2B27A4002854A2 /* compress_detect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compress_detect.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +90,8 @@
 		80D1B29A199A40A700F6B3A8 /* private_diff */ = {
 			isa = PBXGroup;
 			children = (
+				D6EE50641F2B27A4002854A2 /* compress_detect.cpp */,
+				D6EE50651F2B27A4002854A2 /* compress_detect.h */,
 				D62919961E17D999007D44E2 /* libdivsufsort */,
 				80D1B29B199A40A700F6B3A8 /* bytes_rle.cpp */,
 				80D1B29C199A40A700F6B3A8 /* bytes_rle.h */,
@@ -192,6 +197,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D6EE50661F2B27A4002854A2 /* compress_detect.cpp in Sources */,
 				80D1B2A5199A40A700F6B3A8 /* bytes_rle.cpp in Sources */,
 				80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */,
 				80D1B2A4199A40A700F6B3A8 /* diff.cpp in Sources */,

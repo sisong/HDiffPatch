@@ -35,7 +35,8 @@
 //生成diff数据.
 void create_diff(const unsigned char* newData,const unsigned char* newData_end,
                  const unsigned char* oldData,const unsigned char* oldData_end,
-                 std::vector<unsigned char>& out_diff);
+                 std::vector<unsigned char>& out_diff,
+                 int kMinSingleMatchScore = 6); //0--9  bin--text  最小独立覆盖收益.
 //检查生成的序列化的diff数据是否正确.
 bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
                 const unsigned char* oldData,const unsigned char* oldData_end,
@@ -74,7 +75,8 @@ extern "C"
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                             const unsigned char* oldData,const unsigned char* oldData_end,
                             std::vector<unsigned char>& out_diff,
-                            const hdiff_TCompress* compressPlugin);
+                            const hdiff_TCompress* compressPlugin,
+                            int kMinSingleMatchScore = 6); //0--9  bin--text  最小独立覆盖收益.
 //检查生成的压缩的diff数据是否正确.
 bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                            const unsigned char* oldData,const unsigned char* oldData_end,

@@ -77,12 +77,12 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 #include "../decompress_plugin_demo.h"
 
 struct THDiffPrivateParams{
-    int kMinSingleMatchScore;
-    int kMinTrustMatchLength;
+    int out0;
+    int out1;
     std::string asString()const{
         std::stringstream str;
-        str<<kMinSingleMatchScore;str<<',';
-        str<<kMinTrustMatchLength;
+        str<<out0;str<<',';
+        str<<out1;
         return str.str();
     }
 };
@@ -130,13 +130,14 @@ static size_t _compress_diff(const TDiffInfo& di,const hdiff_TCompress* compress
                                                         const TByte* oldData,const TByte* oldData_end,
                                                         std::vector<TByte>& out_diff,
                                                         const hdiff_TCompress* compressPlugin,
+                                                        int kMinSingleMatchScore,
                                                         const TSuffixString* sstring);
     std::vector<TByte> diffData;
     const TByte* newData0=di.newData.empty()?0:&di.newData[0];
     const TByte* oldData0=di.oldData.empty()?0:&di.oldData[0];
     __hdiff_private__create_compressed_diff(newData0,newData0+di.newData.size(),
                                              oldData0,oldData0+di.oldData.size(),diffData,
-                                             compressPlugin,&di.sstring);
+                                             compressPlugin,di.kP.out0,&di.sstring);
     /*
     if (!check_compressed_diff(newData0,newData0+di.newData.size(),
                                oldData0,oldData0+di.oldData.size(),
@@ -171,9 +172,11 @@ static std::string rToStr(double R){
 }
 
 static std::string rToTag(double cur,double& best){
-    if (cur<=best){
+    if (cur<best){
         best=cur;
         return "*";
+    }else if (cur==best){
+        return "-";
     }else{
         return " ";
     }
@@ -194,15 +197,11 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
     double bestLzmaDiffR=1e308;
     double bestCompressDiffR=1e308;
     bool isOutSrcSize=false;
-    extern int kMinSingleMatchScore;
-    extern int kMinTrustMatchLength;
-    extern int kCompressDetectDivBit;
-    for (kCompressDetectDivBit=9; kCompressDetectDivBit<=16;kCompressDetectDivBit+=1) {
-        printf("%d\n",kCompressDetectDivBit);
-    for (kMinSingleMatchScore=0; kMinSingleMatchScore<=10; kMinSingleMatchScore+=2) {
-    for (kMinTrustMatchLength=52; kMinTrustMatchLength<=76;kMinTrustMatchLength+=4) {
-    //{//for (int kExtendMinSameRatio=0.40f*kFixedFloatSmooth_base; kExtendMinSameRatio<=0.55f*kFixedFloatSmooth_base;kExtendMinSameRatio+=0.01f*kFixedFloatSmooth_base) {
-
+    
+    int kMinSingleMatchScore;
+    for (kMinSingleMatchScore=8; kMinSingleMatchScore>=0; kMinSingleMatchScore--){{
+        THDiffPrivateParams kP={kMinSingleMatchScore,0};
+        
         double sumDiffR=1;
         double sumZipDiffR=1;
         double sumBz2DiffR=1;
@@ -215,9 +214,7 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
         size_t sumLzmaDiffSize=0;
         for (size_t doi=0; doi<DiList.size(); ++doi) {
             TDiffInfo& curDi=DiList[doi];
-            curDi.kP.kMinSingleMatchScore=kMinSingleMatchScore;
-            curDi.kP.kMinTrustMatchLength=kMinTrustMatchLength;
-            //curDi.kP.kExtendMinSameRatio=kExtendMinSameRatio;
+            curDi.kP=kP;
             
             doDiff(curDi);
             double curDiffRi=curDi.diffSize*1.0/curDi.newFileSize;
@@ -246,8 +243,7 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
             TDiffInfo curDi;
             curDi.oldFileName="";
             curDi.newFileName="";
-            curDi.kP.kMinTrustMatchLength=kMinTrustMatchLength;
-            curDi.kP.kMinSingleMatchScore=kMinSingleMatchScore;
+            curDi.kP=kP;
             curDi.oldFileSize=sumOldSize;
             curDi.newFileSize=sumNewSize;
             curDi.diffSize=sumDiffSize;
@@ -276,7 +272,7 @@ void getBestHDiffPrivateParams(const std::vector<std::string>& fileNames){
             
             std::cout<<"\n";
         }
-    }}}
+    }}
 }
 
 
