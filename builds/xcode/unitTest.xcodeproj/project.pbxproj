@@ -14,6 +14,9 @@
 		D6BD9BB317578491004886DE /* unit_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BAE17578491004886DE /* unit_test.cpp */; };
 		D6C701511E17E5BC00C19D84 /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C701481E17E5BC00C19D84 /* divsufsort.c */; };
 		D6C701521E17E5BC00C19D84 /* divsufsort64.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C7014B1E17E5BC00C19D84 /* divsufsort64.c */; };
+		D6E150A01F238B2C00C2AD3D /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E1509E1F238B2C00C2AD3D /* libbz2.tbd */; };
+		D6E150A11F238B2C00C2AD3D /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E1509F1F238B2C00C2AD3D /* libz.tbd */; };
+		D6EE50631F2A0AA3002854A2 /* compress_detect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6EE50611F2A0AA3002854A2 /* compress_detect.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -51,6 +54,11 @@
 		D6C7014F1E17E5BC00C19D84 /* trsort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = trsort.c.inc.h; sourceTree = "<group>"; };
 		D6C701501E17E5BC00C19D84 /* utils.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utils.c.inc.h; sourceTree = "<group>"; };
 		D6CB33611664FD2900AB34B7 /* unitTest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = unitTest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6E150961F21AFE600C2AD3D /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
+		D6E1509E1F238B2C00C2AD3D /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		D6E1509F1F238B2C00C2AD3D /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		D6EE50611F2A0AA3002854A2 /* compress_detect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compress_detect.cpp; sourceTree = "<group>"; };
+		D6EE50621F2A0AA3002854A2 /* compress_detect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compress_detect.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +66,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D6E150A01F238B2C00C2AD3D /* libbz2.tbd in Frameworks */,
+				D6E150A11F238B2C00C2AD3D /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,6 +97,8 @@
 		D6BD9BA417578491004886DE /* private_diff */ = {
 			isa = PBXGroup;
 			children = (
+				D6EE50611F2A0AA3002854A2 /* compress_detect.cpp */,
+				D6EE50621F2A0AA3002854A2 /* compress_detect.h */,
 				D6C701461E17E5BC00C19D84 /* libdivsufsort */,
 				801FA5621999090000F7E57B /* pack_uint.h */,
 				D6BD9BA517578491004886DE /* bytes_rle.cpp */,
@@ -101,6 +113,7 @@
 		D6BD9BAA17578491004886DE /* HPatch */ = {
 			isa = PBXGroup;
 			children = (
+				D6E150961F21AFE600C2AD3D /* patch_types.h */,
 				D6BD9BAB17578491004886DE /* patch.c */,
 				D6BD9BAC17578491004886DE /* patch.h */,
 			);
@@ -130,6 +143,7 @@
 				D6BD9BAE17578491004886DE /* unit_test.cpp */,
 				D6BD9B9F17578491004886DE /* libHDiffPatch */,
 				D6CB33621664FD2900AB34B7 /* Products */,
+				D6E1509D1F238B2C00C2AD3D /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -139,6 +153,15 @@
 				D6CB33611664FD2900AB34B7 /* unitTest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D6E1509D1F238B2C00C2AD3D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D6E1509E1F238B2C00C2AD3D /* libbz2.tbd */,
+				D6E1509F1F238B2C00C2AD3D /* libz.tbd */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -192,6 +215,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D6EE50631F2A0AA3002854A2 /* compress_detect.cpp in Sources */,
 				D6BD9BAF17578491004886DE /* diff.cpp in Sources */,
 				D6BD9BB017578491004886DE /* bytes_rle.cpp in Sources */,
 				D6BD9BB117578491004886DE /* suffix_string.cpp in Sources */,

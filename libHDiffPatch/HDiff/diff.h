@@ -30,6 +30,7 @@
 #define HDiff_diff_h
 
 #include <vector>
+#include "../HPatch/patch_types.h"
 
 //生成diff数据.
 void create_diff(const unsigned char* newData,const unsigned char* newData_end,
@@ -39,5 +40,40 @@ void create_diff(const unsigned char* newData,const unsigned char* newData_end,
 bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
                 const unsigned char* oldData,const unsigned char* oldData_end,
                 const unsigned char* diff,const unsigned char* diff_end);
+
+
+//create_compressed_diff() diff with compress plugin
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    
+    //压缩插件接口定义.
+    typedef struct hdiff_TCompress{
+        //插件名称; strlen(result)<=hpatch_kMaxCompressTypeLength;（注意不要返回本地临时对象的指针;）
+        const char*  (*compressType)(const hdiff_TCompress* compressPlugin);
+        //dataSize大小的数据压缩后最大大小;
+        size_t  (*maxCompressedSize)(const hdiff_TCompress* compressPlugin,size_t dataSize);
+        //压缩数据;压缩成功返回实际后压缩数据大小,失败返回0.
+        size_t           (*compress)(const hdiff_TCompress* compressPlugin,
+                                     unsigned char* out_code,unsigned char* out_code_end,
+                                     const unsigned char* data,const unsigned char* data_end);
+    } hdiff_TCompress;
+    
+    #define  hdiff_kNocompressPlugin ((const hdiff_TCompress*)0)  //不压缩数据的“压缩”插件.
+    
+#ifdef __cplusplus
+}
+#endif
+//支持压缩插件的diff; 需要对应的支持解压缩的patch配合.
+void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
+                            const unsigned char* oldData,const unsigned char* oldData_end,
+                            std::vector<unsigned char>& out_diff,
+                            const hdiff_TCompress* compressPlugin);
+//检查生成的压缩的diff数据是否正确.
+bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
+                           const unsigned char* oldData,const unsigned char* oldData_end,
+                           const unsigned char* diff,const unsigned char* diff_end,
+                           hpatch_TDecompress* decompressPlugin);
 
 #endif
