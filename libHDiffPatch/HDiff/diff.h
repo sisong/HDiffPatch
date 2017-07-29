@@ -35,8 +35,7 @@
 //生成diff数据.
 void create_diff(const unsigned char* newData,const unsigned char* newData_end,
                  const unsigned char* oldData,const unsigned char* oldData_end,
-                 std::vector<unsigned char>& out_diff,
-                 int kMinSingleMatchScore = 6); //0--9  bin--text  最小独立覆盖收益.
+                 std::vector<unsigned char>& out_diff);
 //检查生成的序列化的diff数据是否正确.
 bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
                 const unsigned char* oldData,const unsigned char* oldData_end,
@@ -51,13 +50,8 @@ extern "C"
     
     //压缩插件接口定义.
     typedef struct hdiff_TCompress{
-        //插件名称; strlen(result)<=hpatch_kMaxInfoLength
+        //插件名称; strlen(result)<=hpatch_kMaxCompressTypeLength;（注意不要返回本地临时对象的指针;）
         const char*  (*compressType)(const hdiff_TCompress* compressPlugin);
-        //插件扩展信息大小,函数可以为null;  result<=hpatch_kMaxInfoLength
-        size_t     (*pluginInfoSize)(const hdiff_TCompress* compressPlugin);
-        //通过out_info返回插件扩展信息,函数可以为null;
-        void           (*pluginInfo)(const hdiff_TCompress* compressPlugin,
-                                     unsigned char* out_info,unsigned char* out_info_end);
         //dataSize大小的数据压缩后最大大小;
         size_t  (*maxCompressedSize)(const hdiff_TCompress* compressPlugin,size_t dataSize);
         //压缩数据;压缩成功返回实际后压缩数据大小,失败返回0.
@@ -75,8 +69,7 @@ extern "C"
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                             const unsigned char* oldData,const unsigned char* oldData_end,
                             std::vector<unsigned char>& out_diff,
-                            const hdiff_TCompress* compressPlugin,
-                            int kMinSingleMatchScore = 6); //0--9  bin--text  最小独立覆盖收益.
+                            const hdiff_TCompress* compressPlugin);
 //检查生成的压缩的diff数据是否正确.
 bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                            const unsigned char* oldData,const unsigned char* oldData_end,

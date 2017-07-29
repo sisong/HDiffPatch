@@ -71,7 +71,7 @@ hpatch_inline static hpatch_BOOL
                               const unsigned char* compressedDiff,
                               const unsigned char* compressedDiff_end){
         hpatch_TStreamInput  diffStream;
-        memory_as_inputStream(&diffStream,compressedDiff,compressedDiff_end);
+        mem_as_hStreamInput(&diffStream,compressedDiff,compressedDiff_end);
         return getCompressedDiffInfo(out_diffInfo,&diffStream);
     }
 
@@ -89,9 +89,9 @@ hpatch_inline static hpatch_BOOL
         hpatch_TStreamOutput newStream;
         hpatch_TStreamInput  oldStream;
         hpatch_TStreamInput  diffStream;
-        memory_as_outputStream(&newStream,out_newData,out_newData_end);
-        memory_as_inputStream(&oldStream,oldData,oldData_end);
-        memory_as_inputStream(&diffStream,compressedDiff,compressedDiff_end);
+        mem_as_hStreamOutput(&newStream,out_newData,out_newData_end);
+        mem_as_hStreamInput(&oldStream,oldData,oldData_end);
+        mem_as_hStreamInput(&diffStream,compressedDiff,compressedDiff_end);
         return patch_decompress(&newStream,&oldStream,&diffStream,decompressPlugin);
     }
 

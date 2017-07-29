@@ -64,25 +64,19 @@ extern "C" {
     } hpatch_TStreamOutput;
     
 
-    #define hpatch_kMaxInfoLength   256
+    #define hpatch_kMaxCompressTypeLength   256
     
     typedef struct hpatch_compressedDiffInfo{
         hpatch_StreamPos_t  newDataSize;
         hpatch_StreamPos_t  oldDataSize;
-        char                compressType[hpatch_kMaxInfoLength+1];
         int                 compressedCount;//need open hpatch_decompressHandle number
-        int                 pluginInfoOffset;
-        int                 pluginInfoSize;
-        unsigned char       pluginInfo[hpatch_kMaxInfoLength];
+        char                compressType[hpatch_kMaxCompressTypeLength+1];
     } hpatch_compressedDiffInfo;
     
     typedef void*  hpatch_decompressHandle;
     typedef struct hpatch_TDecompress{
-        //当前压缩diff包的信息,函数可以为null;
-        void        (*compressedDiffInfo)(const struct hpatch_TDecompress* decompressPlugin,
-                                          const hpatch_compressedDiffInfo* compressedDiffInfo);
         int                (*is_can_open)(struct hpatch_TDecompress* decompressPlugin,
-                                          const char* compressType);
+                                          const hpatch_compressedDiffInfo* compressedDiffInfo);
         //error return 0.
         hpatch_decompressHandle  (*open)(struct hpatch_TDecompress* decompressPlugin,
                                          hpatch_StreamPos_t dataSize,
@@ -99,10 +93,10 @@ extern "C" {
 
     
     
-    void memory_as_inputStream(hpatch_TStreamInput* out_stream,
-                               const unsigned char* mem,const unsigned char* mem_end);
-    void memory_as_outputStream(hpatch_TStreamOutput* out_stream,
-                                unsigned char* mem,unsigned char* mem_end);
+    void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
+                             const unsigned char* mem,const unsigned char* mem_end);
+    void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
+                              unsigned char* mem,unsigned char* mem_end);
     
 
 #ifdef __cplusplus

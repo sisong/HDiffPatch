@@ -35,7 +35,7 @@
 #include <stdlib.h> //malloc free
 #include "libHDiffPatch/HPatch/patch.h"
 
-#define kDecompressBufSize 1024
+#define kDecompressBufSize (1024*16)
 
 #ifdef  _CompressPlugin_zlib
 #include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
@@ -48,8 +48,9 @@
         unsigned char   dec_buf[kDecompressBufSize];
     } _zlib_TDecompress;
     static int  _zlib_is_can_open(struct hpatch_TDecompress* decompressPlugin,
-                                  const char* compressType){
-        return (0==strcmp(compressType,"zlib"));
+                                  const hpatch_compressedDiffInfo* compressedDiffInfo){
+        return (compressedDiffInfo->compressedCount==0)
+            ||(0==strcmp(compressedDiffInfo->compressType,"zlib"));
     }
     static hpatch_decompressHandle  _zlib_open(struct hpatch_TDecompress* decompressPlugin,
                                                hpatch_StreamPos_t dataSize,
@@ -123,7 +124,7 @@
         }
         return (long)(out_part_data_end-out_part_data);
     }
-    static hpatch_TDecompress zlibDecompressPlugin={0,_zlib_is_can_open,_zlib_open,
+    static hpatch_TDecompress zlibDecompressPlugin={_zlib_is_can_open,_zlib_open,
                                                     _zlib_close,_zlib_decompress_part};
 #endif//_CompressPlugin_zlib
     
@@ -138,8 +139,9 @@
         unsigned char   dec_buf[kDecompressBufSize];
     } _bz2_TDecompress;
     static int  _bz2_is_can_open(struct hpatch_TDecompress* decompressPlugin,
-                                 const char* compressType){
-        return (0==strcmp(compressType,"bz2"));
+                                 const hpatch_compressedDiffInfo* compressedDiffInfo){
+        return (compressedDiffInfo->compressedCount==0)
+            ||(0==strcmp(compressedDiffInfo->compressType,"bz2"));
     }
     static hpatch_decompressHandle  _bz2_open(struct hpatch_TDecompress* decompressPlugin,
                                                hpatch_StreamPos_t dataSize,
@@ -205,8 +207,8 @@
         }
         return (long)(out_part_data_end-out_part_data);
     }
-    static hpatch_TDecompress bz2DecompressPlugin={0,_bz2_is_can_open,_bz2_open,
-                                                    _bz2_close,_bz2_decompress_part};
+    static hpatch_TDecompress bz2DecompressPlugin={_bz2_is_can_open,_bz2_open,
+                                                   _bz2_close,_bz2_decompress_part};
 #endif//_CompressPlugin_bz2
     
 #ifdef  _CompressPlugin_lzma
@@ -228,8 +230,9 @@
         free(address);
     }
     static int  _lzma_is_can_open(struct hpatch_TDecompress* decompressPlugin,
-                                  const char* compressType){
-        return (0==strcmp(compressType,"lzma"));
+                                  const hpatch_compressedDiffInfo* compressedDiffInfo){
+        return (compressedDiffInfo->compressedCount==0)
+            ||(0==strcmp(compressedDiffInfo->compressType,"lzma"));
     }
     static hpatch_decompressHandle  _lzma_open(struct hpatch_TDecompress* decompressPlugin,
                                                hpatch_StreamPos_t dataSize,
@@ -327,7 +330,7 @@
         }
         return (long)(out_part_data_end-out_part_data);
     }
-    static hpatch_TDecompress lzmaDecompressPlugin={0,_lzma_is_can_open,_lzma_open,
+    static hpatch_TDecompress lzmaDecompressPlugin={_lzma_is_can_open,_lzma_open,
                                                     _lzma_close,_lzma_decompress_part};
 #endif//_CompressPlugin_lzma
 

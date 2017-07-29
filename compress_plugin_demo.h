@@ -80,7 +80,7 @@
         }
         return sizeof(kWindowBits)+codeLen;
     }
-    static hdiff_TCompress zlibCompressPlugin={_zlib_compressType,0,0,_zlib_maxCompressedSize,_zlib_compress};
+    static hdiff_TCompress zlibCompressPlugin={_zlib_compressType,_zlib_maxCompressedSize,_zlib_compress};
 #endif//_CompressPlugin_zlib
     
 #ifdef  _CompressPlugin_bz2
@@ -106,7 +106,7 @@
         }
         return destLen;
     }
-    static hdiff_TCompress bz2CompressPlugin={_bz2_compressType,0,0,_bz2_maxCompressedSize,_bz2_compress};
+    static hdiff_TCompress bz2CompressPlugin={_bz2_compressType,_bz2_maxCompressedSize,_bz2_compress};
 #endif//_CompressPlugin_bz2
     
 #ifdef  _CompressPlugin_lzma
@@ -166,7 +166,7 @@
         }
         return 1+propsSize+destLen;
     }
-    static hdiff_TCompress lzmaCompressPlugin={_lzma_compressType,0,0,_lzma_maxCompressedSize,_lzma_compress};
+    static hdiff_TCompress lzmaCompressPlugin={_lzma_compressType,_lzma_maxCompressedSize,_lzma_compress};
 #endif//_CompressPlugin_lzma
 
 #endif

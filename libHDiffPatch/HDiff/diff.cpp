@@ -36,6 +36,8 @@
 #include "private_diff/pack_uint.h"
 #include "../HPatch/patch.h"
 
+static const int kMinSingleMatchScore_default = 6; //0--9最小独立覆盖收益, bin: 0--4  text: 4--9
+
 namespace{
     
     typedef unsigned char TByte;
@@ -128,8 +130,9 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
     //粗略估算覆盖线的控制数据成本;
     inline static TInt getCoverCtrlCost(const TOldCover& cover,const TOldCover& lastCover){
         static const int kUnLinkOtherScore=0;//0--2
-        return _getIntCost(cover.oldPos-lastCover.oldPos) + _getUIntCost(cover.length)
-        +_getUIntCost(cover.newPos-lastCover.newPos) + kUnLinkOtherScore;
+        return _getIntCost<TInt,TUInt>((TInt)(cover.oldPos-lastCover.oldPos))
+             + _getUIntCost((TUInt)cover.length)
+             + _getUIntCost((TUInt)(cover.newPos-lastCover.newPos)) + kUnLinkOtherScore;
     }
     
     //粗略估算 区域内当作覆盖时的可能存储成本.
@@ -379,20 +382,20 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
         TInt oldPosBack=0;
         TInt lastNewEnd=0;
         for (TUInt i=0; i<ctrlCount; ++i) {
-            packUInt(length_buf, diff.covers[i].length);
+            packUInt(length_buf, (TUInt)diff.covers[i].length);
             assert(diff.covers[i].newPos>=lastNewEnd);
-            packUInt(inc_newPos_buf,diff.covers[i].newPos-lastNewEnd); //save inc_newPos
+            packUInt(inc_newPos_buf,(TUInt)(diff.covers[i].newPos-lastNewEnd)); //save inc_newPos
             if (diff.covers[i].oldPos>=oldPosBack){ //save inc_oldPos
-                packUIntWithTag(inc_oldPos_buf,diff.covers[i].oldPos-oldPosBack, 0, 1);
+                packUIntWithTag(inc_oldPos_buf,(TUInt)(diff.covers[i].oldPos-oldPosBack), 0, 1);
             }else{
-                packUIntWithTag(inc_oldPos_buf,oldPosBack-diff.covers[i].oldPos, 1, 1);
+                packUIntWithTag(inc_oldPos_buf,(TUInt)(oldPosBack-diff.covers[i].oldPos), 1, 1);//sub safe
             }
             oldPosBack=diff.covers[i].oldPos;
             lastNewEnd=diff.covers[i].newPos+diff.covers[i].length;
         }
     }
 
-    packUInt(out_diff, ctrlCount);
+    packUInt(out_diff, (TUInt)ctrlCount);
     packUInt(out_diff, (TUInt)length_buf.size());
     packUInt(out_diff, (TUInt)inc_newPos_buf.size());
     packUInt(out_diff, (TUInt)inc_oldPos_buf.size());
@@ -445,14 +448,14 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
         TInt lastNewEnd=0;
         for (TUInt i=0; i<ctrlCount; ++i) {
             if (diff.covers[i].oldPos>=oldPos_end){ //save inc_oldPos
-                packUIntWithTag(cover_buf,diff.covers[i].oldPos-oldPos_end, 0, 1);
+                packUIntWithTag(cover_buf,(TUInt)(diff.covers[i].oldPos-oldPos_end), 0, 1);
             }else{
-                packUIntWithTag(cover_buf,oldPos_end-diff.covers[i].oldPos, 1, 1);
+                packUIntWithTag(cover_buf,(TUInt)(oldPos_end-diff.covers[i].oldPos), 1, 1);//sub safe
             }
             assert(diff.covers[i].newPos>=lastNewEnd);
-            packUInt(cover_buf,diff.covers[i].newPos-lastNewEnd); //save inc_newPos
-            packUInt(cover_buf,diff.covers[i].length);
-            oldPos_end=diff.covers[i].oldPos+diff.covers[i].length;//!
+            packUInt(cover_buf,(TUInt)(diff.covers[i].newPos-lastNewEnd)); //save inc_newPos
+            packUInt(cover_buf,(TUInt)diff.covers[i].length);
+            oldPos_end=diff.covers[i].oldPos+diff.covers[i].length;//! +length
             lastNewEnd=diff.covers[i].newPos+diff.covers[i].length;
         }
     }
@@ -476,22 +479,12 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     const char* compressType="";
     if (compressPlugin){
         compressType=compressPlugin->compressType(compressPlugin);
-        if (strlen(compressType)>hpatch_kMaxInfoLength) throw compressType; //diff error!
+        if (strlen(compressType)>hpatch_kMaxCompressTypeLength) throw compressType; //diff error!
     }
     pushBack(out_diff,(const TByte*)kVersionType,
                       (const TByte*)kVersionType+strlen(kVersionType));
     pushBack(out_diff,(const TByte*)compressType,
                       (const TByte*)compressType+strlen(compressType)+1);//with '\0'
-    
-    TByte pluginInfo[hpatch_kMaxInfoLength];
-    size_t pluginInfoSize=0;
-    if ((compressPlugin)&&(compressPlugin->pluginInfoSize)){
-        pluginInfoSize=compressPlugin->pluginInfoSize(compressPlugin);
-        if (pluginInfoSize>hpatch_kMaxInfoLength) throw pluginInfoSize; //diff error!
-        compressPlugin->pluginInfo(compressPlugin,pluginInfo,pluginInfo+pluginInfoSize);
-    }
-    packUInt(out_diff,pluginInfoSize);
-    pushBack(out_diff,pluginInfo,pluginInfo+pluginInfoSize);
     
     const TUInt newDataSize=(TUInt)(diff.newData_end-diff.newData);
     const TUInt oldDataSize=(TUInt)(diff.oldData_end-diff.oldData);
@@ -546,9 +539,9 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
 
 void create_diff(const TByte* newData,const TByte* newData_end,
                  const TByte* oldData,const TByte* oldData_end,
-                 std::vector<TByte>& out_diff,int kMinSingleMatchScore){
+                 std::vector<TByte>& out_diff){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore_default);
     serialize_diff(diff,out_diff);
 }
 
@@ -571,9 +564,9 @@ bool check_diff(const TByte* newData,const TByte* newData_end,
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                             const unsigned char* oldData,const unsigned char* oldData_end,
                             std::vector<unsigned char>& out_diff,
-                            const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore){
+                            const hdiff_TCompress* compressPlugin){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore_default);
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 

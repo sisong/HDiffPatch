@@ -39,11 +39,11 @@ typedef unsigned __int32  uint32_t;
 #   include <stdint.h> //for uint32_t
 #endif
 
-template<class TUInt>
-static int _getUIntCost(TUInt v){
-    if ((sizeof(TUInt)<8)||(v>>56)==0) {
+template<class _UInt>
+static int _getUIntCost(_UInt v){
+    if ((sizeof(_UInt)<8)||(v>>56)==0) {
         int cost=1;
-        TUInt t;
+        _UInt t;
         if ((t=(v>>28))) { v=t; cost+=4; }
         if ((t=(v>>14))) { v=t; cost+=2; }
         if ((t=(v>> 7))) { v=t; ++cost; }
@@ -53,9 +53,9 @@ static int _getUIntCost(TUInt v){
     }
 }
 
-template<class TInt>
-inline static int _getIntCost(TInt v){
-    return _getUIntCost(2*((v>=0)?v:(-v)));
+template<class _Int,class _UInt>
+inline static int _getIntCost(_Int v){
+    return _getUIntCost((_UInt)(2*((v>=0)?(_UInt)v:(_UInt)(-v))));
 }
 
 //粗略估算该区域存储成本.

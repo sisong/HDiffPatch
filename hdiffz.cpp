@@ -103,7 +103,9 @@ int main(int argc, const char * argv[]){
     const size_t oldDataSize=oldData.size();
     const size_t newDataSize=newData.size();
     
-    std::cout<<"HDiffZ with compress plugin: \""<<compressPlugin->compressType(compressPlugin)<<"\"\n";
+    const char* compressType="";
+    if (compressPlugin) compressType=compressPlugin->compressType(compressPlugin);
+    std::cout<<"HDiffZ with compress plugin: \""<<compressType<<"\"\n";
 
     std::vector<TByte> diffData;
     TByte* newData0=newData.empty()?0:&newData[0];

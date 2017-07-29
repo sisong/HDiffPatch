@@ -161,11 +161,6 @@ static hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self){
     return _close_file(&self->m_file);
 }
 
-static void check_error(hpatch_BOOL error,int* outExitCode,const char* errorInfo){
-    if (!error) return;
-    if (outExitCode) *outExitCode=10;
-    printf("%s", errorInfo);
-}
 
 //===== select decompress plugin =====
 #define _CompressPlugin_zlib
@@ -174,15 +169,24 @@ static void check_error(hpatch_BOOL error,int* outExitCode,const char* errorInfo
 
 #include "decompress_plugin_demo.h"
 
-#define _clear_return(info,exitCode) {     \
-    if (strlen(info)>0) printf("%s",info); \
-    result=exitCode; \
-    goto clear;      \
+#define _clear_return(info){ \
+    if (strlen(info)>0)      \
+        printf("%s",(info)); \
+    exitCode=1; \
+    goto clear; \
 }
+
+#define _check_error(is_error,errorInfo){ \
+    if (is_error){  \
+        exitCode=1; \
+        printf("%s",(errorInfo)); \
+    } \
+}
+
 
 //diffFile need create by HDiffZ
 int main(int argc, const char * argv[]){
-    int     result=0;
+    int     exitCode=0;
     clock_t time0=clock();
     clock_t time1;
     clock_t time2;
@@ -205,76 +209,75 @@ int main(int argc, const char * argv[]){
         const char* outNewFileName=argv[3];
         printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,diffFileName,outNewFileName);
         if (!TFileStreamInput_open(&oldData,oldFileName))
-            _clear_return("\nopen oldFile error!\n",2);
+            _clear_return("\nopen oldFile error!\n");
         if (!TFileStreamInput_open(&diffData,diffFileName))
-            _clear_return("\nopen diffFile error!\n",3);
+            _clear_return("\nopen diffFile error!\n");
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
-            check_error(diffData.fileError,0,"\ndiffFile read error!\n");
-            _clear_return("\ngetCompressedDiffInfo() run error!\n",4);
+            _check_error(diffData.fileError,"\ndiffFile read error!\n");
+            _clear_return("\ngetCompressedDiffInfo() run error!\n");
         }
         if (oldData.base.streamSize!=diffInfo.oldDataSize){
             printf("\nerror! oldFile dataSize %lld != saved oldDataSize %lld\n",
                    oldData.base.streamSize,diffInfo.oldDataSize);
-            _clear_return("",5);
+            _clear_return("");
         }
         
         if (strlen(diffInfo.compressType)>0){
 #ifdef  _CompressPlugin_zlib
-            if (zlibDecompressPlugin.is_can_open(&zlibDecompressPlugin,diffInfo.compressType))
+            if ((!decompressPlugin)&&zlibDecompressPlugin.is_can_open(&zlibDecompressPlugin,&diffInfo))
                 decompressPlugin=&zlibDecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_bz2
-            if (bz2DecompressPlugin.is_can_open(&bz2DecompressPlugin,diffInfo.compressType))
+            if ((!decompressPlugin)&&bz2DecompressPlugin.is_can_open(&bz2DecompressPlugin,&diffInfo))
                 decompressPlugin=&bz2DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lzma
-            if (lzmaDecompressPlugin.is_can_open(&lzmaDecompressPlugin,diffInfo.compressType))
+            if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(&lzmaDecompressPlugin,&diffInfo))
                 decompressPlugin=&lzmaDecompressPlugin;
 #endif
         }
-        if (decompressPlugin==0){
+        if (!decompressPlugin){
             if (diffInfo.compressedCount>0){
                 printf("\nerror! can no decompress \"%s\" data\n",diffInfo.compressType);
-                _clear_return("",6);
+                _clear_return("");
             }else{
                 if (strlen(diffInfo.compressType)>0)
-                    printf("diffFile added useless compress tag \"%s\"\n",diffInfo.compressType);
-                if (diffInfo.pluginInfoSize>0)
-                    printf("diffFile added useless pluginInfo data(%dbyte)\n",diffInfo.pluginInfoSize);
+                    printf("  diffFile added useless compress tag \"%s\"\n",diffInfo.compressType);
                 decompressPlugin=hpatch_kNodecompressPlugin;
             }
         }else{
-            printf("HPatchZ used decompress tag \"%s\"\n",diffInfo.compressType);
+            printf("  HPatchZ used decompress tag \"%s\" (need decompress %d)\n",
+                   diffInfo.compressType,diffInfo.compressedCount);
         }
         
         if (!TFileStreamOutput_open(&newData, outNewFileName,diffInfo.newDataSize))
-            _clear_return("\nopen out newFile error!\n",7);
+            _clear_return("\nopen out newFile error!\n");
     }
+    printf("oldDataSize : %lld\ndiffDataSize: %lld\nnewDataSize : %lld\n",
+           oldData.base.streamSize,diffData.base.streamSize,newData.base.streamSize);
     
     time1=clock();
     if (!patch_decompress(&newData.base,&oldData.base,&diffData.base,decompressPlugin)){
-        check_error(oldData.fileError,0,"\noldFile read error!\n");
-        check_error(diffData.fileError,0,"\ndiffFile read error!\n");
-        check_error(newData.fileError,0,"\nout newFile write error!\n");
-        _clear_return("\npatch_decompress() run error!\n",8);
+        _check_error(oldData.fileError,"\noldFile read error!\n");
+        _check_error(diffData.fileError,"\ndiffFile read error!\n");
+        _check_error(newData.fileError,"\nout newFile write error!\n");
+        _clear_return("\npatch_decompress() run error!\n");
     }
     if (newData.out_length!=newData.base.streamSize){
         printf("\nerror! out newFile dataSize %lld != saved newDataSize %lld\n",
                newData.out_length,newData.base.streamSize);
-        _clear_return("",9);
+        _clear_return("");
     }
     time2=clock();
     printf("  patch ok!\n");
-    printf("oldDataSize : %lld\ndiffDataSize: %lld\nnewDataSize : %lld\n",
-           oldData.base.streamSize,diffData.base.streamSize,newData.base.streamSize);
     printf("\nHPatchZ time: %.0f ms\n",(time2-time1)*(1000.0/CLOCKS_PER_SEC));
     
 clear:
-    check_error(!TFileStreamInput_close(&oldData),&result,"\noldFile close error!\n");
-    check_error(!TFileStreamInput_close(&diffData),&result,"\ndiffFile close error!\n");
-    check_error(!TFileStreamOutput_close(&newData),&result,"\nout newFile close error!\n");
+    _check_error(!TFileStreamInput_close(&oldData),"\noldFile close error!\n");
+    _check_error(!TFileStreamInput_close(&diffData),"\ndiffFile close error!\n");
+    _check_error(!TFileStreamOutput_close(&newData),"\nout newFile close error!\n");
     time3=clock();
     printf("all run time: %.0f ms\n",(time3-time0)*(1000.0/CLOCKS_PER_SEC));
-    return result;
+    return exitCode;
 }
 

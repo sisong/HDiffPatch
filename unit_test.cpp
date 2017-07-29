@@ -76,9 +76,9 @@ static bool _patch_mem_stream(TByte* newData,TByte* newData_end,
     struct hpatch_TStreamOutput out_newStream;
     struct hpatch_TStreamInput  oldStream;
     struct hpatch_TStreamInput  diffStream;
-    memory_as_outputStream(&out_newStream,newData,newData_end);
-    memory_as_inputStream(&oldStream,oldData,oldData_end);
-    memory_as_inputStream(&diffStream,diff,diff_end);
+    mem_as_hStreamOutput(&out_newStream,newData,newData_end);
+    mem_as_hStreamInput(&oldStream,oldData,oldData_end);
+    mem_as_hStreamInput(&diffStream,diff,diff_end);
     
     return 0!=patch_stream(&out_newStream,&oldStream,&diffStream);
 }
