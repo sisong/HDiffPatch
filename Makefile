@@ -2,6 +2,7 @@ HDIFF_OBJ := \
     libHDiffPatch/HDiff/diff.o \
     libHDiffPatch/HDiff/private_diff/bytes_rle.o \
     libHDiffPatch/HDiff/private_diff/suffix_string.o \
+    libHDiffPatch/HDiff/private_diff/compress_detect.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.o
 
