@@ -5,7 +5,6 @@
 		<Option title="HPatchZ" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
-		<Option virtualFolders="HPatch/;" />
 		<Build>
 			<Target title="Debug">
 				<Option output="bin/Debug/HPatchZ" prefix_auto="1" extension_auto="1" />
@@ -40,10 +39,6 @@
 		</Unit>
 		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
 			<Option compilerVar="CC" />
-			<Option virtualFolder="HPatch/" />
-		</Unit>
-		<Unit filename="../../libHDiffPatch/HPatch/patch.h">
-			<Option virtualFolder="HPatch/" />
 		</Unit>
 		<Extensions>
 			<envvars />

@@ -152,7 +152,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
-    <ClCompile Include="..\..\patch_demo.cpp" />
+    <ClCompile Include="..\..\patch_demo.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\libHDiffPatch\HPatch\patch.h" />
