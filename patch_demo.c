@@ -36,7 +36,6 @@
 #include <stdlib.h>
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char   TByte;
-typedef size_t          TUInt;
 
 #define IS_USES_PATCH_STREAM
 
@@ -73,16 +72,18 @@ static hpatch_BOOL _close_file(FILE** pfile){
 }
 
 static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* outSize){
+    size_t lsize;
     if (dataSize<4) return -1;
-    size_t lsize=data[0]|(data[1]<<8)|(data[2]<<16);
+    lsize=data[0]|(data[1]<<8)|(data[2]<<16);
     if (data[3]!=0xFF){
         lsize|=data[3]<<24;
         *outSize=lsize;
         return 4;
     }else{
+        size_t hsize;
         if (dataSize<9) return -1;
         lsize|=data[4]<<24;
-        size_t hsize=data[5]|(data[6]<<8)|(data[7]<<16)|(data[8]<<24);
+        hsize=data[5]|(data[6]<<8)|(data[7]<<16)|(data[8]<<24);
         *outSize=lsize|(((hpatch_StreamPos_t)hsize)<<32);
         return 9;
     }
@@ -178,7 +179,6 @@ int main(int argc, const char * argv[]){
     }
     time2=clock();
     if (!writeFile(newData,newSize,outNewFileName)) _clear_return("\nwrite newFile error!\n");
-    time2=clock();
     printf("  patch ok!\n");
     printf("\npatch   time: %.0f ms\n",(time2-time1)*(1000.0/CLOCKS_PER_SEC));
 clear:
@@ -206,7 +206,7 @@ static void TFileStreamInput_init(TFileStreamInput* self){
     memset(self,0,sizeof(TFileStreamInput));
 }
 
-#define _fileError_return { asm { int 3 } self->fileError=hpatch_TRUE; return -1; }
+#define _fileError_return { self->fileError=hpatch_TRUE; return -1; }
 
 static long _read_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
                        unsigned char* out_data,unsigned char* out_data_end){

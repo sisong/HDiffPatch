@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		D6BD9BCE17578601004886DE /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BCA17578601004886DE /* patch.c */; };
-		D6BD9BCF17578601004886DE /* patch_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BCD17578601004886DE /* patch_demo.cpp */; };
+		D6BD9BCF17578601004886DE /* patch_demo.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BCD17578601004886DE /* patch_demo.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -27,7 +27,7 @@
 		D6553CB3165FA1A9009D4C44 /* HPatch */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HPatch; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6BD9BCA17578601004886DE /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 		D6BD9BCB17578601004886DE /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
-		D6BD9BCD17578601004886DE /* patch_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = patch_demo.cpp; path = ../../patch_demo.cpp; sourceTree = "<group>"; };
+		D6BD9BCD17578601004886DE /* patch_demo.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch_demo.c; path = ../../patch_demo.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,7 +44,7 @@
 		D6553CAA165FA1A9009D4C44 = {
 			isa = PBXGroup;
 			children = (
-				D6BD9BCD17578601004886DE /* patch_demo.cpp */,
+				D6BD9BCD17578601004886DE /* patch_demo.c */,
 				D6BD9BC917578601004886DE /* HPatch */,
 				D6553CB4165FA1A9009D4C44 /* Products */,
 			);
@@ -120,7 +120,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6BD9BCE17578601004886DE /* patch.c in Sources */,
-				D6BD9BCF17578601004886DE /* patch_demo.cpp in Sources */,
+				D6BD9BCF17578601004886DE /* patch_demo.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
