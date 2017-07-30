@@ -91,7 +91,7 @@ int main(int argc, const char * argv[]){
     clock_t time0=clock();
     if (argc!=4) {
         std::cout<<"HDiffZ command line parameter:\n oldFileName newFileName outDiffFileName\n";
-        return 0;
+        exit(1);
     }
     const char* oldFileName=argv[1];
     const char* newFileName=argv[2];
@@ -117,7 +117,7 @@ int main(int argc, const char * argv[]){
     if (!check_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
                                &diffData[0],&diffData[0]+diffData.size(),decompressPlugin)){
         std::cout<<"  patch check HDiffZ data error!!!\n";
-        exit(2);
+        exit(1);
     }else{
         std::cout<<"  patch check HDiffZ data ok!\n";
     }

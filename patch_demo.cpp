@@ -30,266 +30,348 @@
  */
 
 #include <stdio.h>
-#include <iostream>
-#include <string>
-#include <vector>
-#include "assert.h"
+#include <assert.h>
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char   TByte;
 typedef size_t          TUInt;
-typedef ptrdiff_t       TInt;
 
 #define IS_USES_PATCH_STREAM
 
-inline static hpatch_StreamPos_t getFilePos64(FILE* file){
-    fpos_t pos;
-    int rt=fgetpos(file, &pos); //support 64bit?
-    assert(rt==0);
-#if defined(__linux) || defined(__linux__)
-    return pos.__pos;
-#else //windows macosx
-    return pos;
+static hpatch_BOOL fileTell64(FILE* file,hpatch_StreamPos_t* out_pos){
+#ifdef _MSC_VER
+    __int64 fpos=_ftelli64(file);
+#else
+    off_t fpos=ftello(file);
 #endif
+    hpatch_BOOL result=(fpos>=0);
+    if (result) *out_pos=fpos;
+    return result;
 }
 
-inline void setFilePos64(FILE* file,hpatch_StreamPos_t seekPos){
-    fpos_t pos;
-#if defined(__linux) || defined(__linux__)
-    memset(&pos, 0, sizeof(pos));
-    pos.__pos=seekPos; //safe?
-#else //windows macosx
-    pos=seekPos;
+hpatch_BOOL fileSeek64(FILE* file,hpatch_StreamPos_t seekPos,int whence){
+#ifdef _MSC_VER
+    int ret=_fseeki64(file,seekPos,whence);
+#else
+    off_t fpos=seekPos;
+    if ((fpos<0)||((hpatch_StreamPos_t)fpos!=seekPos)) return hpatch_FALSE;
+    int ret=fseeko(file,fpos,whence);
 #endif
-    int rt=fsetpos(file,&pos); //support 64bit?
-    assert(rt==0);
+    return (ret==0);
 }
 
-static hpatch_StreamPos_t readSavedSize(const std::vector<TByte>& diffData,TUInt* out_sizeCodeLength){
-    const TUInt diffFileDataSize=(TUInt)diffData.size();
-    if (diffFileDataSize<4){
-        std::cout<<"diffFileDataSize error!\n";
-        exit(2);
+static hpatch_BOOL _close_file(FILE** pfile){
+    FILE* file=*pfile;
+    if (file){
+        *pfile=0;
+        if (0!=fclose(file))
+            return hpatch_FALSE;
     }
-    TUInt sizeCodeLength=-1;
-    hpatch_StreamPos_t newDataSize=diffData[0] | (diffData[1]<<8)| (diffData[2]<<16);
-    if (diffData[3]!=0xFF){
-        sizeCodeLength=4;
-        newDataSize |=(diffData[3]<<24);
+    return hpatch_TRUE;
+}
+
+static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* outSize){
+    if (dataSize<4) return -1;
+    size_t lsize=data[0]|(data[1]<<8)|(data[2]<<16);
+    if (data[3]!=0xFF){
+        lsize|=data[3]<<24;
+        *outSize=lsize;
+        return 4;
     }else{
-        sizeCodeLength=9;
-        if ((sizeof(TUInt)<=4)||(diffFileDataSize<9)){
-            std::cout<<"diffFileDataSize error!\n";
-            exit(2);
-        }
-        newDataSize |=(diffData[4]<<24);
-        const hpatch_StreamPos_t highSize=diffData[5] | (diffData[6]<<8)| (diffData[7]<<16)| (diffData[8]<<24);
-        newDataSize |=((highSize<<16)<<16);
+        if (dataSize<9) return -1;
+        lsize|=data[4]<<24;
+        size_t hsize=data[5]|(data[6]<<8)|(data[7]<<16)|(data[8]<<24);
+        *outSize=lsize|(((hpatch_StreamPos_t)hsize)<<32);
+        return 9;
     }
+}
 
-    *out_sizeCodeLength=sizeCodeLength;
-    return newDataSize;
+#define _clear_return(info){ \
+    if (strlen(info)>0)      \
+        printf("%s",(info)); \
+    exitCode=1; \
+    goto clear; \
 }
 
 
 #ifndef IS_USES_PATCH_STREAM
 
-void readFile(std::vector<TByte>& data,const char* fileName){
-    FILE* file=fopen(fileName,"rb");
-    if (file==0) exit(1);
-    fseek(file,0,SEEK_END);
-    hpatch_StreamPos_t file_length=getFilePos64(file);
-    fseek(file,0,SEEK_SET);
-    size_t needRead=(size_t)file_length;
-    if (needRead!=file_length){
-        fclose(file);
-        file=0;
-        exit(1);
-    }
-    data.resize(needRead);
-
-    TByte* curData=0; if (!data.empty()) curData=&data[0];
-    size_t dataSize=data.size();
-    while (dataSize>0) {
-        size_t readStep=(1<<20);
-        if (readStep>dataSize) readStep=dataSize;
-        size_t readed=fread(curData, 1,readStep, file);
-        assert(readed==readStep);
-        curData+=readStep;
-        dataSize-=readStep;
-    }
-    fclose(file);
+#define _file_error(fileHandle){ \
+    if (fileHandle) _close_file(&fileHandle); \
+    return hpatch_FALSE; \
 }
 
-void writeFile(const std::vector<TByte>& data,const char* fileName){
+hpatch_BOOL readFile(TByte** out_pdata,size_t* out_dataSize,const char* fileName){
+    hpatch_StreamPos_t file_length=0;
+    size_t dataSize;
+    FILE* file=fopen(fileName,"rb");
+    if (file==0) _file_error(file);
+    if (!fileSeek64(file,0,SEEK_END)) _file_error(file);
+    if (!fileTell64(file,&file_length)) _file_error(file);
+    if (!fileSeek64(file,0,SEEK_SET)) _file_error(file);
+    
+    assert((*out_pdata)==0);
+    dataSize=(size_t)file_length;
+    if (dataSize!=file_length) _file_error(file);
+    *out_pdata=(TByte*)malloc(dataSize);
+    if (*out_pdata==0) _file_error(file);
+    *out_dataSize=dataSize;
+    
+    if (dataSize!=fread(*out_pdata,1,dataSize,file)) _file_error(file);
+    return _close_file(&file);
+}
+
+hpatch_BOOL writeFile(const TByte* data,size_t dataSize,const char* fileName){
     FILE* file=fopen(fileName,"wb+");
-    if (file==0) exit(1);
-    const TByte* curData=0; if (!data.empty()) curData=&data[0];
-    size_t dataSize=data.size();
-    while (dataSize>0) {
-        size_t writeStep=(1<<20);
-        if (writeStep>dataSize) writeStep=dataSize;
-        size_t writed=fwrite(curData, 1,writeStep, file);
-        assert(writed==writeStep);
-        curData+=writeStep;
-        dataSize-=writeStep;
-    }
-    fclose(file);
+    if (file==0) _file_error(file);
+    if (dataSize!=fwrite(data,1,dataSize,file)) _file_error(file);
+    return _close_file(&file);
+}
+
+#define _free_mem(p){ \
+    if (p) { free(p); p=0; } \
 }
 
 //diffFile need create by HDiff
 int main(int argc, const char * argv[]){
-    if (argc!=4) {
-        std::cout<<"patch command parameter:\n oldFileName diffFileName outNewFileName\n";
-        return 0;
-    }
-    const char* oldFileName=argv[1];
-    const char* diffFileName=argv[2];
-    const char* outNewFileName=argv[3];
-    std::cout<<"old :\"" <<oldFileName<< "\"\ndiff:\""<<diffFileName<<"\"\nout :\""<<outNewFileName<<"\"\n";
+    int     exitCode=0;
     clock_t time0=clock();
-    {
-        std::vector<TByte> diffData; readFile(diffData,diffFileName);
-        const TUInt diffFileDataSize=(TUInt)diffData.size();
-        TUInt kNewDataSizeSavedSize=-1;
-        const hpatch_StreamPos_t _newFileDataSize=readSavedSize(diffData,&kNewDataSizeSavedSize);
-        const TUInt newDataSize=(TUInt)_newFileDataSize;
-        if (newDataSize!=_newFileDataSize) exit(1);
-
-        std::vector<TByte> oldData; readFile(oldData,oldFileName);
-        const TUInt oldDataSize=(TUInt)oldData.size();
-
-        std::vector<TByte> newData;
-        newData.resize(newDataSize);
-        TByte* newData_begin=0; if (!newData.empty()) newData_begin=&newData[0];
-        const TByte* oldData_begin=0; if (!oldData.empty()) oldData_begin=&oldData[0];
-        clock_t time1=clock();
-        if (!patch(newData_begin,newData_begin+newDataSize,oldData_begin,oldData_begin+oldDataSize,
-                   &diffData[0]+kNewDataSizeSavedSize, &diffData[0]+diffFileDataSize)){
-            std::cout<<"  patch run error!!!\n";
-            exit(3);
-        }
-        clock_t time2=clock();
-        writeFile(newData,outNewFileName);
-        std::cout<<"  patch ok!\n";
-        std::cout<<"oldDataSize : "<<oldDataSize<<"\ndiffDataSize: "<<diffData.size()<<"\nnewDataSize : "<<newDataSize<<"\n";
-        std::cout<<"\npatch   time:"<<(time2-time1)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
+    clock_t time1,time2,time3;
+    TByte*  oldData=0;
+    TByte*  diffData=0;
+    TByte*  newData=0;
+    size_t  oldSize=0;
+    size_t  diffSize=0;
+    size_t  newSize=0;
+    const char* outNewFileName=0;
+    int kNewDataSizeSavedSize=0; //4 or 9
+    
+    if (argc!=4) {
+        printf("patch command parameter:\n oldFileName diffFileName outNewFileName\n");
+        return 1;
     }
-    clock_t time3=clock();
-    std::cout<<"all run time:"<<(time3-time0)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
-    return 0;
+    {//read file
+        hpatch_StreamPos_t savedNewSize=0;
+        const char* oldFileName=argv[1];
+        const char* diffFileName=argv[2];
+        outNewFileName=argv[3];
+        printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,diffFileName,outNewFileName);
+        
+        if (!readFile(&oldData,&oldSize,oldFileName)) _clear_return("\nread oldFile error!\n");
+        if (!readFile(&diffData,&diffSize,diffFileName)) _clear_return("\nread diffFile error!\n");
+        kNewDataSizeSavedSize=readSavedSize(diffData,diffSize,&savedNewSize);
+        if (kNewDataSizeSavedSize<=0) _clear_return("\nread newSize from diffFile error!\n");
+        newSize=(size_t)savedNewSize;
+        if (newSize!=savedNewSize) _clear_return("\nmemroy not enough error!\n");
+        newData=(TByte*)malloc(newSize);
+        if (newData==0) _clear_return("\nmemroy alloc error!\n");
+    }
+    printf("oldDataSize : %ld\ndiffDataSize: %ld\nnewDataSize : %ld\n",
+           oldSize,diffSize,newSize);
+    
+    time1=clock();
+    if (!patch(newData,newData+newSize,oldData,oldData+oldSize,
+               diffData+kNewDataSizeSavedSize,diffData+diffSize)){
+        _clear_return("\npatch run error!!!\n");
+    }
+    time2=clock();
+    if (!writeFile(newData,newSize,outNewFileName)) _clear_return("\nwrite newFile error!\n");
+    time2=clock();
+    printf("  patch ok!\n");
+    printf("\npatch   time: %.0f ms\n",(time2-time1)*(1000.0/CLOCKS_PER_SEC));
+clear:
+    _free_mem(oldData);
+    _free_mem(diffData);
+    _free_mem(newData);
+    time3=clock();
+    printf("all run time: %.0f ms\n",(time3-time0)*(1000.0/CLOCKS_PER_SEC));
+    return exitCode;
 }
 
 #else
 //IS_USES_PATCH_STREAM
 
-struct TFileStreamInput:public hpatch_TStreamInput{
-    explicit TFileStreamInput(const char* fileName):m_file(0),m_offset(0),m_fpos(0){
-        m_file=fopen(fileName, "rb");
-        if (m_file==0) exit(1);
-        //setvbuf(m_file, 0, _IOFBF, 1024*2);
-        //setvbuf(m_file, 0, _IONBF, 0);
-        fseek(m_file, 0, SEEK_END);
-        hpatch_StreamPos_t file_length=getFilePos64(m_file);
-        fseek(m_file, 0, SEEK_SET);
-        hpatch_TStreamInput::streamHandle=this;
-        hpatch_TStreamInput::streamSize=file_length;
-        hpatch_TStreamInput::read=read_file;
-    }
-    static long read_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
-                          unsigned char* out_data,unsigned char* out_data_end){
-        TFileStreamInput& fileStreamInput=*(TFileStreamInput*)streamHandle;
-        hpatch_StreamPos_t curPos=fileStreamInput.m_offset+readFromPos;
-        if (fileStreamInput.m_fpos!=curPos){
-            setFilePos64(fileStreamInput.m_file, curPos);
-        }
-        size_t readed=fread(out_data, 1, (size_t)(out_data_end-out_data), fileStreamInput.m_file);
-        assert(readed==(TUInt)(out_data_end-out_data));
-        fileStreamInput.m_fpos=curPos+readed;
-        return (long)readed;
-    }
-    
-    void setHeadSize(TUInt headSize){
-        assert(m_offset==0);
-        m_offset=headSize;
-        hpatch_TStreamInput::streamSize-=headSize;
-    }
+
+typedef struct TFileStreamInput{
+    hpatch_TStreamInput base;
     FILE*               m_file;
-    TUInt               m_offset;
     hpatch_StreamPos_t  m_fpos;
-    ~TFileStreamInput(){
-        if (m_file!=0) fclose(m_file);
-    }
-};
+    hpatch_BOOL         fileError;
+    unsigned long       m_offset;
+} TFileStreamInput;
 
-static hpatch_StreamPos_t readNewDataSize(TFileStreamInput& diffFileData){
-    TUInt readLength=9;
-    if (readLength>diffFileData.streamSize)
-        readLength=(TUInt)diffFileData.streamSize;
-
-    std::vector<TByte> diffData(readLength);
-    TByte* diffData_begin=0; if (!diffData.empty()) diffData_begin=&diffData[0];
-    assert(diffFileData.m_offset==0);
-    diffFileData.read(diffFileData.streamHandle,0,diffData_begin,diffData_begin+readLength);
-
-    TUInt kNewDataSizeSavedSize=-1;
-    const hpatch_StreamPos_t newDataSize=readSavedSize(diffData,&kNewDataSizeSavedSize);
-    diffFileData.setHeadSize(kNewDataSizeSavedSize);//4 or 9 byte
-    return newDataSize;
+static void TFileStreamInput_init(TFileStreamInput* self){
+    memset(self,0,sizeof(TFileStreamInput));
 }
 
-struct TFileStreamOutput:public hpatch_TStreamOutput{
-    TFileStreamOutput(const char* fileName,hpatch_StreamPos_t file_length):m_file(0){
-        m_file=fopen(fileName, "wb+");
-        if (m_file==0) exit(1);
-        hpatch_TStreamOutput::streamHandle=m_file;
-        hpatch_TStreamOutput::streamSize=file_length;
-        hpatch_TStreamOutput::write=write_file;
+#define _fileError_return { asm { int 3 } self->fileError=hpatch_TRUE; return -1; }
+
+static long _read_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
+                       unsigned char* out_data,unsigned char* out_data_end){
+    unsigned long readLen,readed;
+    TFileStreamInput* self=(TFileStreamInput*)streamHandle;
+    assert(out_data<=out_data_end);
+    readLen=(unsigned long)(out_data_end-out_data);
+    if ((readFromPos+readLen<readFromPos)
+        ||(readFromPos+readLen>self->base.streamSize)) _fileError_return;
+    if (self->m_fpos!=readFromPos+self->m_offset){
+        if (!fileSeek64(self->m_file,readFromPos+self->m_offset,SEEK_SET)) _fileError_return;
     }
-    static long write_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
-                           const unsigned char* data,const unsigned char* data_end){
-        FILE* m_file=(FILE*)streamHandle;
-        size_t writed=fwrite(data,1,(TUInt)(data_end-data),m_file);
-        return (long)writed;
-    }
-    FILE*   m_file;
-    ~TFileStreamOutput(){
-        if (m_file!=0) fclose(m_file);
-    }
-};
+    readed=(unsigned long)fread(out_data,1,readLen,self->m_file);
+    if (readed!=readLen) _fileError_return;
+    self->m_fpos=readFromPos+self->m_offset+readed;
+    return (long)readed;
+}
+static hpatch_BOOL TFileStreamInput_open(TFileStreamInput* self,const char* fileName){
+    assert(self->m_file==0);
+    if (self->m_file) return hpatch_FALSE;
+    
+    self->m_file=fopen(fileName, "rb");
+    if (self->m_file==0) return hpatch_FALSE;
+    if (!fileSeek64(self->m_file, 0, SEEK_END)) return hpatch_FALSE;
+    if (!fileTell64(self->m_file,&self->base.streamSize)) return hpatch_FALSE;
+    if (!fileSeek64(self->m_file, 0, SEEK_SET)) return hpatch_FALSE;
+    
+    self->base.streamHandle=self;
+    self->base.read=_read_file;
+    self->m_fpos=0;
+    self->m_offset=0;
+    self->fileError=hpatch_FALSE;
+    return hpatch_TRUE;
+}
+
+static hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self){
+    return _close_file(&self->m_file);
+}
+
+static void TFileStreamInput_setOffset(TFileStreamInput* self,unsigned long offset){
+    assert(self->m_offset==0);
+    self->m_offset=offset;
+    self->base.streamSize-=offset;
+}
+
+
+typedef struct TFileStreamOutput{
+    hpatch_TStreamOutput base;
+    FILE*               m_file;
+    hpatch_StreamPos_t  out_length;
+    hpatch_BOOL         fileError;
+} TFileStreamOutput;
+
+static void TFileStreamOutput_init(TFileStreamOutput* self){
+    memset(self,0,sizeof(TFileStreamOutput));
+}
+
+static long _write_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
+                        const unsigned char* data,const unsigned char* data_end){
+    unsigned long writeLen,writed;
+    TFileStreamOutput* self=(TFileStreamOutput*)streamHandle;
+    assert(data<=data_end);
+    writeLen=(unsigned long)(data_end-data);
+    if ((writeToPos!=self->out_length)
+        ||(writeToPos+writeLen<writeToPos)
+        ||(writeToPos+writeLen>self->base.streamSize)) _fileError_return;
+    writed=(unsigned long)fwrite(data,1,writeLen,self->m_file);
+    if (writed!=writeLen)  _fileError_return;
+    self->out_length+=writed;
+    return (long)writed;
+}
+static hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,
+                                          const char* fileName,hpatch_StreamPos_t file_length){
+    assert(self->m_file==0);
+    if (self->m_file) return hpatch_FALSE;
+    
+    self->m_file=fopen(fileName, "wb+");
+    if (self->m_file==0) return hpatch_FALSE;
+    self->base.streamHandle=self;
+    self->base.streamSize=file_length;
+    self->base.write=_write_file;
+    self->out_length=0;
+    self->fileError=hpatch_FALSE;
+    return hpatch_TRUE;
+}
+
+static hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self){
+    return _close_file(&self->m_file);
+}
+
+
+#define _check_error(is_error,errorInfo){ \
+    if (is_error){  \
+        exitCode=1; \
+        printf("%s",(errorInfo)); \
+    } \
+}
+
 
 //diffFile need create by HDiff
 int main(int argc, const char * argv[]){
-    if (argc!=4) {
-        std::cout<<"patch command parameter:\n oldFileName diffFileName outNewFileName\n";
-        return 0;
-    }
-    const char* oldFileName=argv[1];
-    const char* diffFileName=argv[2];
-    const char* outNewFileName=argv[3];
-    std::cout<<"old :\"" <<oldFileName<< "\"\ndiff:\""<<diffFileName<<"\"\nout :\""<<outNewFileName<<"\"\n";
+    int     exitCode=0;
     clock_t time0=clock();
-    {
-        TFileStreamInput oldData(oldFileName);
-        TFileStreamInput diffData(diffFileName);
-        const hpatch_StreamPos_t newDataSize=readNewDataSize(diffData);
-        TFileStreamOutput newData(outNewFileName,newDataSize);
-
-        clock_t time1=clock();
-        if (!patch_stream(&newData, &oldData, &diffData)){
-            std::cout<<"  patch_stream run error!!!\n";
-            exit(3);
-        }
-        clock_t time2=clock();
-        std::cout<<"  patch_stream ok!\n";
-        std::cout<<"oldDataSize : "<<oldData.streamSize<<"\ndiffDataSize: "<<diffData.streamSize<<"\nnewDataSize : "<<newDataSize<<"\n";
-        std::cout<<"\npatch   time:"<<(time2-time1)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
+    clock_t time1,time2,time3;
+    TFileStreamInput  oldData;
+    TFileStreamInput  diffData;
+    TFileStreamOutput newData;
+    if (argc!=4) {
+        printf("patch command parameter:\n oldFileName diffFileName outNewFileName\n");
+        return 1;
     }
-    clock_t time3=clock();
-    std::cout<<"all run time:"<<(time3-time0)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
-    return 0;
+    TFileStreamInput_init(&oldData);
+    TFileStreamInput_init(&diffData);
+    TFileStreamOutput_init(&newData);
+    {//open file
+        int kNewDataSizeSavedSize=9;
+        TByte buf[9];
+        hpatch_StreamPos_t savedNewSize=0;
+        const char* oldFileName=argv[1];
+        const char* diffFileName=argv[2];
+        const char* outNewFileName=argv[3];
+        printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,diffFileName,outNewFileName);
+        if (!TFileStreamInput_open(&oldData,oldFileName))
+            _clear_return("\nopen oldFile error!\n");
+        if (!TFileStreamInput_open(&diffData,diffFileName))
+            _clear_return("\nopen diffFile error!\n");
+        //read savedNewSize
+        if (kNewDataSizeSavedSize>diffData.base.streamSize)
+            kNewDataSizeSavedSize=(int)diffData.base.streamSize;
+        if (kNewDataSizeSavedSize!=diffData.base.read(diffData.base.streamHandle,0,
+                                                      buf,buf+kNewDataSizeSavedSize))
+            _clear_return("\nread savedNewSize error!\n");
+        kNewDataSizeSavedSize=readSavedSize(buf,kNewDataSizeSavedSize,&savedNewSize);
+        if (kNewDataSizeSavedSize<=0) _clear_return("\nread savedNewSize error!\n");
+        TFileStreamInput_setOffset(&diffData,kNewDataSizeSavedSize);
+        
+        if (!TFileStreamOutput_open(&newData, outNewFileName,savedNewSize))
+            _clear_return("\nopen out newFile error!\n");
+    }
+    printf("oldDataSize : %lld\ndiffDataSize: %lld\nnewDataSize : %lld\n",
+           oldData.base.streamSize,diffData.base.streamSize,newData.base.streamSize);
+    
+    time1=clock();
+    if (!patch_stream(&newData.base,&oldData.base,&diffData.base)){
+        _check_error(oldData.fileError,"\noldFile read error!\n");
+        _check_error(diffData.fileError,"\ndiffFile read error!\n");
+        _check_error(newData.fileError,"\nout newFile write error!\n");
+        _clear_return("\npatch_stream() run error!\n");
+    }
+    if (newData.out_length!=newData.base.streamSize){
+        printf("\nerror! out newFile dataSize %lld != saved newDataSize %lld\n",
+               newData.out_length,newData.base.streamSize);
+        _clear_return("");
+    }
+    time2=clock();
+    printf("  patch ok!\n");
+    printf("\npatch   time: %.0f ms\n",(time2-time1)*(1000.0/CLOCKS_PER_SEC));
+    
+clear:
+    _check_error(!TFileStreamInput_close(&oldData),"\noldFile close error!\n");
+    _check_error(!TFileStreamInput_close(&diffData),"\ndiffFile close error!\n");
+    _check_error(!TFileStreamOutput_close(&newData),"\nout newFile close error!\n");
+    time3=clock();
+    printf("all run time: %.0f ms\n",(time3-time0)*(1000.0/CLOCKS_PER_SEC));
+    return exitCode;
 }
 
 #endif

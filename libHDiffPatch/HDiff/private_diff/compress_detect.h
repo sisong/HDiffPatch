@@ -41,7 +41,7 @@ typedef unsigned __int32  uint32_t;
 
 template<class _UInt>
 static int _getUIntCost(_UInt v){
-    if ((sizeof(_UInt)<8)||(v>>56)==0) {
+    if ((sizeof(_UInt)<8)||((v>>28)>>28)==0) {
         int cost=1;
         _UInt t;
         if ((t=(v>>28))) { v=t; cost+=4; }

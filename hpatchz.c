@@ -188,9 +188,7 @@ static hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self){
 int main(int argc, const char * argv[]){
     int     exitCode=0;
     clock_t time0=clock();
-    clock_t time1;
-    clock_t time2;
-    clock_t time3;
+    clock_t time1,time2,time3;
     hpatch_TDecompress* decompressPlugin=0;
     TFileStreamInput  oldData;
     TFileStreamInput  diffData;

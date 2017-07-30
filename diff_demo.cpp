@@ -68,7 +68,7 @@ int main(int argc, const char * argv[]){
     clock_t time0=clock();
     if (argc!=4) {
         std::cout<<"diff command line parameter:\n oldFileName newFileName outDiffFileName\n";
-        return 0;
+        exit(1);
     }
     const char* oldFileName=argv[1];
     const char* newFileName=argv[2];
@@ -100,14 +100,17 @@ int main(int argc, const char * argv[]){
         diffData.push_back((TByte)(highSize>>24));
     }
 
-    TByte* newData_begin=0; if (!newData.empty()) newData_begin=&newData[0];
-    const TByte* oldData_begin=0; if (!oldData.empty()) oldData_begin=&oldData[0];
+    TByte* newData_begin=newData.empty()?0:&newData[0];
+    const TByte* oldData_begin=oldData.empty()?0:&oldData[0];
     clock_t time1=clock();
-    create_diff(newData_begin,newData_begin+newDataSize,oldData_begin, oldData_begin+oldDataSize, diffData);
+    create_diff(newData_begin,newData_begin+newDataSize,
+                oldData_begin,oldData_begin+oldDataSize,diffData);
     clock_t time2=clock();
-    if (!check_diff(newData_begin,newData_begin+newDataSize,oldData_begin,oldData_begin+oldDataSize, &diffData[0]+kNewDataSize, &diffData[0]+diffData.size())){
+    if (!check_diff(newData_begin,newData_begin+newDataSize,
+                    oldData_begin,oldData_begin+oldDataSize,
+                    &diffData[0]+kNewDataSize, &diffData[0]+diffData.size())){
         std::cout<<"  patch check diff data error!!!\n";
-        exit(2);
+        exit(1);
     }else{
         std::cout<<"  patch check diff data ok!\n";
     }
