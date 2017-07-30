@@ -50,7 +50,7 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
 //once I/O (read/write) max byte size
 #define hpatch_kStreamCacheSize  (1024)
 
-//patch by stream , only used 7*(hpatch_kStreamCacheSize stack memory) for I/O cache
+//patch by stream , only used (hpatch_kStreamCacheSize*7 stack memory) for I/O cache
 //  serializedDiff create by create_diff()
 hpatch_BOOL patch_stream(const struct hpatch_TStreamOutput* out_newData,
                          const struct hpatch_TStreamInput*  oldData,
@@ -76,7 +76,7 @@ hpatch_inline static hpatch_BOOL
     }
 
     
-//patch with decompress, used 5*(hpatch_kStreamCacheSize stack memory) + 4*(decompress used memory)
+//patch with decompress, used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*4 used memory)
 hpatch_BOOL patch_decompress(const struct hpatch_TStreamOutput* out_newData,
                              const struct hpatch_TStreamInput*  oldData,
                              const struct hpatch_TStreamInput*  compressedDiff,
