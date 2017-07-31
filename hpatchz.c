@@ -34,6 +34,8 @@
 #include <time.h>   //clock
 #include "libHDiffPatch/HPatch/patch.h"
 
+//#define _IS_USE_PATCH_REPEAT_OUT //ON: slower, but maybe memroy needs to be halved!
+
 static hpatch_BOOL fileTell64(FILE* file,hpatch_StreamPos_t* out_pos){
 #ifdef _MSC_VER
     __int64 fpos=_ftelli64(file);
@@ -122,6 +124,7 @@ typedef struct TFileStreamOutput{
     FILE*               m_file;
     hpatch_StreamPos_t  out_length;
     hpatch_BOOL         fileError;
+    hpatch_BOOL         is_repeat_out;
 } TFileStreamOutput;
 
 static void TFileStreamOutput_init(TFileStreamOutput* self){
@@ -133,28 +136,45 @@ static void TFileStreamOutput_init(TFileStreamOutput* self){
         unsigned long writeLen,writed;
         TFileStreamOutput* self=(TFileStreamOutput*)streamHandle;
         assert(data<=data_end);
+        if (writeToPos!=self->out_length){
+            if (self->is_repeat_out&&(writeToPos==0)
+                &&(self->out_length==self->base.streamSize)){//rewrite
+                if (!fileSeek64(self->m_file,0,SEEK_SET)) _fileError_return;
+                self->out_length=0;
+            }else{
+                _fileError_return;
+            }
+        }
         writeLen=(unsigned long)(data_end-data);
-        if ((writeToPos!=self->out_length)
-            ||(writeToPos+writeLen<writeToPos)
+        if ((writeToPos+writeLen<writeToPos)
             ||(writeToPos+writeLen>self->base.streamSize)) _fileError_return;
         writed=(unsigned long)fwrite(data,1,writeLen,self->m_file);
         if (writed!=writeLen)  _fileError_return;
         self->out_length+=writed;
+        if ((self->out_length==self->base.streamSize)&&(self->is_repeat_out)){
+            if (0!=fflush(self->m_file)) _fileError_return;
+        }
         return (long)writed;
     }
-static hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,
-                                          const char* fileName,hpatch_StreamPos_t file_length){
+
+static hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName,
+                                          hpatch_StreamPos_t file_length){
     assert(self->m_file==0);
     if (self->m_file) return hpatch_FALSE;
     
-    self->m_file=fopen(fileName, "wb+");
+    self->m_file=fopen(fileName, "wb");
     if (self->m_file==0) return hpatch_FALSE;
     self->base.streamHandle=self;
     self->base.streamSize=file_length;
     self->base.write=_write_file;
     self->out_length=0;
+    self->is_repeat_out=hpatch_FALSE;
     self->fileError=hpatch_FALSE;
     return hpatch_TRUE;
+}
+
+static void TFileStreamOutput_setRepeatOut(TFileStreamOutput* self,hpatch_BOOL is_repeat_out){
+    self->is_repeat_out=is_repeat_out;
 }
 
 static hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self){
@@ -193,6 +213,9 @@ int main(int argc, const char * argv[]){
     TFileStreamInput  oldData;
     TFileStreamInput  diffData;
     TFileStreamOutput newData;
+#ifdef _IS_USE_PATCH_REPEAT_OUT
+    TFileStreamInput  readNewData;
+#endif
     if (argc!=4) {
         printf("HPatchZ command parameter:\n oldFileName diffFileName outNewFileName\n");
         return 1;
@@ -200,6 +223,9 @@ int main(int argc, const char * argv[]){
     TFileStreamInput_init(&oldData);
     TFileStreamInput_init(&diffData);
     TFileStreamOutput_init(&newData);
+#ifdef _IS_USE_PATCH_REPEAT_OUT
+    TFileStreamInput_init(&readNewData);
+#endif
     {//open file
         hpatch_compressedDiffInfo diffInfo;
         const char* oldFileName=argv[1];
@@ -207,12 +233,12 @@ int main(int argc, const char * argv[]){
         const char* outNewFileName=argv[3];
         printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,diffFileName,outNewFileName);
         if (!TFileStreamInput_open(&oldData,oldFileName))
-            _clear_return("\nopen oldFile error!\n");
+            _clear_return("\nopen oldFile for read error!\n");
         if (!TFileStreamInput_open(&diffData,diffFileName))
-            _clear_return("\nopen diffFile error!\n");
+            _clear_return("\nopen diffFile for read error!\n");
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
             _check_error(diffData.fileError,"\ndiffFile read error!\n");
-            _clear_return("\ngetCompressedDiffInfo() run error!\n");
+            _clear_return("\ngetCompressedDiffInfo() run error! in HDiffZ file?\n");
         }
         if (oldData.base.streamSize!=diffInfo.oldDataSize){
             printf("\nerror! oldFile dataSize %lld != saved oldDataSize %lld\n",
@@ -249,17 +275,33 @@ int main(int argc, const char * argv[]){
         }
         
         if (!TFileStreamOutput_open(&newData, outNewFileName,diffInfo.newDataSize))
-            _clear_return("\nopen out newFile error!\n");
+            _clear_return("\nopen out newFile for write error!\n");
+#ifdef _IS_USE_PATCH_REPEAT_OUT
+        TFileStreamOutput_setRepeatOut(&newData,hpatch_TRUE);
+        if (!TFileStreamInput_open(&readNewData,outNewFileName))
+            _clear_return("\nopen newFile for read error!\n");
+#endif
     }
     printf("oldDataSize : %lld\ndiffDataSize: %lld\nnewDataSize : %lld\n",
            oldData.base.streamSize,diffData.base.streamSize,newData.base.streamSize);
     
     time1=clock();
-    if (!patch_decompress(&newData.base,&oldData.base,&diffData.base,decompressPlugin)){
+#ifdef _IS_USE_PATCH_REPEAT_OUT
+    if (!patch_decompress_repeat_out(&newData.base,&readNewData.base,
+                                     &oldData.base,&diffData.base,decompressPlugin)){
+        const char* kRunErrInfo="\npatch_decompress_repeat_out() run error!\n";
+#else
+    if (!patch_decompress(&newData.base,
+                          &oldData.base,&diffData.base,decompressPlugin)){
+        const char* kRunErrInfo="\npatch_decompress() run error!\n";
+#endif
         _check_error(oldData.fileError,"\noldFile read error!\n");
         _check_error(diffData.fileError,"\ndiffFile read error!\n");
         _check_error(newData.fileError,"\nout newFile write error!\n");
-        _clear_return("\npatch_decompress() run error!\n");
+#ifdef _IS_USE_PATCH_REPEAT_OUT
+        _check_error(readNewData.fileError,"\nnewFile read error!\n");
+#endif
+        _clear_return(kRunErrInfo);
     }
     if (newData.out_length!=newData.base.streamSize){
         printf("\nerror! out newFile dataSize %lld != saved newDataSize %lld\n",
@@ -274,6 +316,9 @@ clear:
     _check_error(!TFileStreamInput_close(&oldData),"\noldFile close error!\n");
     _check_error(!TFileStreamInput_close(&diffData),"\ndiffFile close error!\n");
     _check_error(!TFileStreamOutput_close(&newData),"\nout newFile close error!\n");
+#ifdef _IS_USE_PATCH_REPEAT_OUT
+    _check_error(!TFileStreamInput_close(&readNewData),"\nread newFile close error!\n");
+#endif
     time3=clock();
     printf("all run time: %.0f ms\n",(time3-time0)*(1000.0/CLOCKS_PER_SEC));
     return exitCode;

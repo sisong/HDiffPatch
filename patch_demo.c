@@ -125,7 +125,7 @@ hpatch_BOOL readFile(TByte** out_pdata,size_t* out_dataSize,const char* fileName
 }
 
 hpatch_BOOL writeFile(const TByte* data,size_t dataSize,const char* fileName){
-    FILE* file=fopen(fileName,"wb+");
+    FILE* file=fopen(fileName,"wb");
     if (file==0) _file_error(file);
     if (dataSize!=fwrite(data,1,dataSize,file)) _file_error(file);
     return _close_file(&file);
@@ -283,7 +283,7 @@ static hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,
     assert(self->m_file==0);
     if (self->m_file) return hpatch_FALSE;
     
-    self->m_file=fopen(fileName, "wb+");
+    self->m_file=fopen(fileName, "wb");
     if (self->m_file==0) return hpatch_FALSE;
     self->base.streamHandle=self;
     self->base.streamSize=file_length;
