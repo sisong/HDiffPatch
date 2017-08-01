@@ -26,6 +26,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D665ED311F3070210040FA03 /* file_for_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file_for_patch.h; path = ../../file_for_patch.h; sourceTree = "<group>"; };
 		D6E150CF1F2475E200C2AD3D /* HPatchZ */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HPatchZ; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6E150D91F24764A00C2AD3D /* hpatchz.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hpatchz.c; path = ../../hpatchz.c; sourceTree = "<group>"; };
 		D6E150DC1F24765600C2AD3D /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
@@ -54,6 +55,7 @@
 			children = (
 				D6E150DB1F24765600C2AD3D /* HPatch */,
 				D6E150E01F24768B00C2AD3D /* decompress_plugin_demo.h */,
+				D665ED311F3070210040FA03 /* file_for_patch.h */,
 				D6E150D91F24764A00C2AD3D /* hpatchz.c */,
 				D6E150D01F2475E200C2AD3D /* Products */,
 				D6E150E11F2480A100C2AD3D /* Frameworks */,

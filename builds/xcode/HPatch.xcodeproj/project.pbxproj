@@ -25,6 +25,7 @@
 
 /* Begin PBXFileReference section */
 		D6553CB3165FA1A9009D4C44 /* HPatch */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HPatch; sourceTree = BUILT_PRODUCTS_DIR; };
+		D665ED321F3070650040FA03 /* file_for_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file_for_patch.h; path = ../../file_for_patch.h; sourceTree = "<group>"; };
 		D6BD9BCA17578601004886DE /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 		D6BD9BCB17578601004886DE /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
 		D6BD9BCD17578601004886DE /* patch_demo.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch_demo.c; path = ../../patch_demo.c; sourceTree = "<group>"; };
@@ -44,8 +45,9 @@
 		D6553CAA165FA1A9009D4C44 = {
 			isa = PBXGroup;
 			children = (
-				D6BD9BCD17578601004886DE /* patch_demo.c */,
 				D6BD9BC917578601004886DE /* HPatch */,
+				D665ED321F3070650040FA03 /* file_for_patch.h */,
+				D6BD9BCD17578601004886DE /* patch_demo.c */,
 				D6553CB4165FA1A9009D4C44 /* Products */,
 			);
 			sourceTree = "<group>";

@@ -48,6 +48,7 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
 
 //patch by stream , only used (hpatch_kStreamCacheSize*7 stack memory) for I/O cache
 //  serializedDiff create by create_diff()
+//  oldData suggest load in memory(and use mem_as_hStreamInput()),random access faster
 hpatch_BOOL patch_stream(const hpatch_TStreamOutput* out_newData,
                          const hpatch_TStreamInput*  oldData,
                          const hpatch_TStreamInput*  serializedDiff);
@@ -72,6 +73,7 @@ hpatch_inline static hpatch_BOOL
     
 //patch with decompress plugin, used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*4 used memory)
 //  decompressPlugin create by create_compressed_diff()
+//  oldData suggest load in memory(and use mem_as_hStreamInput()),random access faster
 hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
                              const hpatch_TStreamInput*  oldData,
                              const hpatch_TStreamInput*  compressedDiff,
