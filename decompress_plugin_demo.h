@@ -33,7 +33,8 @@
 //  hpatch_TDeompress lzmaDecompressPlugin;
 
 #include <stdlib.h> //malloc free
-#include "libHDiffPatch/HPatch/patch.h"
+#include <assert.h> //assert
+#include "libHDiffPatch/HPatch/patch_types.h"
 
 #define kDecompressBufSize (1024*16)
 

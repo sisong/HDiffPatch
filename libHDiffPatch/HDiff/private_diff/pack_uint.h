@@ -30,40 +30,21 @@
 #define __PACK_UINT_H_
 
 #include <vector>
+#include "../../HPatch/patch_types.h" //hpatch_packUIntWithTag
 
-//变长正整数编码方案(x bit额外类型标志位,x<=7),从高位开始输出1--n byte:
-// x0*  7-x bit
-// x1* 0*  7+7-x bit
-// x1* 1* 0*  7+7+7-x bit
-// x1* 1* 1* 0*  7+7+7+7-x bit
-// x1* 1* 1* 1* 0*  7+7+7+7+7-x bit
-// ...
 template<class _UInt>
-static void packUIntWithTag(std::vector<unsigned char>& out_code,_UInt iValue,
-                            int highBit,const int kTagBit){//写入并前进指针.
-    const int kPackMaxTagBit=7;
-    assert((0<=kTagBit)&&(kTagBit<=kPackMaxTagBit));
-    assert((highBit>>kTagBit)==0);
-    const int kMaxPackUIntByteSize=(kPackMaxTagBit+sizeof(_UInt)*8+6)/7;
-    const _UInt kMaxValueWithTag=(1<<(7-kTagBit))-1;
-
-    unsigned char codeBuf[kMaxPackUIntByteSize];
+inline static void packUIntWithTag(std::vector<unsigned char>& out_code,_UInt uValue,
+                            int highTag,const int kTagBit){
+    unsigned char  codeBuf[hpatch_kMaxPackedUIntBytes];
     unsigned char* codeEnd=codeBuf;
-    while (iValue>kMaxValueWithTag) {
-        *codeEnd=iValue&((1<<7)-1); ++codeEnd;
-        iValue>>=7;
-    }
-    out_code.push_back((unsigned char)( (highBit<<(8-kTagBit)) | iValue
-                                       | (((codeBuf!=codeEnd)?1:0)<<(7-kTagBit))  ));
-    while (codeBuf!=codeEnd) {
-        --codeEnd;
-        out_code.push_back((*codeEnd) | (((codeBuf!=codeEnd)?1:0)<<7));
-    }
+    if (!hpatch_packUIntWithTag(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,
+                                uValue,highTag,kTagBit)) throw uValue;
+    out_code.insert(out_code.end(),codeBuf,codeEnd);
 }
 
 template<class _UInt>
-inline static void packUInt(std::vector<unsigned char>& out_code,_UInt iValue){
-    packUIntWithTag(out_code,iValue,0,0);
+inline static void packUInt(std::vector<unsigned char>& out_code,_UInt uValue){
+    packUIntWithTag(out_code,uValue,0,0);
 }
 
 #endif //__PACK_UINT_H_

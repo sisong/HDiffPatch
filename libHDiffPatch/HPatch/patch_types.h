@@ -93,11 +93,26 @@ extern "C" {
 
     
     
+    
     void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
                              const unsigned char* mem,const unsigned char* mem_end);
     void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
                               unsigned char* mem,unsigned char* mem_end);
     
+    #define hpatch_BOOL   int
+    #define hpatch_FALSE  ((int)0)
+    #define hpatch_TRUE   ((int)(!hpatch_FALSE))
+    
+    #define  hpatch_kMaxPackedUIntBytes ((sizeof(hpatch_StreamPos_t)*8+6)/7+1)
+    hpatch_BOOL hpatch_packUIntWithTag(unsigned char** out_code,unsigned char* out_code_end,
+                                       hpatch_StreamPos_t uValue,int highTag,const int kTagBit);
+    #define hpatch_packUInt(out_code,out_code_end,uValue) \
+                hpatch_packUIntWithTag(out_code,out_code_end,uValue,0,0)
+
+    hpatch_BOOL hpatch_unpackUIntWithTag(const unsigned char** src_code,const unsigned char* src_code_end,
+                                         hpatch_StreamPos_t* result,const unsigned int kTagBit);
+    #define hpatch_unpackUInt(src_code,src_code_end,result) \
+                hpatch_unpackUIntWithTag(src_code,src_code_end,result,0)
 
 #ifdef __cplusplus
 }
