@@ -374,14 +374,14 @@ static void sub_cover(TDiffData& diff){
 
 //diff结果序列化输出.
 static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
-    const TUInt ctrlCount=(TUInt)diff.covers.size();
+    const TUInt coverCount=(TUInt)diff.covers.size();
     std::vector<TByte> length_buf;
     std::vector<TByte> inc_newPos_buf;
     std::vector<TByte> inc_oldPos_buf;
     {
         TInt oldPosBack=0;
         TInt lastNewEnd=0;
-        for (TUInt i=0; i<ctrlCount; ++i) {
+        for (TUInt i=0; i<coverCount; ++i) {
             packUInt(length_buf, (TUInt)diff.covers[i].length);
             assert(diff.covers[i].newPos>=lastNewEnd);
             packUInt(inc_newPos_buf,(TUInt)(diff.covers[i].newPos-lastNewEnd)); //save inc_newPos
@@ -395,7 +395,7 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
         }
     }
 
-    packUInt(out_diff, (TUInt)ctrlCount);
+    packUInt(out_diff, (TUInt)coverCount);
     packUInt(out_diff, (TUInt)length_buf.size());
     packUInt(out_diff, (TUInt)inc_newPos_buf.size());
     packUInt(out_diff, (TUInt)inc_oldPos_buf.size());
@@ -441,12 +441,12 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
     
 static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& out_diff,
                                       const hdiff_TCompress* compressPlugin){
-    const TUInt ctrlCount=(TUInt)diff.covers.size();
+    const TUInt coverCount=(TUInt)diff.covers.size();
     std::vector<TByte> cover_buf;
     {
         TInt oldPos_end=0;
         TInt lastNewEnd=0;
-        for (TUInt i=0; i<ctrlCount; ++i) {
+        for (TUInt i=0; i<coverCount; ++i) {
             if (diff.covers[i].oldPos>=oldPos_end){ //save inc_oldPos
                 packUIntWithTag(cover_buf,(TUInt)(diff.covers[i].oldPos-oldPos_end), 0, 1);
             }else{
@@ -490,7 +490,7 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     const TUInt oldDataSize=(TUInt)(diff.oldData_end-diff.oldData);
     packUInt(out_diff, newDataSize);
     packUInt(out_diff, oldDataSize);
-    packUInt(out_diff, ctrlCount);
+    packUInt(out_diff, coverCount);
     packUInt(out_diff, (TUInt)cover_buf.size());
     packUInt(out_diff, (TUInt)compress_cover_buf.size());
     packUInt(out_diff, (TUInt)rle_ctrlBuf.size());
