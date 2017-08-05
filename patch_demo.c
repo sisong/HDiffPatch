@@ -34,7 +34,12 @@
 #include <stdlib.h>
 #include "libHDiffPatch/HPatch/patch.h"
 
+//#define _IS_USE_PATCH_CACHE      //ON: faster, add some memory for patch cache
 //#define _IS_USE_OLD_FILE_STREAM  //ON: slower, memroy needs less,because not need load oldFile
+
+#ifdef _IS_USE_PATCH_CACHE
+#   define  k_patch_cache_size  (1<<22)
+#endif
 
 #include "file_for_patch.h"
 
@@ -72,11 +77,9 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
     }//*/
 #endif
 
-#ifndef _IS_USE_OLD_FILE_STREAM
 #define _free_mem(p){ \
     if (p) { free(p); p=0; } \
 }
-#endif
 
 #define _clear_return(info){ \
     if (strlen(info)>0)      \
@@ -98,6 +101,8 @@ int main(int argc, const char * argv[]){
     int     exitCode=0;
     double  time0=clock_s();
     double  time1,time2,time3;
+    TFileStreamOutput   newData;
+    TFileStreamInput    diffData;
 #ifdef _IS_USE_OLD_FILE_STREAM
     TFileStreamInput     oldData;
     hpatch_TStreamInput* poldData=&oldData.base;
@@ -107,8 +112,9 @@ int main(int argc, const char * argv[]){
     hpatch_TStreamInput  oldData;
     hpatch_TStreamInput* poldData=&oldData;
 #endif
-    TFileStreamInput  diffData;
-    TFileStreamOutput newData;
+#ifdef _IS_USE_PATCH_CACHE
+    TByte*            temp_cache=0;
+#endif
     if (argc!=4) {
         printf("patch command parameter:\n oldFileName diffFileName outNewFileName\n");
         return 1;
@@ -153,13 +159,22 @@ int main(int argc, const char * argv[]){
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
     
     time1=clock_s();
+#ifdef _IS_USE_PATCH_CACHE
+    temp_cache=(TByte*)malloc(k_patch_cache_size);
+    if (!temp_cache) _clear_return("\nalloc cache memory error!\n");
+    if (!patch_stream_with_cache(&newData.base,poldData,&diffData.base,
+                                 temp_cache,temp_cache+k_patch_cache_size)){
+        const char* kRunErrInfo="\npatch_with_cache() run error!\n";
+#else
     if (!patch_stream(&newData.base,poldData,&diffData.base)){
+        const char* kRunErrInfo="\npatch_stream() run error!\n";
+#endif
 #ifdef _IS_USE_OLD_FILE_STREAM
         _check_error(oldData.fileError,"\noldFile read error!\n");
 #endif
         _check_error(diffData.fileError,"\ndiffFile read error!\n");
         _check_error(newData.fileError,"\nout newFile write error!\n");
-        _clear_return("\npatch_stream() run error!\n");
+        _clear_return(kRunErrInfo);
     }
     if (newData.out_length!=newData.base.streamSize){
         printf("\nerror! out newFile dataSize %lld != saved newDataSize %lld\n",
@@ -171,13 +186,16 @@ int main(int argc, const char * argv[]){
     printf("\npatch   time: %.3f s\n",(time2-time1));
     
 clear:
+    _check_error(!TFileStreamOutput_close(&newData),"\nout newFile close error!\n");
+    _check_error(!TFileStreamInput_close(&diffData),"\ndiffFile close error!\n");
 #ifdef _IS_USE_OLD_FILE_STREAM
     _check_error(!TFileStreamInput_close(&oldData),"\noldFile close error!\n");
 #else
     _free_mem(poldData_mem);
 #endif
-    _check_error(!TFileStreamInput_close(&diffData),"\ndiffFile close error!\n");
-    _check_error(!TFileStreamOutput_close(&newData),"\nout newFile close error!\n");
+#ifdef _IS_USE_PATCH_CACHE
+    _free_mem(temp_cache);
+#endif
     time3=clock_s();
     printf("all run time: %.3f s\n",(time3-time0));
     return exitCode;
