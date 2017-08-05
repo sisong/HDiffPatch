@@ -34,26 +34,32 @@
 extern "C" {
 #endif
 
-//if patch() false return hpatch_FALSE
 //  serializedDiff create by create_diff()
 hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
                   const unsigned char* oldData,const unsigned char* oldData_end,
                   const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
 
 
-//patch_stream()  patch by stream , recommended use in limited memory systems
-
 //once I/O (read/write) max byte size
+#ifndef hpatch_kStreamCacheSize
 #define hpatch_kStreamCacheSize  (1024)
+#endif
 
-//patch by stream , only used (hpatch_kStreamCacheSize*7 stack memory) for I/O cache
+//patch by stream , used (hpatch_kStreamCacheSize*7 stack memory) for I/O cache
 //  serializedDiff create by create_diff()
-//  oldData suggest load in memory(and use mem_as_hStreamInput()),random access faster
+//  use patch_stream_with_cache(), can passing your memory for I/O cache
+//  recommended load oldData in memory(and use mem_as_hStreamInput()),random access faster
 hpatch_BOOL patch_stream(const hpatch_TStreamOutput* out_newData,
                          const hpatch_TStreamInput*  oldData,
                          const hpatch_TStreamInput*  serializedDiff);
-    
-    
+
+//see patch_stream()
+//  limit (temp_cache_end-temp_cache)>=2048
+hpatch_BOOL patch_stream_with_cache(const hpatch_TStreamOutput* out_newData,
+                                    const hpatch_TStreamInput*  oldData,
+                                    const hpatch_TStreamInput*  serializedDiff,
+                                    unsigned char* temp_cache,unsigned char* temp_cache_end);
+
     //hpatch_kNodecompressPlugin is pair of hdiff_kNocompressPlugin
     #define hpatch_kNodecompressPlugin ((hpatch_TDecompress*)0)
 
@@ -61,6 +67,7 @@ hpatch_BOOL patch_stream(const hpatch_TStreamOutput* out_newData,
 //  compressedDiff created by create_compressed_diff()
 hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
                                   const hpatch_TStreamInput* compressedDiff);
+//see getCompressedDiffInfo()
 hpatch_inline static hpatch_BOOL
     getCompressedDiffInfo_mem(hpatch_compressedDiffInfo* out_diffInfo,
                               const unsigned char* compressedDiff,
@@ -73,21 +80,31 @@ hpatch_inline static hpatch_BOOL
     
 //patch with decompress plugin, used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*4 used memory)
 //  decompressPlugin create by create_compressed_diff()
-//  oldData suggest load in memory(and use mem_as_hStreamInput()),random access faster
+//  use patch_decompress_with_cache(), can passing your memory for I/O cache
+//  recommended load oldData in memory(and use mem_as_hStreamInput()),random access faster
 hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
                              const hpatch_TStreamInput*  oldData,
                              const hpatch_TStreamInput*  compressedDiff,
                              hpatch_TDecompress* decompressPlugin);
 
+//see patch_decompress()
+//  limit (temp_cache_end-temp_cache)>=2048
+hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,
+                                        const hpatch_TStreamInput*  oldData,
+                                        const hpatch_TStreamInput*  compressedDiff,
+                                        hpatch_TDecompress* decompressPlugin,
+                                        unsigned char* temp_cache,unsigned char* temp_cache_end);
 
-//patch with decompress,used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*2 used memory)
-// write newData twice and read newData once,slower than patch_decompress,but memroy needs to be halved.
+//see patch_decompress(), used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*2 used memory)
+//  write newData twice and read newData once,slower than patch_decompress,but memroy needs to be halved.
+//  recommended use in limited memory systems
 hpatch_BOOL patch_decompress_repeat_out(const hpatch_TStreamOutput* repeat_out_newData,
                                         hpatch_TStreamInput*        in_newData,//streamSize can set 0
                                         const hpatch_TStreamInput*  oldData,
                                         const hpatch_TStreamInput*  compressedDiff,
                                         hpatch_TDecompress*         decompressPlugin);
 
+//see patch_decompress()
 hpatch_inline static hpatch_BOOL
     patch_decompress_mem(unsigned char* out_newData,unsigned char* out_newData_end,
                          const unsigned char* oldData,const unsigned char* oldData_end,
