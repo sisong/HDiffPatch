@@ -137,7 +137,7 @@ namespace {
     
 #ifdef _SA_MATCHBY_STD_LOWER_BOUND
 #else
-    template <class T> inline static T* __select_mid(T*& p,TInt n) { return p+(n>>1); }
+    template <class T> inline static T* __select_mid(T*& p,size_t n) { return p+(n>>1); }
             //'&' for hack cpu cache speed for xcode, somebody know way?
 #endif
     template <class T>
@@ -149,14 +149,13 @@ namespace {
         return std::lower_bound<const T*,StringToken,const TSuffixString_compare&>
                     (rbegin,rend,StringToken(str,str_end),TSuffixString_compare(src_begin,src_end));
 #else
-        TInt left_eq=min_eq;
-        TInt right_eq=min_eq;
+        size_t left_eq=min_eq;
+        size_t right_eq=min_eq;
         while (size_t len=(size_t)(rend-rbegin)) {
-            const T* m=__select_mid(rbegin,len);
-            T sIndex=(*m);
-            TInt eq_len=(left_eq<=right_eq)?left_eq:right_eq;
+            const T* mid=__select_mid(rbegin,len);
+            size_t eq_len=(left_eq<=right_eq)?left_eq:right_eq;
             const TChar* vs=str+eq_len;
-            const TChar* ss=src_begin+eq_len+sIndex;
+            const TChar* ss=src_begin+(*mid)+eq_len;
             bool is_less;
             while (true) {
                 if (vs==str_end) { is_less=false; break; };
@@ -174,10 +173,10 @@ namespace {
             }
             if (is_less){
                 left_eq=eq_len;
-                rbegin=m+1;
+                rbegin=mid+1;
             }else{
                 right_eq=eq_len;
-                rend=m;
+                rend=mid;
             }
         }
         return rbegin;

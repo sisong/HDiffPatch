@@ -3,9 +3,14 @@
 #endif
 #define BUILD_DIVSUFSORT64 1
 #define HAVE_CONFIG_H 1
+#ifndef PRIdSAIDX_T
+#   define PRIdSAIDX_T "lld"
+#endif
+#include <stdio.h>
 #include "divsufsort_private.h"
 
 #include "divsufsort.c.inc.h"
 #include "trsort.c.inc.h"
 #define lg_table sssort_lg_table
 #include "sssort.c.inc.h"
+#include "utils.c.inc.h"
