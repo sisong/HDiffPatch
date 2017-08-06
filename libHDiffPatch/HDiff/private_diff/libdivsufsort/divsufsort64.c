@@ -3,9 +3,6 @@
 #endif
 #define BUILD_DIVSUFSORT64 1
 #define HAVE_CONFIG_H 1
-#ifndef PRIdSAIDX_T
-#   define PRIdSAIDX_T "lld"
-#endif
 #include <stdio.h>
 #include "divsufsort_private.h"
 

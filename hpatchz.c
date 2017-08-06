@@ -69,6 +69,16 @@
     }
 #endif
 
+#ifdef _MSC_VER
+#   ifndef PRId64
+#       define PRId64 "I64d"
+#   endif
+#else
+#   ifndef PRId64
+#       define PRId64 "lld"
+#   endif
+#endif
+
 #define _free_mem(p){ \
     if (p) { free(p); p=0; } \
 }
@@ -143,7 +153,7 @@ int main(int argc, const char * argv[]){
             _clear_return("\ngetCompressedDiffInfo() run error! in HDiffZ file?\n");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
-            printf("\nerror! oldFile dataSize %lld != saved oldDataSize %lld\n",
+            printf("\nerror! oldFile dataSize %" PRId64 " != saved oldDataSize %" PRId64 "\n",
                    poldData->streamSize,diffInfo.oldDataSize);
             _clear_return("");
         }
@@ -184,7 +194,7 @@ int main(int argc, const char * argv[]){
             _clear_return("\nopen newFile for read error!\n");
 #endif
     }
-    printf("oldDataSize : %lld\ndiffDataSize: %lld\nnewDataSize : %lld\n",
+    printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
     
     time1=clock_s();
@@ -213,7 +223,7 @@ int main(int argc, const char * argv[]){
         _clear_return(kRunErrInfo);
     }
     if (newData.out_length!=newData.base.streamSize){
-        printf("\nerror! out newFile dataSize %lld != saved newDataSize %lld\n",
+        printf("\nerror! out newFile dataSize %" PRId64 " != saved newDataSize %" PRId64 "\n",
                newData.out_length,newData.base.streamSize);
         _clear_return("");
     }

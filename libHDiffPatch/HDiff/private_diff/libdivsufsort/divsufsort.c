@@ -2,9 +2,6 @@
 #  undef BUILD_DIVSUFSORT64
 #endif
 #define HAVE_CONFIG_H 1
-#ifndef PRIdSAIDX_T
-#   define PRIdSAIDX_T "d"
-#endif
 #include <stdio.h>
 #include "divsufsort_private.h"
 

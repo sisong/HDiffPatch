@@ -39,8 +39,16 @@ extern "C" {
     typedef signed __int32  int32_t;
 #   endif
     typedef signed __int64  int64_t;
+    typedef signed __int64  llong_t;
+#   ifndef PRId64
+#       define PRId64 "I64d"
+#   endif
 #else
-#   include <stdint.h> //for uint8_t,int32_t,uint64_t
+#   include <stdint.h> //for uint8_t,int32_t,int64_t
+    typedef signed long long llong_t;
+#   ifndef PRId64
+#       define PRId64 "lld"
+#   endif
 #endif
 
 #ifndef DIVSUFSORT_API
@@ -62,7 +70,7 @@ typedef int32_t saint_t;
 #endif /* SAINT_T */
 #ifndef SAIDX64_T
 #define SAIDX64_T
-typedef int64_t saidx64_t;
+typedef llong_t saidx64_t;
 #endif /* SAIDX64_T */
 #ifndef PRIdSAINT_T
 #define PRIdSAINT_T PRId32
