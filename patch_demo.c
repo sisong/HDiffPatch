@@ -77,21 +77,17 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
     }//*/
 #endif
 
-#ifdef _MSC_VER
-#   ifndef PRId64
+#ifndef PRId64
+#   ifdef _MSC_VER
 #       define PRId64 "I64d"
-#   endif
-#else
-#   ifndef PRId64
+#   else
 #       define PRId64 "lld"
 #   endif
 #endif
 
-#define _free_mem(p){ \
-    if (p) { free(p); p=0; } \
-}
+#define _free_mem(p) { if (p) { free(p); p=0; } }
 
-#define _clear_return(info){ \
+#define _error_return(info){ \
     if (strlen(info)>0)      \
         printf("%s",(info)); \
     exitCode=1; \
@@ -144,26 +140,26 @@ int main(int argc, const char * argv[]){
         printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,diffFileName,outNewFileName);
 #ifdef _IS_USE_OLD_FILE_STREAM
         if (!TFileStreamInput_open(&oldData,oldFileName))
-            _clear_return("\nopen oldFile for read error!\n");
+            _error_return("\nopen oldFile for read error!\n");
 #else
         if (!readFileAll(&poldData_mem,&oldDataSize,oldFileName))
-            _clear_return("\nopen read oldFile error!\n");
+            _error_return("\nopen read oldFile error!\n");
         mem_as_hStreamInput(&oldData,poldData_mem,poldData_mem+oldDataSize);
 #endif
         if (!TFileStreamInput_open(&diffData,diffFileName))
-            _clear_return("\nopen diffFile error!\n");
+            _error_return("\nopen diffFile error!\n");
         //read savedNewSize
         if (kNewDataSizeSavedSize>diffData.base.streamSize)
             kNewDataSizeSavedSize=(int)diffData.base.streamSize;
         if (kNewDataSizeSavedSize!=diffData.base.read(diffData.base.streamHandle,0,
                                                       buf,buf+kNewDataSizeSavedSize))
-            _clear_return("\nread savedNewSize error!\n");
+            _error_return("\nread savedNewSize error!\n");
         kNewDataSizeSavedSize=readSavedSize(buf,kNewDataSizeSavedSize,&savedNewSize);
-        if (kNewDataSizeSavedSize<=0) _clear_return("\nread savedNewSize error!\n");
+        if (kNewDataSizeSavedSize<=0) _error_return("\nread savedNewSize error!\n");
         TFileStreamInput_setOffset(&diffData,kNewDataSizeSavedSize);
         
         if (!TFileStreamOutput_open(&newData, outNewFileName,savedNewSize))
-            _clear_return("\nopen out newFile error!\n");
+            _error_return("\nopen out newFile error!\n");
     }
     printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
@@ -171,7 +167,7 @@ int main(int argc, const char * argv[]){
     time1=clock_s();
 #ifdef _IS_USE_PATCH_CACHE
     temp_cache=(TByte*)malloc(k_patch_cache_size);
-    if (!temp_cache) _clear_return("\nalloc cache memory error!\n");
+    if (!temp_cache) _error_return("\nalloc cache memory error!\n");
     if (!patch_stream_with_cache(&newData.base,poldData,&diffData.base,
                                  temp_cache,temp_cache+k_patch_cache_size)){
         const char* kRunErrInfo="\npatch_with_cache() run error!\n";
@@ -184,12 +180,12 @@ int main(int argc, const char * argv[]){
 #endif
         _check_error(diffData.fileError,"\ndiffFile read error!\n");
         _check_error(newData.fileError,"\nout newFile write error!\n");
-        _clear_return(kRunErrInfo);
+        _error_return(kRunErrInfo);
     }
     if (newData.out_length!=newData.base.streamSize){
         printf("\nerror! out newFile dataSize %" PRId64 " != saved newDataSize %" PRId64 "\n",
                newData.out_length,newData.base.streamSize);
-        _clear_return("");
+        _error_return("");
     }
     time2=clock_s();
     printf("  patch ok!\n");
