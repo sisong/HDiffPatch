@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:HDiffZ.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:HPatchZ.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:HDiff.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:HPatch.xcodeproj">
+   </FileRef>
+   <Group
+      location = "container:"
+      name = "test">
+      <FileRef
+         location = "group:unitTest.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:bestParams.xcodeproj">
+      </FileRef>
+   </Group>
+</Workspace>
