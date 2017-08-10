@@ -33,8 +33,8 @@
 #include "libHDiffPatch/HPatch/patch.h"
 
 //#define _IS_USE_PATCH_CACHE      //ON: faster, add some memory for patch cache
-//#define _IS_USE_OLD_FILE_STREAM  //ON: slower, memroy needs less,because not need load oldFile
-//#define _IS_USE_PATCH_REPEAT_OUT //ON: slower, decompress memroy needs to be halved!
+//#define _IS_USE_OLD_FILE_STREAM  //ON: slower, memroy requires less,because not need load oldFile
+//#define _IS_USE_PATCH_REPEAT_OUT //ON: slower, decompress memroy requires to be halved!
 
 #ifdef _IS_USE_PATCH_REPEAT_OUT
 #   undef _IS_USE_PATCH_CACHE

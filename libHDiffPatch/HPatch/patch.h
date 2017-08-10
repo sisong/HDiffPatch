@@ -34,11 +34,11 @@
 extern "C" {
 #endif
 
+//generate newData by patch(oldData + diff)
 //  serializedDiff create by create_diff()
 hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
                   const unsigned char* oldData,const unsigned char* oldData_end,
                   const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
-
 
 //once I/O (read/write) max byte size
 #ifndef hpatch_kStreamCacheSize
@@ -60,6 +60,17 @@ hpatch_BOOL patch_stream_with_cache(const hpatch_TStreamOutput* out_newData,
                                     const hpatch_TStreamInput*  serializedDiff,
                                     unsigned char* temp_cache,unsigned char* temp_cache_end);
 
+    
+// When your patch running environment resources are very limited,
+//  you can use the following way to achieve the balance between memory usage and speed:
+// . recommended use patch_decompress_with_cache(), wrap file handle as file stream,
+//     and pass some memory cache to optimize file I/O speed;
+// . if patch run slow, you can increase kMinSingleMatchScore, such as 64,1024,etc., when you create diff.
+//     this can be optimize file random access speed,but diffData will becomes larger!
+// . compress plugin recommended use zlib(zlibCompressPlugin\zlibDecompressPlugin),
+//     its memory requires very small when decompress;
+
+    
     //hpatch_kNodecompressPlugin is pair of hdiff_kNocompressPlugin
     #define hpatch_kNodecompressPlugin ((hpatch_TDecompress*)0)
 
@@ -96,7 +107,7 @@ hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,
                                         unsigned char* temp_cache,unsigned char* temp_cache_end);
 
 //see patch_decompress(), used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*2 used memory)
-//  write newData twice and read newData once,slower than patch_decompress,but memroy needs to be halved.
+//  write newData twice and read newData once,slower than patch_decompress,but memroy requires to be halved.
 //  recommended use in limited memory systems
 hpatch_BOOL patch_decompress_repeat_out(const hpatch_TStreamOutput* repeat_out_newData,
                                         hpatch_TStreamInput*        in_newData,//streamSize can set 0
