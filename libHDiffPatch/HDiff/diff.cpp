@@ -36,8 +36,6 @@
 #include "private_diff/pack_uint.h"
 #include "../HPatch/patch.h"
 
-static const int kMinSingleMatchScore_default = 6; //0--9最小独立覆盖收益, bin: 0--4  text: 4--9
-
 namespace{
     
     typedef unsigned char TByte;
@@ -539,9 +537,10 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
 
 void create_diff(const TByte* newData,const TByte* newData_end,
                  const TByte* oldData,const TByte* oldData_end,
-                 std::vector<TByte>& out_diff){
+                 std::vector<TByte>& out_diff,
+                 int kMinSingleMatchScore){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore_default);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
     serialize_diff(diff,out_diff);
 }
 
@@ -564,9 +563,10 @@ bool check_diff(const TByte* newData,const TByte* newData_end,
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                             const unsigned char* oldData,const unsigned char* oldData_end,
                             std::vector<unsigned char>& out_diff,
-                            const hdiff_TCompress* compressPlugin){
+                            const hdiff_TCompress* compressPlugin,
+                            int kMinSingleMatchScore){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore_default);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 

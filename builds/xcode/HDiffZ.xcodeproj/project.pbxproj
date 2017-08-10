@@ -16,7 +16,6 @@
 		D690ABBC1F2079E80089DC57 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABB51F2079E80089DC57 /* patch.c */; };
 		D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFA1F2097C90089DC57 /* libbz2.tbd */; };
 		D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFC1F2097D30089DC57 /* libz.tbd */; };
-		D6E1512A1F2767CA00C2AD3D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E151291F2767CA00C2AD3D /* liblzma.tbd */; };
 		D6EE505D1F287234002854A2 /* compress_detect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6EE505B1F287234002854A2 /* compress_detect.cpp */; };
 /* End PBXBuildFile section */
 
@@ -70,7 +69,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D6E1512A1F2767CA00C2AD3D /* liblzma.tbd in Frameworks */,
 				D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */,
 				D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */,
 			);
@@ -256,7 +254,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -304,7 +302,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -335,7 +333,6 @@
 		D690AB991F2078A40089DC57 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -343,7 +340,6 @@
 		D690AB9A1F2078A40089DC57 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

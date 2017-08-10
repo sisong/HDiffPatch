@@ -42,6 +42,9 @@ extern "C" {
 #else
 #   include <stdint.h> //for uint8_t,int32_t
 #endif
+#ifndef PRId32
+#   define PRId32 "d"
+#endif
 
 #ifndef DIVSUFSORT_API
 # ifdef DIVSUFSORT_BUILD_DLL
