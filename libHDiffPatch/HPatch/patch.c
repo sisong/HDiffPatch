@@ -391,13 +391,13 @@ static void _TStreamClip_init(struct TStreamClip* sclip,
     (  (TUInt)((sclip)->streamPos_end-(sclip)->streamPos)  \
      + (TUInt)_TStreamClip_cachedSize(sclip)  )
 
-static void _TStreamClip_updateCache(struct TStreamClip* sclip){
+static hpatch_BOOL _TStreamClip_updateCache(struct TStreamClip* sclip){
     TByte* buf0=&sclip->cacheBuf[0];
     const TUInt streamSize=(TUInt)(sclip->streamPos_end-sclip->streamPos);
     size_t readSize=sclip->cacheBegin;
     if (readSize>streamSize)
         readSize=(size_t)streamSize;
-    if (readSize==0) return;
+    if (readSize==0) return hpatch_TRUE;
     if (!_TStreamClip_isCacheEmpty(sclip)){
         memmove(buf0+(size_t)(sclip->cacheBegin-readSize),
                 buf0+sclip->cacheBegin,_TStreamClip_cachedSize(sclip));
@@ -407,27 +407,25 @@ static void _TStreamClip_updateCache(struct TStreamClip* sclip){
                            == readSize ){
         sclip->cacheBegin-=readSize;
         sclip->streamPos+=readSize;
+        return hpatch_TRUE;
     }else{ //read error
-        sclip->cacheBegin=sclip->cacheEnd;
-        sclip->streamPos=sclip->streamPos_end;
+        return _hpatch_FALSE;
     }
 }
 
-hpatch_inline
+hpatch_inline  //error return 0
 static TByte* _TStreamClip_accessData(struct TStreamClip* sclip,size_t readSize){
     //assert(readSize<=sclip->cacheEnd);
-    if (readSize>_TStreamClip_cachedSize(sclip))
-        _TStreamClip_updateCache(sclip);
-    if(readSize<=_TStreamClip_cachedSize(sclip)){
-        return &sclip->cacheBuf[sclip->cacheBegin];
-    }else{
-        return 0; //read error
+    if (readSize>_TStreamClip_cachedSize(sclip)){
+        if (!_TStreamClip_updateCache(sclip)) return _hpatch_FALSE;
+        if (readSize>_TStreamClip_cachedSize(sclip)) return _hpatch_FALSE;
     }
+    return &sclip->cacheBuf[sclip->cacheBegin];
 }
 
 #define _TStreamClip_skipData_noCheck(sclip,skipSize) ((sclip)->cacheBegin+=skipSize)
 
-hpatch_inline
+hpatch_inline  //error return 0
 static TByte* _TStreamClip_readData(struct TStreamClip* sclip,size_t readSize){
     TByte* result=_TStreamClip_accessData(sclip,readSize);
     _TStreamClip_skipData_noCheck(sclip,readSize);

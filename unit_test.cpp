@@ -53,8 +53,8 @@ typedef size_t          TUInt;
 
 
 #ifdef  _CompressPlugin_no
-    const hdiff_TCompress* compressPlugin=hdiff_kNocompressPlugin;
-    hpatch_TDecompress* decompressPlugin=hpatch_kNodecompressPlugin;
+    const hdiff_TCompress* compressPlugin=0;
+    hpatch_TDecompress* decompressPlugin=0;
 #endif
 #ifdef  _CompressPlugin_zlib
     const hdiff_TCompress* compressPlugin=&zlibCompressPlugin;

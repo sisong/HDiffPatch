@@ -71,8 +71,8 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 #include "decompress_plugin_demo.h"
 
 #ifdef  _CompressPlugin_no
-    const hdiff_TCompress* compressPlugin=hdiff_kNocompressPlugin;
-    hpatch_TDecompress* decompressPlugin=hpatch_kNodecompressPlugin;
+    const hdiff_TCompress* compressPlugin=0;
+    hpatch_TDecompress* decompressPlugin=0;
 #endif
 #ifdef  _CompressPlugin_zlib
     const hdiff_TCompress* compressPlugin=&zlibCompressPlugin;

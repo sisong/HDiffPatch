@@ -36,6 +36,7 @@ static const int kMinSingleMatchScore_default = 6;
 
 //create a diff data between oldData and newData
 //  out_diff is uncompressed, you can use create_compressed_diff() create compressed diff data
+//  recommended always use create_compressed_diff() replace create_diff()
 //  kMinSingleMatchScore: default 6, bin: 0--4  text: 4--9
 void create_diff(const unsigned char* newData,const unsigned char* newData_end,
                  const unsigned char* oldData,const unsigned char* oldData_end,
@@ -59,13 +60,11 @@ extern "C"
         const char*  (*compressType)(const hdiff_TCompress* compressPlugin);
         //return the max compressed size, if input dataSize data;
         size_t  (*maxCompressedSize)(const hdiff_TCompress* compressPlugin,size_t dataSize);
-        //compress data to out_code; return compressed size, error or not need compress return 0.
+        //compress data to out_code; return compressed size, if error or not need compress then return 0;
         size_t           (*compress)(const hdiff_TCompress* compressPlugin,
                                      unsigned char* out_code,unsigned char* out_code_end,
                                      const unsigned char* data,const unsigned char* data_end);
     } hdiff_TCompress;
-    
-    #define  hdiff_kNocompressPlugin ((const hdiff_TCompress*)0)  //compress plugin,but no compress.
     
 #ifdef __cplusplus
 }
@@ -77,7 +76,7 @@ extern "C"
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                             const unsigned char* oldData,const unsigned char* oldData_end,
                             std::vector<unsigned char>& out_diff,
-                            const hdiff_TCompress* compressPlugin,
+                            const hdiff_TCompress* compressPlugin=0,
                             int kMinSingleMatchScore=kMinSingleMatchScore_default);
 //return patch_decompress(oldData+diff)==newData?
 bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,

@@ -175,7 +175,7 @@ int main(int argc, const char * argv[]){
             }else{
                 if (strlen(diffInfo.compressType)>0)
                     printf("  diffFile added useless compress tag \"%s\"\n",diffInfo.compressType);
-                decompressPlugin=hpatch_kNodecompressPlugin;
+                decompressPlugin=0;
             }
         }else{
             printf("  HPatchZ used decompress tag \"%s\" (need decompress %d)\n",

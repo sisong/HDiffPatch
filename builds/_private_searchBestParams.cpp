@@ -159,7 +159,7 @@ void doDiff(TDiffInfo& di){
         di.sstring.resetSuffixString(oldData0,oldData0+di.oldData.size());
     }
     
-    di.diffSize=_compress_diff(di,hdiff_kNocompressPlugin,hpatch_kNodecompressPlugin);
+    di.diffSize=_compress_diff(di,0,0);
     di.zipSize=_compress_diff(di,&zlibCompressPlugin,&zlibDecompressPlugin);
     di.bz2Size=_compress_diff(di,&bz2CompressPlugin,&bz2DecompressPlugin);
     di.lzmaSize=_compress_diff(di,&lzmaCompressPlugin,&lzmaDecompressPlugin);
