@@ -1,4 +1,4 @@
-//data_digest.cpp
+//digest_macher.cpp
 /*
  The MIT License (MIT)
  Copyright (c) 2012-2017 HouSisong
@@ -25,7 +25,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "data_digest.h"
+#include "digest_matcher.h"
 #include <stdexcept>
 
 #define _adler32_BASE 65521
@@ -44,7 +44,7 @@
     _adler32_add1(adler,sum,data[i+3]); \
 }
 
-uint32_t adler32(unsigned char* data,size_t n){
+static uint32_t adler32(unsigned char* data,size_t n){
     uint32_t adler=1;
     uint32_t sum=0;
     while (n>=16) {
@@ -65,7 +65,8 @@ uint32_t adler32(unsigned char* data,size_t n){
     return adler | (sum<<16);
 }
 
-TDataDigest::TDataDigest(const hpatch_TStreamInput* data,int kMatchNodeSizeBit)
+
+TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* data,int kMatchNodeSizeBit)
 :m_data(data),m_kMatchNodeSizeBit(kMatchNodeSizeBit){
     if ((m_kMatchNodeSizeBit<=0)||(m_kMatchNodeSizeBit>=31))
         throw std::runtime_error("TDataDigest() kMatchNodeSizeBit error.");
@@ -85,7 +86,7 @@ TDataDigest::TDataDigest(const hpatch_TStreamInput* data,int kMatchNodeSizeBit)
 }
 
 
-void TDataDigest::getDigests(){
+void TDigestMatcher::getDigests(){
     const size_t nodeCount=m_nodes.size();
     size_t matchNodeSize=((size_t)1)<<m_kMatchNodeSizeBit;
     unsigned char* buf=&m_buf[0];

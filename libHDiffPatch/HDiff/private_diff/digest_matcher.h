@@ -1,4 +1,4 @@
-//data_digest.h
+//digest_matcher.h
 //用摘要匹配的办法代替后缀数组的匹配,匹配效果比后缀数差,但内存占用少;
 //用adler32计算数据的摘要信息,以便于滚动匹配.
 //
@@ -28,8 +28,8 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef data_digest_h
-#define data_digest_h
+#ifndef digest_matcher_h
+#define digest_matcher_h
 #include "../../HPatch/patch_types.h"
 #include <vector>
 
@@ -45,10 +45,10 @@ typedef unsigned __int32  uint32_t;
 #   include <stdint.h> //for int32_t uint32_t
 #endif
 
-class TDataDigest{
+class TDigestMatcher{
 public:
     //throw std::runtime_error when data->read error or kMatchNodeSizeBit error;
-    TDataDigest(const hpatch_TStreamInput* data,int kMatchNodeSizeBit);
+    TDigestMatcher(const hpatch_TStreamInput* data,int kMatchNodeSizeBit);
 private:
     typedef uint32_t TDigest;
     const hpatch_TStreamInput* m_data;

@@ -600,17 +600,17 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
 
 
 //======================
-#include "private_diff/data_digest.h"
+#include "private_diff/digest_matcher.h"
 
 void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
                                    hpatch_TStreamOutput* out_diff,
                                    hdiff_TStreamCompress* compressPlugin,
                                    int kMatchNodeSizeBit){
-    TDataDigest dd(newData,kMatchNodeSizeBit);
+    TDigestMatcher dmatcher(newData,kMatchNodeSizeBit);
+    //dmatcher.search_cover(oldData);
     
     //search_cover
-    //extend_cover
     
 }
 
