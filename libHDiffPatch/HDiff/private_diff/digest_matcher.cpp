@@ -66,17 +66,17 @@ static uint32_t adler32(unsigned char* data,size_t n){
 }
 
 
-TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* data,int kMatchNodeSizeBit)
-:m_data(data),m_kMatchNodeSizeBit(kMatchNodeSizeBit){
+TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,int kMatchNodeSizeBit)
+:m_oldData(oldData),m_kMatchNodeSizeBit(kMatchNodeSizeBit){
     if ((m_kMatchNodeSizeBit<=0)||(m_kMatchNodeSizeBit>=31))
         throw std::runtime_error("TDataDigest() kMatchNodeSizeBit error.");
     
     size_t matchNodeSize=((size_t)1)<<m_kMatchNodeSizeBit;
-    while ((matchNodeSize>0)&&(matchNodeSize>=m_data->streamSize)) {
+    while ((matchNodeSize>0)&&(matchNodeSize>=m_oldData->streamSize)) {
         matchNodeSize>>=1;
         --m_kMatchNodeSizeBit;
     }
-    const size_t nodeCount=(m_data->streamSize+matchNodeSize-1)/matchNodeSize;
+    const size_t nodeCount=(m_oldData->streamSize+matchNodeSize-1)/matchNodeSize;
     m_nodes.resize(nodeCount);
     
     size_t kDataBufSize=1024*64;
@@ -93,11 +93,19 @@ void TDigestMatcher::getDigests(){
     for (size_t i=0; i<nodeCount; ++i) {
         size_t readLen=matchNodeSize;
         if (i==nodeCount-1){
-            readLen=m_data->streamSize & (matchNodeSize-1);
+            readLen=m_oldData->streamSize & (matchNodeSize-1);
             memset(buf+readLen,0,matchNodeSize-readLen);
         }
-        if (readLen!=m_data->read(m_data->streamHandle,i<<m_kMatchNodeSizeBit,buf,buf+readLen))
+        if (readLen!=m_oldData->read(m_oldData->streamHandle,i<<m_kMatchNodeSizeBit,buf,buf+readLen))
             throw std::runtime_error("TDataDigest::getDigests() data->read() error.");
         m_nodes[i]=adler32(buf,matchNodeSize);
+    }
+}
+
+
+void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,ICovers* out_covers){
+    
+    for (hpatch_StreamPos_t curOld=0;curOld<newData->streamSize; ++curOld) {
+        //
     }
 }

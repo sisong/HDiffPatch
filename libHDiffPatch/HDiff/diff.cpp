@@ -602,15 +602,40 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
 //======================
 #include "private_diff/digest_matcher.h"
 
+
+class TCovers:public ICovers{
+public:
+    TCovers(hpatch_StreamPos_t oldSize,hpatch_StreamPos_t newSize)
+    :m_is32((oldSize|newSize)<((hpatch_StreamPos_t)1<<32)){
+    }
+    virtual void addCover(hpatch_StreamPos_t oldPos,hpatch_StreamPos_t newPos,
+                          hpatch_StreamPos_t length){
+        if (m_is32) {
+            m_cover32.push_back((uint32_t)oldPos);
+            m_cover32.push_back((uint32_t)newPos);
+            m_cover32.push_back((uint32_t)length);
+        }else{
+            m_cover64.push_back(oldPos);
+            m_cover64.push_back(newPos);
+            m_cover64.push_back(length);
+        }
+    }
+    //todo:
+private:
+    std::vector<uint32_t>           m_cover32;
+    std::vector<hpatch_StreamPos_t> m_cover64;
+    const bool m_is32;
+};
+
 void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
                                    hpatch_TStreamOutput* out_diff,
                                    hdiff_TStreamCompress* compressPlugin,
                                    int kMatchNodeSizeBit){
-    TDigestMatcher dmatcher(newData,kMatchNodeSizeBit);
-    //dmatcher.search_cover(oldData);
-    
-    //search_cover
+    TCovers covers(oldData->streamSize,newData->streamSize);
+    TDigestMatcher matcher(oldData,kMatchNodeSizeBit);
+    matcher.search_cover(newData,&covers);
+    //
     
 }
 

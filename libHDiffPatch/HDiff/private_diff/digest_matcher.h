@@ -45,13 +45,18 @@ typedef unsigned __int32  uint32_t;
 #   include <stdint.h> //for int32_t uint32_t
 #endif
 
+struct ICovers{
+    virtual void addCover(hpatch_StreamPos_t oldPos,hpatch_StreamPos_t newPos,hpatch_StreamPos_t length)=0;
+};
+
 class TDigestMatcher{
 public:
     //throw std::runtime_error when data->read error or kMatchNodeSizeBit error;
-    TDigestMatcher(const hpatch_TStreamInput* data,int kMatchNodeSizeBit);
+    TDigestMatcher(const hpatch_TStreamInput* oldData,int kMatchNodeSizeBit);
+    void search_cover(const hpatch_TStreamInput* newData,ICovers* out_covers);
 private:
     typedef uint32_t TDigest;
-    const hpatch_TStreamInput* m_data;
+    const hpatch_TStreamInput* m_oldData;
     std::vector<unsigned char> m_buf;
     std::vector<TDigest>       m_nodes;
     int     m_kMatchNodeSizeBit;
