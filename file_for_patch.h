@@ -78,8 +78,6 @@ static hpatch_BOOL fileRead(FILE* file,TByte* buf,TByte* buf_end){
     return buf==buf_end;
 }
 
-#ifndef _IS_USE_OLD_FILE_STREAM
-
 #define _file_error(fileHandle){ \
     if (fileHandle) _close_file(&fileHandle); \
     return hpatch_FALSE; \
@@ -104,7 +102,6 @@ hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileN
     if (!fileRead(file,*out_pdata,(*out_pdata)+dataSize)) _file_error(file);
     return _close_file(&file);
 }
-#endif
 
 typedef struct TFileStreamInput{
     hpatch_TStreamInput base;

@@ -422,8 +422,7 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
         size_t codeSize=compressPlugin->compress(compressPlugin,
                                                  out_code0,out_code0+out_code.size(),
                                                  data0,data0+data.size());
-        if (codeSize<=0) throw codeSize; //diff error!
-        if (codeSize<data.size())
+        if ((codeSize>0)&&(codeSize<data.size()))
             out_code.resize(codeSize); //ok
         else
             out_code.clear();
@@ -599,5 +598,20 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 
+
+//======================
+#include "private_diff/data_digest.h"
+
+void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
+                                   const hpatch_TStreamInput*  oldData,
+                                   hpatch_TStreamOutput* out_diff,
+                                   hdiff_TStreamCompress* compressPlugin,
+                                   int kMatchNodeSizeBit){
+    TDataDigest dd(newData,kMatchNodeSizeBit);
+    
+    //search_cover
+    //extend_cover
+    
+}
 
 

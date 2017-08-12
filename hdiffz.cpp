@@ -35,10 +35,32 @@
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdexcept>//std::runtime_error
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char   TByte;
 
+#define _IS_USE_FILE_STREAM  //ON: TODO:
+
+
+#ifdef _IS_USE_FILE_STREAM
+#   include "file_for_patch.h"
+
+#define _error_return(info){ \
+    if (strlen(info)>0)      \
+        printf("\n%s\n",(info)); \
+    exitCode=1; \
+    goto clear; \
+}
+
+#define _check_error(is_error,errorInfo){ \
+    if (is_error){  \
+        exitCode=1; \
+        printf("%s",(errorInfo)); \
+    } \
+}
+
+#else
 void readFile(std::vector<TByte>& data,const char* fileName){
     std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
     std::streampos file_length=file.tellg();
@@ -46,6 +68,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
     size_t needRead=(size_t)file_length;
     if ((file_length<0)||((std::streamsize)needRead!=(std::streamsize)file_length)) {
         file.close();
+        std::cout<<"\nopen file error!\n";
         exit(1);
     }
     data.resize(needRead);
@@ -60,6 +83,7 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
     file.write((const char*)&data[0], data.size());
     file.close();
 }
+#endif
 
 //===== select compress plugin =====
 //#define _CompressPlugin_no
@@ -71,15 +95,15 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 #include "decompress_plugin_demo.h"
 
 #ifdef  _CompressPlugin_no
-    const hdiff_TCompress* compressPlugin=0;
+    hdiff_TCompress* compressPlugin=0;
     hpatch_TDecompress* decompressPlugin=0;
 #endif
 #ifdef  _CompressPlugin_zlib
-    const hdiff_TCompress* compressPlugin=&zlibCompressPlugin;
+    hdiff_TCompress* compressPlugin=&zlibCompressPlugin;
     hpatch_TDecompress* decompressPlugin=&zlibDecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_bz2
-    const hdiff_TCompress* compressPlugin=&bz2CompressPlugin;
+    hdiff_TCompress* compressPlugin=&bz2CompressPlugin;
     hpatch_TDecompress* decompressPlugin=&bz2DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lzma
@@ -98,14 +122,45 @@ int main(int argc, const char * argv[]){
     const char* outDiffFileName=argv[3];
     std::cout<<"old:\"" <<oldFileName<< "\"\nnew:\""<<newFileName<<"\"\nout:\""<<outDiffFileName<<"\"\n";
     
+    const char* compressType="";
+    if (compressPlugin) compressType=compressPlugin->compressType(compressPlugin);
+    std::cout<<"HDiffZ with compress plugin: \""<<compressType<<"\"\n";
+    
+    int exitCode=0;
+#ifdef _IS_USE_FILE_STREAM
+    clock_t time1=0,time2=0;
+    TFileStreamInput  oldData;
+    TFileStreamInput  newData;
+    TFileStreamOutput diffData;
+    TFileStreamInput_init(&oldData);
+    TFileStreamInput_init(&newData);
+    TFileStreamOutput_init(&diffData);
+    if (!TFileStreamInput_open(&oldData,oldFileName)) _error_return("open oldFile error!");
+    if (!TFileStreamInput_open(&newData,newFileName)) _error_return("open newFile error!");
+    if (!TFileStreamOutput_open(&diffData,outDiffFileName,0)) _error_return("open out diffFile error!");
+    std::cout<<"oldDataSize : "<<oldData.base.streamSize<<"\nnewDataSize : "<<newData.base.streamSize<<"\n";
+    time1=clock();
+    try{
+        create_compressed_diff_stream(&newData.base,&oldData.base,
+                                      &diffData.base,compressPlugin);
+    }catch(const std::runtime_error& e){
+        _error_return(e.std::exception::what());
+    }
+    //TODO: check_compressed_diff
+    //TODO: std::cout<<"\ndiffDataSize: "<<diffData.size()<<"\n";
+    time2=clock();
+clear:
+    _check_error(!TFileStreamOutput_close(&diffData),"out diffFile close error!");
+    //TODO: if (exitCode==0) std::cout<<"  out HDiffZ file ok!\n";
+    _check_error(!TFileStreamInput_close(&newData),"newFile close error!");
+    _check_error(!TFileStreamInput_close(&oldData),"oldFile close error!");
+    if (exitCode!=0) return exitCode;
+#else
     std::vector<TByte> oldData; readFile(oldData,oldFileName);
     std::vector<TByte> newData; readFile(newData,newFileName);
     const size_t oldDataSize=oldData.size();
     const size_t newDataSize=newData.size();
-    
-    const char* compressType="";
-    if (compressPlugin) compressType=compressPlugin->compressType(compressPlugin);
-    std::cout<<"HDiffZ with compress plugin: \""<<compressType<<"\"\n";
+    std::cout<<"oldDataSize : "<<oldDataSize<<"\nnewDataSize : "<<newDataSize<<"\n";
 
     std::vector<TByte> diffData;
     TByte* newData0=newData.empty()?0:&newData[0];
@@ -116,18 +171,19 @@ int main(int argc, const char * argv[]){
     clock_t time2=clock();
     if (!check_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
                                &diffData[0],&diffData[0]+diffData.size(),decompressPlugin)){
-        std::cout<<"  patch check HDiffZ data error!!!\n";
+        std::cout<<"\n  patch check HDiffZ data error!!!\n";
         exit(1);
     }else{
+        std::cout<<"diffDataSize: "<<diffData.size()<<"\n";
         std::cout<<"  patch check HDiffZ data ok!\n";
     }
     writeFile(diffData,outDiffFileName);
-    clock_t time3=clock();
     std::cout<<"  out HDiffZ file ok!\n";
-    std::cout<<"oldDataSize : "<<oldDataSize<<"\nnewDataSize : "<<newDataSize<<"\ndiffDataSize: "<<diffData.size()<<"\n";
+#endif
+    clock_t time3=clock();
     std::cout<<"\nHDiffZ  time:"<<(time2-time1)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
     std::cout<<"all run time:"<<(time3-time0)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
     
-    return 0;
+    return exitCode;
 }
 

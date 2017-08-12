@@ -84,4 +84,22 @@ bool check_compressed_diff(const unsigned char* newData,const unsigned char* new
                            const unsigned char* diff,const unsigned char* diff_end,
                            hpatch_TDecompress* decompressPlugin);
 
+
+static const int kMatchNodeSizeBit_default = 10;
+
+#define hdiff_TStreamCompress hdiff_TCompress //TODO: hdiff_TStreamCompress
+
+//diff by stream;
+//  recommended only used in limited memory environment
+//  kMatchNodeSizeBit: deault 10, recommended 7--12
+//      matchNodeSize==(1<<kMatchNodeSizeBit)
+//      随着kMatchNodeSizeBit增大,内存需求降低,但out_diff增大
+//  throw std::runtime_error when I/O error or kMatchNodeSizeBit error;
+void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
+                                   const hpatch_TStreamInput*  oldData,
+                                   hpatch_TStreamOutput* out_diff,
+                                   hdiff_TStreamCompress* compressPlugin,
+                                   int kMatchNodeSizeBit=kMatchNodeSizeBit_default);
+
+
 #endif
