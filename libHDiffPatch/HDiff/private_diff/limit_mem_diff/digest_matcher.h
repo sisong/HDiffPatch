@@ -32,7 +32,7 @@
 #define digest_matcher_h
 #include "../../../HPatch/patch_types.h"
 #include <vector>
-#include "adler32_roll.h"
+#include "adler_roll.h"
 
 //#include <hash_map>
 //#define _TMultiMap std::hash_map

@@ -1,5 +1,5 @@
-//adler32_roll.h
-//计算adler32摘要信息,支持滚动校验.
+//adler_roll.h
+//计算adler32、adler64摘要信息,支持滚动校验.
 //https://github.com/madler/zlib/blob/master/adler32.c 没看到roll的实现
 //
 /*
@@ -28,23 +28,21 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef adler32_roll_h
-#define adler32_roll_h
+#ifndef adler_roll_h
+#define adler_roll_h
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define _IS_DEFAULT_ADLER64
-//support #define _IS_USE_ADLER_FAST_BASE
+    
+#define _IS_USE_ADLER_FAST_BASE //WARNING: non-standard for roll_step speed
+//#define _IS_NEED_ADLER64
+//#define _IS_DEFAULT_ADLER64
 
 #ifdef _IS_DEFAULT_ADLER64
 #   ifndef _IS_NEED_ADLER64
 #       define _IS_NEED_ADLER64
 #   endif
-#endif
-
-#ifdef _IS_DEFAULT_ADLER64
 #   define adler_uint_t                 uint64_t
 #   define adler_append                 adler64_append
 #   define adler_roll_kMaxBlockSize     adler64_roll_kMaxBlockSize
@@ -65,11 +63,11 @@ extern "C" {
 typedef signed int        int32_t;
 typedef unsigned int      uint32_t;
 #   else
-typedef unsigned __int32  int32_t;
+typedef signed __int32    int32_t;
 typedef unsigned __int32  uint32_t;
 #   endif
 #   ifdef _IS_NEED_ADLER64
-typedef signed __int64    int64_t;
+typedef signed   __int64  int64_t;
 typedef unsigned __int64  uint64_t;
 #   endif
 #else

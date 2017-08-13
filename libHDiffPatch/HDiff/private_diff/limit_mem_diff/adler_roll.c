@@ -1,4 +1,4 @@
-//adler32_roll.c
+//adler_roll.c
 /*
  The MIT License (MIT)
  Copyright (c) 2012-2017 HouSisong
@@ -25,7 +25,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "adler32_roll.h"
+#include "adler_roll.h"
 #include <assert.h>
 
 //#define _IS_USE_ADLER_FAST_BASE
@@ -44,7 +44,7 @@
 
 #ifdef _IS_NEED_ADLER64
 #ifdef _IS_USE_ADLER_FAST_BASE
-#   define _adler64_BASE ((uint64)1<<32)
+#   define _adler64_BASE ((uint64_t)1<<32)
 #   define _adler64_mod(v)       ((uint64_t)((v)&(_adler64_BASE-1)))
 #   define _adler64_to_border(v) { (v)=_adler64_mod(v); }
 #else

@@ -28,11 +28,10 @@
 #include "digest_matcher.h"
 #include <assert.h>
 #include <stdexcept>  //std::runtime_error
-#include "adler32_roll.h"
 
 TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize)
 :m_oldData(oldData),m_kMatchBlockSize(kMatchBlockSize),m_oldCacheSize(0){
-    if ((kMatchBlockSize==0)||(kMatchBlockSize>adler_roll_kMaxBlockSize))
+    if ((kMatchBlockSize==0)||(kMatchBlockSize>adler32_roll_kMaxBlockSize))
         throw std::runtime_error("TDataDigest() kMatchBlockSize value error.");
     
     while ((m_kMatchBlockSize>1)&&(m_kMatchBlockSize>=m_oldData->streamSize)) {
@@ -88,7 +87,7 @@ struct TOldStream{
     bool resetPos(hpatch_StreamPos_t oldPos){
         if (oldPos+kMatchBlockSize>stream->streamSize) return false;
         //todo: move old;
-        if (cacheSize>stream->streamSize-oldPos) cacheSize=stream->streamSize-oldPos;
+        if (cacheSize>stream->streamSize-oldPos) cacheSize=(size_t)(stream->streamSize-oldPos);
         readStream(stream,oldPos,cache,cacheSize);
         digest=adler_roll_start(cache,kMatchBlockSize);
         cachePos=0;
@@ -97,7 +96,7 @@ struct TOldStream{
     }
     inline bool roll(){
         if (cachePos+kMatchBlockSize!=cacheSize){
-            digest=adler_roll_step(digest,kMatchBlockSize,kBlockSizeBM,
+            digest=adler_roll_step(digest,(adler_uint_t)kMatchBlockSize,kBlockSizeBM,
                                    cache[cachePos],cache[cachePos+kMatchBlockSize]);
             ++cachePos;
             return true;
@@ -118,7 +117,7 @@ struct TOldStream{
         assert(stream->streamSize>streamPos);
         memmove(cache,cache+cachePos,kMatchBlockSize);
         if (cacheSize-kMatchBlockSize>(stream->streamSize-streamPos))
-            cacheSize=(stream->streamSize-streamPos)+kMatchBlockSize;
+            cacheSize=(size_t)((stream->streamSize-streamPos)+kMatchBlockSize);
         cachePos=0;
         readStream(stream,streamPos,cache+kMatchBlockSize,cacheSize-kMatchBlockSize);
         streamPos+=cacheSize-kMatchBlockSize;
@@ -126,9 +125,9 @@ struct TOldStream{
     hpatch_inline const unsigned char* matchData()const{ return cache+cachePos; }
     const hpatch_TStreamInput* stream;
     hpatch_StreamPos_t         streamPos;
-    adler_uint_t               kMatchBlockSize;
+    size_t                     kMatchBlockSize;
     adler_uint_t               kBlockSizeBM;
-    adler_uint_t    digest;
+    adler_uint_t               digest;
     unsigned char*  cache;
     size_t          cacheSize;
     size_t          cachePos;
