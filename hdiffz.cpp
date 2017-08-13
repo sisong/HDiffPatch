@@ -35,7 +35,7 @@
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdexcept>//std::runtime_error
+#include <exception>//std::exception
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char   TByte;
@@ -143,7 +143,7 @@ int main(int argc, const char * argv[]){
     try{
         create_compressed_diff_stream(&newData.base,&oldData.base,
                                       &diffData.base,compressPlugin);
-    }catch(const std::runtime_error& e){
+    }catch(const std::exception& e){
         _error_return(e.std::exception::what());
     }
     //TODO: check_compressed_diff

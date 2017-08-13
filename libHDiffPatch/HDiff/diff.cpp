@@ -608,22 +608,19 @@ public:
     TCovers(hpatch_StreamPos_t oldSize,hpatch_StreamPos_t newSize)
     :m_is32((oldSize|newSize)<((hpatch_StreamPos_t)1<<32)){
     }
-    virtual void addCover(hpatch_StreamPos_t oldPos,hpatch_StreamPos_t newPos,
-                          hpatch_StreamPos_t length){
+    virtual void addCover(const TCover& cover){
         if (m_is32) {
-            m_cover32.push_back((uint32_t)oldPos);
-            m_cover32.push_back((uint32_t)newPos);
-            m_cover32.push_back((uint32_t)length);
+            m_covers32.push_back((uint32_t)cover.oldPos);
+            m_covers32.push_back((uint32_t)cover.newPos);
+            m_covers32.push_back((uint32_t)cover.length);
         }else{
-            m_cover64.push_back(oldPos);
-            m_cover64.push_back(newPos);
-            m_cover64.push_back(length);
+            m_covers64.push_back(cover);
         }
     }
     //todo:
 private:
-    std::vector<uint32_t>           m_cover32;
-    std::vector<hpatch_StreamPos_t> m_cover64;
+    std::vector<uint32_t>           m_covers32;
+    std::vector<TCover>             m_covers64;
     const bool m_is32;
 };
 
@@ -631,10 +628,10 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
                                    hpatch_TStreamOutput* out_diff,
                                    hdiff_TStreamCompress* compressPlugin,
-                                   int kMatchNodeSizeBit){
+                                   size_t kMatchBlockSize){
     TCovers covers(oldData->streamSize,newData->streamSize);
-    TDigestMatcher matcher(oldData,kMatchNodeSizeBit);
-    matcher.search_cover(newData,&covers);
+    TDigestMatcher matcher(oldData,kMatchBlockSize);
+    matcher.search_cover(oldData,&covers);
     //
     
 }
