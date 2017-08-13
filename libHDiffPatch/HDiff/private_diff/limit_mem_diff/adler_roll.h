@@ -1,6 +1,8 @@
 //adler_roll.h
-//计算adler32、adler64摘要信息,支持滚动校验.
-//https://github.com/madler/zlib/blob/master/adler32.c 没看到roll的实现
+//support adler32,adler64,roll,FAST_BASE,etc.
+//  adler32 support roll by uint8,uint16 (NOTICE roll_kMaxBlockSize limit)
+//  adler64 support roll by uint8,uint16,uint32
+//https://github.com/madler/zlib/blob/master/adler32.c not find roll
 //
 /*
  The MIT License (MIT)
@@ -35,7 +37,7 @@
 extern "C" {
 #endif
     
-#define _IS_USE_ADLER_FAST_BASE //WARNING: non-standard for roll_step speed
+#define _IS_USE_ADLER_FAST_BASE //WARNING: result non-standard, optimize roll_step speed
 //#define _IS_NEED_ADLER64
 //#define _IS_DEFAULT_ADLER64
 
@@ -69,30 +71,65 @@ typedef unsigned __int32  uint32_t;
 #   ifdef _IS_NEED_ADLER64
 typedef signed   __int64  int64_t;
 typedef unsigned __int64  uint64_t;
+#   define __adler_inline _inline
 #   endif
 #else
 #   include <stdint.h> //for int32_t uint32_t int64_t uint64_t
+#   define __adler_inline inline
 #endif
 
-uint32_t adler32_append(uint32_t adler,unsigned char* pdata,size_t n);
+#ifndef adler_data_t
+//adler32 adler_data_t: support uint8: roll_kMaxBlockSize==2^24+little and uint16: roll_kMaxBlockSize==2^16-2
+//adler64 adler_data_t: support uint8\uint16\uint32 : roll_kMaxBlockSize enough large
+//but if defined _IS_USE_ADLER_FAST_BASE then roll_kMaxBlockSize enough large (no limit)
+#define adler_data_t unsigned char
+#endif
+    
+#ifdef _IS_USE_ADLER_FAST_BASE
+#   define  __private_adler_roll_step_fast(uint_t,half_bit,\
+                                           adler,blockSize,out_data,in_data){ \
+        uint_t sum=adler>>half_bit; \
+        adler+= in_data - out_data; \
+        sum  += adler - blockSize*out_data;\
+        return (adler&(((uint_t)1<<half_bit)-1)) | (sum<<half_bit); \
+    }
+#endif
 
-extern const uint32_t adler32_roll_kMaxBlockSize; // > (1<<24)
+
+uint32_t adler32_append(uint32_t adler,adler_data_t* pdata,size_t n);
+
+extern const uint32_t adler32_roll_kMaxBlockSize;
 uint32_t              adler32_roll_kBlockSizeBM(uint32_t blockSize);
 
 #define  adler32_roll_start(pdata,n) adler32_append(0,pdata,n)
+#ifdef _IS_USE_ADLER_FAST_BASE
+__adler_inline static
 uint32_t adler32_roll_step(uint32_t adler,uint32_t blockSize,uint32_t kBlockSizeBM,
-                           unsigned char out_data,unsigned char in_data);
+                           adler_data_t out_data,adler_data_t in_data)
+                __private_adler_roll_step_fast(uint32_t,16,adler,blockSize,out_data,in_data)
+#else
+uint32_t adler32_roll_step(uint32_t adler,uint32_t blockSize,uint32_t kBlockSizeBM,
+                           adler_data_t out_data,adler_data_t in_data);
+#endif
+    
 
 #ifdef _IS_NEED_ADLER64
     
-uint64_t adler64_append(uint64_t adler,unsigned char* pdata,size_t n);
+uint64_t adler64_append(uint64_t adler,adler_data_t* pdata,size_t n);
     
-extern const uint64_t adler64_roll_kMaxBlockSize; // > (1<<(32+24))
+extern const uint64_t adler64_roll_kMaxBlockSize;
 uint64_t              adler64_roll_kBlockSizeBM(uint64_t blockSize);
     
 #define  adler64_roll_start(pdata,n) adler64_append(0,pdata,n)
+#ifdef _IS_USE_ADLER_FAST_BASE
+__adler_inline static
 uint64_t adler64_roll_step(uint64_t adler,uint64_t blockSize,uint64_t kBlockSizeBM,
-                           unsigned char out_data,unsigned char in_data);
+                           adler_data_t out_data,adler_data_t in_data)
+                __private_adler_roll_step_fast(uint64_t,32,adler,blockSize,out_data,in_data)
+#else
+uint64_t adler64_roll_step(uint64_t adler,uint64_t blockSize,uint64_t kBlockSizeBM,
+                           adler_data_t out_data,adler_data_t in_data);
+#endif
 
 #endif //_IS_NEED_ADLER64
     
