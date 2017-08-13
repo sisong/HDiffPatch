@@ -28,99 +28,7 @@
 #include "digest_matcher.h"
 #include <assert.h>
 #include <stdexcept>  //std::runtime_error
-
-#define _adler32_FAST_BASE
-
-#ifdef _adler32_FAST_BASE
-#   define _adler32_BASE (1<<16)
-#   define _adler32_mod(v)       ((uint32_t)((v)&(_adler32_BASE-1)))
-#   define _adler32_to_border(v) { (v)=_adler32_mod(v); }
-#else
-#   define _adler32_BASE 65521
-//# define _adler32_to_border(v) { if ((v) >= _adler32_BASE) (v) -= _adler32_BASE; }
-#   define _adler32_to_border(v) { (v) -= _adler32_BASE & (uint32_t)( ((_adler32_BASE-1)-(int32_t)(v))>>31 ); }
-#   define _adler32_mod(v)       ((v)%_adler32_BASE)
-#endif
-
-
-#define _adler32_add1(adler,sum,byteData){ \
-    (adler) += (byteData); \
-    (sum)   += (adler);    \
-}
-#define _adler32_add4(adler,sum,data,i){ \
-    _adler32_add1(adler,sum,data[i  ]); \
-    _adler32_add1(adler,sum,data[i+1]); \
-    _adler32_add1(adler,sum,data[i+2]); \
-    _adler32_add1(adler,sum,data[i+3]); \
-}
-
-static uint32_t adler32(uint32_t adler,unsigned char* data,size_t n){
-    uint32_t sum=adler>>16;
-    adler&=0xFFFF;
-    while (n>=16) {
-        _adler32_add4(adler,sum,data,0);
-        _adler32_add4(adler,sum,data,4);
-        _adler32_add4(adler,sum,data,8);
-        _adler32_add4(adler,sum,data,12);
-        sum=_adler32_mod(sum);
-        _adler32_to_border(adler);
-        data+=16;
-        n-=16;
-    }
-    while (n>0) {
-        adler += (*data++);
-        _adler32_to_border(adler);
-        sum+=adler;
-        _adler32_to_border(sum);
-        --n;
-    }
-    return adler | (sum<<16);
-}
-
-
-hpatch_inline static
-uint32_t adler32_roll_blockSizeBM(uint32_t blockSize){
-    //limit: sum + adler + kBlockSizeBM >= blockSize*out
-    //  [0..B-1] + [0..B-1] + m*B >= blockSize*[0..255]
-    // => 0 + 0 + m*B>=blockSize*255
-    // => min(m)=(blockSize*255+(B-1))/B
-    // => blockSizeBM=B*min(m)
-    uint32_t min_m=(blockSize*255+(_adler32_BASE-1))/_adler32_BASE;
-    uint32_t blockSizeBM=_adler32_BASE*min_m;
-    return blockSizeBM;
-}
-
-//limit: all result in uint32_t
-//blockSize*255+(B-1)<2^32 && [0..B-1]+[0..B-1]+(blockSize*255+(B-1))/B*B<2^32
-// => blockSize*255<=(2^32-1)-(B-1) && (B-1)+(B-1)+(blockSize*255+(B-1))/B*B<=(2^32-1)
-// => ~~~ && (blockSize*255+B-1)/B*B<=(2^32-1)-2*(B-1)
-// => ~~~ && (blockSize*255+B-1)<=(2^32-1)-2*(B-1)
-// => ~~~ && blockSize*255<=(2^32-1)-3*(B-1)
-// => blockSize*255<=(2^32-1)-3*(B-1)
-// => blockSize<=((2^32-1)-3*(B-1))/255
-// => max(blockSize)=((2^32-1)-3*(B-1))/255
-const static uint32_t adler32_roll_kMaxBlockSize=(0xFFFFFFFF-3*(_adler32_BASE-1))/255;
-//assert(adler32_roll_kMaxBlockSize > (1<<24))
-
-hpatch_inline static
-uint32_t adler32_roll(uint32_t adler,uint32_t blockSize,uint32_t kBlockSizeBM,
-                      unsigned char out,unsigned char in){
-    uint32_t sum=adler>>16;
-    adler&=0xFFFF;
-#ifdef _adler32_FAST_BASE
-    adler =_adler32_mod(adler + in - out);
-    sum +=adler - blockSize*out;
-#else
-    //  [0..B-1] + [0..255] + B - [0..255]        => [0+0+B-255..B-1+255+B-0]
-    adler += in +(uint32_t)(_adler32_BASE - out);// => [B-255..B*2-1+255]
-    _adler32_to_border(adler);//[0..B-1+255]
-    _adler32_to_border(adler);//[0..B-1]
-    //sum + adler + kBlockSizeBM >= blockSize*out => in adler32_roll_blockSizeBM()
-    sum = _adler32_mod(sum + adler + kBlockSizeBM - blockSize*out);
-#endif
-    return adler | (sum<<16);
-}
-
+#include "adler32.h"
 
 TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize)
 :m_oldData(oldData),m_kMatchBlockSize(kMatchBlockSize),m_oldCacheSize(0){
@@ -158,7 +66,7 @@ void TDigestMatcher::getDigests(){
         if (i==blockCount-1)
             readPos=m_oldData->streamSize-m_kMatchBlockSize;
         readStream(m_oldData,readPos,buf,m_kMatchBlockSize);
-        m_blocks[i]=adler32(0,buf,m_kMatchBlockSize);
+        m_blocks[i]=adler32_roll_start(buf,m_kMatchBlockSize);
     }
 }
 
@@ -166,7 +74,7 @@ struct TOldStream{
     TOldStream(const hpatch_TStreamInput* _stream,uint32_t _kMatchBlockSize,
                unsigned char* _cache,size_t _cacheSize)
     :stream(_stream),streamPos(0),kMatchBlockSize(_kMatchBlockSize),
-    kBlockSizeBM(adler32_roll_blockSizeBM(_kMatchBlockSize)),
+    kBlockSizeBM(adler32_roll_kBlockSizeBM(_kMatchBlockSize)),
     cache(_cache),cacheSize(_cacheSize),cachePos(_cacheSize){
         resetPos(0);
     }
@@ -179,15 +87,15 @@ struct TOldStream{
         //todo: move old;
         if (cacheSize>stream->streamSize-oldPos) cacheSize=stream->streamSize-oldPos;
         readStream(stream,oldPos,cache,cacheSize);
-        digest=adler32(0,cache,kMatchBlockSize);
+        digest=adler32_roll_start(cache,kMatchBlockSize);
         cachePos=0;
         streamPos=oldPos+cacheSize;
         return true;
     }
     inline bool roll(){
         if (cachePos+kMatchBlockSize!=cacheSize){
-            digest=adler32_roll(digest,kMatchBlockSize,kBlockSizeBM,
-                                cache[cachePos],cache[cachePos+kMatchBlockSize]);
+            digest=adler32_roll_step(digest,kMatchBlockSize,kBlockSizeBM,
+                                     cache[cachePos],cache[cachePos+kMatchBlockSize]);
             ++cachePos;
             return true;
         }else{

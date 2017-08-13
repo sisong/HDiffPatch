@@ -600,7 +600,7 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
 
 
 //======================
-#include "private_diff/digest_matcher.h"
+#include "private_diff/limit_mem_diff/digest_matcher.h"
 
 
 class TCovers:public ICovers{

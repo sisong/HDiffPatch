@@ -1,6 +1,5 @@
-//digest_matcher.h
-//用摘要匹配的办法代替后缀数组的匹配,匹配效果比后缀数差,但内存占用少;
-//用adler32计算数据的摘要信息,以便于滚动匹配.
+//adler32.h
+//计算adler32摘要信息,支持滚动校验.
 //
 /*
  The MIT License (MIT)
@@ -28,47 +27,35 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef digest_matcher_h
-#define digest_matcher_h
-#include "../../HPatch/patch_types.h"
-#include <vector>
+#ifndef adler32_h
+#define adler32_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+    
 #ifdef _MSC_VER
 #   if (_MSC_VER < 1300)
-typedef signed   int      int32_t;
 typedef unsigned int      uint32_t;
 #   else
-typedef signed   __int32  int32_t;
 typedef unsigned __int32  uint32_t;
 #   endif
 #else
 #   include <stdint.h> //for int32_t uint32_t
 #endif
+    
+//support #define _adler32_FAST_BASE
 
+uint32_t adler32_append(uint32_t adler,unsigned char* pdata,size_t n);
 
-struct TCover{
-    hpatch_StreamPos_t oldPos;
-    hpatch_StreamPos_t newPos;
-    hpatch_StreamPos_t length;
-};
-struct ICovers{
-    virtual void addCover(const TCover& cover)=0;
-};
+extern const uint32_t adler32_roll_kMaxBlockSize; // > (1<<24)
+uint32_t              adler32_roll_kBlockSizeBM(uint32_t blockSize);
 
-class TDigestMatcher{
-public:
-    //throw std::runtime_error when data->read error or kMatchBlockSize error;
-    TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize);
-    void search_cover(const hpatch_TStreamInput* newData,ICovers* out_covers);
-private:
-    typedef uint32_t TDigest;
-    const hpatch_TStreamInput* m_oldData;
-    std::vector<unsigned char> m_buf;
-    std::vector<TDigest>       m_blocks;
-    size_t     m_kMatchBlockSize;
-    size_t     m_oldCacheSize;
-    void getDigests();
-};
+#define  adler32_roll_start(pdata,n) adler32_append(0,pdata,n)
+uint32_t adler32_roll_step(uint32_t adler,uint32_t blockSize,uint32_t kBlockSizeBM,
+                           unsigned char out_data,unsigned char in_data);
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif
