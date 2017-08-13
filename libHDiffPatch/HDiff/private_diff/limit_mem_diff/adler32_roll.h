@@ -1,5 +1,6 @@
-//adler32.h
+//adler32_roll.h
 //计算adler32摘要信息,支持滚动校验.
+//https://github.com/madler/zlib/blob/master/adler32.c 没看到roll的实现
 //
 /*
  The MIT License (MIT)
@@ -27,8 +28,8 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef adler32_h
-#define adler32_h
+#ifndef adler32_roll_h
+#define adler32_roll_h
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,4 +1,4 @@
-//adler32.c
+//adler32_roll.c
 /*
  The MIT License (MIT)
  Copyright (c) 2012-2017 HouSisong
@@ -25,7 +25,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "adler32.h"
+#include "adler32_roll.h"
 #include <assert.h>
 
 //#define _adler32_FAST_BASE

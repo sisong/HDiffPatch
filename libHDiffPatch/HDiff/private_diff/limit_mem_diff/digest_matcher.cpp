@@ -28,7 +28,7 @@
 #include "digest_matcher.h"
 #include <assert.h>
 #include <stdexcept>  //std::runtime_error
-#include "adler32.h"
+#include "adler32_roll.h"
 
 TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize)
 :m_oldData(oldData),m_kMatchBlockSize(kMatchBlockSize),m_oldCacheSize(0){
