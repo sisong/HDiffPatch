@@ -1,6 +1,6 @@
 //digest_matcher.h
 //用摘要匹配的办法代替后缀数组的匹配,匹配效果比后缀数差,但内存占用少;
-//用adler32计算数据的摘要信息,以便于滚动匹配.
+//用adler计算数据的摘要信息,以便于滚动匹配.
 //
 /*
  The MIT License (MIT)
@@ -32,18 +32,15 @@
 #define digest_matcher_h
 #include "../../../HPatch/patch_types.h"
 #include <vector>
+#include "adler32_roll.h"
 
-#ifdef _MSC_VER
-#   if (_MSC_VER < 1300)
-typedef signed   int      int32_t;
-typedef unsigned int      uint32_t;
-#   else
-typedef signed   __int32  int32_t;
-typedef unsigned __int32  uint32_t;
-#   endif
-#else
-#   include <stdint.h> //for int32_t uint32_t
-#endif
+//#include <hash_map>
+//#define _TMultiMap std::hash_map
+//#include <map>
+//#define _TMultiMap std::multimap
+#include <unordered_map>
+#define _TMultiMap std::unordered_multimap
+
 
 
 struct TCover{
@@ -61,13 +58,16 @@ public:
     TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize);
     void search_cover(const hpatch_TStreamInput* newData,ICovers* out_covers);
 private:
-    typedef uint32_t TDigest;
+    typedef adler_uint_t       TDigest;
     const hpatch_TStreamInput* m_oldData;
     std::vector<unsigned char> m_buf;
     std::vector<TDigest>       m_blocks;
     size_t     m_kMatchBlockSize;
     size_t     m_oldCacheSize;
     void getDigests();
+    
+    typedef _TMultiMap<TDigest,size_t> TMultiMap;
+    TMultiMap m_oldDigests_map;
 };
 
 

@@ -32,7 +32,7 @@
 
 TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize)
 :m_oldData(oldData),m_kMatchBlockSize(kMatchBlockSize),m_oldCacheSize(0){
-    if ((kMatchBlockSize==0)||(kMatchBlockSize>adler32_roll_kMaxBlockSize))
+    if ((kMatchBlockSize==0)||(kMatchBlockSize>adler_roll_kMaxBlockSize))
         throw std::runtime_error("TDataDigest() kMatchBlockSize value error.");
     
     while ((m_kMatchBlockSize>1)&&(m_kMatchBlockSize>=m_oldData->streamSize)) {
@@ -46,7 +46,7 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchB
     
     size_t kDataBufSize=1024*64;
     if (kDataBufSize<m_kMatchBlockSize) kDataBufSize=m_kMatchBlockSize;
-    m_oldCacheSize=m_kMatchBlockSize*2+kDataBufSize;
+    m_oldCacheSize=m_kMatchBlockSize*3;
     size_t newCacheSize=m_oldCacheSize;
     m_buf.resize(m_oldCacheSize+newCacheSize);
     getDigests();
@@ -59,6 +59,7 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchB
 
 
 void TDigestMatcher::getDigests(){
+    m_oldDigests_map.clear();
     const size_t blockCount=m_blocks.size();
     unsigned char* buf=&m_buf[0];
     for (size_t i=0; i<blockCount; ++i) {
@@ -66,15 +67,17 @@ void TDigestMatcher::getDigests(){
         if (i==blockCount-1)
             readPos=m_oldData->streamSize-m_kMatchBlockSize;
         readStream(m_oldData,readPos,buf,m_kMatchBlockSize);
-        m_blocks[i]=adler32_roll_start(buf,m_kMatchBlockSize);
+        adler_uint_t digest=adler_roll_start(buf,m_kMatchBlockSize);
+        m_blocks[i]=digest;
+        m_oldDigests_map.insert(TMultiMap::value_type(digest,i));
     }
 }
 
 struct TOldStream{
-    TOldStream(const hpatch_TStreamInput* _stream,uint32_t _kMatchBlockSize,
+    TOldStream(const hpatch_TStreamInput* _stream,size_t _kMatchBlockSize,
                unsigned char* _cache,size_t _cacheSize)
     :stream(_stream),streamPos(0),kMatchBlockSize(_kMatchBlockSize),
-    kBlockSizeBM(adler32_roll_kBlockSizeBM(_kMatchBlockSize)),
+    kBlockSizeBM(adler_roll_kBlockSizeBM((adler_uint_t)_kMatchBlockSize)),
     cache(_cache),cacheSize(_cacheSize),cachePos(_cacheSize){
         resetPos(0);
     }
@@ -87,15 +90,15 @@ struct TOldStream{
         //todo: move old;
         if (cacheSize>stream->streamSize-oldPos) cacheSize=stream->streamSize-oldPos;
         readStream(stream,oldPos,cache,cacheSize);
-        digest=adler32_roll_start(cache,kMatchBlockSize);
+        digest=adler_roll_start(cache,kMatchBlockSize);
         cachePos=0;
         streamPos=oldPos+cacheSize;
         return true;
     }
     inline bool roll(){
         if (cachePos+kMatchBlockSize!=cacheSize){
-            digest=adler32_roll_step(digest,kMatchBlockSize,kBlockSizeBM,
-                                     cache[cachePos],cache[cachePos+kMatchBlockSize]);
+            digest=adler_roll_step(digest,kMatchBlockSize,kBlockSizeBM,
+                                   cache[cachePos],cache[cachePos+kMatchBlockSize]);
             ++cachePos;
             return true;
         }else{
@@ -123,9 +126,9 @@ struct TOldStream{
     hpatch_inline const unsigned char* matchData()const{ return cache+cachePos; }
     const hpatch_TStreamInput* stream;
     hpatch_StreamPos_t         streamPos;
-    uint32_t                   kMatchBlockSize;
-    uint32_t                   kBlockSizeBM;
-    uint32_t        digest;
+    adler_uint_t               kMatchBlockSize;
+    adler_uint_t               kBlockSizeBM;
+    adler_uint_t    digest;
     unsigned char*  cache;
     size_t          cacheSize;
     size_t          cachePos;
@@ -134,10 +137,17 @@ struct TOldStream{
 void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,ICovers* out_covers){
     if (newData->streamSize<m_kMatchBlockSize) return;
     if (m_blocks.empty()) return;
-    TOldStream oldStream(m_oldData,(uint32_t)m_kMatchBlockSize,&m_buf[0],m_oldCacheSize);
+    TOldStream oldStream(m_oldData,m_kMatchBlockSize,&m_buf[0],m_oldCacheSize);
     TCover  lastCover={0,0,0};
     TCover  curCover;
+    size_t same_digest=0;
     while (true) {
+        std::pair<TMultiMap::const_iterator,TMultiMap::const_iterator>
+        it=m_oldDigests_map.equal_range(oldStream.digest);
+        if (it.first!=it.second){
+            ++same_digest;
+            //printf("(%lu,%u),",it.first->second,oldStream.digest);
+        }
         /*if (getBestMatch(oldStream,lastCover,&curCover)) {
             out_covers->addCover(curCover);
             if (!oldStream.resetPos(curCover.oldPos+curCover.length)) break;
@@ -147,4 +157,5 @@ void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,ICovers* ou
                 break;
         }
     }
+    printf("same digest = %lu /%lld",same_digest,(m_oldData->streamSize+m_kMatchBlockSize-1)/m_kMatchBlockSize);
 }

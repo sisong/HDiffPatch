@@ -28,9 +28,9 @@
 #include "adler32_roll.h"
 #include <assert.h>
 
-//#define _adler32_FAST_BASE
+//#define _IS_USE_ADLER_FAST_BASE
 
-#ifdef _adler32_FAST_BASE
+#ifdef _IS_USE_ADLER_FAST_BASE
 #   define _adler32_BASE (1<<16)
 #   define _adler32_mod(v)       ((uint32_t)((v)&(_adler32_BASE-1)))
 #   define _adler32_to_border(v) { (v)=_adler32_mod(v); }
@@ -42,40 +42,89 @@
 #endif
 
 
-#define _adler32_add1(adler,sum,byteData){ \
+#ifdef _IS_NEED_ADLER64
+#ifdef _IS_USE_ADLER_FAST_BASE
+#   define _adler64_BASE ((uint64)1<<32)
+#   define _adler64_mod(v)       ((uint64_t)((v)&(_adler64_BASE-1)))
+#   define _adler64_to_border(v) { (v)=_adler64_mod(v); }
+#else
+#   define _adler64_BASE 0xFFFFFFFB
+//# define _adler64_to_border(v) { if ((v) >= _adler64_BASE) (v) -= _adler64_BASE; }
+#   define _adler64_to_border(v) { (v) -= _adler64_BASE & (uint64_t)( ((_adler64_BASE-1)-(int64_t)(v))>>63 ); }
+#   define _adler64_mod(v)       ((v)%_adler64_BASE)
+#endif
+#endif
+
+
+#define _adler_add1(adler,sum,byteData){ \
     (adler) += (byteData); \
     (sum)   += (adler);    \
 }
-#define _adler32_add4(adler,sum,pdata,i){ \
-    _adler32_add1(adler,sum,pdata[i  ]); \
-    _adler32_add1(adler,sum,pdata[i+1]); \
-    _adler32_add1(adler,sum,pdata[i+2]); \
-    _adler32_add1(adler,sum,pdata[i+3]); \
+#define _adler_add4(adler,sum,pdata,i){ \
+    _adler_add1(adler,sum,pdata[i  ]); \
+    _adler_add1(adler,sum,pdata[i+1]); \
+    _adler_add1(adler,sum,pdata[i+2]); \
+    _adler_add1(adler,sum,pdata[i+3]); \
 }
 
-uint32_t adler32_append(uint32_t adler,unsigned char* pdata,size_t n){
-    uint32_t sum=adler>>16;
-    adler&=0xFFFF;
-    while (n>=16) {
-        _adler32_add4(adler,sum,pdata,0);
-        _adler32_add4(adler,sum,pdata,4);
-        _adler32_add4(adler,sum,pdata,8);
-        _adler32_add4(adler,sum,pdata,12);
-        sum=_adler32_mod(sum);
-        _adler32_to_border(adler);
-        pdata+=16;
-        n-=16;
-    }
-    while (n>0) {
-        adler += (*pdata++);
-        _adler32_to_border(adler);
-        sum+=adler;
-        _adler32_to_border(sum);
-        --n;
-    }
-    return adler | (sum<<16);
+#define _adler_append(uint_t,half_bit,mod,border, adler,pdata,n){ \
+    uint_t sum=adler>>half_bit;      \
+    adler&=(((uint_t)1<<half_bit)-1);\
+    while (n>=16) { \
+        _adler_add4(adler,sum,pdata,0); \
+        _adler_add4(adler,sum,pdata,4); \
+        _adler_add4(adler,sum,pdata,8); \
+        _adler_add4(adler,sum,pdata,12);\
+        sum=mod(sum);   \
+        border(adler);  \
+        pdata+=16;      \
+        n-=16;          \
+    }               \
+    while (n>0) {   \
+        adler += (*pdata++);\
+        border(adler);      \
+        sum+=adler;         \
+        border(sum);        \
+        --n;                \
+    }               \
+    return adler | (sum<<half_bit);  \
 }
 
+//limit: sum + adler + kBlockSizeBM >= blockSize*out
+//  [0..B-1] + [0..B-1] + m*B >= blockSize*[0..255]
+// => 0 + 0 + m*B>=blockSize*255
+// => min(m)=(blockSize*255+(B-1))/B
+// => blockSizeBM=B*min(m)
+#define _adler_roll_kBlockSizeBM(uint_t,kMaxBlockSize,BASE, blockSize) { \
+    assert(blockSize>0);    \
+    assert(blockSize<=kMaxBlockSize);   \
+    uint_t min_m=(blockSize*255+(BASE-1))/BASE; \
+    uint_t blockSizeBM=BASE*min_m;  \
+    return blockSizeBM; \
+}
+
+#ifdef _IS_USE_ADLER_FAST_BASE
+#   define  _adler_roll_step(uint_t,half_bit,mod,border,BASE,\
+                             adler,blockSize,kBlockSizeBM,out_data,in_data){ \
+        uint_t sum=adler>>half_bit;      \
+        adler =mod(adler + in_data - out_data); \
+        sum += adler - blockSize*out_data;      \
+        return adler | (sum<<half_bit);   \
+    }
+#else
+#   define  _adler_roll_step(uint_t,half_bit,mod,border,BASE,\
+                             adler,blockSize,kBlockSizeBM,out_data,in_data){ \
+        uint_t sum=adler>>half_bit;       \
+        adler&=(((uint_t)1<<half_bit)-1); \
+        /*  [0..B-1] + [0..255] + B - [0..255]  =>  [0+0+B-255..B-1+255+B-0]*/ \
+        adler += in_data +(uint_t)(BASE - out_data);/* => [B-255..B*2-1+255] */ \
+        border(adler); /* [0..B-1+255] */   \
+        border(adler); /* [0..B-1] */       \
+        /* => limit in adler??_roll_blockSizeBM() */    \
+        sum = mod(sum + adler + kBlockSizeBM - blockSize*out_data); \
+        return adler | (sum<<half_bit); \
+    }
+#endif
 
 //limit: all result in uint32_t
 //blockSize*255+(B-1)<2^32 && [0..B-1]+[0..B-1]+(blockSize*255+(B-1))/B*B<2^32
@@ -88,35 +137,35 @@ uint32_t adler32_append(uint32_t adler,unsigned char* pdata,size_t n){
 // => max(blockSize)=((2^32-1)-3*(B-1))/255
 // assert(adler32_roll_kMaxBlockSize > (1<<24))
 const uint32_t adler32_roll_kMaxBlockSize=(0xFFFFFFFF-3*(_adler32_BASE-1))/255;
+#ifdef _IS_NEED_ADLER64
+const uint64_t adler64_roll_kMaxBlockSize=(0xFFFFFFFFFFFFFFFFul-3*(_adler64_BASE-1))/255;
+#endif
 
-uint32_t adler32_roll_kBlockSizeBM(uint32_t blockSize){
-    //limit: sum + adler + kBlockSizeBM >= blockSize*out
-    //  [0..B-1] + [0..B-1] + m*B >= blockSize*[0..255]
-    // => 0 + 0 + m*B>=blockSize*255
-    // => min(m)=(blockSize*255+(B-1))/B
-    // => blockSizeBM=B*min(m)
-    assert(blockSize>0);
-    assert(blockSize<=adler32_roll_kMaxBlockSize);
-    uint32_t min_m=(blockSize*255+(_adler32_BASE-1))/_adler32_BASE;
-    uint32_t blockSizeBM=_adler32_BASE*min_m;
-    return blockSizeBM;
-}
+uint32_t adler32_append(uint32_t adler,unsigned char* pdata,size_t n)
+    _adler_append(uint32_t,16,_adler32_mod,_adler32_to_border,
+                  adler,pdata,n)
+
+uint32_t adler32_roll_kBlockSizeBM(uint32_t blockSize)
+    _adler_roll_kBlockSizeBM(uint32_t,adler32_roll_kMaxBlockSize,_adler32_BASE,
+                             blockSize)
 
 uint32_t adler32_roll_step(uint32_t adler,uint32_t blockSize,uint32_t kBlockSizeBM,
-                           unsigned char out_data,unsigned char in_data){
-    uint32_t sum=adler>>16;
-#ifdef _adler32_FAST_BASE
-    adler =_adler32_mod(adler + in_data - out_data);
-    sum += adler - blockSize*out_data;
-#else
-    adler&=0xFFFF;
-    //    [0..B-1] + [0..255] + B - [0..255]          =>  [0+0+B-255..B-1+255+B-0]
-    adler += in_data +(uint32_t)(_adler32_BASE - out_data);// => [B-255..B*2-1+255]
-    _adler32_to_border(adler); // [0..B-1+255]
-    _adler32_to_border(adler); // [0..B-1]
-    //sum + adler + kBlockSizeBM >= blockSize*out => in adler32_roll_blockSizeBM()
-    sum = _adler32_mod(sum + adler + kBlockSizeBM - blockSize*out_data);
-#endif
-    return adler | (sum<<16);
-}
+                           unsigned char out_data,unsigned char in_data)
+    _adler_roll_step(uint32_t,16,_adler32_mod,_adler32_to_border,_adler32_BASE,
+                     adler,blockSize,kBlockSizeBM, out_data,in_data)
+
+#ifdef _IS_NEED_ADLER64
+uint64_t adler64_append(uint64_t adler,unsigned char* pdata,size_t n)
+    _adler_append(uint64_t,32,_adler64_mod,_adler64_to_border,
+                  adler,pdata,n)
+
+uint64_t adler64_roll_kBlockSizeBM(uint64_t blockSize)
+    _adler_roll_kBlockSizeBM(uint64_t,adler64_roll_kMaxBlockSize,_adler64_BASE,
+                             blockSize)
+uint64_t adler64_roll_step(uint64_t adler,uint64_t blockSize,uint64_t kBlockSizeBM,
+                           unsigned char out_data,unsigned char in_data)
+    _adler_roll_step(uint64_t,32,_adler64_mod,_adler64_to_border,_adler64_BASE,
+                     adler,blockSize,kBlockSizeBM, out_data,in_data)
+
+#endif //_IS_NEED_ADLER64
 
