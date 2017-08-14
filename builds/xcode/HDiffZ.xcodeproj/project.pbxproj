@@ -183,9 +183,9 @@
 			children = (
 				D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */,
 				D6DD68DF1F4015A900A1B22B /* digest_matcher.h */,
+				D6DD68E41F41307900A1B22B /* bloom_filter.h */,
 				D6DD68E11F40163200A1B22B /* adler_roll.h */,
 				D6DD68E21F40163200A1B22B /* adler_roll.c */,
-				D6DD68E41F41307900A1B22B /* bloom_filter.h */,
 			);
 			path = limit_mem_diff;
 			sourceTree = "<group>";

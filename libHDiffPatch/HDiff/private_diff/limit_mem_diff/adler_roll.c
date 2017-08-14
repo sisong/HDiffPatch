@@ -49,7 +49,7 @@
 #   define _adler64_mod(v)       ((uint64_t)((v)&(_adler64_BASE-1)))
 #   define _adler64_to_border(v) { (v)=_adler64_mod(v); }
 #else
-#   define _adler64_BASE 0xFFFFFFFB
+#   define _adler64_BASE 0xFFFFFFFBull
 //# define _adler64_to_border(v) { if ((v) >= _adler64_BASE) (v) -= _adler64_BASE; }
 #   define _adler64_to_border(v) { (v) -= _adler64_BASE & (uint64_t)( ((_adler64_BASE-1)-(int64_t)(v))>>63 ); }
 #   define _adler64_mod(v)       ((v)%_adler64_BASE)
@@ -144,12 +144,12 @@
 #ifdef _IS_USE_ADLER_FAST_BASE
 const uint32_t adler32_roll_kMaxBlockSize=0xFFFFFFFF; //no limit
 #   ifdef _IS_NEED_ADLER64
-const uint64_t adler64_roll_kMaxBlockSize=0xFFFFFFFFFFFFFFFFul;
+const uint64_t adler64_roll_kMaxBlockSize=0xFFFFFFFFFFFFFFFFull;
 #   endif
 #else
 const uint32_t adler32_roll_kMaxBlockSize=(0xFFFFFFFF-3*(_adler32_BASE-1))/MAX_DATA;
 #   ifdef _IS_NEED_ADLER64
-const uint64_t adler64_roll_kMaxBlockSize=(0xFFFFFFFFFFFFFFFFul-3*(_adler64_BASE-1))/MAX_DATA;
+const uint64_t adler64_roll_kMaxBlockSize=(0xFFFFFFFFFFFFFFFFull-3*(_adler64_BASE-1))/MAX_DATA;
 #   endif
 #endif
 

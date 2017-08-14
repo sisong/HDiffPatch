@@ -28,6 +28,7 @@
 #include "digest_matcher.h"
 #include <assert.h>
 #include <stdexcept>  //std::runtime_error
+#include <algorithm>  //std::sort,std::equal_range
 
 TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize)
 :m_oldData(oldData),m_kMatchBlockSize(kMatchBlockSize),m_oldCacheSize(0){
@@ -59,7 +60,6 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchB
 
 void TDigestMatcher::getDigests(){
     const size_t blockCount=m_blocks.size();
-    m_oldDigests_map.clear();
     m_filter.init(blockCount);
     unsigned char* buf=&m_buf[0];
     for (size_t i=0; i<blockCount; ++i) {
@@ -67,15 +67,15 @@ void TDigestMatcher::getDigests(){
         if (i==blockCount-1)
             readPos=m_oldData->streamSize-m_kMatchBlockSize;
         readStream(m_oldData,readPos,buf,m_kMatchBlockSize);
-        adler_uint_t digest=adler_roll_start(buf,m_kMatchBlockSize);
-        m_blocks[i]=digest;
-        m_oldDigests_map.insert(TMultiMap::value_type(digest,i));
-        m_filter.insert(digest);
+        adler_uint_t adler32=adler_roll_start(buf,m_kMatchBlockSize);
+        m_filter.insert(adler32);
+        m_blocks[i]=TDigest(adler32,i);
     }
+    std::sort(m_blocks.begin(),m_blocks.end());
 }
 
-struct TOldStream{
-    TOldStream(const hpatch_TStreamInput* _stream,size_t _kMatchBlockSize,
+struct TNewStream{
+    TNewStream(const hpatch_TStreamInput* _stream,size_t _kMatchBlockSize,
                unsigned char* _cache,size_t _cacheSize)
     :stream(_stream),streamPos(0),kMatchBlockSize(_kMatchBlockSize),
     kBlockSizeBM(adler_roll_kBlockSizeBM((adler_uint_t)_kMatchBlockSize)),
@@ -91,20 +91,27 @@ struct TOldStream{
         //todo: move old;
         if (cacheSize>stream->streamSize-oldPos) cacheSize=(size_t)(stream->streamSize-oldPos);
         readStream(stream,oldPos,cache,cacheSize);
-        digest=adler_roll_start(cache,kMatchBlockSize);
+        roll_digest=adler_roll_start(cache,kMatchBlockSize);
         cachePos=0;
         streamPos=oldPos+cacheSize;
         return true;
     }
     inline bool roll(){
         if (cachePos+kMatchBlockSize!=cacheSize){
-            digest=adler_roll_step(digest,(adler_uint_t)kMatchBlockSize,kBlockSizeBM,
-                                   cache[cachePos],cache[cachePos+kMatchBlockSize]);
+            roll_digest=adler_roll_step(roll_digest,(adler_uint_t)kMatchBlockSize,kBlockSizeBM,
+                                        cache[cachePos],cache[cachePos+kMatchBlockSize]);
             ++cachePos;
             return true;
         }else{
             return _update_roll();
         }
+    }
+    bool skip_same(unsigned char same){
+        if (!resetPos(pos()+kMatchBlockSize)) return false;
+        while(cache[cachePos]==same){
+            if (!roll()) return false;
+        }
+        return true;
     }
     bool _update_roll(){
         if (stream->streamSize!=streamPos){
@@ -129,36 +136,53 @@ struct TOldStream{
     hpatch_StreamPos_t         streamPos;
     size_t                     kMatchBlockSize;
     adler_uint_t               kBlockSizeBM;
-    adler_uint_t               digest;
+    adler_uint_t               roll_digest;
     unsigned char*  cache;
     size_t          cacheSize;
     size_t          cachePos;
 };
 
+bool is_same_data(const unsigned char* s,size_t n){
+    assert(n>0);
+    unsigned char d=s[0];
+    for (size_t i=1; i<n; ++i) {
+        if(s[i]!=d)
+            return false;
+    }
+    return true;
+}
+
 void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,ICovers* out_covers){
-    if (newData->streamSize<m_kMatchBlockSize) return;
     if (m_blocks.empty()) return;
-    TOldStream oldStream(m_oldData,m_kMatchBlockSize,&m_buf[0],m_oldCacheSize);
+    const TDigest* pblocks=&m_blocks[0];
+    const TDigest* pblocks_end=pblocks+m_blocks.size();
+    if (newData->streamSize<m_kMatchBlockSize) return;
+    TNewStream newStream(m_oldData,m_kMatchBlockSize,&m_buf[0],m_oldCacheSize);
     TCover  lastCover={0,0,0};
     TCover  curCover;
-    size_t same_digest=0;
     while (true) {
-        if (m_filter.is_hit(oldStream.digest))
-            ++same_digest;
-        /*std::pair<TMultiMap::const_iterator,TMultiMap::const_iterator>
-        it=m_oldDigests_map.equal_range(oldStream.digest);
-        if (it.first!=it.second){
-            ++same_digest;
-            //printf("(%lu,%u),",it.first->second,oldStream.digest);
-        }*/
-        /*if (getBestMatch(oldStream,lastCover,&curCover)) {
-            out_covers->addCover(curCover);
-            if (!oldStream.resetPos(curCover.oldPos+curCover.length)) break;
-            lastCover=curCover;
-        }else*/{
-            if (!oldStream.roll())
-                break;
+        if (m_filter.is_hit(newStream.roll_digest)){
+            std::pair<const TDigest*,const TDigest*>
+            range=std::equal_range(pblocks,pblocks_end,newStream.roll_digest,TDigest::T_comp());
+            if (range.first!=range.second){
+                const unsigned char* pnew=newStream.cache+newStream.cachePos;
+                if (is_same_data(pnew,m_kMatchBlockSize)){
+                    if (!newStream.skip_same(pnew[0])) break;//finish
+                    continue;
+                }
+                if (selectBestMatch(range.first,range.second,newStream,lastCover,&curCover)){
+                    out_covers->addCover(curCover);
+                    lastCover=curCover;
+                    if (!newStream.resetPos(curCover.oldPos+curCover.length)) break;//finish
+                    continue;
+                }//else roll
+            }//else roll
         }
+        if (!newStream.roll()) break;//finish
     }
-    printf("same digest = %lu /%lld",same_digest,(m_oldData->streamSize+m_kMatchBlockSize-1)/m_kMatchBlockSize);
+}
+
+bool TDigestMatcher::selectBestMatch(const TDigest*pblocks,const TDigest* pblocks_end,
+                                     TNewStream& newStream,const TCover& lastCover,TCover* out_curCover){
+    return false;
 }

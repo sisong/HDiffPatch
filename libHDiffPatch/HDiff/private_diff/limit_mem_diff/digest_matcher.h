@@ -32,15 +32,8 @@
 #define digest_matcher_h
 #include "../../../HPatch/patch_types.h"
 #include <vector>
-#include "adler_roll.h"
 #include "bloom_filter.h"
-
-//#include <hash_map>
-//#define _TMultiMap std::hash_map
-//#include <map>
-//#define _TMultiMap std::multimap
-#include <unordered_map>
-#define _TMultiMap std::unordered_multimap
+#include "adler_roll.h"
 
 struct TCover{
     hpatch_StreamPos_t oldPos;
@@ -51,23 +44,37 @@ struct ICovers{
     virtual void addCover(const TCover& cover)=0;
 };
 
+class TNewStream;
 class TDigestMatcher{
 public:
     //throw std::runtime_error when data->read error or kMatchBlockSize error;
     TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize);
     void search_cover(const hpatch_TStreamInput* newData,ICovers* out_covers);
 private:
-    typedef adler_uint_t       TDigest;
-    const hpatch_TStreamInput* m_oldData;
-    std::vector<unsigned char> m_buf;
-    std::vector<TDigest>       m_blocks;
-    size_t     m_kMatchBlockSize;
-    size_t     m_oldCacheSize;
-    void getDigests();
+    struct TDigest{
+        adler_uint_t    digest;
+        uint64_t        block_index;
+        inline TDigest(){ }
+        inline TDigest(adler_uint_t _digest,uint64_t _block_index)
+            :digest(_digest),block_index(_block_index){ }
+        inline bool operator < (const TDigest& y) const {
+            return (digest!=y.digest)?(digest<y.digest):(block_index<y.block_index); }
+        
+        struct T_comp{
+            inline bool operator()(const TDigest& x,const adler_uint_t y)const { return x.digest<y; }
+            inline bool operator()(const adler_uint_t x,const TDigest& y)const { return x<y.digest; }
+        };
+    };
+    const hpatch_TStreamInput*  m_oldData;
+    std::vector<unsigned char>  m_buf;
+    std::vector<TDigest>        m_blocks;
+    size_t                      m_kMatchBlockSize;
+    size_t                      m_oldCacheSize;
+    TBloomFilter                m_filter;
     
-    TBloomFilter               m_filter;
-    typedef _TMultiMap<TDigest,size_t> TMultiMap;
-    TMultiMap m_oldDigests_map;
+    void getDigests();
+    bool selectBestMatch(const TDigest*pblocks,const TDigest* pblocks_end,
+                         TNewStream& newStream,const TCover& lastCover,TCover* out_curCover);
 };
 
 

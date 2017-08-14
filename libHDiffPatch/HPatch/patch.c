@@ -985,7 +985,7 @@ hpatch_BOOL _patch_decompress_step(const hpatch_TStreamOutput*  out_newData,
             if (((head.compress_cover_buf_size==0)&&(head.compress_newDataDiff_size==0))
                 ||((head.compress_rle_ctrlBuf_size==0)&&(head.compress_rle_codeBuf_size==0))){//not need step
                 if (is_copy_step)
-                    is_add_rle_step=hpatch_TRUE; //continue once
+                    is_add_rle_step=hpatch_TRUE; //run in once
                 else
                     return hpatch_TRUE; //done
             }
