@@ -58,8 +58,9 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchB
 
 
 void TDigestMatcher::getDigests(){
-    m_oldDigests_map.clear();
     const size_t blockCount=m_blocks.size();
+    m_oldDigests_map.clear();
+    m_filter.init(blockCount);
     unsigned char* buf=&m_buf[0];
     for (size_t i=0; i<blockCount; ++i) {
         hpatch_StreamPos_t readPos=(hpatch_StreamPos_t)i*m_kMatchBlockSize;
@@ -69,6 +70,7 @@ void TDigestMatcher::getDigests(){
         adler_uint_t digest=adler_roll_start(buf,m_kMatchBlockSize);
         m_blocks[i]=digest;
         m_oldDigests_map.insert(TMultiMap::value_type(digest,i));
+        m_filter.insert(digest);
     }
 }
 
@@ -141,12 +143,14 @@ void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,ICovers* ou
     TCover  curCover;
     size_t same_digest=0;
     while (true) {
-        std::pair<TMultiMap::const_iterator,TMultiMap::const_iterator>
+        if (m_filter.is_hit(oldStream.digest))
+            ++same_digest;
+        /*std::pair<TMultiMap::const_iterator,TMultiMap::const_iterator>
         it=m_oldDigests_map.equal_range(oldStream.digest);
         if (it.first!=it.second){
             ++same_digest;
             //printf("(%lu,%u),",it.first->second,oldStream.digest);
-        }
+        }*/
         /*if (getBestMatch(oldStream,lastCover,&curCover)) {
             out_covers->addCover(curCover);
             if (!oldStream.resetPos(curCover.oldPos+curCover.length)) break;

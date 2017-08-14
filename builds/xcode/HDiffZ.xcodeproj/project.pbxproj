@@ -62,6 +62,7 @@
 		D6DD68DF1F4015A900A1B22B /* digest_matcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = digest_matcher.h; sourceTree = "<group>"; };
 		D6DD68E11F40163200A1B22B /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = adler_roll.h; sourceTree = "<group>"; };
 		D6DD68E21F40163200A1B22B /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = adler_roll.c; sourceTree = "<group>"; };
+		D6DD68E41F41307900A1B22B /* bloom_filter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bloom_filter.h; sourceTree = "<group>"; };
 		D6E150941F21A95200C2AD3D /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
 		D6E150981F223B2700C2AD3D /* compress_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = compress_plugin_demo.h; path = ../../compress_plugin_demo.h; sourceTree = "<group>"; };
 		D6E1509A1F223DC100C2AD3D /* decompress_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = decompress_plugin_demo.h; path = ../../decompress_plugin_demo.h; sourceTree = "<group>"; };
@@ -180,10 +181,11 @@
 		D6DD68DD1F4015A900A1B22B /* limit_mem_diff */ = {
 			isa = PBXGroup;
 			children = (
-				D6DD68E11F40163200A1B22B /* adler_roll.h */,
-				D6DD68E21F40163200A1B22B /* adler_roll.c */,
 				D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */,
 				D6DD68DF1F4015A900A1B22B /* digest_matcher.h */,
+				D6DD68E11F40163200A1B22B /* adler_roll.h */,
+				D6DD68E21F40163200A1B22B /* adler_roll.c */,
+				D6DD68E41F41307900A1B22B /* bloom_filter.h */,
 			);
 			path = limit_mem_diff;
 			sourceTree = "<group>";

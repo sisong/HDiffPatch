@@ -33,6 +33,7 @@
 #include "../../../HPatch/patch_types.h"
 #include <vector>
 #include "adler_roll.h"
+#include "bloom_filter.h"
 
 //#include <hash_map>
 //#define _TMultiMap std::hash_map
@@ -40,8 +41,6 @@
 //#define _TMultiMap std::multimap
 #include <unordered_map>
 #define _TMultiMap std::unordered_multimap
-
-
 
 struct TCover{
     hpatch_StreamPos_t oldPos;
@@ -66,6 +65,7 @@ private:
     size_t     m_oldCacheSize;
     void getDigests();
     
+    TBloomFilter               m_filter;
     typedef _TMultiMap<TDigest,size_t> TMultiMap;
     TMultiMap m_oldDigests_map;
 };
