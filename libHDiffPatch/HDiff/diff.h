@@ -85,20 +85,27 @@ bool check_compressed_diff(const unsigned char* newData,const unsigned char* new
                            hpatch_TDecompress* decompressPlugin);
 
 
-static const int kMatchBlockSize_default = (1<<10);
+static const int kMatchBlockSize_default = (1<<9);
 
 #define hdiff_TStreamCompress hdiff_TCompress //TODO: hdiff_TStreamCompress
 
-//diff by stream;
-//  recommended only used in limited memory environment
-//  kMatchBlockSize: in [1<<0..1<<24], deault (1<<10), recommended (1<<7)--(1<<16)
-//      随着kMatchBlockSize增大,内存需求降低,但out_diff增大
-//  throw std::runtime_error when I/O error
+//diff by stream:
+//  can control memory used and run speed by different kMatchBlockSize value,
+//      but out_diff size is larger than create_compressed_diff()
+//  recommended used in limited environment
+//  kMatchBlockSize: in [1<<3..1<<24], deault (1<<9), recommended (1<<5)--(1<<12)
+//    if kMatchBlockSize decrease then out_diff size decrease, but slower and memory requires more
+//  throw std::runtime_error when I/O error,etc.
 void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
-                                   hpatch_TStreamOutput* out_diff,
+                                   hpatch_TStreamOutput*       out_diff,
                                    hdiff_TStreamCompress* compressPlugin,
                                    size_t kMatchBlockSize=kMatchBlockSize_default);
+
+bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
+                                  const hpatch_TStreamInput*  oldData,
+                                  const hpatch_TStreamInput*  compressed_diff,
+                                  hpatch_TDecompress* decompressPlugin);
 
 
 #endif
