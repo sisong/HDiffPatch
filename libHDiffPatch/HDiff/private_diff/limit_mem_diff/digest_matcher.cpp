@@ -86,21 +86,29 @@ struct TStreamCache{
         return m_readPosEnd-(cacheSize-cachePos);
     }
     inline unsigned char* datas(){ return cache+cachePos; }
+    inline const unsigned char* datas()const { return cache+cachePos; }
     inline const size_t   dataLength()const{ return (size_t)(cacheSize-cachePos); }
     inline unsigned char* cachedDatas(){ return cache+cacheSize-cachedLength(); }
     inline const size_t   cachedLength()const{ return (size_t)(m_readPosEnd-m_readPos); }
-    bool resetPos(hpatch_StreamPos_t oldPos){
+    inline bool resetPos(hpatch_StreamPos_t oldPos){
+        return _resetPos(kMatchBlockSize,oldPos,kMatchBlockSize);
+    }
+private:
+    inline bool _resetPos(size_t kBackupCacheSize,hpatch_StreamPos_t oldPos,size_t kMinCacheLen){
         //stream:[      |            |                  |                      |        ]
         //           readPos       oldPos    (oldPos+kMatchBlockSize)    (readPosEnd)
         //cache:   [    |            |                  |                      ]
         //         0           (init cachePos)                             cacheSize
-        if ((oldPos+kMatchBlockSize<=m_readPosEnd)&&(oldPos>=m_readPos)){
+        if ((oldPos+kMinCacheLen<=m_readPosEnd)&&(oldPos>=m_readPos)){
             cachePos=cacheSize-(size_t)(m_readPosEnd-oldPos);
             return true; //hit cache
         }
+        return _resetPos_continue(kBackupCacheSize,oldPos,kMinCacheLen);
+    }
+    bool _resetPos_continue(size_t kBackupCacheSize,hpatch_StreamPos_t oldPos,size_t kMinCacheLen){
         hpatch_StreamPos_t streamSize=stream->streamSize;
-        if (oldPos+kMatchBlockSize>streamSize) return false;
-        hpatch_StreamPos_t readPos=(oldPos>=kMatchBlockSize)?(oldPos-kMatchBlockSize):0;
+        if (oldPos+kMinCacheLen>streamSize) return false;
+        hpatch_StreamPos_t readPos=(oldPos>=kBackupCacheSize)?(oldPos-kBackupCacheSize):0;
         size_t readLen=((streamSize-readPos)>=cacheSize)?cacheSize:(size_t)(streamSize-readPos);
 
         unsigned char* dst=cache+cacheSize-readLen;
@@ -119,6 +127,40 @@ struct TStreamCache{
         m_readPosEnd=readPos+readLen;
         cachePos=cacheSize-(size_t)(m_readPosEnd-oldPos);
         return true;
+    }
+public:
+    size_t forward_equal_length(const TStreamCache& y)const{
+        size_t y_len=(size_t)(y.pos()-y.m_readPos);
+        size_t len=(size_t)(pos()-m_readPos);
+        len=(len<y_len)?len:y_len;
+        const unsigned char* px=datas();
+        const unsigned char* py=y.datas();
+        size_t i=1;
+        for (;i<=len;++i){
+            if (px[-i]!=py[-i]) break;
+        }
+        return i-1;
+    }
+    hpatch_StreamPos_t roll_backward_equal_length(TStreamCache& y){
+        if (!_resetPos(0,pos()+kMatchBlockSize,1)) return 0;
+        if (!y._resetPos(0,y.pos()+kMatchBlockSize,1)) return 0;
+        hpatch_StreamPos_t eq_len=0;
+        while(true){
+            size_t yLen=y.dataLength();
+            size_t len=dataLength();
+            len=(len<=yLen)?len:yLen;
+            const unsigned char* px=datas();
+            const unsigned char* py=y.datas();
+            for (size_t i=0;i<len;++i){
+                if (px[i]==py[i])
+                    ++eq_len;
+                else
+                    return eq_len;
+            }
+            if (!_resetPos(0,pos()+len,1)) break;
+            if (!y._resetPos(0,y.pos()+len,1)) break;
+        }
+        return eq_len;
     }
     
 public:
@@ -192,10 +234,14 @@ static bool getBestMatch(const TDigestMatcher::TDigest*pblocks,const TDigestMatc
         if (!oldStream.resetPos(oldPos)) continue;
         if (0==memcmp(oldStream.datas(),newStream.datas(),kMatchBlockSize)){
             isMatched=true;
-            
-            out_curCover->oldPos=oldPos;
-            out_curCover->newPos=newStream.pos();
-            out_curCover->length=kMatchBlockSize;
+            hpatch_StreamPos_t newPos=newStream.pos();
+            size_t feq_len=oldStream.forward_equal_length(newStream);
+            if (newPos-feq_len<lastCover.newPos+lastCover.length)
+                feq_len=newPos-(lastCover.newPos+lastCover.length);
+            hpatch_StreamPos_t beq_len=oldStream.roll_backward_equal_length(newStream);
+            out_curCover->oldPos=oldPos-feq_len;
+            out_curCover->newPos=newPos-feq_len;
+            out_curCover->length=feq_len+kMatchBlockSize+beq_len;
             break;
         }
     }
