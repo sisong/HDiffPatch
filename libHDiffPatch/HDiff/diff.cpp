@@ -617,6 +617,10 @@ public:
             m_covers64.push_back(cover);
         }
     }
+    
+    virtual size_t coverCount()const{
+        return m_is32?(m_covers32.size()/3):m_covers64.size();
+    }
     //todo:
 private:
     std::vector<uint32_t>           m_covers32;
@@ -631,7 +635,7 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    size_t kMatchBlockSize){
     TCovers covers(oldData->streamSize,newData->streamSize);
     TDigestMatcher matcher(oldData,kMatchBlockSize);
-    matcher.search_cover(oldData,&covers);
+    matcher.search_cover(newData,&covers);
     //
     
 }

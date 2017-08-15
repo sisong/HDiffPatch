@@ -41,16 +41,16 @@ struct TCover{
     hpatch_StreamPos_t length;
 };
 struct ICovers{
-    virtual void addCover(const TCover& cover)=0;
+    virtual void   addCover(const TCover& cover)=0;
+    virtual size_t coverCount()const=0;
 };
 
-class TNewStream;
 class TDigestMatcher{
 public:
     //throw std::runtime_error when data->read error or kMatchBlockSize error;
     TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize);
     void search_cover(const hpatch_TStreamInput* newData,ICovers* out_covers);
-private:
+
     struct TDigest{
         adler_uint_t    digest;
         uint64_t        block_index;
@@ -65,16 +65,15 @@ private:
             inline bool operator()(const adler_uint_t x,const TDigest& y)const { return x<y.digest; }
         };
     };
+private:
     const hpatch_TStreamInput*  m_oldData;
     std::vector<unsigned char>  m_buf;
     std::vector<TDigest>        m_blocks;
     size_t                      m_kMatchBlockSize;
-    size_t                      m_oldCacheSize;
+    size_t                      m_newCacheSize;
     TBloomFilter                m_filter;
     
     void getDigests();
-    bool selectBestMatch(const TDigest*pblocks,const TDigest* pblocks_end,
-                         TNewStream& newStream,const TCover& lastCover,TCover* out_curCover);
 };
 
 
