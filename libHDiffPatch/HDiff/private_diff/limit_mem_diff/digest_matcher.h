@@ -45,8 +45,9 @@ private:
     std::vector<unsigned char>          m_buf;
     std::vector<adler_uint_t>           m_blocks;
     std::vector<uint32_t>               m_sorted_limit;
-    std::vector<uint64_t>               m_sorted_larger;
+    std::vector<size_t>                 m_sorted_larger;
     bool                                m_isUseLargeSorted;
+    bool                                m_isSearchBestMatch;
     size_t                      m_kMatchBlockSize;
     size_t                      m_newCacheSize;
     TBloomFilter                m_filter;

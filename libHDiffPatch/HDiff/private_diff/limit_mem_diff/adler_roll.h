@@ -96,7 +96,7 @@ typedef unsigned __int64  uint64_t;
 #endif
 
 
-uint32_t adler32_append(uint32_t adler,adler_data_t* pdata,size_t n);
+uint32_t adler32_append(uint32_t adler,const adler_data_t* pdata,size_t n);
 
 extern const uint32_t adler32_roll_kMaxBlockSize;
 uint32_t              adler32_roll_kBlockSizeBM(uint32_t blockSize);
@@ -115,7 +115,7 @@ uint32_t adler32_roll_step(uint32_t adler,uint32_t blockSize,uint32_t kBlockSize
 
 #ifdef _IS_NEED_ADLER64
     
-uint64_t adler64_append(uint64_t adler,adler_data_t* pdata,size_t n);
+uint64_t adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n);
     
 extern const uint64_t adler64_roll_kMaxBlockSize;
 uint64_t              adler64_roll_kBlockSizeBM(uint64_t blockSize);
