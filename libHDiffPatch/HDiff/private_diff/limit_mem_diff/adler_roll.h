@@ -77,6 +77,7 @@ typedef unsigned __int64  uint64_t;
 #   include <stdint.h> //for int32_t uint32_t int64_t uint64_t
 #   define __adler_inline inline
 #endif
+#include <stdlib.h> //for size_t
 
 #ifndef adler_data_t
 //adler32 adler_data_t: support uint8: roll_kMaxBlockSize==2^24+little and uint16: roll_kMaxBlockSize==2^16-2

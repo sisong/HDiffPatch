@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D68CD8FC1F44367A00A61337 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D68CD8F41F44367A00A61337 /* adler_roll.c */; };
+		D68CD8FD1F44367A00A61337 /* digest_matcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D68CD8F81F44367A00A61337 /* digest_matcher.cpp */; };
+		D68CD8FE1F44367A00A61337 /* stream_serialize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D68CD8FA1F44367A00A61337 /* stream_serialize.cpp */; };
 		D6BD9BAF17578491004886DE /* diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BA117578491004886DE /* diff.cpp */; };
 		D6BD9BB017578491004886DE /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BA517578491004886DE /* bytes_rle.cpp */; };
 		D6BD9BB117578491004886DE /* suffix_string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BA817578491004886DE /* suffix_string.cpp */; };
@@ -33,6 +36,14 @@
 
 /* Begin PBXFileReference section */
 		801FA5621999090000F7E57B /* pack_uint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pack_uint.h; sourceTree = "<group>"; };
+		D68CD8F41F44367A00A61337 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = adler_roll.c; sourceTree = "<group>"; };
+		D68CD8F51F44367A00A61337 /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = adler_roll.h; sourceTree = "<group>"; };
+		D68CD8F61F44367A00A61337 /* bloom_filter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bloom_filter.h; sourceTree = "<group>"; };
+		D68CD8F71F44367A00A61337 /* covers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = covers.h; sourceTree = "<group>"; };
+		D68CD8F81F44367A00A61337 /* digest_matcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = digest_matcher.cpp; sourceTree = "<group>"; };
+		D68CD8F91F44367A00A61337 /* digest_matcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = digest_matcher.h; sourceTree = "<group>"; };
+		D68CD8FA1F44367A00A61337 /* stream_serialize.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = stream_serialize.cpp; sourceTree = "<group>"; };
+		D68CD8FB1F44367A00A61337 /* stream_serialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stream_serialize.h; sourceTree = "<group>"; };
 		D6BD9BA117578491004886DE /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
 		D6BD9BA217578491004886DE /* diff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diff.h; sourceTree = "<group>"; };
 		D6BD9BA517578491004886DE /* bytes_rle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bytes_rle.cpp; sourceTree = "<group>"; };
@@ -74,6 +85,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D68CD8F31F44367A00A61337 /* limit_mem_diff */ = {
+			isa = PBXGroup;
+			children = (
+				D68CD8F41F44367A00A61337 /* adler_roll.c */,
+				D68CD8F51F44367A00A61337 /* adler_roll.h */,
+				D68CD8F61F44367A00A61337 /* bloom_filter.h */,
+				D68CD8F71F44367A00A61337 /* covers.h */,
+				D68CD8F81F44367A00A61337 /* digest_matcher.cpp */,
+				D68CD8F91F44367A00A61337 /* digest_matcher.h */,
+				D68CD8FA1F44367A00A61337 /* stream_serialize.cpp */,
+				D68CD8FB1F44367A00A61337 /* stream_serialize.h */,
+			);
+			path = limit_mem_diff;
+			sourceTree = "<group>";
+		};
 		D6BD9B9F17578491004886DE /* libHDiffPatch */ = {
 			isa = PBXGroup;
 			children = (
@@ -97,6 +123,7 @@
 		D6BD9BA417578491004886DE /* private_diff */ = {
 			isa = PBXGroup;
 			children = (
+				D68CD8F31F44367A00A61337 /* limit_mem_diff */,
 				D6EE50611F2A0AA3002854A2 /* compress_detect.cpp */,
 				D6EE50621F2A0AA3002854A2 /* compress_detect.h */,
 				D6C701461E17E5BC00C19D84 /* libdivsufsort */,
@@ -217,11 +244,14 @@
 			files = (
 				D6EE50631F2A0AA3002854A2 /* compress_detect.cpp in Sources */,
 				D6BD9BAF17578491004886DE /* diff.cpp in Sources */,
+				D68CD8FD1F44367A00A61337 /* digest_matcher.cpp in Sources */,
 				D6BD9BB017578491004886DE /* bytes_rle.cpp in Sources */,
 				D6BD9BB117578491004886DE /* suffix_string.cpp in Sources */,
 				D6BD9BB217578491004886DE /* patch.c in Sources */,
 				D6C701521E17E5BC00C19D84 /* divsufsort64.c in Sources */,
 				D6C701511E17E5BC00C19D84 /* divsufsort.c in Sources */,
+				D68CD8FC1F44367A00A61337 /* adler_roll.c in Sources */,
+				D68CD8FE1F44367A00A61337 /* stream_serialize.cpp in Sources */,
 				D6BD9BB317578491004886DE /* unit_test.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

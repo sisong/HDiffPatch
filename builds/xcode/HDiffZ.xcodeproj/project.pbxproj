@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D68CD8F21F4426B100A61337 /* stream_serialize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D68CD8F01F4426B100A61337 /* stream_serialize.cpp */; };
 		D690AB9C1F20792A0089DC57 /* hdiffz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690AB9B1F20792A0089DC57 /* hdiffz.cpp */; };
 		D690ABB71F2079E80089DC57 /* diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA01F2079E80089DC57 /* diff.cpp */; };
 		D690ABB81F2079E80089DC57 /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA31F2079E80089DC57 /* bytes_rle.cpp */; };
@@ -35,6 +36,8 @@
 
 /* Begin PBXFileReference section */
 		D68CD8EF1F43B11C00A61337 /* covers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = covers.h; sourceTree = "<group>"; };
+		D68CD8F01F4426B100A61337 /* stream_serialize.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = stream_serialize.cpp; sourceTree = "<group>"; };
+		D68CD8F11F4426B100A61337 /* stream_serialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stream_serialize.h; sourceTree = "<group>"; };
 		D690AB911F2078A40089DC57 /* HDiffZ */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HDiffZ; sourceTree = BUILT_PRODUCTS_DIR; };
 		D690AB9B1F20792A0089DC57 /* hdiffz.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hdiffz.cpp; path = ../../hdiffz.cpp; sourceTree = "<group>"; };
 		D690ABA01F2079E80089DC57 /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
@@ -184,6 +187,8 @@
 			children = (
 				D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */,
 				D6DD68DF1F4015A900A1B22B /* digest_matcher.h */,
+				D68CD8F01F4426B100A61337 /* stream_serialize.cpp */,
+				D68CD8F11F4426B100A61337 /* stream_serialize.h */,
 				D68CD8EF1F43B11C00A61337 /* covers.h */,
 				D6DD68E41F41307900A1B22B /* bloom_filter.h */,
 				D6DD68E11F40163200A1B22B /* adler_roll.h */,
@@ -258,6 +263,7 @@
 				D690ABBA1F2079E80089DC57 /* divsufsort64.c in Sources */,
 				D690ABB91F2079E80089DC57 /* divsufsort.c in Sources */,
 				D690AB9C1F20792A0089DC57 /* hdiffz.cpp in Sources */,
+				D68CD8F21F4426B100A61337 /* stream_serialize.cpp in Sources */,
 				D6DD68E31F40163200A1B22B /* adler_roll.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

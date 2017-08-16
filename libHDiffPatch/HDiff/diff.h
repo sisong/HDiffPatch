@@ -84,6 +84,11 @@ bool check_compressed_diff(const unsigned char* newData,const unsigned char* new
                            const unsigned char* diff,const unsigned char* diff_end,
                            hpatch_TDecompress* decompressPlugin);
 
+bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
+                                  const hpatch_TStreamInput*  oldData,
+                                  const hpatch_TStreamInput*  compressed_diff,
+                                  hpatch_TDecompress* decompressPlugin);
+
 
 static const int kMatchBlockSize_default = (1<<8);
 
@@ -101,11 +106,6 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    hpatch_TStreamOutput*       out_diff,
                                    hdiff_TStreamCompress* compressPlugin,
                                    size_t kMatchBlockSize=kMatchBlockSize_default);
-
-bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
-                                  const hpatch_TStreamInput*  oldData,
-                                  const hpatch_TStreamInput*  compressed_diff,
-                                  hpatch_TDecompress* decompressPlugin);
 
 
 #endif
