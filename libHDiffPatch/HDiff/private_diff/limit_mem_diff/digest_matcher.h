@@ -30,26 +30,15 @@
 
 #ifndef digest_matcher_h
 #define digest_matcher_h
-#include "../../../HPatch/patch_types.h"
-#include <vector>
 #include "bloom_filter.h"
 #include "adler_roll.h"
-
-struct TCover{
-    hpatch_StreamPos_t oldPos;
-    hpatch_StreamPos_t newPos;
-    hpatch_StreamPos_t length;
-};
-struct ICovers{
-    virtual void   addCover(const TCover& cover)=0;
-    virtual size_t coverCount()const=0;
-};
+#include "covers.h"
 
 class TDigestMatcher{
 public:
     //throw std::runtime_error when data->read error or kMatchBlockSize error;
     TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize);
-    void search_cover(const hpatch_TStreamInput* newData,ICovers* out_covers);
+    void search_cover(const hpatch_TStreamInput* newData,TCovers* out_covers);
 
     template<class TIndex>
     struct TDigest{

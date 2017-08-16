@@ -264,6 +264,7 @@ static bool getBestMatch(const tm_TDigest* pblocks,const tm_TDigest* pblocks_end
             out_curCover->newPos=newPos-feq_len;
             out_curCover->length=feq_len+kMatchBlockSize+beq_len;
             break; //todo: continue get max coverLength?
+            //如果pblocks_end-pblocks较长(>6)，在sort阶段可以按后续校验值排序，这里就可以用二分查找？
         }
     }
     return isMatched;
@@ -285,7 +286,7 @@ static bool is_same_data(const unsigned char* s,size_t n){
 template <class tm_TDigest>
 static void tm_search_cover(const tm_TDigest* pblocks,const tm_TDigest* pblocks_end,
                             TOldStreamCache& oldStream,TNewStreamCache& newStream,
-                            const TBloomFilter& filter,size_t kMatchBlockSize,ICovers* out_covers) {
+                            const TBloomFilter& filter,size_t kMatchBlockSize,TCovers* out_covers) {
     TCover  lastCover={0,0,0};
     uint64_t sumlen=0;
     while (true) {
@@ -310,11 +311,11 @@ static void tm_search_cover(const tm_TDigest* pblocks,const tm_TDigest* pblocks_
         }
         if (!newStream.roll()) break;//finish
     }
-    printf("%lld / %lld\n",out_covers->coverCount(),upperCount(newStream.streamSize(),kMatchBlockSize));
+    printf("%zu/ %lld\n",out_covers->coverCount(),upperCount(newStream.streamSize(),kMatchBlockSize));
     printf("%lld / %lld\n",sumlen,newStream.streamSize());
 }
 
-void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,ICovers* out_covers){
+void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,TCovers* out_covers){
     if (m_blocks_lager.empty()&&m_blocks_limit.empty()) return;
     if (newData->streamSize<m_kMatchBlockSize) return;
     TNewStreamCache newStream(newData,m_kMatchBlockSize,&m_buf[0],m_newCacheSize);

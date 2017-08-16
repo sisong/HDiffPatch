@@ -34,6 +34,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D68CD8EF1F43B11C00A61337 /* covers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = covers.h; sourceTree = "<group>"; };
 		D690AB911F2078A40089DC57 /* HDiffZ */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HDiffZ; sourceTree = BUILT_PRODUCTS_DIR; };
 		D690AB9B1F20792A0089DC57 /* hdiffz.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hdiffz.cpp; path = ../../hdiffz.cpp; sourceTree = "<group>"; };
 		D690ABA01F2079E80089DC57 /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
@@ -183,6 +184,7 @@
 			children = (
 				D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */,
 				D6DD68DF1F4015A900A1B22B /* digest_matcher.h */,
+				D68CD8EF1F43B11C00A61337 /* covers.h */,
 				D6DD68E41F41307900A1B22B /* bloom_filter.h */,
 				D6DD68E11F40163200A1B22B /* adler_roll.h */,
 				D6DD68E21F40163200A1B22B /* adler_roll.c */,

@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h> //memset
 #include <assert.h>
+#include <stdexcept>
 
 
 class TBitSet{
