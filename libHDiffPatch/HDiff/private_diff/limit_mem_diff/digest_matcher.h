@@ -40,28 +40,13 @@ public:
     TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize);
     void search_cover(const hpatch_TStreamInput* newData,TCovers* out_covers);
 
-    template<class TIndex>
-    struct TDigest{
-        adler_uint_t    digest;
-        TIndex          block_index;
-        
-        inline TDigest(){ }
-        inline TDigest(adler_uint_t _digest,TIndex _block_index)
-            :digest(_digest),block_index(_block_index){ }
-        inline bool operator < (const TDigest& y) const {
-            return (digest!=y.digest)?(digest<y.digest):(block_index<y.block_index); }
-        
-        struct T_comp{
-            inline bool operator()(const TDigest& x,const adler_uint_t y)const { return x.digest<y; }
-            inline bool operator()(const adler_uint_t x,const TDigest& y)const { return x<y.digest; }
-        };
-    };
 private:
     const hpatch_TStreamInput*          m_oldData;
     std::vector<unsigned char>          m_buf;
-    std::vector<TDigest<adler_uint_t> > m_blocks_limit;
-    std::vector<TDigest<uint64_t> >     m_blocks_lager;
-    bool                                m_isUseLargeBlocks;
+    std::vector<adler_uint_t>           m_blocks;
+    std::vector<uint32_t>               m_sorted_limit;
+    std::vector<uint64_t>               m_sorted_larger;
+    bool                                m_isUseLargeSorted;
     size_t                      m_kMatchBlockSize;
     size_t                      m_newCacheSize;
     TBloomFilter                m_filter;

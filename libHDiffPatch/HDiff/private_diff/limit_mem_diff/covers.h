@@ -47,12 +47,12 @@ public:
             m_covers_limit.push_back((uint32_t)cover.newPos);
             m_covers_limit.push_back((uint32_t)cover.length);
         }else{
-            m_covers_lager.push_back(cover);
+            m_covers_larger.push_back(cover);
         }
     }
     
     inline size_t coverCount()const{
-        return m_is32?(m_covers_limit.size()/3):m_covers_lager.size();
+        return m_is32?(m_covers_limit.size()/3):m_covers_larger.size();
     }
     
     inline void covers(size_t index,TCover* out_cover)const{
@@ -62,12 +62,12 @@ public:
             out_cover->newPos=m_covers_limit[i+1];
             out_cover->length=m_covers_limit[i+2];
         }else{
-            *out_cover=m_covers_lager[index];
+            *out_cover=m_covers_larger[index];
         }
     }
 private:
     std::vector<uint32_t>   m_covers_limit;
-    std::vector<TCover>     m_covers_lager;
+    std::vector<TCover>     m_covers_larger;
     const  bool             m_is32;
 };
 
