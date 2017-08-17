@@ -92,7 +92,24 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
 
 static const int kMatchBlockSize_default = (1<<8);
 
-#define hdiff_TStreamCompress hdiff_TCompress //TODO: hdiff_TStreamCompress
+typedef void*  hdiff_compressHandle;
+typedef hpatch_TStreamOutput hdiff_TStreamOutput;
+//stream compress plugin
+typedef struct hdiff_TStreamCompress{
+    //return type tag; strlen(result)<=hpatch_kMaxCompressTypeLength;（Note:result lifetime）
+    const char*      (*compressType)(const hdiff_TStreamCompress* compressPlugin);
+    //error return 0.
+    hdiff_compressHandle     (*open)(struct hdiff_TStreamCompress* compressPlugin,
+                                     const hdiff_TStreamOutput* out_code);
+    //return all out code size, error or no out return 0.
+    hpatch_StreamPos_t      (*close)(struct hdiff_TStreamCompress* compressPlugin,
+                                      hdiff_compressHandle compressHandle);
+    //compress_part() must return (in_part_data_end-in_part_data), otherwise error
+    long             (*compress_part)(const struct hdiff_TStreamCompress* compressPlugin,
+                                      hdiff_compressHandle compressHandle,
+                                      const unsigned char* in_part_data,const unsigned char* in_part_data_end);
+} hdiff_TStreamCompress;
+
 
 //diff by stream:
 //  can control memory used and run speed by different kMatchBlockSize value,

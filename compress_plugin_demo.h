@@ -35,52 +35,111 @@
 #include <assert.h>
 #include "libHDiffPatch/HDiff/diff.h"
 
+#define kCompressBufSize (1024*16)
+#define _compress_error_return(result,err) { printf("\n%s\n",err); return result; }
 #ifdef  _CompressPlugin_zlib
 #include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
-    static const char*  _zlib_compressType(const hdiff_TCompress* compressPlugin){
+    static const char*  _zlib_stream_compressType(const hdiff_TStreamCompress* compressPlugin){
         static const char* kCompressType="zlib";
         return kCompressType;
+    }
+    static const char*  _zlib_compressType(const hdiff_TCompress* compressPlugin){
+        return _zlib_stream_compressType(0);
     }
     static size_t  _zlib_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
         return dataSize*5/4+16*1024;
     }
+
+    struct _zlib_stream_compress_t{
+        z_stream                    c_stream;
+        const hdiff_TStreamOutput* out_code;
+        hpatch_StreamPos_t         writePos;
+        unsigned char   code_buf[kCompressBufSize];
+    };
+    static hdiff_compressHandle _zlib_stream_open(struct hdiff_TStreamCompress* compressPlugin,
+                                                  const hdiff_TStreamOutput* out_code){
+        _zlib_stream_compress_t* self=(_zlib_stream_compress_t*)malloc(sizeof(_zlib_stream_compress_t));
+        if (!self) _compress_error_return(0,"_zlib_stream_open() memory alloc error!");
+        memset(self,0,sizeof(_zlib_stream_compress_t)-kCompressBufSize);
+        self->out_code=out_code;
+        self->writePos=0;
+        const unsigned char kWindowBits=16+MAX_WBITS;
+        self->code_buf[0]=kWindowBits; //out kWindowBits
+        self->c_stream.next_out = (Bytef*)(self->code_buf+1);
+        self->c_stream.avail_out = kCompressBufSize-1;
+        int ret = deflateInit2(&self->c_stream, Z_BEST_COMPRESSION,Z_DEFLATED,
+                               kWindowBits,MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
+        if(ret != Z_OK){
+            free(self); self=0;
+            _compress_error_return(0,"_zlib_stream_open() deflateInit2() error!");
+        }
+        return self;
+    }
+    long _zlib_stream_compress_part(const struct hdiff_TStreamCompress* compressPlugin,
+                                    hdiff_compressHandle compressHandle,
+                                    const unsigned char* in_part_data,const unsigned char* in_part_data_end){
+        int is_eof=(in_part_data==0)&&(in_part_data==in_part_data_end);
+        _zlib_stream_compress_t* self=(_zlib_stream_compress_t*)compressHandle;
+        assert((in_part_data<in_part_data_end)||is_eof);
+        self->c_stream.next_in = (Bytef*)in_part_data;
+        self->c_stream.avail_in = (uInt)(in_part_data_end-in_part_data);
+        while (true) {
+            if (self->c_stream.avail_out==kCompressBufSize){
+                if (is_eof){
+                    int ret=deflate(&self->c_stream,Z_FINISH);
+                    if ((ret!=Z_STREAM_END)&&(ret!=Z_OK))
+                        _compress_error_return(-1,"_zlib_stream_compress_part() deflate() Z_FINISH error!");
+                }else{
+                    if (self->c_stream.avail_in>0){
+                        int ret=deflate(&self->c_stream,Z_NO_FLUSH);
+                        if (ret!=Z_OK)
+                            _compress_error_return(-1,"_zlib_stream_compress_part() deflate() error!");
+                    }
+                }
+            }
+            long write_len=(long)(kCompressBufSize-self->c_stream.avail_out);
+            if (write_len==0) break; //end loop
+            long writed=self->out_code->write(self->out_code->streamHandle,self->writePos,
+                                                  self->code_buf,self->code_buf+write_len);
+            if(writed!=write_len)
+                _compress_error_return(-1,"_zlib_stream_compress_part() write stream error!");
+            self->writePos+=(size_t)writed;
+            self->c_stream.next_out = (Bytef*)self->code_buf;
+            self->c_stream.avail_out = kCompressBufSize;
+        }
+        return (long)(in_part_data_end-in_part_data);
+    }
+    static hpatch_StreamPos_t _zlib_stream_close(struct hdiff_TStreamCompress* compressPlugin,
+                                                 hdiff_compressHandle compressHandle){
+        _zlib_stream_compress_t* self=(_zlib_stream_compress_t*)compressHandle;
+        int is_error=((0-0)!=_zlib_stream_compress_part(compressPlugin,self,0,0));
+        int ret = deflateEnd(&self->c_stream);
+        if (ret != Z_OK) is_error=1;
+        hpatch_StreamPos_t codeSize=self->writePos;
+        if (self) free(self);
+        return is_error?0:codeSize;
+    }
     static size_t  _zlib_compress(const hdiff_TCompress* compressPlugin,
                                   unsigned char* out_code,unsigned char* out_code_end,
                                   const unsigned char* data,const unsigned char* data_end){
-        assert(out_code<out_code_end);
-        const unsigned char kWindowBits=16+MAX_WBITS;
-        *out_code=kWindowBits; ++out_code; //out kWindowBits
-        
-        z_stream c_stream;
-        memset(&c_stream,0,sizeof(z_stream));
-        c_stream.next_in = (Bytef*)data;
-        c_stream.avail_in = (uInt)(data_end-data);
-        assert(c_stream.avail_in==(data_end-data));
-        c_stream.next_out = (Bytef*)out_code;
-        c_stream.avail_out = (uInt)(out_code_end-out_code);
-        assert(c_stream.avail_out==(out_code_end-out_code));
-        int ret = deflateInit2(&c_stream, Z_BEST_COMPRESSION,Z_DEFLATED,
-                               kWindowBits,MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
-        if(ret != Z_OK){
-            std::cout <<"\ndeflateInit2 error\n";
-            return 0;
+        hdiff_TStreamOutput  streamOutput;
+        mem_as_hStreamOutput(&streamOutput,out_code,out_code_end);
+        hdiff_compressHandle compresser=_zlib_stream_open(0,&streamOutput);
+        if (!compresser) return 0;
+        while (data<data_end) {
+            const size_t kMaxPartLen=1<<20;
+            size_t part_len=data_end-data;
+            if (part_len>kMaxPartLen) part_len=kMaxPartLen;
+            if (part_len!=_zlib_stream_compress_part(0,compresser,data,data+part_len)) return 0;
+            data+=part_len;
         }
-        ret = deflate(&c_stream,Z_FINISH);
-        if (ret != Z_STREAM_END){
-            deflateEnd(&c_stream);
-            std::cout <<"\nret != Z_STREAM_END err="<< ret <<std::endl;
-            return 0;
-        }
-        
-        uLong codeLen = c_stream.total_out;
-        ret = deflateEnd(&c_stream);
-        if (ret != Z_OK){
-            std::cout <<"\ndeflateEnd error\n";
-            return 0;
-        }
-        return sizeof(kWindowBits)+codeLen;
+        hpatch_StreamPos_t codeLen=_zlib_stream_close(0,compresser);
+        if (codeLen!=(size_t)codeLen) return 0;
+        return (size_t)codeLen;
     }
-    static hdiff_TCompress zlibCompressPlugin={_zlib_compressType,_zlib_maxCompressedSize,_zlib_compress};
+static hdiff_TCompress zlibCompressPlugin={_zlib_compressType,_zlib_maxCompressedSize,_zlib_compress};
+static hdiff_TStreamCompress zlibStreamCompressPlugin={_zlib_stream_compressType,_zlib_stream_open,
+                                                       _zlib_stream_close,_zlib_stream_compress_part};
 #endif//_CompressPlugin_zlib
     
 #ifdef  _CompressPlugin_bz2

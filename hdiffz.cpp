@@ -40,10 +40,10 @@
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char   TByte;
 
-#define _IS_USE_FILE_STREAM  //ON: TODO:
+#define _IS_USE_FILE_STREAM_LIMIT_MEMORY  //ON: TODO:
 
 
-#ifdef _IS_USE_FILE_STREAM
+#ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
 #   include "file_for_patch.h"
 
 #define _error_return(info){ \
@@ -87,27 +87,43 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 
 //===== select compress plugin =====
 //#define _CompressPlugin_no
-//#define _CompressPlugin_zlib
-#define _CompressPlugin_bz2
+#define _CompressPlugin_zlib
+//#define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
 
 #include "compress_plugin_demo.h"
 #include "decompress_plugin_demo.h"
 
 #ifdef  _CompressPlugin_no
+#   ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
+    hdiff_TStreamCompress* streamCompressPlugin=0;
+#   else
     hdiff_TCompress* compressPlugin=0;
+#   endif
     hpatch_TDecompress* decompressPlugin=0;
 #endif
 #ifdef  _CompressPlugin_zlib
+#   ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
+    hdiff_TStreamCompress* streamCompressPlugin=&zlibStreamCompressPlugin;
+#   else
     hdiff_TCompress* compressPlugin=&zlibCompressPlugin;
+#   endif
     hpatch_TDecompress* decompressPlugin=&zlibDecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_bz2
+#   ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
+    hdiff_TStreamCompress* streamCompressPlugin=&bz2StreamCompressPlugin;
+#   else
     hdiff_TCompress* compressPlugin=&bz2CompressPlugin;
+#   endif
     hpatch_TDecompress* decompressPlugin=&bz2DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lzma
-    const hdiff_TCompress* compressPlugin=&lzmaCompressPlugin;
+#   ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
+    hdiff_TStreamCompress* streamCompressPlugin=&lzmaStreamCompressPlugin;
+#   else
+    hdiff_TCompress* compressPlugin=&lzmaCompressPlugin;
+#   endif
     hpatch_TDecompress* decompressPlugin=&lzmaDecompressPlugin;
 #endif
 
@@ -123,11 +139,16 @@ int main(int argc, const char * argv[]){
     std::cout<<"old:\"" <<oldFileName<< "\"\nnew:\""<<newFileName<<"\"\nout:\""<<outDiffFileName<<"\"\n";
     
     const char* compressType="";
+#ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
+    if (streamCompressPlugin) compressType=streamCompressPlugin->compressType(streamCompressPlugin);
+    std::cout<<"limit memory HDiffZ with stream compress plugin: \""<<compressType<<"\"\n";
+#else
     if (compressPlugin) compressType=compressPlugin->compressType(compressPlugin);
     std::cout<<"HDiffZ with compress plugin: \""<<compressType<<"\"\n";
+#endif
     
     int exitCode=0;
-#ifdef _IS_USE_FILE_STREAM
+#ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
     clock_t time1=0,time2=0;
     TFileStreamInput  oldData;
     TFileStreamInput  newData;
@@ -142,7 +163,7 @@ int main(int argc, const char * argv[]){
     time1=clock();
     try{
         create_compressed_diff_stream(&newData.base,&oldData.base,
-                                      &diffData.base,compressPlugin);
+                                      &diffData.base,streamCompressPlugin);
     }catch(const std::exception& e){
         _error_return(e.std::exception::what());
     }
