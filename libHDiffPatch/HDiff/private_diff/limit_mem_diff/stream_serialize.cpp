@@ -25,12 +25,8 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "stream_serialize.h"
-#include "../../diff.h" //for hdiff_TStreamCompress
+#include <assert.h>
+#include "../../diff.h" //for stream type
 
-void stream_serialize_diff(const hpatch_TStreamInput*  newData,
-                           hpatch_TStreamOutput*       out_diff,
-                           hdiff_TStreamCompress* compressPlugin,
-                           const TCovers& covers){
-    
-}
+
 

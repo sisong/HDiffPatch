@@ -36,6 +36,8 @@
 #include "private_diff/pack_uint.h"
 #include "../HPatch/patch.h"
 
+static const char kHDiffVersionType[8+1]="HDIFF13&";
+
 namespace{
     
     typedef unsigned char TByte;
@@ -473,14 +475,13 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     do_compress(compress_rle_codeBuf,rle_codeBuf,compressPlugin);
     do_compress(compress_newDataDiff,diff.newDataDiff,compressPlugin);
 
-    static const char kVersionType[8+1]="HDIFF13&";
     const char* compressType="";
     if (compressPlugin){
         compressType=compressPlugin->compressType(compressPlugin);
         if (strlen(compressType)>hpatch_kMaxCompressTypeLength) throw compressType; //diff error!
     }
-    pushBack(out_diff,(const TByte*)kVersionType,
-                      (const TByte*)kVersionType+strlen(kVersionType));
+    pushBack(out_diff,(const TByte*)kHDiffVersionType,
+                      (const TByte*)kHDiffVersionType+strlen(kHDiffVersionType));
     pushBack(out_diff,(const TByte*)compressType,
                       (const TByte*)compressType+strlen(compressType)+1);//with '\0'
     
@@ -653,26 +654,90 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
 #include "private_diff/limit_mem_diff/digest_matcher.h"
 #include "private_diff/limit_mem_diff/stream_serialize.h"
 
+static void getCovers_stream(const hpatch_TStreamInput*  newData,
+                             const hpatch_TStreamInput*  oldData,
+                             size_t kMatchBlockSize, TCovers& out_covers){
+    {
+        TDigestMatcher matcher(oldData,kMatchBlockSize);
+        matcher.search_cover(newData,&out_covers);
+    }
+    {//check cover
+        TCover cover;
+        hpatch_StreamPos_t lastNewEnd=0;
+        for (size_t i=0;i<out_covers.coverCount();++i){
+            out_covers.covers(i,&cover);
+            check_cover_safe(cover,lastNewEnd,newData->streamSize,oldData->streamSize);
+            lastNewEnd=cover.newPos+cover.length;
+        }
+    }
+    //todo: + extend_cover_stream ?
+}
+
+static void stream_serialize(const hpatch_TStreamInput*  newData,
+                             hpatch_StreamPos_t          oldDataSize,
+                             hpatch_TStreamOutput*       out_diff,
+                             hdiff_TStreamCompress* compressPlugin,
+                             const TCovers& covers){
+    
+    TDiffStream outDiff(out_diff,covers);
+    const char* compressType="";
+    if (compressPlugin){
+        compressType=compressPlugin->compressType(compressPlugin);
+        if (strlen(compressType)>hpatch_kMaxCompressTypeLength) throw compressType; //diff error!
+    }
+    outDiff.pushBack((const TByte*)kHDiffVersionType,strlen(kHDiffVersionType));
+    outDiff.pushBack((const TByte*)compressType,strlen(compressType)+1);//with '\0'
+    outDiff.packUInt(newData->streamSize);
+    outDiff.packUInt(oldDataSize);
+    outDiff.packUInt(covers.coverCount());
+    hpatch_StreamPos_t cover_buf_size=0;
+    hpatch_StreamPos_t newDataDiff_size=0;
+    outDiff.getDataSize(newData->streamSize,&cover_buf_size,&newDataDiff_size);
+    outDiff.packUInt(cover_buf_size);
+    TPlaceholder compress_cover_buf_sizePos=
+    outDiff.packUInt(compressPlugin?cover_buf_size:0); //compress_cover_buf size
+    outDiff.packUInt(0);//rle_ctrlBuf size
+    outDiff.packUInt(0);//compress_rle_ctrlBuf size
+    outDiff.packUInt(0);//rle_codeBuf size
+    outDiff.packUInt(0);//compress_rle_codeBuf size
+    outDiff.packUInt(newDataDiff_size);
+    TPlaceholder compress_newDataDiff_sizePos=
+    outDiff.packUInt(compressPlugin?newDataDiff_size:0); //compress_newDataDiff size
+    
+    //save covers
+    if ((compressPlugin)&&(cover_buf_size>0)){
+        const hpatch_TStreamInput& cover_buf=outDiff.getCoverStream(cover_buf_size);
+        TCompressedStreamInput compress_cover_buf(&cover_buf,compressPlugin);
+        hpatch_StreamPos_t compress_cover_buf_size=outDiff.pushStream(&compress_cover_buf,cover_buf_size-1);
+        assert(compress_cover_buf_size<cover_buf_size);
+        if (compress_cover_buf_size==0)
+            outDiff.pushStream(&cover_buf,cover_buf_size);
+        outDiff.packUInt_update(compress_cover_buf_sizePos,compress_cover_buf_size);
+    }else if (cover_buf_size>0){
+        const hpatch_TStreamInput& cover_buf=outDiff.getCoverStream(cover_buf_size);
+        outDiff.pushStream(&cover_buf,cover_buf_size);
+    }
+    if ((compressPlugin)&&(newDataDiff_size>0)){
+        const hpatch_TStreamInput& newDataDiff=outDiff.getNewDataDiffStream(newData,newDataDiff_size);
+        TCompressedStreamInput compress_newDataDiff(&newDataDiff,compressPlugin);
+        hpatch_StreamPos_t compress_newDataDiff_size=outDiff.pushStream(&compress_newDataDiff,newDataDiff_size-1);
+        assert(compress_newDataDiff_size<newDataDiff_size);
+        if (compress_newDataDiff_size==0)
+            outDiff.pushStream(&newDataDiff,newDataDiff_size);
+        outDiff.packUInt_update(compress_newDataDiff_sizePos,compress_newDataDiff_size);
+    }else if (newDataDiff_size>0){
+        const hpatch_TStreamInput& newDataDiff=outDiff.getNewDataDiffStream(newData,newDataDiff_size);
+        outDiff.pushStream(&newDataDiff,newDataDiff_size);
+    }
+}
+
 void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
                                    hpatch_TStreamOutput*       out_diff,
                                    hdiff_TStreamCompress* compressPlugin,
                                    size_t kMatchBlockSize){
     TCovers covers(oldData->streamSize,newData->streamSize);
-    {
-        TDigestMatcher matcher(oldData,kMatchBlockSize);
-        matcher.search_cover(newData,&covers);
-    }
-    {//check cover
-        TCover cover;
-        hpatch_StreamPos_t lastNewEnd=0;
-        for (size_t i=0;i<covers.coverCount();++i){
-            covers.covers(i,&cover);
-            check_cover_safe(cover,lastNewEnd,newData->streamSize,oldData->streamSize);
-            lastNewEnd=cover.newPos+cover.length;
-        }
-    }
-    //todo: + extend_cover_stream ?
-    stream_serialize_diff(newData,out_diff,compressPlugin,covers);
+    getCovers_stream(newData,oldData,kMatchBlockSize,covers);
+    stream_serialize(newData,oldData->streamSize,out_diff,compressPlugin,covers);
 }
 
