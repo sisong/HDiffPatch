@@ -30,10 +30,6 @@
 #include "covers.h"
 class hdiff_TStreamCompress;
 
-struct TPlaceholder{
-    //TODO:
-};
-
 struct TCompressedStreamInput:public hpatch_TStreamInput{
     explicit TCompressedStreamInput(const hpatch_TStreamInput* _stream,
                                     hdiff_TStreamCompress* _compressPlugin)
@@ -53,26 +49,29 @@ struct TNewDataDiffStream:public hpatch_TStreamInput{
     //TODO:
 };
 
+struct TPlaceholder{
+    hpatch_StreamPos_t pos;
+    hpatch_StreamPos_t pos_end;
+    inline TPlaceholder(hpatch_StreamPos_t _pos,hpatch_StreamPos_t _pos_end)
+        :pos(_pos),pos_end(_pos_end){}
+};
+
 struct TDiffStream{
     explicit TDiffStream(hpatch_TStreamOutput* _out_diff,const TCovers& _covers)
     :out_diff(_out_diff),covers(_covers),writePos(0){ }
-    void pushBack(const unsigned char* src,size_t n){
-        //TODO:
-    }
-    TPlaceholder packUInt(hpatch_StreamPos_t uValue){
-        //TODO:
-        return TPlaceholder();
-    }
-    void packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue){
-        //TODO:
-    }
     
-    hpatch_StreamPos_t getDataSize(hpatch_StreamPos_t newDataSize,
-                                   hpatch_StreamPos_t* out_cover_buf_size,
-                                   hpatch_StreamPos_t* out_newDataDiff_size){
-        //TODO:
-        return 0;
+    void pushBack(const unsigned char* src,size_t n);
+    inline  void packUInt(hpatch_StreamPos_t uValue) { _packUInt(uValue,0); }
+    inline TPlaceholder packUInt_pos(hpatch_StreamPos_t uValue){
+        hpatch_StreamPos_t pos=writePos;
+        packUInt(uValue);
+        return TPlaceholder(pos,writePos);
     }
+    void packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue);
+    
+    void getDataSize(hpatch_StreamPos_t newDataSize,
+                     hpatch_StreamPos_t* out_cover_buf_size,
+                     hpatch_StreamPos_t* out_newDataDiff_size);
     
     
     const hpatch_TStreamInput& getCoverStream(hpatch_StreamPos_t cover_buf_size){
@@ -95,6 +94,9 @@ private:
     hpatch_StreamPos_t     writePos;
     TCoversStream          coversStream;
     TNewDataDiffStream     newDataDiffStream;
+    
+    
+    void _packUInt(hpatch_StreamPos_t uValue,size_t minOutSize);
 };
 
 #endif

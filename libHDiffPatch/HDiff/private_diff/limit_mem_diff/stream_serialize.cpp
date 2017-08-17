@@ -28,5 +28,51 @@
 #include <assert.h>
 #include "../../diff.h" //for stream type
 
+void TDiffStream::pushBack(const unsigned char* src,size_t n){
+    if (n!=out_diff->write(out_diff->streamHandle,writePos,src,src+n))
+        throw std::runtime_error("TDiffStream::pushBack() write stream error!");
+    writePos+=n;
+}
 
+void TDiffStream::_packUInt(hpatch_StreamPos_t uValue,size_t minOutSize){
+    if (minOutSize>hpatch_kMaxPackedUIntBytes) throw minOutSize;
+    unsigned char  codeBuf[hpatch_kMaxPackedUIntBytes];
+    unsigned char* codeEnd=codeBuf;
+    if (!hpatch_packUIntWithTag(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,
+                                uValue,0,0)) throw uValue;
+    assert(codeBuf<codeEnd);
+    while ((size_t)(codeEnd-codeBuf)<minOutSize) {
+        codeEnd[-1]|=(1<<7);
+        codeEnd[0]=0;
+        ++codeEnd;
+    }
+    pushBack(codeBuf,(size_t)(codeEnd-codeBuf));
+}
+
+void TDiffStream::packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue){
+    hpatch_StreamPos_t writePosBack=writePos;
+    writePos=pos.pos;
+    _packUInt(uValue,(size_t)(pos.pos_end-pos.pos));
+    assert(writePos==pos.pos_end);
+    writePos=writePosBack;
+}
+
+void TDiffStream::getDataSize(hpatch_StreamPos_t newDataSize,
+                              hpatch_StreamPos_t* out_cover_buf_size,
+                              hpatch_StreamPos_t* out_newDataDiff_size){
+    TCover cover;
+    size_t n=covers.coverCount();
+    hpatch_StreamPos_t cover_buf_size=0;
+    hpatch_StreamPos_t newDataDiff_size=0;
+    hpatch_StreamPos_t lastEnd=0;
+    for (size_t i=0; i<n; ++i) {
+        covers.covers(i,&cover);
+        newDataDiff_size+=(hpatch_StreamPos_t)(cover.newPos-lastEnd);
+        lastEnd=cover.newPos+cover.length;
+    }
+    newDataDiff_size+=(hpatch_StreamPos_t)(newDataSize-lastEnd);
+    
+    *out_cover_buf_size=cover_buf_size;
+    *out_newDataDiff_size=newDataDiff_size;
+}
 

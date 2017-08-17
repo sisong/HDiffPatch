@@ -695,14 +695,14 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
     outDiff.getDataSize(newData->streamSize,&cover_buf_size,&newDataDiff_size);
     outDiff.packUInt(cover_buf_size);
     TPlaceholder compress_cover_buf_sizePos=
-    outDiff.packUInt(compressPlugin?cover_buf_size:0); //compress_cover_buf size
-    outDiff.packUInt(0);//rle_ctrlBuf size
+        outDiff.packUInt_pos(compressPlugin?cover_buf_size:0); //compress_cover_buf size
+    outDiff.packUInt(0);//rle_ctrlBuf size  //TODO: suport rle data
     outDiff.packUInt(0);//compress_rle_ctrlBuf size
     outDiff.packUInt(0);//rle_codeBuf size
     outDiff.packUInt(0);//compress_rle_codeBuf size
     outDiff.packUInt(newDataDiff_size);
     TPlaceholder compress_newDataDiff_sizePos=
-    outDiff.packUInt(compressPlugin?newDataDiff_size:0); //compress_newDataDiff size
+        outDiff.packUInt_pos(compressPlugin?newDataDiff_size:0); //compress_newDataDiff size
     
     //save covers
     if ((compressPlugin)&&(cover_buf_size>0)){

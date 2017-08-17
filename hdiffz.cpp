@@ -157,17 +157,18 @@ int main(int argc, const char * argv[]){
     TFileStreamOutput_init(&diffData);
     if (!TFileStreamInput_open(&oldData,oldFileName)) _error_return("open oldFile error!");
     if (!TFileStreamInput_open(&newData,newFileName)) _error_return("open newFile error!");
-    if (!TFileStreamOutput_open(&diffData,outDiffFileName,0)) _error_return("open out diffFile error!");
+    if (!TFileStreamOutput_open(&diffData,outDiffFileName,-1)) _error_return("open out diffFile error!");
+    TFileStreamOutput_setRandomOut(&diffData,true);
     std::cout<<"oldDataSize : "<<oldData.base.streamSize<<"\nnewDataSize : "<<newData.base.streamSize<<"\n";
     time1=clock();
     try{
-        create_compressed_diff_stream(&newData.base,&oldData.base,
-                                      &diffData.base,compressPlugin);
+      create_compressed_diff_stream(&newData.base,&oldData.base,
+                                    &diffData.base,compressPlugin);
     }catch(const std::exception& e){
-        _error_return(e.std::exception::what());
+        _error_return(e.what());
     }
     //TODO: check_compressed_diff
-    //TODO: std::cout<<"\ndiffDataSize: "<<diffData.size()<<"\n";
+    std::cout<<"\ndiffDataSize: "<<diffData.out_length<<"\n";
     time2=clock();
 clear:
     _check_error(!TFileStreamOutput_close(&diffData),"out diffFile close error!");
