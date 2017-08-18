@@ -172,9 +172,11 @@ int main(int argc, const char * argv[]){
     TFileStreamInput  oldData;
     TFileStreamInput  newData;
     TFileStreamOutput diffData;
+    TFileStreamInput  diffData_in;
     TFileStreamInput_init(&oldData);
     TFileStreamInput_init(&newData);
     TFileStreamOutput_init(&diffData);
+    TFileStreamInput_init(&diffData_in);
     if (!TFileStreamInput_open(&oldData,oldFileName)) _error_return("open oldFile error!");
     if (!TFileStreamInput_open(&newData,newFileName)) _error_return("open newFile error!");
     if (!TFileStreamOutput_open(&diffData,outDiffFileName,-1)) _error_return("open out diffFile error!");
@@ -188,11 +190,21 @@ int main(int argc, const char * argv[]){
     }catch(const std::exception& e){
         _error_return(e.what());
     }
-    //TODO: check_compressed_diff
-    std::cout<<"\ndiffDataSize: "<<diffData.out_length<<"\n";
     time2=clock_s();
+    
+    //check diff
+    _check_error(!TFileStreamOutput_close(&diffData),"out diffFile close error!");
+    if (!TFileStreamInput_open(&diffData_in,outDiffFileName)) _error_return("open check diffFile error!");
+    if (!check_compressed_diff_stream(&newData.base,&oldData.base,
+                                      &diffData_in.base,decompressPlugin)){
+        _error_return("patch check HDiffZ data error!!!");
+    }else{
+        std::cout<<"diffDataSize: "<<diffData.base.streamSize<<"\n";
+        std::cout<<"  patch check HDiffZ data ok!\n";
+    }
 clear:
     _check_error(!TFileStreamOutput_close(&diffData),"out diffFile close error!");
+    _check_error(!TFileStreamInput_close(&diffData_in),"check diffFile close error!");
     //TODO: if (exitCode==0) std::cout<<"  out HDiffZ file ok!\n";
     _check_error(!TFileStreamInput_close(&newData),"newFile close error!");
     _check_error(!TFileStreamInput_close(&oldData),"oldFile close error!");

@@ -656,9 +656,10 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
 
 static void getCovers_stream(const hpatch_TStreamInput*  newData,
                              const hpatch_TStreamInput*  oldData,
-                             size_t kMatchBlockSize, TCovers& out_covers){
+                             size_t kMatchBlockSize,bool kIsSearchBestMatch,
+                             TCovers& out_covers){
     {
-        TDigestMatcher matcher(oldData,kMatchBlockSize);
+        TDigestMatcher matcher(oldData,kMatchBlockSize,kIsSearchBestMatch);
         matcher.search_cover(newData,&out_covers);
     }
     {//check cover
@@ -714,8 +715,7 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
     
     {//save covers
         TCoversStream cover_buf(covers,cover_buf_size);
-        outDiff.pushStream(&cover_buf,cover_buf.streamSize,
-                           compressPlugin,compress_cover_buf_sizePos);
+        outDiff.pushStream(&cover_buf,compressPlugin,compress_cover_buf_sizePos);
     }
     {//rle
         outDiff.pushBack(rle_ctrlBuf.data(),rle_ctrlBuf.size());
@@ -723,8 +723,7 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
     }
     {//save newDataDiff
         TNewDataDiffStream newDataDiff(covers,newData,newDataDiff_size);
-        outDiff.pushStream(&newDataDiff,newDataDiff.streamSize,
-                           compressPlugin,compress_newDataDiff_sizePos);
+        outDiff.pushStream(&newDataDiff,compressPlugin,compress_newDataDiff_sizePos);
     }
 }
 
@@ -732,9 +731,9 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
                                    hpatch_TStreamOutput*       out_diff,
                                    hdiff_TStreamCompress* compressPlugin,
-                                   size_t kMatchBlockSize){
+                                   size_t kMatchBlockSize,bool kIsSearchBestMatch){
     TCovers covers(oldData->streamSize,newData->streamSize);
-    getCovers_stream(newData,oldData,kMatchBlockSize,covers);
+    getCovers_stream(newData,oldData,kMatchBlockSize,kIsSearchBestMatch,covers);
     stream_serialize(newData,oldData->streamSize,out_diff,compressPlugin,covers);
 }
 

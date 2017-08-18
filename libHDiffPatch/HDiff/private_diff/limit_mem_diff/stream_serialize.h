@@ -42,6 +42,7 @@ private:
     std::vector<unsigned char>  _code_buf;
     hpatch_StreamPos_t          curReadPos;
     size_t                      curCodePos;
+    hpatch_StreamPos_t          _readFromPos_back;
     enum { kReadBufSize = 1024*16 };
     
     static long _read(hpatch_TStreamInputHandle streamHandle,
@@ -63,6 +64,7 @@ private:
     size_t                      readedCoverCount;
     hpatch_StreamPos_t          lastOldEnd;
     hpatch_StreamPos_t          lastNewEnd;
+    hpatch_StreamPos_t          _readFromPos_back;
     enum { kCodeBufSize = 1024*16 };
     
     static long _read(hpatch_TStreamInputHandle streamHandle,
@@ -72,13 +74,7 @@ private:
 
 struct TNewDataDiffStream:public hpatch_TStreamInput{
     TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
-                       hpatch_StreamPos_t newDataDiff_size)
-    :covers(_covers),newData(_newData),
-    curNewPos(0),curNewPos_end(0),lastNewEnd(0),readedCoverCount(0){
-        this->streamHandle=this;
-        this->streamSize=newDataDiff_size;
-        this->read=_read;
-    }
+                       hpatch_StreamPos_t newDataDiff_size);
     static hpatch_StreamPos_t getDataSize(const TCovers& covers,hpatch_StreamPos_t newDataSize);
 private:
     const hpatch_TStreamInput*  newData;
@@ -87,6 +83,7 @@ private:
     hpatch_StreamPos_t          curNewPos_end;
     hpatch_StreamPos_t          lastNewEnd;
     size_t                      readedCoverCount;
+    hpatch_StreamPos_t          _readFromPos_back;
     static long _read(hpatch_TStreamInputHandle streamHandle,
                       const hpatch_StreamPos_t readFromPos,
                       unsigned char* out_data,unsigned char* out_data_end);
@@ -113,7 +110,6 @@ struct TDiffStream{
     void packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue);
     
     void pushStream(const hpatch_TStreamInput*  stream,
-                    hpatch_StreamPos_t          kLimitReadedSize,
                     hdiff_TStreamCompress*      compressPlugin,
                     const TPlaceholder&         update_compress_sizePos);
 private:

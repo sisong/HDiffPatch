@@ -36,8 +36,9 @@ inline static T upperCount(T size,Tn nsize){
     return (size+nsize-1)/nsize;
 }
 
-TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize)
-:m_oldData(oldData),m_isUseLargeSorted(true),m_isSearchBestMatch(false),
+TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,
+                               size_t kMatchBlockSize,bool isSearchBestMatch)
+:m_oldData(oldData),m_isUseLargeSorted(true),m_isSearchBestMatch(isSearchBestMatch),
 m_kMatchBlockSize(kMatchBlockSize),m_newCacheSize(0){
     if ((kMatchBlockSize==0)||(kMatchBlockSize>adler32_roll_kMaxBlockSize))
         throw std::runtime_error("TDataDigest() kMatchBlockSize value error.");
@@ -126,15 +127,15 @@ struct TStreamCache{
         return _resetPos(kMatchBlockSize,streamPos,kMatchBlockSize);
     }
     inline const size_t   dataLength()const{ return (size_t)(cacheSize-cachePos); }
-    inline const unsigned char* datas()const { return cache+cachePos; }
+    inline const unsigned char* data()const { return cache+cachePos; }
 private:
-    inline unsigned char* cachedDatas(){ return cache+cacheSize-(size_t)(m_readPosEnd-m_readPos); }
+    inline unsigned char* cachedData(){ return cache+cacheSize-(size_t)(m_readPosEnd-m_readPos); }
     inline bool _resetPos(size_t kBackupCacheSize,hpatch_StreamPos_t streamPos,size_t kMinCacheDataSize){
         //stream:[      |            |                  |                      |        ]
         //           readPos     streamPos  (streamPos+kMinCacheDataSize)  (readPosEnd)
         //cache:   [    |            |                  |                      ]
         //         0           (init cachePos)                             cacheSize
-        if ((streamPos+kMinCacheDataSize<=m_readPosEnd)&&(streamPos-kBackupCacheSize>=m_readPos)){
+        if ((streamPos+kMinCacheDataSize<=m_readPosEnd)&&(streamPos>=m_readPos+kBackupCacheSize)){
             cachePos=cacheSize-(size_t)(m_readPosEnd-streamPos);
             return true; //hit cache
         }
@@ -153,7 +154,7 @@ private:
             readStream(stream,readPos+moveLen,dst+moveLen,readLen-moveLen);
         }else if ((m_readPos<readPos+readLen)&&(m_readPosEnd>=readPos+readLen)){
             size_t moveLen=(size_t)(readPos+readLen-m_readPos);
-            memmove(dst+readLen-moveLen,cachedDatas(),moveLen);
+            memmove(dst+readLen-moveLen,cachedData(),moveLen);
             readStream(stream,readPos,dst,readLen-moveLen);
         }else{
             readStream(stream,readPos,dst,readLen);
@@ -171,8 +172,8 @@ public:
         size_t y_len=(size_t)(y.pos()-y.m_readPos);
         size_t len=(size_t)(pos()-m_readPos);
         len=(len<y_len)?len:y_len;
-        const unsigned char* px=datas();
-        const unsigned char* py=y.datas();
+        const unsigned char* px=data();
+        const unsigned char* py=y.data();
         size_t i=1;
         for (;i<=len;++i){
             if (px[-i]!=py[-i]) break;
@@ -195,8 +196,8 @@ public:
                 len=(len<=yLen)?len:yLen;
                 //assert(len<kMatchBlockSize);
             }
-            const unsigned char* px=datas();
-            const unsigned char* py=y.datas();
+            const unsigned char* px=data();
+            const unsigned char* py=y.data();
             for (size_t i=0;i<len;++i){
                 if (px[i]!=py[i])
                     return eq_len+i;
@@ -227,11 +228,8 @@ protected:
 
 struct TOldStreamCache:public TStreamCache{
     TOldStreamCache(const hpatch_TStreamInput* _stream,size_t _kMatchBlockSize,
-               unsigned char* _cache,size_t _cacheSize)
-    :TStreamCache(_stream,_kMatchBlockSize,_cache,_cacheSize){
-    }
-    
-    
+                    unsigned char* _cache,size_t _cacheSize)
+    :TStreamCache(_stream,_kMatchBlockSize,_cache,_cacheSize){ }
 };
 
 struct TNewStreamCache:public TStreamCache{
@@ -244,13 +242,13 @@ struct TNewStreamCache:public TStreamCache{
     
     inline bool resetPos(hpatch_StreamPos_t oldPos){
         if (!TStreamCache::resetPos(oldPos)) return false;
-        roll_digest=adler_roll_start(datas(),kMatchBlockSize);
+        roll_digest=adler_roll_start(data(),kMatchBlockSize);
         return true;
     }
     inline bool roll(){
         //warning: after running _roll_backward_cache(),cache roll logic is failure
         if (dataLength()>kMatchBlockSize){
-            const unsigned char* cur_datas=datas();
+            const unsigned char* cur_datas=data();
             roll_digest=adler_roll_step(roll_digest,(adler_uint_t)kMatchBlockSize,kBlockSizeBM,
                                         cur_datas[0],cur_datas[kMatchBlockSize]);
             ++cachePos;
@@ -263,7 +261,7 @@ struct TNewStreamCache:public TStreamCache{
     }
     bool skip_same(unsigned char same){
         if (!resetPos(pos()+kMatchBlockSize)) return false;
-        while(datas()[0]==same){
+        while(data()[0]==same){
             if (!roll()) return false;
         }
         return true;
@@ -302,7 +300,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
         const hpatch_StreamPos_t oldPos=(cur_ibk+1==blocksSize)?(oldStream.streamSize()-kMatchBlockSize):
                                             (hpatch_StreamPos_t)cur_ibk*kMatchBlockSize;
         if (!oldStream.resetPos(oldPos)) continue;
-        if (0!=memcmp(oldStream.datas(),newStream.datas(),kMatchBlockSize)) continue;
+        if (0!=memcmp(oldStream.data(),newStream.data(),kMatchBlockSize)) continue;
         isMatched=true;
         size_t feq_len=oldStream.forward_equal_length(newStream);
         if (newPos-feq_len<lastCover.newPos+lastCover.length)
@@ -369,7 +367,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
             range=std::equal_range(iblocks,iblocks_end,
                                    TDigest_comp::TDigest(newStream.rollDigest()),comp);
             if (range.first!=range.second){
-                const unsigned char* pnew=newStream.datas();
+                const unsigned char* pnew=newStream.data();
                 if (is_same_data(pnew,kMatchBlockSize)){
                     if (!newStream.skip_same(pnew[0])) break;//finish
                     continue;
