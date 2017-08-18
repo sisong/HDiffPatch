@@ -89,7 +89,7 @@ void TDigestMatcher::getDigests(){
     
     const size_t blockCount=m_blocks.size();
     m_filter.init(blockCount);
-    unsigned char* buf=&m_buf[0];
+    unsigned char* buf=m_buf.data();
     for (size_t i=0; i<blockCount; ++i) {
         hpatch_StreamPos_t readPos=(hpatch_StreamPos_t)i*m_kMatchBlockSize;
         if (i==blockCount-1)
@@ -103,7 +103,7 @@ void TDigestMatcher::getDigests(){
         else
             m_sorted_limit[i]=(uint32_t)i;
     }
-    TIndex_comp comp(&m_blocks[0],m_blocks.size());
+    TIndex_comp comp(m_blocks.data(),m_blocks.size());
     if (m_isUseLargeSorted)
         std::sort(m_sorted_larger.begin(),m_sorted_larger.end(),comp);
     else

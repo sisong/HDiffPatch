@@ -42,13 +42,24 @@ typedef unsigned char   TByte;
 
 #define _IS_USE_FILE_STREAM_LIMIT_MEMORY  //ON: TODO:
 
+//===== select compress plugin =====
+//#define _CompressPlugin_no
+#define _CompressPlugin_zlib
+//#define _CompressPlugin_bz2
+//#define _CompressPlugin_lzma
+
+
+#ifndef _CompressPlugin_no
+#   include "compress_plugin_demo.h"
+#   include "decompress_plugin_demo.h"
+#endif
 
 #ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
 #   include "file_for_patch.h"
 
 #define _error_return(info){ \
     if (strlen(info)>0)      \
-        printf("\n%s\n",(info)); \
+        printf("\n  %s\n",(info)); \
     exitCode=1; \
     goto clear; \
 }
@@ -56,7 +67,7 @@ typedef unsigned char   TByte;
 #define _check_error(is_error,errorInfo){ \
     if (is_error){  \
         exitCode=1; \
-        printf("%s",(errorInfo)); \
+        printf("\n  %s\n",(errorInfo)); \
     } \
 }
 
@@ -72,7 +83,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
         exit(1);
     }
     data.resize(needRead);
-    file.read((char*)&data[0], needRead);
+    file.read((char*)data.data(), needRead);
     std::streamsize readed=file.gcount();
     file.close();
     if ((std::streamsize)needRead!=readed)  exit(1);
@@ -80,19 +91,11 @@ void readFile(std::vector<TByte>& data,const char* fileName){
 
 void writeFile(const std::vector<TByte>& data,const char* fileName){
     std::ofstream file(fileName, std::ios::out | std::ios::binary | std::ios::trunc);
-    file.write((const char*)&data[0], data.size());
+    file.write((const char*)data.data(), data.size());
     file.close();
 }
 #endif
 
-//===== select compress plugin =====
-//#define _CompressPlugin_no
-#define _CompressPlugin_zlib
-//#define _CompressPlugin_bz2
-//#define _CompressPlugin_lzma
-
-#include "compress_plugin_demo.h"
-#include "decompress_plugin_demo.h"
 
 #ifdef  _CompressPlugin_no
 #   ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
@@ -162,8 +165,9 @@ int main(int argc, const char * argv[]){
     std::cout<<"oldDataSize : "<<oldData.base.streamSize<<"\nnewDataSize : "<<newData.base.streamSize<<"\n";
     time1=clock();
     try{
-      create_compressed_diff_stream(&newData.base,&oldData.base,
-                                    &diffData.base,compressPlugin);
+        create_compressed_diff_stream(&newData.base,&oldData.base,
+                                      &diffData.base,compressPlugin);
+        diffData.base.streamSize=diffData.out_length;
     }catch(const std::exception& e){
         _error_return(e.what());
     }
@@ -184,14 +188,14 @@ clear:
     std::cout<<"oldDataSize : "<<oldDataSize<<"\nnewDataSize : "<<newDataSize<<"\n";
 
     std::vector<TByte> diffData;
-    TByte* newData0=newData.empty()?0:&newData[0];
-    const TByte* oldData0=oldData.empty()?0:&oldData[0];
+    TByte* newData0=newData.data();
+    const TByte* oldData0=oldData.data();
     clock_t time1=clock();
     create_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
                            diffData,compressPlugin);
     clock_t time2=clock();
     if (!check_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
-                               &diffData[0],&diffData[0]+diffData.size(),decompressPlugin)){
+                               diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
         std::cout<<"\n  patch check HDiffZ data error!!!\n";
         exit(1);
     }else{

@@ -81,7 +81,7 @@
 
 #define _error_return(info){ \
     if (strlen(info)>0)      \
-        printf("%s",(info)); \
+        printf("\n  %s\n",(info)); \
     exitCode=1; \
     goto clear; \
 }
@@ -89,7 +89,7 @@
 #define _check_error(is_error,errorInfo){ \
     if (is_error){  \
         exitCode=1; \
-        printf("%s",(errorInfo)); \
+        printf("\n  %s\n",(errorInfo)); \
     } \
 }
 

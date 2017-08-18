@@ -139,7 +139,7 @@
     }
 static hdiff_TCompress zlibCompressPlugin={_zlib_compressType,_zlib_maxCompressedSize,_zlib_compress};
 static hdiff_TStreamCompress zlibStreamCompressPlugin={_zlib_stream_compressType,_zlib_stream_open,
-                                                       _zlib_stream_close,_zlib_stream_compress_part};
+                                                        _zlib_stream_close,_zlib_stream_compress_part};
 #endif//_CompressPlugin_zlib
     
 #ifdef  _CompressPlugin_bz2

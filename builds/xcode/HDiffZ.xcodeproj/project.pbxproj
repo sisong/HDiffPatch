@@ -38,6 +38,7 @@
 		D68CD8EF1F43B11C00A61337 /* covers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = covers.h; sourceTree = "<group>"; };
 		D68CD8F01F4426B100A61337 /* stream_serialize.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = stream_serialize.cpp; sourceTree = "<group>"; };
 		D68CD8F11F4426B100A61337 /* stream_serialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stream_serialize.h; sourceTree = "<group>"; };
+		D68CD8FF1F45D22C00A61337 /* file_for_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file_for_patch.h; path = ../../file_for_patch.h; sourceTree = "<group>"; };
 		D690AB911F2078A40089DC57 /* HDiffZ */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = HDiffZ; sourceTree = BUILT_PRODUCTS_DIR; };
 		D690AB9B1F20792A0089DC57 /* hdiffz.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hdiffz.cpp; path = ../../hdiffz.cpp; sourceTree = "<group>"; };
 		D690ABA01F2079E80089DC57 /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
@@ -94,6 +95,7 @@
 				D690AB9E1F2079E80089DC57 /* libHDiffPatch */,
 				D6E150981F223B2700C2AD3D /* compress_plugin_demo.h */,
 				D6E1509A1F223DC100C2AD3D /* decompress_plugin_demo.h */,
+				D68CD8FF1F45D22C00A61337 /* file_for_patch.h */,
 				D690AB9B1F20792A0089DC57 /* hdiffz.cpp */,
 				D690AB921F2078A40089DC57 /* Products */,
 				D690ABBD1F20832E0089DC57 /* Frameworks */,

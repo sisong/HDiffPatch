@@ -242,7 +242,19 @@ hpatch_BOOL hpatch_packUIntWithTag(TByte** out_code,TByte* out_code_end,
     }
     *out_code=pcode;
     return hpatch_TRUE;
- }
+}
+
+unsigned int hpatch_packUIntWithTag_size(hpatch_StreamPos_t uValue,const int kTagBit){
+    const TUInt     kMaxValueWithTag=(1<<(7-kTagBit))-1;
+    unsigned int size=0;
+    while (uValue>kMaxValueWithTag) {
+        ++size;
+        uValue>>=7;
+    }
+    ++size;
+    return size;
+}
+
 hpatch_BOOL hpatch_unpackUIntWithTag(const TByte** src_code,const TByte* src_code_end,
                                      hpatch_StreamPos_t* result,const unsigned int kTagBit){//读出整数并前进指针.
 #ifdef __RUN_MEM_SAFE_CHECK
@@ -290,18 +302,6 @@ static void addData(TByte* dst,const TByte* src,TUInt length){
     for (;i<length;++i)
         dst[i]+=src[i];
 }
-
-
-//数据用rle压缩后的包类型2bit
-typedef enum TByteRleType{
-    kByteRleType_rle0  = 0,    //00表示后面存的压缩0;    (包中不需要字节数据)
-    kByteRleType_rle255= 1,    //01表示后面存的压缩255;  (包中不需要字节数据)
-    kByteRleType_rle   = 2,    //10表示后面存的压缩数据;  (包中字节数据只需储存一个字节数据)
-    kByteRleType_unrle = 3     //11表示后面存的未压缩数据;(包中连续储存多个字节数据)
-} TByteRleType;
-
-static const int kByteRleType_bit=2;
-
 
 static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,
                                   const TByte* rle_code,const TByte* rle_code_end){

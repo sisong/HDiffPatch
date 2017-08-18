@@ -106,6 +106,7 @@ extern "C" {
     #define  hpatch_kMaxPackedUIntBytes ((sizeof(hpatch_StreamPos_t)*8+6)/7+1)
     hpatch_BOOL hpatch_packUIntWithTag(unsigned char** out_code,unsigned char* out_code_end,
                                        hpatch_StreamPos_t uValue,int highTag,const int kTagBit);
+    unsigned int hpatch_packUIntWithTag_size(hpatch_StreamPos_t uValue,const int kTagBit);
     #define hpatch_packUInt(out_code,out_code_end,uValue) \
                 hpatch_packUIntWithTag(out_code,out_code_end,uValue,0,0)
 
@@ -114,6 +115,17 @@ extern "C" {
     #define hpatch_unpackUInt(src_code,src_code_end,result) \
                 hpatch_unpackUIntWithTag(src_code,src_code_end,result,0)
 
+    
+    //数据用rle压缩后的包类型2bit
+    typedef enum TByteRleType{
+        kByteRleType_rle0  = 0,    //00表示后面存的压缩0;    (包中不需要字节数据)
+        kByteRleType_rle255= 1,    //01表示后面存的压缩255;  (包中不需要字节数据)
+        kByteRleType_rle   = 2,    //10表示后面存的压缩数据;  (包中字节数据只需储存一个字节数据)
+        kByteRleType_unrle = 3     //11表示后面存的未压缩数据;(包中连续储存多个字节数据)
+    } TByteRleType;
+    
+    static const int kByteRleType_bit=2;
+    
 #ifdef __cplusplus
 }
 #endif

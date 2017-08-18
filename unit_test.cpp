@@ -87,10 +87,9 @@ static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
                               const TByte* oldData,const TByte* oldData_end,
                               const TByte* diff,const TByte* diff_end){
     std::vector<TByte> testNewData(newData_end-newData);
-    TByte* testNewData_begin=0;
-    if (!testNewData.empty()) testNewData_begin=&testNewData[0];
+    TByte* testNewData0=testNewData.data();
 
-    if (!_patch_mem_stream(testNewData_begin,testNewData_begin+testNewData.size(),
+    if (!_patch_mem_stream(testNewData0,testNewData0+testNewData.size(),
                            oldData,oldData_end,diff,diff_end))
         return false;
     for (TUInt i=0; i<(TUInt)testNewData.size(); ++i) {
@@ -127,11 +126,11 @@ long attackPacth(TInt newSize,const TByte* oldData,const TByte* oldData_end,
     const long kLoopCount=1000;
     long exceptionCount=0;
     std::vector<TByte> _newData(newSize);
-    TByte* newData=_newData.empty()?0:&_newData[0];
+    TByte* newData=_newData.data();
     TByte* newData_end=newData+_newData.size();
     const TInt diffSize=_diffData_end-_diffData;
     std::vector<TByte> new_diffData(diffSize);
-    TByte* diffData=new_diffData.empty()?0:&new_diffData[0];
+    TByte* diffData=new_diffData.data();
     TByte* diffData_end=diffData+diffSize;
     try {
         for (long i=0; i<kLoopCount; ++i) {
@@ -159,14 +158,14 @@ long test(const TByte* newData,const TByte* newData_end,
         std::vector<TByte> diffData;
         create_compressed_diff(newData,newData_end,oldData,oldData_end,diffData,compressPlugin);
         if (!check_compressed_diff(newData,newData_end,oldData,oldData_end,
-                                   &diffData[0],&diffData[0]+diffData.size(),decompressPlugin)){
+                                   diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
             printf("\n diffz error!!! tag:%s\n",tag);
             ++result;
         }else{
             printf(" diffzSize:%ld", (long)(diffData.size()));
 #ifdef _AttackPacth_ON
             long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
-                                            &diffData[0], &diffData[0]+diffData.size(),rand(),true);
+                                            diffData.data(),diffData.data()+diffData.size(),rand(),true);
             if (exceptionCount>0) return exceptionCount;
 #endif
         }
@@ -176,16 +175,16 @@ long test(const TByte* newData,const TByte* newData_end,
         create_diff(newData,newData_end,oldData,oldData_end, diffData);
         if (out_diffSize!=0)
             *out_diffSize=diffData.size();
-        if ((!check_diff(newData,newData_end,oldData,oldData_end,&diffData[0],&diffData[0]+diffData.size()))
+        if ((!check_diff(newData,newData_end,oldData,oldData_end,diffData.data(),diffData.data()+diffData.size()))
             ||(!check_diff_stream(newData,newData_end,oldData,oldData_end,
-                                  &diffData[0],&diffData[0]+diffData.size())) ){
+                                  diffData.data(),diffData.data()+diffData.size())) ){
             printf("\n  error!!! tag:%s\n",tag);
             ++result;
         }else{
             printf(" diffSize:%ld\n", (long)(diffData.size()));
 #ifdef _AttackPacth_ON
             long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
-                                            &diffData[0], &diffData[0]+diffData.size(),rand(),false);
+                                            diffData.data(),diffData.data()+diffData.size(),rand(),false);
             if (exceptionCount>0) return exceptionCount;
 #endif
         }
@@ -269,8 +268,8 @@ int main(int argc, const char * argv[]){
         const TInt oldSize=(TInt)_oldData.size();
         const TInt newSize=(TInt)_newData.size();
         const TInt kMaxCopyCount=(TInt)sqrt((double)oldSize);
-        TByte* newData=_newData.empty()?0:&_newData[0];
-        TByte* oldData=_oldData.empty()?0:&_oldData[0];
+        TByte* newData=_newData.data();
+        TByte* oldData=_oldData.data();
         const TInt copyCount=0+(TInt)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount*4);
         const TInt kMaxCopyLength=(TInt)(1+rand()*(1.0/RAND_MAX)*kMaxCopyCount*4);
         for (TInt i=0; i<copyCount; ++i) {

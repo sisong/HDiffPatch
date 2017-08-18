@@ -55,7 +55,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
         exit(1);
     }
     data.resize(needRead);
-    file.read((char*)&data[0], needRead);
+    file.read((char*)data.data(), needRead);
     std::streamsize readed=file.gcount();
     file.close();
     if ((std::streamsize)needRead!=readed)  exit(1);
@@ -63,7 +63,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
 
 void writeFile(const std::vector<TByte>& data,const char* fileName){
     std::ofstream file(fileName, std::ios::out | std::ios::binary | std::ios::trunc);
-    file.write((const char*)&data[0], data.size());
+    file.write((const char*)data.data(), data.size());
     file.close();
 }
 
@@ -133,15 +133,15 @@ static size_t _compress_diff(const TDiffInfo& di,const hdiff_TCompress* compress
                                                         int kMinSingleMatchScore,
                                                         const TSuffixString* sstring);
     std::vector<TByte> diffData;
-    const TByte* newData0=di.newData.empty()?0:&di.newData[0];
-    const TByte* oldData0=di.oldData.empty()?0:&di.oldData[0];
+    const TByte* newData0=di.newData.data();
+    const TByte* oldData0=di.oldData.data();
     __hdiff_private__create_compressed_diff(newData0,newData0+di.newData.size(),
                                              oldData0,oldData0+di.oldData.size(),diffData,
                                              compressPlugin,di.kP.out0,&di.sstring);
     /*
     if (!check_compressed_diff(newData0,newData0+di.newData.size(),
                                oldData0,oldData0+di.oldData.size(),
-                               &diffData[0],&diffData[0]+diffData.size(),
+                               diffData.data(),diffData.data()+diffData.size(),
                                decompressPlugin)){
         std::cout<<"\ncheck hdiffz data error!!!\n";
         exit(1);
@@ -155,7 +155,7 @@ void doDiff(TDiffInfo& di){
         readFile(di.newData,di.newFileName.c_str());
         di.oldFileSize=di.oldData.size();
         di.newFileSize=di.newData.size();
-        const TByte* oldData0=di.oldData.empty()?0:&di.oldData[0];
+        const TByte* oldData0=di.oldData.data();
         di.sstring.resetSuffixString(oldData0,oldData0+di.oldData.size());
     }
     

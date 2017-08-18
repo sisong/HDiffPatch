@@ -51,7 +51,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
         exit(1);
     }
     data.resize(needRead);
-    file.read((char*)&data[0], needRead);
+    file.read((char*)data.data(), needRead);
     std::streamsize readed=file.gcount();
     file.close();
     if ((std::streamsize)needRead!=readed)  exit(1);
@@ -59,7 +59,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
 
 void writeFile(const std::vector<TByte>& data,const char* fileName){
     std::ofstream file(fileName, std::ios::out | std::ios::binary | std::ios::trunc);
-    file.write((const char*)&data[0], data.size());
+    file.write((const char*)data.data(), data.size());
     file.close();
 }
 
@@ -100,15 +100,15 @@ int main(int argc, const char * argv[]){
         diffData.push_back((TByte)(highSize>>24));
     }
 
-    TByte* newData_begin=newData.empty()?0:&newData[0];
-    const TByte* oldData_begin=oldData.empty()?0:&oldData[0];
+    TByte* newData0=newData.data();
+    const TByte* oldData0=oldData.data();
     clock_t time1=clock();
-    create_diff(newData_begin,newData_begin+newDataSize,
-                oldData_begin,oldData_begin+oldDataSize,diffData);
+    create_diff(newData0,newData0+newDataSize,
+                oldData0,oldData0+oldDataSize,diffData);
     clock_t time2=clock();
-    if (!check_diff(newData_begin,newData_begin+newDataSize,
-                    oldData_begin,oldData_begin+oldDataSize,
-                    &diffData[0]+kNewDataSize, &diffData[0]+diffData.size())){
+    if (!check_diff(newData0,newData0+newDataSize,
+                    oldData0,oldData0+oldDataSize,
+                    diffData.data()+kNewDataSize, diffData.data()+diffData.size())){
         std::cout<<"  patch check diff data error!!!\n";
         exit(1);
     }else{
