@@ -32,7 +32,6 @@
 #include <string>
 #include <vector>
 #include <assert.h>
-#include <time.h>
 #include <string.h>
 #include <stdlib.h>
 #include <exception>//std::exception
@@ -49,14 +48,32 @@ typedef unsigned char   TByte;
 //#define _CompressPlugin_lzma
 
 
+#ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
+#   include "file_for_patch.h"
+#endif
+
 #ifndef _CompressPlugin_no
 #   include "compress_plugin_demo.h"
 #   include "decompress_plugin_demo.h"
 #endif
 
-#ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
-#   include "file_for_patch.h"
+//  #include <time.h>
+//  static double clock_s(){ return clock()*(1.0/CLOCKS_PER_SEC); }
+#ifdef _WIN32
+#include <windows.h>
+static double clock_s(){ return GetTickCount()/1000.0; }
+#else
+//Unix-like system
+#include <sys/time.h>
+static double clock_s(){
+    struct timeval t={0,0};
+    int ret=gettimeofday(&t,0);
+    assert(ret==0);
+    return t.tv_sec + t.tv_usec/1000000.0;
+}
+#endif
 
+#ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
 #define _error_return(info){ \
     if (strlen(info)>0)      \
         printf("\n  %s\n",(info)); \
@@ -131,7 +148,7 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 #endif
 
 int main(int argc, const char * argv[]){
-    clock_t time0=clock();
+    double time0=clock_s();
     if (argc!=4) {
         std::cout<<"HDiffZ command line parameter:\n oldFileName newFileName outDiffFileName\n";
         exit(1);
@@ -151,7 +168,7 @@ int main(int argc, const char * argv[]){
     
     int exitCode=0;
 #ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
-    clock_t time1=0,time2=0;
+    double time1=0,time2=0;
     TFileStreamInput  oldData;
     TFileStreamInput  newData;
     TFileStreamOutput diffData;
@@ -163,7 +180,7 @@ int main(int argc, const char * argv[]){
     if (!TFileStreamOutput_open(&diffData,outDiffFileName,-1)) _error_return("open out diffFile error!");
     TFileStreamOutput_setRandomOut(&diffData,true);
     std::cout<<"oldDataSize : "<<oldData.base.streamSize<<"\nnewDataSize : "<<newData.base.streamSize<<"\n";
-    time1=clock();
+    time1=clock_s();
     try{
         create_compressed_diff_stream(&newData.base,&oldData.base,
                                       &diffData.base,compressPlugin);
@@ -173,7 +190,7 @@ int main(int argc, const char * argv[]){
     }
     //TODO: check_compressed_diff
     std::cout<<"\ndiffDataSize: "<<diffData.out_length<<"\n";
-    time2=clock();
+    time2=clock_s();
 clear:
     _check_error(!TFileStreamOutput_close(&diffData),"out diffFile close error!");
     //TODO: if (exitCode==0) std::cout<<"  out HDiffZ file ok!\n";
@@ -190,10 +207,10 @@ clear:
     std::vector<TByte> diffData;
     TByte* newData0=newData.data();
     const TByte* oldData0=oldData.data();
-    clock_t time1=clock();
+    double time1=clock_s();
     create_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
                            diffData,compressPlugin);
-    clock_t time2=clock();
+    double time2=clock_s();
     if (!check_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
                                diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
         std::cout<<"\n  patch check HDiffZ data error!!!\n";
@@ -205,9 +222,9 @@ clear:
     writeFile(diffData,outDiffFileName);
     std::cout<<"  out HDiffZ file ok!\n";
 #endif
-    clock_t time3=clock();
-    std::cout<<"\nHDiffZ  time:"<<(time2-time1)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
-    std::cout<<"all run time:"<<(time3-time0)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
+    double time3=clock_s();
+    std::cout<<"\nHDiffZ  time:"<<(time2-time1)<<" s\n";
+    std::cout<<"all run time:"<<(time3-time0)<<" s\n";
     
     return exitCode;
 }

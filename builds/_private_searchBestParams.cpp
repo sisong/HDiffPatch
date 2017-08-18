@@ -32,7 +32,6 @@
 #include <vector>
 #include <sstream>
 #include "assert.h"
-#include <time.h>
 #include <vector>
 #include <math.h> //pow
 #include <string.h>

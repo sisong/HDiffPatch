@@ -260,25 +260,32 @@ void TDiffStream::pushBack(const unsigned char* src,size_t n){
     writePos+=n;
 }
 
-void TDiffStream::_packUInt(hpatch_StreamPos_t uValue,size_t minOutSize){
-    if (minOutSize>hpatch_kMaxPackedUIntBytes) throw minOutSize;
+
+void TDiffStream::packUInt(hpatch_StreamPos_t uValue){
     unsigned char  codeBuf[hpatch_kMaxPackedUIntBytes];
     unsigned char* codeEnd=codeBuf;
-    if (!hpatch_packUIntWithTag(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,
-                                uValue,0,0)) throw uValue;
-    assert(codeBuf<codeEnd);
-    while ((size_t)(codeEnd-codeBuf)<minOutSize) {
-        codeEnd[-1]|=(1<<7);
-        codeEnd[0]=0;
-        ++codeEnd;
-    }
+    if (!hpatch_packUInt(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,uValue)) throw uValue;
     pushBack(codeBuf,(size_t)(codeEnd-codeBuf));
+}
+
+void TDiffStream::_packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize){
+    if (limitOutSize>hpatch_kMaxPackedUIntBytes) throw limitOutSize;
+    unsigned char  _codeBuf[hpatch_kMaxPackedUIntBytes*2];
+    unsigned char* codeBegin=_codeBuf+hpatch_kMaxPackedUIntBytes;
+    unsigned char* codeEnd=codeBegin;
+    if (!hpatch_packUInt(&codeEnd,_codeBuf+hpatch_kMaxPackedUIntBytes*2,uValue)) throw uValue;
+    if ((size_t)(codeEnd-codeBegin)>limitOutSize) throw limitOutSize;
+    while ((size_t)(codeEnd-codeBegin)<limitOutSize) {
+        --codeBegin;
+        codeBegin[0]|=(1<<7);
+    }
+    pushBack(codeBegin,(size_t)(codeEnd-codeBegin));
 }
 
 void TDiffStream::packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue){
     hpatch_StreamPos_t writePosBack=writePos;
     writePos=pos.pos;
-    _packUInt(uValue,(size_t)(pos.pos_end-pos.pos));
+    _packUInt_limit(uValue,(size_t)(pos.pos_end-pos.pos));
     assert(writePos==pos.pos_end);
     writePos=writePosBack;
 }
@@ -313,8 +320,10 @@ void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
                              const TPlaceholder& update_compress_sizePos){
     if ((compressPlugin)&&(stream->streamSize>0)){
         TCompressedStreamInput compress_stream(stream,compressPlugin);
+        hpatch_StreamPos_t writePosBack=writePos;
         hpatch_StreamPos_t compressed_size=_pushStream(&compress_stream,kLimitReadedSize);
         if (compressed_size>kLimitReadedSize){
+            writePos=writePosBack;
             compressed_size=0;
             hpatch_StreamPos_t rtsize=_pushStream(stream,stream->streamSize);
             assert(rtsize==stream->streamSize);

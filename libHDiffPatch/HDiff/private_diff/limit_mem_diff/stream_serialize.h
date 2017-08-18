@@ -104,7 +104,7 @@ struct TDiffStream{
     :out_diff(_out_diff),covers(_covers),writePos(0){ }
     
     void pushBack(const unsigned char* src,size_t n);
-    inline  void packUInt(hpatch_StreamPos_t uValue) { _packUInt(uValue,0); }
+    void packUInt(hpatch_StreamPos_t uValue);
     inline TPlaceholder packUInt_pos(hpatch_StreamPos_t uValue){
         hpatch_StreamPos_t pos=writePos;
         packUInt(uValue);
@@ -122,7 +122,7 @@ private:
     hpatch_StreamPos_t     writePos;
     std::vector<unsigned char> _temp_buf;
     
-    void _packUInt(hpatch_StreamPos_t uValue,size_t minOutSize);
+    void _packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize);
     
     //stream->read can return currently readed data size,return <0 error
     hpatch_StreamPos_t _pushStream(const hpatch_TStreamInput* stream,

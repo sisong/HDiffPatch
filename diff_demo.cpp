@@ -33,13 +33,28 @@
 #include <string>
 #include <vector>
 #include <assert.h>
-#include <time.h>
 #include <string.h>
 #include <stdlib.h>
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char   TByte;
 typedef size_t          TUInt;
+
+//  #include <time.h>
+//  static double clock_s(){ return clock()*(1.0/CLOCKS_PER_SEC); }
+#ifdef _WIN32
+#include <windows.h>
+static double clock_s(){ return GetTickCount()/1000.0; }
+#else
+//Unix-like system
+#include <sys/time.h>
+static double clock_s(){
+    struct timeval t={0,0};
+    int ret=gettimeofday(&t,0);
+    assert(ret==0);
+    return t.tv_sec + t.tv_usec/1000000.0;
+}
+#endif
 
 void readFile(std::vector<TByte>& data,const char* fileName){
     std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
@@ -65,7 +80,7 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 
 
 int main(int argc, const char * argv[]){
-    clock_t time0=clock();
+    double time0=clock_s();
     if (argc!=4) {
         std::cout<<"diff command line parameter:\n oldFileName newFileName outDiffFileName\n";
         exit(1);
@@ -102,10 +117,10 @@ int main(int argc, const char * argv[]){
 
     TByte* newData0=newData.data();
     const TByte* oldData0=oldData.data();
-    clock_t time1=clock();
+    double time1=clock_s();
     create_diff(newData0,newData0+newDataSize,
                 oldData0,oldData0+oldDataSize,diffData);
-    clock_t time2=clock();
+    double time2=clock_s();
     if (!check_diff(newData0,newData0+newDataSize,
                     oldData0,oldData0+oldDataSize,
                     diffData.data()+kNewDataSize, diffData.data()+diffData.size())){
@@ -115,11 +130,11 @@ int main(int argc, const char * argv[]){
         std::cout<<"  patch check diff data ok!\n";
     }
     writeFile(diffData,outDiffFileName);
-    clock_t time3=clock();
+    double time3=clock_s();
     std::cout<<"  out diff file ok!\n";
     std::cout<<"oldDataSize : "<<oldDataSize<<"\nnewDataSize : "<<newDataSize<<"\ndiffDataSize: "<<diffData.size()<<"\n";
-    std::cout<<"\ndiff    time:"<<(time2-time1)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
-    std::cout<<"all run time:"<<(time3-time0)*(1000.0/CLOCKS_PER_SEC)<<" ms\n";
+    std::cout<<"\ndiff    time:"<<(time2-time1)<<" s\n";
+    std::cout<<"all run time:"<<(time3-time0)<<" s\n";
 
     return 0;
 }

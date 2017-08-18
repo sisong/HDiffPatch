@@ -291,7 +291,7 @@ int main(int argc, const char * argv[]){
     printf("\nchecked:%ld  errorCount:%ld\n",kRandTestCount,errorCount);
     printf("newSize:100%% oldSize:%2.2f%% diffSize:%2.2f%%\n",sumOldSize*100.0/sumNewSize,sumDiffSize*100.0/sumNewSize);
     clock_t time2=clock();
-    printf("\nrun time:%.0f ms\n",(time2-time1)*(1000.0/CLOCKS_PER_SEC));
+    printf("\nrun time:%.0f s\n",(time2-time1)*(1.0/CLOCKS_PER_SEC));
 
     return (int)errorCount;
 }
