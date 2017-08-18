@@ -385,8 +385,8 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
         }
         if (!newStream.roll()) break;//finish
     }
-    printf("%zu/ %lld\n",out_covers->coverCount(),upperCount(newStream.streamSize(),kMatchBlockSize));
-    printf("%lld / %lld\n",sumlen,newStream.streamSize());
+    //printf("%zu /%lld\n",out_covers->coverCount(),upperCount(newStream.streamSize(),kMatchBlockSize));
+    //printf("%lld / %lld\n",sumlen,newStream.streamSize());
 }
 
 void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,TCovers* out_covers){
