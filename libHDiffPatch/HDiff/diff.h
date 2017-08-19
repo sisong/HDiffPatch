@@ -96,20 +96,15 @@ extern "C"
 
 typedef void*  hdiff_compressHandle;
 typedef hpatch_TStreamOutput hdiff_TStreamOutput;
+typedef hpatch_TStreamInput  hdiff_TStreamInput;
 //stream compress plugin
 typedef struct hdiff_TStreamCompress{
     //return type tag; strlen(result)<=hpatch_kMaxCompressTypeLength;（Note:result lifetime）
-    const char*      (*compressType)(const hdiff_TStreamCompress* compressPlugin);
-    //error return 0.
-    hdiff_compressHandle     (*open)(struct hdiff_TStreamCompress* compressPlugin,
-                                     const hdiff_TStreamOutput* out_code);
-    //return all out code size, error or no out return 0.
-    hpatch_StreamPos_t      (*close)(struct hdiff_TStreamCompress* compressPlugin,
-                                      hdiff_compressHandle compressHandle);
-    //compress_part() must return (in_part_data_end-in_part_data), otherwise error
-    long             (*compress_part)(const struct hdiff_TStreamCompress* compressPlugin,
-                                      hdiff_compressHandle compressHandle,
-                                      const unsigned char* in_part_data,const unsigned char* in_part_data_end);
+    const char*           (*compressType)(const hdiff_TStreamCompress* compressPlugin);
+    //compress data to out_code; return compressed size, if error or not need compress then return 0;
+    hpatch_StreamPos_t (*compress_stream)(const hdiff_TStreamCompress* compressPlugin,
+                                          const hdiff_TStreamOutput* out_code,
+                                          const hdiff_TStreamInput*  in_data);
 } hdiff_TStreamCompress;
 
 #ifdef __cplusplus

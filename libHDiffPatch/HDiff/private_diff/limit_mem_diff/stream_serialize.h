@@ -30,27 +30,20 @@
 #include "covers.h"
 class hdiff_TStreamCompress;
 
-struct TCompressedStreamInput:public hpatch_TStreamInput{
-    TCompressedStreamInput(const hpatch_TStreamInput* _stream,
-                           hdiff_TStreamCompress* _compressPlugin);
+struct TCompressedStream:public hpatch_TStreamOutput{
+    TCompressedStream(const hpatch_TStreamOutput*  _out_code,
+                      hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize,
+                      const hpatch_TStreamInput*   _in_stream);
 private:
-    const hpatch_TStreamInput*  data_stream;
-    hdiff_TStreamCompress*      compressPlugin;
-    void*                       compresser;
-    hpatch_TStreamOutput        code_stream;
-    std::vector<unsigned char>  _data_buf;
-    std::vector<unsigned char>  _code_buf;
-    hpatch_StreamPos_t          curReadPos;
-    size_t                      curCodePos;
-    hpatch_StreamPos_t          _readFromPos_back;
-    enum { kReadBufSize = 1024*16 };
+    const hpatch_TStreamOutput*  out_code;
+    hpatch_StreamPos_t           out_pos;
+    hpatch_StreamPos_t           out_posLimitEnd;
+    const hpatch_TStreamInput*   in_stream;
+    hpatch_StreamPos_t          _writeToPos_back;
     
-    static long _read(hpatch_TStreamInputHandle streamHandle,
-                      const hpatch_StreamPos_t readFromPos,
-                      unsigned char* out_data,unsigned char* out_data_end);
     static long _write_code(hpatch_TStreamOutputHandle streamHandle,
                             const hpatch_StreamPos_t writeToPos,
-                            const unsigned char* code,const unsigned char* code_end);
+                            const unsigned char* data,const unsigned char* data_end);
 };
 
 struct TCoversStream:public hpatch_TStreamInput{
@@ -109,11 +102,11 @@ struct TDiffStream{
     }
     void packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue);
     
-    void pushStream(const hpatch_TStreamInput*  stream,
-                    hdiff_TStreamCompress*      compressPlugin,
-                    const TPlaceholder&         update_compress_sizePos);
+    void pushStream(const hpatch_TStreamInput*   stream,
+                    const hdiff_TStreamCompress* compressPlugin,
+                    const TPlaceholder&          update_compress_sizePos);
 private:
-    hpatch_TStreamOutput*  out_diff;
+    const hpatch_TStreamOutput*  out_diff;
     const  TCovers&        covers;
     hpatch_StreamPos_t     writePos;
     std::vector<unsigned char> _temp_buf;
@@ -121,8 +114,7 @@ private:
     void _packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize);
     
     //stream->read can return currently readed data size,return <0 error
-    hpatch_StreamPos_t _pushStream(const hpatch_TStreamInput* stream,
-                                   hpatch_StreamPos_t kLimitReadedSize);
+    void _pushStream(const hpatch_TStreamInput* stream);
 };
 
 #endif

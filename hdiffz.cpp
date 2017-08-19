@@ -43,8 +43,8 @@ typedef unsigned char   TByte;
 
 //===== select compress plugin =====
 //#define _CompressPlugin_no
-//#define _CompressPlugin_zlib
-#define _CompressPlugin_bz2
+#define _CompressPlugin_zlib
+//#define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
 
 
