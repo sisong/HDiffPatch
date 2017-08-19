@@ -404,7 +404,7 @@ static hpatch_BOOL _TStreamClip_updateCache(struct TStreamClip* sclip){
     }
     if (sclip->srcStream->read(sclip->srcStream->streamHandle,sclip->streamPos,
                                buf0+(sclip->cacheEnd-readSize),buf0+sclip->cacheEnd)
-                           == readSize ){
+                           == (long)readSize ){
         sclip->cacheBegin-=readSize;
         sclip->streamPos+=readSize;
         return hpatch_TRUE;
@@ -417,8 +417,8 @@ hpatch_inline  //error return 0
 static TByte* _TStreamClip_accessData(struct TStreamClip* sclip,size_t readSize){
     //assert(readSize<=sclip->cacheEnd);
     if (readSize>_TStreamClip_cachedSize(sclip)){
-        if (!_TStreamClip_updateCache(sclip)) return _hpatch_FALSE;
-        if (readSize>_TStreamClip_cachedSize(sclip)) return _hpatch_FALSE;
+        if (!_TStreamClip_updateCache(sclip)) return 0;
+        if (readSize>_TStreamClip_cachedSize(sclip)) return 0;
     }
     return &sclip->cacheBuf[sclip->cacheBegin];
 }
@@ -612,7 +612,7 @@ static  hpatch_BOOL _patch_copy_diff(const struct hpatch_TStreamOutput* out_newD
         if (!_TBytesRle_load_stream_decode_skip(rle_loader,decodeStep)) return _hpatch_FALSE;
         data=_TStreamClip_readData(diff,decodeStep);
         if (data==0) return _hpatch_FALSE;
-        if (decodeStep!=out_newData->write(out_newData->streamHandle,writeToPos,data,data+decodeStep))
+        if ((long)decodeStep!=out_newData->write(out_newData->streamHandle,writeToPos,data,data+decodeStep))
             return _hpatch_FALSE;
         writeToPos+=decodeStep;
         copyLength-=decodeStep;
@@ -630,9 +630,9 @@ static  hpatch_BOOL _patch_add_old(const struct hpatch_TStreamOutput* out_newDat
         size_t decodeStep=data_size;
         if (decodeStep>addLength)
             decodeStep=(size_t)addLength;
-        if (decodeStep!=old->read(old->streamHandle,oldPos,data,data+decodeStep)) return _hpatch_FALSE;
+        if ((long)decodeStep!=old->read(old->streamHandle,oldPos,data,data+decodeStep)) return _hpatch_FALSE;
         if (!_TBytesRle_load_stream_decode_add(rle_loader,decodeStep,data)) return _hpatch_FALSE;
-        if (decodeStep!=out_newData->write(out_newData->streamHandle,writeToPos,data,data+decodeStep))
+        if ((long)decodeStep!=out_newData->write(out_newData->streamHandle,writeToPos,data,data+decodeStep))
             return _hpatch_FALSE;
         oldPos+=decodeStep;
         writeToPos+=decodeStep;

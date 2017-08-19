@@ -185,7 +185,7 @@
                     long writeResult=out_code->write(out_code->streamHandle,writeToPos,
                                                      code_buf,code_buf+writeLen);
                     outStream_isCanceled=(writeResult==hdiff_kStreamOutputCancel);
-                    if (writeResult!=writeLen) _compress_error_return("out_code->write()");
+                    if (writeResult!=(long)writeLen) _compress_error_return("out_code->write()");
                 }
                 writeToPos+=writeLen;
                 result+=writeLen;
@@ -208,7 +208,7 @@
                     if (readLen==0){
                         is_eof=1;
                     }else{
-                        if (readLen!=in_data->read(in_data->streamHandle,readFromPos,data_buf,data_buf+readLen))
+                        if ((long)readLen!=in_data->read(in_data->streamHandle,readFromPos,data_buf,data_buf+readLen))
                             _compress_error_return("in_data->read()");
                         readFromPos+=readLen;
                         s.next_in=(char*)data_buf;

@@ -26,6 +26,8 @@
  */
 #include "stream_serialize.h"
 #include <assert.h>
+#include <string.h> //memcpy
+#include <stdexcept> //std::runtime_error
 #include "../../diff.h" //for stream type
 
 TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,
@@ -52,10 +54,10 @@ long TCompressedStream::_write_code(hpatch_TStreamOutputHandle streamHandle,
         self->_is_overLimit=true;
         return hdiff_kStreamOutputCancel;
     }
-    if (dataLen!=self->out_code->write(self->out_code->streamHandle,self->out_pos,
-                                       data,data_end)) return -1;
+    if ((long)dataLen!=self->out_code->write(self->out_code->streamHandle,self->out_pos,
+                                             data,data_end)) return -1;
     self->out_pos+=dataLen;
-    return dataLen;
+    return (long)dataLen;
 }
 
 
@@ -94,7 +96,7 @@ long TCoversStream::_read(hpatch_TStreamInputHandle streamHandle,
     self->_readFromPos_back=readFromPos+(size_t)(out_data_end-out_data);
     
     size_t n=self->covers.coverCount();
-    long sumReadedLen=0;
+    size_t sumReadedLen=0;
     while (out_data<out_data_end) {
         size_t curLen=self->curCodePos_end-self->curCodePos;
         if (curLen>0){
@@ -124,7 +126,7 @@ long TCoversStream::_read(hpatch_TStreamInputHandle streamHandle,
             self->curCodePos_end=pcode_cur-self->_code_buf.data();
         }
     }
-    return sumReadedLen;
+    return (long)sumReadedLen;
 };
 
 
@@ -180,14 +182,14 @@ long TNewDataDiffStream::_read(hpatch_TStreamInputHandle streamHandle,
     self->_readFromPos_back=readFromPos+(size_t)(out_data_end-out_data);
     
     size_t n=self->covers.coverCount();
-    long sumReadedLen=0;
+    size_t sumReadedLen=0;
     while (out_data<out_data_end) {
         hpatch_StreamPos_t curLen=self->curNewPos_end-self->curNewPos;
         if (curLen>0){
             size_t readLen=(out_data_end-out_data);
             if (readLen>curLen) readLen=(size_t)curLen;
-            if (readLen!=self->newData->read(self->newData->streamHandle,self->curNewPos,
-                                             out_data,out_data+readLen)) return -1;
+            if ((long)readLen!=self->newData->read(self->newData->streamHandle,self->curNewPos,
+                                                   out_data,out_data+readLen)) return -1;
             sumReadedLen+=readLen;
             out_data+=readLen;
             self->curNewPos+=readLen;
@@ -208,7 +210,7 @@ long TNewDataDiffStream::_read(hpatch_TStreamInputHandle streamHandle,
             self->lastNewEnd=curCover.newPos+curCover.length;
         }
     }
-    return sumReadedLen;
+    return (long)sumReadedLen;
 };
 
 hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_StreamPos_t newDataSize){
@@ -231,7 +233,7 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 
 void TDiffStream::pushBack(const unsigned char* src,size_t n){
     if (n==0) return;
-    if (n!=out_diff->write(out_diff->streamHandle,writePos,src,src+n))
+    if ((long)n!=out_diff->write(out_diff->streamHandle,writePos,src,src+n))
         throw std::runtime_error("TDiffStream::pushBack() write stream error!");
     writePos+=n;
 }
@@ -275,10 +277,10 @@ void TDiffStream::_pushStream(const hpatch_TStreamInput* stream){
         size_t readLen=kBufSize;
         if (readLen+sumReadedLen>stream->streamSize)
             readLen=(size_t)(stream->streamSize-sumReadedLen);
-        if (readLen!=stream->read(stream->streamHandle,sumReadedLen,buf,buf+readLen))
+        if ((long)readLen!=stream->read(stream->streamHandle,sumReadedLen,buf,buf+readLen))
             throw std::runtime_error("TDiffStream::_pushStream() stream->read() error!");
         this->pushBack(buf,readLen);
-        sumReadedLen+=(size_t)readLen;
+        sumReadedLen+=readLen;
     }
 }
 

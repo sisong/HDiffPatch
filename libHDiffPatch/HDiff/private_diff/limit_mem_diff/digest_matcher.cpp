@@ -46,7 +46,7 @@ m_kMatchBlockSize(kMatchBlockSize),m_newCacheSize(0){
         m_kMatchBlockSize>>=1;
     hpatch_StreamPos_t _blockCount=upperCount(m_oldData->streamSize,m_kMatchBlockSize);
     if (m_oldData->streamSize<m_kMatchBlockSize) _blockCount=0;
-    m_isUseLargeSorted=(_blockCount>=((uint64_t)1<<32));
+    m_isUseLargeSorted=(_blockCount>=((hpatch_StreamPos_t)1<<32));
     const size_t blockCount=(size_t)_blockCount;
     if (blockCount!=_blockCount)
         throw std::runtime_error("TDataDigest() oldData->streamSize/MatchBlockSize too big error.");
@@ -65,8 +65,8 @@ m_kMatchBlockSize(kMatchBlockSize),m_newCacheSize(0){
 }
 
 #define readStream(stream,pos,dst,n) { \
-    if (n!=(stream)->read((stream)->streamHandle,pos,dst,dst+n)) \
-    throw std::runtime_error("TDataDigest stream->read() error!"); \
+    if ((long)(n)!=(stream)->read((stream)->streamHandle,pos,dst,dst+(n))) \
+        throw std::runtime_error("TDataDigest stream->read() error!"); \
 }
 
 struct TIndex_comp{
@@ -174,11 +174,11 @@ public:
         len=(len<y_len)?len:y_len;
         const unsigned char* px=data();
         const unsigned char* py=y.data();
-        size_t i=1;
-        for (;i<=len;++i){
-            if (px[-i]!=py[-i]) break;
+        size_t i=0;
+        for (;i<len;++i){
+            if (*(--px) != *(--py)) break;
         }
-        return i-1;
+        return i;
     }
     hpatch_StreamPos_t roll_backward_equal_length(TStreamCache& y,
                                                   std::vector<adler_uint_t>* xBackwardDigests){
@@ -358,7 +358,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
                             TCovers* out_covers,bool isSearchBestMatch) {
     TDigest_comp comp(blocksBase,blocksSize);
     TCover  lastCover={0,0,0};
-    uint64_t sumlen=0;
+    //hpatch_StreamPos_t sumLen=0;
     std::vector<adler_uint_t> bestMatchDigests;
     std::vector<adler_uint_t>* pbestMatchDigests=isSearchBestMatch?&bestMatchDigests:0;
     while (true) {
@@ -376,7 +376,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
                 if (getBestMatch(blocksBase,blocksSize,range.first,range.second,
                                  oldStream,newStream,lastCover,&curCover,pbestMatchDigests)){
                     out_covers->addCover(curCover);
-                    sumlen+=curCover.length;
+                    //sumLen+=curCover.length;
                     lastCover=curCover;
                     if (!newStream.resetPos(curCover.newPos+curCover.length)) break;//finish
                     continue;
@@ -386,7 +386,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
         if (!newStream.roll()) break;//finish
     }
     //printf("%zu /%lld\n",out_covers->coverCount(),upperCount(newStream.streamSize(),kMatchBlockSize));
-    //printf("%lld / %lld\n",sumlen,newStream.streamSize());
+    //printf("%lld / %lld\n",sumLen,newStream.streamSize());
 }
 
 void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,TCovers* out_covers){

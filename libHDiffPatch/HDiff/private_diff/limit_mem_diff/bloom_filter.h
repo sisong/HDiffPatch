@@ -32,6 +32,15 @@
 #include <string.h> //memset
 #include <assert.h>
 #include <stdexcept>
+#ifdef _MSC_VER
+#   if (_MSC_VER < 1300)
+typedef unsigned int      uint32_t;
+#   else
+typedef unsigned __int32  uint32_t;
+#   endif
+#else
+#   include <stdint.h> //for uint32_t
+#endif
 
 
 class TBitSet{
@@ -93,7 +102,7 @@ public:
             && m_bitSet2.is_hit(hash2(data));
     }
 private:
-    enum { kZoom0=11, kZoom1=17, kZoom2=23 };
+    enum { kZoom0=7, kZoom1=8, kZoom2=9 };
     TBitSet   m_bitSet0;
     TBitSet   m_bitSet1;
     TBitSet   m_bitSet2;
@@ -112,7 +121,7 @@ private:
         return key;
     }
     static size_t getMask(size_t count){
-        int bit=8;
+        unsigned int bit=8;
         for (;(((size_t)1<<bit)<count) && (bit<sizeof(size_t)*8); ++bit){}
         if (bit==sizeof(size_t)*8)
             throw std::runtime_error("TBloomFilter::getMask() error!");

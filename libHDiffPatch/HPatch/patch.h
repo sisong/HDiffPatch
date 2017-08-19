@@ -72,7 +72,7 @@ hpatch_BOOL patch_stream_with_cache(const hpatch_TStreamOutput* out_newData,
 
 
 //get compressedDiff info
-//  compressedDiff created by create_compressed_diff()
+//  compressedDiff created by create_compressed_diff() or create_compressed_diff_stream()
 hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
                                   const hpatch_TStreamInput* compressedDiff);
 //see getCompressedDiffInfo()
@@ -87,7 +87,7 @@ hpatch_inline static hpatch_BOOL
 
     
 //patch with decompress plugin, used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*4 used memory)
-//  compressedDiff create by create_compressed_diff()
+//  compressedDiff create by create_compressed_diff() or create_compressed_diff_stream()
 //  decompressPlugin can null when no compressed data in compressedDiff
 //  if use patch_decompress_with_cache(), can passing your memory for I/O cache
 //  recommended load oldData in memory(and use mem_as_hStreamInput()),random access faster

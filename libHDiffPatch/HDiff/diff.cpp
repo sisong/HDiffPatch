@@ -614,8 +614,8 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
             while (dataLen>0) {
                 size_t readLen=dataLen;
                 if (readLen>kBufSize) readLen=kBufSize;
-                if (readLen!=self->newData->read(self->newData->streamHandle,readPos,
-                                                 self->buf,self->buf+readLen)) return -1;
+                if ((long)readLen!=self->newData->read(self->newData->streamHandle,readPos,
+                                                       self->buf,self->buf+readLen)) return -1;
                 if (0!=memcmp(check_data,self->buf,readLen)) return -1;
                 check_data+=readLen;
                 readPos+=readLen;

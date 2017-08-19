@@ -28,7 +28,7 @@
 #ifndef stream_serialize_h
 #define stream_serialize_h
 #include "covers.h"
-class hdiff_TStreamCompress;
+struct hdiff_TStreamCompress;
 
 struct TCompressedStream:public hpatch_TStreamOutput{
     TCompressedStream(const hpatch_TStreamOutput*  _out_code,
@@ -71,8 +71,8 @@ struct TNewDataDiffStream:public hpatch_TStreamInput{
                        hpatch_StreamPos_t newDataDiff_size);
     static hpatch_StreamPos_t getDataSize(const TCovers& covers,hpatch_StreamPos_t newDataSize);
 private:
-    const hpatch_TStreamInput*  newData;
     const TCovers&              covers;
+    const hpatch_TStreamInput*  newData;
     hpatch_StreamPos_t          curNewPos;
     hpatch_StreamPos_t          curNewPos_end;
     hpatch_StreamPos_t          lastNewEnd;

@@ -71,8 +71,8 @@ typedef unsigned __int32  uint32_t;
 #   ifdef _IS_NEED_ADLER64
 typedef signed   __int64  int64_t;
 typedef unsigned __int64  uint64_t;
-#   define __adler_inline _inline
 #   endif
+#   define __adler_inline _inline
 #else
 #   include <stdint.h> //for int32_t uint32_t int64_t uint64_t
 #   define __adler_inline inline
