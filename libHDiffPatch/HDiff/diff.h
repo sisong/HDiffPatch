@@ -135,6 +135,6 @@ void create_compressed_diff_stream(const hpatch_TStreamInput* newData,
                                    hpatch_TStreamOutput*      out_diff,
                                    hdiff_TStreamCompress* compressPlugin=0,
                                    size_t kMatchBlockSize=kMatchBlockSize_default,
-                                   bool   kIsSearchBestMatch=false);
+                                   bool   kIsSearchBestMatch=true);
 
 #endif

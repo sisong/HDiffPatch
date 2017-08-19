@@ -78,11 +78,25 @@ struct TIndex_comp{
         if (xd!=yd)
             return xd<yd;
         else
-            return x<y;
+            return _cmp(x+1,y+1,n,blocks);
     }
 private:
     const adler_uint_t* blocks;
     const size_t        n;
+    
+    template<class TIndex>
+    static bool _cmp(TIndex x,TIndex y,size_t n,const adler_uint_t* blocks) {
+        if (x!=y) {} else{ return false; }
+        //const size_t kMaxDeep=128;
+        //for (size_t i=0;(x<n)&(y<n)&(i<kMaxDeep);++x,++y,++i){
+        for (;(x<n)&(y<n);++x,++y){
+            adler_uint_t xd=blocks[x];
+            adler_uint_t yd=blocks[y];
+            if (xd!=yd)
+                return xd<yd;
+        }
+        return x<y;
+    }
 };
 
 void TDigestMatcher::getDigests(){
@@ -284,7 +298,13 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     bool isMatched=false;
     TCover  bestCover={0,0,0};
     if (newBackwardDigests) newBackwardDigests->clear();
-    for (const TIndex* cur_pi=iblocks; cur_pi!=iblocks_end; ++cur_pi) {
+    
+    size_t n=iblocks_end-iblocks;
+    //*
+    for (size_t i=0; i<n; ++i) {
+        const TIndex* cur_pi=iblocks+(n>>1)+(i>>1)*((i&1)*2-1);
+        assert((cur_pi>=iblocks)&&(cur_pi<iblocks_end));//*/
+    //for (const TIndex* cur_pi=iblocks; cur_pi!=iblocks_end; ++cur_pi) {
         size_t cur_ibk=(*cur_pi);
         bool is_digest_matched=true;
         if (newBackwardDigests){
@@ -306,7 +326,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
         if (newPos-feq_len<lastCover.newPos+lastCover.length)
             feq_len=(size_t)(newPos-(lastCover.newPos+lastCover.length));
         hpatch_StreamPos_t beq_len=newStream.roll_backward_equal_length(oldStream,newBackwardDigests);
-        if (cur_pi+1!=iblocks_end)
+        if (i+1!=n)//(cur_pi+1!=iblocks_end)//
             newStream.TStreamCache::resetPos(newPos);
         hpatch_StreamPos_t curEqLen=feq_len+kMatchBlockSize+beq_len;
         if (curEqLen>bestCover.length){
