@@ -34,13 +34,14 @@ struct TCompressedStream:public hpatch_TStreamOutput{
     TCompressedStream(const hpatch_TStreamOutput*  _out_code,
                       hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize,
                       const hpatch_TStreamInput*   _in_stream);
+    inline bool  is_overLimit()const { return _is_overLimit; }
 private:
     const hpatch_TStreamOutput*  out_code;
     hpatch_StreamPos_t           out_pos;
     hpatch_StreamPos_t           out_posLimitEnd;
     const hpatch_TStreamInput*   in_stream;
-    hpatch_StreamPos_t          _writeToPos_back;
-    
+    hpatch_StreamPos_t           _writeToPos_back;
+    bool                         _is_overLimit;
     static long _write_code(hpatch_TStreamOutputHandle streamHandle,
                             const hpatch_StreamPos_t writeToPos,
                             const unsigned char* data,const unsigned char* data_end);

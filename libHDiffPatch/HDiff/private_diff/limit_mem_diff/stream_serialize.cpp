@@ -32,7 +32,7 @@ TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,
                                      hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize,
                                      const hpatch_TStreamInput*   _in_stream)
 :out_code(_out_code),out_pos(_writePos),out_posLimitEnd(_writePos+_kLimitOutCodeSize),
-in_stream(_in_stream),_writeToPos_back(0){
+in_stream(_in_stream),_writeToPos_back(0),_is_overLimit(false){
     this->streamHandle=this;
     this->streamSize=-1;
     this->write=_write_code;
@@ -41,13 +41,17 @@ in_stream(_in_stream),_writeToPos_back(0){
 long TCompressedStream::_write_code(hpatch_TStreamOutputHandle streamHandle,
                                     const hpatch_StreamPos_t writeToPos,
                                     const unsigned char* data,const unsigned char* data_end){
+    assert(data<data_end);
     TCompressedStream* self=(TCompressedStream*)streamHandle;
     if (self->_writeToPos_back!=writeToPos)
         throw std::runtime_error("TCompressedStream::write() writeToPos error!");
     size_t dataLen=(size_t)(data_end-data);
     self->_writeToPos_back=writeToPos+dataLen;
     
-    if (self->out_pos+dataLen>self->out_posLimitEnd) return -1;
+    if (self->out_pos+dataLen>self->out_posLimitEnd){
+        self->_is_overLimit=true;
+        return hdiff_kStreamOutputCancel;
+    }
     if (dataLen!=self->out_code->write(self->out_code->streamHandle,self->out_pos,
                                        data,data_end)) return -1;
     self->out_pos+=dataLen;
@@ -287,7 +291,7 @@ void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
         hpatch_StreamPos_t compressed_size=
                                 compressPlugin->compress_stream(compressPlugin,&out_stream,stream);
         writePos+=compressed_size;
-        if (compressed_size==0)
+        if (compressed_size==0)//NOTICE: compress is canceled
             _pushStream(stream);
         packUInt_update(update_compress_sizePos,compressed_size);
     }else if (stream->streamSize>0){

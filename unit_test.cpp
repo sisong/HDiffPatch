@@ -40,6 +40,7 @@
 typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
+const long kRandTestCount=50000;
 //#define _AttackPacth_ON
 
 //===== select compress plugin =====
@@ -244,7 +245,6 @@ int main(int argc, const char * argv[]){
         }
     }
 
-    const long kRandTestCount=50000;
     const int kMaxDataSize=1024*16;
     
     std::vector<int> seeds(kRandTestCount);
