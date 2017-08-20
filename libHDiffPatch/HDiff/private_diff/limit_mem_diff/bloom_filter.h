@@ -103,7 +103,7 @@ public:
     }
 private:
     enum { kZoom0=7, kZoom1=8, kZoom2=9 };
-    TBitSet   m_bitSet0;
+    TBitSet   m_bitSet0;//todo: 使用同一块内存地址的不同区域？使用同一个逻辑区域？
     TBitSet   m_bitSet1;
     TBitSet   m_bitSet2;
     size_t    m_bitSetMask0;
