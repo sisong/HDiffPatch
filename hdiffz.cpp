@@ -194,7 +194,7 @@ int main(int argc, const char * argv[]){
 clear:
     _check_error(!TFileStreamOutput_close(&diffData),"out diffFile close error!");
     _check_error(!TFileStreamInput_close(&diffData_in),"check diffFile close error!");
-    //TODO: if (exitCode==0) std::cout<<"  out HDiffZ file ok!\n";
+    if (exitCode==0) std::cout<<"  out HDiffZ file ok!\n";
     _check_error(!TFileStreamInput_close(&newData),"newFile close error!");
     _check_error(!TFileStreamInput_close(&oldData),"oldFile close error!");
     if (exitCode!=0) return exitCode;

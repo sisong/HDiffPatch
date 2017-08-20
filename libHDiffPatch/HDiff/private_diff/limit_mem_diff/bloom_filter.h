@@ -1,5 +1,5 @@
 //bloom_filter.h
-//多层bloom过滤的一个定制实现.
+//bloom过滤的一个定制实现.
 /*
  The MIT License (MIT)
  Copyright (c) 2017 HouSisong
@@ -83,34 +83,30 @@ private:
 
 class TBloomFilter{
 public:
-    inline TBloomFilter():m_bitSetMask0(0){}
+    inline TBloomFilter():m_bitSetMask(0){}
     void init(size_t dataCount){
         ++dataCount;
-        m_bitSetMask0=getMask(dataCount*kZoom0);//mask is 2^N-1
-        m_bitSet0.clear(m_bitSetMask0+1);
-        m_bitSet1.clear(dataCount*kZoom1-1);
-        m_bitSet2.clear(dataCount*kZoom2-1);
+        m_bitSetMask=getMask(dataCount*kZoom);//mask is 2^N-1
+        m_bitSet.clear(m_bitSetMask+1);
     }
     inline void insert(uint32_t data){
-        m_bitSet0.set(hash0(data));
-        m_bitSet1.set(hash1(data));
-        m_bitSet2.set(hash2(data));
+        m_bitSet.set(hash0(data));
+        m_bitSet.set(hash1(data));
+        m_bitSet.set(hash2(data));
     }
     inline bool is_hit(uint32_t data)const{
-        return m_bitSet0.is_hit(hash0(data))
-            && m_bitSet1.is_hit(hash1(data))
-            && m_bitSet2.is_hit(hash2(data));
+        return m_bitSet.is_hit(hash0(data))
+            && m_bitSet.is_hit(hash1(data))
+            && m_bitSet.is_hit(hash2(data));
     }
 private:
-    enum { kZoom0=7, kZoom1=8, kZoom2=9 };
-    TBitSet   m_bitSet0;//todo: 使用同一块内存地址的不同区域？使用同一个逻辑区域？
-    TBitSet   m_bitSet1;
-    TBitSet   m_bitSet2;
-    size_t    m_bitSetMask0;
+    enum { kZoom=24 };
+    TBitSet   m_bitSet;
+    size_t    m_bitSetMask;
     
-    inline size_t hash0(uint32_t key)const { return (key^(key>>16))&m_bitSetMask0; }
-    inline size_t hash1(uint32_t key)const { return key%m_bitSet1.size(); }
-    inline size_t hash2(uint32_t key)const { return _hash2(key)%m_bitSet2.size(); }
+    inline size_t hash0(uint32_t key)const { return (key^(key>>16))&m_bitSetMask; }
+    inline size_t hash1(uint32_t key)const { return (key+23)%m_bitSetMask; }
+    inline size_t hash2(uint32_t key)const { return _hash2(key)%(m_bitSetMask-2); }
     static uint32_t _hash2(uint32_t key){//from: https://gist.github.com/badboy/6267743
         int c2=0x27d4eb2d; // a prime or an odd constant
         key = (key ^ 61) ^ (key >> 16);
@@ -122,7 +118,8 @@ private:
     }
     static size_t getMask(size_t count){
         unsigned int bit=8;
-        for (;(((size_t)1<<bit)<count) && (bit<sizeof(size_t)*8); ++bit){}
+        for (;(((size_t)1<<bit)<count) && (bit<sizeof(size_t)*8); ++bit){
+        }
         if (bit==sizeof(size_t)*8)
             throw std::runtime_error("TBloomFilter::getMask() error!");
         return ((size_t)1<<bit)-1;
