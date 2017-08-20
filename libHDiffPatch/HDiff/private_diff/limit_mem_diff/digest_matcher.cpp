@@ -278,6 +278,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
                         TOldStreamCache& oldStream,TNewStreamCache& newStream,
                          const TCover& lastCover,TCover* out_curCover,
                          std::vector<adler_uint_t>* newBackwardDigests){
+    //todo: + link cover
     const size_t kMinTrustLength=64*1024;
     const size_t kMatchBlockSize=newStream.kMatchBlockSize;
     const hpatch_StreamPos_t newPos=newStream.pos();

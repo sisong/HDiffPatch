@@ -595,42 +595,48 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                   hpatch_TDecompress* decompressPlugin){
 
     struct _TCheckOutNewDataStream:public hpatch_TStreamOutput{
-        explicit _TCheckOutNewDataStream(const hpatch_TStreamInput*  _newData)
-        :newData(_newData),writedLen(0){
+        explicit _TCheckOutNewDataStream(const hpatch_TStreamInput*  _newData,
+                                         TByte* _buf,size_t _bufSize)
+        :newData(_newData),writedLen(0),buf(_buf),bufSize(_bufSize){
             streamHandle=this;
             streamSize=newData->streamSize;
-            write=_write;
+            write=_write_check;
         }
-        static long _write(hpatch_TStreamOutputHandle streamHandle,
-                           const hpatch_StreamPos_t writeToPos,
-                           const unsigned char* data,const unsigned char* data_end){
+        static long _write_check(hpatch_TStreamOutputHandle streamHandle,
+                                 const hpatch_StreamPos_t writeToPos,
+                                 const unsigned char* data,const unsigned char* data_end){
             _TCheckOutNewDataStream* self=(_TCheckOutNewDataStream*)streamHandle;
             if (self->writedLen!=writeToPos) return -1;
-            size_t dataLen=(size_t)(data_end-data);
-            self->writedLen+=dataLen;
+            self->writedLen+=(size_t)(data_end-data);
             if (self->writedLen>self->streamSize) return -1;
-            hpatch_StreamPos_t readPos=writeToPos;
-            const unsigned char* check_data=data;
-            while (dataLen>0) {
-                size_t readLen=dataLen;
-                if (readLen>kBufSize) readLen=kBufSize;
+            
+            size_t sumReadedLen=0;
+            while (data<data_end) {
+                hpatch_StreamPos_t readPos=writeToPos+sumReadedLen;
+                size_t readLen=(size_t)(data_end-data);
+                if (readLen>self->bufSize) readLen=self->bufSize;
                 if ((long)readLen!=self->newData->read(self->newData->streamHandle,readPos,
                                                        self->buf,self->buf+readLen)) return -1;
-                if (0!=memcmp(check_data,self->buf,readLen)) return -1;
-                check_data+=readLen;
-                readPos+=readLen;
-                dataLen-=readLen;
+                if (0!=memcmp(data,self->buf,readLen))
+                    return -1;
+                data+=readLen;
+                sumReadedLen+=readLen;
             }
-            return (long)(data_end-data);
+            return (long)sumReadedLen;
         }
-        enum { kBufSize =1024*4 };
-        TByte buf[kBufSize];
         const hpatch_TStreamInput*  newData;
         hpatch_StreamPos_t          writedLen;
+        TByte*                      buf;
+        size_t                      bufSize;
     };
     
-    _TCheckOutNewDataStream out_newData(newData);
-    if (!patch_decompress(&out_newData,oldData,compressed_diff,decompressPlugin))
+    const size_t kACacheBufSize=1024*256;
+    std::vector<TByte> _cache_mem(kACacheBufSize*8);
+    TByte * cache=_cache_mem.data();
+    
+    _TCheckOutNewDataStream out_newData(newData,cache,kACacheBufSize*1);
+    if (!patch_decompress_with_cache(&out_newData,oldData,compressed_diff,decompressPlugin,
+                                     cache+kACacheBufSize*1,cache+kACacheBufSize*8))
         return false;
     if (out_newData.writedLen!=newData->streamSize)
         return false;

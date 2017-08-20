@@ -510,25 +510,26 @@ static hpatch_BOOL _TBytesRle_load_stream_mem_add(_TBytesRle_load_stream* loader
     size_t  decodeSize=*_decodeSize;
     TByte* out_data=*_out_data;
     struct TStreamClip* rleCodeClip=&loader->rleCodeClip;
-
-    while ((loader->memSetLength>0)&&(decodeSize>0)) {
-        size_t memSetStep=decodeSize;
-        if (memSetStep>loader->memSetLength)
-            memSetStep=(size_t)loader->memSetLength;
-        if (out_data){
-            memSet_add(out_data,loader->memSetValue,memSetStep);
+    
+    TUInt memSetLength=loader->memSetLength;
+    if (memSetLength!=0){
+        size_t memSetStep=((memSetLength<=decodeSize)?(size_t)memSetLength:decodeSize);
+        const TByte byteSetValue=loader->memSetValue;
+        if (out_data!=0){
+            if (byteSetValue!=0)
+                memSet_add(out_data,byteSetValue,memSetStep);
             out_data+=memSetStep;
         }
         decodeSize-=memSetStep;
-        loader->memSetLength-=memSetStep;
+        loader->memSetLength=memSetLength-memSetStep;
     }
     while ((loader->memCopyLength>0)&&(decodeSize>0)) {
         TByte* rleData;
         size_t decodeStep=rleCodeClip->cacheEnd;
-        if (decodeStep>decodeSize)
-            decodeStep=decodeSize;
         if (decodeStep>loader->memCopyLength)
             decodeStep=(size_t)loader->memCopyLength;
+        if (decodeStep>decodeSize)
+            decodeStep=decodeSize;
         rleData=_TStreamClip_readData(rleCodeClip,decodeStep);
         if (rleData==0) return _hpatch_FALSE;
         if (out_data){
