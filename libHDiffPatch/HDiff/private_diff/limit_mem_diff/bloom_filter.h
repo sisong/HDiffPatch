@@ -100,7 +100,7 @@ public:
             && m_bitSet.is_hit(hash2(data));
     }
 private:
-    enum { kZoom=24 };
+    enum { kZoom=16 };
     TBitSet   m_bitSet;
     size_t    m_bitSetMask;
     

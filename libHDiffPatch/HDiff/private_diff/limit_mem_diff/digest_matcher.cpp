@@ -31,11 +31,87 @@
 #include <algorithm>  //std::sort,std::equal_range
 
 static  const size_t kMinTrustMatchedLength=16*1024;
+static  const size_t kBestReadSize=1024*256; //for sequence read
+static  const size_t kMinReadSize=1024;      //for random read
+static  const size_t kMinBackupReadSize=256; //assert(kMinBackupReadSize<kMinReadSize)
+
+#define readStream(stream,pos,dst,n) { \
+    if ((long)(n)!=(stream)->read((stream)->streamHandle,pos,dst,dst+(n))) \
+        throw std::runtime_error("TDataDigest stream->read() error!"); }
+
+struct TStreamCache{
+    TStreamCache(const hpatch_TStreamInput* _stream,
+                 unsigned char* _cache,size_t _cacheSize)
+    :stream(_stream),cache(_cache),m_readPos(0),m_readPosEnd(0),
+        cacheSize(_cacheSize),cachePos(_cacheSize){ }
+    inline hpatch_StreamPos_t streamSize()const{ return stream->streamSize; }
+    inline hpatch_StreamPos_t pos()const { return m_readPosEnd-dataLength(); }
+    inline const size_t   dataLength()const{ return (size_t)(cacheSize-cachePos); }
+    inline const unsigned char* data()const { return cache+cachePos; }
+    inline bool resetPos(size_t kBackupCacheSize,hpatch_StreamPos_t streamPos,size_t kMinCacheDataSize){
+        if ((streamPos+kMinCacheDataSize<=m_readPosEnd)&&(streamPos>=m_readPos+kBackupCacheSize)){
+            cachePos=cacheSize-(size_t)(m_readPosEnd-streamPos);
+            return true; //hit cache
+        }
+        return _resetPos_continue(kBackupCacheSize,streamPos,kMinCacheDataSize);
+    }
+protected:
+    inline unsigned char* cachedData(){ return cache+cacheSize-(size_t)(m_readPosEnd-m_readPos); }
+    bool _resetPos_continue(size_t kBackupCacheSize,hpatch_StreamPos_t streamPos,size_t kMinCacheDataSize){
+        //stream:[...     |                |                   |                  |                      |      ...]
+        //             readPos (streamPos-kBackupCacheSize) streamPos (streamPos+kMinCacheDataSize) (readPosEnd)
+        //cache:     [    |                                    |                  |                      ]
+        //           0                                   (init cachePos)                              cacheSize
+        hpatch_StreamPos_t streamSize=stream->streamSize;
+        if (streamPos+kMinCacheDataSize>streamSize) return false;
+        hpatch_StreamPos_t readPos=(streamPos>=kBackupCacheSize)?(streamPos-kBackupCacheSize):0;
+        size_t readLen=((streamSize-readPos)>=cacheSize)?cacheSize:(size_t)(streamSize-readPos);
+        
+        unsigned char* dst=cache+cacheSize-readLen;
+        if ((m_readPosEnd>readPos)&&(m_readPos<=readPos)){
+            size_t moveLen=(size_t)(m_readPosEnd-readPos);
+            memmove(dst,cache+cacheSize-moveLen,moveLen);
+            readStream(stream,readPos+moveLen,dst+moveLen,readLen-moveLen);
+        }else if ((m_readPos<readPos+readLen)&&(m_readPosEnd>=readPos+readLen)){
+            size_t moveLen=(size_t)(readPos+readLen-m_readPos);
+            memmove(dst+readLen-moveLen,cachedData(),moveLen);
+            readStream(stream,readPos,dst,readLen-moveLen);
+        }else{
+            readStream(stream,readPos,dst,readLen);
+        }
+        m_readPos=readPos;
+        m_readPosEnd=readPos+readLen;
+        cachePos=cacheSize-(size_t)(m_readPosEnd-streamPos);
+        return true;
+    }
+private:
+    const hpatch_TStreamInput* stream;
+    unsigned char*             cache;
+protected:
+    hpatch_StreamPos_t         m_readPos;
+    hpatch_StreamPos_t         m_readPosEnd;
+    const size_t               cacheSize;
+    size_t                     cachePos;
+};
 
 template <class T,class Tn>
-inline static T upperCount(T size,Tn nsize){
-    return (size+nsize-1)/nsize;
+inline static T upperCount(T all_size,Tn node_size){ return (all_size+node_size-1)/node_size; }
+
+inline static size_t getBackupSize(size_t kMatchBlockSize) {
+    return (kMatchBlockSize>=kMinBackupReadSize)?kMatchBlockSize:kMinBackupReadSize; }
+
+static hpatch_StreamPos_t getBlockCount(size_t kMatchBlockSize,
+                                        hpatch_StreamPos_t streamSize){
+    return upperCount(streamSize,kMatchBlockSize);
 }
+static hpatch_StreamPos_t blockIndexToPos(size_t index,size_t kMatchBlockSize,
+                                          hpatch_StreamPos_t streamSize){
+    hpatch_StreamPos_t pos=(hpatch_StreamPos_t)index * kMatchBlockSize;
+    if (pos+kMatchBlockSize>streamSize)
+        pos=streamSize-kMatchBlockSize;
+    return pos;
+}
+
 
 TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize)
 :m_oldData(oldData),m_isUseLargeSorted(true),m_kMatchBlockSize(kMatchBlockSize),m_newCacheSize(0){
@@ -43,7 +119,7 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchB
         throw std::runtime_error("TDataDigest() kMatchBlockSize value error.");
     while ((m_kMatchBlockSize>1)&&(m_kMatchBlockSize>=m_oldData->streamSize))
         m_kMatchBlockSize>>=1;
-    hpatch_StreamPos_t _blockCount=upperCount(m_oldData->streamSize,m_kMatchBlockSize);
+    hpatch_StreamPos_t _blockCount=getBlockCount(m_kMatchBlockSize,m_oldData->streamSize);
     if (m_oldData->streamSize<m_kMatchBlockSize) _blockCount=0;
     m_isUseLargeSorted=(_blockCount>=((hpatch_StreamPos_t)1<<32));
     const size_t blockCount=(size_t)_blockCount;
@@ -55,17 +131,11 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchB
     else
         m_sorted_limit.resize(blockCount);
     
-    const size_t kBestReadSize=1024*256;
-    m_newCacheSize=upperCount(m_kMatchBlockSize*3,kBestReadSize)*kBestReadSize; //sequence read
-    const size_t kMinReadSize=1024*4;
-    size_t oldCacheSize=upperCount(m_kMatchBlockSize*2,kMinReadSize)*kMinReadSize; //random read
+    const size_t kBackupSize=getBackupSize(m_kMatchBlockSize);
+    m_newCacheSize=upperCount(m_kMatchBlockSize*2+kBackupSize,kBestReadSize)*kBestReadSize;
+    size_t oldCacheSize=upperCount(m_kMatchBlockSize+kBackupSize,kMinReadSize)*kMinReadSize;
     m_buf.resize(m_newCacheSize+oldCacheSize);
     getDigests();
-}
-
-#define readStream(stream,pos,dst,n) { \
-    if ((long)(n)!=(stream)->read((stream)->streamHandle,pos,dst,dst+(n))) \
-        throw std::runtime_error("TDataDigest stream->read() error!"); \
 }
 
 struct TIndex_comp{
@@ -90,7 +160,7 @@ private:
                      const adler_uint_t* blocks) {
         if (x!=y) {} else{ return false; }
         size_t deep=n-((x>y)?x:y);
-        deep=(deep<kMaxDeep)?deep:kMaxDeep;
+        deep=(deep<=kMaxDeep)?deep:kMaxDeep;
         for (size_t i=0;i<deep;++i){
             adler_uint_t xd=blocks[x++];
             adler_uint_t yd=blocks[y++];
@@ -106,13 +176,11 @@ void TDigestMatcher::getDigests(){
     
     const size_t blockCount=m_blocks.size();
     m_filter.init(blockCount);
-    unsigned char* buf=m_buf.data();
+    TStreamCache streamCache(m_oldData,m_buf.data(),m_buf.size());
     for (size_t i=0; i<blockCount; ++i) {
-        hpatch_StreamPos_t readPos=(hpatch_StreamPos_t)i*m_kMatchBlockSize;
-        if (i==blockCount-1)
-            readPos=m_oldData->streamSize-m_kMatchBlockSize;
-        readStream(m_oldData,readPos,buf,m_kMatchBlockSize);
-        adler_uint_t adler32=adler_roll_start(buf,m_kMatchBlockSize);
+        hpatch_StreamPos_t readPos=blockIndexToPos(i,m_kMatchBlockSize,m_oldData->streamSize);
+        streamCache.resetPos(0,readPos,m_kMatchBlockSize);
+        adler_uint_t adler32=adler_roll_start(streamCache.data(),m_kMatchBlockSize);
         m_filter.insert(adler32);
         m_blocks[i]=adler32;
         if (m_isUseLargeSorted)
@@ -128,69 +196,25 @@ void TDigestMatcher::getDigests(){
         std::sort(m_sorted_limit.begin(),m_sorted_limit.end(),comp);
 }
 
-struct TStreamCache{
-    TStreamCache(const hpatch_TStreamInput* _stream,size_t _kMatchBlockSize,
-               unsigned char* _cache,size_t _cacheSize)
-    :kMatchBlockSize(_kMatchBlockSize),stream(_stream),m_readPos(0),m_readPosEnd(0),
-    cache(_cache),cacheSize(_cacheSize),cachePos(_cacheSize){
-        assert(cacheSize>=2*kMatchBlockSize);
-    }
-    inline hpatch_StreamPos_t streamSize()const{ return stream->streamSize; }
-    
-    inline hpatch_StreamPos_t pos()const {
-        return m_readPosEnd-dataLength();
-    }
+struct TBlockStreamCache:public TStreamCache{
+    TBlockStreamCache(const hpatch_TStreamInput* _stream,unsigned char* _cache,
+                      size_t _cacheSize, size_t _kMatchBlockSize)
+    :TStreamCache(_stream,_cache,_cacheSize),kMatchBlockSize(_kMatchBlockSize){
+        assert(cacheSize>=2*kMatchBlockSize); }
     inline bool resetPos(hpatch_StreamPos_t streamPos){
-        return _resetPos(kMatchBlockSize,streamPos,kMatchBlockSize);
+        return TStreamCache::resetPos(getBackupSize(kMatchBlockSize),streamPos,kMatchBlockSize);
     }
-    inline const size_t   dataLength()const{ return (size_t)(cacheSize-cachePos); }
-    inline const unsigned char* data()const { return cache+cachePos; }
     void toBestDataLength(){
         if (dataLength()*2>=cacheSize) return;
-        bool result=_resetPos_continue(kMatchBlockSize,pos(),kMatchBlockSize);
+        bool result=_resetPos_continue(getBackupSize(kMatchBlockSize),pos(),kMatchBlockSize);
         assert(result);
     }
 private:
-    inline unsigned char* cachedData(){ return cache+cacheSize-(size_t)(m_readPosEnd-m_readPos); }
-    inline bool _resetPos(size_t kBackupCacheSize,hpatch_StreamPos_t streamPos,size_t kMinCacheDataSize){
-        //stream:[      |            |                  |                      |        ]
-        //           readPos     streamPos  (streamPos+kMinCacheDataSize)  (readPosEnd)
-        //cache:   [    |            |                  |                      ]
-        //         0           (init cachePos)                             cacheSize
-        if ((streamPos+kMinCacheDataSize<=m_readPosEnd)&&(streamPos>=m_readPos+kBackupCacheSize)){
-            cachePos=cacheSize-(size_t)(m_readPosEnd-streamPos);
-            return true; //hit cache
-        }
-        return _resetPos_continue(kBackupCacheSize,streamPos,kMinCacheDataSize);
-    }
-    bool _resetPos_continue(size_t kBackupCacheSize,hpatch_StreamPos_t streamPos,size_t kMinCacheDataSize){
-        hpatch_StreamPos_t streamSize=stream->streamSize;
-        if (streamPos+kMinCacheDataSize>streamSize) return false;
-        hpatch_StreamPos_t readPos=(streamPos>=kBackupCacheSize)?(streamPos-kBackupCacheSize):0;
-        size_t readLen=((streamSize-readPos)>=cacheSize)?cacheSize:(size_t)(streamSize-readPos);
-
-        unsigned char* dst=cache+cacheSize-readLen;
-        if ((m_readPosEnd>readPos)&&(m_readPos<=readPos)){
-            size_t moveLen=(size_t)(m_readPosEnd-readPos);
-            memmove(dst,cache+cacheSize-moveLen,moveLen);
-            readStream(stream,readPos+moveLen,dst+moveLen,readLen-moveLen);
-        }else if ((m_readPos<readPos+readLen)&&(m_readPosEnd>=readPos+readLen)){
-            size_t moveLen=(size_t)(readPos+readLen-m_readPos);
-            memmove(dst+readLen-moveLen,cachedData(),moveLen);
-            readStream(stream,readPos,dst,readLen-moveLen);
-        }else{
-            readStream(stream,readPos,dst,readLen);
-        }
-        m_readPos=readPos;
-        m_readPosEnd=readPos+readLen;
-        cachePos=cacheSize-(size_t)(m_readPosEnd-streamPos);
-        return true;
-    }
     inline bool _roll_backward_cache(size_t skipLen,size_t needDataSize){
-        return _resetPos(0,pos()+skipLen,needDataSize);
+        return TStreamCache::resetPos(0,pos()+skipLen,needDataSize);
     }
 public:
-    size_t forward_equal_length(const TStreamCache& y)const{
+    size_t forward_equal_length(const TBlockStreamCache& y)const{
         size_t y_len=(size_t)(y.pos()-y.m_readPos);
         size_t len=(size_t)(pos()-m_readPos);
         len=(len<y_len)?len:y_len;
@@ -202,7 +226,7 @@ public:
         }
         return i;
     }
-    hpatch_StreamPos_t roll_backward_equal_length(TStreamCache& y){
+    hpatch_StreamPos_t roll_backward_equal_length(TBlockStreamCache& y){
         if (!_roll_backward_cache(kMatchBlockSize,1)) return 0;
         if (!y._roll_backward_cache(kMatchBlockSize,1)) return 0;
         hpatch_StreamPos_t eq_len=0;
@@ -228,35 +252,26 @@ public:
         }
         return eq_len;
     }
-    
 public:
     const size_t               kMatchBlockSize;
-private:
-    const hpatch_TStreamInput* stream;
-    hpatch_StreamPos_t         m_readPos;
-    hpatch_StreamPos_t         m_readPosEnd;
-    unsigned char*  cache;
-    const size_t    cacheSize;
-protected:
-    size_t          cachePos;
 };
 
-struct TOldStreamCache:public TStreamCache{
-    TOldStreamCache(const hpatch_TStreamInput* _stream,size_t _kMatchBlockSize,
-                    unsigned char* _cache,size_t _cacheSize)
-    :TStreamCache(_stream,_kMatchBlockSize,_cache,_cacheSize){ }
+struct TOldStreamCache:public TBlockStreamCache{
+    TOldStreamCache(const hpatch_TStreamInput* _stream,unsigned char* _cache,
+                    size_t _cacheSize,size_t _kMatchBlockSize)
+    :TBlockStreamCache(_stream,_cache,_cacheSize,_kMatchBlockSize){ }
 };
 
-struct TNewStreamCache:public TStreamCache{
-    TNewStreamCache(const hpatch_TStreamInput* _stream,size_t _kMatchBlockSize,
-               unsigned char* _cache,size_t _cacheSize)
-    :TStreamCache(_stream,_kMatchBlockSize,_cache,_cacheSize),
+struct TNewStreamCache:public TBlockStreamCache{
+    TNewStreamCache(const hpatch_TStreamInput* _stream,unsigned char* _cache,
+                    size_t _cacheSize,size_t _kMatchBlockSize)
+    :TBlockStreamCache(_stream,_cache,_cacheSize,_kMatchBlockSize),
     kBlockSizeBM(adler_roll_kBlockSizeBM((adler_uint_t)_kMatchBlockSize)){
         resetPos(0);
     }
     
     inline bool resetPos(hpatch_StreamPos_t oldPos){
-        if (!TStreamCache::resetPos(oldPos)) return false;
+        if (!TBlockStreamCache::resetPos(oldPos)) return false;
         roll_digest=adler_roll_start(data(),kMatchBlockSize);
         return true;
     }
@@ -269,7 +284,7 @@ struct TNewStreamCache:public TStreamCache{
             ++cachePos;
             return true;
         }else{
-            if (!TStreamCache::resetPos(pos()+1)) return false;
+            if (!TBlockStreamCache::resetPos(pos()+1)) return false;
             --cachePos;
             return roll();
         }
@@ -360,9 +375,8 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     bool isMatched=false;
     hpatch_StreamPos_t  bestLen=0;
     for (const TIndex* cur_pi=best; cur_pi!=0; ) {
-        size_t cur_i=(*cur_pi);
-        const hpatch_StreamPos_t oldPos=(cur_i+1<blocksSize)?((hpatch_StreamPos_t)cur_i*kMatchBlockSize):
-                                                              (oldStream.streamSize()-kMatchBlockSize);
+        const hpatch_StreamPos_t oldPos=blockIndexToPos(*cur_pi,kMatchBlockSize,
+                                                        oldStream.streamSize());
         if ((oldStream.resetPos(oldPos))&&(0==memcmp(oldStream.data(),newStream.data(),
                                                      kMatchBlockSize))){
             size_t feq_len=oldStream.forward_equal_length(newStream);
@@ -391,7 +405,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
             cur_pi=0;
         }
         if (cur_pi)
-            newStream.TStreamCache::resetPos(newPos);
+            newStream.TBlockStreamCache::resetPos(newPos);
     }
     return isMatched;
 }
@@ -448,8 +462,8 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
 void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,TCovers* out_covers){
     if (m_blocks.empty()) return;
     if (newData->streamSize<m_kMatchBlockSize) return;
-    TNewStreamCache newStream(newData,m_kMatchBlockSize,&m_buf[0],m_newCacheSize);
-    TOldStreamCache oldStream(m_oldData,m_kMatchBlockSize,&m_buf[m_newCacheSize],m_buf.size()-m_newCacheSize);
+    TNewStreamCache newStream(newData,&m_buf[0],m_newCacheSize,m_kMatchBlockSize);
+    TOldStreamCache oldStream(m_oldData,&m_buf[m_newCacheSize],m_buf.size()-m_newCacheSize,m_kMatchBlockSize);
     if (m_isUseLargeSorted)
         tm_search_cover(&m_blocks[0],m_blocks.size(),&m_sorted_larger[0],&m_sorted_larger[0]+m_blocks.size(),
                         oldStream,newStream,m_filter,out_covers);

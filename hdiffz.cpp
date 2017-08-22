@@ -39,8 +39,11 @@
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char   TByte;
 
-#define _IS_USE_FILE_STREAM_LIMIT_MEMORY //ON: memroy requires less, faster, but out diff size larger
+//#define _IS_USE_FILE_STREAM_LIMIT_MEMORY //ON: memroy requires less, faster, but out diff size larger
 
+#ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
+static size_t kMatchBlockSize=kMatchBlockSize_default;
+#endif
 //===== select compress plugin =====
 //#define _CompressPlugin_no
 //#define _CompressPlugin_zlib
@@ -173,8 +176,8 @@ int main(int argc, const char * argv[]){
     std::cout<<"oldDataSize : "<<oldData.base.streamSize<<"\nnewDataSize : "<<newData.base.streamSize<<"\n";
     time1=clock_s();
     try{
-        create_compressed_diff_stream(&newData.base,&oldData.base,
-                                      &diffData.base,compressStreamPlugin);
+        create_compressed_diff_stream(&newData.base,&oldData.base, &diffData.base,
+                                      compressStreamPlugin,kMatchBlockSize);
         diffData.base.streamSize=diffData.out_length;
     }catch(const std::exception& e){
         _error_return(e.what());
