@@ -3,6 +3,9 @@ HDIFF_OBJ := \
     libHDiffPatch/HDiff/private_diff/bytes_rle.o \
     libHDiffPatch/HDiff/private_diff/suffix_string.o \
     libHDiffPatch/HDiff/private_diff/compress_detect.o \
+    libHDiffPatch/HDiff/private_diff/limit_mem_diff/digest_matcher.o \
+    libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.o \
+    libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.o
 

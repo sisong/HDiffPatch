@@ -35,16 +35,6 @@ namespace {
     typedef unsigned char TByte;
     typedef size_t TUInt;
 
-    //数据用rle压缩后的包类型2bit
-    typedef enum TByteRleType{
-        kByteRleType_rle0  = 0,    //00表示后面存的压缩0;    (包中不需要字节数据)
-        kByteRleType_rle255= 1,    //01表示后面存的压缩255;  (包中不需要字节数据)
-        kByteRleType_rle   = 2,    //10表示后面存的压缩数据;  (包中字节数据只需储存一个字节数据)
-        kByteRleType_unrle = 3     //11表示后面存的未压缩数据;(包中连续储存多个字节数据)
-    } TByteRleType;
-
-    static const int kByteRleType_bit=2;
-
     static void rle_pushSame(std::vector<TByte>& out_ctrl,std::vector<TByte>& out_code,
                              TByte cur,TUInt count){
         assert(count>0);

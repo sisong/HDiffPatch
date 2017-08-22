@@ -89,7 +89,7 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
 
 #define _error_return(info){ \
     if (strlen(info)>0)      \
-        printf("%s",(info)); \
+        printf("\n  %s\n",(info)); \
     exitCode=1; \
     goto clear; \
 }
@@ -97,7 +97,7 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
 #define _check_error(is_error,errorInfo){ \
     if (is_error){  \
         exitCode=1; \
-        printf("%s",(errorInfo)); \
+        printf("\n  %s\n",(errorInfo)); \
     } \
 }
 
@@ -140,26 +140,26 @@ int main(int argc, const char * argv[]){
         printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,diffFileName,outNewFileName);
 #ifdef _IS_USE_OLD_FILE_STREAM
         if (!TFileStreamInput_open(&oldData,oldFileName))
-            _error_return("\nopen oldFile for read error!\n");
+            _error_return("open oldFile for read error!");
 #else
         if (!readFileAll(&poldData_mem,&oldDataSize,oldFileName))
-            _error_return("\nopen read oldFile error!\n");
+            _error_return("open read oldFile error!");
         mem_as_hStreamInput(&oldData,poldData_mem,poldData_mem+oldDataSize);
 #endif
         if (!TFileStreamInput_open(&diffData,diffFileName))
-            _error_return("\nopen diffFile error!\n");
+            _error_return("open diffFile error!");
         //read savedNewSize
         if (kNewDataSizeSavedSize>diffData.base.streamSize)
             kNewDataSizeSavedSize=(int)diffData.base.streamSize;
         if (kNewDataSizeSavedSize!=diffData.base.read(diffData.base.streamHandle,0,
                                                       buf,buf+kNewDataSizeSavedSize))
-            _error_return("\nread savedNewSize error!\n");
+            _error_return("read savedNewSize error!");
         kNewDataSizeSavedSize=readSavedSize(buf,kNewDataSizeSavedSize,&savedNewSize);
-        if (kNewDataSizeSavedSize<=0) _error_return("\nread savedNewSize error!\n");
+        if (kNewDataSizeSavedSize<=0) _error_return("read savedNewSize error!");
         TFileStreamInput_setOffset(&diffData,kNewDataSizeSavedSize);
         
         if (!TFileStreamOutput_open(&newData, outNewFileName,savedNewSize))
-            _error_return("\nopen out newFile error!\n");
+            _error_return("open out newFile error!");
     }
     printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
@@ -167,19 +167,19 @@ int main(int argc, const char * argv[]){
     time1=clock_s();
 #ifdef _IS_USE_PATCH_CACHE
     temp_cache=(TByte*)malloc(k_patch_cache_size);
-    if (!temp_cache) _error_return("\nalloc cache memory error!\n");
+    if (!temp_cache) _error_return("alloc cache memory error!");
     if (!patch_stream_with_cache(&newData.base,poldData,&diffData.base,
                                  temp_cache,temp_cache+k_patch_cache_size)){
-        const char* kRunErrInfo="\npatch_with_cache() run error!\n";
+        const char* kRunErrInfo="patch_with_cache() run error!";
 #else
     if (!patch_stream(&newData.base,poldData,&diffData.base)){
-        const char* kRunErrInfo="\npatch_stream() run error!\n";
+        const char* kRunErrInfo="patch_stream() run error!";
 #endif
 #ifdef _IS_USE_OLD_FILE_STREAM
-        _check_error(oldData.fileError,"\noldFile read error!\n");
+        _check_error(oldData.fileError,"oldFile read error!");
 #endif
-        _check_error(diffData.fileError,"\ndiffFile read error!\n");
-        _check_error(newData.fileError,"\nout newFile write error!\n");
+        _check_error(diffData.fileError,"diffFile read error!");
+        _check_error(newData.fileError,"out newFile write error!");
         _error_return(kRunErrInfo);
     }
     if (newData.out_length!=newData.base.streamSize){
@@ -192,10 +192,10 @@ int main(int argc, const char * argv[]){
     printf("\npatch   time: %.3f s\n",(time2-time1));
     
 clear:
-    _check_error(!TFileStreamOutput_close(&newData),"\nout newFile close error!\n");
-    _check_error(!TFileStreamInput_close(&diffData),"\ndiffFile close error!\n");
+    _check_error(!TFileStreamOutput_close(&newData),"out newFile close error!");
+    _check_error(!TFileStreamInput_close(&diffData),"diffFile close error!");
 #ifdef _IS_USE_OLD_FILE_STREAM
-    _check_error(!TFileStreamInput_close(&oldData),"\noldFile close error!\n");
+    _check_error(!TFileStreamInput_close(&oldData),"oldFile close error!");
 #else
     _free_mem(poldData_mem);
 #endif

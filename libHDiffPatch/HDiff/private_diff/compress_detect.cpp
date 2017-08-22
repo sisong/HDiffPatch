@@ -122,12 +122,12 @@ size_t TCompressDetect::_cost_rle(const unsigned char* d,size_t n)const{
     return (codeSize+((kCompressDetectDivBit>>1)+1))/kCompressDetectDivBit;
 }
 
-static const size_t kBufSize=1024;
+static const size_t _kBufSize=1024;
 #define by_step(call)     \
     size_t rleCtrlCost=0; \
-    unsigned char rcode[kBufSize];  \
+    unsigned char rcode[_kBufSize]; \
     while (n>0) {         \
-        size_t readLen=kBufSize;    \
+        size_t readLen=_kBufSize;   \
         if (readLen>n) readLen=n;   \
         size_t rcodeLen=readLen;\
         rleCtrlCost+=getRegionRelCost(d,readLen,sub,rcode,&rcodeLen);\

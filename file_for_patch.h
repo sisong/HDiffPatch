@@ -78,8 +78,6 @@ static hpatch_BOOL fileRead(FILE* file,TByte* buf,TByte* buf_end){
     return buf==buf_end;
 }
 
-#ifndef _IS_USE_OLD_FILE_STREAM
-
 #define _file_error(fileHandle){ \
     if (fileHandle) _close_file(&fileHandle); \
     return hpatch_FALSE; \
@@ -104,7 +102,6 @@ hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileN
     if (!fileRead(file,*out_pdata,(*out_pdata)+dataSize)) _file_error(file);
     return _close_file(&file);
 }
-#endif
 
 typedef struct TFileStreamInput{
     hpatch_TStreamInput base;
@@ -167,9 +164,10 @@ static hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self){
 typedef struct TFileStreamOutput{
     hpatch_TStreamOutput base;
     FILE*               m_file;
+    hpatch_StreamPos_t  out_pos;
     hpatch_StreamPos_t  out_length;
     hpatch_BOOL         fileError;
-    hpatch_BOOL         is_repeat_out;
+    hpatch_BOOL         is_random_out;
 } TFileStreamOutput;
 
 static void TFileStreamOutput_init(TFileStreamOutput* self){
@@ -180,45 +178,47 @@ static void TFileStreamOutput_init(TFileStreamOutput* self){
                             const TByte* data,const TByte* data_end){
         unsigned long writeLen,writed;
         TFileStreamOutput* self=(TFileStreamOutput*)streamHandle;
-        assert(data<=data_end);
-        if (writeToPos!=self->out_length){
-            if (self->is_repeat_out&&(writeToPos==0)
-                &&(self->out_length==self->base.streamSize)){//rewrite
-                if (!fileSeek64(self->m_file,0,SEEK_SET)) _fileError_return;
-                self->out_length=0;
+        assert(data<data_end);
+        writeLen=(unsigned long)(data_end-data);
+        if ((writeToPos+writeLen<writeToPos)
+            ||(writeToPos+writeLen>self->base.streamSize)) _fileError_return;
+        if (writeToPos!=self->out_pos){
+            if (self->is_random_out){
+                if (!fileSeek64(self->m_file,writeToPos,SEEK_SET)) _fileError_return;
+                self->out_pos=writeToPos;
             }else{
                 _fileError_return;
             }
         }
-        writeLen=(unsigned long)(data_end-data);
-        if ((writeToPos+writeLen<writeToPos)
-            ||(writeToPos+writeLen>self->base.streamSize)) _fileError_return;
         writed=(unsigned long)fwrite(data,1,writeLen,self->m_file);
         if (writed!=writeLen)  _fileError_return;
-        self->out_length+=writed;
-        if ((self->out_length==self->base.streamSize)&&(self->is_repeat_out)){
-            if (0!=fflush(self->m_file)) _fileError_return;
-        }
+        self->out_pos=writeToPos+writed;
+        self->out_length=(self->out_length>=self->out_pos)?self->out_length:self->out_pos;
         return (long)writed;
     }
 static hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName,
-                                          hpatch_StreamPos_t file_length){
+                                          hpatch_StreamPos_t max_file_length){
     assert(self->m_file==0);
     if (self->m_file) return hpatch_FALSE;
     
     self->m_file=fopen(fileName, "wb");
     if (self->m_file==0) return hpatch_FALSE;
     self->base.streamHandle=self;
-    self->base.streamSize=file_length;
+    self->base.streamSize=max_file_length;
     self->base.write=_write_file;
+    self->out_pos=0;
     self->out_length=0;
-    self->is_repeat_out=hpatch_FALSE;
+    self->is_random_out=hpatch_FALSE;
     self->fileError=hpatch_FALSE;
     return hpatch_TRUE;
 }
 
-void TFileStreamOutput_setRepeatOut(TFileStreamOutput* self,hpatch_BOOL is_repeat_out){
-    self->is_repeat_out=is_repeat_out;
+void TFileStreamOutput_setRandomOut(TFileStreamOutput* self,hpatch_BOOL is_random_out){
+    self->is_random_out=is_random_out;
+}
+
+hpatch_BOOL TFileStreamOutput_flush(TFileStreamOutput* self){
+    return (0!=fflush(self->m_file));
 }
 
 static hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self){

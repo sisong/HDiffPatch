@@ -35,7 +35,9 @@
 static const int kMinSingleMatchScore_default = 6;
 
 //create a diff data between oldData and newData
-//  out_diff is uncompressed, you can use create_compressed_diff() create compressed diff data
+//  out_diff is uncompressed, you can use create_compressed_diff()
+//       or create_compressed_diff_stream() create compressed diff data
+//  recommended always use create_compressed_diff() replace create_diff()
 //  kMinSingleMatchScore: default 6, bin: 0--4  text: 4--9
 void create_diff(const unsigned char* newData,const unsigned char* newData_end,
                  const unsigned char* oldData,const unsigned char* oldData_end,
@@ -47,6 +49,10 @@ bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
                 const unsigned char* oldData,const unsigned char* oldData_end,
                 const unsigned char* diff,const unsigned char* diff_end);
 
+//NOTE:
+// when your diff running environment resources are very limited,
+//  you can call create_compressed_diff_stream() with different kMatchBlockSize
+//      to achieve the balance between memory usage and speed and diff size!
 
 #ifdef __cplusplus
 extern "C"
@@ -59,13 +65,11 @@ extern "C"
         const char*  (*compressType)(const hdiff_TCompress* compressPlugin);
         //return the max compressed size, if input dataSize data;
         size_t  (*maxCompressedSize)(const hdiff_TCompress* compressPlugin,size_t dataSize);
-        //compress data to out_code; return compressed size, error or not need compress return 0.
+        //compress data to out_code; return compressed size, if error or not need compress then return 0;
         size_t           (*compress)(const hdiff_TCompress* compressPlugin,
                                      unsigned char* out_code,unsigned char* out_code_end,
                                      const unsigned char* data,const unsigned char* data_end);
     } hdiff_TCompress;
-    
-    #define  hdiff_kNocompressPlugin ((const hdiff_TCompress*)0)  //compress plugin,but no compress.
     
 #ifdef __cplusplus
 }
@@ -77,12 +81,58 @@ extern "C"
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                             const unsigned char* oldData,const unsigned char* oldData_end,
                             std::vector<unsigned char>& out_diff,
-                            const hdiff_TCompress* compressPlugin,
+                            const hdiff_TCompress* compressPlugin=0,
                             int kMinSingleMatchScore=kMinSingleMatchScore_default);
 //return patch_decompress(oldData+diff)==newData?
 bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                            const unsigned char* oldData,const unsigned char* oldData_end,
                            const unsigned char* diff,const unsigned char* diff_end,
                            hpatch_TDecompress* decompressPlugin);
+
+//see check_compressed_diff
+bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
+                                  const hpatch_TStreamInput*  oldData,
+                                  const hpatch_TStreamInput*  compressed_diff,
+                                  hpatch_TDecompress* decompressPlugin);
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+typedef void*  hdiff_compressHandle;
+typedef hpatch_TStreamOutput hdiff_TStreamOutput;
+typedef hpatch_TStreamInput  hdiff_TStreamInput;
+#define hdiff_kStreamOutputCancel 0
+//stream compress plugin
+typedef struct hdiff_TStreamCompress{
+    //return type tag; strlen(result)<=hpatch_kMaxCompressTypeLength;（Note:result lifetime）
+    const char*           (*compressType)(const hdiff_TStreamCompress* compressPlugin);
+    
+    //compress data to out_code; return compressed size, if error or not need compress then return 0;
+    //if out_code->write() return hdiff_stream_kCancelCompress then return 0;
+    hpatch_StreamPos_t (*compress_stream)(const hdiff_TStreamCompress* compressPlugin,
+                                          const hdiff_TStreamOutput*   out_code,
+                                          const hdiff_TStreamInput*    in_data);
+} hdiff_TStreamCompress;
+
+#ifdef __cplusplus
+}
+#endif
+
+//diff by stream:
+//  can control memory requires and run speed by different kMatchBlockSize value,
+//      but out_diff size is larger than create_compressed_diff()
+//  recommended used in limited environment
+//  kMatchBlockSize: in [1<<3..1<<24], recommended (1<<4)--(1<<12)
+//    if kMatchBlockSize decrease then out_diff size decrease, but slower and memory requires more
+//  NOTICE: out_diff->write()'s writeToPos may be back to update headData!
+//  throw std::runtime_error when I/O error,etc.
+static const int kMatchBlockSize_default = (1<<7);
+void create_compressed_diff_stream(const hpatch_TStreamInput* newData,
+                                   const hpatch_TStreamInput* oldData,
+                                   hpatch_TStreamOutput*      out_diff,
+                                   hdiff_TStreamCompress* compressPlugin=0,
+                                   size_t kMatchBlockSize=kMatchBlockSize_default);
 
 #endif

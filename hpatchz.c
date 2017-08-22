@@ -81,7 +81,7 @@
 
 #define _error_return(info){ \
     if (strlen(info)>0)      \
-        printf("%s",(info)); \
+        printf("\n  %s\n",(info)); \
     exitCode=1; \
     goto clear; \
 }
@@ -89,7 +89,7 @@
 #define _check_error(is_error,errorInfo){ \
     if (is_error){  \
         exitCode=1; \
-        printf("%s",(errorInfo)); \
+        printf("\n  %s\n",(errorInfo)); \
     } \
 }
 
@@ -136,17 +136,17 @@ int main(int argc, const char * argv[]){
         printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,diffFileName,outNewFileName);
 #ifdef _IS_USE_OLD_FILE_STREAM
         if (!TFileStreamInput_open(&oldData,oldFileName))
-            _error_return("\nopen oldFile for read error!\n");
+            _error_return("open oldFile for read error!");
 #else
         if (!readFileAll(&poldData_mem,&oldDataSize,oldFileName))
-            _error_return("\nopen read oldFile error!\n");
+            _error_return("open read oldFile error!");
         mem_as_hStreamInput(&oldData,poldData_mem,poldData_mem+oldDataSize);
 #endif
         if (!TFileStreamInput_open(&diffData,diffFileName))
-            _error_return("\nopen diffFile for read error!\n");
+            _error_return("open diffFile for read error!");
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
-            _check_error(diffData.fileError,"\ndiffFile read error!\n");
-            _error_return("\ngetCompressedDiffInfo() run error! in HDiffZ file?\n");
+            _check_error(diffData.fileError,"diffFile read error!");
+            _error_return("getCompressedDiffInfo() run error! in HDiffZ file?");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
             printf("\nerror! oldFile dataSize %" PRId64 " != saved oldDataSize %" PRId64 "\n",
@@ -175,7 +175,7 @@ int main(int argc, const char * argv[]){
             }else{
                 if (strlen(diffInfo.compressType)>0)
                     printf("  diffFile added useless compress tag \"%s\"\n",diffInfo.compressType);
-                decompressPlugin=hpatch_kNodecompressPlugin;
+                decompressPlugin=0;
             }
         }else{
             printf("  HPatchZ used decompress tag \"%s\" (need decompress %d)\n",
@@ -183,11 +183,11 @@ int main(int argc, const char * argv[]){
         }
         
         if (!TFileStreamOutput_open(&newData, outNewFileName,diffInfo.newDataSize))
-            _error_return("\nopen out newFile for write error!\n");
+            _error_return("open out newFile for write error!");
 #ifdef _IS_USE_PATCH_REPEAT_OUT
         TFileStreamOutput_setRepeatOut(&newData,hpatch_TRUE);
         if (!TFileStreamInput_open(&readNewData,outNewFileName))
-            _error_return("\nopen newFile for read error!\n");
+            _error_return("open newFile for read error!");
 #endif
     }
     printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
@@ -200,21 +200,21 @@ int main(int argc, const char * argv[]){
         const char* kRunErrInfo="\npatch_decompress_repeat_out() run error!\n";
 #elif defined(_IS_USE_PATCH_CACHE)
     temp_cache=(TByte*)malloc(k_patch_cache_size);
-    if (!temp_cache) _error_return("\nalloc cache memory error!\n");
+    if (!temp_cache) _error_return("alloc cache memory error!");
     if (!patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
                                      temp_cache,temp_cache+k_patch_cache_size)){
-        const char* kRunErrInfo="\npatch_decompress_with_cache() run error!\n";
+        const char* kRunErrInfo="patch_decompress_with_cache() run error!";
 #else
     if (!patch_decompress(&newData.base,poldData,&diffData.base,decompressPlugin)){
-        const char* kRunErrInfo="\npatch_decompress() run error!\n";
+        const char* kRunErrInfo="patch_decompress() run error!";
 #endif
 #ifdef _IS_USE_OLD_FILE_STREAM
-        _check_error(oldData.fileError,"\noldFile read error!\n");
+        _check_error(oldData.fileError,"oldFile read error!");
 #endif
-        _check_error(diffData.fileError,"\ndiffFile read error!\n");
-        _check_error(newData.fileError,"\nout newFile write error!\n");
+        _check_error(diffData.fileError,"diffFile read error!");
+        _check_error(newData.fileError,"out newFile write error!");
 #ifdef _IS_USE_PATCH_REPEAT_OUT
-        _check_error(readNewData.fileError,"\nnewFile read error!\n");
+        _check_error(readNewData.fileError,"newFile read error!");
 #endif
         _error_return(kRunErrInfo);
     }
@@ -228,10 +228,10 @@ int main(int argc, const char * argv[]){
     printf("\nHPatchZ time: %.3f s\n",(time2-time1));
     
 clear:
-    _check_error(!TFileStreamOutput_close(&newData),"\nout newFile close error!\n");
-    _check_error(!TFileStreamInput_close(&diffData),"\ndiffFile close error!\n");
+    _check_error(!TFileStreamOutput_close(&newData),"out newFile close error!");
+    _check_error(!TFileStreamInput_close(&diffData),"diffFile close error!");
 #ifdef _IS_USE_OLD_FILE_STREAM
-    _check_error(!TFileStreamInput_close(&oldData),"\noldFile close error!\n");
+    _check_error(!TFileStreamInput_close(&oldData),"oldFile close error!");
 #else
     _free_mem(poldData_mem);
 #endif
@@ -239,7 +239,7 @@ clear:
     _free_mem(temp_cache);
 #endif
 #ifdef _IS_USE_PATCH_REPEAT_OUT
-    _check_error(!TFileStreamInput_close(&readNewData),"\nread newFile close error!\n");
+    _check_error(!TFileStreamInput_close(&readNewData),"read newFile close error!");
 #endif
     time3=clock_s();
     printf("all run time: %.3f s\n",(time3-time0));
