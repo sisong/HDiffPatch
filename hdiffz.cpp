@@ -48,7 +48,8 @@ static size_t kMatchBlockSize=kMatchBlockSize_default;
 //#define _CompressPlugin_no
 //#define _CompressPlugin_zlib
 #define _CompressPlugin_bz2
-//#define _CompressPlugin_lzma
+//#define _CompressPlugin_lzma // better compresser
+//#define _CompressPlugin_lz4  // faster compresser
 
 
 #ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
@@ -137,6 +138,11 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
     hdiff_TCompress* compressPlugin=&lzmaCompressPlugin;
     hpatch_TDecompress* decompressPlugin=&lzmaDecompressPlugin;
 #endif
+#ifdef  _CompressPlugin_lz4
+    hdiff_TStreamCompress* compressStreamPlugin=&lz4StreamCompressPlugin;
+    hdiff_TCompress* compressPlugin=&lz4CompressPlugin;
+    hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
+#endif
 
 int main(int argc, const char * argv[]){
     double time0=clock_s();
@@ -186,12 +192,12 @@ int main(int argc, const char * argv[]){
     
     //check diff
     _check_error(!TFileStreamOutput_close(&diffData),"out diffFile close error!");
+        std::cout<<"diffDataSize: "<<diffData.base.streamSize<<"\n";
     if (!TFileStreamInput_open(&diffData_in,outDiffFileName)) _error_return("open check diffFile error!");
     if (!check_compressed_diff_stream(&newData.base,&oldData.base,
                                       &diffData_in.base,decompressPlugin)){
         _error_return("patch check HDiffZ data error!!!");
     }else{
-        std::cout<<"diffDataSize: "<<diffData.base.streamSize<<"\n";
         std::cout<<"  patch check HDiffZ data ok!\n";
     }
 clear:
@@ -215,12 +221,12 @@ clear:
     create_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
                            diffData,compressPlugin);
     double time2=clock_s();
+    std::cout<<"diffDataSize: "<<diffData.size()<<"\n";
     if (!check_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
                                diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
         std::cout<<"\n  patch check HDiffZ data error!!!\n";
         exit(1);
     }else{
-        std::cout<<"diffDataSize: "<<diffData.size()<<"\n";
         std::cout<<"  patch check HDiffZ data ok!\n";
     }
     writeFile(diffData,outDiffFileName);

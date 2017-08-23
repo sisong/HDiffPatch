@@ -1,6 +1,6 @@
 **HDiffPatch**
 ================
-Version 2.1.0   
+Version 2.1.1   
 byte data Diff & Patch  C\C++ library.  
 
 ---
@@ -20,20 +20,21 @@ uses:
 ---
 *  **HPatch:**  **patch()** runs in O(oldSize+newSize) time , and requires oldSize+newSize+O(1) bytes of memory. (oldSize and newSize \<2^63 Byte);     
      **patch_stream()**, min requires O(1) bytes of memory;   
-     **patch_decompress()** min requires (4*decompress stream memory)+O(1) bytes.   
+     **patch_decompress()** min requires 4\*(decompress stream memory)+O(1) bytes.   
             
    **HDiff:**  **create_diff()**/**create_compressed_diff()** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory;  
-   **create_compressed_diff_stream()** min requires (oldSize*16/kMatchBlockSize+kMatchBlockSize*5)+O(1) bytes of memory.
+   **create_compressed_diff_stream()** min requires (oldSize\*16/kMatchBlockSize+kMatchBlockSize\*5)+O(1) bytes of memory.
   
 ---
-*  **HDiffPatch vs  BsDiff4.3 & xdelta3.1 : **   
+*  **HDiffPatch vs  BsDiff4.3 & xdelta3.1:**  
 system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
    (purge file cache before every test)
 ```
-HDiff2.0 diff used create_compressed_diff() + bzip2 | lzma | zlib , all data in memory
-         patch used patch_decompress() + load oldFile data into memory
-BsDiff4.3 with bzip2 and all data in memory
-(when compiling BsDiff4.3-x64, suffix string index type int64 changed to int32, faster and memroy requires to be halved)   
+HDiff2.0 diff used create_compressed_diff() + bzip2 | lzma | zlib , all data in memory;
+         patch used patch_decompress() + load oldFile data into memory.
+BsDiff4.3 with bzip2 and all data in memory;
+(when compiling BsDiff4.3-x64, suffix string index type int64 changed to int32, 
+   faster and memroy requires to be halved.)   
 =======================================================================================================
          Program               Uncompressed Compressed Compressed BsDiff4.3          HDiff2.0
 (newVersion<--oldVersion)           (tar)     (bzip2)    (lzma)    (bzip2)   (bzip2    lzma      zlib)
@@ -67,11 +68,12 @@ Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      1
 =======================================================================================================
 
 
-HDiff2.1 diff used create_compressed_diff_stream() + bzip2 , kMatchBlockSize=128
-         patch used patch_decompress();   all use file stream
+HDiff2.1 diff used create_compressed_diff_stream() + bzip2 , kMatchBlockSize=128, all use file stream;
+         patch used patch_decompress(), all use file stream.
 xdelta3.1 diff run by: -e -s old_file new_file delta_file   
          patch run by: -d -s old_file delta_file decoded_new_file
-(note: xdelta3.1 diff "gcc-src..." unusual, add -B 530000000 diff ok, out 14173073Byte and used 1070MB memory)
+(note fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
+    out 14173073B and used 1070MB memory.)
 =======================================================================================================
    Program              diff       run time(Second)  memory(MB)    patch run time(Second) memory(MB)
                   xdelta3   HDiff    xdelta3 HDiff  xdelta3 HDiff   xdelta3 HPatch2.0   xdelta3 HPatch
@@ -83,8 +85,10 @@ Firefox...      28451567  27510882    16     11       225    17       2.0     4.
 emacs...        31655323  12067133    19      8.8     220    18       3.2     4.0          97    10
 eclipse          1590860   1637038     1.5    1.2     207    17       0.46    0.49         77     8 
 gcc-src...     107003829  12439052    56     19       224    48       9.7     9.5         102    11 
+           (fix 14173073)
 -------------------------------------------------------------------------------------------------------
-Average           12.18%     7.84%    100%   78.4%   100%   11.1%    100%    169.1%       100%  18.9%
+Average           12.18%    7.84%     100%  78.4%     100%  11.1%      100%  169.1%       100%  18.9%
+              (fix 9.78%)
 =======================================================================================================
 ```
   
