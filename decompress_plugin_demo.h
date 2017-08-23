@@ -421,7 +421,7 @@
                 int codeLen;
                 _lz4_read_len4(codeLen,self->codeStream,self->code_begin,self->code_end);
                 if ((codeLen<=0)||(codeLen>self->code_buf_size)
-                    ||(codeLen>(self->code_end-self->code_begin))) return 0;
+                    ||((size_t)codeLen>(self->code_end-self->code_begin))) return 0;
                 if (codeLen!=self->codeStream->read(self->codeStream->streamHandle,self->code_begin,
                                                     code_buf,code_buf+codeLen)) return 0;
                 self->code_begin+=codeLen;
@@ -436,6 +436,6 @@
     }
     static hpatch_TDecompress lz4DecompressPlugin={_lz4_is_can_open,_lz4_open,
                                                    _lz4_close,_lz4_decompress_part};
-#endif
+#endif//_CompressPlugin_lz4
 
 #endif

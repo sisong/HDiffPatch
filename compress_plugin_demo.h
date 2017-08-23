@@ -140,7 +140,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
                     if (readLen==0){
                         is_eof=1;
                     }else{
-                        if (readLen!=in_data->read(in_data->streamHandle,readFromPos,data_buf,data_buf+readLen))
+                        if ((long)readLen!=in_data->read(in_data->streamHandle,readFromPos,data_buf,data_buf+readLen))
                             _compress_error_return("in_data->read()");
                         readFromPos+=readLen;
                         s.next_in=data_buf;
@@ -274,7 +274,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
             long writeResult=self->out_code->write(self->out_code->streamHandle,self->writeToPos,
                                                    pdata,pdata+size);
             self->isCanceled=(writeResult==hdiff_kStreamOutputCancel);
-            if (size!=writeResult) return 0;
+            if ((long)size!=writeResult) return 0;
         }
         self->writeToPos+=size;
         return size;
@@ -291,8 +291,8 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
             readLen=(size_t)(self->in_data->streamSize-self->readFromPos);
         if (readLen>0){
             unsigned char* pdata=(unsigned char*)buf;
-            if (readLen!=self->in_data->read(self->in_data->streamHandle,self->readFromPos,
-                                             pdata,pdata+readLen)){
+            if ((long)readLen!=self->in_data->read(self->in_data->streamHandle,self->readFromPos,
+                                                   pdata,pdata+readLen)){
                 *size=0;
                 return SZ_ERROR_READ;
             }
@@ -386,7 +386,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         const int           kLZ4DefaultAcceleration=0;
         int  kLz4CompressBufSize =1024*255; //patch_decompress() decompress need 4*0.5MB memroy
         int  code_buf_size;
-        if (kLz4CompressBufSize>in_data->streamSize)
+        if ((size_t)kLz4CompressBufSize>in_data->streamSize)
             kLz4CompressBufSize=(int)in_data->streamSize;
         code_buf_size=LZ4_compressBound(kLz4CompressBufSize);
         
@@ -408,7 +408,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
             data_buf=data_buf_back;
             data_buf_back=_swap;
             int dataLen=kLz4CompressBufSize;
-            if (dataLen>in_data->streamSize-readFromPos)
+            if ((size_t)dataLen>(in_data->streamSize-readFromPos))
                 dataLen=(int)(in_data->streamSize-readFromPos);
             if (dataLen==0)
                 break;//finish
@@ -437,6 +437,6 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
     _def_fun_compress_by_compress_stream(_lz4_compress,_lz4_compress_stream)
     static hdiff_TCompress lz4CompressPlugin={_lz4_compressType,_lz4_maxCompressedSize,_lz4_compress};
     static hdiff_TStreamCompress lz4StreamCompressPlugin={_lz4_stream_compressType,_lz4_compress_stream};
-#endif
+#endif//_CompressPlugin_lz4
 
 #endif
