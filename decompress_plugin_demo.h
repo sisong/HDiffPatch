@@ -31,12 +31,13 @@
 //  hpatch_TDeompress zlibDecompressPlugin;
 //  hpatch_TDeompress bz2DecompressPlugin;
 //  hpatch_TDeompress lzmaDecompressPlugin;
+//  hpatch_TDeompress lz4DecompressPlugin;
 
 #include <stdlib.h> //malloc free
 #include <assert.h> //assert
 #include "libHDiffPatch/HPatch/patch_types.h"
 
-#define kDecompressBufSize (1024*16)
+#define kDecompressBufSize (1024*32)
 
 #ifdef  _CompressPlugin_zlib
 #include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
@@ -81,8 +82,8 @@
     static void _zlib_close(struct hpatch_TDecompress* decompressPlugin,
                             hpatch_decompressHandle decompressHandle){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
-        int ret=inflateEnd(&self->d_stream);
-        assert(ret==Z_OK);
+        if (!self) return;
+        if (Z_OK!=inflateEnd(&self->d_stream)) assert(0);
         free(self);
     }
     static long _zlib_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
@@ -164,8 +165,8 @@
     static void _bz2_close(struct hpatch_TDecompress* decompressPlugin,
                             hpatch_decompressHandle decompressHandle){
         _bz2_TDecompress* self=(_bz2_TDecompress*)decompressHandle;
-        int ret=BZ2_bzDecompressEnd(&self->d_stream);
-        assert(ret==BZ_OK);
+        if (!self) return;
+        if (BZ_OK!=BZ2_bzDecompressEnd(&self->d_stream)) assert(0);
         free(self);
     }
     static long _bz2_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
@@ -228,7 +229,7 @@
         return malloc(size);
     }
     static void __lzma_dec_Free(ISzAllocPtr p, void *address){
-        free(address);
+        if (address) free(address);
     }
     static int  _lzma_is_can_open(struct hpatch_TDecompress* decompressPlugin,
                                   const hpatch_compressedDiffInfo* compressedDiffInfo){
@@ -276,6 +277,7 @@
                             hpatch_decompressHandle decompressHandle){
         _lzma_TDecompress* self=(_lzma_TDecompress*)decompressHandle;
         ISzAlloc alloc={__lzma_dec_Alloc,__lzma_dec_Free};
+        if (!self) return;
         LzmaDec_Free(&self->decEnv,&alloc);
         free(self);
     }
@@ -334,5 +336,106 @@
     static hpatch_TDecompress lzmaDecompressPlugin={_lzma_is_can_open,_lzma_open,
                                                     _lzma_close,_lzma_decompress_part};
 #endif//_CompressPlugin_lzma
+
+#ifdef  _CompressPlugin_lz4
+#include "../lz4/lib/lz4.h" // https://github.com/lz4/lz4
+    typedef struct _lz4_TDecompress{
+        const struct hpatch_TStreamInput* codeStream;
+        hpatch_StreamPos_t code_begin;
+        hpatch_StreamPos_t code_end;
+        
+        LZ4_streamDecode_t *s;
+        int                kLz4CompressBufSize;
+        int                code_buf_size;
+        int                data_begin;
+        int                data_end;
+        unsigned char      buf[1];
+    } _lz4_TDecompress;
+    static int  _lz4_is_can_open(struct hpatch_TDecompress* decompressPlugin,
+                                  const hpatch_compressedDiffInfo* compressedDiffInfo){
+        return (compressedDiffInfo->compressedCount==0)
+             ||(0==strcmp(compressedDiffInfo->compressType,"lz4"));
+    }
+    #define _lz4_read_len4(len,in_code,code_begin,code_end) { \
+        unsigned char _temp_buf4[4];  \
+        if (4>code_end-code_begin) return 0; \
+        if (4!=in_code->read(in_code->streamHandle,code_begin,_temp_buf4,_temp_buf4+4)) \
+            return 0; \
+        len=_temp_buf4[0]|(_temp_buf4[1]<<8)|(_temp_buf4[2]<<16)|(_temp_buf4[3]<<24); \
+        code_begin+=4; \
+    }
+    static hpatch_decompressHandle  _lz4_open(struct hpatch_TDecompress* decompressPlugin,
+                                               hpatch_StreamPos_t dataSize,
+                                               const struct hpatch_TStreamInput* codeStream,
+                                               hpatch_StreamPos_t code_begin,
+                                               hpatch_StreamPos_t code_end){
+        const int kMaxLz4CompressBufSize=(1<<20)*64; //defence attack
+        _lz4_TDecompress* self=0;
+        int kLz4CompressBufSize=0;
+        int code_buf_size=0;
+        assert(code_begin<code_end);
+        {//read kLz4CompressBufSize
+            _lz4_read_len4(kLz4CompressBufSize,codeStream,code_begin,code_end);
+            if ((kLz4CompressBufSize<=0)||(kLz4CompressBufSize>=kMaxLz4CompressBufSize)) return 0;
+            code_buf_size=LZ4_compressBound(kLz4CompressBufSize);
+        }
+        self=(_lz4_TDecompress*)malloc(sizeof(_lz4_TDecompress)+kLz4CompressBufSize+code_buf_size);
+        if (!self) return 0;
+        memset(self,0,sizeof(_lz4_TDecompress));
+        self->codeStream=codeStream;
+        self->code_begin=code_begin;
+        self->code_end=code_end;
+        self->kLz4CompressBufSize=kLz4CompressBufSize;
+        self->code_buf_size=code_buf_size;
+        self->data_begin=0;
+        self->data_end=0;
+        
+        self->s = LZ4_createStreamDecode();
+        if (!self->s){ free(self); return 0; }
+        return self;
+    }
+    static void _lz4_close(struct hpatch_TDecompress* decompressPlugin,
+                            hpatch_decompressHandle decompressHandle){
+        _lz4_TDecompress* self=(_lz4_TDecompress*)decompressHandle;
+        if (!self) return;
+        if (0!=LZ4_freeStreamDecode(self->s)) assert(0);
+        free(self);
+    }
+    static long _lz4_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
+                                      hpatch_decompressHandle decompressHandle,
+                                      unsigned char* out_part_data,unsigned char* out_part_data_end){
+        _lz4_TDecompress* self=(_lz4_TDecompress*)decompressHandle;
+        unsigned char* data_buf=self->buf;
+        unsigned char* code_buf=self->buf+self->kLz4CompressBufSize;
+        long result=(long)(out_part_data_end-out_part_data);
+
+        while (out_part_data<out_part_data_end) {
+            int dataLen=self->data_end-self->data_begin;
+            if (dataLen>0){
+                if (dataLen>(out_part_data_end-out_part_data))
+                    dataLen=(int)(out_part_data_end-out_part_data);
+                memcpy(out_part_data,data_buf+self->data_begin,dataLen);
+                out_part_data+=(size_t)dataLen;
+                self->data_begin+=dataLen;
+            }else{
+                int codeLen;
+                _lz4_read_len4(codeLen,self->codeStream,self->code_begin,self->code_end);
+                if ((codeLen<=0)||(codeLen>self->code_buf_size)
+                    ||(codeLen>(self->code_end-self->code_begin))) return 0;
+                if (codeLen!=self->codeStream->read(self->codeStream->streamHandle,self->code_begin,
+                                                    code_buf,code_buf+codeLen)) return 0;
+                self->code_begin+=codeLen;
+                self->data_begin=0;
+                self->data_end=LZ4_decompress_safe_continue(self->s,(const char*)code_buf,(char*)data_buf,
+                                                            codeLen,self->kLz4CompressBufSize);
+                if (self->data_end<=0) return 0;
+            }
+        }
+        
+        return result;
+    }
+    static hpatch_TDecompress lz4DecompressPlugin={_lz4_is_can_open,_lz4_open,
+                                                   _lz4_close,_lz4_decompress_part};
+#endif
 
 #endif

@@ -48,7 +48,9 @@ const long kRandTestCount=50000;
 //#define _CompressPlugin_zlib
 //#define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
+//#define _CompressPlugin_lz4
 
+#define IS_NOTICE_compressCanceled 0
 #include "compress_plugin_demo.h"
 #include "decompress_plugin_demo.h"
 
@@ -72,6 +74,11 @@ const long kRandTestCount=50000;
     hdiff_TCompress* compressPlugin=&lzmaCompressPlugin;
     hdiff_TStreamCompress* compressStreamPlugin=&lzmaStreamCompressPlugin;
     hpatch_TDecompress* decompressPlugin=&lzmaDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_lz4
+    hdiff_TStreamCompress* compressStreamPlugin=&lz4StreamCompressPlugin;
+    hdiff_TCompress* compressPlugin=&lz4CompressPlugin;
+    hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
 #endif
 
 
@@ -166,9 +173,17 @@ struct TVectorStreamOutput:public hpatch_TStreamOutput{
                        const unsigned char* data,const unsigned char* data_end){
         TVectorStreamOutput* self=(TVectorStreamOutput*)streamHandle;
         std::vector<TByte>& dst=self->dst;
-        assert(dst.size()==writeToPos);
-        dst.insert(dst.end(),data,data_end);
-        return (long)(data_end-data);
+        size_t writeLen=(size_t)(data_end-data);
+        assert(writeToPos<=dst.size());
+        if  (dst.size()==writeToPos){
+            dst.insert(dst.end(),data,data_end);
+        }else{
+            assert((size_t)(writeToPos+writeLen)==writeToPos+writeLen);
+            if (dst.size()<writeToPos+writeLen)
+                dst.resize((size_t)(writeToPos+writeLen));
+            memcpy(&dst[(size_t)writeToPos],data,writeLen);
+        }
+        return (long)writeLen;
     }
     std::vector<TByte>& dst;
 };
@@ -189,7 +204,8 @@ long test(const TByte* newData,const TByte* newData_end,
         
         struct hpatch_TStreamInput in_diffStream;
         mem_as_hStreamInput(&in_diffStream,diffData.data(),diffData.data()+diffData.size());
-        if (!check_compressed_diff_stream(&newStream,&oldStream,&in_diffStream,decompressPlugin)){
+        if (!check_compressed_diff(newData,newData_end,oldData,oldData_end,
+                                   diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
             printf("\n diffz stream error!!! tag:%s\n",tag);
             ++result;
         }else{

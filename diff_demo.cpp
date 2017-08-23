@@ -115,12 +115,14 @@ int main(int argc, const char * argv[]){
         diffData.push_back((TByte)(highSize>>24));
     }
 
+    std::cout<<"oldDataSize : "<<oldDataSize<<"\nnewDataSize : "<<newDataSize<<"\n";
     TByte* newData0=newData.data();
     const TByte* oldData0=oldData.data();
     double time1=clock_s();
     create_diff(newData0,newData0+newDataSize,
                 oldData0,oldData0+oldDataSize,diffData);
     double time2=clock_s();
+    std::cout<<"diffDataSize: "<<diffData.size()<<"\n";
     if (!check_diff(newData0,newData0+newDataSize,
                     oldData0,oldData0+oldDataSize,
                     diffData.data()+kNewDataSize, diffData.data()+diffData.size())){
@@ -132,7 +134,6 @@ int main(int argc, const char * argv[]){
     writeFile(diffData,outDiffFileName);
     double time3=clock_s();
     std::cout<<"  out diff file ok!\n";
-    std::cout<<"oldDataSize : "<<oldDataSize<<"\nnewDataSize : "<<newDataSize<<"\ndiffDataSize: "<<diffData.size()<<"\n";
     std::cout<<"\ndiff    time:"<<(time2-time1)<<" s\n";
     std::cout<<"all run time:"<<(time3-time0)<<" s\n";
 

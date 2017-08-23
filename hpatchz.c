@@ -48,6 +48,7 @@
 #define _CompressPlugin_zlib
 #define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
+//#define _CompressPlugin_lz4
 
 #include "decompress_plugin_demo.h"
 
@@ -166,6 +167,10 @@ int main(int argc, const char * argv[]){
 #ifdef  _CompressPlugin_lzma
             if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(&lzmaDecompressPlugin,&diffInfo))
                 decompressPlugin=&lzmaDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_lz4
+            if ((!decompressPlugin)&&lz4DecompressPlugin.is_can_open(&lz4DecompressPlugin,&diffInfo))
+                decompressPlugin=&lz4DecompressPlugin;
 #endif
         }
         if (!decompressPlugin){

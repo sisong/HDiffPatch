@@ -31,16 +31,52 @@
 //  hdiff_TCompress zlibCompressPlugin;
 //  hdiff_TCompress bz2CompressPlugin;
 //  hdiff_TCompress lzmaCompressPlugin;
+//  hdiff_TCompress lz4CompressPlugin;
 
 #include <assert.h>
 #include "libHDiffPatch/HDiff/diff.h"
 
-#define kCompressBufSize (1024*16)
+#define kCompressBufSize (1024*64)
 #define kCompressFailResult 0
 #define _compress_error_return(_errAt) do{ \
     result=kCompressFailResult;          \
     if (strlen(errAt)==0) errAt=_errAt;  \
     goto clear; } while(0)
+
+#ifndef IS_NOTICE_compressCanceled
+#   define IS_NOTICE_compressCanceled 1
+#endif
+
+#define _check_compress_result(result,outStream_isCanceled,_at,_errAt) \
+    if ((result)==kCompressFailResult){   \
+        if (outStream_isCanceled){    \
+            if (IS_NOTICE_compressCanceled) \
+                printf("  NOTICE: " _at " is canceled, by out limit.\n"); \
+        }else{ \
+            printf("  NOTICE: " _at " is canceled, %s ERROR!\n",_errAt); \
+        } \
+    }
+
+#define _stream_out_code_write(out_code,isCanceled,writePos,buf,len) { \
+    long writeResult=out_code->write(out_code->streamHandle,writePos,buf,buf+len); \
+    isCanceled=(writeResult==hdiff_kStreamOutputCancel);  \
+    if (writeResult!=(long)len) _compress_error_return("out_code->write()");\
+    writePos+=len;  \
+}
+
+#define _def_fun_compress_by_compress_stream(_fun_compress_name,_compress_stream) \
+static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
+                                unsigned char* out_code,unsigned char* out_code_end,     \
+                                const unsigned char* data,const unsigned char* data_end){\
+    hdiff_TStreamOutput  codeStream; \
+    hdiff_TStreamInput   dataStream; \
+    mem_as_hStreamOutput(&codeStream,out_code,out_code_end); \
+    mem_as_hStreamInput(&dataStream,data,data_end);          \
+    hpatch_StreamPos_t codeLen=_compress_stream(0,&codeStream,&dataStream); \
+    if (codeLen!=(size_t)codeLen) return kCompressFailResult; \
+    return (size_t)codeLen; \
+}
+
 
 #ifdef  _CompressPlugin_zlib
 #include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
@@ -66,7 +102,6 @@
         int                is_eof=0;
         int                is_stream_end=0;
         hpatch_StreamPos_t readFromPos=0;
-        hpatch_StreamPos_t writeToPos=0;
         int                outStream_isCanceled=0;
         memset(&s,0,sizeof(s));
         
@@ -84,13 +119,8 @@
             if ((s.avail_out<kCompressBufSize)|is_stream_end){
                 size_t writeLen=kCompressBufSize-s.avail_out;
                 if (writeLen>0){
-                    long writeResult=out_code->write(out_code->streamHandle,writeToPos,
-                                                     code_buf,code_buf+writeLen);
-                    outStream_isCanceled=(writeResult==hdiff_kStreamOutputCancel);
-                    if (writeResult!=writeLen) _compress_error_return("out_code->write()");
+                    _stream_out_code_write(out_code,outStream_isCanceled,result,code_buf,writeLen);
                 }
-                writeToPos+=writeLen;
-                result+=writeLen;
                 s.next_out=(Bytef*)code_buf;
                 s.avail_out=kCompressBufSize;
                 if (is_stream_end)
@@ -123,22 +153,10 @@
         if (_temp_buf) free(_temp_buf);
         if ((Z_OK!=deflateEnd(&s))&&(strlen(errAt)==0))
             { result=kCompressFailResult; errAt="deflateEnd()"; }
-        if (result==kCompressFailResult)
-            printf("  NOTICE: _zlib_compress_stream() is canceled, %s%s\n",
-                outStream_isCanceled?"":errAt,outStream_isCanceled?"by out limit.":" ERROR!");
+        _check_compress_result(result,outStream_isCanceled,"_zlib_compress_stream()",errAt);
         return result;
     }
-    static size_t  _zlib_compress(const hdiff_TCompress* compressPlugin,
-                                  unsigned char* out_code,unsigned char* out_code_end,
-                                  const unsigned char* data,const unsigned char* data_end){
-        hdiff_TStreamOutput  codeStream;
-        hdiff_TStreamInput   dataStream;
-        mem_as_hStreamOutput(&codeStream,out_code,out_code_end);
-        mem_as_hStreamInput(&dataStream,data,data_end);
-        hpatch_StreamPos_t codeLen=_zlib_compress_stream(0,&codeStream,&dataStream);
-        if (codeLen!=(size_t)codeLen) return kCompressFailResult;
-        return (size_t)codeLen;
-    }
+    _def_fun_compress_by_compress_stream(_zlib_compress,_zlib_compress_stream)
     static hdiff_TCompress zlibCompressPlugin={_zlib_compressType,_zlib_maxCompressedSize,_zlib_compress};
     static hdiff_TStreamCompress zlibStreamCompressPlugin={_zlib_stream_compressType,_zlib_compress_stream};
 #endif//_CompressPlugin_zlib
@@ -166,7 +184,6 @@
         int                is_eof=0;
         int                is_stream_end=0;
         hpatch_StreamPos_t readFromPos=0;
-        hpatch_StreamPos_t writeToPos=0;
         int                outStream_isCanceled=0;
         memset(&s,0,sizeof(s));
         
@@ -182,13 +199,8 @@
             if ((s.avail_out<kCompressBufSize)|is_stream_end){
                 size_t writeLen=kCompressBufSize-s.avail_out;
                 if (writeLen>0){
-                    long writeResult=out_code->write(out_code->streamHandle,writeToPos,
-                                                     code_buf,code_buf+writeLen);
-                    outStream_isCanceled=(writeResult==hdiff_kStreamOutputCancel);
-                    if (writeResult!=(long)writeLen) _compress_error_return("out_code->write()");
+                    _stream_out_code_write(out_code,outStream_isCanceled,result,code_buf,writeLen);
                 }
-                writeToPos+=writeLen;
-                result+=writeLen;
                 s.next_out=(char*)code_buf;
                 s.avail_out=kCompressBufSize;
                 if (is_stream_end)
@@ -221,22 +233,10 @@
         if (_temp_buf) free(_temp_buf);
         if ((BZ_OK!=BZ2_bzCompressEnd(&s))&&(strlen(errAt)==0))
             { result=kCompressFailResult; errAt="BZ2_bzCompressEnd()"; }
-        if (result==kCompressFailResult)
-            printf("  NOTICE: _bz2_compress_stream() is canceled, %s%s\n",
-                outStream_isCanceled?"":errAt,outStream_isCanceled?"by out limit.":" ERROR!");
+        _check_compress_result(result,outStream_isCanceled,"_bz2_compress_stream()",errAt);
         return result;
     }
-    static size_t  _bz2_compress(const hdiff_TCompress* compressPlugin,
-                                  unsigned char* out_code,unsigned char* out_code_end,
-                                  const unsigned char* data,const unsigned char* data_end){
-        hdiff_TStreamOutput  codeStream;
-        hdiff_TStreamInput   dataStream;
-        mem_as_hStreamOutput(&codeStream,out_code,out_code_end);
-        mem_as_hStreamInput(&dataStream,data,data_end);
-        hpatch_StreamPos_t codeLen=_bz2_compress_stream(0,&codeStream,&dataStream);
-        if (codeLen!=(size_t)codeLen) return kCompressFailResult;
-        return (size_t)codeLen;
-    }
+    _def_fun_compress_by_compress_stream(_bz2_compress,_bz2_compress_stream)
     static hdiff_TCompress bz2CompressPlugin={_bz2_compressType,_bz2_maxCompressedSize,_bz2_compress};
     static hdiff_TStreamCompress bz2StreamCompressPlugin={_bz2_stream_compressType,_bz2_compress_stream};
 #endif//_CompressPlugin_bz2
@@ -345,24 +345,98 @@
         }
     clear:
         if (s) LzmaEnc_Destroy(s,&alloc,&alloc);
-        if (result==kCompressFailResult)
-            printf("  NOTICE: _lzma_compress_stream() is canceled, %s%s\n",
-                   outStream.isCanceled?"":errAt,outStream.isCanceled?"by out limit.":" ERROR!");
+        _check_compress_result(result,outStream.isCanceled,"_lzma_compress_stream()",errAt);
         return result;
     }
-    static size_t  _lzma_compress(const hdiff_TCompress* compressPlugin,
-                                  unsigned char* out_code,unsigned char* out_code_end,
-                                  const unsigned char* data,const unsigned char* data_end){
-        hdiff_TStreamOutput  codeStream;
-        hdiff_TStreamInput   dataStream;
-        mem_as_hStreamOutput(&codeStream,out_code,out_code_end);
-        mem_as_hStreamInput(&dataStream,data,data_end);
-        hpatch_StreamPos_t codeLen=_lzma_compress_stream(0,&codeStream,&dataStream);
-        if (codeLen!=(size_t)codeLen) return kCompressFailResult;
-        return (size_t)codeLen;
-    }
+    _def_fun_compress_by_compress_stream(_lzma_compress,_lzma_compress_stream)
     static hdiff_TCompress lzmaCompressPlugin={_lzma_compressType,_lzma_maxCompressedSize,_lzma_compress};
     static hdiff_TStreamCompress lzmaStreamCompressPlugin={_lzma_stream_compressType,_lzma_compress_stream};
 #endif//_CompressPlugin_lzma
+
+#ifdef  _CompressPlugin_lz4
+#include "../lz4/lib/lz4.h" // https://github.com/lz4/lz4
+    static const char*  _lz4_stream_compressType(const hdiff_TStreamCompress* compressPlugin){
+        static const char* kCompressType="lz4";
+        return kCompressType;
+    }
+    static const char*  _lz4_compressType(const hdiff_TCompress* compressPlugin){
+        return _lz4_stream_compressType(0);
+    }
+    static size_t  _lz4_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
+        return dataSize*5/4+16*1024;;
+    }
+    #define _lz4_write_len4(out_code,isCanceled,writePos,len) { \
+        unsigned char _temp_buf4[4];  \
+        _temp_buf4[0]=(unsigned char)(len);      \
+        _temp_buf4[1]=(unsigned char)((len)>>8); \
+        _temp_buf4[2]=(unsigned char)((len)>>16);\
+        _temp_buf4[3]=(unsigned char)((len)>>24);\
+        _stream_out_code_write(out_code,isCanceled,writePos,_temp_buf4,4); \
+    }
+    hpatch_StreamPos_t _lz4_compress_stream(const hdiff_TStreamCompress* compressPlugin,
+                                             const hdiff_TStreamOutput* out_code,
+                                             const hdiff_TStreamInput*  in_data){
+        hpatch_StreamPos_t  result=0;
+        const char*         errAt="";
+        unsigned char*      _temp_buf=0;
+        unsigned char*      code_buf,* data_buf,* data_buf_back;
+        LZ4_stream_t*       s=0;
+        hpatch_StreamPos_t  readFromPos=0;
+        int                 outStream_isCanceled=0;
+        const int           kLZ4DefaultAcceleration=0;
+        int  kLz4CompressBufSize =1024*255; //patch_decompress() decompress need 4*0.5MB memroy
+        int  code_buf_size;
+        if (kLz4CompressBufSize>in_data->streamSize)
+            kLz4CompressBufSize=(int)in_data->streamSize;
+        code_buf_size=LZ4_compressBound(kLz4CompressBufSize);
+        
+        _temp_buf=(unsigned char*)malloc(kLz4CompressBufSize*2+code_buf_size);
+        if (!_temp_buf) _compress_error_return("memory alloc");
+        data_buf_back=_temp_buf;
+        data_buf=_temp_buf+kLz4CompressBufSize;
+        code_buf=_temp_buf+kLz4CompressBufSize*2;
+        
+        s=LZ4_createStream();
+        if (!s) _compress_error_return("LZ4_createStream()");
+        //out kLz4CompressBufSize
+        _lz4_write_len4(out_code,outStream_isCanceled,result,kLz4CompressBufSize);
+        
+        while (true) {
+            int  codeLen;
+            long writeResult;
+            unsigned char*  _swap=data_buf;
+            data_buf=data_buf_back;
+            data_buf_back=_swap;
+            int dataLen=kLz4CompressBufSize;
+            if (dataLen>in_data->streamSize-readFromPos)
+                dataLen=(int)(in_data->streamSize-readFromPos);
+            if (dataLen==0)
+                break;//finish
+            if (dataLen!=in_data->read(in_data->streamHandle,readFromPos,data_buf,data_buf+dataLen))
+                _compress_error_return("in_data->read()");
+            readFromPos+=dataLen;
+            
+            codeLen=LZ4_compress_fast_continue(s,(const char*)data_buf,(char*)code_buf,
+                                               dataLen,code_buf_size,kLZ4DefaultAcceleration);
+            if (codeLen<=0) _compress_error_return("LZ4_compress_fast_continue()");
+            //out step codeLen
+            _lz4_write_len4(out_code,outStream_isCanceled,result,codeLen);
+            //out code
+            writeResult=out_code->write(out_code->streamHandle,result,code_buf,code_buf+codeLen);
+            outStream_isCanceled=(writeResult==hdiff_kStreamOutputCancel);
+            if (writeResult!=codeLen) _compress_error_return("out_code->write()");
+            result+=codeLen;
+        }
+    clear:
+        if (_temp_buf) free(_temp_buf);
+        if (0!=LZ4_freeStream(s))
+            { result=kCompressFailResult; errAt="LZ4_freeStream()"; }
+        _check_compress_result(result,outStream_isCanceled,"_lz4_compress_stream()",errAt);
+        return result;
+    }
+    _def_fun_compress_by_compress_stream(_lz4_compress,_lz4_compress_stream)
+    static hdiff_TCompress lz4CompressPlugin={_lz4_compressType,_lz4_maxCompressedSize,_lz4_compress};
+    static hdiff_TStreamCompress lz4StreamCompressPlugin={_lz4_stream_compressType,_lz4_compress_stream};
+#endif
 
 #endif
