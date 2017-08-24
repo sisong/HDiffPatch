@@ -32,16 +32,6 @@
 #include <string.h> //memset
 #include <assert.h>
 #include <stdexcept>
-#ifdef _MSC_VER
-#   if (_MSC_VER < 1300)
-typedef unsigned int      uint32_t;
-#   else
-typedef unsigned __int32  uint32_t;
-#   endif
-#else
-#   include <stdint.h> //for uint32_t
-#endif
-
 
 class TBitSet{
 public:
@@ -81,34 +71,45 @@ private:
 };
 
 
+template <class T>
 class TBloomFilter{
 public:
     inline TBloomFilter():m_bitSetMask(0){}
     void init(size_t dataCount){
         ++dataCount;
-        m_bitSetMask=getMask(dataCount*kZoom);//mask is 2^N-1
+        m_bitSetMask=getMask(dataCount);//mask is 2^N-1
         m_bitSet.clear(m_bitSetMask+1);
     }
-    inline void insert(uint32_t data){
+    inline void insert(T data){
         m_bitSet.set(hash0(data));
         m_bitSet.set(hash1(data));
         m_bitSet.set(hash2(data));
     }
-    inline bool is_hit(uint32_t data)const{
+    inline bool is_hit(T data)const{
         return m_bitSet.is_hit(hash0(data))
             && m_bitSet.is_hit(hash1(data))
             && m_bitSet.is_hit(hash2(data));
     }
 private:
-    enum { kZoom=16 };
     TBitSet   m_bitSet;
     size_t    m_bitSetMask;
+    enum { kZoom=32 };
+    static size_t getMask(size_t dataCount){
+        size_t bitCount=dataCount*kZoom;
+        if ((bitCount/kZoom)!=dataCount)
+            throw std::runtime_error("TBloomFilter::getMask() too large dataCount error!");
+        unsigned int bit=10;
+        while ( (((size_t)1<<bit)<bitCount) && (bit<sizeof(size_t)*8-1) )
+            ++bit;
+        return ((size_t)1<<bit)-1;
+    }
     
-    inline size_t hash0(uint32_t key)const { return (key^(key>>16))&m_bitSetMask; }
-    inline size_t hash1(uint32_t key)const { return (key+23)%m_bitSetMask; }
-    inline size_t hash2(uint32_t key)const { return _hash2(key)%(m_bitSetMask-2); }
-    static uint32_t _hash2(uint32_t key){//from: https://gist.github.com/badboy/6267743
-        int c2=0x27d4eb2d; // a prime or an odd constant
+    inline size_t hash0(T key)const { return (key^(key>>(sizeof(T)*4)))&m_bitSetMask; }
+    inline size_t hash1(T key)const { return ((~key)+(key << 15))%m_bitSetMask; }
+    inline size_t hash2(T key)const {
+        size_t h=(sizeof(T)>4)?_hash2_64(key):_hash2_32((size_t)key); return h%(m_bitSetMask-2); }
+    static size_t _hash2_32(size_t key){//from: https://gist.github.com/badboy/6267743
+        const size_t c2=0x27d4eb2d; // a prime or an odd constant
         key = (key ^ 61) ^ (key >> 16);
         key = key + (key << 3);
         key = key ^ (key >> 4);
@@ -116,13 +117,14 @@ private:
         key = key ^ (key >> 15);
         return key;
     }
-    static size_t getMask(size_t count){
-        unsigned int bit=8;
-        for (;(((size_t)1<<bit)<count) && (bit<sizeof(size_t)*8); ++bit){
-        }
-        if (bit==sizeof(size_t)*8)
-            throw std::runtime_error("TBloomFilter::getMask() error!");
-        return ((size_t)1<<bit)-1;
+    static size_t _hash2_64(T key){
+        key = (~key) + (key << 18); // key = (key << 18) - key - 1;
+        key = key ^ (key >> 31);
+        key = key * 21; // key = (key + (key << 2)) + (key << 4);
+        key = key ^ (key >> 11);
+        key = key + (key << 6);
+        key = key ^ (key >> 22);
+        return (size_t)key;
     }
 };
 

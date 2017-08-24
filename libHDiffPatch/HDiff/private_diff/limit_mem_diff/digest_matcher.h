@@ -49,7 +49,7 @@ private:
     bool                        m_isUseLargeSorted;
     size_t                      m_kMatchBlockSize;
     size_t                      m_newCacheSize;
-    TBloomFilter                m_filter;
+    TBloomFilter<adler_uint_t>  m_filter;
     
     void getDigests();
 };

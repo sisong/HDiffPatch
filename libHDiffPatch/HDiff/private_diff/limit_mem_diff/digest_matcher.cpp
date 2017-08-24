@@ -425,7 +425,7 @@ template <class TIndex>
 static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
                             const TIndex* iblocks,const TIndex* iblocks_end,
                             TOldStreamCache& oldStream,TNewStreamCache& newStream,
-                            const TBloomFilter& filter,TCovers* out_covers) {
+                            const TBloomFilter<adler_uint_t>& filter,TCovers* out_covers) {
     const size_t kMatchBlockSize=newStream.kMatchBlockSize;
     TDigest_comp comp(blocksBase);
     TCover  lastCover={0,0,0};
