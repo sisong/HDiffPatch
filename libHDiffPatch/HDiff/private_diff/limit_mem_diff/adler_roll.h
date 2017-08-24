@@ -53,6 +53,7 @@ extern "C" {
 #   define adler_roll_kBlockSizeBM      adler64_roll_kBlockSizeBM
 #   define adler_roll_start             adler64_roll_start
 #   define adler_roll_step              adler64_roll_step
+#   define adler_combine                adler64_combine
 #else
 #   define adler_uint_t                 uint32_t
 #   define adler_append                 adler32_append
@@ -60,6 +61,7 @@ extern "C" {
 #   define adler_roll_kBlockSizeBM      adler32_roll_kBlockSizeBM
 #   define adler_roll_start             adler32_roll_start
 #   define adler_roll_step              adler32_roll_step
+#   define adler_combine                adler32_combine
 #endif
     
 #ifdef _MSC_VER
@@ -115,6 +117,8 @@ uint32_t adler32_roll_step(uint32_t adler,uint32_t blockSize,uint32_t kBlockSize
                            adler_data_t out_data,adler_data_t in_data);
 #endif
     
+uint32_t adler32_combine(uint32_t adler1,uint32_t adler2,size_t len2);
+
 
 #ifdef _IS_NEED_ADLER64
     
@@ -133,6 +137,8 @@ uint64_t adler64_roll_step(uint64_t adler,uint64_t blockSize,uint64_t kBlockSize
 uint64_t adler64_roll_step(uint64_t adler,uint64_t blockSize,uint64_t kBlockSizeBM,
                            adler_data_t out_data,adler_data_t in_data);
 #endif
+    
+uint64_t adler64_combine(uint64_t adler1,uint64_t adler2,uint64_t len2);
 
 #endif //_IS_NEED_ADLER64
     
