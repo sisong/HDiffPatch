@@ -40,7 +40,7 @@ typedef unsigned __int32  uint32_t;
 #endif
 
 template<class _UInt>
-static int _getUIntCost(_UInt v){
+static unsigned int _getUIntCost(_UInt v){
     if ((sizeof(_UInt)<8)||((v>>28)>>28)==0) {
         int cost=1;
         _UInt t;
@@ -54,7 +54,7 @@ static int _getUIntCost(_UInt v){
 }
 
 template<class _Int,class _UInt>
-inline static int _getIntCost(_Int v){
+inline static unsigned _getIntCost(_Int v){
     return _getUIntCost((_UInt)(2*((v>=0)?(_UInt)v:(_UInt)(-v))));
 }
 

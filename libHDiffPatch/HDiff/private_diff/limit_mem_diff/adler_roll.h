@@ -37,6 +37,18 @@
 extern "C" {
 #endif
     
+#ifndef adler_data_t
+    //adler32 adler_data_t: support uint8: roll_kMaxBlockSize==2^24+little and uint16: roll_kMaxBlockSize==2^16-2
+    //adler64 adler_data_t: support uint8\uint16\uint32 : roll_kMaxBlockSize enough large
+    //but if defined _IS_USE_ADLER_FAST_BASE then roll_kMaxBlockSize enough large (no limit)
+#   define adler_data_t unsigned char
+#endif
+    
+#define _IS_USE_ADLER_FAST_BASE //WARNING: result non-standard, optimize roll_step speed
+#define _IS_NEED_ADLER64
+#if defined(__LP64__) || defined(_WIN64) || ( __WORDSIZE==64 ) || (UINT_MAX > 0xffffffff )
+#define _IS_DEFAULT_ADLER64
+#endif
     
 #ifdef _MSC_VER
 #   if (_MSC_VER < 1300)
@@ -57,18 +69,6 @@ extern "C" {
 #endif
 #include <stdlib.h> //for size_t
     
-#ifndef adler_data_t
-    //adler32 adler_data_t: support uint8: roll_kMaxBlockSize==2^24+little and uint16: roll_kMaxBlockSize==2^16-2
-    //adler64 adler_data_t: support uint8\uint16\uint32 : roll_kMaxBlockSize enough large
-    //but if defined _IS_USE_ADLER_FAST_BASE then roll_kMaxBlockSize enough large (no limit)
-#   define adler_data_t unsigned char
-#endif
-    
-#define _IS_USE_ADLER_FAST_BASE //WARNING: result non-standard, optimize roll_step speed
-//#define _IS_NEED_ADLER64
-#if defined(__LP64__) || defined(_WIN64) || ( __WORDSIZE==64 ) || (UINT_MAX > 0xffffffff )
-    #define _IS_DEFAULT_ADLER64
-#endif
 
 #ifdef _IS_DEFAULT_ADLER64
 #   ifndef _IS_NEED_ADLER64
