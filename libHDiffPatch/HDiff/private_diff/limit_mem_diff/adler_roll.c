@@ -38,7 +38,8 @@
 #else
 #   define _adler32_BASE 65521 //largest prime that is less than 2^32
 //# define _adler32_to_border(v) { if ((v) >= _adler32_BASE) (v) -= _adler32_BASE; }
-#   define _adler32_to_border(v) { (v) -= _adler32_BASE & (uint32_t)( ((_adler32_BASE-1)-(int32_t)(v))>>31 ); }
+#   define _adler32_to_border(v) { (v) -= _adler32_BASE & (uint32_t)( \
+                                          ((int32_t)(_adler32_BASE-1)-(int32_t)(v))>>31 ); }
 #   define _adler32_mod(v)       ((v)%_adler32_BASE)
 #endif
 
@@ -51,7 +52,8 @@
 #else
 #   define _adler64_BASE 0xFFFFFFFBull
 //# define _adler64_to_border(v) { if ((v) >= _adler64_BASE) (v) -= _adler64_BASE; }
-#   define _adler64_to_border(v) { (v) -= _adler64_BASE & (uint64_t)( ((_adler64_BASE-1)-(int64_t)(v))>>63 ); }
+#   define _adler64_to_border(v) { (v) -= _adler64_BASE & (uint64_t)( \
+                                          ((int64_t)(_adler64_BASE-1)-(int64_t)(v))>>63 ); }
 #   define _adler64_mod(v)       ((v)%_adler64_BASE)
 #endif
 #endif
@@ -67,6 +69,13 @@
     _adler_add1(adler,sum,pdata[i+2]); \
     _adler_add1(adler,sum,pdata[i+3]); \
 }
+
+
+#ifdef _IS_USE_ADLER_FAST_BASE
+#   define _border_twice(border,v) border(v)
+#else
+#   define _border_twice(border,v) { border(v); border(v); }
+#endif
 
 //limit: 255*n*(n+1)/2 + (n+1)(B-1) <= 2^32-1
 // => max(n)=5552
@@ -122,13 +131,27 @@
         adler&=(((uint_t)1<<half_bit)-1); \
         /*  [0..B-1] + [0..255] + B - [0..255]   =>  [0+0+B-255..B-1+255+B-0]*/ \
         adler += in_data +(uint_t)(BASE - out_data);/* => [B-255..B*2-1+255] */ \
-        border(adler); /* [0..B-1+255] */   \
-        border(adler); /* [0..B-1] */       \
+        _border_twice(adler);             \
         /*  limit by adler?_roll_blockSizeBM() and adler?_roll_kMaxBlockSize */ \
         sum = mod(sum + adler + kBlockSizeBM - blockSize*out_data); \
-        return adler | (sum<<half_bit); \
+        return adler | (sum<<half_bit);   \
     }
 #endif
+
+#define  _adler_roll_combine(uint_t,half_bit,mod,border,        \
+                             adler_left,adler_right,len_right){ \
+    const uint_t kMask=((uint_t)1<<half_bit)-1; \
+    uint_t rem= mod(len_right);       \
+    uint_t adler= adler_left & kMask; \
+    uint_t sum  = rem * adler;        \
+    adler+= (adler_right & kMask) ;   \
+    sum   = mod(sum);                 \
+    sum  += (adler_left>>half_bit)    \
+          + (adler_right>>half_bit);  \
+    border(adler);                    \
+    _border_twice(border,sum);        \
+    return adler | (sum<<half_bit);   \
+}
 
 //limit: all result in uint32_t
 //blockSize*255+(B-1)<2^32 && [0..B-1]+[0..B-1]+(blockSize*255+(B-1))/B*B<2^32
@@ -168,6 +191,9 @@ uint32_t adler32_roll_step(uint32_t adler,uint32_t blockSize,uint32_t kBlockSize
                      adler,blockSize,kBlockSizeBM, out_data,in_data)
 #endif
 
+uint32_t adler32_roll_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
+    _adler_roll_combine(uint32_t,16,_adler32_mod,_adler32_to_border,
+                        adler_left,adler_right,len_right)
 
 #ifdef _IS_NEED_ADLER64
 uint64_t adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n)
@@ -184,6 +210,10 @@ uint64_t adler64_roll_step(uint64_t adler,uint64_t blockSize,uint64_t kBlockSize
     _adler_roll_step(uint64_t,32,_adler64_mod,_adler64_to_border,_adler64_BASE,
                      adler,blockSize,kBlockSizeBM, out_data,in_data)
 #endif
+
+uint64_t adler64_roll_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right)
+    _adler_roll_combine(uint64_t,32,_adler64_mod,_adler64_to_border,
+                        adler_left,adler_right,len_right)
 
 #endif //_IS_NEED_ADLER64
 

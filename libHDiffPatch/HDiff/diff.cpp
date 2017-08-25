@@ -332,7 +332,7 @@ static void extend_cover(TDiffData& diff){
 }
 
     template<class _TCover,class _TInt>
-    static void check_cover_safe(const _TCover& cover,_TInt lastNewEnd,_TInt newSize,_TInt oldSize){
+    static void assert_cover_safe(const _TCover& cover,_TInt lastNewEnd,_TInt newSize,_TInt oldSize){
         if (!(cover.length>0)) throw cover;
         if (!(cover.newPos>=lastNewEnd)) throw cover;
         if (!(cover.newPos<newSize)) throw cover;
@@ -358,8 +358,8 @@ static void sub_cover(TDiffData& diff){
     
     TInt lastNewEnd=0;
     for (TInt i=0;i<(TInt)covers.size();++i){
-        check_cover_safe(covers[i],lastNewEnd,
-                         diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
+        assert_cover_safe(covers[i],lastNewEnd,
+                          diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
         const TInt newPos=covers[i].newPos;
         if (newPos>lastNewEnd)
             pushBack(diff.newDataDiff,newData+lastNewEnd,newData+newPos);
@@ -672,7 +672,7 @@ static void getCovers_stream(const hpatch_TStreamInput*  newData,
         hpatch_StreamPos_t lastNewEnd=0;
         for (size_t i=0;i<out_covers.coverCount();++i){
             out_covers.covers(i,&cover);
-            check_cover_safe(cover,lastNewEnd,newData->streamSize,oldData->streamSize);
+            assert_cover_safe(cover,lastNewEnd,newData->streamSize,oldData->streamSize);
             lastNewEnd=cover.newPos+cover.length;
         }
     }

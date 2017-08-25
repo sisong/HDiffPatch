@@ -29,11 +29,14 @@
 #include <assert.h>
 #include <stdexcept>  //std::runtime_error
 #include <algorithm>  //std::sort,std::equal_range
+#include "../compress_detect.h" //_getUIntCost
 
 static  const size_t kMinTrustMatchedLength=16*1024;
 static  const size_t kBestReadSize=1024*256; //for sequence read
 static  const size_t kMinReadSize=1024;      //for random read
 static  const size_t kMinBackupReadSize=256; //assert(kMinBackupReadSize<kMinReadSize)
+
+static  const size_t kMinMatchBlockSize=1<<1;
 
 #define readStream(stream,pos,dst,n) { \
     if ((long)(n)!=(stream)->read((stream)->streamHandle,pos,dst,dst+(n))) \
@@ -114,13 +117,17 @@ static hpatch_StreamPos_t blockIndexToPos(size_t index,size_t kMatchBlockSize,
 
 
 TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize)
-:m_oldData(oldData),m_isUseLargeSorted(true),m_kMatchBlockSize(kMatchBlockSize),m_newCacheSize(0){
+:m_oldData(oldData),m_isUseLargeSorted(true),m_kMatchBlockSize(0),m_newCacheSize(0){
     if ((kMatchBlockSize==0)||(kMatchBlockSize>adler32_roll_kMaxBlockSize))
         throw std::runtime_error("TDataDigest() kMatchBlockSize value error.");
-    while ((m_kMatchBlockSize>1)&&(m_kMatchBlockSize>=m_oldData->streamSize))
-        m_kMatchBlockSize>>=1;
+    if (kMatchBlockSize>(oldData->streamSize+1)/2)
+        kMatchBlockSize=(size_t)((oldData->streamSize+1)/2);
+    if (kMatchBlockSize<kMinMatchBlockSize)
+        kMatchBlockSize=kMinMatchBlockSize;
+    if (oldData->streamSize<kMatchBlockSize) return;
+    m_kMatchBlockSize=kMatchBlockSize;
+    
     hpatch_StreamPos_t _blockCount=getBlockCount(m_kMatchBlockSize,m_oldData->streamSize);
-    if (m_oldData->streamSize<m_kMatchBlockSize) _blockCount=0;
     m_isUseLargeSorted=(_blockCount>=((hpatch_StreamPos_t)1<<32));
     const size_t blockCount=(size_t)_blockCount;
     if (blockCount!=_blockCount)
@@ -331,6 +338,23 @@ public:
     size_t              i;
 };
 
+    static hpatch_StreamPos_t getMatchLength(TOldStreamCache& oldStream,TNewStreamCache& newStream,
+                                             hpatch_StreamPos_t& oldPos,size_t kMatchBlockSize,
+                                             const TCover& lastCover){
+        if (oldStream.resetPos(oldPos)
+                &&(0==memcmp(oldStream.data(),newStream.data(),kMatchBlockSize))){
+            const hpatch_StreamPos_t newPos=newStream.pos();
+            size_t feq_len=oldStream.forward_equal_length(newStream);
+            if (newPos-feq_len<lastCover.newPos+lastCover.length)
+                feq_len=(size_t)(newPos-(lastCover.newPos+lastCover.length));
+            hpatch_StreamPos_t beq_len=newStream.roll_backward_equal_length(oldStream);
+            oldPos-=feq_len;
+            return feq_len+kMatchBlockSize+beq_len;
+        }else{
+            return 0;
+        }
+    }
+
 template <class TIndex>
 static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
                          const TIndex* left,const TIndex* right,
@@ -342,8 +366,20 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     
     const TIndex* best=left;
     size_t bdigests_n=0;
+    //缩小[left best right)范围,留下最多2个(因为签名匹配并不保证一定相等,2个的话就足够了);
     if (right-left>1){
-        //缩小[left best right)范围,留下最多2个;
+        //找到lastCover附近的位置当作比较好的best默认值;
+        hpatch_StreamPos_t linkOldPos=newStream.pos()+lastCover.oldPos-lastCover.newPos;
+        hpatch_StreamPos_t _best_distance=(hpatch_StreamPos_t)1<<30;
+        for (const TIndex* it=left;it<right; ++it) {
+            hpatch_StreamPos_t oldPos=(*it)*kMatchBlockSize;
+            hpatch_StreamPos_t distance=(oldPos<linkOldPos)?(linkOldPos-oldPos):(oldPos-linkOldPos);
+            if (distance<_best_distance){
+                best=it;
+                _best_distance=distance;
+            }
+        }
+        //寻找最长的签名匹配位置;
         newStream.toBestDataLength();
         size_t bmaxn=newStream.dataLength()/kMatchBlockSize-1;
         if (bmaxn>max_bdigests_n) bmaxn=max_bdigests_n;
@@ -360,9 +396,10 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
                 best=i_range.first;
                 break;
             }else{
-                best=left;
                 left=i_range.first;
                 right=i_range.second;
+                if ((best<left)||(best>=right))
+                    best=left;
             }
         }
     }
@@ -377,22 +414,17 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     for (const TIndex* cur_pi=best; cur_pi!=0; ) {
         const hpatch_StreamPos_t oldPos=blockIndexToPos(*cur_pi,kMatchBlockSize,
                                                         oldStream.streamSize());
-        if ((oldStream.resetPos(oldPos))&&(0==memcmp(oldStream.data(),newStream.data(),
-                                                     kMatchBlockSize))){
-            size_t feq_len=oldStream.forward_equal_length(newStream);
-            if (newPos-feq_len<lastCover.newPos+lastCover.length)
-                feq_len=(size_t)(newPos-(lastCover.newPos+lastCover.length));
-            hpatch_StreamPos_t beq_len=newStream.roll_backward_equal_length(oldStream);
-            hpatch_StreamPos_t curEqLen=feq_len+kMatchBlockSize+beq_len;
-            if (curEqLen>bestLen){
-                isMatched=true;
-                bestLen=curEqLen;
-                out_curCover->length=curEqLen;
-                out_curCover->oldPos=oldPos-feq_len;
-                out_curCover->newPos=newPos-feq_len;
-                if (curEqLen>=bdigests_n*kMatchBlockSize)
-                    break;//matched best
-            }
+        hpatch_StreamPos_t matchedOldPos=oldPos;
+        hpatch_StreamPos_t curEqLen=getMatchLength(oldStream,newStream,
+                                                   matchedOldPos,kMatchBlockSize,lastCover);
+        if (curEqLen>bestLen){
+            isMatched=true;
+            bestLen=curEqLen;
+            out_curCover->length=curEqLen;
+            out_curCover->oldPos=matchedOldPos;
+            out_curCover->newPos=newPos-(oldPos-matchedOldPos);
+            if (curEqLen>=bdigests_n*kMatchBlockSize)
+                break;//matched best
         }
         //next cur_pi
         if (left!=0){
@@ -410,53 +442,64 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     return isMatched;
 }
 
-
-static bool is_same_data(const unsigned char* s,size_t n){
-    if (n==0) return true;
-    unsigned char d=s[0];
-    for (size_t i=1; i<n; ++i) {
-        if(s[i]!=d)
-            return false;
-    }
-    return true;
+static const size_t getOldPosCost(hpatch_StreamPos_t oldPos,const TCover& lastCover){
+    hpatch_StreamPos_t oldPosEnd=lastCover.oldPos+lastCover.length;
+    hpatch_StreamPos_t dis=(oldPos>=oldPosEnd)?(oldPos-oldPosEnd):(oldPosEnd-oldPos);
+    return _getUIntCost(dis*2);
 }
+
+static const size_t getCoverDataCost(const TCover& curCover,const TCover& lastCover){
+    return  getOldPosCost(curCover.oldPos,lastCover)
+          + _getUIntCost(curCover.length)
+          + _getUIntCost(curCover.newPos-(lastCover.newPos+lastCover.length));
+}
+
 
 template <class TIndex>
 static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
                             const TIndex* iblocks,const TIndex* iblocks_end,
                             TOldStreamCache& oldStream,TNewStreamCache& newStream,
-                            const TBloomFilter& filter,TCovers* out_covers) {
+                            const TBloomFilter<adler_uint_t>& filter,TCovers* out_covers) {
     const size_t kMatchBlockSize=newStream.kMatchBlockSize;
     TDigest_comp comp(blocksBase);
     TCover  lastCover={0,0,0};
-    //hpatch_StreamPos_t sumLen=0;
     while (true) {
-        if (filter.is_hit(newStream.rollDigest())){
-            std::pair<const TIndex*,const TIndex*>
-            range=std::equal_range(iblocks,iblocks_end,
-                                   TDigest_comp::TDigest(newStream.rollDigest()),comp);
-            if (range.first!=range.second){
-                const unsigned char* pnew=newStream.data();
-                if (is_same_data(pnew,kMatchBlockSize)){
-                    if (!newStream.skip_same(pnew[0])) break;//finish
-                    continue;
+        if (!filter.is_hit(newStream.rollDigest()))
+            { if (newStream.roll()) continue; else break; }//finish
+        std::pair<const TIndex*,const TIndex*>
+        range=std::equal_range(iblocks,iblocks_end,
+                               TDigest_comp::TDigest(newStream.rollDigest()),comp);
+        if (range.first==range.second)
+            { if (newStream.roll()) continue; else break; }//finish
+        
+        hpatch_StreamPos_t newPosBack=newStream.pos();
+        TCover  curCover;
+        if (getBestMatch(blocksBase,blocksSize,range.first,range.second,
+                         oldStream,newStream,lastCover,&curCover)){
+            hpatch_StreamPos_t linkOldPos=curCover.newPos+lastCover.oldPos-lastCover.newPos;
+            if (linkOldPos!=curCover.oldPos){//尝试共线;
+                newStream.TBlockStreamCache::resetPos(curCover.newPos);
+                hpatch_StreamPos_t matchedOldPos=linkOldPos;
+                hpatch_StreamPos_t curEqLen=getMatchLength(oldStream,newStream,
+                                                           matchedOldPos,kMatchBlockSize,lastCover);
+                size_t unlinkCost=getOldPosCost(curCover.oldPos,lastCover);
+                size_t unlinkCost_link=getOldPosCost(matchedOldPos,lastCover);
+                if ((curEqLen>0)&&(curEqLen+unlinkCost>=curCover.length+unlinkCost_link)){
+                    curCover.length=curEqLen;
+                    curCover.oldPos=matchedOldPos;
+                    curCover.newPos=curCover.newPos-(linkOldPos-matchedOldPos);
                 }
-                TCover  curCover;
-                if (getBestMatch(blocksBase,blocksSize,range.first,range.second,
-                                 oldStream,newStream,lastCover,&curCover)){
-                    //todo: + link cover
-                    out_covers->addCover(curCover);
-                    //sumLen+=curCover.length;
-                    lastCover=curCover;
-                    if (!newStream.resetPos(curCover.newPos+curCover.length)) break;//finish
-                    continue;
-                }//else roll
-            }//else roll
+            }
+            if (curCover.length>getCoverDataCost(curCover,lastCover)){
+                out_covers->addCover(curCover);
+                lastCover=curCover;
+                if (!newStream.resetPos(curCover.newPos+curCover.length)) break;//finish
+                continue; //matched
+            }
         }
-        if (!newStream.roll()) break;//finish
+        //match fail
+        if (!newStream.resetPos(newPosBack+1)) break;//finish
     }
-    //printf("%zu /%lld\n",out_covers->coverCount(),upperCount(newStream.streamSize(),kMatchBlockSize));
-    //printf("%lld / %lld\n",sumLen,newStream.streamSize());
 }
 
 void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,TCovers* out_covers){
