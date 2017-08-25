@@ -95,11 +95,11 @@ private:
     size_t    m_bitSetMask;
     enum { kZoom=32 };
     static size_t getMask(size_t dataCount){
-        size_t bitCount=dataCount*kZoom;
-        if ((bitCount/kZoom)!=dataCount)
-            throw std::runtime_error("TBloomFilter::getMask() too large dataCount error!");
+        size_t bitSize=dataCount*kZoom;
+        if ((bitSize/kZoom)!=dataCount)
+            throw std::runtime_error("TBloomFilter::getMask() bitSize too large error!");
         unsigned int bit=10;
-        while ( (((size_t)1<<bit)<bitCount) && (bit<sizeof(size_t)*8-1) )
+        while ( (((size_t)1<<bit)<bitSize) && (bit<sizeof(size_t)*8-1) )
             ++bit;
         return ((size_t)1<<bit)-1;
     }
