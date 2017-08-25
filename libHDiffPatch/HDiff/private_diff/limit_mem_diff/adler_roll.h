@@ -47,7 +47,7 @@ extern "C" {
 #define _IS_USE_ADLER_FAST_BASE //WARNING: result non-standard, optimize roll_step speed
 #define _IS_NEED_ADLER64
 #if defined(__LP64__) || defined(_WIN64) || ( __WORDSIZE==64 ) || (UINT_MAX > 0xffffffff )
-#define _IS_DEFAULT_ADLER64
+#   define _IS_DEFAULT_ADLER64
 #endif
     
 #ifdef _MSC_VER

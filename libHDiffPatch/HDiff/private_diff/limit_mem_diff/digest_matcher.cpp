@@ -29,7 +29,6 @@
 #include <assert.h>
 #include <stdexcept>  //std::runtime_error
 #include <algorithm>  //std::sort,std::equal_range
-#include "../compress_detect.h" //_getUIntCost
 
 static  const size_t kMinTrustMatchedLength=16*1024;
 static  const size_t kBestReadSize=1024*256; //for sequence read
@@ -316,22 +315,29 @@ struct TDigest_comp{
         adler_uint_t value;
         inline explicit TDigest(adler_uint_t _value):value(_value){}
     };
-    template<class TIndex>
-    inline bool operator()(const TIndex& x,const TDigest& y)const { return blocks[x]<y.value; }
-    template<class TIndex>
-    inline bool operator()(const TDigest& x,const TIndex& y)const { return x.value<blocks[y]; }
+    template<class TIndex> inline
+    bool operator()(const TIndex& x,const TDigest& y)const { return blocks[x]<y.value; }
+    template<class TIndex> inline
+    bool operator()(const TDigest& x,const TIndex& y)const { return x.value<blocks[y]; }
+    template<class TIndex> inline
+    bool operator()(const TIndex& x, const TIndex& y)const { return blocks[x]<blocks[y]; }
 protected:
     const adler_uint_t* blocks;
 };
 
 struct TDigest_comp_i:public TDigest_comp{
     inline TDigest_comp_i(const adler_uint_t* _blocks,size_t _n):TDigest_comp(_blocks),n(_n),i(0){ }
-    template<class TIndex>
-    inline bool operator()(const TIndex& x,const TDigest& y)const {
-        return (x+i<n)?(blocks[x+i]<y.value):true; }
-    template<class TIndex>
-    inline bool operator()(const TDigest& x,const TIndex& y)const {
-        return (y+i<n)?(x.value<blocks[y+i]):false; }
+    template<class TIndex> inline
+    bool operator()(const TIndex& x,const TDigest& y)const { return (x+i<n)?(blocks[x+i]<y.value):true; }
+    template<class TIndex> inline
+    bool operator()(const TDigest& x,const TIndex& y)const { return (y+i<n)?(x.value<blocks[y+i]):false; }
+    template<class TIndex> inline
+    bool operator()(const TIndex& x, const TIndex& y)const {
+        if ((x+i<n)&(y+i<n)) return blocks[x+i]<blocks[y+i];
+        if (x+i<n) return false;
+        if (y+i<n) return true;
+        return x>y;//n-x<n-y
+    }
 private:
     const size_t        n;
 public:
@@ -368,17 +374,6 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     size_t bdigests_n=0;
     //缩小[left best right)范围,留下最多2个(因为签名匹配并不保证一定相等,2个的话就足够了);
     if (right-left>1){
-        //找到lastCover附近的位置当作比较好的best默认值;
-        hpatch_StreamPos_t linkOldPos=newStream.pos()+lastCover.oldPos-lastCover.newPos;
-        hpatch_StreamPos_t _best_distance=(hpatch_StreamPos_t)1<<30;
-        for (const TIndex* it=left;it<right; ++it) {
-            hpatch_StreamPos_t oldPos=(*it)*kMatchBlockSize;
-            hpatch_StreamPos_t distance=(oldPos<linkOldPos)?(linkOldPos-oldPos):(oldPos-linkOldPos);
-            if (distance<_best_distance){
-                best=it;
-                _best_distance=distance;
-            }
-        }
         //寻找最长的签名匹配位置;
         newStream.toBestDataLength();
         size_t bmaxn=newStream.dataLength()/kMatchBlockSize-1;
@@ -386,9 +381,10 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
         const unsigned char* bdata=newStream.data()+kMatchBlockSize;
         for (; (bdigests_n<bmaxn)&&(right-left>1);++bdigests_n,bdata+=kMatchBlockSize){
             adler_uint_t digest=adler_roll_start(bdata,kMatchBlockSize);
+            typename TDigest_comp::TDigest digest_value(digest);
             comp_i.i=bdigests_n+1;
             std::pair<const TIndex*,const TIndex*>
-            i_range=std::equal_range(left,right,TDigest_comp::TDigest(digest),comp_i);
+            i_range=std::equal_range(left,right,digest_value,comp_i);
             size_t rn=i_range.second-i_range.first;
             if (rn==0){
                 break;
@@ -442,33 +438,19 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     return isMatched;
 }
 
-static const size_t getOldPosCost(hpatch_StreamPos_t oldPos,const TCover& lastCover){
-    hpatch_StreamPos_t oldPosEnd=lastCover.oldPos+lastCover.length;
-    hpatch_StreamPos_t dis=(oldPos>=oldPosEnd)?(oldPos-oldPosEnd):(oldPosEnd-oldPos);
-    return _getUIntCost(dis*2);
-}
-
-static const size_t getCoverDataCost(const TCover& curCover,const TCover& lastCover){
-    return  getOldPosCost(curCover.oldPos,lastCover)
-          + _getUIntCost(curCover.length)
-          + _getUIntCost(curCover.newPos-(lastCover.newPos+lastCover.length));
-}
-
-
 template <class TIndex>
 static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
                             const TIndex* iblocks,const TIndex* iblocks_end,
                             TOldStreamCache& oldStream,TNewStreamCache& newStream,
                             const TBloomFilter<adler_uint_t>& filter,TCovers* out_covers) {
-    const size_t kMatchBlockSize=newStream.kMatchBlockSize;
     TDigest_comp comp(blocksBase);
     TCover  lastCover={0,0,0};
     while (true) {
         if (!filter.is_hit(newStream.rollDigest()))
             { if (newStream.roll()) continue; else break; }//finish
+        typename TDigest_comp::TDigest digest_value(newStream.rollDigest());
         std::pair<const TIndex*,const TIndex*>
-        range=std::equal_range(iblocks,iblocks_end,
-                               TDigest_comp::TDigest(newStream.rollDigest()),comp);
+        range=std::equal_range(iblocks,iblocks_end,digest_value,comp);
         if (range.first==range.second)
             { if (newStream.roll()) continue; else break; }//finish
         
@@ -476,25 +458,12 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
         TCover  curCover;
         if (getBestMatch(blocksBase,blocksSize,range.first,range.second,
                          oldStream,newStream,lastCover,&curCover)){
-            hpatch_StreamPos_t linkOldPos=curCover.newPos+lastCover.oldPos-lastCover.newPos;
-            if (linkOldPos!=curCover.oldPos){//尝试共线;
-                newStream.TBlockStreamCache::resetPos(curCover.newPos);
-                hpatch_StreamPos_t matchedOldPos=linkOldPos;
-                hpatch_StreamPos_t curEqLen=getMatchLength(oldStream,newStream,
-                                                           matchedOldPos,kMatchBlockSize,lastCover);
-                size_t unlinkCost=getOldPosCost(curCover.oldPos,lastCover);
-                size_t unlinkCost_link=getOldPosCost(matchedOldPos,lastCover);
-                if ((curEqLen>0)&&(curEqLen+unlinkCost>=curCover.length+unlinkCost_link)){
-                    curCover.length=curEqLen;
-                    curCover.oldPos=matchedOldPos;
-                    curCover.newPos=curCover.newPos-(linkOldPos-matchedOldPos);
-                }
-            }
-            if (curCover.length>getCoverDataCost(curCover,lastCover)){
+            if (curCover.length>=8){
+                //matched
                 out_covers->addCover(curCover);
                 lastCover=curCover;
                 if (!newStream.resetPos(curCover.newPos+curCover.length)) break;//finish
-                continue; //matched
+                continue;
             }
         }
         //match fail
