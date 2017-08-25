@@ -315,22 +315,29 @@ struct TDigest_comp{
         adler_uint_t value;
         inline explicit TDigest(adler_uint_t _value):value(_value){}
     };
-    template<class TIndex>
-    inline bool operator()(const TIndex& x,const TDigest& y)const { return blocks[x]<y.value; }
-    template<class TIndex>
-    inline bool operator()(const TDigest& x,const TIndex& y)const { return x.value<blocks[y]; }
+    template<class TIndex> inline
+    bool operator()(const TIndex& x,const TDigest& y)const { return blocks[x]<y.value; }
+    template<class TIndex> inline
+    bool operator()(const TDigest& x,const TIndex& y)const { return x.value<blocks[y]; }
+    template<class TIndex> inline
+    bool operator()(const TIndex& x, const TIndex& y)const { return blocks[x]<blocks[y]; }
 protected:
     const adler_uint_t* blocks;
 };
 
 struct TDigest_comp_i:public TDigest_comp{
     inline TDigest_comp_i(const adler_uint_t* _blocks,size_t _n):TDigest_comp(_blocks),n(_n),i(0){ }
-    template<class TIndex>
-    inline bool operator()(const TIndex& x,const TDigest& y)const {
-        return (x+i<n)?(blocks[x+i]<y.value):true; }
-    template<class TIndex>
-    inline bool operator()(const TDigest& x,const TIndex& y)const {
-        return (y+i<n)?(x.value<blocks[y+i]):false; }
+    template<class TIndex> inline
+    bool operator()(const TIndex& x,const TDigest& y)const { return (x+i<n)?(blocks[x+i]<y.value):true; }
+    template<class TIndex> inline
+    bool operator()(const TDigest& x,const TIndex& y)const { return (y+i<n)?(x.value<blocks[y+i]):false; }
+    template<class TIndex> inline
+    bool operator()(const TIndex& x, const TIndex& y)const {
+        if ((x+i<n)&(y+i<n)) return blocks[x+i]<blocks[y+i];
+        if (x+i<n) return false;
+        if (y+i<n) return true;
+        return x>y;//n-x<n-y
+    }
 private:
     const size_t        n;
 public:
