@@ -50,7 +50,9 @@ private:
     std::vector<unsigned char>  m_buf;
     size_t                      m_kMatchBlockSize;
     bool                        m_kIsSkipSameRange;
+    size_t                      m_backupCacheSize;
     size_t                      m_newCacheSize;
+    size_t                      m_oldMinCacheSize;
     
     void getDigests();
 };
