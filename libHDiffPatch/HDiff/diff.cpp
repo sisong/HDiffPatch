@@ -662,9 +662,10 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
 
 static void getCovers_stream(const hpatch_TStreamInput*  newData,
                              const hpatch_TStreamInput*  oldData,
-                             size_t kMatchBlockSize, TCovers& out_covers){
+                             size_t kMatchBlockSize,bool kIsSkipSameRange,
+                             TCovers& out_covers){
     {
-        TDigestMatcher matcher(oldData,kMatchBlockSize);
+        TDigestMatcher matcher(oldData,kMatchBlockSize,kIsSkipSameRange);
         matcher.search_cover(newData,&out_covers);
     }
     {//check cover
@@ -737,8 +738,9 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    hpatch_TStreamOutput*       out_diff,
                                    hdiff_TStreamCompress* compressPlugin,
                                    size_t kMatchBlockSize){
+    const bool isSkipSameRange=(compressPlugin!=0);
     TCovers covers(oldData->streamSize,newData->streamSize);
-    getCovers_stream(newData,oldData,kMatchBlockSize,covers);
+    getCovers_stream(newData,oldData,kMatchBlockSize,isSkipSameRange,covers);
     stream_serialize(newData,oldData->streamSize,out_diff,compressPlugin,covers);
 }
 
