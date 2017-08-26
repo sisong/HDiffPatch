@@ -1,6 +1,6 @@
 **HDiffPatch**
 ================
-Version 2.1.2   
+Version 2.1.3   
 byte data Diff & Patch  C\C++ library.  
 
 ---
@@ -31,7 +31,7 @@ system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 ca
    (purge file cache before every test)
 ```
 HDiff2.0 diff used create_compressed_diff() + bzip2 | lzma | zlib , all data in memory;
-         patch used patch_decompress() + load oldFile data into memory.
+         patch used patch_decompress() + load oldFile data into memory, other data use file stream.
 BsDiff4.3 with bzip2 and all data in memory;
 (when compiling BsDiff4.3-x64, suffix string index type int64 changed to int32, 
    faster and memroy requires to be halved.)   
@@ -68,8 +68,8 @@ Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      1
 =======================================================================================================
 
 
-HDiff2.1 diff used create_compressed_diff_stream() + bzip2 , kMatchBlockSize=128, all use file stream;
-         patch used patch_decompress(), all use file stream.
+HDiff2.1.3 diff used create_compressed_diff_stream() + bzip2 , kMatchBlockSize=128, all data use file stream;
+         patch used patch_decompress(), all data use file stream.
 xdelta3.1 diff run by: -e -s old_file new_file delta_file   
          patch run by: -d -s old_file delta_file decoded_new_file
 (note fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
@@ -78,16 +78,16 @@ xdelta3.1 diff run by: -e -s old_file new_file delta_file
    Program              diff       run time(Second)  memory(MB)    patch run time(Second) memory(MB)
                   xdelta3   HDiff    xdelta3 HDiff  xdelta3 HDiff   xdelta3 HPatch2.0   xdelta3 HPatch
 -------------------------------------------------------------------------------------------------------
-apache-maven...   116265     84585     0.16   0.14     65    10       0.07    0.06         12     6
-httpd bin...     2174098   2091177     1.1    1.2     157    13       0.25    0.65         30     8
-httpd src...     2312990   2044177     1.3    1.6     185    16       0.30    0.91         50     8
-Firefox...      28451567  27510882    16     11       225    17       2.0     4.1         100     8
-emacs...        31655323  12067133    19      8.8     220    18       3.2     4.0          97    10
-eclipse          1590860   1637038     1.5    1.2     207    17       0.46    0.49         77     8 
-gcc-src...     107003829  12439052    56     19       224    48       9.7     9.5         102    11 
+apache-maven...   116265     83408     0.16   0.13     65    11       0.07    0.06         12     6
+httpd bin...     2174098   2077625     1.1    1.2     157    15       0.25    0.65         30     8
+httpd src...     2312990   2034666     1.3    1.7     185    15       0.30    0.91         50     8
+Firefox...      28451567  27504156    16     11       225    16       2.0     4.1         100     8
+emacs...        31655323  12033450    19      9.4     220    33       3.2     4.0          97    10
+eclipse          1590860   1636221     1.5    1.2     207    34       0.46    0.49         77     8 
+gcc-src...     107003829  12305741    56     19       224    79       9.7     9.5         102    11 
            (fix 14173073)
 -------------------------------------------------------------------------------------------------------
-Average           12.18%    7.84%     100%  78.4%     100%  11.1%      100%  169.1%       100%  18.9%
+Average           12.18%    7.81%     100%  79.0%     100%  15.5%      100%  169.1%       100%  18.9%
               (fix 9.78%)
 =======================================================================================================
 ```
