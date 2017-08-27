@@ -68,7 +68,7 @@ Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      1
 =======================================================================================================
 
 
-HDiff2.1.3 diff used create_compressed_diff_stream() + bzip2 , kMatchBlockSize=128, all data use file stream;
+HDiff2.1.3 diff used create_compressed_diff_stream()+bzip2,kMatchBlockSize=128,all data use file stream;
          patch used patch_decompress(), all data use file stream.
 xdelta3.1 diff run by: -e -s old_file new_file delta_file   
          patch run by: -d -s old_file delta_file decoded_new_file
@@ -89,6 +89,29 @@ gcc-src...     107003829  12305741    56     19       224    79       9.7     9.
 -------------------------------------------------------------------------------------------------------
 Average           12.18%    7.81%     100%  79.0%     100%  15.5%      100%  169.1%       100%  18.9%
               (fix 9.78%)
+=======================================================================================================
+
+HDiff2.1.3 diff used create_compressed_diff_stream()+lzma,kMatchBlockSize=64,all data use file stream;
+         patch used patch_decompress(), all data use file stream.
+xdelta3.1 diff run by: -S lzma -9 -s old_file new_file delta_file   
+         patch run by: -d -s old_file delta_file decoded_new_file
+(note fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
+    out 11787978B and used 2639MB memory.)
+=======================================================================================================
+   Program              diff       run time(Second)  memory(MB)    patch run time(Second) memory(MB)
+                  xdelta3   HDiff    xdelta3 HDiff  xdelta3 HDiff   xdelta3 HPatch2.0   xdelta3 HPatch
+-------------------------------------------------------------------------------------------------------
+apache-maven...    98434     83668     0.37   0.29    220    24       0.04    0.06         12     5
+httpd bin...     1986880   1776553     2.5    2.9     356    59       0.24    0.52         30     8
+httpd src...     2057118   1794029     3.3    4.2     375    62       0.28    0.78         50     8
+Firefox...      27046727  21882343    27     32       416    76       1.8     2.2         100     9
+emacs...        29392254   9698236    38     32       413    97       3.1     2.9          97     9
+eclipse          1580342   1589045     3.0    1.9     399    76       0.48    0.48         77     6 
+gcc-src...      95991977   9118368   128     44       417   148       8.9     8.6         102    11 
+           (fix 11787978)
+-------------------------------------------------------------------------------------------------------
+Average           11.24%    6.44%     100%  88.9%     100%  20.0%      100%  151.1%       100%  17.3%
+              (fix 9.06%)
 =======================================================================================================
 ```
   
