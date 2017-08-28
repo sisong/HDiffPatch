@@ -1059,11 +1059,46 @@ clear:
 }
 
 
+
+static hpatch_BOOL _step_read(TByte* buf,TByte* buf_end,
+                              const hpatch_TStreamInput* data,hpatch_StreamPos_t pos){
+    while (buf<buf_end) {
+        const size_t kMaxStepRead =(1<<20);
+        size_t readLen=(size_t)(buf_end-buf);
+        if (readLen>kMaxStepRead) readLen=kMaxStepRead;
+        if (data->streamSize-pos<readLen) return _hpatch_FALSE;
+        if ((long)readLen!=data->read(data->streamHandle,pos,buf,
+                                      buf+readLen)) return _hpatch_FALSE;
+        buf+=readLen;
+        pos+=readLen;
+    }
+    return hpatch_TRUE;
+}
+
+static hpatch_BOOL _do_cache_all(hpatch_TStreamInput* out_stream,const hpatch_TStreamInput* data,
+                                 TByte* cache,TByte** pcache_end){
+    TByte* cache_end=*pcache_end;
+    if (!_step_read(cache_end-data->streamSize,cache_end,data,0)) return _hpatch_FALSE;
+    mem_as_hStreamInput(out_stream,cache_end-data->streamSize,cache_end);
+    *pcache_end-=data->streamSize;
+    return hpatch_TRUE;
+}
+
 hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,
                                         const hpatch_TStreamInput*  oldData,
                                         const hpatch_TStreamInput*  compressedDiff,
                                         hpatch_TDecompress* decompressPlugin,
                                         unsigned char* temp_cache,unsigned char* temp_cache_end){
+    const size_t kMinCacheSize=hpatch_kStreamCacheSize*_kCacheDeCount;
+    const size_t cacheSize=(size_t)(temp_cache_end-temp_cache);
+    hpatch_TStreamInput oldStream;
+    if (cacheSize>=oldData->streamSize+kMinCacheSize){
+        if (!_do_cache_all(&oldStream,oldData,temp_cache,&temp_cache_end)) return _hpatch_FALSE;
+        oldData=&oldStream;
+    }else if (?){
+        if (!_do_cache_as_stream?(&oldStream,oldData,temp_cache,&temp_cache_end)) return _hpatch_FALSE;
+        oldData=&oldStream;
+    }
     return _patch_decompress_step(out_newData,0,oldData,compressedDiff,decompressPlugin,
                                   temp_cache,temp_cache_end,hpatch_TRUE,hpatch_TRUE);
 }
