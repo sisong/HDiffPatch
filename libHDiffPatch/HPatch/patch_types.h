@@ -126,6 +126,7 @@ extern "C" {
         hpatch_StreamPos_t (*leave_cover_count)(const struct hpatch_TCovers* covers);
         //read out a cover,and to next cover pos; if error then return false
         hpatch_BOOL               (*read_cover)(struct hpatch_TCovers* covers,hpatch_TCover* out_cover);
+        hpatch_BOOL                (*is_finish)(const struct hpatch_TCovers* covers);
         void                           (*close)(struct hpatch_TCovers* covers);
     } hpatch_TCovers;
     
