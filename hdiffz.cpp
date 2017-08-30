@@ -45,10 +45,10 @@ static size_t kMatchBlockSize=kMatchBlockSize_default;
 #endif
 //===== select compress plugin =====
 //#define _CompressPlugin_no
-//#define _CompressPlugin_zlib
+//#define _CompressPlugin_zlib // memroy requires less
 #define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma // better compresser
-//#define _CompressPlugin_lz4  // faster compresser
+//#define _CompressPlugin_lz4  // faster compresser/decompresser
 
 
 #ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY

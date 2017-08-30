@@ -116,12 +116,26 @@ extern "C" {
                 hpatch_unpackUIntWithTag(src_code,src_code_end,result,0)
 
     
-    //数据用rle压缩后的包类型2bit
+    typedef struct hpatch_TCover{
+        hpatch_StreamPos_t oldPos;
+        hpatch_StreamPos_t newPos;
+        hpatch_StreamPos_t length;
+    } hpatch_TCover;
+
+    typedef struct hpatch_TCovers{
+        hpatch_StreamPos_t (*leave_cover_count)(const struct hpatch_TCovers* covers);
+        //read out a cover,and to next cover pos; if error then return false
+        hpatch_BOOL               (*read_cover)(struct hpatch_TCovers* covers,hpatch_TCover* out_cover);
+        void                           (*close)(struct hpatch_TCovers* covers);
+    } hpatch_TCovers;
+    
+    
+    //byte rle type , ctrl code: high 2bit + packedLen(6bit+...)
     typedef enum TByteRleType{
-        kByteRleType_rle0  = 0,    //00表示后面存的压缩0;    (包中不需要字节数据)
-        kByteRleType_rle255= 1,    //01表示后面存的压缩255;  (包中不需要字节数据)
-        kByteRleType_rle   = 2,    //10表示后面存的压缩数据;  (包中字节数据只需储存一个字节数据)
-        kByteRleType_unrle = 3     //11表示后面存的未压缩数据;(包中连续储存多个字节数据)
+        kByteRleType_rle0  = 0,    //00 rle 0  , data code:0 byte
+        kByteRleType_rle255= 1,    //01 rle 255, data code:0 byte
+        kByteRleType_rle   = 2,    //10 rle x(1--254), data code:1 byte (save x)
+        kByteRleType_unrle = 3     //11 n byte data, data code:n byte(save no rle data)
     } TByteRleType;
     
     static const int kByteRleType_bit=2;

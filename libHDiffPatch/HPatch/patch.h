@@ -120,15 +120,12 @@ hpatch_inline static hpatch_BOOL
                          const unsigned char* compressedDiff,const unsigned char* compressedDiff_end,
                          hpatch_TDecompress* decompressPlugin){
         hpatch_TStreamOutput out_newStream;
-        hpatch_TStreamInput  in_newStream;
         hpatch_TStreamInput  oldStream;
         hpatch_TStreamInput  diffStream;
         mem_as_hStreamOutput(&out_newStream,out_newData,out_newData_end);
-        mem_as_hStreamInput(&in_newStream,out_newData,out_newData_end);
         mem_as_hStreamInput(&oldStream,oldData,oldData_end);
         mem_as_hStreamInput(&diffStream,compressedDiff,compressedDiff_end);
-        return patch_decompress_repeat_out(&out_newStream,&in_newStream,
-                                           &oldStream,&diffStream,decompressPlugin);
+        return patch_decompress(&out_newStream,&oldStream,&diffStream,decompressPlugin);
     }
 
 #ifdef __cplusplus
