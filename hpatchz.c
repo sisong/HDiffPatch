@@ -32,7 +32,12 @@
 #include <stdlib.h>
 #include "libHDiffPatch/HPatch/patch.h"
 
-//#define _IS_LOAD_OLD_ALL
+//#define _IS_LOAD_OLD_ALL //ON:load oldFile into memory; OFF: limit patch memory
+
+#ifndef _IS_LOAD_OLD_ALL
+//#   define k_patch_cache_size  (1<<22) //ON: slower, memroy requires less
+#   define k_patch_cache_size  ((size_t)1<<27) //the larger the better for large oldFile
+#endif
 
 //===== select needs decompress plugins or your plugin=====
 #define _CompressPlugin_zlib
@@ -165,7 +170,7 @@ int main(int argc, const char * argv[]){
 #ifdef _IS_LOAD_OLD_ALL
     temp_cache_size=oldData.base.streamSize+(1<<21);
 #else
-    temp_cache_size=(size_t)1<<27; //the larger the better for large oldFile
+    temp_cache_size=k_patch_cache_size;
     if (temp_cache_size>oldData.base.streamSize+(1<<21))
         temp_cache_size=oldData.base.streamSize+(1<<21);
 #endif

@@ -38,6 +38,7 @@
 #include "libHDiffPatch/HPatch/patch.h"
 typedef unsigned char   TByte;
 
+#define _IS_RUN_PATCH_CHECK
 //#define _IS_USE_FILE_STREAM_LIMIT_MEMORY //ON: memroy requires less, faster, but out diff size larger
 
 #ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
@@ -197,7 +198,8 @@ int main(int argc, const char * argv[]){
     
     _check_error(!TFileStreamOutput_close(&diffData),"out diffFile close error!");
     std::cout<<"diffDataSize: "<<diffData.base.streamSize<<"\n";
-    if (exitCode==0) std::cout<<"  out HDiffZ file ok!\n"; \
+    if (exitCode==0) std::cout<<"  out HDiffZ file ok!\n";
+#ifdef _IS_RUN_PATCH_CHECK
     //check diff
     if (!TFileStreamInput_open(&diffData_in,outDiffFileName)) _error_return("open check diffFile error!");
     if (!check_compressed_diff_stream(&newData.base,&oldData.base,
@@ -206,10 +208,11 @@ int main(int argc, const char * argv[]){
     }else{
         std::cout<<"  patch check HDiffZ data ok!\n";
     }
+#endif
 clear:
     _clear_data();
     if (exitCode!=0) return exitCode;
-#else
+#else //_IS_USE_FILE_STREAM_LIMIT_MEMORY
     std::vector<TByte> oldData; readFile(oldData,oldFileName);
     std::vector<TByte> newData; readFile(newData,newFileName);
     const size_t oldDataSize=oldData.size();
@@ -224,6 +227,9 @@ clear:
                            diffData,compressPlugin);
     double time2=clock_s();
     std::cout<<"diffDataSize: "<<diffData.size()<<"\n";
+    writeFile(diffData,outDiffFileName);
+    std::cout<<"  out HDiffZ file ok!\n";
+#ifdef _IS_RUN_PATCH_CHECK
     if (!check_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
                                diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
         std::cout<<"\n  patch check HDiffZ data error!!!\n";
@@ -231,9 +237,8 @@ clear:
     }else{
         std::cout<<"  patch check HDiffZ data ok!\n";
     }
-    writeFile(diffData,outDiffFileName);
-    std::cout<<"  out HDiffZ file ok!\n";
 #endif
+#endif //_IS_USE_FILE_STREAM_LIMIT_MEMORY
     double time3=clock_s();
     std::cout<<"\nHDiffZ  time:"<<(time2-time1)<<" s\n";
     std::cout<<"all run time:"<<(time3-time0)<<" s\n";
