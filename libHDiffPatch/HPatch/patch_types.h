@@ -35,9 +35,11 @@ extern "C" {
     //hpatch_StreamPos_t for support large file
 #ifdef _MSC_VER
     typedef unsigned __int64        hpatch_StreamPos_t;
+    typedef unsigned __int32        hpatch_uint32_t;
     #define hpatch_inline _inline
 #else
     typedef unsigned long long      hpatch_StreamPos_t;
+    typedef unsigned int            hpatch_uint32_t;
     #define hpatch_inline inline
 #endif
     

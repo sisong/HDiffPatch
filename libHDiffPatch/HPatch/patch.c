@@ -28,6 +28,10 @@
 #include "patch.h"
 #include <string.h> //memcpy memset size_t
 #include <assert.h> //assert
+#ifdef _IS_NEED_CACHE_OLD_BY_COVERS
+#   include <stdlib.h> //qsort
+#   define _align(p,align) (((size_t)(p)+(align-1)) & (~(size_t)(align-1)))
+#endif
 
 //__RUN_MEM_SAFE_CHECK用来启动内存访问越界检查,用以防御可能被意外或故意损坏的数据.
 #define __RUN_MEM_SAFE_CHECK
@@ -218,8 +222,8 @@ hpatch_BOOL hpatch_packUIntWithTag(TByte** out_code,TByte* out_code_end,
                                    hpatch_StreamPos_t uValue,int highTag,const int kTagBit){//写入整数并前进指针.
     TByte*          pcode=*out_code;
     const TUInt     kMaxValueWithTag=(1<<(7-kTagBit))-1;
-    unsigned char   codeBuf[hpatch_kMaxPackedUIntBytes];
-    unsigned char*  codeEnd=codeBuf;
+    TByte           codeBuf[hpatch_kMaxPackedUIntBytes];
+    TByte*          codeEnd=codeBuf;
 #ifdef __RUN_MEM_SAFE_CHECK
     //static const int kPackMaxTagBit=7;
     //assert((0<=kTagBit)&&(kTagBit<=kPackMaxTagBit));
@@ -658,8 +662,8 @@ static hpatch_StreamPos_t _covers_leaveCoverCount(const hpatch_TCovers* covers){
     const _TCovers* self=(const _TCovers*)covers;
     return self->coverCount;
 }
-static void _covers_close(hpatch_TCovers* covers){
-    //empty
+static void _covers_close_null(hpatch_TCovers* covers){
+    //null
 }
 
 static  hpatch_BOOL _covers_read_cover(hpatch_TCovers* covers,hpatch_TCover* out_cover){
@@ -715,7 +719,7 @@ static void _coves_init(_TCovers* covers,
     covers->base.leave_cover_count=_covers_leaveCoverCount;
     covers->base.read_cover=_covers_read_cover;
     covers->base.is_finish=_covers_is_finish;
-    covers->base.close=_covers_close;
+    covers->base.close=_covers_close_null;
     covers->coverCount=coverCount;
     covers->newPosBack=0;
     covers->oldPosBack=0;
@@ -866,9 +870,9 @@ hpatch_BOOL patch_stream_with_cache(const struct hpatch_TStreamOutput* out_newDa
 hpatch_BOOL patch_stream(const hpatch_TStreamOutput* out_newData,
                          const hpatch_TStreamInput*  oldData,
                          const hpatch_TStreamInput*  serializedDiff){
-    unsigned char temp_cache[hpatch_kStreamCacheSize*_kCacheCount];
+    TByte temp_cache[hpatch_kStreamCacheSize*_kCacheCount];
     return patch_stream_with_cache(out_newData,oldData,serializedDiff,
-                                   temp_cache,temp_cache+sizeof(temp_cache)/sizeof(unsigned char));
+                                   temp_cache,temp_cache+sizeof(temp_cache)/sizeof(TByte));
 }
 
 
@@ -956,7 +960,7 @@ hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
     } _TDecompressInputSteram;
     static long _decompress_read(hpatch_TStreamInputHandle streamHandle,
                                  const hpatch_StreamPos_t  readFromPos,
-                                 unsigned char* out_data,unsigned char* out_data_end){
+                                 TByte* out_data,TByte* out_data_end){
         _TDecompressInputSteram* self=(_TDecompressInputSteram*)streamHandle;
         return self->decompressPlugin->decompress_part(self->decompressPlugin,
                                                        self->decompressHandle,
@@ -998,63 +1002,6 @@ hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
         *pCurStreamPos=curStreamPos;
         return hpatch_TRUE;
     }
-
-
-typedef struct _TCompressedCovers{
-    _TCovers                base;
-    TStreamClip             coverClip;
-    _TDecompressInputSteram decompresser;
-} _TCompressedCovers;
-
-static void _compressedCovers_close(hpatch_TCovers* covers){
-    _TCompressedCovers* self=(_TCompressedCovers*)covers;
-    if (self){
-        if (self->decompresser.decompressHandle){
-            self->decompresser.decompressPlugin->close(self->decompresser.decompressPlugin,
-                                                       self->decompresser.decompressHandle);
-            self->decompresser.decompressHandle=0;
-        }
-    }
-}
-
-hpatch_TCovers* compressedCovers_open(hpatch_compressedDiffInfo* out_diffInfo,
-                                      const hpatch_TStreamInput* compressedDiff,
-                                      hpatch_TDecompress* decompressPlugin,
-                                      TByte* temp_cache,TByte* temp_cache_end){
-    TStreamClip                 diffHeadClip;
-    _THDiffzHead                head;
-    _TCompressedCovers*         self=0;
-    TUInt        diffPos0=0;
-    const TUInt  diffPos_end=compressedDiff->streamSize;
-    assert(hpatch_kStreamCacheSize>=sizeof(_TCompressedCovers));
-    if (temp_cache_end-temp_cache<hpatch_kStreamCacheSize+sizeof(_TCompressedCovers))
-        return 0; //false;
-    
-    self=(_TCompressedCovers*)temp_cache;
-    temp_cache+=sizeof(_TCompressedCovers);
-    _TStreamClip_init(&diffHeadClip,compressedDiff,0,compressedDiff->streamSize,
-                      temp_cache,temp_cache_end-temp_cache);
-    if (!read_diffz_head(out_diffInfo,&head,&diffHeadClip)) return 0;
-    diffPos0=(TUInt)(diffPos_end-_TStreamClip_streamSize(&diffHeadClip));
-    if (head.compress_cover_buf_size>0){
-        if (decompressPlugin==0) return 0;
-        if (!decompressPlugin->is_can_open(decompressPlugin,out_diffInfo)) return 0;
-    }
-    
-    _coves_init(&self->base,head.coverCount,&self->coverClip,
-                &self->coverClip,&self->coverClip,hpatch_TRUE);
-    self->base.base.close=_compressedCovers_close;
-    memset(&self->decompresser,0, sizeof(self->decompresser));
-    if (!getStreamClip(&self->coverClip,&self->decompresser,
-                       head.cover_buf_size,head.compress_cover_buf_size,
-                       compressedDiff,&diffPos0,decompressPlugin,
-                       temp_cache,temp_cache_end-temp_cache)) {
-        return 0;
-    };
-    return &self->base.base;
-}
-
-
 
 #define _clear_return(exitValue) {  result=exitValue; goto clear; }
 
@@ -1217,30 +1164,485 @@ static hpatch_BOOL _do_cache_all(hpatch_TStreamInput* out_stream,const hpatch_TS
     return hpatch_TRUE;
 }
 
+
+#ifdef _IS_NEED_CACHE_OLD_BY_COVERS
+
+typedef struct _TCompressedCovers{
+    _TCovers                base;
+    TStreamClip             coverClip;
+    _TDecompressInputSteram decompresser;
+} _TCompressedCovers;
+
+static void _compressedCovers_close(hpatch_TCovers* covers){
+    _TCompressedCovers* self=(_TCompressedCovers*)covers;
+    if (self){
+        if (self->decompresser.decompressHandle){
+            self->decompresser.decompressPlugin->close(self->decompresser.decompressPlugin,
+                                                       self->decompresser.decompressHandle);
+            self->decompresser.decompressHandle=0;
+        }
+    }
+}
+
+hpatch_BOOL compressedCovers_open(_TCompressedCovers* self,
+                                  hpatch_compressedDiffInfo* out_diffInfo,
+                                  const hpatch_TStreamInput* compressedDiff,
+                                  hpatch_TDecompress* decompressPlugin,
+                                  TByte* temp_cache,TByte* temp_cache_end){
+    TStreamClip                 diffHeadClip;
+    _THDiffzHead                head;
+    TUInt        diffPos0=0;
+    const TUInt  diffPos_end=compressedDiff->streamSize;
+    
+    _TStreamClip_init(&diffHeadClip,compressedDiff,0,compressedDiff->streamSize,
+                      temp_cache,temp_cache_end-temp_cache);
+    if (!read_diffz_head(out_diffInfo,&head,&diffHeadClip)) return _hpatch_FALSE;
+    diffPos0=(TUInt)(diffPos_end-_TStreamClip_streamSize(&diffHeadClip));
+    if (head.compress_cover_buf_size>0){
+        if (decompressPlugin==0) return _hpatch_FALSE;
+        if (!decompressPlugin->is_can_open(decompressPlugin,out_diffInfo)) return _hpatch_FALSE;
+    }
+    
+    _coves_init(&self->base,head.coverCount,&self->coverClip,
+                &self->coverClip,&self->coverClip,hpatch_TRUE);
+    self->base.base.close=_compressedCovers_close;
+    memset(&self->decompresser,0, sizeof(self->decompresser));
+    if (!getStreamClip(&self->coverClip,&self->decompresser,
+                       head.cover_buf_size,head.compress_cover_buf_size,
+                       compressedDiff,&diffPos0,decompressPlugin,
+                       temp_cache,temp_cache_end-temp_cache)) {
+        return _hpatch_FALSE;
+    };
+    return hpatch_TRUE;
+}
+
+typedef struct _TArrayCovers{
+    hpatch_TCovers  base;
+    void*           pCCovers;
+    size_t          coverCount;
+    size_t          cur_index;
+    hpatch_BOOL     is32;
+} _TArrayCovers;
+
+
+typedef struct hpatch_TCCover32{
+    hpatch_uint32_t oldPos;
+    hpatch_uint32_t newPos;
+    hpatch_uint32_t length;
+    hpatch_uint32_t cachePos; //todo:放到临时内存中?
+} hpatch_TCCover32;
+
+typedef struct hpatch_TCCover64{
+    hpatch_StreamPos_t oldPos;
+    hpatch_StreamPos_t newPos;
+    hpatch_StreamPos_t length;
+    hpatch_StreamPos_t cachePos;
+} hpatch_TCCover64;
+
+#define _arrayCovers_get(self,i,item) (((self)->is32)? \
+    ((const hpatch_uint32_t*)(self)->pCCovers)[(i)*4+(item)]:\
+    ((const hpatch_StreamPos_t*)(self)->pCCovers)[(i)*4+(item)])
+#define _arrayCovers_get_len(self,i) _arrayCovers_get(self,i,2)
+#define _arrayCovers_get_oldPos(self,i) _arrayCovers_get(self,i,0)
+#define _arrayCovers_get_cachePos(self,i) _arrayCovers_get(self,i,3)
+
+#define _arrayCovers_set(self,i,item,v) { if ((self)->is32){ \
+    ((hpatch_uint32_t*)(self)->pCCovers)[(i)*4+(item)]=(hpatch_uint32_t)(v); }else{ \
+    ((hpatch_StreamPos_t*)(self)->pCCovers)[(i)*4+(item)]=(v); } }
+#define _arrayCovers_set_cachePos(self,i,v) _arrayCovers_set(self,i,3,v)
+
+static hpatch_inline size_t arrayCovers_memSize(const _TArrayCovers* self){
+    return self->coverCount*(self->is32?sizeof(hpatch_TCCover32):sizeof(hpatch_TCCover64));
+}
+
+static hpatch_BOOL _arrayCovers_is_finish(const hpatch_TCovers* covers){
+    const _TArrayCovers* self=(const _TArrayCovers*)covers;
+    return self->coverCount==self->cur_index;
+}
+static hpatch_StreamPos_t _arrayCovers_leaveCoverCount(const hpatch_TCovers* covers){
+    const _TArrayCovers* self=(const _TArrayCovers*)covers;
+    return self->coverCount-self->cur_index;
+}
+static hpatch_BOOL _arrayCovers_read_cover(struct hpatch_TCovers* covers,hpatch_TCover* out_cover){
+    _TArrayCovers* self=(_TArrayCovers*)covers;
+    size_t i=self->cur_index;
+    if (i<self->coverCount){
+        if (self->is32){
+            const hpatch_TCCover32* pCover=((const hpatch_TCCover32*)self->pCCovers)+i;
+            out_cover->oldPos=pCover->oldPos;
+            out_cover->newPos=pCover->newPos;
+            out_cover->length=pCover->length;
+        }else{
+            const hpatch_TCCover64* pCover=((const hpatch_TCCover64*)self->pCCovers)+i;
+            out_cover->oldPos=pCover->oldPos;
+            out_cover->newPos=pCover->newPos;
+            out_cover->length=pCover->length;
+        }
+        self->cur_index=i+1;
+        return hpatch_TRUE;
+    }else{
+        return _hpatch_FALSE;
+    }
+}
+
+hpatch_BOOL _arrayCovers_load(_TArrayCovers* self,hpatch_TCovers* src_covers,
+                              hpatch_StreamPos_t oldDataSize,hpatch_StreamPos_t newDataSize,
+                              int* out_isReadError,TByte** ptemp_cache,TByte* temp_cache_end){
+    hpatch_BOOL is32=(oldDataSize|newDataSize)<((hpatch_StreamPos_t)1<<32);
+    TByte* temp_cache=*ptemp_cache;
+    size_t  coverDataSize=(is32?sizeof(hpatch_TCCover32):sizeof(hpatch_TCCover64));
+    hpatch_StreamPos_t _coverCount=src_covers->leave_cover_count(src_covers);
+    size_t coverCount=(size_t)_coverCount;
+    size_t memSize=coverCount*coverDataSize;
+    void* pCovers;
+    size_t i;
+    
+    *out_isReadError=hpatch_FALSE;
+    if (((size_t)(temp_cache_end-temp_cache)<sizeof(hpatch_StreamPos_t)+memSize)
+        ||(memSize/coverDataSize!=_coverCount)) return hpatch_FALSE;
+    pCovers=(void*)_align(temp_cache,sizeof(hpatch_StreamPos_t));
+    temp_cache=((TByte*)pCovers)+memSize;
+    if (is32){
+        hpatch_TCCover32* pdst=(hpatch_TCCover32*)pCovers;
+        for (i=0;i<coverCount;++i,++pdst) {
+            hpatch_TCover cover;
+            if (!src_covers->read_cover(src_covers,&cover))
+                { *out_isReadError=hpatch_TRUE; return _hpatch_FALSE; }
+            pdst->oldPos=(hpatch_uint32_t)cover.oldPos;
+            pdst->newPos=(hpatch_uint32_t)cover.newPos;
+            pdst->length=(hpatch_uint32_t)cover.length;
+        }
+        if (!src_covers->is_finish(src_covers))
+            { *out_isReadError=hpatch_TRUE; return _hpatch_FALSE; }
+    }else{
+        hpatch_TCCover64* pdst=(hpatch_TCCover64*)pCovers;
+        for (i=0;i<coverCount;++i,++pdst) {
+            if (!src_covers->read_cover(src_covers,(hpatch_TCover*)pdst))
+                { *out_isReadError=hpatch_TRUE; return _hpatch_FALSE; }
+        }
+    }
+    self->pCCovers=pCovers;
+    self->is32=is32;
+    self->coverCount=coverCount;
+    self->cur_index=0;
+    self->base.close=_covers_close_null;
+    self->base.is_finish=_arrayCovers_is_finish;
+    self->base.leave_cover_count=_arrayCovers_leaveCoverCount;
+    self->base.read_cover=_arrayCovers_read_cover;
+    *ptemp_cache=temp_cache;
+    return hpatch_TRUE;
+}
+
+#define _arrayCovers_comp(uint_t,_x,_y,item){ \
+    uint_t x=((const uint_t*)_x)[item]; \
+    uint_t y=((const uint_t*)_y)[item]; \
+    return (x<y)?(-1):((x>y)?1:0); \
+}
+static int _arrayCovers_comp_by_old_32(const void* _x, const void *_y){
+    _arrayCovers_comp(hpatch_uint32_t,_x,_y,0);
+}
+static int _arrayCovers_comp_by_old(const void* _x, const void *_y){
+    _arrayCovers_comp(hpatch_StreamPos_t,_x,_y,0);
+}
+static int _arrayCovers_comp_by_new_32(const void* _x, const void *_y){
+    _arrayCovers_comp(hpatch_uint32_t,_x,_y,1);
+}
+static int _arrayCovers_comp_by_new(const void* _x, const void *_y){
+    _arrayCovers_comp(hpatch_StreamPos_t,_x,_y,1);
+}
+static int _arrayCovers_comp_by_len_32(const void* _x, const void *_y){
+    _arrayCovers_comp(hpatch_uint32_t,_x,_y,2);
+}
+static int _arrayCovers_comp_by_len(const void* _x, const void *_y){
+    _arrayCovers_comp(hpatch_StreamPos_t,_x,_y,2);
+}
+
+static void _arrayCovers_sort_by_old(_TArrayCovers* self){
+    if (self->is32)
+        qsort(self->pCCovers,self->coverCount,sizeof(hpatch_TCCover32),_arrayCovers_comp_by_old_32);
+    
+    else
+        qsort(self->pCCovers,self->coverCount,sizeof(hpatch_TCCover64),_arrayCovers_comp_by_old);
+}
+static void _arrayCovers_sort_by_new(_TArrayCovers* self){
+    if (self->is32)
+        qsort(self->pCCovers,self->coverCount,sizeof(hpatch_TCCover32),_arrayCovers_comp_by_new_32);
+    else
+        qsort(self->pCCovers,self->coverCount,sizeof(hpatch_TCCover64),_arrayCovers_comp_by_new);
+}
+static void _arrayCovers_sort_by_len(_TArrayCovers* self){
+    if (self->is32)
+        qsort(self->pCCovers,self->coverCount,sizeof(hpatch_TCCover32),_arrayCovers_comp_by_len_32);
+    else
+        qsort(self->pCCovers,self->coverCount,sizeof(hpatch_TCCover64),_arrayCovers_comp_by_len);
+}
+
+static size_t _getMaxCachedLen(const _TArrayCovers* src_covers,TByte* temp_cache,TByte* temp_cache_end){
+    const size_t coverCount=src_covers->coverCount;
+    const size_t kMinCacheCover=coverCount/16;
+    size_t mlen=0;//result
+    size_t sum=0;
+    size_t i;
+    _TArrayCovers cur_covers=*src_covers;
+    size_t cacheSize=temp_cache_end-temp_cache;
+    size_t memSize=arrayCovers_memSize(src_covers);
+    if (cacheSize<sizeof(hpatch_StreamPos_t)+memSize) return 0;
+    cur_covers.pCCovers=(void*)_align(temp_cache,sizeof(hpatch_StreamPos_t));
+    memcpy(cur_covers.pCCovers,src_covers->pCCovers,memSize);
+    _arrayCovers_sort_by_len(&cur_covers);
+    
+    for (i=0; i<coverCount;++i) {
+        hpatch_StreamPos_t clen=_arrayCovers_get_len(&cur_covers,i);
+        hpatch_StreamPos_t nsum=sum+clen;
+        if (nsum<=cacheSize){
+            sum=(size_t)nsum;
+            mlen=(size_t)clen;
+        }else{
+            if ((sum==0)||(i<kMinCacheCover))
+                mlen=0; //fail
+            else
+                mlen=(size_t)(clen-1);
+            break;
+        }
+    }
+    return mlen;
+}
+
+static size_t _set_cache_pos(_TArrayCovers* covers,size_t maxCachedLen,
+                                hpatch_StreamPos_t* poldPosBegin,hpatch_StreamPos_t* poldPosEnd){
+    hpatch_StreamPos_t oldPosBegin=*poldPosBegin;
+    hpatch_StreamPos_t oldPosEnd=*poldPosEnd;
+    hpatch_StreamPos_t oldPos;
+    const size_t coverCount=covers->coverCount;
+    size_t sum=0;
+    size_t i;
+    for (i=0; i<coverCount;++i) {
+        hpatch_StreamPos_t clen=_arrayCovers_get_len(covers,i);
+        if (clen<=maxCachedLen){
+            _arrayCovers_set_cachePos(covers,i,sum);
+            sum+=(size_t)clen;
+            
+            oldPos=_arrayCovers_get_oldPos(covers,i);
+            if (oldPos<oldPosBegin) oldPosBegin=oldPos;
+            if (oldPos+clen>oldPosEnd) oldPosEnd=oldPos+clen;
+        }
+    }
+    *poldPosBegin=oldPosBegin;
+    *poldPosEnd=oldPosEnd;
+    return sum;
+}
+
+const hpatch_uint32_t kMaxCachedLen  =(1<<(20+8));//最长单个缓存数据长度;
+const size_t          kMinSpaceLen   =(1<<(20+2));//跳过seekTime*speed长度的空间时间上划得来,否则就顺序访问;
+                                                  //  SSD的话这个值可以小很多;
+const size_t          kAccessPageSize=(1<<(10+3));//页面对齐访问;
+const size_t          kBestACacheSize=512*1024;   //内存足够时比较好的hpatch_kStreamCacheSize值;
+const size_t          kActiveCacheOldMemorySize=(1<<(20+4)); //激活CacheOld功能的内存下限,>7*kBestACacheSize;
+
+static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
+                                   hpatch_StreamPos_t oldPos,hpatch_StreamPos_t oldPosAllEnd,
+                                   _TArrayCovers* arrayCovers,size_t maxCachedLen,size_t sumCacheLen,
+                                   TByte* old_cache,TByte* old_cache_end,TByte* cache_buf_end){
+    hpatch_BOOL result=hpatch_TRUE;
+    size_t cur_i=0,i;
+    const size_t coverCount=arrayCovers->coverCount;
+    TByte* cache_buf=old_cache_end;
+    if ((size_t)(cache_buf_end-cache_buf)>=kAccessPageSize*3){
+        cache_buf=(TByte*)_align(cache_buf,kAccessPageSize);
+        cache_buf_end=(TByte*)_align(cache_buf_end-(kAccessPageSize-1),kAccessPageSize);
+    }
+    oldPos=_align(oldPos-(kAccessPageSize-1),kAccessPageSize);
+    if (oldPos<kMinSpaceLen) oldPos=0;
+    
+    _arrayCovers_sort_by_old(arrayCovers);
+    while ((oldPos<oldPosAllEnd)&(cur_i<coverCount)) {
+        hpatch_StreamPos_t oldPosEnd;
+        size_t readLen=(cache_buf_end-cache_buf);
+        if (readLen>(oldPosAllEnd-oldPos)) readLen=(size_t)(oldPosAllEnd-oldPos);
+        if ((long)readLen!=oldData->read(oldData->streamHandle,oldPos,cache_buf,
+                                         cache_buf+readLen)) { result=_hpatch_FALSE; break; } //error
+        oldPosEnd=oldPos+readLen;
+        for (i=cur_i;i<coverCount;++i){
+            hpatch_StreamPos_t ioldPos,ioldPosEnd;
+            hpatch_StreamPos_t ilen=_arrayCovers_get_len(arrayCovers,i);
+            if (ilen>maxCachedLen){//不需要缓存;
+                if (i==cur_i)
+                    ++cur_i;
+                continue;
+            }
+            ioldPos=_arrayCovers_get_oldPos(arrayCovers,i);
+            ioldPosEnd=ioldPos+ilen;
+            if (ioldPosEnd>oldPos){
+                if (ioldPos<oldPosEnd){//有交集,需要cache
+                    hpatch_StreamPos_t from;
+                    size_t              copyLen;
+                    TByte*              dst=old_cache+_arrayCovers_get_cachePos(arrayCovers,i);
+                    if (ioldPos>=oldPos){
+                        from=ioldPos;
+                    }else{
+                        from=oldPos;
+                        dst+=(oldPos-ioldPos);
+                    }
+                    copyLen=(size_t)(((ioldPosEnd<=oldPosEnd)?ioldPosEnd:oldPosEnd)-from);
+                    memcpy(dst,cache_buf+(from-oldPos),copyLen);
+                    assert(sumCacheLen>=copyLen);
+                    sumCacheLen-=copyLen;
+                    if ((i==cur_i)&(oldPosEnd>=ioldPosEnd))
+                        ++cur_i;
+                }else{//暂时还不会有交集;
+                    if ((i==cur_i)&&(ioldPos-oldPosEnd>=kMinSpaceLen))
+                        oldPos+=kMinSpaceLen;
+                    break;
+                }
+            }else{//已经超出;
+                if (i==cur_i)
+                    ++cur_i;
+            }
+        }
+        oldPos+=readLen;
+    }
+    _arrayCovers_sort_by_new(arrayCovers);
+    assert(sumCacheLen==0);
+    return result;
+}
+
+typedef struct _cache_old_TStreamInput{
+    _TArrayCovers       arrayCovers;
+    hpatch_BOOL         isInHitCache;
+    hpatch_uint32_t     maxCachedLen;
+    hpatch_StreamPos_t  readFromPos;
+    hpatch_StreamPos_t  readFromPosEnd;
+    const TByte*        caches;
+    const TByte*        cachesEnd;
+    const hpatch_TStreamInput* oldData;
+} _cache_old_TStreamInput;
+
+static long  _cache_old_StreamInput_read(hpatch_TStreamInputHandle streamHandle,
+                                         const hpatch_StreamPos_t readFromPos,
+                                         unsigned char* out_data,unsigned char* out_data_end){
+    _cache_old_TStreamInput* self=(_cache_old_TStreamInput*)streamHandle;
+    hpatch_StreamPos_t dataSize=(size_t)(self->readFromPosEnd-self->readFromPos);
+    size_t readLen=out_data_end-out_data;
+    if (dataSize==0){
+        size_t i=self->arrayCovers.cur_index++;
+        hpatch_StreamPos_t clen;
+        if ((i>=self->arrayCovers.coverCount)
+            ||(_arrayCovers_get_oldPos(&self->arrayCovers,i)!=readFromPos)) return -1;///error;
+        clen=_arrayCovers_get_len(&self->arrayCovers,i);
+        self->isInHitCache=(clen<=self->maxCachedLen);
+        self->readFromPos=_arrayCovers_get_oldPos(&self->arrayCovers,i);
+        self->readFromPosEnd=self->readFromPos+clen;
+        dataSize=clen;
+    }
+    if ((readLen>dataSize)||(self->readFromPos!=readFromPos)) return -1; //error
+    self->readFromPos=readFromPos+readLen;
+    if (self->isInHitCache){
+        assert(self->cachesEnd-self->caches>=readLen);
+        memcpy(out_data,self->caches,readLen);
+        self->caches+=readLen;
+    }else{
+        readLen=self->oldData->read(self->oldData->streamHandle,readFromPos,
+                                    out_data,out_data_end);
+    }
+    return (long)readLen;
+}
+
+static hpatch_BOOL _cache_old(hpatch_TStreamInput* out_oldStream,const hpatch_TStreamInput* oldData,
+                              _TArrayCovers* arrayCovers,int* out_isReadError,
+                              TByte* temp_cache,TByte** ptemp_cache_end,TByte* cache_buf_end){
+    _cache_old_TStreamInput* self;
+    hpatch_StreamPos_t oldPosBegin=oldData->streamSize;
+    hpatch_StreamPos_t oldPosEnd=0;
+    TByte* temp_cache_end=*ptemp_cache_end;
+    size_t sumCacheLen;
+    size_t maxCachedLen;
+    *out_isReadError=hpatch_FALSE;
+    if (temp_cache_end-temp_cache<sizeof(hpatch_StreamPos_t)+sizeof(_cache_old_TStreamInput))
+        return hpatch_FALSE;
+    self=(_cache_old_TStreamInput*)_align(temp_cache,sizeof(hpatch_StreamPos_t));
+    temp_cache=(TByte*)self+sizeof(_cache_old_TStreamInput);
+    
+    maxCachedLen=_getMaxCachedLen(arrayCovers,temp_cache,temp_cache_end);
+    if (maxCachedLen==0) return hpatch_FALSE;
+    if (maxCachedLen>kMaxCachedLen) maxCachedLen=kMaxCachedLen;
+    sumCacheLen=_set_cache_pos(arrayCovers,maxCachedLen,&oldPosBegin,&oldPosEnd);
+    if (sumCacheLen==0) return hpatch_FALSE;
+    temp_cache_end=temp_cache+sumCacheLen;
+    
+    if (!_cache_old_load(oldData,oldPosBegin,oldPosEnd,arrayCovers,maxCachedLen,sumCacheLen,
+                         temp_cache,temp_cache_end,cache_buf_end)){
+        *out_isReadError=hpatch_TRUE;
+        return _hpatch_FALSE;
+    }
+    
+    {//out
+        self->arrayCovers=*arrayCovers;
+        self->arrayCovers.cur_index=0;
+        self->isInHitCache=hpatch_FALSE;
+        self->maxCachedLen=(hpatch_uint32_t)maxCachedLen;
+        self->caches=temp_cache;
+        self->cachesEnd=temp_cache_end;
+        self->readFromPos=0;
+        self->readFromPosEnd=0;
+        self->oldData=oldData;
+        out_oldStream->streamHandle=self;
+        out_oldStream->streamSize=oldData->streamSize;
+        out_oldStream->read=_cache_old_StreamInput_read;
+        *ptemp_cache_end=temp_cache_end;
+    }
+    return hpatch_TRUE;
+}
+
+#endif //_IS_NEED_CACHE_OLD_BY_COVERS
+
+
 hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,
                                         const hpatch_TStreamInput*  oldData,
                                         const hpatch_TStreamInput*  compressedDiff,
                                         hpatch_TDecompress* decompressPlugin,
-                                        unsigned char* temp_cache,unsigned char* temp_cache_end){
+                                        TByte* temp_cache,TByte* temp_cache_end){
     const size_t kMinCacheSize=hpatch_kStreamCacheSize*_kCacheDeCount;
-    const size_t kBestCacheSize=256*1024;
     const size_t cacheSize=(size_t)(temp_cache_end-temp_cache);
     hpatch_TCovers* covers=0;
     hpatch_TStreamInput oldStream;
+#ifdef _IS_NEED_CACHE_OLD_BY_COVERS
+    _TCompressedCovers  compressedCovers;
+    _TArrayCovers       arrayCovers;
+#endif //_IS_NEED_CACHE_OLD_BY_COVERS
     if (cacheSize>=oldData->streamSize+kMinCacheSize){
         if (!_do_cache_all(&oldStream,oldData,temp_cache,&temp_cache_end)) return _hpatch_FALSE;
         oldData=&oldStream;
-    }else if(cacheSize>(1<<22)+kBestCacheSize) {
+    }
+#ifdef _IS_NEED_CACHE_OLD_BY_COVERS
+    else if (cacheSize>=kActiveCacheOldMemorySize) {
         hpatch_compressedDiffInfo diffInfo;
-        covers=compressedCovers_open(&diffInfo,compressedDiff,decompressPlugin,
-                                     temp_cache,temp_cache+kBestCacheSize);
-        if (covers==0) return _hpatch_FALSE;
-        /*if (_cache_covers(covers,temp_cache+kBestCacheSize,temp_cache_end)){
-            _compressedCovers_close(covers);
-        }else*/{
-            temp_cache+=kBestCacheSize;
+        hpatch_BOOL    isReadError=hpatch_FALSE;
+        assert(cacheSize>kBestACacheSize*_kCacheDeCount);
+        if (!compressedCovers_open(&compressedCovers,&diffInfo,compressedDiff,decompressPlugin,
+                                   temp_cache_end-kBestACacheSize,temp_cache_end)) return _hpatch_FALSE;
+        covers=&compressedCovers.base.base;
+        
+        if (!_arrayCovers_load(&arrayCovers,covers,diffInfo.oldDataSize,diffInfo.newDataSize,
+                               &isReadError,&temp_cache,temp_cache_end-kBestACacheSize)){
+            if (isReadError) return _hpatch_FALSE;
+            temp_cache_end-=kBestACacheSize;
+        }else{
+            TByte* old_cache_end;
+            assert(!isReadError);
+            covers->close(covers);
+            covers=&arrayCovers.base;
+            old_cache_end=temp_cache_end-kBestACacheSize*_kCacheDeCount;
+            if (((size_t)(temp_cache_end-temp_cache)<=kBestACacheSize*_kCacheDeCount)
+                ||(!_cache_old(&oldStream,oldData,&arrayCovers,&isReadError,
+                               temp_cache,&old_cache_end,temp_cache_end))){
+                if (isReadError) return _hpatch_FALSE;
+            }else{
+                temp_cache=old_cache_end;
+                oldData=&oldStream;
+            }
         }
     }
+#endif//_IS_NEED_CACHE_OLD_BY_COVERS
     return _patch_decompress_step(out_newData,0,oldData,compressedDiff,decompressPlugin,
                                   covers,temp_cache,temp_cache_end,hpatch_TRUE,hpatch_TRUE);
 }
@@ -1249,9 +1651,10 @@ hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
                              const hpatch_TStreamInput*  oldData,
                              const hpatch_TStreamInput*  compressedDiff,
                              hpatch_TDecompress* decompressPlugin){
-    unsigned char temp_cache[hpatch_kStreamCacheSize*_kCacheDeCount];
-    return patch_decompress_with_cache(out_newData,oldData,compressedDiff,decompressPlugin,
-                                       temp_cache,temp_cache+sizeof(temp_cache)/sizeof(unsigned char));
+    TByte temp_cache[hpatch_kStreamCacheSize*_kCacheDeCount];
+    return _patch_decompress_step(out_newData,0,oldData,compressedDiff,decompressPlugin,
+                                  0,temp_cache,temp_cache+sizeof(temp_cache)/sizeof(TByte),
+                                  hpatch_TRUE,hpatch_TRUE);
 }
 
 hpatch_BOOL patch_decompress_repeat_out(const hpatch_TStreamOutput* repeat_out_newData,
@@ -1260,7 +1663,7 @@ hpatch_BOOL patch_decompress_repeat_out(const hpatch_TStreamOutput* repeat_out_n
                                         const hpatch_TStreamInput*  compressedDiff,
                                         hpatch_TDecompress*         decompressPlugin){
     TByte  temp_cache[hpatch_kStreamCacheSize*_kCacheDeCount];
-    TByte* temp_cache_end=temp_cache+sizeof(temp_cache)/sizeof(unsigned char);
+    TByte* temp_cache_end=temp_cache+sizeof(temp_cache)/sizeof(TByte);
     if (!_patch_decompress_step(repeat_out_newData,0,oldData,compressedDiff,decompressPlugin,
                                 0,temp_cache,temp_cache_end,hpatch_TRUE,hpatch_FALSE)) return _hpatch_FALSE;
     return _patch_decompress_step(repeat_out_newData,in_newData,oldData,compressedDiff,decompressPlugin,
