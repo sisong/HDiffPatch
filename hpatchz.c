@@ -35,8 +35,8 @@
 //#define _IS_LOAD_OLD_ALL //ON:load oldFile into memory; OFF: limit patch memory
 
 #ifndef _IS_LOAD_OLD_ALL
-//#   define k_patch_cache_size  (1<<22) //ON: slower, memroy requires less
 #   define k_patch_cache_size  ((size_t)1<<27) //the larger the better for large oldFile
+//#   define k_patch_cache_size  (1<<22) //ON: slower, memroy requires less
 #endif
 
 //===== select needs decompress plugins or your plugin=====
@@ -168,11 +168,13 @@ int main(int argc, const char * argv[]){
     
     time1=clock_s();
 #ifdef _IS_LOAD_OLD_ALL
-    temp_cache_size=oldData.base.streamSize+(1<<21);
+    temp_cache_size=(size_t)(oldData.base.streamSize+(1<<21));
+    if (temp_cache_size!=oldData.base.streamSize+(1<<21))
+        temp_cache_size=(1<<30);//fail load all,load part
 #else
     temp_cache_size=k_patch_cache_size;
     if (temp_cache_size>oldData.base.streamSize+(1<<21))
-        temp_cache_size=oldData.base.streamSize+(1<<21);
+        temp_cache_size=(size_t)(oldData.base.streamSize+(1<<21));
 #endif
     temp_cache=(TByte*)malloc(temp_cache_size);
     if (!temp_cache) _error_return("alloc cache memory error!");
