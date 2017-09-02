@@ -587,9 +587,6 @@ static hpatch_BOOL _TBytesRle_load_stream_decode_add(_TBytesRle_load_stream* loa
                 loader->memSetLength=length;
             }break;
             case kByteRleType_unrle:{
-#ifdef __RUN_MEM_SAFE_CHECK
-                if (length>_TStreamClip_streamSize(&loader->rleCodeClip)) return _hpatch_FALSE;
-#endif
                 loader->memCopyLength=length;
             }break;
         }
