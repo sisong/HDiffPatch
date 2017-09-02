@@ -1,6 +1,6 @@
 **HDiffPatch**
 ================
-Version 2.1.3   
+Version 2.2.0   
 byte data Diff & Patch  C\C++ library.  
 
 ---

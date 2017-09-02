@@ -38,12 +38,7 @@ typedef unsigned __int32  uint32_t;
 #   include <stdint.h> //for uint32_t
 #endif
 
-struct TCover{
-    hpatch_StreamPos_t oldPos;
-    hpatch_StreamPos_t newPos;
-    hpatch_StreamPos_t length;
-};
-
+#define TCover hpatch_TCover
 
 class TCovers{
 public:

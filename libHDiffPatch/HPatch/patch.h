@@ -96,7 +96,13 @@ hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
                              const hpatch_TStreamInput*  compressedDiff,
                              hpatch_TDecompress* decompressPlugin);
 
+    
+//ON: for patch_decompress_with_cache(), preparatory load part of oldData into cache,
+//  cache memory size (temp_cache_end-temp_cache) the larger the better for large oldData file
+#define _IS_NEED_CACHE_OLD_BY_COVERS
+
 //see patch_decompress()
+//  use larger cache memory for faster speed
 //  limit (temp_cache_end-temp_cache)>=2048
 hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,
                                         const hpatch_TStreamInput*  oldData,
@@ -120,15 +126,12 @@ hpatch_inline static hpatch_BOOL
                          const unsigned char* compressedDiff,const unsigned char* compressedDiff_end,
                          hpatch_TDecompress* decompressPlugin){
         hpatch_TStreamOutput out_newStream;
-        hpatch_TStreamInput  in_newStream;
         hpatch_TStreamInput  oldStream;
         hpatch_TStreamInput  diffStream;
         mem_as_hStreamOutput(&out_newStream,out_newData,out_newData_end);
-        mem_as_hStreamInput(&in_newStream,out_newData,out_newData_end);
         mem_as_hStreamInput(&oldStream,oldData,oldData_end);
         mem_as_hStreamInput(&diffStream,compressedDiff,compressedDiff_end);
-        return patch_decompress_repeat_out(&out_newStream,&in_newStream,
-                                           &oldStream,&diffStream,decompressPlugin);
+        return patch_decompress(&out_newStream,&oldStream,&diffStream,decompressPlugin);
     }
 
 #ifdef __cplusplus

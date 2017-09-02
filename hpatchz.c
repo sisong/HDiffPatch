@@ -32,16 +32,11 @@
 #include <stdlib.h>
 #include "libHDiffPatch/HPatch/patch.h"
 
-//#define _IS_USE_PATCH_CACHE      //ON: faster, add some memory for patch cache
-//#define _IS_USE_OLD_FILE_STREAM  //ON: slower, memroy requires less,because not need load oldFile
-//#define _IS_USE_PATCH_REPEAT_OUT //ON: slower, decompress memroy requires to be halved!
+//#define _IS_LOAD_OLD_ALL //ON:load oldFile into memory; OFF: limit patch memory
 
-#ifdef _IS_USE_PATCH_REPEAT_OUT
-#   undef _IS_USE_PATCH_CACHE
-#endif
-
-#ifdef _IS_USE_PATCH_CACHE
-#   define  k_patch_cache_size  (1<<22)
+#ifndef _IS_LOAD_OLD_ALL
+#   define k_patch_cache_size  ((size_t)1<<27) //the larger the better for large oldFile
+//#   define k_patch_cache_size  (1<<22) //ON: slower, memroy requires less
 #endif
 
 //===== select needs decompress plugins or your plugin=====
@@ -102,47 +97,25 @@ int main(int argc, const char * argv[]){
     hpatch_TDecompress* decompressPlugin=0;
     TFileStreamOutput   newData;
     TFileStreamInput    diffData;
-#ifdef _IS_USE_OLD_FILE_STREAM
     TFileStreamInput     oldData;
     hpatch_TStreamInput* poldData=&oldData.base;
-#else
-    TByte*               poldData_mem=0;
-    size_t               oldDataSize=0;
-    hpatch_TStreamInput  oldData;
-    hpatch_TStreamInput* poldData=&oldData;
-#endif
-#ifdef _IS_USE_PATCH_CACHE
-    TByte*            temp_cache=0;
-#endif
-#ifdef _IS_USE_PATCH_REPEAT_OUT
-    TFileStreamInput  readNewData;
-#endif
+    TByte*               temp_cache=0;
+    size_t               temp_cache_size;
     if (argc!=4) {
         printf("HPatchZ command parameter:\n oldFileName diffFileName outNewFileName\n");
         return 1;
     }
-#ifdef _IS_USE_OLD_FILE_STREAM
     TFileStreamInput_init(&oldData);
-#endif
     TFileStreamInput_init(&diffData);
     TFileStreamOutput_init(&newData);
-#ifdef _IS_USE_PATCH_REPEAT_OUT
-    TFileStreamInput_init(&readNewData);
-#endif
     {//open file
         hpatch_compressedDiffInfo diffInfo;
         const char* oldFileName=argv[1];
         const char* diffFileName=argv[2];
         const char* outNewFileName=argv[3];
         printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,diffFileName,outNewFileName);
-#ifdef _IS_USE_OLD_FILE_STREAM
         if (!TFileStreamInput_open(&oldData,oldFileName))
             _error_return("open oldFile for read error!");
-#else
-        if (!readFileAll(&poldData_mem,&oldDataSize,oldFileName))
-            _error_return("open read oldFile error!");
-        mem_as_hStreamInput(&oldData,poldData_mem,poldData_mem+oldDataSize);
-#endif
         if (!TFileStreamInput_open(&diffData,diffFileName))
             _error_return("open diffFile for read error!");
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
@@ -189,38 +162,28 @@ int main(int argc, const char * argv[]){
         
         if (!TFileStreamOutput_open(&newData, outNewFileName,diffInfo.newDataSize))
             _error_return("open out newFile for write error!");
-#ifdef _IS_USE_PATCH_REPEAT_OUT
-        TFileStreamOutput_setRepeatOut(&newData,hpatch_TRUE);
-        if (!TFileStreamInput_open(&readNewData,outNewFileName))
-            _error_return("open newFile for read error!");
-#endif
     }
     printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
     
     time1=clock_s();
-#ifdef _IS_USE_PATCH_REPEAT_OUT
-    if (!patch_decompress_repeat_out(&newData.base,&readNewData.base,
-                                     poldData,&diffData.base,decompressPlugin)){
-        const char* kRunErrInfo="\npatch_decompress_repeat_out() run error!\n";
-#elif defined(_IS_USE_PATCH_CACHE)
-    temp_cache=(TByte*)malloc(k_patch_cache_size);
+#ifdef _IS_LOAD_OLD_ALL
+    temp_cache_size=(size_t)(oldData.base.streamSize+(1<<21));
+    if (temp_cache_size!=oldData.base.streamSize+(1<<21))
+        temp_cache_size=(1<<30);//fail load all,load part
+#else
+    temp_cache_size=k_patch_cache_size;
+    if (temp_cache_size>oldData.base.streamSize+(1<<21))
+        temp_cache_size=(size_t)(oldData.base.streamSize+(1<<21));
+#endif
+    temp_cache=(TByte*)malloc(temp_cache_size);
     if (!temp_cache) _error_return("alloc cache memory error!");
     if (!patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
-                                     temp_cache,temp_cache+k_patch_cache_size)){
+                                     temp_cache,temp_cache+temp_cache_size)){
         const char* kRunErrInfo="patch_decompress_with_cache() run error!";
-#else
-    if (!patch_decompress(&newData.base,poldData,&diffData.base,decompressPlugin)){
-        const char* kRunErrInfo="patch_decompress() run error!";
-#endif
-#ifdef _IS_USE_OLD_FILE_STREAM
         _check_error(oldData.fileError,"oldFile read error!");
-#endif
         _check_error(diffData.fileError,"diffFile read error!");
         _check_error(newData.fileError,"out newFile write error!");
-#ifdef _IS_USE_PATCH_REPEAT_OUT
-        _check_error(readNewData.fileError,"newFile read error!");
-#endif
         _error_return(kRunErrInfo);
     }
     if (newData.out_length!=newData.base.streamSize){
@@ -235,17 +198,8 @@ int main(int argc, const char * argv[]){
 clear:
     _check_error(!TFileStreamOutput_close(&newData),"out newFile close error!");
     _check_error(!TFileStreamInput_close(&diffData),"diffFile close error!");
-#ifdef _IS_USE_OLD_FILE_STREAM
     _check_error(!TFileStreamInput_close(&oldData),"oldFile close error!");
-#else
-    _free_mem(poldData_mem);
-#endif
-#ifdef _IS_USE_PATCH_CACHE
     _free_mem(temp_cache);
-#endif
-#ifdef _IS_USE_PATCH_REPEAT_OUT
-    _check_error(!TFileStreamInput_close(&readNewData),"read newFile close error!");
-#endif
     time3=clock_s();
     printf("all run time: %.3f s\n",(time3-time0));
     return exitCode;
