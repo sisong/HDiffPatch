@@ -124,8 +124,6 @@ static hpatch_StreamPos_t blockIndexToPos(size_t index,size_t kMatchBlockSize,
 TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize,bool kIsSkipSameRange)
 :m_oldData(oldData),m_isUseLargeSorted(true),m_kMatchBlockSize(0),
 m_kIsSkipSameRange(kIsSkipSameRange),m_backupCacheSize(0),m_newCacheSize(0),m_oldMinCacheSize(0){
-    if (kMatchBlockSize>adler_roll_kMaxBlockSize)
-        throw std::runtime_error("TDigestMatcher() kMatchBlockSize value error.");
     if (kMatchBlockSize>(oldData->streamSize+1)/2)
         kMatchBlockSize=(size_t)((oldData->streamSize+1)/2);
     if (kMatchBlockSize<kMinMatchBlockSize)
@@ -195,7 +193,7 @@ void TDigestMatcher::getDigests(){
     for (size_t i=0; i<blockCount; ++i) {
         hpatch_StreamPos_t readPos=blockIndexToPos(i,m_kMatchBlockSize,m_oldData->streamSize);
         streamCache.resetPos(0,readPos,m_kMatchBlockSize);
-        adler_uint_t adler=adler_roll_start(streamCache.data(),m_kMatchBlockSize);
+        adler_uint_t adler=adler_start(streamCache.data(),m_kMatchBlockSize);
         m_filter.insert(adler);
         m_blocks[i]=adler;
         if (m_isUseLargeSorted)
@@ -296,8 +294,7 @@ private:
 struct TNewStreamCache:public TBlockStreamCache{
     TNewStreamCache(const hpatch_TStreamInput* _stream,unsigned char* _cache,
                     size_t _cacheSize,size_t _backupCacheSize,size_t _kMatchBlockSize)
-    :TBlockStreamCache(_stream,_cache,_cacheSize,_backupCacheSize,_kMatchBlockSize),
-    kBlockSizeBM(adler_roll_kBlockSizeBM((adler_uint_t)_kMatchBlockSize)){
+    :TBlockStreamCache(_stream,_cache,_cacheSize,_backupCacheSize,_kMatchBlockSize){
         resetPos(0);
     }
     void toBestDataLength(){
@@ -308,15 +305,15 @@ struct TNewStreamCache:public TBlockStreamCache{
     
     inline bool resetPos(hpatch_StreamPos_t streamPos){
         if (!TBlockStreamCache::resetPos(streamPos)) return false;
-        roll_digest=adler_roll_start(data(),kMatchBlockSize);
+        roll_digest=adler_start(data(),kMatchBlockSize);
         return true;
     }
     inline bool roll(){
         //warning: after running _loop_backward_cache(),cache roll logic is failure
         if (dataLength()>kMatchBlockSize){
             const unsigned char* cur_datas=data();
-            roll_digest=adler_roll_step(roll_digest,(adler_uint_t)kMatchBlockSize,kBlockSizeBM,
-                                        cur_datas[0],cur_datas[kMatchBlockSize]);
+            roll_digest=adler_roll(roll_digest,(adler_uint_t)kMatchBlockSize,
+                                    cur_datas[0],cur_datas[kMatchBlockSize]);
             ++cachePos;
             return true;
         }else{
@@ -342,7 +339,6 @@ struct TNewStreamCache:public TBlockStreamCache{
     }
     inline adler_uint_t rollDigest()const{ return roll_digest; }
 private:
-    adler_uint_t               kBlockSizeBM;
     adler_uint_t               roll_digest;
 };
 
@@ -418,7 +414,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
         if (bmaxn>max_bdigests_n) bmaxn=max_bdigests_n;
         const unsigned char* bdata=newStream.data()+kMatchBlockSize;
         for (; (bdigests_n<bmaxn)&&(right-left>1);++bdigests_n,bdata+=kMatchBlockSize){
-            adler_uint_t digest=adler_roll_start(bdata,kMatchBlockSize);
+            adler_uint_t digest=adler_start(bdata,kMatchBlockSize);
             typename TDigest_comp::TDigest digest_value(digest);
             comp_i.i=bdigests_n+1;
             std::pair<const TIndex*,const TIndex*>
