@@ -40,11 +40,11 @@ public:
     
     inline void set(size_t bitIndex){
         assert(bitIndex<m_bitSize);
-        m_bits[bitIndex/kBaseTBit] |= ((base_t)1<<(bitIndex%kBaseTBit));
+        m_bits[bitIndex>>kBaseShr] |= ((base_t)1<<(bitIndex&kBaseMask));
     }
     inline bool is_hit(size_t bitIndex)const{
         //assert(bitIndex<m_bitSize);
-        return 0!=(m_bits[bitIndex/kBaseTBit] & ((base_t)1<<(bitIndex%kBaseTBit)));
+        return 0!=(m_bits[bitIndex>>kBaseShr] & ((base_t)1<<(bitIndex&kBaseMask)));
     }
     
     inline size_t size()const{return m_bitSize; }
@@ -63,9 +63,14 @@ public:
         }
     }
 private:
-    inline static size_t bitSizeToCount(size_t bitSize){ return (bitSize+(kBaseTBit-1))/kBaseTBit; }
+    inline static size_t bitSizeToCount(size_t bitSize){ return (bitSize+(kBaseTBits-1))/kBaseTBits; }
     typedef unsigned int base_t;
-    enum { kBaseTBit=sizeof(base_t)*8 };
+    enum {
+        kBaseShr=5,
+        kBaseTBits=(1<<kBaseShr),
+        kBaseMask=kBaseTBits-1 };
+    //assert(kBaseTBits==sizeof(base_t)*8);
+    struct __private_TBitSet_check_base_t_size { char _[(kBaseTBits==sizeof(base_t)*8)?1:-1]; };
     base_t* m_bits;
     size_t  m_bitSize;
 };

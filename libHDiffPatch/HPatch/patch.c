@@ -452,7 +452,7 @@ static void _TStreamClip_resetPosEnd(struct TStreamClip* sclip,TUInt new_posEnd)
 
 //assert(hpatch_kStreamCacheSize>=hpatch_kMaxPackedUIntBytes);
 struct __private_hpatch_check_hpatch_kMaxPackedUIntBytes {
-    char _[hpatch_kStreamCacheSize-hpatch_kMaxPackedUIntBytes]; };
+    char _[(hpatch_kStreamCacheSize>=hpatch_kMaxPackedUIntBytes)?1:-1]; };
 
 static hpatch_BOOL _TStreamClip_unpackUIntWithTag(struct TStreamClip* sclip,
                                                   TUInt* result,const int kTagBit){
@@ -895,7 +895,7 @@ typedef struct _THDiffzHead{
 
 //assert(hpatch_kStreamCacheSize>=hpatch_kMaxCompressTypeLength+1);
 struct __private_hpatch_check_kMaxCompressTypeLength {
-    char _[hpatch_kStreamCacheSize-(hpatch_kMaxCompressTypeLength+1)];};
+    char _[(hpatch_kStreamCacheSize>=(hpatch_kMaxCompressTypeLength+1))?1:-1];};
 
 static hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,
                                    _THDiffzHead* out_head,TStreamClip* diffHeadClip){
