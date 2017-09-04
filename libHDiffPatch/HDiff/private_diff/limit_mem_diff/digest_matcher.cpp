@@ -30,14 +30,24 @@
 #include <stdexcept>  //std::runtime_error
 #include <algorithm>  //std::sort,std::equal_range
 #include "../compress_detect.h" //_getUIntCost
+#include "adler_roll.h"
 
 static  const size_t kMinTrustMatchedLength=16*1024;
 static  const size_t kMinMatchedLength = 8;
 static  const size_t kBestReadSize=1024*256; //for sequence read
 static  const size_t kMinReadSize=1024;      //for random first read speed
 static  const size_t kMinBackupReadSize=256;
-
 static  const size_t kMinMatchBlockSize=1<<1;
+
+typedef size_t adler_uint_t;
+static inline adler_uint_t adler_start(const adler_data_t* pdata,size_t n){
+    if (sizeof(adler_uint_t)>4) return (adler_uint_t)fast_adler64_start(pdata,n);
+    else return fast_adler32_start(pdata,n);
+}
+static inline adler_uint_t adler_roll(adler_uint_t adler,size_t blockSize,adler_data_t out_data,adler_data_t in_data){
+    if (sizeof(adler_uint_t)>4) return (adler_uint_t)fast_adler64_roll(adler,blockSize,out_data,in_data);
+    else return fast_adler32_roll((uint32_t)adler,blockSize,out_data,in_data);
+}
 
 #define readStream(stream,pos,dst,n) { \
     if ((long)(n)!=(stream)->read((stream)->streamHandle,pos,dst,dst+(n))) \
