@@ -43,7 +43,8 @@
 #define _CompressPlugin_zlib
 #define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
-//#define _CompressPlugin_lz4
+//#define _CompressPlugin_lz4 // & lz4hc
+//#define _CompressPlugin_zstd
 
 #include "decompress_plugin_demo.h"
 
@@ -120,7 +121,7 @@ int main(int argc, const char * argv[]){
             _error_return("open diffFile for read error!");
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
             _check_error(diffData.fileError,"diffFile read error!");
-            _error_return("getCompressedDiffInfo() run error! in HDiffZ file?");
+            _error_return("getCompressedDiffInfo() run error! is HDiffZ file?");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
             printf("\nerror! oldFile dataSize %" PRId64 " != saved oldDataSize %" PRId64 "\n",
@@ -144,6 +145,10 @@ int main(int argc, const char * argv[]){
 #ifdef  _CompressPlugin_lz4
             if ((!decompressPlugin)&&lz4DecompressPlugin.is_can_open(&lz4DecompressPlugin,&diffInfo))
                 decompressPlugin=&lz4DecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_zstd
+            if ((!decompressPlugin)&&zstdDecompressPlugin.is_can_open(&zstdDecompressPlugin,&diffInfo))
+                decompressPlugin=&zstdDecompressPlugin;
 #endif
         }
         if (!decompressPlugin){

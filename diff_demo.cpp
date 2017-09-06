@@ -40,6 +40,8 @@
 typedef unsigned char   TByte;
 typedef size_t          TUInt;
 
+#define _IS_RUN_PATCH_CHECK
+
 //  #include <time.h>
 //  static double clock_s(){ return clock()*(1.0/CLOCKS_PER_SEC); }
 #ifdef _WIN32
@@ -123,6 +125,9 @@ int main(int argc, const char * argv[]){
                 oldData0,oldData0+oldDataSize,diffData);
     double time2=clock_s();
     std::cout<<"diffDataSize: "<<diffData.size()<<"\n";
+    writeFile(diffData,outDiffFileName);
+    std::cout<<"  out diff file ok!\n";
+#ifdef _IS_RUN_PATCH_CHECK
     if (!check_diff(newData0,newData0+newDataSize,
                     oldData0,oldData0+oldDataSize,
                     diffData.data()+kNewDataSize, diffData.data()+diffData.size())){
@@ -131,9 +136,8 @@ int main(int argc, const char * argv[]){
     }else{
         std::cout<<"  patch check diff data ok!\n";
     }
-    writeFile(diffData,outDiffFileName);
+#endif
     double time3=clock_s();
-    std::cout<<"  out diff file ok!\n";
     std::cout<<"\ndiff    time:"<<(time2-time1)<<" s\n";
     std::cout<<"all run time:"<<(time3-time0)<<" s\n";
 

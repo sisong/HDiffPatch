@@ -32,6 +32,7 @@
 //  hpatch_TDeompress bz2DecompressPlugin;
 //  hpatch_TDeompress lzmaDecompressPlugin;
 //  hpatch_TDeompress lz4DecompressPlugin;
+//  hpatch_TDeompress zstdDecompressPlugin;
 
 #include <stdlib.h> //malloc free
 #include <assert.h> //assert
@@ -288,10 +289,10 @@
         unsigned char* out_cur=out_part_data;
         assert(out_part_data!=out_part_data_end);
         while (out_cur<out_part_data_end){
-            long copyLen=self->decEnv.dicPos-self->decCopyPos;
+            long copyLen=(long)(self->decEnv.dicPos-self->decCopyPos);
             if (copyLen>0){
                 if (copyLen>(out_part_data_end-out_cur))
-                    copyLen=out_part_data_end-out_cur;
+                    copyLen=(long)(out_part_data_end-out_cur);
                 memcpy(out_cur,self->decEnv.dic+self->decCopyPos,copyLen);
                 out_cur+=copyLen;
                 self->decCopyPos+=copyLen;
@@ -337,7 +338,7 @@
                                                     _lzma_close,_lzma_decompress_part};
 #endif//_CompressPlugin_lzma
 
-#ifdef  _CompressPlugin_lz4
+#if (defined(_CompressPlugin_lz4) || defined(_CompressPlugin_lz4hc))
 #include "../lz4/lib/lz4.h" // https://github.com/lz4/lz4
     typedef struct _lz4_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
@@ -410,10 +411,10 @@
         long result=(long)(out_part_data_end-out_part_data);
 
         while (out_part_data<out_part_data_end) {
-            int dataLen=self->data_end-self->data_begin;
+            long dataLen=self->data_end-self->data_begin;
             if (dataLen>0){
                 if (dataLen>(out_part_data_end-out_part_data))
-                    dataLen=(int)(out_part_data_end-out_part_data);
+                    dataLen=(long)(out_part_data_end-out_part_data);
                 memcpy(out_part_data,data_buf+self->data_begin,dataLen);
                 out_part_data+=(size_t)dataLen;
                 self->data_begin+=dataLen;
@@ -436,6 +437,99 @@
     }
     static hpatch_TDecompress lz4DecompressPlugin={_lz4_is_can_open,_lz4_open,
                                                    _lz4_close,_lz4_decompress_part};
-#endif//_CompressPlugin_lz4
+#endif//_CompressPlugin_lz4 or _CompressPlugin_lz4hc
+
+#ifdef  _CompressPlugin_zstd
+#include "../zstd/lib/zstd.h" // https://github.com/facebook/zstd
+    typedef struct _zstd_TDecompress{
+        const struct hpatch_TStreamInput* codeStream;
+        hpatch_StreamPos_t code_begin;
+        hpatch_StreamPos_t code_end;
+        
+        ZSTD_inBuffer      s_input;
+        ZSTD_outBuffer     s_output;
+        size_t             data_begin;
+        ZSTD_DStream*      s;
+        unsigned char      buf[1];
+    } _zstd_TDecompress;
+    static int  _zstd_is_can_open(struct hpatch_TDecompress* decompressPlugin,
+                                  const hpatch_compressedDiffInfo* compressedDiffInfo){
+        return (compressedDiffInfo->compressedCount==0)
+             ||(0==strcmp(compressedDiffInfo->compressType,"zstd"));
+    }
+    static hpatch_decompressHandle  _zstd_open(struct hpatch_TDecompress* decompressPlugin,
+                                               hpatch_StreamPos_t dataSize,
+                                               const struct hpatch_TStreamInput* codeStream,
+                                               hpatch_StreamPos_t code_begin,
+                                               hpatch_StreamPos_t code_end){
+        _zstd_TDecompress* self=0;
+        size_t  ret;
+        size_t _input_size=ZSTD_DStreamInSize();
+        size_t _output_size=ZSTD_DStreamOutSize();
+        assert(code_begin<code_end);
+        self=(_zstd_TDecompress*)malloc(sizeof(_zstd_TDecompress)+_input_size+_output_size);
+        if (!self) return 0;
+        memset(self,0,sizeof(_zstd_TDecompress));
+        self->codeStream=codeStream;
+        self->code_begin=code_begin;
+        self->code_end=code_end;
+        self->s_input.src=self->buf;
+        self->s_input.size=_input_size;
+        self->s_input.pos=_input_size;
+        self->s_output.dst=self->buf+_input_size;
+        self->s_output.size=_output_size;
+        self->s_output.pos=0;
+        self->data_begin=0;
+        
+        self->s = ZSTD_createDStream();
+        if (!self->s){ free(self); return 0; }
+        ret=ZSTD_initDStream(self->s);
+        if (ZSTD_isError(ret)) { ZSTD_freeDStream(self->s); free(self); return 0; }
+        return self;
+    }
+    static void _zstd_close(struct hpatch_TDecompress* decompressPlugin,
+                            hpatch_decompressHandle decompressHandle){
+        _zstd_TDecompress* self=(_zstd_TDecompress*)decompressHandle;
+        if (!self) return;
+        if (0!=ZSTD_freeDStream(self->s)) assert(0);
+        free(self);
+    }
+    static long _zstd_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
+                                      hpatch_decompressHandle decompressHandle,
+                                      unsigned char* out_part_data,unsigned char* out_part_data_end){
+        _zstd_TDecompress* self=(_zstd_TDecompress*)decompressHandle;
+        long result=(long)(out_part_data_end-out_part_data);
+        while (out_part_data<out_part_data_end) {
+            long dataLen=(long)(self->s_output.pos-self->data_begin);
+            if (dataLen>0){
+                if (dataLen>(out_part_data_end-out_part_data))
+                    dataLen=(long)(out_part_data_end-out_part_data);
+                memcpy(out_part_data,(const unsigned char*)self->s_output.dst+self->data_begin,dataLen);
+                out_part_data+=dataLen;
+                self->data_begin+=dataLen;
+            }else{
+                size_t ret;
+                if (self->s_input.pos==self->s_input.size) {
+                    self->s_input.pos=0;
+                    if (self->s_input.size>self->code_end-self->code_begin){
+                        self->s_input.size=(size_t)(self->code_end-self->code_begin);
+                        if (self->s_input.size==0) return 0;
+                    }
+                    if ((long)self->s_input.size!=self->codeStream->read(self->codeStream->streamHandle,
+                            self->code_begin, (unsigned char*)self->s_input.src,
+                            (unsigned char*)self->s_input.src+self->s_input.size)) return 0;
+                    self->code_begin+=self->s_input.size;
+                }
+                self->s_output.pos=0;
+                self->data_begin=0;
+                ret=ZSTD_decompressStream(self->s,&self->s_output,&self->s_input);
+                if (ZSTD_isError(ret)) return 0;
+            }
+        }
+        return result;
+    }
+    static hpatch_TDecompress zstdDecompressPlugin={_zstd_is_can_open,_zstd_open,
+                                                    _zstd_close,_zstd_decompress_part};
+#endif//_CompressPlugin_zstd
 
 #endif

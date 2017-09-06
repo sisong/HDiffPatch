@@ -31,7 +31,6 @@
 #ifndef digest_matcher_h
 #define digest_matcher_h
 #include "bloom_filter.h"
-#include "adler_roll.h"
 #include "covers.h"
 
 class TDigestMatcher{
@@ -42,11 +41,11 @@ public:
 
 private:
     const hpatch_TStreamInput*  m_oldData;
-    std::vector<adler_uint_t>   m_blocks;
+    std::vector<size_t>         m_blocks;
     std::vector<uint32_t>       m_sorted_limit;
     std::vector<size_t>         m_sorted_larger;
     bool                        m_isUseLargeSorted;
-    TBloomFilter<adler_uint_t>  m_filter;
+    TBloomFilter<size_t>        m_filter;
     std::vector<unsigned char>  m_buf;
     size_t                      m_kMatchBlockSize;
     bool                        m_kIsSkipSameRange;
