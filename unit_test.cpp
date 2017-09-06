@@ -49,6 +49,8 @@ const long kRandTestCount=50000;
 //#define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
 //#define _CompressPlugin_lz4
+//#define _CompressPlugin_lz4hc
+//#define _CompressPlugin_zstd
 
 #define IS_NOTICE_compressCanceled 0
 #include "compress_plugin_demo.h"
@@ -80,7 +82,16 @@ const long kRandTestCount=50000;
     hdiff_TCompress* compressPlugin=&lz4CompressPlugin;
     hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
 #endif
-
+#ifdef  _CompressPlugin_lz4hc
+    hdiff_TStreamCompress* compressStreamPlugin=&lz4hcStreamCompressPlugin;
+    hdiff_TCompress* compressPlugin=&lz4hcCompressPlugin;
+    hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_zstd
+    hdiff_TStreamCompress* compressStreamPlugin=&zstdStreamCompressPlugin;
+    hdiff_TCompress* compressPlugin=&zstdCompressPlugin;
+    hpatch_TDecompress* decompressPlugin=&zstdDecompressPlugin;
+#endif
 
 static bool _patch_mem_stream(TByte* newData,TByte* newData_end,
                               const TByte* oldData,const TByte* oldData_end,
@@ -121,8 +132,8 @@ long attackPacth(TByte* out_newData,TByte* out_newData_end,
         patch_decompress_mem(out_newData,out_newData_end,oldData,oldData_end,
                              diffData,diffData_end,decompressPlugin);
     }else{
-        bool rt0=patch(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
-        bool rt1=_patch_mem_stream(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
+        hpatch_BOOL rt0=patch(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
+        hpatch_BOOL rt1=_patch_mem_stream(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
         if (rt0!=rt1){
             printf("\n attackPacth error!!! tag:%s\n",error_tag);
             return 1;
@@ -148,8 +159,8 @@ long attackPacth(TInt newSize,const TByte* oldData,const TByte* oldData_end,
         for (long i=0; i<kLoopCount; ++i) {
             sprintf(tag, "attackPacth exceptionCount=%ld testSeed=%d i=%ld",exceptionCount,seed,i);
             memcpy(diffData,_diffData,_diffData_end-_diffData);
-            const int randCount=1+rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*diffSize/3;
-            for (int r=0; r<randCount; ++r){
+            const long randCount=(long)(1+rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*diffSize/3);
+            for (long r=0; r<randCount; ++r){
                 diffData[rand()%diffSize]=rand();
             }
             exceptionCount+=attackPacth(newData,newData_end,oldData,oldData_end,diffData,diffData_end,tag,isDiffz);

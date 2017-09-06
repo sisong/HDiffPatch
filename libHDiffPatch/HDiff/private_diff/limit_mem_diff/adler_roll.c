@@ -119,8 +119,8 @@
     return adler | (sum<<half_bit);   \
 }
 
-#define  _adler_combine(uint_t,half_bit,BASE,mod,border2,border3,   \
-                        adler_left,adler_right,len_right){ \
+#define  _adler_by_combine(uint_t,half_bit,BASE,mod,border2,border3,   \
+                           adler_left,adler_right,len_right){ \
     const uint_t kMask=((uint_t)1<<half_bit)-1; \
     uint_t rem= mod(len_right,BASE);  \
     uint_t adler= adler_left&kMask;   \
@@ -155,12 +155,12 @@ uint32_t adler32_roll(uint32_t adler,size_t blockSize,adler_data_t out_data,adle
     _adler_roll(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border2,
                 adler_roll_kBestBlockSize,adler,blockSize, out_data,in_data)
 
-uint32_t adler32_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
-    _adler_combine(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border2,_adler_border3,
-                   adler_left,adler_right,len_right)
-uint32_t fast_adler32_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
-    _adler_combine(uint32_t,16,_fast_adler32_BASE,_fast_adler_mod,_fast_adler_border2,_fast_adler_border3,
-                   adler_left,adler_right,len_right)
+uint32_t adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
+    _adler_by_combine(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border2,_adler_border3,
+                      adler_left,adler_right,len_right)
+uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
+    _adler_by_combine(uint32_t,16,_fast_adler32_BASE,_fast_adler_mod,_fast_adler_border2,_fast_adler_border3,
+                      adler_left,adler_right,len_right)
 
 #ifdef _IS_NEED_ADLER64
 uint64_t adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n)
@@ -172,12 +172,12 @@ uint64_t adler64_roll(uint64_t adler,uint64_t blockSize,adler_data_t out_data,ad
     _adler_roll(uint64_t,32,_adler64_BASE,_adler_mod,_adler_border2,
                 adler64_roll_kBestBlockSize,adler,blockSize, out_data,in_data)
 
-uint64_t adler64_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right)
-    _adler_combine(uint64_t,32,_adler64_BASE,_adler_mod,_adler_border2,_adler_border3,
-                   adler_left,adler_right,len_right)
-uint64_t fast_adler64_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right)
-    _adler_combine(uint64_t,32,_fast_adler64_BASE,_fast_adler_mod,_fast_adler_border2,_fast_adler_border3,
-                   adler_left,adler_right,len_right)
+uint64_t adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right)
+    _adler_by_combine(uint64_t,32,_adler64_BASE,_adler_mod,_adler_border2,_adler_border3,
+                      adler_left,adler_right,len_right)
+uint64_t fast_adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right)
+    _adler_by_combine(uint64_t,32,_fast_adler64_BASE,_fast_adler_mod,_fast_adler_border2,_fast_adler_border3,
+                      adler_left,adler_right,len_right)
 
 #endif //_IS_NEED_ADLER64
 

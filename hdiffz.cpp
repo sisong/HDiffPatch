@@ -46,11 +46,12 @@ static size_t kMatchBlockSize=kMatchBlockSize_default;
 #endif
 //===== select compress plugin =====
 //#define _CompressPlugin_no
-//#define _CompressPlugin_zlib // memroy requires less
+//#define _CompressPlugin_zlib  // memroy requires less
 #define _CompressPlugin_bz2
-//#define _CompressPlugin_lzma // better compresser
-//#define _CompressPlugin_lz4  // faster compresser/decompresser
-
+//#define _CompressPlugin_lzma  // better compresser
+//#define _CompressPlugin_lz4   // faster compresser/decompresser
+//#define _CompressPlugin_lz4hc // faster decompresser
+//#define _CompressPlugin_zstd  // better compresser / faster decompresser
 
 #ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
 #   include "file_for_patch.h"
@@ -117,7 +118,6 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 }
 #endif
 
-
 #ifdef  _CompressPlugin_no
     hdiff_TStreamCompress* compressStreamPlugin=0;
     hdiff_TCompress* compressPlugin=0;
@@ -143,9 +143,36 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
     hdiff_TCompress* compressPlugin=&lz4CompressPlugin;
     hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
 #endif
+#ifdef  _CompressPlugin_lz4hc
+    hdiff_TStreamCompress* compressStreamPlugin=&lz4hcStreamCompressPlugin;
+    hdiff_TCompress* compressPlugin=&lz4hcCompressPlugin;
+    hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_zstd
+    hdiff_TStreamCompress* compressStreamPlugin=&zstdStreamCompressPlugin;
+    hdiff_TCompress* compressPlugin=&zstdCompressPlugin;
+    hpatch_TDecompress* decompressPlugin=&zstdDecompressPlugin;
+#endif
 
 int main(int argc, const char * argv[]){
     double time0=clock_s();
+    
+#ifdef  _CompressPlugin_zlib
+    zlib_compress_level=9; //1..9
+#endif
+#ifdef  _CompressPlugin_bz2
+    bz2_compress_level=9; //1..9
+#endif
+#ifdef  _CompressPlugin_lzma
+    lzma_compress_level=9;//0..9
+    lzma_dictSize=1<<22;  //patch decompress need 4*lzma_dictSize memroy
+#endif
+#ifdef  _CompressPlugin_lz4hc
+    lz4hc_compress_level=11; //1..12
+#endif
+#ifdef  _CompressPlugin_zstd
+    zstd_compress_level=20; //0..22
+#endif
     if (argc!=4) {
         std::cout<<"HDiffZ command line parameter:\n oldFileName newFileName outDiffFileName\n";
         exit(1);
