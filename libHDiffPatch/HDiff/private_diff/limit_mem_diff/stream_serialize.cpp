@@ -29,7 +29,7 @@
 #include <string.h> //memcpy
 #include <stdexcept> //std::runtime_error
 #include "../../diff.h" //for stream type
-
+namespace hdiff_private{
 TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,
                                      hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize,
                                      const hpatch_TStreamInput*   _in_stream)
@@ -300,3 +300,5 @@ void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
         _pushStream(stream);
     }
 }
+
+}//namespace hdiff_private

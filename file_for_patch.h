@@ -83,6 +83,7 @@ static hpatch_BOOL fileRead(FILE* file,TByte* buf,TByte* buf_end){
     return hpatch_FALSE; \
 }
 
+hpatch_inline static
 hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileName){
     hpatch_StreamPos_t file_length=0;
     size_t dataSize;
@@ -111,6 +112,7 @@ typedef struct TFileStreamInput{
     hpatch_BOOL         fileError;
 } TFileStreamInput;
 
+hpatch_inline
 static void TFileStreamInput_init(TFileStreamInput* self){
     memset(self,0,sizeof(TFileStreamInput));
 }
@@ -150,6 +152,7 @@ static hpatch_BOOL TFileStreamInput_open(TFileStreamInput* self,const char* file
     return hpatch_TRUE;
 }
 
+hpatch_inline static
 void TFileStreamInput_setOffset(TFileStreamInput* self,size_t offset){
     assert(self->m_offset==0);
     assert(self->base.streamSize>=offset);
@@ -157,6 +160,7 @@ void TFileStreamInput_setOffset(TFileStreamInput* self,size_t offset){
     self->base.streamSize-=offset;
 }
 
+hpatch_inline
 static hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self){
     return _close_file(&self->m_file);
 }
@@ -170,6 +174,7 @@ typedef struct TFileStreamOutput{
     hpatch_BOOL         is_random_out;
 } TFileStreamOutput;
 
+hpatch_inline
 static void TFileStreamOutput_init(TFileStreamOutput* self){
     memset(self,0,sizeof(TFileStreamOutput));
 }
@@ -213,14 +218,17 @@ static hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fi
     return hpatch_TRUE;
 }
 
+hpatch_inline static
 void TFileStreamOutput_setRandomOut(TFileStreamOutput* self,hpatch_BOOL is_random_out){
     self->is_random_out=is_random_out;
 }
 
+hpatch_inline static
 hpatch_BOOL TFileStreamOutput_flush(TFileStreamOutput* self){
     return (0!=fflush(self->m_file));
 }
 
+hpatch_inline
 static hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self){
     return _close_file(&self->m_file);
 }

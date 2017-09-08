@@ -31,10 +31,11 @@
 
 #include <vector>
 #include "../../HPatch/patch_types.h" //hpatch_packUIntWithTag
+namespace hdiff_private{
 
 template<class _UInt>
 inline static void packUIntWithTag(std::vector<unsigned char>& out_code,_UInt uValue,
-                            int highTag,const int kTagBit){
+                                   int highTag,const int kTagBit){
     unsigned char  codeBuf[hpatch_kMaxPackedUIntBytes];
     unsigned char* codeEnd=codeBuf;
     if (!hpatch_packUIntWithTag(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,
@@ -47,4 +48,5 @@ inline static void packUInt(std::vector<unsigned char>& out_code,_UInt uValue){
     packUIntWithTag(out_code,uValue,0,0);
 }
 
+}//namespace hdiff_private
 #endif //__PACK_UINT_H_

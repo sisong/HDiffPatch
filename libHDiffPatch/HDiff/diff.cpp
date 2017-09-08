@@ -35,6 +35,7 @@
 #include "private_diff/compress_detect.h"
 #include "private_diff/pack_uint.h"
 #include "../HPatch/patch.h"
+using namespace hdiff_private;
 
 static const char kHDiffVersionType[8+1]="HDIFF13&";
 
@@ -140,11 +141,11 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
                                          TInt length,const TDiffData& diff){
         if ((oldPos<0)||(oldPos+length>(diff.oldData_end-diff.oldData)))
             return false;
-        *out_cost=(TInt)getRegionRelCost(diff.newData+newPos,length,diff.oldData+oldPos);
+        *out_cost=(TInt)getRegionRleCost(diff.newData+newPos,length,diff.oldData+oldPos);
         return true;
     }
     inline static TInt getCoverCost(const TOldCover& cover,const TDiffData& diff){
-        return (TInt)getRegionRelCost(diff.newData+cover.newPos,cover.length,diff.oldData+cover.oldPos);
+        return (TInt)getRegionRleCost(diff.newData+cover.newPos,cover.length,diff.oldData+cover.oldPos);
     }
     
 //尝试延长lastCover来完全代替matchCover;

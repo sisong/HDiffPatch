@@ -30,8 +30,9 @@
 #include <assert.h>
 #include <string.h> //memset
 #include <stdlib.h> //malloc free
+namespace hdiff_private{
 
-size_t getRegionRelCost(const unsigned char* d,size_t n,const unsigned char* sub,
+size_t getRegionRleCost(const unsigned char* d,size_t n,const unsigned char* sub,
                         unsigned char* out_nocompress,size_t* nocompressSize){
     assert((nocompressSize==0)||(*nocompressSize>=n));
     size_t bufi=0;
@@ -69,8 +70,8 @@ TCompressDetect::~TCompressDetect(){
 }
 
 void TCompressDetect::_add_rle(const unsigned char* d,size_t n){
-    if (n==0) return;
     if (m_lastChar<0){
+        if (n==0) return;
         m_lastChar=d[0];
         ++m_table->sum1char[m_lastChar];
         ++d;
@@ -130,7 +131,7 @@ static const size_t _kBufSize=1024;
         size_t readLen=_kBufSize;   \
         if (readLen>n) readLen=n;   \
         size_t rcodeLen=readLen;\
-        rleCtrlCost+=getRegionRelCost(d,readLen,sub,rcode,&rcodeLen);\
+        rleCtrlCost+=getRegionRleCost(d,readLen,sub,rcode,&rcodeLen);\
         rleCtrlCost-=rcodeLen;  \
         call(rcode,rcodeLen);   \
         d+=readLen;             \
@@ -149,5 +150,4 @@ size_t TCompressDetect::cost(const unsigned char* d,size_t n,const unsigned char
     return result+rleCtrlCost;
 }
 
-
-
+}//namespace hdiff_private

@@ -42,7 +42,7 @@
 //int __debug_check_false_x=0; //for debug
 //#define _hpatch_FALSE (1/__debug_check_false_x)
 
-const int kSignTagBit=1;
+static const int kSignTagBit=1;
 typedef unsigned char TByte;
 #define TUInt size_t
 
@@ -710,12 +710,11 @@ static  hpatch_BOOL _covers_is_finish(const struct hpatch_TCovers* covers){
 }
 
 
-static void _coves_init(_TCovers* covers,
-                        hpatch_StreamPos_t  coverCount,
-                        TStreamClip*        code_inc_oldPosClip,
-                        TStreamClip*        code_inc_newPosClip,
-                        TStreamClip*        code_lengthsClip,
-                        hpatch_BOOL  isOldPosBackNeedAddLength){
+static void _covers_init(_TCovers* covers,hpatch_StreamPos_t coverCount,
+                         TStreamClip* code_inc_oldPosClip,
+                         TStreamClip* code_inc_newPosClip,
+                         TStreamClip* code_lengthsClip,
+                         hpatch_BOOL  isOldPosBackNeedAddLength){
     covers->base.leave_cover_count=_covers_leaveCoverCount;
     covers->base.read_cover=_covers_read_cover;
     covers->base.is_finish=_covers_is_finish;
@@ -860,8 +859,8 @@ hpatch_BOOL patch_stream_with_cache(const struct hpatch_TStreamOutput* out_newDa
     
     {
         _TCovers covers;
-        _coves_init(&covers,coverCount,&code_inc_oldPosClip,
-                    &code_inc_newPosClip,&code_lengthsClip,hpatch_FALSE);
+        _covers_init(&covers,coverCount,&code_inc_oldPosClip,
+                     &code_inc_newPosClip,&code_lengthsClip,hpatch_FALSE);
         return patchByClip(out_newData,oldData,&covers.base,&code_newDataDiffClip,&rle_loader,
                            temp_cache+(_kCacheCount-1)*cacheSize);
     }
@@ -1008,6 +1007,7 @@ hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
 #undef  _kCacheCount
 #define _kCacheDeCount 5
 
+static
 hpatch_BOOL _patch_decompress_step(const hpatch_TStreamOutput*  out_newData,
                                    hpatch_TStreamInput*         once_in_newData,
                                    const hpatch_TStreamInput*   oldData,
@@ -1122,7 +1122,7 @@ hpatch_BOOL _patch_decompress_step(const hpatch_TStreamOutput*  out_newData,
         if (cached_covers){
             pcovers=cached_covers;
         }else{
-            _coves_init(&covers,coverCount,&coverClip,&coverClip,&coverClip,hpatch_TRUE);
+            _covers_init(&covers,coverCount,&coverClip,&coverClip,&coverClip,hpatch_TRUE);
             pcovers=&covers.base;
         }
         result=patchByClip(out_newData,oldData,pcovers,&code_newDataDiffClip,&rle_loader,
@@ -1194,8 +1194,8 @@ hpatch_BOOL compressedCovers_open(_TCompressedCovers* self,
         if (!decompressPlugin->is_can_open(decompressPlugin,out_diffInfo)) return _hpatch_FALSE;
     }
     
-    _coves_init(&self->base,head.coverCount,&self->coverClip,
-                &self->coverClip,&self->coverClip,hpatch_TRUE);
+    _covers_init(&self->base,head.coverCount,&self->coverClip,
+                 &self->coverClip,&self->coverClip,hpatch_TRUE);
     self->base.base.close=_compressedCovers_close;
     memset(&self->decompresser,0, sizeof(self->decompresser));
     if (!getStreamClip(&self->coverClip,&self->decompresser,
@@ -1276,9 +1276,9 @@ static hpatch_BOOL _arrayCovers_read_cover(struct hpatch_TCovers* covers,hpatch_
     }
 }
 
-hpatch_BOOL _arrayCovers_load(_TArrayCovers* self,hpatch_TCovers* src_covers,
-                              hpatch_StreamPos_t oldDataSize,hpatch_StreamPos_t newDataSize,
-                              int* out_isReadError,TByte** ptemp_cache,TByte* temp_cache_end){
+static hpatch_BOOL _arrayCovers_load(_TArrayCovers* self,hpatch_TCovers* src_covers,
+                                     hpatch_StreamPos_t oldDataSize,hpatch_StreamPos_t newDataSize,
+                                     int* out_isReadError,TByte** ptemp_cache,TByte* temp_cache_end){
     const hpatch_BOOL is32=(oldDataSize|newDataSize)<((hpatch_StreamPos_t)1<<32);
     TByte* temp_cache=*ptemp_cache;
     hpatch_StreamPos_t _coverCount=src_covers->leave_cover_count(src_covers);

@@ -29,8 +29,8 @@
 #include "suffix_string.h"
 #include <assert.h>
 #include <string.h> //memset
-#include <stdexcept>
-
+#include <stdexcept> //std::runtime_error
+namespace hdiff_private{
 //排序方法选择.
 #ifndef _SA_SORTBY
 #define _SA_SORTBY
@@ -363,3 +363,5 @@ void TSuffixString::build_cache(){
         }
     }
 }
+    
+}//namespace hdiff_private

@@ -49,10 +49,6 @@ bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
                 const unsigned char* oldData,const unsigned char* oldData_end,
                 const unsigned char* diff,const unsigned char* diff_end);
 
-//NOTE:
-// when your diff running environment resources are very limited,
-//  you can call create_compressed_diff_stream() with different kMatchBlockSize
-//      to achieve the balance between memory usage and speed and diff size!
 
 #ifdef __cplusplus
 extern "C"
@@ -124,8 +120,8 @@ typedef struct hdiff_TStreamCompress{
 //  can control memory requires and run speed by different kMatchBlockSize value,
 //      but out_diff size is larger than create_compressed_diff()
 //  recommended used in limited environment or support large file
-//  kMatchBlockSize: in [1<<1..1<<24], recommended (1<<3)--(1<<14)
-//    if kMatchBlockSize decrease then out_diff size decrease, but slower and memory requires more
+//  kMatchBlockSize: recommended (1<<3)--(1<<14)
+//    if increase kMatchBlockSize then run faster and require less memory, but out_diff size increase
 //  NOTICE: out_diff->write()'s writeToPos may be back to update headData!
 //  throw std::runtime_error when I/O error,etc.
 static const int kMatchBlockSize_default = (1<<7);

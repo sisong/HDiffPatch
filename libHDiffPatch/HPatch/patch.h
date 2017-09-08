@@ -34,6 +34,8 @@
 extern "C" {
 #endif
 
+//  all patch*() functions do not allocate memory
+
 //generate newData by patch(oldData + diff)
 //  serializedDiff create by create_diff()
 hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
@@ -47,7 +49,7 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
 
 //patch by stream , used (hpatch_kStreamCacheSize*7 stack memory) for I/O cache
 //  serializedDiff create by create_diff()
-//  if use patch_stream_with_cache(), can passing your memory for I/O cache
+//  if use patch_stream_with_cache(), can passing more memory for I/O cache
 //  recommended load oldData in memory(and use mem_as_hStreamInput()),random access faster
 hpatch_BOOL patch_stream(const hpatch_TStreamOutput* out_newData,
                          const hpatch_TStreamInput*  oldData,
@@ -59,16 +61,6 @@ hpatch_BOOL patch_stream_with_cache(const hpatch_TStreamOutput* out_newData,
                                     const hpatch_TStreamInput*  oldData,
                                     const hpatch_TStreamInput*  serializedDiff,
                                     unsigned char* temp_cache,unsigned char* temp_cache_end);
-
-//NOTE:
-// when your patch running environment resources are very limited,
-//  you can use the following way to achieve the balance between memory usage and speed:
-// . recommended use patch_decompress_with_cache(), wrap file handle as file stream,
-//     and pass some memory cache to optimize file I/O speed;
-// . if patch run slow, you can increase kMinSingleMatchScore, such as 64,256,1024,etc., when you create diff.
-//     this can be optimize file random access speed,but diffData will becomes larger!
-// . compress plugin recommended use zlib(zlibCompressPlugin\zlibDecompressPlugin),
-//     its memory requires very small when decompress;
 
 
 //get compressedDiff info
@@ -89,8 +81,8 @@ hpatch_inline static hpatch_BOOL
 //patch with decompress plugin, used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*4 used memory)
 //  compressedDiff create by create_compressed_diff() or create_compressed_diff_stream()
 //  decompressPlugin can null when no compressed data in compressedDiff
-//  if use patch_decompress_with_cache(), can passing your memory for I/O cache
-//  recommended load oldData in memory(and use mem_as_hStreamInput()),random access faster
+//  if use patch_decompress_with_cache(), can passing larger memory cache to optimize speed;
+//   or recommended load oldData in memory(and use mem_as_hStreamInput()) to optimize speed.
 hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
                              const hpatch_TStreamInput*  oldData,
                              const hpatch_TStreamInput*  compressedDiff,
@@ -102,7 +94,7 @@ hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
 #define _IS_NEED_CACHE_OLD_BY_COVERS
 
 //see patch_decompress()
-//  use larger cache memory for faster speed
+//  use larger memory cache to optimize speed
 //  limit (temp_cache_end-temp_cache)>=2048
 hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,
                                         const hpatch_TStreamInput*  oldData,

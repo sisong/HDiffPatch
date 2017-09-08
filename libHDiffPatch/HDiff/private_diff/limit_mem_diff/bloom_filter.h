@@ -28,10 +28,10 @@
 
 #ifndef bloom_filter_h
 #define bloom_filter_h
-#include <stdlib.h>
 #include <string.h> //memset
 #include <assert.h>
-#include <stdexcept>
+#include <stdexcept>//std::runtime_error
+namespace hdiff_private{
 
 class TBitSet{
 public:
@@ -133,4 +133,5 @@ private:
     }
 };
 
+}//namespace hdiff_private
 #endif /* bloom_filter_h */

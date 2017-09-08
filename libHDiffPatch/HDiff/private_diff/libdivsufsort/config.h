@@ -37,7 +37,11 @@ extern "C" {
 /** Define to 1 if you have the header files. **/
 #define HAVE_INTTYPES_H 0
 #define HAVE_STDDEF_H 1
-#define HAVE_STDINT_H 0
+#if defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
+#   define HAVE_STDINT_H 1
+#else
+#   define HAVE_STDINT_H 0
+#endif
 #define HAVE_STDLIB_H 1
 #define HAVE_STRING_H 1
 #define HAVE_STRINGS_H 0

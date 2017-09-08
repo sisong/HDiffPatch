@@ -32,7 +32,7 @@
 
 #ifndef adler_roll_h
 #define adler_roll_h
-
+#include <stddef.h> //for size_t
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,25 +42,32 @@ extern "C" {
 #endif
     
 #define _IS_NEED_ADLER64
+
+#if defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
+#   include <stdint.h> //for uint32_t,uint64_t
+#else
+#   ifdef _MSC_VER
+#       if (_MSC_VER >= 1300)
+        typedef unsigned __int32    uint32_t;
+#       else
+        typedef unsigned int        uint32_t;
+#       endif
+#       ifdef _IS_NEED_ADLER64
+        typedef unsigned __int64    uint64_t;
+#       endif
+#   else
+        typedef unsigned int        uint32_t;
+#       ifdef _IS_NEED_ADLER64
+        typedef unsigned long long  uint64_t;
+#       endif
+#   endif
+#endif
     
 #ifdef _MSC_VER
-#   if (_MSC_VER < 1300)
-    typedef signed int        int32_t;
-    typedef unsigned int      uint32_t;
-#   else
-    typedef signed __int32    int32_t;
-    typedef unsigned __int32  uint32_t;
-#   endif
-#   ifdef _IS_NEED_ADLER64
-    typedef signed   __int64  int64_t;
-    typedef unsigned __int64  uint64_t;
-#   endif
 #   define __adler_inline _inline
 #else
-#   include <stdint.h> //for int32_t uint32_t int64_t uint64_t
 #   define __adler_inline inline
 #endif
-#include <stdlib.h> //for size_t
     
 #define ADLER_INITIAL 1 //must 0 or 1
 

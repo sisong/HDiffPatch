@@ -27,19 +27,20 @@
  OTHER DEALINGS IN THE SOFTWARE.
 */
 
-
 #ifndef __SUFFIX_STRING_H_
 #define __SUFFIX_STRING_H_
 #include <vector>
 #include <stddef.h> //for ptrdiff_t,size_t
-#ifdef _MSC_VER
-#   if (_MSC_VER < 1300)
-        typedef signed int      int32_t;
-#   else
-        typedef signed __int32  int32_t;
-#   endif
-#else
+#if defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
 #   include <stdint.h> //for int32_t
+namespace hdiff_private{
+#else
+namespace hdiff_private{
+#   if (_MSC_VER >= 1300)
+    typedef signed __int32 int32_t;
+#   else
+    typedef signed int     int32_t;
+#   endif
 #endif
 
 class TSuffixString{
@@ -89,4 +90,5 @@ private:
     void                clear_cache();
 };
 
+}//namespace hdiff_private
 #endif //__SUFFIX_STRING_H_

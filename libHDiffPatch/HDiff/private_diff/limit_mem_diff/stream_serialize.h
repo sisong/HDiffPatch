@@ -29,6 +29,7 @@
 #define stream_serialize_h
 #include "covers.h"
 struct hdiff_TStreamCompress;
+namespace hdiff_private{
 
 struct TCompressedStream:public hpatch_TStreamOutput{
     TCompressedStream(const hpatch_TStreamOutput*  _out_code,
@@ -118,4 +119,5 @@ private:
     void _pushStream(const hpatch_TStreamInput* stream);
 };
 
+}//namespace hdiff_private
 #endif

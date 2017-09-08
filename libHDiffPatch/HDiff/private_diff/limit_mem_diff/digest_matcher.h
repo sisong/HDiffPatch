@@ -32,6 +32,7 @@
 #define digest_matcher_h
 #include "bloom_filter.h"
 #include "covers.h"
+namespace hdiff_private{
 
 class TDigestMatcher{
 public:
@@ -56,5 +57,5 @@ private:
     void getDigests();
 };
 
-
+}//namespace hdiff_private
 #endif

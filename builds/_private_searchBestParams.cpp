@@ -87,7 +87,7 @@ struct THDiffPrivateParams{
 };
 
 struct TDiffInfo{
-    TSuffixString       sstring;
+    hdiff_private::TSuffixString sstring;
     std::vector<TByte>  oldData;
     std::vector<TByte>  newData;
     std::string         oldFileName;
@@ -130,7 +130,7 @@ static size_t _compress_diff(const TDiffInfo& di,const hdiff_TCompress* compress
                                                         std::vector<TByte>& out_diff,
                                                         const hdiff_TCompress* compressPlugin,
                                                         int kMinSingleMatchScore,
-                                                        const TSuffixString* sstring);
+                                                        const hdiff_private::TSuffixString* sstring);
     std::vector<TByte> diffData;
     const TByte* newData0=di.newData.data();
     const TByte* oldData0=di.oldData.data();

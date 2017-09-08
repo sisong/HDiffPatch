@@ -27,21 +27,22 @@
 #ifndef _DIVSUFSORT_H
 #define _DIVSUFSORT_H 1
 
+#if defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
+#   include <stdint.h> //for uint8_t,int32_t
+#else
+#   if (_MSC_VER >= 1300)
+    typedef unsigned __int8     uint8_t;
+    typedef signed __int32      int32_t;
+#   else
+    typedef unsigned char       uint8_t;
+    typedef signed int          int32_t;
+#   endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-    
-#ifdef _MSC_VER
-#   if (_MSC_VER < 1300)
-    typedef unsigned char   uint8_t;
-    typedef signed int      int32_t;
-#   else
-    typedef unsigned __int8 uint8_t;
-    typedef signed __int32  int32_t;
-#   endif
-#else
-#   include <stdint.h> //for uint8_t,int32_t
-#endif
+
 #ifndef PRId32
 #   define PRId32 "d"
 #endif

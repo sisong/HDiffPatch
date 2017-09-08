@@ -31,7 +31,7 @@
 #include <algorithm>  //std::sort,std::equal_range
 #include "../compress_detect.h" //_getUIntCost
 #include "adler_roll.h"
-
+namespace hdiff_private{
 static  const size_t kMinTrustMatchedLength=16*1024;
 static  const size_t kMinMatchedLength = 8;
 static  const size_t kBestReadSize=1024*256; //for sequence read
@@ -599,4 +599,4 @@ void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,TCovers* ou
                         oldStream,newStream,m_filter,m_kIsSkipSameRange,out_covers);
 }
 
-
+}//namespace hdiff_private

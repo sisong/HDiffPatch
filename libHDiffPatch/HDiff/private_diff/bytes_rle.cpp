@@ -29,6 +29,7 @@
 #include "bytes_rle.h"
 #include <assert.h>
 #include "pack_uint.h"
+namespace hdiff_private{
 
 namespace {
     
@@ -116,4 +117,4 @@ void bytesRLE_save(std::vector<TByte>& out_code,
     out_code.insert(out_code.end(),codeBuf.begin(),codeBuf.end());
 }
 
-
+}//namespace hdiff_private
