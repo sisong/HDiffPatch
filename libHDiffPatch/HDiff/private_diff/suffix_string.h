@@ -72,9 +72,9 @@ private:
     const TChar*        m_src_end;
     std::vector<TInt32> m_SA_limit;
     std::vector<TInt>   m_SA_large;
+    enum{ kLimitSASize= (1<<30)-1 + (1<<30) };//2G-1
     inline bool isUseLargeSA()const{
-        static const int32_t kMaxLimitSize= (1<<30)-1 + (1<<30);//2G-1
-        return (sizeof(TInt)>sizeof(TInt32)) && (SASize()>(size_t)kMaxLimitSize);
+        return (sizeof(TInt)>sizeof(TInt32)) && (SASize()>kLimitSASize);
     }
 private:
     const void*         m_cached_SA_begin;

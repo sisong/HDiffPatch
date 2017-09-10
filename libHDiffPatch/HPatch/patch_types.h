@@ -120,8 +120,8 @@ extern "C" {
     
     #define  hpatch_kMaxPackedUIntBytes ((sizeof(hpatch_StreamPos_t)*8+6)/7+1)
     hpatch_BOOL hpatch_packUIntWithTag(unsigned char** out_code,unsigned char* out_code_end,
-                                       hpatch_StreamPos_t uValue,int highTag,const int kTagBit);
-    unsigned int hpatch_packUIntWithTag_size(hpatch_StreamPos_t uValue,const int kTagBit);
+                                       hpatch_StreamPos_t uValue,unsigned int highTag,const unsigned int kTagBit);
+    unsigned int hpatch_packUIntWithTag_size(hpatch_StreamPos_t uValue,const unsigned int kTagBit);
     #define hpatch_packUInt(out_code,out_code_end,uValue) \
                 hpatch_packUIntWithTag(out_code,out_code_end,uValue,0,0)
 

@@ -44,14 +44,18 @@
     if (strlen(errAt)==0) errAt=_errAt;  \
     goto clear; } while(0)
 
-#ifndef IS_NOTICE_compressCanceled
-#   define IS_NOTICE_compressCanceled 1
+#ifndef IS_NOTICE_compress_canceled
+#   define IS_NOTICE_compress_canceled 1
+#endif
+#ifndef IS_REUSE_compress_handle
+#   define IS_REUSE_compress_handle 0
 #endif
 
+
 #define _check_compress_result(result,outStream_isCanceled,_at,_errAt) \
-    if ((result)==kCompressFailResult){   \
+    if ((result)==kCompressFailResult){      \
         if (outStream_isCanceled){    \
-            if (IS_NOTICE_compressCanceled) \
+            if (IS_NOTICE_compress_canceled) \
                 printf("  NOTICE: " _at " is canceled, by out limit.\n"); \
         }else{ \
             printf("  NOTICE: " _at " is canceled, %s ERROR!\n",_errAt); \
@@ -246,7 +250,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
     
 #ifdef  _CompressPlugin_lzma
 #include "../lzma/C/LzmaEnc.h" // http://www.7-zip.org/sdk.html
-    static int lzma_compress_level=9;//0..9
+    static int lzma_compress_level=7;//0..9
     static int lzma_dictSize=1<<22;  //patch decompress need 4*lzma_dictSize memroy
     static const char*  _lzma_stream_compressType(const hdiff_TStreamCompress* compressPlugin){
         static const char* kCompressType="lzma";
@@ -315,12 +319,16 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         struct __lzma_SeqInStream_t  inStream={{__lzma_SeqInStream_Read},in_data,0};
         hpatch_StreamPos_t result=0;
         const char*        errAt="";
-        CLzmaEncHandle     s=0;
+#if (IS_REUSE_compress_handle)
+        static CLzmaEncHandle   s=0;
+#else
+        CLzmaEncHandle          s=0;
+#endif
         CLzmaEncProps      props;
         unsigned char      properties_buf[LZMA_PROPS_SIZE+1];
         SizeT              properties_size=LZMA_PROPS_SIZE;
         SRes               ret;
-        s = LzmaEnc_Create(&alloc);
+        if (!s) s=LzmaEnc_Create(&alloc);
         if (!s) _compress_error_return("LzmaEnc_Create()");
         LzmaEncProps_Init(&props);
         props.level=lzma_compress_level;
@@ -349,7 +357,9 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
                 _compress_error_return("LzmaEnc_Encode()");
         }
     clear:
+#if (!IS_REUSE_compress_handle)
         if (s) LzmaEnc_Destroy(s,&alloc,&alloc);
+#endif
         _check_compress_result(result,outStream.isCanceled,"_lzma_compress_stream()",errAt);
         return result;
     }
@@ -519,15 +529,19 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         return ZSTD_compressBound(dataSize);
     }
     
-    hpatch_StreamPos_t _zstd_compress_stream(const hdiff_TStreamCompress* compressPlugin,
-                                             const hdiff_TStreamOutput* out_code,
-                                             const hdiff_TStreamInput*  in_data){
+    static hpatch_StreamPos_t _zstd_compress_stream(const hdiff_TStreamCompress* compressPlugin,
+                                                    const hdiff_TStreamOutput* out_code,
+                                                    const hdiff_TStreamInput*  in_data){
         hpatch_StreamPos_t  result=0;
         const char*         errAt="";
         unsigned char*      _temp_buf=0;
         ZSTD_inBuffer       s_input;
         ZSTD_outBuffer      s_output;
-        ZSTD_CStream*       s=0;
+#if (IS_REUSE_compress_handle)
+        static ZSTD_CStream*  s=0;
+#else
+        ZSTD_CStream*         s=0;
+#endif
         hpatch_StreamPos_t  readFromPos=0;
         int                 outStream_isCanceled=0;
         size_t              ret;
@@ -539,7 +553,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         s_input.src=_temp_buf;
         s_output.dst=_temp_buf+s_input.size;
         
-        s=ZSTD_createCStream();
+        if (!s) s=ZSTD_createCStream();
         if (!s) _compress_error_return("ZSTD_createCStream()");
         ret=ZSTD_initCStream(s,zstd_compress_level);
         if (ZSTD_isError(ret)) _compress_error_return("ZSTD_initCStream()");
@@ -573,8 +587,9 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         }
     clear:
         if (_temp_buf) free(_temp_buf);
-        if (0!=ZSTD_freeCStream(s))
-        { result=kCompressFailResult; errAt="ZSTD_freeCStream()"; }
+#if (!IS_REUSE_compress_handle)
+        if (0!=ZSTD_freeCStream(s)) { result=kCompressFailResult; errAt="ZSTD_freeCStream()"; }
+#endif
         _check_compress_result(result,outStream_isCanceled,"_zstd_compress_stream()",errAt);
         return result;
     }

@@ -39,20 +39,21 @@ public:
     //throw std::runtime_error when data->read error or kMatchBlockSize error;
     TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize,bool kIsSkipSameRange);
     void search_cover(const hpatch_TStreamInput* newData,TCovers* out_covers);
-
+    ~TDigestMatcher();
 private:
     const hpatch_TStreamInput*  m_oldData;
     std::vector<size_t>         m_blocks;
+    TBloomFilter<size_t>        m_filter;
     std::vector<uint32_t>       m_sorted_limit;
     std::vector<size_t>         m_sorted_larger;
     bool                        m_isUseLargeSorted;
-    TBloomFilter<size_t>        m_filter;
-    std::vector<unsigned char>  m_buf;
-    size_t                      m_kMatchBlockSize;
     bool                        m_kIsSkipSameRange;
-    size_t                      m_backupCacheSize;
+    unsigned char*              m_buf;
     size_t                      m_newCacheSize;
+    size_t                      m_oldCacheSize;
     size_t                      m_oldMinCacheSize;
+    size_t                      m_backupCacheSize;
+    size_t                      m_kMatchBlockSize;
     
     void getDigests();
 };

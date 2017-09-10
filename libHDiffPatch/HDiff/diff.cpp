@@ -27,8 +27,10 @@
 */
 
 #include "diff.h"
-#include <string.h> //strlen
+#include <string.h> //strlen memcmp
 #include <assert.h>
+#include <stdlib.h> //malloc free
+#include <stdexcept>  //std::runtime_error
 #include <vector>
 #include "private_diff/suffix_string.h"
 #include "private_diff/bytes_rle.h"
@@ -366,8 +368,8 @@ static void sub_cover(TDiffData& diff){
             pushBack(diff.newDataDiff,newData+lastNewEnd,newData+newPos);
         const TInt oldPos=covers[i].oldPos;
         const TInt length=covers[i].length;
-        for (TInt i=0; i<length;++i)
-            newDataSubDiff[i+newPos]=(newData[i+newPos]-oldData[i+oldPos]);
+        for (TInt si=0; si<length;++si)
+            newDataSubDiff[si+newPos]=(newData[si+newPos]-oldData[si+oldPos]);
         lastNewEnd=newPos+length;
     }
     if (lastNewEnd<diff.newData_end-newData)
@@ -546,20 +548,29 @@ void create_diff(const TByte* newData,const TByte* newData_end,
     serialize_diff(diff,out_diff);
 }
 
+struct TAutoMem{
+    inline explicit TAutoMem(size_t size)
+    :_data(0),_size(size){
+        if (_size>0){
+            _data=(TByte*)malloc(_size);
+            if (!_data) throw std::runtime_error("TAutoMem::TAutoMem() malloc() error!");
+        }
+    }
+    inline ~TAutoMem(){ if (_data) free(_data); }
+    inline TByte* data(){ return _data; }
+    inline size_t size()const{ return _size; }
+private:
+    TByte* _data;
+    size_t _size;
+};
 bool check_diff(const TByte* newData,const TByte* newData_end,
                 const TByte* oldData,const TByte* oldData_end,
                 const TByte* diff,const TByte* diff_end){
-    std::vector<TByte> testNewData(newData_end-newData);
-    TByte* testNewData0=testNewData.data();
-    if (!patch(testNewData0,testNewData0+testNewData.size(),
-               oldData,oldData_end,
-               diff,diff_end))
-        return false;
-    for (TUInt i=0; i<(TUInt)testNewData.size(); ++i) {
-        if (testNewData[i]!=newData[i])
-            return false;
-    }
-    return true;
+    TAutoMem updateNewData(newData_end-newData);
+    TByte* updateNew0=updateNewData.data();
+    if (!patch(updateNew0,updateNew0+updateNewData.size(),
+               oldData,oldData_end, diff,diff_end)) return false;
+    return (0==memcmp(updateNew0,newData,updateNewData.size()));
 }
 
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
@@ -576,17 +587,11 @@ bool check_compressed_diff(const unsigned char* newData,const unsigned char* new
                            const unsigned char* oldData,const unsigned char* oldData_end,
                            const unsigned char* diff,const unsigned char* diff_end,
                            hpatch_TDecompress* decompressPlugin){
-    std::vector<TByte> testNewData(newData_end-newData);
-    TByte* testNewData0=testNewData.data();
-    
-    if (!patch_decompress_mem(testNewData0,testNewData0+testNewData.size(),
-                              oldData,oldData_end, diff,diff_end,
-                              decompressPlugin)) return false;
-    for (TUInt i=0; i<(TUInt)testNewData.size(); ++i) {
-        if (testNewData[i]!=newData[i])
-            return false;
-    }
-    return true;
+    TAutoMem updateNewData(newData_end-newData);
+    TByte* updateNew0=updateNewData.data();
+    if (!patch_decompress_mem(updateNew0,updateNew0+updateNewData.size(),
+                              oldData,oldData_end, diff,diff_end, decompressPlugin)) return false;
+    return (0==memcmp(updateNew0,newData,updateNewData.size()));
 }
 
 
@@ -632,7 +637,7 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
     };
     
     const size_t kACacheBufSize=1024*256;
-    std::vector<TByte> _cache_mem(kACacheBufSize*8);
+    TAutoMem _cache_mem(kACacheBufSize*8);
     TByte * cache=_cache_mem.data();
     
     _TCheckOutNewDataStream out_newData(newData,cache,kACacheBufSize*1);

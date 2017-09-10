@@ -164,7 +164,7 @@ int main(int argc, const char * argv[]){
     bz2_compress_level=9; //1..9
 #endif
 #ifdef  _CompressPlugin_lzma
-    lzma_compress_level=9;//0..9
+    lzma_compress_level=7;//0..9
     lzma_dictSize=1<<22;  //patch decompress need 4*lzma_dictSize memroy
 #endif
 #ifdef  _CompressPlugin_lz4hc
