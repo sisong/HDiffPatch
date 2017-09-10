@@ -29,15 +29,9 @@
 #ifndef compress_detect_h
 #define compress_detect_h
 #include <stddef.h> //for size_t
-#ifdef _MSC_VER
-#   if (_MSC_VER < 1300)
-typedef unsigned int      uint32_t;
-#   else
-typedef unsigned __int32  uint32_t;
-#   endif
-#else
-#   include <stdint.h> //for uint32_t
-#endif
+#include "../../HPatch/patch_types.h" //for hpatch_uint32_t
+namespace hdiff_private{
+typedef hpatch_uint32_t uint32_t;
 
 template<class _UInt>
 static unsigned int _getUIntCost(_UInt v){
@@ -59,7 +53,7 @@ inline static unsigned _getIntCost(_Int v){
 }
 
 //粗略估算该区域存储成本.
-size_t getRegionRelCost(const unsigned char* d,size_t n,const unsigned char* sub=0,
+size_t getRegionRleCost(const unsigned char* d,size_t n,const unsigned char* sub=0,
                         unsigned char* out_nocompress=0,size_t* nocompressSize=0);
 
 class TCompressDetect{
@@ -83,5 +77,7 @@ private:
     void _add_rle(const unsigned char* d,size_t n);
     size_t _cost_rle(const unsigned char* d,size_t n)const;
 };
+
+}//namespace hdiff_private
 
 #endif

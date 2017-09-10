@@ -32,15 +32,28 @@
 extern "C" {
 #endif
     
-    //hpatch_StreamPos_t for support large file
-#ifdef _MSC_VER
-    typedef unsigned __int64        hpatch_StreamPos_t;
-    typedef unsigned __int32        hpatch_uint32_t;
-    #define hpatch_inline _inline
+#if defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
+#   include <stdint.h> //for uint32_t,uint64_t
+    typedef uint32_t            hpatch_uint32_t;
+    typedef uint64_t            hpatch_StreamPos_t;
 #else
-    typedef unsigned long long      hpatch_StreamPos_t;
-    typedef unsigned int            hpatch_uint32_t;
-    #define hpatch_inline inline
+#   ifdef _MSC_VER
+#       if (_MSC_VER >= 1300)
+    typedef unsigned __int32    hpatch_uint32_t;
+#       else
+    typedef unsigned int        hpatch_uint32_t;
+#       endif
+    typedef unsigned __int64    hpatch_StreamPos_t;
+#   else
+    typedef unsigned int        hpatch_uint32_t;
+    typedef unsigned long long  hpatch_StreamPos_t;
+#   endif
+#endif
+    
+#ifdef _MSC_VER
+#   define hpatch_inline _inline
+#else
+#   define hpatch_inline inline
 #endif
     
     typedef void* hpatch_TStreamInputHandle;
@@ -107,8 +120,8 @@ extern "C" {
     
     #define  hpatch_kMaxPackedUIntBytes ((sizeof(hpatch_StreamPos_t)*8+6)/7+1)
     hpatch_BOOL hpatch_packUIntWithTag(unsigned char** out_code,unsigned char* out_code_end,
-                                       hpatch_StreamPos_t uValue,int highTag,const int kTagBit);
-    unsigned int hpatch_packUIntWithTag_size(hpatch_StreamPos_t uValue,const int kTagBit);
+                                       hpatch_StreamPos_t uValue,unsigned int highTag,const unsigned int kTagBit);
+    unsigned int hpatch_packUIntWithTag_size(hpatch_StreamPos_t uValue,const unsigned int kTagBit);
     #define hpatch_packUInt(out_code,out_code_end,uValue) \
                 hpatch_packUIntWithTag(out_code,out_code_end,uValue,0,0)
 

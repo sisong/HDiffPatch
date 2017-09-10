@@ -29,6 +29,7 @@
 #define stream_serialize_h
 #include "covers.h"
 struct hdiff_TStreamCompress;
+namespace hdiff_private{
 
 struct TCompressedStream:public hpatch_TStreamOutput{
     TCompressedStream(const hpatch_TStreamOutput*  _out_code,
@@ -49,17 +50,18 @@ private:
 
 struct TCoversStream:public hpatch_TStreamInput{
     TCoversStream(const TCovers& _covers,hpatch_StreamPos_t cover_buf_size);
+    ~TCoversStream();
     static hpatch_StreamPos_t getDataSize(const TCovers& covers);
 private:
     const TCovers&              covers;
-    std::vector<unsigned char>  _code_buf;
+    unsigned char*              _code_buf;
     size_t                      curCodePos;
     size_t                      curCodePos_end;
     size_t                      readedCoverCount;
     hpatch_StreamPos_t          lastOldEnd;
     hpatch_StreamPos_t          lastNewEnd;
     hpatch_StreamPos_t          _readFromPos_back;
-    enum { kCodeBufSize = 1024*16 };
+    enum { kCodeBufSize = 1024*64 };
     
     static long _read(hpatch_TStreamInputHandle streamHandle,
                       const hpatch_StreamPos_t readFromPos,
@@ -91,8 +93,8 @@ struct TPlaceholder{
 };
 
 struct TDiffStream{
-    explicit TDiffStream(hpatch_TStreamOutput* _out_diff,const TCovers& _covers)
-    :out_diff(_out_diff),covers(_covers),writePos(0){ }
+    explicit TDiffStream(hpatch_TStreamOutput* _out_diff,const TCovers& _covers);
+    ~TDiffStream();
     
     void pushBack(const unsigned char* src,size_t n);
     void packUInt(hpatch_StreamPos_t uValue);
@@ -110,7 +112,8 @@ private:
     const hpatch_TStreamOutput*  out_diff;
     const  TCovers&        covers;
     hpatch_StreamPos_t     writePos;
-    std::vector<unsigned char> _temp_buf;
+    enum{ kBufSize=1024*128 };
+    unsigned char*         _temp_buf;
     
     void _packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize);
     
@@ -118,4 +121,5 @@ private:
     void _pushStream(const hpatch_TStreamInput* stream);
 };
 
+}//namespace hdiff_private
 #endif

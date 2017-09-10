@@ -27,19 +27,20 @@
  OTHER DEALINGS IN THE SOFTWARE.
 */
 
-
 #ifndef __SUFFIX_STRING_H_
 #define __SUFFIX_STRING_H_
 #include <vector>
 #include <stddef.h> //for ptrdiff_t,size_t
-#ifdef _MSC_VER
-#   if (_MSC_VER < 1300)
-        typedef signed int      int32_t;
-#   else
-        typedef signed __int32  int32_t;
-#   endif
-#else
+#if defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
 #   include <stdint.h> //for int32_t
+namespace hdiff_private{
+#else
+namespace hdiff_private{
+#   if (_MSC_VER >= 1300)
+    typedef signed __int32 int32_t;
+#   else
+    typedef signed int     int32_t;
+#   endif
 #endif
 
 class TSuffixString{
@@ -71,9 +72,9 @@ private:
     const TChar*        m_src_end;
     std::vector<TInt32> m_SA_limit;
     std::vector<TInt>   m_SA_large;
+    enum{ kLimitSASize= (1<<30)-1 + (1<<30) };//2G-1
     inline bool isUseLargeSA()const{
-        static const int32_t kMaxLimitSize= (1<<30)-1 + (1<<30);//2G-1
-        return (sizeof(TInt)>sizeof(TInt32)) && (SASize()>(size_t)kMaxLimitSize);
+        return (sizeof(TInt)>sizeof(TInt32)) && (SASize()>kLimitSASize);
     }
 private:
     const void*         m_cached_SA_begin;
@@ -89,4 +90,5 @@ private:
     void                clear_cache();
 };
 
+}//namespace hdiff_private
 #endif //__SUFFIX_STRING_H_

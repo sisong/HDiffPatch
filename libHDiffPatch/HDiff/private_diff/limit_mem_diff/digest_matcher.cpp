@@ -27,11 +27,12 @@
 
 #include "digest_matcher.h"
 #include <assert.h>
+#include <stdlib.h> //malloc free
 #include <stdexcept>  //std::runtime_error
 #include <algorithm>  //std::sort,std::equal_range
 #include "../compress_detect.h" //_getUIntCost
 #include "adler_roll.h"
-
+namespace hdiff_private{
 static  const size_t kMinTrustMatchedLength=16*1024;
 static  const size_t kMinMatchedLength = 8;
 static  const size_t kBestReadSize=1024*256; //for sequence read
@@ -130,10 +131,13 @@ static hpatch_StreamPos_t blockIndexToPos(size_t index,size_t kMatchBlockSize,
     return pos;
 }
 
-
+TDigestMatcher::~TDigestMatcher(){
+    if (m_buf) free(m_buf);
+}
+    
 TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize,bool kIsSkipSameRange)
-:m_oldData(oldData),m_isUseLargeSorted(true),m_kMatchBlockSize(0),
-m_kIsSkipSameRange(kIsSkipSameRange),m_backupCacheSize(0),m_newCacheSize(0),m_oldMinCacheSize(0){
+:m_oldData(oldData),m_isUseLargeSorted(true),m_kIsSkipSameRange(kIsSkipSameRange),m_buf(0),
+m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_kMatchBlockSize(0){
     if (kMatchBlockSize>(oldData->streamSize+1)/2)
         kMatchBlockSize=(size_t)((oldData->streamSize+1)/2);
     if (kMatchBlockSize<kMinMatchBlockSize)
@@ -154,10 +158,11 @@ m_kIsSkipSameRange(kIsSkipSameRange),m_backupCacheSize(0),m_newCacheSize(0),m_ol
     
     m_backupCacheSize=getBackupSize(m_kMatchBlockSize);
     m_newCacheSize=upperCount(m_kMatchBlockSize*2+m_backupCacheSize,kBestReadSize)*kBestReadSize;
-    size_t oldCacheSize=upperCount(m_kMatchBlockSize+m_backupCacheSize,kBestReadSize)*kBestReadSize;
+    m_oldCacheSize=upperCount(m_kMatchBlockSize+m_backupCacheSize,kBestReadSize)*kBestReadSize;
     m_oldMinCacheSize=upperCount(m_kMatchBlockSize+m_backupCacheSize,kMinReadSize)*kMinReadSize;
-    assert(m_oldMinCacheSize<=oldCacheSize);
-    m_buf.resize(m_newCacheSize+oldCacheSize);
+    assert(m_oldMinCacheSize<=m_oldCacheSize);
+    m_buf=(unsigned char*)malloc(m_newCacheSize+m_oldCacheSize);
+    if (!m_buf) throw std::runtime_error("TDigestMatcher::TDigestMatcher() malloc() error!");
     getDigests();
 }
 
@@ -199,7 +204,7 @@ void TDigestMatcher::getDigests(){
     
     const size_t blockCount=m_blocks.size();
     m_filter.init(blockCount);
-    TStreamCache streamCache(m_oldData,m_buf.data(),m_buf.size());
+    TStreamCache streamCache(m_oldData,&m_buf[0],m_newCacheSize+m_oldCacheSize);
     for (size_t i=0; i<blockCount; ++i) {
         hpatch_StreamPos_t readPos=blockIndexToPos(i,m_kMatchBlockSize,m_oldData->streamSize);
         streamCache.resetPos(0,readPos,m_kMatchBlockSize);
@@ -590,7 +595,7 @@ void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,TCovers* ou
     if (newData->streamSize<m_kMatchBlockSize) return;
     TNewStreamCache newStream(newData,&m_buf[0],m_newCacheSize,m_backupCacheSize,m_kMatchBlockSize);
     TOldStreamCache oldStream(m_oldData,&m_buf[m_newCacheSize],m_oldMinCacheSize,
-                              m_buf.size()-m_newCacheSize,m_backupCacheSize,m_kMatchBlockSize);
+                              m_oldCacheSize,m_backupCacheSize,m_kMatchBlockSize);
     if (m_isUseLargeSorted)
         tm_search_cover(&m_blocks[0],m_blocks.size(),&m_sorted_larger[0],&m_sorted_larger[0]+m_blocks.size(),
                         oldStream,newStream,m_filter,m_kIsSkipSameRange,out_covers);
@@ -599,4 +604,4 @@ void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,TCovers* ou
                         oldStream,newStream,m_filter,m_kIsSkipSameRange,out_covers);
 }
 
-
+}//namespace hdiff_private

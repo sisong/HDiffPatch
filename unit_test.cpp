@@ -40,7 +40,7 @@
 typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
-const long kRandTestCount=50000;
+const long kRandTestCount=20000;
 //#define _AttackPacth_ON
 
 //===== select compress plugin =====
@@ -52,7 +52,8 @@ const long kRandTestCount=50000;
 //#define _CompressPlugin_lz4hc
 //#define _CompressPlugin_zstd
 
-#define IS_NOTICE_compressCanceled 0
+#define IS_NOTICE_compress_canceled 0 //for test, close compress fail notice
+#define IS_REUSE_compress_handle    1 //for test, must in single thread
 #include "compress_plugin_demo.h"
 #include "decompress_plugin_demo.h"
 
@@ -345,7 +346,7 @@ int main(int argc, const char * argv[]){
         TByte* oldData=_oldData.data();
         const TInt copyCount=0+(TInt)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount*4);
         const TInt kMaxCopyLength=(TInt)(1+rand()*(1.0/RAND_MAX)*kMaxCopyCount*4);
-        for (TInt i=0; i<copyCount; ++i) {
+        for (TInt ci=0; ci<copyCount; ++ci) {
             const TInt length=1+(TInt)(rand()*(1.0/RAND_MAX)*kMaxCopyLength);
             if ((length>oldSize*4/5)||(length>newSize*4/5)) {
                 continue;
@@ -364,7 +365,7 @@ int main(int argc, const char * argv[]){
     printf("\nchecked:%ld  errorCount:%ld\n",kRandTestCount,errorCount);
     printf("newSize:100%% oldSize:%2.2f%% diffSize:%2.2f%%\n",sumOldSize*100.0/sumNewSize,sumDiffSize*100.0/sumNewSize);
     clock_t time2=clock();
-    printf("\nrun time:%.0f s\n",(time2-time1)*(1.0/CLOCKS_PER_SEC));
+    printf("\nrun time:%.1f s\n",(time2-time1)*(1.0/CLOCKS_PER_SEC));
 
     return (int)errorCount;
 }

@@ -26,19 +26,11 @@
  */
 #ifndef covers_h
 #define covers_h
-#include "../../../HPatch/patch_types.h"
 #include <vector>
-#ifdef _MSC_VER
-#   if (_MSC_VER < 1300)
-typedef unsigned int      uint32_t;
-#   else
-typedef unsigned __int32  uint32_t;
-#   endif
-#else
-#   include <stdint.h> //for uint32_t
-#endif
-
-#define TCover hpatch_TCover
+#include "../../../HPatch/patch_types.h"
+namespace hdiff_private{
+typedef hpatch_uint32_t uint32_t;
+typedef hpatch_TCover   TCover;
 
 class TCovers{
 public:
@@ -75,4 +67,5 @@ private:
     const  bool             m_is32;
 };
 
+}//namespace hdiff_private
 #endif /* icover_h */

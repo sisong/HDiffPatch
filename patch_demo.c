@@ -34,11 +34,18 @@
 #include <stdlib.h>
 #include "libHDiffPatch/HPatch/patch.h"
 
-//#define _IS_USE_PATCH_CACHE      //ON: faster, add some memory for patch cache
-//#define _IS_USE_OLD_FILE_STREAM  //ON: slower, memroy requires less,because not need load oldFile
+//#define _IS_LOAD_OLD_ALL    //ON:load oldFile into memory; OFF: limit patch memory
+#define _IS_USE_PATCH_CACHE   //ON: faster, add some memory for patch cache
 
-#ifdef _IS_USE_PATCH_CACHE
-#   define  k_patch_cache_size  (1<<22)
+#ifndef _IS_LOAD_OLD_ALL
+#   ifdef _IS_USE_PATCH_CACHE
+#       define k_patch_cache_size  ((size_t)1<<27) //the larger the better for large oldFile
+//#       define k_patch_cache_size  (1<<22) //ON: slower, memroy requires less
+#   endif
+#else
+#   ifdef _IS_USE_PATCH_CACHE
+#       define k_patch_cache_size  (1<<22)
+#   endif
 #endif
 
 #include "file_for_patch.h"
@@ -109,14 +116,14 @@ int main(int argc, const char * argv[]){
     double  time1,time2,time3;
     TFileStreamOutput   newData;
     TFileStreamInput    diffData;
-#ifdef _IS_USE_OLD_FILE_STREAM
-    TFileStreamInput     oldData;
-    hpatch_TStreamInput* poldData=&oldData.base;
-#else
+#ifdef _IS_LOAD_OLD_ALL
     TByte*               poldData_mem=0;
     size_t               oldDataSize=0;
     hpatch_TStreamInput  oldData;
     hpatch_TStreamInput* poldData=&oldData;
+#else
+    TFileStreamInput     oldData;
+    hpatch_TStreamInput* poldData=&oldData.base;
 #endif
 #ifdef _IS_USE_PATCH_CACHE
     TByte*            temp_cache=0;
@@ -125,7 +132,7 @@ int main(int argc, const char * argv[]){
         printf("patch command parameter:\n oldFileName diffFileName outNewFileName\n");
         return 1;
     }
-#ifdef _IS_USE_OLD_FILE_STREAM
+#ifndef _IS_LOAD_OLD_ALL
     TFileStreamInput_init(&oldData);
 #endif
     TFileStreamInput_init(&diffData);
@@ -138,13 +145,13 @@ int main(int argc, const char * argv[]){
         const char* diffFileName=argv[2];
         const char* outNewFileName=argv[3];
         printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,diffFileName,outNewFileName);
-#ifdef _IS_USE_OLD_FILE_STREAM
-        if (!TFileStreamInput_open(&oldData,oldFileName))
-            _error_return("open oldFile for read error!");
-#else
+#ifdef _IS_LOAD_OLD_ALL
         if (!readFileAll(&poldData_mem,&oldDataSize,oldFileName))
             _error_return("open read oldFile error!");
         mem_as_hStreamInput(&oldData,poldData_mem,poldData_mem+oldDataSize);
+#else
+        if (!TFileStreamInput_open(&oldData,oldFileName))
+            _error_return("open oldFile for read error!");
 #endif
         if (!TFileStreamInput_open(&diffData,diffFileName))
             _error_return("open diffFile error!");
@@ -175,7 +182,7 @@ int main(int argc, const char * argv[]){
     if (!patch_stream(&newData.base,poldData,&diffData.base)){
         const char* kRunErrInfo="patch_stream() run error!";
 #endif
-#ifdef _IS_USE_OLD_FILE_STREAM
+#ifndef _IS_LOAD_OLD_ALL
         _check_error(oldData.fileError,"oldFile read error!");
 #endif
         _check_error(diffData.fileError,"diffFile read error!");
@@ -194,10 +201,10 @@ int main(int argc, const char * argv[]){
 clear:
     _check_error(!TFileStreamOutput_close(&newData),"out newFile close error!");
     _check_error(!TFileStreamInput_close(&diffData),"diffFile close error!");
-#ifdef _IS_USE_OLD_FILE_STREAM
-    _check_error(!TFileStreamInput_close(&oldData),"oldFile close error!");
-#else
+#ifdef _IS_LOAD_OLD_ALL
     _free_mem(poldData_mem);
+#else
+    _check_error(!TFileStreamInput_close(&oldData),"oldFile close error!");
 #endif
 #ifdef _IS_USE_PATCH_CACHE
     _free_mem(temp_cache);

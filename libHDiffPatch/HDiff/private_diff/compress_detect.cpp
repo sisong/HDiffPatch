@@ -30,37 +30,58 @@
 #include <assert.h>
 #include <string.h> //memset
 #include <stdlib.h> //malloc free
+#include <stdexcept> //std::runtime_error
+namespace hdiff_private{
 
-size_t getRegionRelCost(const unsigned char* d,size_t n,const unsigned char* sub,
+    template<bool is_sub_on,bool is_out_on>
+    size_t _getRegionRleCost(const unsigned char* d,size_t n,const unsigned char* sub,
+                             unsigned char* out_nocompress,size_t* nocompressSize){
+        size_t bufi=0;
+        size_t i=0;
+        size_t cost=0;
+        while ((i<n)&&(d[i]==(is_sub_on?sub[i]:0)))
+            ++i;
+        while(i<n){
+            unsigned char v=(is_sub_on?(unsigned char)(d[i]-sub[i]):d[i]);
+            size_t i0=i; ++i;
+            while ((i<n)&&(v==(is_sub_on?(unsigned char)(d[i]-sub[i]):d[i])))
+                ++i;
+            if ((v==0)|(v==255)){
+                ++cost;
+            }else{
+                cost+=(i-i0<=1)?1:2;
+                if (is_out_on)
+                    out_nocompress[bufi++]=v;
+            }
+        }
+        if (nocompressSize) *nocompressSize=bufi;
+        return cost;
+    }
+
+    
+size_t getRegionRleCost(const unsigned char* d,size_t n,const unsigned char* sub,
                         unsigned char* out_nocompress,size_t* nocompressSize){
     assert((nocompressSize==0)||(*nocompressSize>=n));
-    size_t bufi=0;
-    size_t i=0;
-    while ((i<n)&&(d[i]==(sub?sub[i]:0)))
-        ++i;
-    size_t cost=0;
-    while(i<n){
-        unsigned char v=(unsigned char)(d[i]-(sub?sub[i]:0));
-        size_t i0=i; ++i;
-        while ((i<n)&&(v==(unsigned char)(d[i]-(sub?sub[i]:0))))
-            ++i;
-        if ((v==0)|(v==255)){
-            ++cost;
-        }else{
-            cost+=(i-i0<=1)?1:2;
-            if (out_nocompress)
-                out_nocompress[bufi++]=v;
-        }
+    if (sub){
+        if (out_nocompress)
+            return _getRegionRleCost<true,true>(d,n,sub,out_nocompress,nocompressSize);
+        else
+            return _getRegionRleCost<true,false>(d,n,sub,0,nocompressSize);
+    }else{
+        if (out_nocompress)
+            return _getRegionRleCost<false,true>(d,n,0,out_nocompress,nocompressSize);
+        else
+            return _getRegionRleCost<false,false>(d,n,0,0,nocompressSize);
     }
-    if (nocompressSize) *nocompressSize=bufi;
-    return cost;
 }
 
-static const size_t kCacheSize=1024*512;
+static const size_t kCacheSize=(1<<19);
 TCompressDetect::TCompressDetect()
 :m_table(0),m_lastChar(-1),
 m_lastPopChar(-1),m_cacheBegin(0),m_cacheEnd(0){
     m_table=(TCharConvTable*)malloc(sizeof(TCharConvTable)+kCacheSize);
+    if (!m_table)
+        throw std::runtime_error("TCompressDetect::TCompressDetect() malloc() error!");
     memset(m_table,0,sizeof(TCharConvTable));
 }
 TCompressDetect::~TCompressDetect(){
@@ -69,8 +90,8 @@ TCompressDetect::~TCompressDetect(){
 }
 
 void TCompressDetect::_add_rle(const unsigned char* d,size_t n){
-    if (n==0) return;
     if (m_lastChar<0){
+        if (n==0) return;
         m_lastChar=d[0];
         ++m_table->sum1char[m_lastChar];
         ++d;
@@ -99,8 +120,9 @@ void TCompressDetect::_add_rle(const unsigned char* d,size_t n){
 }
 
 size_t TCompressDetect::_cost_rle(const unsigned char* d,size_t n)const{
-    static const size_t kCompressDetectDivBit=12;
-    static const size_t kCompressDetectMaxBit=12;
+    //assert(kCacheSize*2^(kCompressDetectMaxBit-1)<2^32);
+    const unsigned int kCompressDetectDivBit=12;
+    const unsigned int kCompressDetectMaxBit=12;
     if (n==0) return 0;
     if (m_lastChar<0) return n;
     size_t        codeSize=0;
@@ -108,16 +130,17 @@ size_t TCompressDetect::_cost_rle(const unsigned char* d,size_t n)const{
     for (size_t i=0;i<n;++i) {
         unsigned char cur=d[i];
         size_t rab=m_table->sum2char[last*256+cur];
-        if (rab>0){
-            size_t bit= 1;
-            size_t ra = 1 + m_table->sum1char[last];
-            while((rab<<=1)<ra)
-                ++bit;
-            codeSize+=(bit<=kCompressDetectMaxBit)?bit:kCompressDetectMaxBit;
+        size_t ra =1+m_table->sum1char[last];
+        last=cur;
+        if ((rab<<(kCompressDetectMaxBit-1))>ra){
+            if ((rab<<8)<ra) { rab<<=8; codeSize+=8; }
+            if ((rab<<4)<ra) { rab<<=4; codeSize+=4; }
+            if ((rab<<2)<ra) { rab<<=2; codeSize+=2; }
+            if ((rab<<1)<ra) { codeSize+=1; }
+            ++codeSize;
         }else{
             codeSize+=kCompressDetectMaxBit;
         }
-        last=cur;
     }
     return (codeSize+((kCompressDetectDivBit>>1)+1))/kCompressDetectDivBit;
 }
@@ -130,7 +153,7 @@ static const size_t _kBufSize=1024;
         size_t readLen=_kBufSize;   \
         if (readLen>n) readLen=n;   \
         size_t rcodeLen=readLen;\
-        rleCtrlCost+=getRegionRelCost(d,readLen,sub,rcode,&rcodeLen);\
+        rleCtrlCost+=getRegionRleCost(d,readLen,sub,rcode,&rcodeLen);\
         rleCtrlCost-=rcodeLen;  \
         call(rcode,rcodeLen);   \
         d+=readLen;             \
@@ -149,5 +172,4 @@ size_t TCompressDetect::cost(const unsigned char* d,size_t n,const unsigned char
     return result+rleCtrlCost;
 }
 
-
-
+}//namespace hdiff_private
