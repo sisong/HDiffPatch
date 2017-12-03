@@ -124,7 +124,7 @@ typedef struct hdiff_TStreamCompress{
 //    if increase kMatchBlockSize then run faster and require less memory, but out_diff size increase
 //  NOTICE: out_diff->write()'s writeToPos may be back to update headData!
 //  throw std::runtime_error when I/O error,etc.
-static const int kMatchBlockSize_default = (1<<7);
+static const size_t kMatchBlockSize_default = (1<<7);
 void create_compressed_diff_stream(const hpatch_TStreamInput* newData,
                                    const hpatch_TStreamInput* oldData,
                                    hpatch_TStreamOutput*      out_diff,
