@@ -28,6 +28,9 @@
 
 #ifndef HPatch_patch_types_h
 #define HPatch_patch_types_h
+
+#include <string.h>//for size_t
+
 #ifdef __cplusplus
 extern "C" {
 #endif

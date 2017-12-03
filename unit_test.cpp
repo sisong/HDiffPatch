@@ -33,6 +33,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <string.h>
+#include <stddef.h>//for ptrdiff_t
 #include <stdlib.h>
 #include "math.h"
 #include "libHDiffPatch/HDiff/diff.h"
