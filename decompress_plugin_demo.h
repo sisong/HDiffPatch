@@ -39,55 +39,89 @@
 #include "libHDiffPatch/HPatch/patch_types.h"
 
 #define kDecompressBufSize (1024*32)
+#ifndef _IsNeedIncludeDefaultCompressHead
+#   define _IsNeedIncludeDefaultCompressHead 1
+#endif
 
 #ifdef  _CompressPlugin_zlib
-#include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
+#endif
     typedef struct _zlib_TDecompress{
-        const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
         hpatch_StreamPos_t code_end;
+        const struct hpatch_TStreamInput* codeStream;
         
+        unsigned char*  dec_buf;
+        size_t          dec_buf_size;
         z_stream        d_stream;
-        unsigned char   dec_buf[kDecompressBufSize];
     } _zlib_TDecompress;
     static int  _zlib_is_can_open(struct hpatch_TDecompress* decompressPlugin,
                                   const hpatch_compressedDiffInfo* compressedDiffInfo){
         return (compressedDiffInfo->compressedCount==0)
             ||(0==strcmp(compressedDiffInfo->compressType,"zlib"));
     }
-    static hpatch_decompressHandle  _zlib_open(struct hpatch_TDecompress* decompressPlugin,
-                                               hpatch_StreamPos_t dataSize,
-                                               const struct hpatch_TStreamInput* codeStream,
-                                               hpatch_StreamPos_t code_begin,
-                                               hpatch_StreamPos_t code_end){
+
+    static _zlib_TDecompress*  _zlib_decompress_open_by(hpatch_TDecompress* decompressPlugin,
+                                                        const hpatch_TStreamInput* codeStream,
+                                                        hpatch_StreamPos_t code_begin,
+                                                        hpatch_StreamPos_t code_end,
+                                                        int  isSavedWindowBits,
+                                                        unsigned char* _mem_buf,size_t _mem_buf_size){
         _zlib_TDecompress* self=0;
         int ret;
-        unsigned char kWindowBits=0;
-        //load kWindowBits
-        if (code_end-code_begin<1) return 0;
-        if (1!=codeStream->read(codeStream->streamHandle,code_begin,
-                                &kWindowBits,&kWindowBits+1)) return 0;
-        ++code_begin;
+        signed char kWindowBits=-MAX_WBITS;
+        if (isSavedWindowBits){//load kWindowBits
+            if (code_end-code_begin<1) return 0;
+            if (1!=codeStream->read(codeStream->streamHandle,code_begin,
+                                    (unsigned char*)&kWindowBits,(unsigned char*)&kWindowBits+1)) return 0;
+            ++code_begin;
+        }
         
-        self=(_zlib_TDecompress*)malloc(sizeof(_zlib_TDecompress));
-        if (!self) return 0;
-        memset(self,0,sizeof(_zlib_TDecompress)-kDecompressBufSize);
-                self->codeStream=codeStream;
+        self=(_zlib_TDecompress*)_hpatch_align_upper(_mem_buf,sizeof(hpatch_StreamPos_t));
+        assert((_mem_buf+_mem_buf_size)>((unsigned char*)self+sizeof(_zlib_TDecompress)));
+        _mem_buf_size=(_mem_buf+_mem_buf_size)-((unsigned char*)self+sizeof(_zlib_TDecompress));
+        _mem_buf=(unsigned char*)self+sizeof(_zlib_TDecompress);
+        
+        memset(self,0,sizeof(_zlib_TDecompress));
+        self->dec_buf=_mem_buf;
+        self->dec_buf_size=_mem_buf_size;
+        self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
         
         ret = inflateInit2(&self->d_stream,kWindowBits);
-        if (ret!=Z_OK){ free(self); return 0; }
+        if (ret!=Z_OK) return 0;
         return self;
     }
-    static void _zlib_close(struct hpatch_TDecompress* decompressPlugin,
+    static hpatch_decompressHandle  _zlib_decompress_open(hpatch_TDecompress* decompressPlugin,
+                                                          hpatch_StreamPos_t dataSize,
+                                                          const hpatch_TStreamInput* codeStream,
+                                                          hpatch_StreamPos_t code_begin,
+                                                          hpatch_StreamPos_t code_end){
+        _zlib_TDecompress* self=0;
+        unsigned char* _mem_buf=(unsigned char*)malloc(sizeof(_zlib_TDecompress)+kDecompressBufSize);
+        if (!_mem_buf) return 0;
+        self=_zlib_decompress_open_by(decompressPlugin,codeStream,code_begin,code_end,1,
+                                      _mem_buf,sizeof(_zlib_TDecompress)+kDecompressBufSize);
+        if (!self)
+            free(_mem_buf);
+        return self;
+    }
+    static void _zlib_decompress_close_by(struct hpatch_TDecompress* decompressPlugin,_zlib_TDecompress* self){
+        if (!self) return;
+        if (self->dec_buf!=0){
+            if (Z_OK!=inflateEnd(&self->d_stream)) assert(0);
+        }
+        memset(self,0,sizeof(_zlib_TDecompress));
+    }
+    static void _zlib_decompress_close(struct hpatch_TDecompress* decompressPlugin,
                             hpatch_decompressHandle decompressHandle){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
-        if (!self) return;
-        if (Z_OK!=inflateEnd(&self->d_stream)) assert(0);
-        free(self);
+        _zlib_decompress_close_by(decompressPlugin,self);
+        if (self) free(self);
     }
-    static long _zlib_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
+    static long _zlib_decompress_part(const hpatch_TDecompress* decompressPlugin,
                                       hpatch_decompressHandle decompressHandle,
                                       unsigned char* out_part_data,unsigned char* out_part_data_end){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
@@ -100,14 +134,12 @@
             int ret;
             long codeLen=(long)(self->code_end - self->code_begin);
             if ((self->d_stream.avail_in==0)&&(codeLen>0)) {
-                long readLen=kDecompressBufSize;
-                long readed;
+                long readLen=self->dec_buf_size;
                 self->d_stream.next_in=self->dec_buf;
                 if (readLen>codeLen) readLen=codeLen;
                 if (readLen<=0) return 0;//error;
-                readed=self->codeStream->read(self->codeStream->streamHandle,self->code_begin,
-                                              self->dec_buf,self->dec_buf+readLen);
-                if (readed!=readLen) return 0;//error;
+                if (readLen!=self->codeStream->read(self->codeStream->streamHandle,self->code_begin,
+                                                    self->dec_buf,self->dec_buf+readLen)) return 0;//error;
                 self->d_stream.avail_in=(uInt)readLen;
                 self->code_begin+=readLen;
             }
@@ -127,12 +159,21 @@
         }
         return (long)(out_part_data_end-out_part_data);
     }
-    static hpatch_TDecompress zlibDecompressPlugin={_zlib_is_can_open,_zlib_open,
-                                                    _zlib_close,_zlib_decompress_part};
+    static hpatch_inline int _zlib_is_decompress_finish(const hpatch_TDecompress* decompressPlugin,
+                                                        hpatch_decompressHandle decompressHandle){
+        _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
+        return   (self->code_begin==self->code_end)
+                &(self->d_stream.avail_in==0)
+                &(self->d_stream.avail_out==0);
+    }
+    static hpatch_TDecompress zlibDecompressPlugin={_zlib_is_can_open,_zlib_decompress_open,
+                                                    _zlib_decompress_close,_zlib_decompress_part};
 #endif//_CompressPlugin_zlib
     
 #ifdef  _CompressPlugin_bz2
-#include "bzlib.h" // http://www.bzip.org/
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "bzlib.h" // http://www.bzip.org/
+#endif
     typedef struct _bz2_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
@@ -215,7 +256,9 @@
 #endif//_CompressPlugin_bz2
     
 #ifdef  _CompressPlugin_lzma
-#include "../lzma/C/LzmaDec.h" // http://www.7-zip.org/sdk.html
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "../lzma/C/LzmaDec.h" // http://www.7-zip.org/sdk.html
+#endif
     typedef struct _lzma_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
@@ -339,7 +382,9 @@
 #endif//_CompressPlugin_lzma
 
 #if (defined(_CompressPlugin_lz4) || defined(_CompressPlugin_lz4hc))
-#include "../lz4/lib/lz4.h" // https://github.com/lz4/lz4
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "../lz4/lib/lz4.h" // https://github.com/lz4/lz4
+#endif
     typedef struct _lz4_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
@@ -440,7 +485,9 @@
 #endif//_CompressPlugin_lz4 or _CompressPlugin_lz4hc
 
 #ifdef  _CompressPlugin_zstd
-#include "../zstd/lib/zstd.h" // https://github.com/facebook/zstd
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "../zstd/lib/zstd.h" // https://github.com/facebook/zstd
+#endif
     typedef struct _zstd_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;

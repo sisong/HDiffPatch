@@ -33,6 +33,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "libHDiffPatch/HPatch/patch.h"
+#include "file_for_patch.h"
+#include "_clock_for_demo.h"
 
 //#define _IS_LOAD_OLD_ALL    //ON:load oldFile into memory; OFF: limit patch memory
 #define _IS_USE_PATCH_CACHE   //ON: faster, add some memory for patch cache
@@ -47,8 +49,6 @@
 #       define k_patch_cache_size  (1<<22)
 #   endif
 #endif
-
-#include "file_for_patch.h"
 
 static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* outSize){
     size_t lsize;
@@ -67,22 +67,6 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
         return 9;
     }
 }
-
-//  #include <time.h>
-//  static double clock_s(){ return clock()*(1.0/CLOCKS_PER_SEC); }
-#ifdef _WIN32
-    #include <windows.h>
-    static double clock_s(){ return GetTickCount()/1000.0; }
-#else
-    //Unix-like system
-    #include <sys/time.h>
-    static double clock_s(){
-        struct timeval t={0,0};
-        int ret=gettimeofday(&t,0);
-        assert(ret==0);
-        return t.tv_sec + t.tv_usec/1000000.0;
-    }//*/
-#endif
 
 #ifndef PRId64
 #   ifdef _MSC_VER

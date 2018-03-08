@@ -28,9 +28,8 @@
 
 #ifndef HDiff_diff_h
 #define HDiff_diff_h
-
 #include <vector>
-#include "../HPatch/patch_types.h"
+#include "diff_types.h"
 
 static const int kMinSingleMatchScore_default = 6;
 
@@ -50,26 +49,6 @@ bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
                 const unsigned char* diff,const unsigned char* diff_end);
 
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-    
-    //compress plugin
-    typedef struct hdiff_TCompress{
-        //return type tag; strlen(result)<=hpatch_kMaxCompressTypeLength;（Note:result lifetime）
-        const char*  (*compressType)(const hdiff_TCompress* compressPlugin);
-        //return the max compressed size, if input dataSize data;
-        size_t  (*maxCompressedSize)(const hdiff_TCompress* compressPlugin,size_t dataSize);
-        //compress data to out_code; return compressed size, if error or not need compress then return 0;
-        size_t           (*compress)(const hdiff_TCompress* compressPlugin,
-                                     unsigned char* out_code,unsigned char* out_code_end,
-                                     const unsigned char* data,const unsigned char* data_end);
-    } hdiff_TCompress;
-    
-#ifdef __cplusplus
-}
-#endif
 
 //create a compressed diffData between oldData and newData
 //  out_diff compressed by compressPlugin
@@ -91,30 +70,7 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                   const hpatch_TStreamInput*  compressed_diff,
                                   hpatch_TDecompress* decompressPlugin);
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 
-typedef void*  hdiff_compressHandle;
-typedef hpatch_TStreamOutput hdiff_TStreamOutput;
-typedef hpatch_TStreamInput  hdiff_TStreamInput;
-#define hdiff_kStreamOutputCancel 0
-//stream compress plugin
-typedef struct hdiff_TStreamCompress{
-    //return type tag; strlen(result)<=hpatch_kMaxCompressTypeLength;（Note:result lifetime）
-    const char*           (*compressType)(const hdiff_TStreamCompress* compressPlugin);
-    
-    //compress data to out_code; return compressed size, if error or not need compress then return 0;
-    //if out_code->write() return hdiff_stream_kCancelCompress then return 0;
-    hpatch_StreamPos_t (*compress_stream)(const hdiff_TStreamCompress* compressPlugin,
-                                          const hdiff_TStreamOutput*   out_code,
-                                          const hdiff_TStreamInput*    in_data);
-} hdiff_TStreamCompress;
-
-#ifdef __cplusplus
-}
-#endif
 
 //diff by stream:
 //  can control memory requires and run speed by different kMatchBlockSize value,
