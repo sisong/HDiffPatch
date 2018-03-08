@@ -134,10 +134,10 @@
             int ret;
             long codeLen=(long)(self->code_end - self->code_begin);
             if ((self->d_stream.avail_in==0)&&(codeLen>0)) {
-                long readLen=self->dec_buf_size;
-                self->d_stream.next_in=self->dec_buf;
-                if (readLen>codeLen) readLen=codeLen;
+                long readLen=codeLen;
+                if ((size_t)readLen>self->dec_buf_size) readLen=(long)self->dec_buf_size;
                 if (readLen<=0) return 0;//error;
+                self->d_stream.next_in=self->dec_buf;
                 if (readLen!=self->codeStream->read(self->codeStream->streamHandle,self->code_begin,
                                                     self->dec_buf,self->dec_buf+readLen)) return 0;//error;
                 self->d_stream.avail_in=(uInt)readLen;
