@@ -48,13 +48,6 @@ namespace{
     typedef ptrdiff_t     TInt;
     static const int kMaxLinkSpaceLength=(1<<9)-1; //跨覆盖线合并时,允许合并的最远距离.
     
-    inline static void pushBack(std::vector<TByte>& out_buf,const TByte* data,const TByte* data_end){
-        out_buf.insert(out_buf.end(),data,data_end);
-    }
-    inline static void pushBack(std::vector<TByte>& out_buf,const std::vector<TByte>& data){
-        out_buf.insert(out_buf.end(),data.begin(),data.end());
-    }
-    
     //覆盖线.
     struct TOldCover {
         TInt   newPos;

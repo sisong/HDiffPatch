@@ -48,5 +48,13 @@ inline static void packUInt(std::vector<unsigned char>& out_code,_UInt uValue){
     packUIntWithTag(out_code,uValue,0,0);
 }
 
+    
+inline static void pushBack(std::vector<unsigned char>& out_buf,const unsigned char* data,const unsigned char* data_end){
+    out_buf.insert(out_buf.end(),data,data_end);
+}
+inline static void pushBack(std::vector<unsigned char>& out_buf,const std::vector<unsigned char>& data){
+    out_buf.insert(out_buf.end(),data.begin(),data.end());
+}
+    
 }//namespace hdiff_private
 #endif //__PACK_UINT_H_

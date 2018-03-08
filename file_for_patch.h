@@ -57,7 +57,7 @@ static hpatch_BOOL fileSeek64(FILE* file,hpatch_StreamPos_t seekPos,int whence){
     return (ret==0);
 }
 
-static hpatch_BOOL _close_file(FILE** pfile){
+static hpatch_BOOL fileClose(FILE** pfile){
     FILE* file=*pfile;
     if (file){
         *pfile=0;
@@ -78,20 +78,58 @@ static hpatch_BOOL fileRead(FILE* file,TByte* buf,TByte* buf_end){
     return buf==buf_end;
 }
 
+static hpatch_BOOL fileWrite(FILE* file,const TByte* data,const TByte* data_end){
+    static const size_t kBestSize=1<<20;
+    while (data<data_end) {
+        size_t writeLen=(size_t)(data_end-data);
+        if (writeLen>kBestSize) writeLen=kBestSize;
+        if (writeLen!=fwrite(data,1,writeLen,file)) return hpatch_FALSE;
+        data+=writeLen;
+    }
+    return data==data_end;
+}
+
 #define _file_error(fileHandle){ \
-    if (fileHandle) _close_file(&fileHandle); \
+    if (fileHandle) fileClose(&fileHandle); \
     return hpatch_FALSE; \
 }
 
 hpatch_inline static
-hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileName){
-    hpatch_StreamPos_t file_length=0;
-    size_t dataSize;
-    FILE* file=fopen(fileName,"rb");
+hpatch_BOOL fileOpenForRead(const char* fileName,FILE** out_fileHandle,hpatch_StreamPos_t* out_fileLength){
+    FILE* file=0;
+    assert(out_fileHandle!=0);
+    if (out_fileHandle==0) _file_error(file);
+    file=fopen(fileName,"rb");
     if (file==0) _file_error(file);
-    if (!fileSeek64(file,0,SEEK_END)) _file_error(file);
-    if (!fileTell64(file,&file_length)) _file_error(file);
-    if (!fileSeek64(file,0,SEEK_SET)) _file_error(file);
+    if (out_fileLength!=0){
+        hpatch_StreamPos_t file_length=0;
+        if (!fileSeek64(file,0,SEEK_END)) _file_error(file);
+        if (!fileTell64(file,&file_length)) _file_error(file);
+        if (!fileSeek64(file,0,SEEK_SET)) _file_error(file);
+        *out_fileLength=file_length;
+    }
+    *out_fileHandle=file;
+    return hpatch_TRUE;
+}
+
+hpatch_inline static
+hpatch_BOOL fileOpenForCreateOrReWrite(const char* fileName,FILE** out_fileHandle){
+    FILE* file=0;
+    assert(out_fileHandle!=0);
+    if (out_fileHandle==0) _file_error(file);
+    file=fopen(fileName,"wb");
+    if (file==0) _file_error(file);
+    *out_fileHandle=file;
+    return hpatch_TRUE;
+}
+
+
+hpatch_inline static
+hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileName){
+    size_t dataSize;
+    hpatch_StreamPos_t  file_length=0;
+    FILE*               file=0;
+    if (!fileOpenForRead(fileName,&file,&file_length)) _file_error(file);
     
     assert((*out_pdata)==0);
     dataSize=(size_t)file_length;
@@ -101,7 +139,7 @@ hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileN
     *out_dataSize=dataSize;
     
     if (!fileRead(file,*out_pdata,(*out_pdata)+dataSize)) _file_error(file);
-    return _close_file(&file);
+    return fileClose(&file);
 }
 
 typedef struct TFileStreamInput{
@@ -134,15 +172,12 @@ static void TFileStreamInput_init(TFileStreamInput* self){
         self->m_fpos=readFromPos+self->m_offset+readLen;
         return (long)readLen;
     }
-static hpatch_BOOL TFileStreamInput_open(TFileStreamInput* self,const char* fileName){
+
+hpatch_inline static
+hpatch_BOOL TFileStreamInput_open(TFileStreamInput* self,const char* fileName){
     assert(self->m_file==0);
     if (self->m_file) return hpatch_FALSE;
-    
-    self->m_file=fopen(fileName, "rb");
-    if (self->m_file==0) return hpatch_FALSE;
-    if (!fileSeek64(self->m_file, 0, SEEK_END)) return hpatch_FALSE;
-    if (!fileTell64(self->m_file,&self->base.streamSize)) return hpatch_FALSE;
-    if (!fileSeek64(self->m_file, 0, SEEK_SET)) return hpatch_FALSE;
+    if (!fileOpenForRead(fileName,&self->m_file,&self->base.streamSize)) return hpatch_FALSE;
     
     self->base.streamHandle=self;
     self->base.read=_read_file;
@@ -162,7 +197,7 @@ void TFileStreamInput_setOffset(TFileStreamInput* self,size_t offset){
 
 hpatch_inline
 static hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self){
-    return _close_file(&self->m_file);
+    return fileClose(&self->m_file);
 }
 
 typedef struct TFileStreamOutput{
@@ -181,7 +216,7 @@ static void TFileStreamOutput_init(TFileStreamOutput* self){
 
     static long _write_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
                             const TByte* data,const TByte* data_end){
-        unsigned long writeLen,writed;
+        unsigned long writeLen;
         TFileStreamOutput* self=(TFileStreamOutput*)streamHandle;
         assert(data<data_end);
         writeLen=(unsigned long)(data_end-data);
@@ -195,19 +230,18 @@ static void TFileStreamOutput_init(TFileStreamOutput* self){
                 _fileError_return;
             }
         }
-        writed=(unsigned long)fwrite(data,1,writeLen,self->m_file);
-        if (writed!=writeLen)  _fileError_return;
-        self->out_pos=writeToPos+writed;
+        if (!fileWrite(self->m_file,data,data+writeLen)) _fileError_return;
+        self->out_pos=writeToPos+writeLen;
         self->out_length=(self->out_length>=self->out_pos)?self->out_length:self->out_pos;
-        return (long)writed;
+        return (long)writeLen;
     }
-static hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName,
+hpatch_inline static
+hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName,
                                           hpatch_StreamPos_t max_file_length){
     assert(self->m_file==0);
     if (self->m_file) return hpatch_FALSE;
+    if (!fileOpenForCreateOrReWrite(fileName,&self->m_file)) return hpatch_FALSE;
     
-    self->m_file=fopen(fileName, "wb");
-    if (self->m_file==0) return hpatch_FALSE;
     self->base.streamHandle=self;
     self->base.streamSize=max_file_length;
     self->base.write=_write_file;
@@ -230,7 +264,7 @@ hpatch_BOOL TFileStreamOutput_flush(TFileStreamOutput* self){
 
 hpatch_inline
 static hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self){
-    return _close_file(&self->m_file);
+    return fileClose(&self->m_file);
 }
 
 #endif

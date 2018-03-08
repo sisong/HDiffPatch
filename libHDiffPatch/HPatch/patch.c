@@ -31,8 +31,6 @@
 #ifdef _IS_NEED_CACHE_OLD_BY_COVERS
 #   include <stdlib.h> //qsort
 #endif
-#define _align_lower(p,align2pow) (((size_t)(p)) & (~(size_t)((align2pow)-1)))
-#define _align_upper(p,align2pow) _align_lower((p)+((align2pow)-1),align2pow)
 
 //__RUN_MEM_SAFE_CHECK用来启动内存访问越界检查,用以防御可能被意外或故意损坏的数据.
 #define __RUN_MEM_SAFE_CHECK
@@ -771,7 +769,7 @@ static hpatch_BOOL patchByClip(const struct hpatch_TStreamOutput* out_newData,
 #define _cache_alloc(dst,dst_type,memSize,temp_cache,temp_cache_end){   \
     if ((size_t)(temp_cache_end-temp_cache) <   \
         sizeof(hpatch_StreamPos_t)+(memSize))  return hpatch_FALSE;      \
-    (dst)=(dst_type*)_align_upper(temp_cache,sizeof(hpatch_StreamPos_t));\
+    (dst)=(dst_type*)_hpatch_align_upper(temp_cache,sizeof(hpatch_StreamPos_t));\
     temp_cache=(TByte*)(dst)+(size_t)(memSize); \
 }
 
@@ -1491,13 +1489,13 @@ static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
     assert((size_t)(old_cache_end-old_cache)>=sumCacheLen);
     
     if ((size_t)(cache_buf_end-cache_buf)>=kAccessPageSize*2){
-        cache_buf=(TByte*)_align_upper(cache_buf,kAccessPageSize);
+        cache_buf=(TByte*)_hpatch_align_upper(cache_buf,kAccessPageSize);
         if ((size_t)(cache_buf_end-cache_buf)>=(kMinSpaceLen>>1))
             cache_buf_end=cache_buf+(kMinSpaceLen>>1);
         else
-            cache_buf_end=(TByte*)_align_lower(cache_buf_end,kAccessPageSize);
+            cache_buf_end=(TByte*)_hpatch_align_lower(cache_buf_end,kAccessPageSize);
     }
-    oldPos=_align_lower(oldPos,kAccessPageSize);
+    oldPos=_hpatch_align_lower(oldPos,kAccessPageSize);
     if (oldPos<kMinSpaceLen) oldPos=0;
     
     _arrayCovers_sort_by_old(arrayCovers);
@@ -1546,7 +1544,7 @@ static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
                 //  [oldPos     oldPosEnd]
                 //                        [ioldPos      ioldPosEnd]
                     if ((i==cur_i)&&(ioldPos-oldPosEnd>=kMinSpaceLen))
-                        oldPosEnd=_align_lower(ioldPos,kAccessPageSize);
+                        oldPosEnd=_hpatch_align_lower(ioldPos,kAccessPageSize);
                     break;
                 }
             }else{//当前覆盖线已经落后于当前数据,下一个覆盖线;

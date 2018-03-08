@@ -59,6 +59,9 @@ extern "C" {
 #   define hpatch_inline inline
 #endif
     
+#define _hpatch_align_lower(p,align2pow) (((size_t)(p)) & (~(size_t)((align2pow)-1)))
+#define _hpatch_align_upper(p,align2pow) _hpatch_align_lower(((size_t)(p))+((align2pow)-1),align2pow)
+    
     typedef void* hpatch_TStreamInputHandle;
     typedef void* hpatch_TStreamOutputHandle;
     
