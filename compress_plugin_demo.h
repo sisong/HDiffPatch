@@ -317,7 +317,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
     
 #ifdef  _CompressPlugin_lzma
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "../lzma/C/LzmaDec.h" // http://www.7-zip.org/sdk.html
+#   include "../lzma/C/LzmaEnc.h" // http://www.7-zip.org/sdk.html
 #endif
     static int lzma_compress_level=7;//0..9
     static int lzma_dictSize=1<<22;  //patch decompress need 4*lzma_dictSize memroy
