@@ -160,7 +160,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         int                 is_stream_end=0;
         int                 is_eof=0;
         assert(part_data<part_data_end);
-        self->c_stream.next_in=(z_const Bytef*)part_data;
+        self->c_stream.next_in=(Bytef*)part_data;
         self->c_stream.avail_in=(uInt)(part_data_end-part_data);
         while (1) {
             if ((self->c_stream.avail_out<self->c_buf_size)|is_stream_end){
@@ -212,7 +212,8 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         if (!self) _compress_error_return("deflateInit2()");
         while (readFromPos<in_data->streamSize) {
             long readLen=kCompressBufSize;
-            if (readLen>(in_data->streamSize-readFromPos)) readLen=(long)(in_data->streamSize-readFromPos);
+            if ((size_t)readLen>(hpatch_StreamPos_t)(in_data->streamSize-readFromPos))
+                readLen=(long)(in_data->streamSize-readFromPos);
             if (readLen!=in_data->read(in_data->streamHandle,readFromPos,data_buf,data_buf+readLen))
                 _compress_error_return("in_data->read()");
             readFromPos+=readLen;
