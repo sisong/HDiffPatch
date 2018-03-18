@@ -94,12 +94,21 @@ static hpatch_BOOL fileWrite(FILE* file,const TByte* data,const TByte* data_end)
     return hpatch_FALSE; \
 }
 
+#if defined(_MSC_VER)&&(_MSC_VER>=1400) //VC2005
+#   define _fileOpenByMode(ppFile,fileName,mode) { \
+        errno_t err=fopen_s(ppFile,fileName,mode);  \
+        if (err!=0) *(ppFile)=0; }
+#else
+#   define _fileOpenByMode(ppFile,fileName,mode) { \
+        *(ppFile)=fopen(fileName,mode); }
+#endif
+
 hpatch_inline static
 hpatch_BOOL fileOpenForRead(const char* fileName,FILE** out_fileHandle,hpatch_StreamPos_t* out_fileLength){
     FILE* file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
-    file=fopen(fileName,"rb");
+    _fileOpenByMode(&file,fileName,"rb");
     if (file==0) _file_error(file);
     if (out_fileLength!=0){
         hpatch_StreamPos_t file_length=0;
@@ -117,7 +126,7 @@ hpatch_BOOL fileOpenForCreateOrReWrite(const char* fileName,FILE** out_fileHandl
     FILE* file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
-    file=fopen(fileName,"wb");
+    _fileOpenByMode(&file,fileName,"wb");
     if (file==0) _file_error(file);
     *out_fileHandle=file;
     return hpatch_TRUE;
