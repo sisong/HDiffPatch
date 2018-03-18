@@ -113,6 +113,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
                                                     const hpatch_TStreamOutput* out_code,
                                                     int  isNeedSaveWindowBits,
                                                     int  compress_level,
+                                                    int  mem_level,
                                                     unsigned char* _mem_buf,size_t _mem_buf_size){
         _zlib_TCompress* self=0;
         const signed char  kWindowBits=isNeedSaveWindowBits?(16+MAX_WBITS):(-MAX_WBITS);
@@ -137,7 +138,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         }
 
         if (Z_OK!=deflateInit2(&self->c_stream,compress_level,Z_DEFLATED,
-                               kWindowBits,MAX_MEM_LEVEL,Z_DEFAULT_STRATEGY))
+                               kWindowBits,mem_level,Z_DEFAULT_STRATEGY))
             return 0;
         return self;
     }
@@ -206,7 +207,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         _zlib_TCompress*   self=0;
         _temp_buf=(unsigned char*)malloc(sizeof(_zlib_TCompress)+kCompressBufSize*2);
         if (!_temp_buf) _compress_error_return("memory alloc");
-        self=_zlib_compress_open_by(compressPlugin,out_code,1,zlib_compress_level,
+        self=_zlib_compress_open_by(compressPlugin,out_code,1,zlib_compress_level,MAX_MEM_LEVEL,
                                     _temp_buf,sizeof(_zlib_TCompress)+kCompressBufSize);
         data_buf=_temp_buf+sizeof(_zlib_TCompress)+kCompressBufSize;
         if (!self) _compress_error_return("deflateInit2()");
