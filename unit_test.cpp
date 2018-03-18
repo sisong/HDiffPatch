@@ -333,8 +333,13 @@ int main(int argc, const char * argv[]){
     std::vector<TByte> _newData;
     std::vector<TByte> _oldData;
     for (TInt i=0; i<kRandTestCount; ++i) {
-        char tag[250];
+        char tag[256];
+    #if defined(_MSC_VER)&&(_MSC_VER>=1400) //VC2005
+        sprintf_s(tag,256, "error==%ld testSeed=%d",errorCount,seeds[i]);
+    #else
         sprintf(tag, "error==%ld testSeed=%d",errorCount,seeds[i]);
+    #endif
+
         srand(seeds[i]);
 
         setRandDataSize(kMaxDataSize,_oldData,_newData,0.7,1.5);
