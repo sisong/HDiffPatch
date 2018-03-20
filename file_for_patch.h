@@ -30,7 +30,6 @@
 #ifndef HPatch_file_for_patch_h
 #define HPatch_file_for_patch_h
 #include <stdio.h>
-#include <assert.h>
 #include <stdlib.h> //malloc free
 #include "libHDiffPatch/HPatch/patch_types.h"
 typedef unsigned char TByte;

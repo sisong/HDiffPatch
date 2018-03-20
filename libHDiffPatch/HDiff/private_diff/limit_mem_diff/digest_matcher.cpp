@@ -26,7 +26,6 @@
  */
 
 #include "digest_matcher.h"
-#include <assert.h>
 #include <stdlib.h> //malloc free
 #include <stdexcept>  //std::runtime_error
 #include <algorithm>  //std::sort,std::equal_range

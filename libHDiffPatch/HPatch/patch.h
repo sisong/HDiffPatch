@@ -91,7 +91,7 @@ hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
     
 //ON: for patch_decompress_with_cache(), preparatory load part of oldData into cache,
 //  cache memory size (temp_cache_end-temp_cache) the larger the better for large oldData file
-#define _IS_NEED_CACHE_OLD_BY_COVERS
+//#define _IS_NEED_CACHE_OLD_BY_COVERS
 
 //see patch_decompress()
 //  use larger memory cache to optimize speed
@@ -125,6 +125,26 @@ hpatch_inline static hpatch_BOOL
         mem_as_hStreamInput(&diffStream,compressedDiff,compressedDiff_end);
         return patch_decompress(&out_newStream,&oldStream,&diffStream,decompressPlugin);
     }
+    
+    typedef struct hpatch_TCoverList{
+        hpatch_TCovers* ICovers;
+    //private:
+        unsigned char _buf[hpatch_kStreamCacheSize*4];
+    } hpatch_TCoverList;
+    
+hpatch_inline static
+void        hpatch_coverList_init(hpatch_TCoverList* coverList) {
+                                  assert(coverList!=0); memset(coverList,0,sizeof(*coverList)-sizeof(coverList->_buf)); }
+hpatch_BOOL hpatch_coverList_open_serializedDiff(hpatch_TCoverList*         out_coverList,
+                                                 const hpatch_TStreamInput* serializedDiff);
+hpatch_BOOL hpatch_coverList_open_compressedDiff(hpatch_TCoverList*         out_coverList,
+                                                 const hpatch_TStreamInput* compressedDiff,
+                                                 hpatch_TDecompress*        decompressPlugin);
+hpatch_inline static
+void        hpatch_coverList_close(hpatch_TCoverList* coverList) {
+                                   if ((coverList!=0)&&(coverList->ICovers)){
+                                       coverList->ICovers->close(coverList->ICovers);
+                                       hpatch_coverList_init(coverList); } }
 
 #ifdef __cplusplus
 }

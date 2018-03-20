@@ -32,7 +32,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include "libHDiffPatch/HDiff/diff.h"

@@ -27,7 +27,6 @@
  */
 
 #include "compress_detect.h"
-#include <assert.h>
 #include <string.h> //memset
 #include <stdlib.h> //malloc free
 #include <stdexcept> //std::runtime_error

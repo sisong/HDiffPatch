@@ -42,7 +42,7 @@
 #   define _fast_adler_border2(v,BASE)  _fast_adler_border1(v,BASE)
 #   define _fast_adler_border3(v,BASE)  _fast_adler_border1(v,BASE)
 
-#ifdef _IS_NEED_ADLER64
+#if (defined(_IS_NEED_ADLER64) && (_IS_NEED_ADLER64>0))
 #   define _adler64_BASE                0xFFFFFFFBull
 #   define _fast_adler64_BASE           ((uint64_t)1<<32)
 #endif //_IS_NEED_ADLER64
@@ -142,7 +142,7 @@
 // max(blockSize) =16843009 =(1<<24)+65793
 // => if (255 to (2^16-1)) then max(blockSize) =65537 = (1<<16)+1
 static const size_t   adler_roll_kBestBlockSize=((size_t)(~(size_t)0))/MAX_DATA;
-#ifdef _IS_NEED_ADLER64
+#if (defined(_IS_NEED_ADLER64) && (_IS_NEED_ADLER64>0))
 static const uint64_t adler64_roll_kBestBlockSize=0xFFFFFFFFFFFFFFFFull/MAX_DATA;
 #endif
 
@@ -162,7 +162,7 @@ uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t
     _adler_by_combine(uint32_t,16,_fast_adler32_BASE,_fast_adler_mod,_fast_adler_border2,_fast_adler_border3,
                       adler_left,adler_right,len_right)
 
-#ifdef _IS_NEED_ADLER64
+#if (defined(_IS_NEED_ADLER64) && (_IS_NEED_ADLER64>0))
 uint64_t adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n)
     _adler_append(uint64_t,32,_adler64_BASE,_adler_mod,_adler_border1, adler,pdata,n)
 uint64_t fast_adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n)

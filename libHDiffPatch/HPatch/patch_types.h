@@ -30,6 +30,7 @@
 #define HPatch_patch_types_h
 
 #include <string.h>//for size_t
+#include <assert.h>
 
 #ifdef __cplusplus
 extern "C" {

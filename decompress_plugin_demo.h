@@ -35,7 +35,6 @@
 //  hpatch_TDeompress zstdDecompressPlugin;
 
 #include <stdlib.h> //malloc free
-#include <assert.h> //assert
 #include "libHDiffPatch/HPatch/patch_types.h"
 
 #define kDecompressBufSize (1024*32)

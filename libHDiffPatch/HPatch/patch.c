@@ -27,7 +27,6 @@
 */
 #include "patch.h"
 #include <string.h> //memcpy memset size_t
-#include <assert.h> //assert
 #ifdef _IS_NEED_CACHE_OLD_BY_COVERS
 #   include <stdlib.h> //qsort
 #endif
@@ -1203,8 +1202,6 @@ static hpatch_BOOL _cache_load_all(const hpatch_TStreamInput* data,
     return hpatch_TRUE;
 }
 
-#ifdef _IS_NEED_CACHE_OLD_BY_COVERS
-
 typedef struct _TCompressedCovers{
     _TCovers                base;
     TStreamClip             coverClip;
@@ -1222,11 +1219,11 @@ static void _compressedCovers_close(hpatch_TCovers* covers){
     }
 }
 
-hpatch_BOOL compressedCovers_open(_TCompressedCovers** out_self,
-                                  hpatch_compressedDiffInfo* out_diffInfo,
-                                  const hpatch_TStreamInput* compressedDiff,
-                                  hpatch_TDecompress* decompressPlugin,
-                                  TByte* temp_cache,TByte* temp_cache_end){
+static hpatch_BOOL _compressedCovers_open(_TCompressedCovers** out_self,
+                                          hpatch_compressedDiffInfo* out_diffInfo,
+                                          const hpatch_TStreamInput* compressedDiff,
+                                          hpatch_TDecompress* decompressPlugin,
+                                          TByte* temp_cache,TByte* temp_cache_end){
     _THDiffzHead    head;
     TUInt           diffPos0=0;
     _TCompressedCovers* self=0;
@@ -1251,6 +1248,8 @@ hpatch_BOOL compressedCovers_open(_TCompressedCovers** out_self,
     *out_self=self;
     return hpatch_TRUE;
 }
+
+#ifdef _IS_NEED_CACHE_OLD_BY_COVERS
 
 typedef struct _TArrayCovers{
     hpatch_TCovers  ICovers;
@@ -1690,8 +1689,8 @@ hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
         if (isCompressedDiff){
             hpatch_compressedDiffInfo diffInfo;
             _TCompressedCovers* compressedCovers=0;
-            if (!compressedCovers_open(&compressedCovers,&diffInfo,diffData,decompressPlugin,
-                                       temp_cache_end-kBestACacheSize-sizeof(_TCompressedCovers),temp_cache_end))
+            if (!_compressedCovers_open(&compressedCovers,&diffInfo,diffData,decompressPlugin,
+                                        temp_cache_end-kBestACacheSize-sizeof(_TCompressedCovers),temp_cache_end))
                 { *out_isReadError=hpatch_TRUE; return _hpatch_FALSE; }
             if ((oldData->streamSize!=diffInfo.oldDataSize)||(newDataSize!=diffInfo.newDataSize))
                 { *out_isReadError=hpatch_TRUE; return _hpatch_FALSE; }
@@ -1819,4 +1818,33 @@ hpatch_BOOL patch_decompress_repeat_out(const hpatch_TStreamOutput* repeat_out_n
 }
 
 
+
+hpatch_BOOL hpatch_coverList_open_serializedDiff(hpatch_TCoverList* out_coverList,
+                                                 const hpatch_TStreamInput*  serializedDiff){
+    assert((out_coverList!=0)&&(out_coverList->ICovers==0));
+    TByte* temp_cache=out_coverList->_buf;
+    TByte* temp_cache_end=temp_cache+sizeof(out_coverList->_buf);
+    _TPackedCovers* packedCovers=0;
+    _THDiffHead     diffHead;
+    if (!_packedCovers_open(&packedCovers,&diffHead,serializedDiff,
+                            temp_cache,temp_cache_end))
+        return _hpatch_FALSE;
+    out_coverList->ICovers=&packedCovers->base.ICovers;
+    return hpatch_TRUE;
+}
+
+hpatch_BOOL hpatch_coverList_open_compressedDiff(hpatch_TCoverList* out_coverList,
+                                                 const hpatch_TStreamInput*  compressedDiff,
+                                                 hpatch_TDecompress*         decompressPlugin){
+    assert((out_coverList!=0)&&(out_coverList->ICovers==0));
+    TByte* temp_cache=out_coverList->_buf;
+    TByte* temp_cache_end=temp_cache+sizeof(out_coverList->_buf);
+    hpatch_compressedDiffInfo diffInfo;
+    _TCompressedCovers* compressedCovers=0;
+    if (!_compressedCovers_open(&compressedCovers,&diffInfo,compressedDiff,decompressPlugin,
+                                temp_cache,temp_cache_end))
+        return _hpatch_FALSE;
+    out_coverList->ICovers=&compressedCovers->base.ICovers;
+    return hpatch_TRUE;
+}
 
