@@ -28,7 +28,6 @@
 
 #include "diff.h"
 #include <string.h> //strlen memcmp
-#include <assert.h>
 #include <stdlib.h> //malloc free
 #include <stdexcept>  //std::runtime_error
 #include <vector>

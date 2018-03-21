@@ -25,7 +25,6 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "stream_serialize.h"
-#include <assert.h>
 #include <stdlib.h> //malloc free
 #include <string.h> //memcpy
 #include <stdexcept> //std::runtime_error

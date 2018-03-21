@@ -34,7 +34,6 @@
 //  hdiff_TCompress lz4CompressPlugin;
 //  hdiff_TCompress zstdCompressPlugin;
 
-#include <assert.h>
 #include "libHDiffPatch/HDiff/diff_types.h"
 
 #define kCompressBufSize (1024*64)
