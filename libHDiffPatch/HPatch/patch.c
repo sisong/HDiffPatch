@@ -1821,11 +1821,13 @@ hpatch_BOOL patch_decompress_repeat_out(const hpatch_TStreamOutput* repeat_out_n
 
 hpatch_BOOL hpatch_coverList_open_serializedDiff(hpatch_TCoverList* out_coverList,
                                                  const hpatch_TStreamInput*  serializedDiff){
-    assert((out_coverList!=0)&&(out_coverList->ICovers==0));
-    TByte* temp_cache=out_coverList->_buf;
-    TByte* temp_cache_end=temp_cache+sizeof(out_coverList->_buf);
+    TByte* temp_cache;
+    TByte* temp_cache_end;
     _TPackedCovers* packedCovers=0;
     _THDiffHead     diffHead;
+    assert((out_coverList!=0)&&(out_coverList->ICovers==0));
+    temp_cache=out_coverList->_buf;
+    temp_cache_end=temp_cache+sizeof(out_coverList->_buf);
     if (!_packedCovers_open(&packedCovers,&diffHead,serializedDiff,
                             temp_cache,temp_cache_end))
         return _hpatch_FALSE;
@@ -1836,11 +1838,13 @@ hpatch_BOOL hpatch_coverList_open_serializedDiff(hpatch_TCoverList* out_coverLis
 hpatch_BOOL hpatch_coverList_open_compressedDiff(hpatch_TCoverList* out_coverList,
                                                  const hpatch_TStreamInput*  compressedDiff,
                                                  hpatch_TDecompress*         decompressPlugin){
-    assert((out_coverList!=0)&&(out_coverList->ICovers==0));
-    TByte* temp_cache=out_coverList->_buf;
-    TByte* temp_cache_end=temp_cache+sizeof(out_coverList->_buf);
-    hpatch_compressedDiffInfo diffInfo;
+    TByte* temp_cache;
+    TByte* temp_cache_end;
     _TCompressedCovers* compressedCovers=0;
+    hpatch_compressedDiffInfo diffInfo;
+    assert((out_coverList!=0)&&(out_coverList->ICovers==0));
+    temp_cache=out_coverList->_buf;
+    temp_cache_end=temp_cache+sizeof(out_coverList->_buf);
     if (!_compressedCovers_open(&compressedCovers,&diffInfo,compressedDiff,decompressPlugin,
                                 temp_cache,temp_cache_end))
         return _hpatch_FALSE;
