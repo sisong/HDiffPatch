@@ -68,7 +68,7 @@
 //limit: 255*n*(n+1)/2 + (n+1)(B-1) <= 2^32-1
 // => max(n)=5552
 // => if (255 to (2^16-1)) then max(n) =360
-#define kFNBest (16*22) //<=360
+#define kFNBest (16*22)     // <=360
 #define _adler_append(uint_t,half_bit,BASE,mod,border1, adler,pdata,n){ \
     uint_t sum=adler>>half_bit;      \
     adler&=(((uint_t)1<<half_bit)-1);\

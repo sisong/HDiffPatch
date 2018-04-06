@@ -68,13 +68,13 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
 int main(int argc, const char * argv[]){
     double time0=clock_s();
     if (argc!=4) {
-        std::cout<<"diff command line parameter:\n oldFileName newFileName outDiffFileName\n";
+        std::cout<<"diff command line parameter:\n oldFileName newFileName outUncompressedDiffFileName\n";
         exit(1);
     }
     const char* oldFileName=argv[1];
     const char* newFileName=argv[2];
-    const char* outDiffFileName=argv[3];
-    std::cout<<"old:\"" <<oldFileName<< "\"\nnew:\""<<newFileName<<"\"\nout:\""<<outDiffFileName<<"\"\n";
+    const char* outUncompressedDiffFileName=argv[3];
+    std::cout<<"old:\"" <<oldFileName<< "\"\nnew:\""<<newFileName<<"\"\nout:\""<<outUncompressedDiffFileName<<"\"\n";
 
     std::vector<TByte> oldData; readFile(oldData,oldFileName);
     std::vector<TByte> newData; readFile(newData,newFileName);
@@ -109,7 +109,7 @@ int main(int argc, const char * argv[]){
                 oldData0,oldData0+oldDataSize,diffData);
     double time2=clock_s();
     std::cout<<"diffDataSize: "<<diffData.size()<<"\n";
-    writeFile(diffData,outDiffFileName);
+    writeFile(diffData,outUncompressedDiffFileName);
     std::cout<<"  out diff file ok!\n";
 #ifdef _IS_RUN_PATCH_CHECK
     if (!check_diff(newData0,newData0+newDataSize,
