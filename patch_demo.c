@@ -111,7 +111,7 @@ int main(int argc, const char * argv[]){
     TByte*            temp_cache=0;
 #endif
     if (argc!=4) {
-        printf("patch command parameter:\n oldFileName diffFileName outNewFileName\n");
+        printf("patch command parameter:\n oldFileName uncompressedDiffFileName outNewFileName\n");
         return 1;
     }
 #ifndef _IS_LOAD_OLD_ALL
@@ -124,9 +124,9 @@ int main(int argc, const char * argv[]){
         TByte buf[9];
         hpatch_StreamPos_t savedNewSize=0;
         const char* oldFileName=argv[1];
-        const char* diffFileName=argv[2];
+        const char* uncompressedDiffFileName=argv[2];
         const char* outNewFileName=argv[3];
-        printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,diffFileName,outNewFileName);
+        printf("old :\"%s\"\ndiff:\"%s\"\nout :\"%s\"\n",oldFileName,uncompressedDiffFileName,outNewFileName);
 #ifdef _IS_LOAD_OLD_ALL
         if (!readFileAll(&poldData_mem,&oldDataSize,oldFileName))
             _error_return("open read oldFile error!");
@@ -135,7 +135,7 @@ int main(int argc, const char * argv[]){
         if (!TFileStreamInput_open(&oldData,oldFileName))
             _error_return("open oldFile for read error!");
 #endif
-        if (!TFileStreamInput_open(&diffData,diffFileName))
+        if (!TFileStreamInput_open(&diffData,uncompressedDiffFileName))
             _error_return("open diffFile error!");
         //read savedNewSize
         if (kNewDataSizeSavedSize>diffData.base.streamSize)

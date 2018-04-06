@@ -1,7 +1,7 @@
 **HDiffPatch**
 ================
-Version 2.3   
-byte data Diff & Patch  C\C++ library.  
+[![release](https://img.shields.io/badge/release-v2.3-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+binary data Diff & Patch C\C++ library.   
 
 ---
 uses:
