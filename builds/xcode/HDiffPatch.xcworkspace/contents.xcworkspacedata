@@ -2,16 +2,10 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:HDiffZ.xcodeproj">
+      location = "group:/Users/Shared/HDiffPatch/builds/xcode/hdiff.xcodeproj">
    </FileRef>
    <FileRef
-      location = "group:HPatchZ.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:HDiff.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:HPatch.xcodeproj">
+      location = "group:/Users/Shared/HDiffPatch/builds/xcode/hpatch.xcodeproj">
    </FileRef>
    <Group
       location = "container:"
@@ -21,6 +15,19 @@
       </FileRef>
       <FileRef
          location = "group:bestParams.xcodeproj">
+      </FileRef>
+   </Group>
+   <Group
+      location = "container:"
+      name = "lib">
+      <FileRef
+         location = "group:../../../lzma/lzma.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:../../../lz4/lz4.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:../../../zstd/zstd.xcodeproj">
       </FileRef>
    </Group>
 </Workspace>
