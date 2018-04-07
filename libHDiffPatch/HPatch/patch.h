@@ -91,7 +91,7 @@ hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
     
 //ON: for patch_decompress_with_cache(), preparatory load part of oldData into cache,
 //  cache memory size (temp_cache_end-temp_cache) the larger the better for large oldData file
-//#define _IS_NEED_CACHE_OLD_BY_COVERS
+#define _IS_NEED_CACHE_OLD_BY_COVERS
 
 //see patch_decompress()
 //  use larger memory cache to optimize speed
