@@ -34,16 +34,23 @@
 #include "file_for_patch.h"
 #include "_clock_for_demo.h"
 
-#ifndef     _IS_NOT_NEED_ORIGINAL
-#   define  _IS_NOT_NEED_ORIGINAL 1
+#ifndef _IS_NEED_MAIN
+#   define  _IS_NEED_MAIN 1
 #endif
-
+#ifndef _IS_NEED_ORIGINAL
+#   define  _IS_NEED_ORIGINAL 1
+#endif
+#ifndef _IS_NEED_ALL_CompressPlugin
+#   define _IS_NEED_ALL_CompressPlugin 1
+#endif
+#if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
-#define _CompressPlugin_zlib
-#define _CompressPlugin_bz2
-#define _CompressPlugin_lzma
-#define _CompressPlugin_lz4 // & lz4hc
-#define _CompressPlugin_zstd
+#   define _CompressPlugin_zlib
+#   define _CompressPlugin_bz2
+#   define _CompressPlugin_lzma
+#   define _CompressPlugin_lz4 // & lz4hc
+#   define _CompressPlugin_zstd
+#endif
 
 #include "decompress_plugin_demo.h"
 
@@ -78,7 +85,7 @@ static hpatch_BOOL AToSize(const char* pnum,size_t slen,size_t* out_size){
     if (slen==0) hpatch_FALSE;
     if ((slen>=2)&(pnum[0]=='0')) hpatch_FALSE;
     size_t v=0;
-    for (int s=0; s<=slen; --s) {
+    for (int s=0; s<slen; ++s) {
         size_t c=pnum[s];
         if ((c<'0')|(c>'9')) return hpatch_FALSE;
         c-='0';
@@ -89,7 +96,7 @@ static hpatch_BOOL AToSize(const char* pnum,size_t slen,size_t* out_size){
     return hpatch_TRUE;
 }
 
-#if (_IS_NOT_NEED_ORIGINAL)
+#if (_IS_NEED_ORIGINAL)
 static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* outSize){
     size_t lsize;
     if (dataSize<4) return -1;
@@ -109,28 +116,29 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
 }
 #endif
 
-#define k_patch_cache_size          ((size_t)1<<27) //default
-#define k_patch_cache_size_min      (hpatch_kStreamCacheSize*8)
-#define k_patch_cache_size_bestmax  ((size_t)1<<30)
+#define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
+#define kPatchCacheSize_bestmin  ((size_t)1<<21)
+#define kPatchCacheSize_default  ((size_t)1<<27)
+#define kPatchCacheSize_bestmax  ((size_t)1<<30)
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
 
 static void printUsage(){
-    printf("usage: hpatch "
-#if (_IS_NOT_NEED_ORIGINAL)
+    printf("usage: hpatch [-m|-s[-nbytes]] "
+#if (_IS_NEED_ORIGINAL)
            "[-o] "
 #endif
-           "[-m|-s-nbytes] oldFile diffFile outNewFile\n"
+           "oldFile diffFile outNewFile\n"
            "memory options:\n"
            "    -m          oldFile all load into memory\n"
            "                fast, memory requires O(oldFileSize + 4 * decompress stream)\n"
            "    -s-nbytes   oldFile as stream,set stream memory size\n"
            "                limit memory requires O(nbytes + 4 * decompress stream)\n"
            "                nbytes can like 524288 or 512k or 128m or 1g etc...\n"
-#if (_IS_NOT_NEED_ORIGINAL)
+#if (_IS_NEED_ORIGINAL)
            "special options:\n"
-           "    -o          original patch, compatible with \"patch_demo.c\",\n"
+           "    -o          original patch; DEPRECATED, compatible with \"patch_demo.c\",\n"
            "                diffFile must created by \"diff_demo.cpp\" or \"hdiff -o ...\"\n"
 #endif
            );
@@ -148,7 +156,7 @@ int patch_cmd_line(int argc, const char * argv[]){
         const char* op=argv[i];
         _options_check((op!=0)&&(op[0]=='-'));
         switch (op[1]) {
-#if (_IS_NOT_NEED_ORIGINAL)
+#if (_IS_NEED_ORIGINAL)
             case 'o':{
                 _options_check((!isOriginal)&&(op[2]=='\0'));
                 isOriginal=hpatch_TRUE;
@@ -169,12 +177,11 @@ int patch_cmd_line(int argc, const char * argv[]){
                     else if (pnum[slen-1]=='m') { shl=20; --slen;}
                     else if (pnum[slen-1]=='g') { shl=30; --slen;}
                     else                        { shl=0; }
-                    size_t v;
-                    _options_check(AToSize(pnum,slen,&v));
-                    _options_check(v<=(_kMaxUInt>>shl));
-                    patchCacheSize=v<<shl;
-                    if (patchCacheSize<k_patch_cache_size_min)
-                        patchCacheSize=k_patch_cache_size_min;
+                    _options_check(AToSize(pnum,slen,&patchCacheSize));
+                    _options_check(patchCacheSize<=(_kMaxUInt>>shl));
+                    patchCacheSize<<=shl;
+                    if (patchCacheSize<kPatchCacheSize_min)
+                        patchCacheSize=kPatchCacheSize_min;
                 }else{
                     _options_check(op[2]=='\0');
                 }
@@ -185,7 +192,7 @@ int patch_cmd_line(int argc, const char * argv[]){
         }//swich
     }
     if ((!isLoadOldAll)&&(patchCacheSize==0)){
-        patchCacheSize=k_patch_cache_size; //default
+        patchCacheSize=kPatchCacheSize_default;
     }
     
     {
@@ -196,11 +203,11 @@ int patch_cmd_line(int argc, const char * argv[]){
     }
 }
 
-#if !(_IS_NOT_NEED_MAIN)
+#if (_IS_NEED_MAIN)
 int main(int argc, const char * argv[]){
     return patch_cmd_line(argc,argv);
 }
-#endif // !_IS_NOT_NEED_MAIN
+#endif
 
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
@@ -229,8 +236,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
             _error_return("open diffFile for read ERROR!");
     }
 
-#if (_IS_NOT_NEED_ORIGINAL)
-    if (isOriginal){ //
+#if (_IS_NEED_ORIGINAL)
+    if (isOriginal){
         int kNewDataSizeSavedSize=9;
         TByte buf[9];
         if (kNewDataSizeSavedSize>diffData.base.streamSize)
@@ -301,21 +308,21 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     time1=clock_s();
     if (isLoadOldAll){
         assert(patchCacheSize==0);
-        temp_cache_size=(size_t)(oldData.base.streamSize+(1<<21));
-        if (temp_cache_size!=oldData.base.streamSize+(1<<21))
-            temp_cache_size=k_patch_cache_size_bestmax;//can not load all,load part
+        temp_cache_size=(size_t)(oldData.base.streamSize+kPatchCacheSize_bestmin);
+        if (temp_cache_size!=oldData.base.streamSize+kPatchCacheSize_bestmin)
+            temp_cache_size=kPatchCacheSize_bestmax;//can not load all,load part
     }else{
         temp_cache_size=patchCacheSize;
-        if (temp_cache_size>oldData.base.streamSize+(1<<21))
-            temp_cache_size=(size_t)(oldData.base.streamSize+(1<<21));
+        if (temp_cache_size>oldData.base.streamSize+kPatchCacheSize_bestmin)
+            temp_cache_size=(size_t)(oldData.base.streamSize+kPatchCacheSize_bestmin);
     }
     while (!temp_cache) {
         temp_cache=(TByte*)malloc(temp_cache_size);
-        if ((!temp_cache)&&(temp_cache_size>=k_patch_cache_size_min*2)) temp_cache_size>>=1;
+        if ((!temp_cache)&&(temp_cache_size>=kPatchCacheSize_min*2)) temp_cache_size>>=1;
     }
     if (!temp_cache) _error_return("alloc cache memory ERROR!");
 
-#if (_IS_NOT_NEED_ORIGINAL)
+#if (_IS_NEED_ORIGINAL)
     if (isOriginal)
         patch_result=patch_stream_with_cache(&newData.base,poldData,&diffData.base,
                                              temp_cache,temp_cache+temp_cache_size);

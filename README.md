@@ -1,10 +1,25 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v2.3.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![release](https://img.shields.io/badge/release-v3.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 binary data Diff & Patch C\C++ library.   
 
 ---
 uses:
+```
+hpatch [-o] [-m|-s[-nbytes]] oldFile diffFile outNewFile
+memory options:
+    -m          oldFile all load into memory
+                fast, memory requires O(oldFileSize + 4 * decompress stream)
+    -s-nbytes   oldFile as stream,set stream memory size
+                limit memory requires O(nbytes + 4 * decompress stream)
+                nbytes can like 524288 or 512k or 128m or 1g etc...
+special options:
+    -o          original patch; DEPRECATED, compatible with "patch_demo.c",
+                diffFile must created by "diff_demo.cpp" or "hdiff -o ..."
+```
+
+---
+library usage:
 
 *  **create_diff(newData,oldData,out diffData);**
   
@@ -30,8 +45,8 @@ uses:
 system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
    (purge file cache before every test)
 ```
-HDiff2.0 diff used create_compressed_diff() + bzip2 | lzma | zlib , all data in memory;
-         patch used patch_decompress() + load oldFile data into memory, other data use file stream.
+HDiffPatch hdiff run by: -m -c-bzip2|-lzma|-zlib oldFile newFile outDiffFile
+          hpatch run by: -m  oldFile diffFile outNewFile
 BsDiff4.3 with bzip2 and all data in memory;
 (when compiling BsDiff4.3-x64, suffix string index type int64 changed to int32, 
    faster and memroy requires to be halved.)   
@@ -66,10 +81,11 @@ gcc-src...     366    69       4420   3030       7.9     3.5   2.1   1.85     10
 -------------------------------------------------------------------------------------------------------
 Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      100%  52.3% 50.3% 45.5%
 =======================================================================================================
-
-
-HDiff2.1.3 diff used create_compressed_diff_stream()+bzip2,kMatchBlockSize=128,all data use file stream;
-         patch used patch_decompress(), all data use file stream.
+```
+   
+```
+HDiffPatch hdiff run by: -s-128 -c-bzip2 oldFile newFile outDiffFile
+          hpatch run by: -s-4m oldFile diffFile outNewFile
 xdelta3.1 diff run by: -e -s old_file new_file delta_file   
          patch run by: -d -s old_file delta_file decoded_new_file
 (note fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
@@ -91,8 +107,8 @@ Average           12.18%    7.81%     100%  79.0%     100%  15.5%      100%  169
               (fix 9.78%)
 =======================================================================================================
 
-HDiff2.1.3 diff used create_compressed_diff_stream()+lzma,kMatchBlockSize=64,all data use file stream;
-         patch used patch_decompress(), all data use file stream.
+HDiffPatch hdiff run by: -s-64 -c-lzma  oldFile newFile outDiffFile
+          hpatch run by: -s-4m oldFile diffFile outNewFile
 xdelta3.1 diff run by: -S lzma -9 -s old_file new_file delta_file   
          patch run by: -d -s old_file delta_file decoded_new_file
 (note fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
