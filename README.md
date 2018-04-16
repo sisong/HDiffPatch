@@ -4,18 +4,46 @@
 binary data Diff & Patch C\C++ library.   
 
 ---
-uses:
+command line usage:
 ```
-hpatch [-o] [-m|-s[-nbytes]] oldFile diffFile outNewFile
+hdiff [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-o] oldFile newFile outDiffFile
 memory options:
-    -m          oldFile all load into memory
-                fast, memory requires O(oldFileSize + 4 * decompress stream)
-    -s-nbytes   oldFile as stream,set stream memory size
-                limit memory requires O(nbytes + 4 * decompress stream)
-                nbytes can like 524288 or 512k or 128m or 1g etc...
+  -m-matchScore
+      all file load into Memory, DEFAULT, with matchScore;
+      best diffFileSize, max memory requires O(oldFileSize*9+newFileSize),
+      matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc... 
+  -s-matchBlockSize
+      all file load as Stream, with matchBlockSize;
+      fast, memory requires O(oldSize*16/matchBlockSize+matchBlockSize*5),
+      matchBlockSize>=2, DEFAULT 128, recommended 2^3--2^14 32k 1m etc...
 special options:
-    -o          original patch; DEPRECATED, compatible with "patch_demo.c",
-                diffFile must created by "diff_demo.cpp" or "hdiff -o ..."
+  -c-compressType-compressLevel 
+      set diffFile Compress type & level, otherwise DEFAULT uncompress;
+      compress type & level can:
+        (reference: https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
+        -zlib[-{1..9}]              DEFAULT level 9
+        -bzip2[-{1..9}]             DEFAULT level 9
+        -lzma[-{0..9}[-dictSize]]   DEFAULT level 7
+            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m
+        -lz4
+        -lz4hc[-{1..12}]            DEFAULT level 11
+        -zstd[-{0..22}]             DEFAULT level 20
+  -o  Original diff, unsupport run with -s or -c, DEPRECATED;
+      compatible with "diff_demo.c",
+      diffFile must patch by "patch_demo.cpp" or "hpatch -o ..."
+```
+```
+hpatch [-m|-s[-nbytes]] [-o] oldFile diffFile outNewFile
+memory options:
+  -m  oldFile all load into Memory;
+      fast, memory requires O(oldFileSize + 4 * decompress stream)
+  -s-nbytes 
+      oldFile load as Stream, DEFAULT, with nbytes(cache memory size);
+      memory requires O(nbytes + 4 * decompress stream),
+      nbytes can like 524288 or 512k or 128m(DEFAULT) or 1g etc...
+special options:
+  -o  Original patch, DEPRECATED; compatible with "patch_demo.c",
+      diffFile must created by "diff_demo.cpp" or "hdiff -o ..."
 ```
 
 ---

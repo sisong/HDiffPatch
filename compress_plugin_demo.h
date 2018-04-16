@@ -84,6 +84,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
     return (size_t)codeLen; \
 }
 
+//todo *_compress_level(*_dictSize...) 可以单独控制，而不再是全局变量;
 
 #ifdef  _CompressPlugin_zlib
 #if (_IsNeedIncludeDefaultCompressHead)
@@ -321,7 +322,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
 #   include "../lzma/C/LzmaEnc.h" // http://www.7-zip.org/sdk.html
 #endif
     static int lzma_compress_level=7;//0..9
-    static int lzma_dictSize=1<<22;  //patch decompress need 4*lzma_dictSize memroy
+    static UInt32 lzma_dictSize=1<<22;  //patch decompress need 4*lzma_dictSize memroy
     static const char*  _lzma_stream_compressType(const hdiff_TStreamCompress* compressPlugin){
         static const char* kCompressType="lzma";
         return kCompressType;

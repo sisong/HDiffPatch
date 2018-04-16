@@ -33,6 +33,7 @@
 #include "libHDiffPatch/HPatch/patch.h"
 #include "file_for_patch.h"
 #include "_clock_for_demo.h"
+#include "_atosize.h"
 
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
@@ -78,24 +79,6 @@
     } \
 }
 
-static const size_t _kMaxUInt=(~(size_t)0);
-static const size_t _kMaxUIntDiv10=_kMaxUInt/10;
-static const size_t _kMaxUIntMod10=_kMaxUInt-_kMaxUIntDiv10*10;
-static hpatch_BOOL AToSize(const char* pnum,size_t slen,size_t* out_size){
-    if (slen==0) hpatch_FALSE;
-    if ((slen>=2)&(pnum[0]=='0')) hpatch_FALSE;
-    size_t v=0;
-    for (int s=0; s<slen; ++s) {
-        size_t c=pnum[s];
-        if ((c<'0')|(c>'9')) return hpatch_FALSE;
-        c-='0';
-        if ((v>_kMaxUIntDiv10)|((v==_kMaxUIntDiv10)&(c>_kMaxUIntMod10))) return hpatch_FALSE;
-        v=v*10+c;
-    }
-    *out_size=v;
-    return hpatch_TRUE;
-}
-
 #if (_IS_NEED_ORIGINAL)
 static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* outSize){
     size_t lsize;
@@ -131,23 +114,23 @@ static void printUsage(){
 #endif
            "oldFile diffFile outNewFile\n"
            "memory options:\n"
-           "    -m          oldFile all load into memory\n"
-           "                fast, memory requires O(oldFileSize + 4 * decompress stream)\n"
-           "    -s-nbytes   oldFile as stream,set stream memory size\n"
-           "                limit memory requires O(nbytes + 4 * decompress stream)\n"
-           "                nbytes can like 524288 or 512k or 128m or 1g etc...\n"
+           "  -m  oldFile all load into Memory;\n"
+           "      fast, memory requires O(oldFileSize + 4 * decompress stream)\n"
+           "  -s-nbytes \n"
+           "      oldFile load as Stream, DEFAULT, with nbytes(cache memory size);\n"
+           "      memory requires O(nbytes + 4 * decompress stream),\n"
+           "      nbytes can like 524288 or 512k or 128m(DEFAULT) or 1g etc...\n"
 #if (_IS_NEED_ORIGINAL)
            "special options:\n"
-           "    -o          original patch; DEPRECATED, compatible with \"patch_demo.c\",\n"
-           "                diffFile must created by \"diff_demo.cpp\" or \"hdiff -o ...\"\n"
+           "  -o  Original patch, DEPRECATED; compatible with \"patch_demo.c\",\n"
+           "      diffFile must created by \"diff_demo.cpp\" or \"hdiff -o ...\"\n"
 #endif
            );
 }
 
 #define _options_check(value){ if (!(value)) { printUsage(); return 1; } }
 
-
-int patch_cmd_line(int argc, const char * argv[]){
+int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=hpatch_FALSE;
     hpatch_BOOL isLoadOldAll=hpatch_FALSE;
     size_t      patchCacheSize=0;
@@ -168,18 +151,10 @@ int patch_cmd_line(int argc, const char * argv[]){
                 } break;
             case 's':{
                 _options_check((!isLoadOldAll)&&(patchCacheSize==0));
+                isLoadOldAll=hpatch_FALSE;
                 if (op[2]=='-'){
                     const char* pnum=op+3;
-                    int slen=(int)strlen(pnum);
-                    _options_check(slen>=1);
-                    size_t shl;
-                    if      (pnum[slen-1]=='k') { shl=10; --slen;}
-                    else if (pnum[slen-1]=='m') { shl=20; --slen;}
-                    else if (pnum[slen-1]=='g') { shl=30; --slen;}
-                    else                        { shl=0; }
-                    _options_check(AToSize(pnum,slen,&patchCacheSize));
-                    _options_check(patchCacheSize<=(_kMaxUInt>>shl));
-                    patchCacheSize<<=shl;
+                    _options_check(kmg_to_size(pnum,strlen(pnum),&patchCacheSize));
                     if (patchCacheSize<kPatchCacheSize_min)
                         patchCacheSize=kPatchCacheSize_min;
                 }else{
@@ -205,7 +180,7 @@ int patch_cmd_line(int argc, const char * argv[]){
 
 #if (_IS_NEED_MAIN)
 int main(int argc, const char * argv[]){
-    return patch_cmd_line(argc,argv);
+    return hpatch_cmd_line(argc,argv);
 }
 #endif
 
@@ -214,7 +189,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
     int     exitCode=0;
     double  time0=clock_s();
-    double  time1,time2,time3;
+    double  time1;
     hpatch_TDecompress* decompressPlugin=0;
     TFileStreamOutput   newData;
     TFileStreamInput    diffData;
@@ -305,7 +280,6 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
     
-    time1=clock_s();
     if (isLoadOldAll){
         assert(patchCacheSize==0);
         temp_cache_size=(size_t)(oldData.base.streamSize+kPatchCacheSize_bestmin);
@@ -342,17 +316,15 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
                newData.out_length,newData.base.streamSize);
         _error_return("");
     }
-    time2=clock_s();
     printf("  patch ok!\n");
-    printf("\nhpatch time: %.3f s\n",(time2-time1));
     
 clear:
     _check_error(!TFileStreamOutput_close(&newData),"out newFile close ERROR!");
     _check_error(!TFileStreamInput_close(&diffData),"diffFile close ERROR!");
     _check_error(!TFileStreamInput_close(&oldData),"oldFile close ERROR!");
     _free_mem(temp_cache);
-    time3=clock_s();
-    printf("all run time: %.3f s\n",(time3-time0));
+    time1=clock_s();
+    printf("\nhpatch time: %.3f s\n",(time1-time0));
     return exitCode;
 }
 

@@ -38,6 +38,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D639ACDA208339FE00811BB3 /* _atosize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _atosize.h; path = ../../_atosize.h; sourceTree = "<group>"; };
 		D64989771F5F9D94000FCC24 /* liblz4.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = liblz4.a; path = "../../../../housisong/Library/Developer/Xcode/DerivedData/HDiffPatch-eyllrfrhmsokhaatowcgosnaofne/Build/Products/Release/liblz4.a"; sourceTree = "<group>"; };
 		D64989821F600C27000FCC24 /* liblzma.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = liblzma.a; path = "../../../../housisong/Library/Developer/Xcode/DerivedData/HDiffPatch-eyllrfrhmsokhaatowcgosnaofne/Build/Products/Debug/liblzma.a"; sourceTree = "<group>"; };
 		D64B4C022077C1C50039C38B /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -101,6 +102,7 @@
 		D690AB881F2078A40089DC57 = {
 			isa = PBXGroup;
 			children = (
+				D639ACDA208339FE00811BB3 /* _atosize.h */,
 				D690AB9E1F2079E80089DC57 /* libHDiffPatch */,
 				D6E150981F223B2700C2AD3D /* compress_plugin_demo.h */,
 				D6E1509A1F223DC100C2AD3D /* decompress_plugin_demo.h */,
