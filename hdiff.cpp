@@ -79,11 +79,6 @@
     } \
 }
 
-
-int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-          hpatch_BOOL isOriginal,hpatch_BOOL isLoadAll,size_t matchValue,
-          hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin);
-
 static void printUsage(){
     printf("usage: hdiff [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] "
 #if (_IS_NEED_ORIGINAL)
@@ -131,7 +126,29 @@ static void printUsage(){
            );
 }
 
-#define _options_check(value){ if (!(value)) { printUsage(); return 1; } }
+typedef enum THDiffResult {
+    HDIFF_SUCCESS=0,
+    HDIFF_OPTIONS_ERROR,
+    HDIFF_OPENREAD_ERROR,
+    HDIFF_OPENWRITE_ERROR,
+    HDIFF_FILECLOSE_ERROR,
+    HDIFF_MEM_ERROR,
+    HDIFF_DIFF_ERROR,
+    HDIFF_PATCH_ERROR,
+} THDiffResult;
+
+int hdiff_cmd_line(int argc, const char * argv[]);
+
+int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+          hpatch_BOOL isOriginal,hpatch_BOOL isLoadAll,size_t matchValue,
+          hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin);
+
+#if (_IS_NEED_MAIN)
+int main(int argc, const char * argv[]){
+    return  hdiff_cmd_line(argc,argv);
+}
+#endif
+
 
 hpatch_inline static const char* find(const char* str,char c){
     const char* result=strchr(str,c);
@@ -146,9 +163,9 @@ static bool _trySetCompress(hdiff_TStreamCompress** streamCompressPlugin,
                             size_t* compressLevel=0,size_t levelMin=0,size_t levelMax=0,size_t levelDefault=0,
                             size_t* dictSize=0,size_t dictSizeMin=0,size_t dictSizeMax=0,size_t dictSizeDefault=0){
     if ((*compressPlugin)!=0) return true;
-    
     const size_t ctypeLen=strlen(ctype);
     if ((ctypeLen!=ptypeEnd-ptype)||(0!=strncmp(ptype,ctype,ctypeLen))) return true;
+    
     *streamCompressPlugin=_streamCompressPlugin;
     *compressPlugin=_compressPlugin;
     *decompressPlugin=_decompressPlugin;
@@ -171,11 +188,14 @@ static bool _trySetCompress(hdiff_TStreamCompress** streamCompressPlugin,
     }else{
         if (ptypeEnd[0]!='\0') return false; //error
         if (compressLevel) *compressLevel=levelDefault;
+        if (dictSize) *dictSize=dictSizeDefault;
     }
-    printf("compressLevel %ld  dictSize %ld\n",*compressLevel,*dictSize);
     return true;
 }
 
+
+#define _options_check(value,errorInfo){ \
+    if (!(value)) { printf(errorInfo); printUsage(); return HDIFF_OPTIONS_ERROR; } }
 
 
 int hdiff_cmd_line(int argc, const char * argv[]){
@@ -187,89 +207,88 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     hdiff_TStreamCompress*  streamCompressPlugin=0;
     hdiff_TCompress*        compressPlugin=0;
     hpatch_TDecompress*     decompressPlugin=0;
-    _options_check(argc>=4);
+    _options_check(argc>=4,"argc ERROR!\n");
     for (int i=1; i<argc-3; ++i) {
         const char* op=argv[i];
-        _options_check((op!=0)&&(op[0]=='-'));
+        _options_check((op!=0)&&(op[0]=='-'),"options ERROR!\n");
         switch (op[1]) {
 #if (_IS_NEED_ORIGINAL)
             case 'o':{
-                _options_check((!isOriginal)&&(op[2]=='\0'));
+                _options_check((!isOriginal)&&(op[2]=='\0'),"options -o ERROR!\n");
                 isOriginal=hpatch_TRUE;
             } break;
 #endif
             case 'm':{
-                _options_check((!isLoadAll)&&(matchValue==0));
+                _options_check((isLoadAll)&&(matchValue==0),"options -m ERROR!\n");
                 isLoadAll=hpatch_TRUE;
                 if (op[2]=='-'){
                     const char* pnum=op+3;
-                    _options_check(a_to_size(pnum,strlen(pnum),&matchValue));
+                    _options_check(a_to_size(pnum,strlen(pnum),&matchValue),"options -m-? ERROR!\n");
                 }else{
-                    _options_check(op[2]=='\0');
+                    _options_check(op[2]=='\0',"options -m ERROR!\n");
                 }
             } break;
             case 's':{
-                _options_check((!isLoadAll)&&(matchValue==0));
+                _options_check((isLoadAll)&&(matchValue==0),"options -s ERROR!\n");
                 isLoadAll=hpatch_FALSE;
                 if (op[2]=='-'){
                     const char* pnum=op+3;
-                    _options_check(kmg_to_size(pnum,strlen(pnum),&matchValue));
-                    _options_check(matchValue>=kMatchBlockSize_min);
+                    _options_check(kmg_to_size(pnum,strlen(pnum),&matchValue),"options -s-? ERROR!\n");
                 }else{
-                    _options_check(op[2]=='\0');
+                    _options_check(op[2]=='\0',"options -s ERROR!\n");
                 }
             } break;
             case 'c':{
-                _options_check(compressPlugin==0);
-                _options_check(op[2]=='-');
+                _options_check((compressPlugin==0)&&(op[2]=='-'),"options -c ERROR!\n");
                 const char* ptype=op+3;
                 const char* ptypeEnd=find(ptype,'-');
 #ifdef _CompressPlugin_zlib
                 _options_check(_trySetCompress(&streamCompressPlugin,&compressPlugin,&decompressPlugin,
                                                &zlibStreamCompressPlugin,&zlibCompressPlugin,&zlibDecompressPlugin,
-                                               ptype,ptypeEnd,"zlib" ,&compressLevel,1,9,9));
+                                               ptype,ptypeEnd,"zlib" ,&compressLevel,1,9,9),"options -c-zlib-? ERROR!\n");
                 if (compressPlugin==&zlibCompressPlugin) { zlib_compress_level=(int)compressLevel; }
 #endif
 #ifdef _CompressPlugin_bz2
                 _options_check(_trySetCompress(&streamCompressPlugin,&compressPlugin,&decompressPlugin,
                                                &bz2StreamCompressPlugin,&bz2CompressPlugin,&bz2DecompressPlugin,
-                                               ptype,ptypeEnd,"bzip2",&compressLevel,1,9,9));
+                                               ptype,ptypeEnd,"bzip2",&compressLevel,1,9,9),"options -c-bzip2-? ERROR!\n");
                 if (compressPlugin==&bz2CompressPlugin) { bz2_compress_level=(int)compressLevel; }
 #endif
 #ifdef _CompressPlugin_lzma
                 _options_check(_trySetCompress(&streamCompressPlugin,&compressPlugin,&decompressPlugin,
                                                &lzmaStreamCompressPlugin,&lzmaCompressPlugin,&lzmaDecompressPlugin,
-                                               ptype,ptypeEnd,"lzma" ,&compressLevel,0,9,7, &dictSize,4<<10,1<<27,4<<20));
+                                               ptype,ptypeEnd,"lzma" ,&compressLevel,0,9,7,
+                                               &dictSize,4<<10,1<<27,4<<20),"options -c-lzma-? ERROR!\n");
                 if (compressPlugin==&lzmaCompressPlugin) {
                     lzma_compress_level=(int)compressLevel; lzma_dictSize=(UInt32)dictSize; }
 #endif
 #ifdef _CompressPlugin_lz4
                 _options_check(_trySetCompress(&streamCompressPlugin,&compressPlugin,&decompressPlugin,
                                                &lz4StreamCompressPlugin,&lz4CompressPlugin,&lz4DecompressPlugin,
-                                               ptype,ptypeEnd,"lz4"  ));
+                                               ptype,ptypeEnd,"lz4"  ),"options -c-lz4-? ERROR!\n");
 #endif
 #ifdef _CompressPlugin_lz4hc
                 _options_check(_trySetCompress(&streamCompressPlugin,&compressPlugin,&decompressPlugin,
                                                &lz4hcStreamCompressPlugin,&lz4hcCompressPlugin,&lz4DecompressPlugin,
-                                               ptype,ptypeEnd,"lz4hc",&compressLevel,1,12,11));
+                                               ptype,ptypeEnd,"lz4hc",&compressLevel,1,12,11),"options -c-lz4hc-? ERROR!\n");
                 if (compressPlugin==&lz4hcCompressPlugin) { lz4hc_compress_level=(int)compressLevel; }
 #endif
 #ifdef _CompressPlugin_zstd
                 _options_check(_trySetCompress(&streamCompressPlugin,&compressPlugin,&decompressPlugin,
                                                &zstdStreamCompressPlugin,&zstdCompressPlugin,&zstdDecompressPlugin,
-                                               ptype,ptypeEnd,"zstd" ,&compressLevel,0,22,20));
+                                               ptype,ptypeEnd,"zstd" ,&compressLevel,0,22,20),"options -c-zstd-? ERROR!\n");
                 if (compressPlugin==&zstdCompressPlugin) { zstd_compress_level=(int)compressLevel; }
 #endif
+                _options_check(compressPlugin!=0,"options -c-? ERROR!\n");
             } break;
             default: {
-                _options_check(hpatch_FALSE);
+                _options_check(hpatch_FALSE,"options -? ERROR!\n");
             } break;
         }//swich
     }
     
     if (isOriginal){
-        _options_check(isLoadAll);  // unsupport -s
-        _options_check(compressPlugin==0); // unsupport -c
+        _options_check((isLoadAll)&&(compressPlugin==0),"options -o unsupport run with -s or -c ERROR!\n");
     }
     
     {
@@ -281,36 +300,85 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     }
 }
 
-#if (_IS_NEED_MAIN)
-int main(int argc, const char * argv[]){
-    return  hdiff_cmd_line(argc,argv);
-}
-#endif
 
-/*
-int hdiff(int argc, const char * argv[]){
-    double time0=clock_s();
-    if (argc!=4) {
-        std::cout<<"hdiff command line parameter:\n oldFileName newFileName outDiffFileName\n";
-        exit(1);
+static hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileName){
+    size_t dataSize;
+    hpatch_StreamPos_t  file_length=0;
+    FILE*               file=0;
+    if (!fileOpenForRead(fileName,&file,&file_length)) _file_error(file);
+    
+    assert((*out_pdata)==0);
+    dataSize=(size_t)file_length;
+    if (dataSize!=file_length) _file_error(file);
+    *out_pdata=(TByte*)malloc(dataSize);
+    if (*out_pdata==0) _file_error(file);
+    *out_dataSize=dataSize;
+    
+    if (!fileRead(file,*out_pdata,(*out_pdata)+dataSize)) _file_error(file);
+    return fileClose(&file);
+}
+
+#define _free_mem(p) { if (p) { free(p); p=0; } }
+
+static hpatch_BOOL writeFileAll(const TByte* pdata,size_t dataSize,const char* outFileName){
+    FILE*   file=0;
+    if (!fileOpenForCreateOrReWrite(outFileName,&file)) _file_error(file);
+    if (!fileWrite(file,pdata,pdata+dataSize)) _file_error(file);
+    return fileClose(&file);
+}
+
+#define  check(value,errorType,errorInfo) { \
+    if (!(value)){ printf(errorInfo);  \
+        if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } } }
+
+static int hdiff_m(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+                   hpatch_BOOL isOriginal,size_t matchScore,
+                   hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin){
+    int     result=HDIFF_SUCCESS;
+    int     _isInClear=hpatch_FALSE;
+    TByte* oldData=0; size_t oldDataSize=0;
+    TByte* newData=0; size_t newDataSize=0;
+    std::vector<TByte> diffData;
+    check(readFileAll(&oldData,&oldDataSize,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile ERROR!");
+    check(readFileAll(&newData,&newDataSize,newFileName),HDIFF_OPENREAD_ERROR,"open newFile ERROR!");
+    std::cout<<"oldDataSize : "<<oldDataSize<<"\nnewDataSize : "<<newDataSize<<"\n";
+    try {
+        if (isOriginal)
+            create_diff(newData,newData+newDataSize,oldData,oldData+oldDataSize,diffData,(int)matchScore);
+        else
+            create_compressed_diff(newData,newData+newDataSize,oldData,oldData+oldDataSize,
+                                   diffData,compressPlugin,(int)matchScore);
+    }catch(const std::exception& e){
+        std::cout<<"diff run ERROR! "<<e.what()<<"\n";
+        check(hpatch_FALSE,HDIFF_DIFF_ERROR,"");
     }
-    const char* oldFileName=argv[1];
-    const char* newFileName=argv[2];
-    const char* outDiffFileName=argv[3];
-    std::cout<<"old:\"" <<oldFileName<< "\"\nnew:\""<<newFileName<<"\"\nout:\""<<outDiffFileName<<"\"\n";
-    
-    const char* compressType="";
-#ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
-    if (streamCompressPlugin) compressType=streamCompressPlugin->compressType(streamCompressPlugin);
-    std::cout<<"limit memory hdiff with stream compress plugin: \""<<compressType<<"\"\n";
-#else
-    if (compressPlugin) compressType=compressPlugin->compressType(compressPlugin);
-    std::cout<<"hdiff with compress plugin: \""<<compressType<<"\"\n";
+    std::cout<<"diffDataSize: "<<diffData.size()<<"\n";
+    check(writeFileAll(diffData.data(),diffData.size(),outDiffFileName),
+          HDIFF_OPENWRITE_ERROR,"open write diffFile ERROR!");
+    std::cout<<"  out hdiff file ok!\n";
+#if (_IS_NEED_PATCH_CHECK)
+    if (isOriginal){
+        check(check_diff(newData,newData+newDataSize,oldData,oldData+oldDataSize,
+                         diffData.data(),diffData.data()+diffData.size()),
+              HDIFF_PATCH_ERROR,"patch check hdiff data ERROR!\n");
+    }else{
+        check(check_compressed_diff(newData,newData+newDataSize,oldData,oldData+oldDataSize,
+                                    diffData.data(),diffData.data()+diffData.size(),decompressPlugin),
+              HDIFF_PATCH_ERROR,"patch check hdiff data ERROR!\n");
+    }
+    std::cout<<"  patch check hdiff data ok!\n";
 #endif
-    
-    int exitCode=0;
-#ifdef _IS_USE_FILE_STREAM_LIMIT_MEMORY
-    double time1=0,time2=0;
+clear:
+    _isInClear=hpatch_TRUE;
+    _free_mem(newData);
+    _free_mem(oldData);
+    return result;
+}
+
+static int hdiff_s(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+                   size_t matchBlockSize,hdiff_TStreamCompress* streamCompressPlugin,hpatch_TDecompress* decompressPlugin){
+    int result=HDIFF_SUCCESS;
+    int _isInClear=hpatch_FALSE;
     TFileStreamInput  oldData;
     TFileStreamInput  newData;
     TFileStreamOutput diffData;
@@ -319,75 +387,61 @@ int hdiff(int argc, const char * argv[]){
     TFileStreamInput_init(&newData);
     TFileStreamOutput_init(&diffData);
     TFileStreamInput_init(&diffData_in);
-#define _clear_data(){ \
-    _check_error(!TFileStreamOutput_close(&diffData),"out diffFile close error!"); \
-    _check_error(!TFileStreamInput_close(&diffData_in),"check diffFile close error!"); \
-    _check_error(!TFileStreamInput_close(&newData),"newFile close error!"); \
-    _check_error(!TFileStreamInput_close(&oldData),"oldFile close error!"); \
-}
-    if (!TFileStreamInput_open(&oldData,oldFileName)) _error_return("open oldFile error!");
-    if (!TFileStreamInput_open(&newData,newFileName)) _error_return("open newFile error!");
-    if (!TFileStreamOutput_open(&diffData,outDiffFileName,-1)) _error_return("open out diffFile error!");
-    TFileStreamOutput_setRandomOut(&diffData,true);
+    
+    check(TFileStreamInput_open(&oldData,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile ERROR!");
+    check(TFileStreamInput_open(&newData,newFileName),HDIFF_OPENREAD_ERROR,"open newFile ERROR!");
+    check(TFileStreamOutput_open(&diffData,outDiffFileName,-1),HDIFF_OPENWRITE_ERROR,"open out diffFile ERROR!");
+    TFileStreamOutput_setRandomOut(&diffData,hpatch_TRUE);
     std::cout<<"oldDataSize : "<<oldData.base.streamSize<<"\nnewDataSize : "<<newData.base.streamSize<<"\n";
-    time1=clock_s();
     try{
         create_compressed_diff_stream(&newData.base,&oldData.base, &diffData.base,
-                                      streamCompressPlugin,kMatchBlockSize);
+                                      streamCompressPlugin,matchBlockSize);
         diffData.base.streamSize=diffData.out_length;
     }catch(const std::exception& e){
-        _error_return(e.what());
+        std::cout<<"diff run ERROR! "<<e.what()<<"\n";
+        check(hpatch_FALSE,HDIFF_DIFF_ERROR,"");
     }
-    time2=clock_s();
-    
-    _check_error(!TFileStreamOutput_close(&diffData),"out diffFile close error!");
+    check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
     std::cout<<"diffDataSize: "<<diffData.base.streamSize<<"\n";
-    if (exitCode==0) std::cout<<"  out hdiff file ok!\n";
-#if (_IS_NEED_PATCH_CHECK)
-    //check diff
-    if (!TFileStreamInput_open(&diffData_in,outDiffFileName)) _error_return("open check diffFile error!");
-    if (!check_compressed_diff_stream(&newData.base,&oldData.base,
-                                      &diffData_in.base,decompressPlugin)){
-        _error_return("patch check hdiff data error!!!");
-    }else{
-        std::cout<<"  patch check hdiff data ok!\n";
-    }
-#endif
-clear:
-    _clear_data();
-    if (exitCode!=0) return exitCode;
-#else //_IS_USE_FILE_STREAM_LIMIT_MEMORY
-    std::vector<TByte> oldData; readFile(oldData,oldFileName);
-    std::vector<TByte> newData; readFile(newData,newFileName);
-    const size_t oldDataSize=oldData.size();
-    const size_t newDataSize=newData.size();
-    std::cout<<"oldDataSize : "<<oldDataSize<<"\nnewDataSize : "<<newDataSize<<"\n";
-
-    std::vector<TByte> diffData;
-    TByte* newData0=newData.data();
-    const TByte* oldData0=oldData.data();
-    double time1=clock_s();
-    create_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
-                           diffData,compressPlugin);
-    double time2=clock_s();
-    std::cout<<"diffDataSize: "<<diffData.size()<<"\n";
-    writeFile(diffData,outDiffFileName);
     std::cout<<"  out hdiff file ok!\n";
 #if (_IS_NEED_PATCH_CHECK)
-    if (!check_compressed_diff(newData0,newData0+newDataSize,oldData0,oldData0+oldDataSize,
-                               diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
-        std::cout<<"\n  patch check hdiff data error!!!\n";
-        exit(1);
-    }else{
-        std::cout<<"  patch check hdiff data ok!\n";
-    }
+    //check diff
+    check(TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile ERROR!");
+    check(check_compressed_diff_stream(&newData.base,&oldData.base,
+                                      &diffData_in.base,decompressPlugin),
+          HDIFF_PATCH_ERROR,"patch check hdiff data ERROR!!!");
+    std::cout<<"  patch check hdiff data ok!\n";
 #endif
-#endif //_IS_USE_FILE_STREAM_LIMIT_MEMORY
-    double time3=clock_s();
-    std::cout<<"\nhdiff  time:"<<(time2-time1)<<" s\n";
-    std::cout<<"all run time:"<<(time3-time0)<<" s\n";
+clear:
+    _isInClear=hpatch_TRUE;
+    check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
+    check(TFileStreamInput_close(&diffData_in),HDIFF_FILECLOSE_ERROR,"check diffFile close ERROR!");
+    check(TFileStreamInput_close(&newData),HDIFF_FILECLOSE_ERROR,"newFile close ERROR!");
+    check(TFileStreamInput_close(&oldData),HDIFF_FILECLOSE_ERROR,"oldFile close ERROR!");
+    return result;
+}
+
+int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+          hpatch_BOOL isOriginal,hpatch_BOOL isLoadAll,size_t matchValue,
+          hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin){
+    double time0=clock_s();
+    std::cout<<"old:\"" <<oldFileName<< "\"\nnew:\""<<newFileName<<"\"\nout:\""<<outDiffFileName<<"\"\n";
     
+    const char* compressType="";
+    if (isLoadAll){
+        if (compressPlugin) compressType=compressPlugin->compressType(compressPlugin);
+    }else{
+        if (streamCompressPlugin) compressType=streamCompressPlugin->compressType(streamCompressPlugin);
+    }
+    std::cout<<"hdiff run with "<<(isLoadAll?"":"stream ")<<"compress plugin: \""<<compressType<<"\"\n";
+    
+    int exitCode;
+    if (isLoadAll)
+        exitCode=hdiff_m(oldFileName,newFileName,outDiffFileName,isOriginal,matchValue,compressPlugin,decompressPlugin);
+    else
+        exitCode=hdiff_s(oldFileName,newFileName,outDiffFileName,matchValue,streamCompressPlugin,decompressPlugin);
+    double time1=clock_s();
+    std::cout<<"\nhdiff  time:"<<(time1-time0)<<" s\n";
     return exitCode;
 }
- */
 

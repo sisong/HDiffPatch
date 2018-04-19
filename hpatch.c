@@ -65,47 +65,6 @@
 
 #define _free_mem(p) { if (p) { free(p); p=0; } }
 
-#define _error_return(info){ \
-    if (strlen(info)>0)      \
-        printf("\n  %s\n",(info)); \
-    exitCode=1; \
-    goto clear; \
-}
-
-#define _check_error(is_error,errorInfo){ \
-    if (is_error){  \
-        exitCode=1; \
-        printf("\n  %s\n",(errorInfo)); \
-    } \
-}
-
-#if (_IS_NEED_ORIGINAL)
-static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* outSize){
-    size_t lsize;
-    if (dataSize<4) return -1;
-    lsize=data[0]|(data[1]<<8)|(data[2]<<16);
-    if (data[3]!=0xFF){
-        lsize|=data[3]<<24;
-        *outSize=lsize;
-        return 4;
-    }else{
-        size_t hsize;
-        if (dataSize<9) return -1;
-        lsize|=data[4]<<24;
-        hsize=data[5]|(data[6]<<8)|(data[7]<<16)|(data[8]<<24);
-        *outSize=lsize|(((hpatch_StreamPos_t)hsize)<<32);
-        return 9;
-    }
-}
-#endif
-
-#define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
-#define kPatchCacheSize_bestmin  ((size_t)1<<21)
-#define kPatchCacheSize_default  ((size_t)1<<27)
-#define kPatchCacheSize_bestmax  ((size_t)1<<30)
-
-int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
-           hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
 
 static void printUsage(){
     printf("usage: hpatch [-m|-s[-nbytes]] "
@@ -128,41 +87,74 @@ static void printUsage(){
            );
 }
 
-#define _options_check(value){ if (!(value)) { printUsage(); return 1; } }
+typedef enum THPatchResult {
+    HPATCH_SUCCESS=0,
+    HPATCH_OPTIONS_ERROR,
+    HPATCH_OPENREAD_ERROR,
+    HPATCH_OPENWRITE_ERROR,
+    HPATCH_FILEREAD_ERROR,
+    HPATCH_FILEWRITE_ERROR,
+    HPATCH_FILEDATA_ERROR,
+    HPATCH_CLOSEFILE_ERROR,
+    HPATCH_MEM_ERROR,
+    HPATCH_HDIFFINFO_ERROR,
+    HPATCH_COMPRESSTYPE_ERROR,
+    HPATCH_PATCH_ERROR,
+} THPatchResult;
+
+int hpatch_cmd_line(int argc, const char * argv[]);
+
+int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
+           hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
+
+#if (_IS_NEED_MAIN)
+int main(int argc, const char * argv[]){
+    return hpatch_cmd_line(argc,argv);
+}
+#endif
+
+
+#define _options_check(value,errorInfo){ \
+    if (!(value)) { printf(errorInfo); printUsage(); return HPATCH_OPTIONS_ERROR; } }
+
+#define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
+#define kPatchCacheSize_bestmin  ((size_t)1<<21)
+#define kPatchCacheSize_default  ((size_t)1<<27)
+#define kPatchCacheSize_bestmax  ((size_t)1<<30)
 
 int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=hpatch_FALSE;
     hpatch_BOOL isLoadOldAll=hpatch_FALSE;
     size_t      patchCacheSize=0;
-    _options_check(argc>=4);
+    _options_check(argc>=4,"argc ERROR!\n");
     for (int i=1; i<argc-3; ++i) {
         const char* op=argv[i];
-        _options_check((op!=0)&&(op[0]=='-'));
+        _options_check((op!=0)&&(op[0]=='-'),"options ERROR!\n");
         switch (op[1]) {
 #if (_IS_NEED_ORIGINAL)
             case 'o':{
-                _options_check((!isOriginal)&&(op[2]=='\0'));
+                _options_check((!isOriginal)&&(op[2]=='\0'),"options -o ERROR!\n");
                 isOriginal=hpatch_TRUE;
             } break;
 #endif
             case 'm':{
-                _options_check((!isLoadOldAll)&&(patchCacheSize==0)&&(op[2]=='\0'));
+                _options_check((!isLoadOldAll)&&(patchCacheSize==0)&&(op[2]=='\0'),"options -m ERROR!\n");
                 isLoadOldAll=hpatch_TRUE;
-                } break;
+            } break;
             case 's':{
-                _options_check((!isLoadOldAll)&&(patchCacheSize==0));
+                _options_check((!isLoadOldAll)&&(patchCacheSize==0),"options -s ERROR!\n");
                 isLoadOldAll=hpatch_FALSE;
                 if (op[2]=='-'){
                     const char* pnum=op+3;
-                    _options_check(kmg_to_size(pnum,strlen(pnum),&patchCacheSize));
+                    _options_check(kmg_to_size(pnum,strlen(pnum),&patchCacheSize),"options -s-? ERROR!\n");
                     if (patchCacheSize<kPatchCacheSize_min)
                         patchCacheSize=kPatchCacheSize_min;
                 }else{
-                    _options_check(op[2]=='\0');
+                    _options_check(op[2]=='\0',"options -s ERROR!\n");
                 }
             } break;
             default: {
-                _options_check(hpatch_FALSE);
+                _options_check(hpatch_FALSE,"options -? ERROR!\n");
             } break;
         }//swich
     }
@@ -178,16 +170,35 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     }
 }
 
-#if (_IS_NEED_MAIN)
-int main(int argc, const char * argv[]){
-    return hpatch_cmd_line(argc,argv);
+
+#if (_IS_NEED_ORIGINAL)
+static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* outSize){
+    size_t lsize;
+    if (dataSize<4) return -1;
+    lsize=data[0]|(data[1]<<8)|(data[2]<<16);
+    if (data[3]!=0xFF){
+        lsize|=data[3]<<24;
+        *outSize=lsize;
+        return 4;
+    }else{
+        size_t hsize;
+        if (dataSize<9) return -1;
+        lsize|=data[4]<<24;
+        hsize=data[5]|(data[6]<<8)|(data[7]<<16)|(data[8]<<24);
+        *outSize=lsize|(((hpatch_StreamPos_t)hsize)<<32);
+        return 9;
+    }
 }
 #endif
 
+#define  check(value,errorType,errorInfo) { \
+    if (!(value)){ printf(errorInfo);  \
+        if (result==HPATCH_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } } }
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
-    int     exitCode=0;
+    int     result=HPATCH_SUCCESS;
+    int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
     double  time1;
     hpatch_TDecompress* decompressPlugin=0;
@@ -205,10 +216,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     {//open
         printf("hpatch:\n");
         printf("  old: \"%s\"\n diff: \"%s\"\n  out: \"%s\"\n",oldFileName,diffFileName,outNewFileName);
-        if (!TFileStreamInput_open(&oldData,oldFileName))
-            _error_return("open oldFile for read ERROR!");
-        if (!TFileStreamInput_open(&diffData,diffFileName))
-            _error_return("open diffFile for read ERROR!");
+        check(TFileStreamInput_open(&oldData,oldFileName),HPATCH_OPENREAD_ERROR,"open oldFile for read ERROR!\n");
+        check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read ERROR!\n");
     }
 
 #if (_IS_NEED_ORIGINAL)
@@ -217,24 +226,23 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         TByte buf[9];
         if (kNewDataSizeSavedSize>diffData.base.streamSize)
             kNewDataSizeSavedSize=(int)diffData.base.streamSize;
-        if (kNewDataSizeSavedSize!=diffData.base.read(diffData.base.streamHandle,0,
-                                                      buf,buf+kNewDataSizeSavedSize))
-            _error_return("read savedNewSize error!");
+        check(kNewDataSizeSavedSize==diffData.base.read(diffData.base.streamHandle,0,buf,buf+kNewDataSizeSavedSize),
+              HPATCH_FILEREAD_ERROR,"read diffFile ERROR!\n");
         kNewDataSizeSavedSize=readSavedSize(buf,kNewDataSizeSavedSize,&savedNewSize);
-        if (kNewDataSizeSavedSize<=0) _error_return("read savedNewSize error!");
+        check(kNewDataSizeSavedSize>0,HPATCH_FILEDATA_ERROR,"read diffFile savedNewSize ERROR!\n");
         TFileStreamInput_setOffset(&diffData,kNewDataSizeSavedSize);
     }else
 #endif
     {
         hpatch_compressedDiffInfo diffInfo;
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
-            _check_error(diffData.fileError,"diffFile read ERROR!");
-            _error_return("getCompressedDiffInfo() run ERROR! is hdiff file?");
+            check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile ERROR!\n");
+            check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo() ERROR!\n");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
-            printf("\n  ERROR! oldFile dataSize %" PRId64 " != saved oldDataSize %" PRId64 "\n",
+            printf("oldFile dataSize %" PRId64 " != diffFile saved oldDataSize %" PRId64 " ERROR!\n",
                    poldData->streamSize,diffInfo.oldDataSize);
-            _error_return("");
+            check(hpatch_FALSE,HPATCH_FILEDATA_ERROR,"");
         }
         
         if (strlen(diffInfo.compressType)>0){
@@ -261,8 +269,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         }
         if (!decompressPlugin){
             if (diffInfo.compressedCount>0){
-                printf("\n  ERROR! can no decompress \"%s\" data\n",diffInfo.compressType);
-                _error_return("");
+                printf("can no decompress \"%s\" data ERROR!\n",diffInfo.compressType);
+                check(hpatch_FALSE,HPATCH_COMPRESSTYPE_ERROR,"");
             }else{
                 if (strlen(diffInfo.compressType)>0)
                     printf("  diffFile added useless compress tag \"%s\"\n",diffInfo.compressType);
@@ -275,8 +283,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         
         savedNewSize=diffInfo.newDataSize;
     }
-    if (!TFileStreamOutput_open(&newData, outNewFileName,savedNewSize))
-        _error_return("open out newFile for write ERROR!");
+    check(TFileStreamOutput_open(&newData, outNewFileName,savedNewSize),
+          HPATCH_OPENWRITE_ERROR,"open out newFile for write ERROR!\n");
     printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
     
@@ -294,7 +302,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         temp_cache=(TByte*)malloc(temp_cache_size);
         if ((!temp_cache)&&(temp_cache_size>=kPatchCacheSize_min*2)) temp_cache_size>>=1;
     }
-    if (!temp_cache) _error_return("alloc cache memory ERROR!");
+    check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory ERROR!\n");
 
 #if (_IS_NEED_ORIGINAL)
     if (isOriginal)
@@ -305,26 +313,26 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         patch_result=patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
                                                  temp_cache,temp_cache+temp_cache_size);
     if (!patch_result){
-        const char* kRunErrInfo="patch run ERROR!";
-        _check_error(oldData.fileError,"oldFile read ERROR!");
-        _check_error(diffData.fileError,"diffFile read ERROR!");
-        _check_error(newData.fileError,"out newFile write ERROR!");
-        _error_return(kRunErrInfo);
+        check(!oldData.fileError,HPATCH_FILEREAD_ERROR,"oldFile read ERROR!\n");
+        check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"diffFile read ERROR!\n");
+        check(!newData.fileError,HPATCH_FILEWRITE_ERROR,"out newFile write ERROR!\n");
+        check(hpatch_FALSE,HPATCH_PATCH_ERROR,"patch run ERROR!\n");
     }
     if (newData.out_length!=newData.base.streamSize){
-        printf("\n  ERROR! out newFile dataSize %" PRId64 " != saved newDataSize %" PRId64 "\n",
+        printf("out newFile dataSize %" PRId64 " != diffFile saved newDataSize %" PRId64 " ERROR!\n",
                newData.out_length,newData.base.streamSize);
-        _error_return("");
+        check(hpatch_FALSE,HPATCH_FILEDATA_ERROR,"");
     }
     printf("  patch ok!\n");
     
 clear:
-    _check_error(!TFileStreamOutput_close(&newData),"out newFile close ERROR!");
-    _check_error(!TFileStreamInput_close(&diffData),"diffFile close ERROR!");
-    _check_error(!TFileStreamInput_close(&oldData),"oldFile close ERROR!");
+    _isInClear=hpatch_TRUE;
+    check(TFileStreamOutput_close(&newData),HPATCH_CLOSEFILE_ERROR,"out newFile close ERROR!\n");
+    check(TFileStreamInput_close(&diffData),HPATCH_CLOSEFILE_ERROR,"diffFile close ERROR!\n");
+    check(TFileStreamInput_close(&oldData),HPATCH_CLOSEFILE_ERROR,"oldFile close ERROR!\n");
     _free_mem(temp_cache);
     time1=clock_s();
     printf("\nhpatch time: %.3f s\n",(time1-time0));
-    return exitCode;
+    return result;
 }
 

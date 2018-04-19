@@ -4,9 +4,9 @@
 binary data Diff & Patch C\C++ library.   
 
 ---
-command line usage:
+## command line usage:
+**hdiff**  [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-o]  **oldFile newFile outDiffFile**
 ```
-hdiff [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-o] oldFile newFile outDiffFile
 memory options:
   -m-matchScore
       all file load into Memory, DEFAULT, with matchScore;
@@ -32,8 +32,8 @@ special options:
       compatible with "diff_demo.c",
       diffFile must patch by "patch_demo.cpp" or "hpatch -o ..."
 ```
+**hpatch**  [-m|-s[-nbytes]] [-o]  **oldFile diffFile outNewFile**
 ```
-hpatch [-m|-s[-nbytes]] [-o] oldFile diffFile outNewFile
 memory options:
   -m  oldFile all load into Memory;
       fast, memory requires O(oldFileSize + 4 * decompress stream)
@@ -47,29 +47,29 @@ special options:
 ```
 
 ---
-library usage:
+## library usage:
 
-*  **create_diff(newData,oldData,out diffData);**
-  
+*  **create_diff**(newData,oldData,out diffData);
+   
    release the diffData for update oldData.  
-   (note: create_diff() out **uncompressed** diffData,   
+   `note:` create_diff() out **uncompressed** diffData;     
     you can compressed it by yourself or use **create_compressed_diff()**/patch_decompress() create **compressed** diffData;   
-    if your file size very large or request faster and less memory requires, you can use **create_compressed_diff_stream()**.) 
-  
-*  **bool patch(out newData,oldData,diffData);**
-  
+    if your file size very large or request faster and less memory requires, you can use **create_compressed_diff_stream()**. 
+   
+*  bool **patch**(out newData,oldData,diffData);
+   
    ok , get the newData. 
-  
+
 ---
-*  **HPatch:**  **patch()** runs in O(oldSize+newSize) time , and requires oldSize+newSize+O(1) bytes of memory. (oldSize and newSize \<2^63 Byte);     
-     **patch_stream()**, min requires O(1) bytes of memory;   
-     **patch_decompress()** min requires 4\*(decompress stream memory)+O(1) bytes.   
-            
-   **HDiff:**  **create_diff()**/**create_compressed_diff()** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory;  
+*  **patch()** runs in O(oldSize+newSize) time , and requires oldSize+newSize+O(1) bytes of memory. (oldSize and newSize \<2^63 Byte);     
+   **patch_stream()** min requires O(1) bytes of memory;   
+   **patch_decompress()** min requires 4\*(decompress stream memory)+O(1) bytes.   
+   
+   **create_diff()**/**create_compressed_diff()** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory;  
    **create_compressed_diff_stream()** min requires (oldSize\*16/kMatchBlockSize+kMatchBlockSize\*5)+O(1) bytes of memory.
-  
+
 ---
-*  **HDiffPatch vs  BsDiff4.3 & xdelta3.1:**  
+## HDiffPatch vs  BsDiff4.3 & xdelta3.1:
 system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
    (purge file cache before every test)
 ```

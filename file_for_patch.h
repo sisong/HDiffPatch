@@ -131,25 +131,6 @@ hpatch_BOOL fileOpenForCreateOrReWrite(const char* fileName,FILE** out_fileHandl
     return hpatch_TRUE;
 }
 
-
-hpatch_inline static
-hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileName){
-    size_t dataSize;
-    hpatch_StreamPos_t  file_length=0;
-    FILE*               file=0;
-    if (!fileOpenForRead(fileName,&file,&file_length)) _file_error(file);
-    
-    assert((*out_pdata)==0);
-    dataSize=(size_t)file_length;
-    if (dataSize!=file_length) _file_error(file);
-    *out_pdata=(TByte*)malloc(dataSize);
-    if (*out_pdata==0) _file_error(file);
-    *out_dataSize=dataSize;
-    
-    if (!fileRead(file,*out_pdata,(*out_pdata)+dataSize)) _file_error(file);
-    return fileClose(&file);
-}
-
 typedef struct TFileStreamInput{
     hpatch_TStreamInput base;
     FILE*               m_file;
