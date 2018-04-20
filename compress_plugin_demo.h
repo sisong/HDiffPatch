@@ -28,11 +28,12 @@
 #ifndef HDiff_compress_plugin_demo_h
 #define HDiff_compress_plugin_demo_h
 //compress plugin demo:
-//  hdiff_TCompress zlibCompressPlugin;
-//  hdiff_TCompress bz2CompressPlugin;
-//  hdiff_TCompress lzmaCompressPlugin;
-//  hdiff_TCompress lz4CompressPlugin;
-//  hdiff_TCompress zstdCompressPlugin;
+//  zlibCompressPlugin  zlibStreamCompressPlugin;
+//  bz2CompressPlugin   bz2StreamCompressPlugin;
+//  lzmaCompressPlugin  lzmaStreamCompressPlugin;
+//  lz4CompressPlugin   lz4StreamCompressPlugin;
+//  lz4hcCompressPlugin lz4hcStreamCompressPlugin;
+//  zstdCompressPlugin  zstdStreamCompressPlugin;
 
 #include "libHDiffPatch/HDiff/diff_types.h"
 
@@ -444,7 +445,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
 #   include "../lz4/lib/lz4.h"   // https://github.com/lz4/lz4
 #   include "../lz4/lib/lz4hc.h"
 #endif
-    static int lz4hc_compress_level=11; //1..12
+    static int lz4hc_compress_level=11; //3..12
     static const char*  _lz4_stream_compressType(const hdiff_TStreamCompress* compressPlugin){
         static const char* kCompressType="lz4";
         return kCompressType;

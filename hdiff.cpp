@@ -220,7 +220,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
 #endif
             case 'm':{
-                _options_check((isLoadOldAll==_kNULL_VALUE)&&((op[2]=='-')||(op[2]=='\0')),"-m");
+                _options_check((isLoadAll==_kNULL_VALUE)&&((op[2]=='-')||(op[2]=='\0')),"-m");
                 isLoadAll=hpatch_TRUE;
                 if (op[2]=='-'){
                     const char* pnum=op+3;
@@ -230,7 +230,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 }
             } break;
             case 's':{
-                _options_check((isLoadOldAll==_kNULL_VALUE)&&((op[2]=='-')||(op[2]=='\0')),"-s");
+                _options_check((isLoadAll==_kNULL_VALUE)&&((op[2]=='-')||(op[2]=='\0')),"-s");
                 isLoadAll=hpatch_FALSE; //stream
                 if (op[2]=='-'){
                     const char* pnum=op+3;
@@ -259,7 +259,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 _options_check(_trySetCompress(&streamCompressPlugin,&compressPlugin,&decompressPlugin,
                                                &lzmaStreamCompressPlugin,&lzmaCompressPlugin,&lzmaDecompressPlugin,
                                                ptype,ptypeEnd,"lzma" ,&compressLevel,0,9,7,
-                                               &dictSize,1<<14,1<<26,1<<22),"-c-lzma-?");
+                                               &dictSize,1<<12,(sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),1<<22),"-c-lzma-?");
                 if (compressPlugin==&lzmaCompressPlugin) {
                     lzma_compress_level=(int)compressLevel; lzma_dictSize=(UInt32)dictSize; }
 #endif
@@ -271,7 +271,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #ifdef _CompressPlugin_lz4hc
                 _options_check(_trySetCompress(&streamCompressPlugin,&compressPlugin,&decompressPlugin,
                                                &lz4hcStreamCompressPlugin,&lz4hcCompressPlugin,&lz4DecompressPlugin,
-                                               ptype,ptypeEnd,"lz4hc",&compressLevel,1,12,11),"-c-lz4hc-?");
+                                               ptype,ptypeEnd,"lz4hc",&compressLevel,3,12,11),"-c-lz4hc-?");
                 if (compressPlugin==&lz4hcCompressPlugin) { lz4hc_compress_level=(int)compressLevel; }
 #endif
 #ifdef _CompressPlugin_zstd

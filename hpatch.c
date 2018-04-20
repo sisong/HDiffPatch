@@ -219,7 +219,6 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     TFileStreamInput_init(&diffData);
     TFileStreamOutput_init(&newData);
     {//open
-        printf("hpatch:\n");
         printf("  old: \"%s\"\n diff: \"%s\"\n  out: \"%s\"\n",oldFileName,diffFileName,outNewFileName);
         check(TFileStreamInput_open(&oldData,oldFileName),HPATCH_OPENREAD_ERROR,"open oldFile for read ERROR!\n");
         check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read ERROR!\n");

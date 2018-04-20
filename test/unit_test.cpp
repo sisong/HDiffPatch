@@ -36,8 +36,8 @@
 #include <stddef.h>//for ptrdiff_t
 #include <stdlib.h>
 #include "math.h"
-#include "libHDiffPatch/HDiff/diff.h"
-#include "libHDiffPatch/HPatch/patch.h"
+#include "../libHDiffPatch/HDiff/diff.h"
+#include "../libHDiffPatch/HPatch/patch.h"
 typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
@@ -55,8 +55,8 @@ const long kRandTestCount=20000;
 
 #define IS_NOTICE_compress_canceled 0 //for test, close compress fail notice
 #define IS_REUSE_compress_handle    1 //for test, must in single thread
-#include "compress_plugin_demo.h"
-#include "decompress_plugin_demo.h"
+#include "../compress_plugin_demo.h"
+#include "../decompress_plugin_demo.h"
 
 
 #ifdef  _CompressPlugin_no

@@ -28,11 +28,11 @@
 #ifndef HPatch_decompress_plugin_demo_h
 #define HPatch_decompress_plugin_demo_h
 //decompress plugin demo:
-//  hpatch_TDeompress zlibDecompressPlugin;
-//  hpatch_TDeompress bz2DecompressPlugin;
-//  hpatch_TDeompress lzmaDecompressPlugin;
-//  hpatch_TDeompress lz4DecompressPlugin;
-//  hpatch_TDeompress zstdDecompressPlugin;
+//  zlibDecompressPlugin;
+//  bz2DecompressPlugin;
+//  lzmaDecompressPlugin;
+//  lz4DecompressPlugin;
+//  zstdDecompressPlugin;
 
 #include <stdlib.h> //malloc free
 #include "libHDiffPatch/HPatch/patch_types.h"
