@@ -1,7 +1,9 @@
 **HDiffPatch**
 ================
 [![release](https://img.shields.io/badge/release-v2.4-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
-binary data Diff & Patch C\C++ library.   
+binary data Diff & Patch C\C++ library and tools.   
+   
+( Apk\Jar\Zip file diff&patch? can used [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch) )
 
 ---
 ## command line usage:

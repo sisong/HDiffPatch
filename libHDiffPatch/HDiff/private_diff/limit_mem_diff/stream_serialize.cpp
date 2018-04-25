@@ -29,6 +29,10 @@
 #include <string.h> //memcpy
 #include <stdexcept> //std::runtime_error
 #include "../../diff.h" //for stream type
+
+#define check(value) { \
+    if (!(value)) { throw std::runtime_error(#value" error!"); } }
+
 namespace hdiff_private{
 TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,
                                      hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize,
@@ -258,17 +262,17 @@ void TDiffStream::pushBack(const unsigned char* src,size_t n){
 void TDiffStream::packUInt(hpatch_StreamPos_t uValue){
     unsigned char  codeBuf[hpatch_kMaxPackedUIntBytes];
     unsigned char* codeEnd=codeBuf;
-    if (!hpatch_packUInt(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,uValue)) throw uValue;
+    check(hpatch_packUInt(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,uValue));
     pushBack(codeBuf,(size_t)(codeEnd-codeBuf));
 }
 
 void TDiffStream::_packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize){
-    if (limitOutSize>hpatch_kMaxPackedUIntBytes) throw limitOutSize;
+    check(limitOutSize<=hpatch_kMaxPackedUIntBytes);
     unsigned char  _codeBuf[hpatch_kMaxPackedUIntBytes*2];
     unsigned char* codeBegin=_codeBuf+hpatch_kMaxPackedUIntBytes;
     unsigned char* codeEnd=codeBegin;
-    if (!hpatch_packUInt(&codeEnd,codeBegin+hpatch_kMaxPackedUIntBytes,uValue)) throw uValue;
-    if ((size_t)(codeEnd-codeBegin)>limitOutSize) throw limitOutSize;
+    check(hpatch_packUInt(&codeEnd,codeBegin+hpatch_kMaxPackedUIntBytes,uValue));
+    check((size_t)(codeEnd-codeBegin)<=limitOutSize);
     while ((size_t)(codeEnd-codeBegin)<limitOutSize) {
         --codeBegin;
         codeBegin[0]=(1<<7);

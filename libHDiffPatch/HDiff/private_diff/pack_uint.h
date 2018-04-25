@@ -38,8 +38,8 @@ inline static void packUIntWithTag(std::vector<unsigned char>& out_code,_UInt uV
                                    int highTag,const int kTagBit){
     unsigned char  codeBuf[hpatch_kMaxPackedUIntBytes];
     unsigned char* codeEnd=codeBuf;
-    if (!hpatch_packUIntWithTag(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,
-                                uValue,highTag,kTagBit)) throw uValue;
+    if (!hpatch_packUIntWithTag(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,uValue,highTag,kTagBit))
+        throw std::runtime_error("packUIntWithTag<_UInt>() hpatch_packUIntWithTag() error!");
     out_code.insert(out_code.end(),codeBuf,codeEnd);
 }
 
