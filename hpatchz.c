@@ -1,4 +1,4 @@
-//hpatch.c
+//hpatchz.c
 // patch tool
 //
 /*
@@ -67,7 +67,7 @@
 
 
 static void printUsage(){
-    printf("usage: hpatch [-m|-s[-nbytes]] "
+    printf("usage: hpatchz [-m|-s[-nbytes]] "
 #if (_IS_NEED_ORIGINAL)
            "[-o] "
 #endif
@@ -219,7 +219,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     TFileStreamInput_init(&diffData);
     TFileStreamOutput_init(&newData);
     {//open
-        printf("  old: \"%s\"\n diff: \"%s\"\n  out: \"%s\"\n",oldFileName,diffFileName,outNewFileName);
+        printf("old : \"%s\"\ndiff: \"%s\"\nout : \"%s\"\n",oldFileName,diffFileName,outNewFileName);
         check(TFileStreamInput_open(&oldData,oldFileName),HPATCH_OPENREAD_ERROR,"open oldFile for read ERROR!\n");
         check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read ERROR!\n");
     }
@@ -281,7 +281,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
                 decompressPlugin=0;
             }
         }else{
-            printf("  hpatch used decompress tag \"%s\" (need decompress %d)\n",
+            printf("hpatchz run with decompress plugin: \"%s\" (need decompress %d)\n",
                    diffInfo.compressType,diffInfo.compressedCount);
         }
         
@@ -336,7 +336,7 @@ clear:
     check(TFileStreamInput_close(&oldData),HPATCH_FILECLOSE_ERROR,"oldFile close ERROR!\n");
     _free_mem(temp_cache);
     time1=clock_s();
-    printf("\nhpatch time: %.3f s\n",(time1-time0));
+    printf("\nhpatchz time: %.3f s\n",(time1-time0));
     return result;
 }
 

@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D64B4BEF2077AAAA0039C38B /* hpatch.c in Sources */ = {isa = PBXBuildFile; fileRef = D64B4BEE2077AAAA0039C38B /* hpatch.c */; };
+		D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */ = {isa = PBXBuildFile; fileRef = D64B4BEE2077AAAA0039C38B /* hpatchz.c */; };
 		D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BF82077B9090039C38B /* libz.tbd */; };
 		D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFA2077B91A0039C38B /* libbz2.tbd */; };
 		D64B4BFD2077B9240039C38B /* liblz4.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFC2077B9240039C38B /* liblz4.a */; };
@@ -30,7 +30,7 @@
 
 /* Begin PBXFileReference section */
 		D639ACD9208334A800811BB3 /* _atosize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _atosize.h; path = ../../_atosize.h; sourceTree = "<group>"; };
-		D64B4BEE2077AAAA0039C38B /* hpatch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hpatch.c; path = ../../hpatch.c; sourceTree = "<group>"; };
+		D64B4BEE2077AAAA0039C38B /* hpatchz.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hpatchz.c; path = ../../hpatchz.c; sourceTree = "<group>"; };
 		D64B4BF02077AB290039C38B /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
 		D64B4BF12077AB2A0039C38B /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
 		D64B4BF22077AB550039C38B /* _clock_for_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _clock_for_demo.h; path = ../../_clock_for_demo.h; sourceTree = "<group>"; };
@@ -41,7 +41,7 @@
 		D64B4BFC2077B9240039C38B /* liblz4.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblz4.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D64B4BFE2077B9240039C38B /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D64B4C002077B9240039C38B /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		D6553CB3165FA1A9009D4C44 /* hpatch */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hpatch; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6553CB3165FA1A9009D4C44 /* hpatchz */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hpatchz; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6BD9BCA17578601004886DE /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -76,7 +76,7 @@
 		D6553CAA165FA1A9009D4C44 = {
 			isa = PBXGroup;
 			children = (
-				D64B4BEE2077AAAA0039C38B /* hpatch.c */,
+				D64B4BEE2077AAAA0039C38B /* hpatchz.c */,
 				D64B4BF32077AB550039C38B /* decompress_plugin_demo.h */,
 				D64B4BF22077AB550039C38B /* _clock_for_demo.h */,
 				D639ACD9208334A800811BB3 /* _atosize.h */,
@@ -90,7 +90,7 @@
 		D6553CB4165FA1A9009D4C44 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D6553CB3165FA1A9009D4C44 /* hpatch */,
+				D6553CB3165FA1A9009D4C44 /* hpatchz */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -109,9 +109,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D6553CB2165FA1A9009D4C44 /* hpatch */ = {
+		D6553CB2165FA1A9009D4C44 /* hpatchz */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D6553CBC165FA1A9009D4C44 /* Build configuration list for PBXNativeTarget "hpatch" */;
+			buildConfigurationList = D6553CBC165FA1A9009D4C44 /* Build configuration list for PBXNativeTarget "hpatchz" */;
 			buildPhases = (
 				D6553CAF165FA1A9009D4C44 /* Sources */,
 				D6553CB0165FA1A9009D4C44 /* Frameworks */,
@@ -121,9 +121,9 @@
 			);
 			dependencies = (
 			);
-			name = hpatch;
+			name = hpatchz;
 			productName = hpatch;
-			productReference = D6553CB3165FA1A9009D4C44 /* hpatch */;
+			productReference = D6553CB3165FA1A9009D4C44 /* hpatchz */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -135,7 +135,7 @@
 				LastUpgradeCheck = 0930;
 				ORGANIZATIONNAME = HouSisong;
 			};
-			buildConfigurationList = D6553CAE165FA1A9009D4C44 /* Build configuration list for PBXProject "hpatch" */;
+			buildConfigurationList = D6553CAE165FA1A9009D4C44 /* Build configuration list for PBXProject "hpatchz" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -147,7 +147,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				D6553CB2165FA1A9009D4C44 /* hpatch */,
+				D6553CB2165FA1A9009D4C44 /* hpatchz */,
 			);
 		};
 /* End PBXProject section */
@@ -158,7 +158,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6BD9BCE17578601004886DE /* patch.c in Sources */,
-				D64B4BEF2077AAAA0039C38B /* hpatch.c in Sources */,
+				D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -274,7 +274,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D6553CAE165FA1A9009D4C44 /* Build configuration list for PBXProject "hpatch" */ = {
+		D6553CAE165FA1A9009D4C44 /* Build configuration list for PBXProject "hpatchz" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D6553CBA165FA1A9009D4C44 /* Debug */,
@@ -283,7 +283,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D6553CBC165FA1A9009D4C44 /* Build configuration list for PBXNativeTarget "hpatch" */ = {
+		D6553CBC165FA1A9009D4C44 /* Build configuration list for PBXNativeTarget "hpatchz" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D6553CBD165FA1A9009D4C44 /* Debug */,

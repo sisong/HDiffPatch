@@ -1,11 +1,11 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v3.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![release](https://img.shields.io/badge/release-v2.4-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 binary data Diff & Patch C\C++ library.   
 
 ---
 ## command line usage:
-**hdiff**  [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-o]  **oldFile newFile outDiffFile**
+**hdiffz**  [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-o]  **oldFile newFile outDiffFile**
 ```
 memory options:
   -m-matchScore
@@ -30,9 +30,9 @@ special options:
         -zstd[-{0..22}]             DEFAULT level 20
   -o  Original diff, unsupport run with -s or -c, DEPRECATED;
       compatible with "diff_demo.c",
-      diffFile must patch by "patch_demo.cpp" or "hpatch -o ..."
+      diffFile must patch by "patch_demo.cpp" or "hpatchz -o ..."
 ```
-**hpatch**  [-m|-s[-nbytes]] [-o]  **oldFile diffFile outNewFile**
+**hpatchz**  [-m|-s[-nbytes]] [-o]  **oldFile diffFile outNewFile**
 ```
 memory options:
   -m  oldFile all load into Memory;
@@ -43,11 +43,11 @@ memory options:
       nbytes can like 524288 or 512k or 128m(DEFAULT) or 1g etc...
 special options:
   -o  Original patch, DEPRECATED; compatible with "patch_demo.c",
-      diffFile must created by "diff_demo.cpp" or "hdiff -o ..."
+      diffFile must created by "diff_demo.cpp" or "hdiffz -o ..."
 ```
 
 ---
-## library usage:
+## library API usage:
 
 *  **create_diff**(newData,oldData,out diffData);
    
@@ -73,14 +73,14 @@ special options:
 system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
    (purge file cache before every test)
 ```
-HDiffPatch hdiff run by: -m -c-bzip2|-lzma|-zlib oldFile newFile outDiffFile
-          hpatch run by: -m  oldFile diffFile outNewFile
+HDiffPatch2.4 hdiffz run by: -m -c-bzip2-9|-c-lzma-7-4m|-c-zlib-9 oldFile newFile outDiffFile
+              hpatchz run by: -m oldFile diffFile outNewFile
 BsDiff4.3 with bzip2 and all data in memory;
-(when compiling BsDiff4.3-x64, suffix string index type int64 changed to int32, 
-   faster and memroy requires to be halved.)   
+          (NOTE: when compiling BsDiff4.3-x64, suffix string index type int64 changed to int32, 
+            faster and memroy requires to be halved!)   
 =======================================================================================================
-         Program               Uncompressed Compressed Compressed BsDiff4.3          HDiff2.0
-(newVersion<--oldVersion)           (tar)     (bzip2)    (lzma)    (bzip2)   (bzip2    lzma      zlib)
+         Program               Uncompressed Compressed Compressed  BsDiff             hdiffz
+(newVersion<--oldVersion)           (tar)     (bzip2)    (lzma)    (bzip2)    (bzip2   lzma     zlib)
 -------------------------------------------------------------------------------------------------------
 apache-maven-2.2.1-src <--2.0.11    5150720   1213258    1175464    115723     83935    80997    91921
 httpd_2.4.4-netware-bin <--2.2.24  22612480   4035904    3459747   2192308   1809555  1616435  1938953
@@ -96,8 +96,8 @@ Average Compression                 100.00%    31.76%     28.47%     6.64%     5
 
 =======================================================================================================
    Program   run time(Second)   memory(MB)        run time(Second)              memory(MB)
-               BsDiff HDiff   BsDiff  HDiff    BsPatch      HPatch2.0       BsPatch    HPatch2.0
-              (bzip2)(bzip2)  (bzip2)(bzip2)   (bzip2) (bzip2  lzma  zlib)  (bzip2)(bzip2 lzma zlib)
+               BsDiff hdiffz  BsDiff  hdiffz   BsPatch       hpatchz        BsPatch     hpatchz 
+              (bzip2)(bzip2)  (bzip2)(bzip2)   (bzip2) (bzip2  lzma  zlib)  (bzip2) (bzip2 lzma zlib)
 -------------------------------------------------------------------------------------------------------
 apache-maven...  1.3   0.4       42     28       0.09    0.04  0.03  0.02       14      8     7     6
 httpd bin...     8.6   3.0      148    124       0.72    0.36  0.18  0.13       50     24    23    18
@@ -111,39 +111,40 @@ Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      1
 =======================================================================================================
 ```
    
+   
 ```
-HDiffPatch hdiff run by: -s-128 -c-bzip2 oldFile newFile outDiffFile
-          hpatch run by: -s-4m oldFile diffFile outNewFile
+HDiffPatch2.4 hdiffz run by: -s-128 -c-bzip2-9 oldFile newFile outDiffFile
+              hpatchz run by: -s-4m oldFile diffFile outNewFile
 xdelta3.1 diff run by: -e -s old_file new_file delta_file   
-         patch run by: -d -s old_file delta_file decoded_new_file
-(note fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
-    out 14173073B and used 1070MB memory.)
+          patch run by: -d -s old_file delta_file decoded_new_file
+         (NOTE fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
+           out 14173073B and used 1070MB memory!)
 =======================================================================================================
    Program              diff       run time(Second)  memory(MB)    patch run time(Second) memory(MB)
-                  xdelta3   HDiff    xdelta3 HDiff  xdelta3 HDiff   xdelta3 HPatch2.0   xdelta3 HPatch
+                  xdelta3   hdiffz   xdelta3 hdiffz xdelta3 hdiffz  xdelta3  hpatchz   xdelta3 hpatchz
 -------------------------------------------------------------------------------------------------------
-apache-maven...   116265     83408     0.16   0.13     65    11       0.07    0.06         12     6
-httpd bin...     2174098   2077625     1.1    1.2     157    15       0.25    0.65         30     8
-httpd src...     2312990   2034666     1.3    1.7     185    15       0.30    0.91         50     8
-Firefox...      28451567  27504156    16     11       225    16       2.0     4.1         100     8
-emacs...        31655323  12033450    19      9.4     220    33       3.2     4.0          97    10
-eclipse          1590860   1636221     1.5    1.2     207    34       0.46    0.49         77     8 
-gcc-src...     107003829  12305741    56     19       224    79       9.7     9.5         102    11 
+apache-maven...   116265     83408     0.16   0.13     65    11       0.07    0.06        12      6
+httpd bin...     2174098   2077625     1.1    1.2     157    15       0.25    0.65        30      8
+httpd src...     2312990   2034666     1.3    1.7     185    15       0.30    0.91        50      8
+Firefox...      28451567  27504156    16     11       225    16       2.0     4.1        100      8
+emacs...        31655323  12033450    19      9.4     220    33       3.2     4.0         97     10
+eclipse          1590860   1636221     1.5    1.2     207    34       0.46    0.49        77      8 
+gcc-src...     107003829  12305741    56     19       224    79       9.7     9.5        102     11 
            (fix 14173073)
 -------------------------------------------------------------------------------------------------------
-Average           12.18%    7.81%     100%  79.0%     100%  15.5%      100%  169.1%       100%  18.9%
+Average           12.18%    7.81%     100%  79.0%     100%  15.5%      100%  169.1%      100%  18.9%
               (fix 9.78%)
 =======================================================================================================
 
-HDiffPatch hdiff run by: -s-64 -c-lzma  oldFile newFile outDiffFile
-          hpatch run by: -s-4m oldFile diffFile outNewFile
+HDiffPatch hdiffz run by: -s-64 -c-lzma-7-4m  oldFile newFile outDiffFile
+           hpatchz run by: -s-4m oldFile diffFile outNewFile
 xdelta3.1 diff run by: -S lzma -9 -s old_file new_file delta_file   
-         patch run by: -d -s old_file delta_file decoded_new_file
-(note fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
-    out 11787978B and used 2639MB memory.)
+          patch run by: -d -s old_file delta_file decoded_new_file
+          (NOTE fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
+            out 11787978B and used 2639MB memory.)
 =======================================================================================================
    Program              diff       run time(Second)  memory(MB)    patch run time(Second) memory(MB)
-                  xdelta3   HDiff    xdelta3 HDiff  xdelta3 HDiff   xdelta3 HPatch2.0   xdelta3 HPatch
+                  xdelta3   hdiffz   xdelta3 hdiffz xdelta3 hdiffz  xdelta3  hpatchz   xdelta3 hpatchz
 -------------------------------------------------------------------------------------------------------
 apache-maven...    98434     83668     0.37   0.29    220    24       0.04    0.06         12     5
 httpd bin...     1986880   1776553     2.5    2.9     356    59       0.24    0.52         30     8
