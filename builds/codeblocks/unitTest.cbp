@@ -50,7 +50,7 @@
 		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../unit_test.cpp" />
+		<Unit filename="../../test/unit_test.cpp" />
 		<Extensions>
 			<envvars />
 			<code_completion />

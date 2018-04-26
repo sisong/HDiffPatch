@@ -37,7 +37,7 @@ static  const size_t kMinMatchedLength = 8;
 static  const size_t kBestReadSize=1024*256; //for sequence read
 static  const size_t kMinReadSize=1024;      //for random first read speed
 static  const size_t kMinBackupReadSize=256;
-static  const size_t kMinMatchBlockSize=1<<1;
+static  const size_t kMatchBlockSize_min=2;
 
 typedef size_t adler_uint_t;
 static inline adler_uint_t adler_start(const adler_data_t* pdata,size_t n){
@@ -139,8 +139,8 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchB
 m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_kMatchBlockSize(0){
     if (kMatchBlockSize>(oldData->streamSize+1)/2)
         kMatchBlockSize=(size_t)((oldData->streamSize+1)/2);
-    if (kMatchBlockSize<kMinMatchBlockSize)
-        kMatchBlockSize=kMinMatchBlockSize;
+    if (kMatchBlockSize<kMatchBlockSize_min)
+        kMatchBlockSize=kMatchBlockSize_min;
     if (oldData->streamSize<kMatchBlockSize) return;
     m_kMatchBlockSize=kMatchBlockSize;
     
@@ -148,7 +148,7 @@ m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_
     m_isUseLargeSorted=(_blockCount>=((hpatch_StreamPos_t)1<<32));
     const size_t blockCount=(size_t)_blockCount;
     if (blockCount!=_blockCount)
-        throw std::runtime_error("TDataDigest() oldData->streamSize/MatchBlockSize too big error.");
+        throw std::runtime_error("TDataDigest() oldData->streamSize/MatchBlockSize too big error!");
     m_blocks.resize(blockCount);
     if (m_isUseLargeSorted)
         m_sorted_larger.resize(blockCount);

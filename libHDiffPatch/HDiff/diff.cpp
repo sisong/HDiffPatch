@@ -29,7 +29,6 @@
 #include "diff.h"
 #include <string.h> //strlen memcmp
 #include <stdlib.h> //malloc free
-#include <stdexcept>  //std::runtime_error
 #include <vector>
 #include "private_diff/suffix_string.h"
 #include "private_diff/bytes_rle.h"
@@ -39,6 +38,9 @@
 using namespace hdiff_private;
 
 static const char kHDiffVersionType[8+1]="HDIFF13&";
+
+#define check(value) { \
+    if (!(value)) { throw std::runtime_error(#value" error!"); } }
 
 namespace{
     
@@ -328,15 +330,15 @@ static void extend_cover(TDiffData& diff){
 
     template<class _TCover,class _TInt>
     static void assert_cover_safe(const _TCover& cover,_TInt lastNewEnd,_TInt newSize,_TInt oldSize){
-        if (!(cover.length>0)) throw cover;
-        if (!(cover.newPos>=lastNewEnd)) throw cover;
-        if (!(cover.newPos<newSize)) throw cover;
-        if (!(cover.newPos+cover.length>0)) throw cover;
-        if (!(cover.newPos+cover.length<=newSize)) throw cover;
-        if (!(cover.oldPos>=0)) throw cover;
-        if (!(cover.oldPos<oldSize)) throw cover;
-        if (!(cover.oldPos+cover.length>0)) throw cover;
-        if (!(cover.oldPos+cover.length<=oldSize)) throw cover;
+        check(cover.length>0);
+        check(cover.newPos>=lastNewEnd);
+        check(cover.newPos<newSize);
+        check(cover.newPos+cover.length>0);
+        check(cover.newPos+cover.length<=newSize);
+        check(cover.oldPos>=0);
+        check(cover.oldPos<oldSize);
+        check(cover.oldPos+cover.length>0);
+        check(cover.oldPos+cover.length<=oldSize);
     }
 
 //用覆盖线得到差异数据.
@@ -473,7 +475,7 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     const char* compressType="";
     if (compressPlugin){
         compressType=compressPlugin->compressType(compressPlugin);
-        if (strlen(compressType)>hpatch_kMaxCompressTypeLength) throw compressType; //diff error!
+        check(strlen(compressType)<=hpatch_kMaxCompressTypeLength);
     }
     pushBack(out_diff,(const TByte*)kHDiffVersionType,
                       (const TByte*)kHDiffVersionType+strlen(kHDiffVersionType));
@@ -696,7 +698,7 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
     const char* compressType="";
     if (compressPlugin){
         compressType=compressPlugin->compressType(compressPlugin);
-        if (strlen(compressType)>hpatch_kMaxCompressTypeLength) throw compressType; //diff error!
+        check(strlen(compressType)<=hpatch_kMaxCompressTypeLength);
     }
     outDiff.pushBack((const TByte*)kHDiffVersionType,strlen(kHDiffVersionType));
     outDiff.pushBack((const TByte*)compressType,strlen(compressType)+1);//with '\0'

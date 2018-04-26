@@ -31,6 +31,7 @@
 
 #include <vector>
 #include "../../HPatch/patch_types.h" //hpatch_packUIntWithTag
+#include <stdexcept>  //std::runtime_error
 namespace hdiff_private{
 
 template<class _UInt>
@@ -38,8 +39,8 @@ inline static void packUIntWithTag(std::vector<unsigned char>& out_code,_UInt uV
                                    int highTag,const int kTagBit){
     unsigned char  codeBuf[hpatch_kMaxPackedUIntBytes];
     unsigned char* codeEnd=codeBuf;
-    if (!hpatch_packUIntWithTag(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,
-                                uValue,highTag,kTagBit)) throw uValue;
+    if (!hpatch_packUIntWithTag(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,uValue,highTag,kTagBit))
+        throw std::runtime_error("packUIntWithTag<_UInt>() hpatch_packUIntWithTag() error!");
     out_code.insert(out_code.end(),codeBuf,codeEnd);
 }
 

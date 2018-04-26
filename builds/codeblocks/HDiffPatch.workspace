@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_workspace_file>
 	<Workspace title="HDiffPatch_Workspace">
-		<Project filename="HDiffZ.cbp" />
-		<Project filename="HPatchZ.cbp" />
+		<Project filename="hdiffz.cbp" />
+		<Project filename="hpatchz.cbp" />
 		<Project filename="unitTest.cbp" />
-		<Project filename="HDiff.cbp" />
-		<Project filename="HPatch.cbp" />
 	</Workspace>
 </CodeBlocks_workspace_file>
