@@ -29,7 +29,6 @@
 #include "diff.h"
 #include <string.h> //strlen memcmp
 #include <stdlib.h> //malloc free
-#include <stdexcept>  //std::runtime_error
 #include <vector>
 #include "private_diff/suffix_string.h"
 #include "private_diff/bytes_rle.h"

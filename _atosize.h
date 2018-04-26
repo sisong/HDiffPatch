@@ -30,16 +30,20 @@
 #define HPatch_atosize_h
 #include "libHDiffPatch/HPatch/patch_types.h"
 
-static const size_t _kSizeMax=(~(size_t)0);
+#ifdef __cplusplus
+extern "C" {
+#endif
+#define _kSizeMax (~(size_t)0)
 
 hpatch_inline static
 hpatch_BOOL a_to_size(const char* pnum,size_t slen,size_t* out_size){
-    static const size_t _kSizeMaxDiv10=_kSizeMax/10;
-    static const size_t _kSizeMaxMod10=_kSizeMax-_kSizeMaxDiv10*10;
+    const size_t _kSizeMaxDiv10=_kSizeMax/10;
+    const size_t _kSizeMaxMod10=_kSizeMax-_kSizeMaxDiv10*10;
     size_t v=0;
-    if (slen==0) hpatch_FALSE;
-    if ((slen>=2)&(pnum[0]=='0')) hpatch_FALSE;
-    for (int s=0; s<slen; ++s) {
+    size_t s;
+    if (slen==0) return hpatch_FALSE;
+    if ((slen>=2)&(pnum[0]=='0')) return hpatch_FALSE;
+    for (s=0; s<slen; ++s) {
         size_t c=pnum[s];
         if (('0'<=c)&(c<='9'))
             ;//empty ok
@@ -73,4 +77,7 @@ hpatch_BOOL kmg_to_size(const char* pkmgnum,size_t slen,size_t* out_size){
     return hpatch_TRUE;
 }
 
+#ifdef __cplusplus
+}
+#endif
 #endif

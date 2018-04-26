@@ -128,8 +128,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=_kNULL_VALUE;
     hpatch_BOOL isLoadOldAll=_kNULL_VALUE;
     size_t      patchCacheSize=0;
+    int         i;
     _options_check(argc>=4,"count");
-    for (int i=1; i<argc-3; ++i) {
+    for (i=1; i<argc-3; ++i) {
         const char* op=argv[i];
         _options_check((op!=0)&&(op[0]=='-'),"?");
         switch (op[1]) {
@@ -196,9 +197,10 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
 }
 #endif
 
+#define  check_on_error(errorType) { \
+    if (result==HPATCH_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define  check(value,errorType,errorInfo) { \
-    if (!(value)){ printf(errorInfo);  \
-        if (result==HPATCH_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } } }
+    if (!(value)){ printf(errorInfo); check_on_error(errorType); } }
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
@@ -246,7 +248,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         if (poldData->streamSize!=diffInfo.oldDataSize){
             printf("oldFile dataSize %" PRId64 " != diffFile saved oldDataSize %" PRId64 " ERROR!\n",
                    poldData->streamSize,diffInfo.oldDataSize);
-            check(hpatch_FALSE,HPATCH_FILEDATA_ERROR,"");
+            check_on_error(HPATCH_FILEDATA_ERROR);
         }
         
         if (strlen(diffInfo.compressType)>0){
@@ -274,7 +276,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         if (!decompressPlugin){
             if (diffInfo.compressedCount>0){
                 printf("can no decompress \"%s\" data ERROR!\n",diffInfo.compressType);
-                check(hpatch_FALSE,HPATCH_COMPRESSTYPE_ERROR,"");
+                check_on_error(HPATCH_COMPRESSTYPE_ERROR);
             }else{
                 if (strlen(diffInfo.compressType)>0)
                     printf("  diffFile added useless compress tag \"%s\"\n",diffInfo.compressType);
@@ -325,7 +327,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     if (newData.out_length!=newData.base.streamSize){
         printf("out newFile dataSize %" PRId64 " != diffFile saved newDataSize %" PRId64 " ERROR!\n",
                newData.out_length,newData.base.streamSize);
-        check(hpatch_FALSE,HPATCH_FILEDATA_ERROR,"");
+        check_on_error(HPATCH_FILEDATA_ERROR);
     }
     printf("  patch ok!\n");
     

@@ -97,7 +97,7 @@ static void printUsage(){
            "special options:\n"
            "  -c-compressType-compressLevel \n"
            "      set diffFile Compress type & level, otherwise DEFAULT uncompress;\n"
-           "      compress type & level can:\n"
+           "      support compress type & level:\n"
            "        (reference: https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
            "        -zlib[-{1..9}]              DEFAULT level 9\n"
@@ -164,7 +164,7 @@ static bool _trySetCompress(hdiff_TStreamCompress** streamCompressPlugin,
                             size_t* dictSize=0,size_t dictSizeMin=0,size_t dictSizeMax=0,size_t dictSizeDefault=0){
     if ((*compressPlugin)!=0) return true;
     const size_t ctypeLen=strlen(ctype);
-    if ((ctypeLen!=ptypeEnd-ptype)||(0!=strncmp(ptype,ctype,ctypeLen))) return true;
+    if ((ctypeLen!=(size_t)(ptypeEnd-ptype))||(0!=strncmp(ptype,ctype,ctypeLen))) return true;
     
     *streamCompressPlugin=_streamCompressPlugin;
     *compressPlugin=_compressPlugin;
@@ -204,7 +204,9 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isLoadAll=_kNULL_VALUE;
     size_t      matchValue=0;
     size_t      compressLevel=0;
+#ifdef _CompressPlugin_lzma
     size_t      dictSize=0;
+#endif
     hdiff_TStreamCompress*  streamCompressPlugin=0;
     hdiff_TCompress*        compressPlugin=0;
     hpatch_TDecompress*     decompressPlugin=0;
@@ -357,9 +359,10 @@ static int saveSize(std::vector<TByte>& outBuf,hpatch_StreamPos_t size){
 }
 #endif
 
+#define  check_on_error(errorType) { \
+    if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define  check(value,errorType,errorInfo) { \
-    if (!(value)){ printf(errorInfo);  \
-        if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } } }
+    if (!(value)){ printf(errorInfo); check_on_error(errorType); } }
 
 static int hdiff_m(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
                    hpatch_BOOL isOriginal,size_t matchScore,
@@ -383,7 +386,7 @@ static int hdiff_m(const char* oldFileName,const char* newFileName,const char* o
         }
     }catch(const std::exception& e){
         std::cout<<"diff run ERROR! "<<e.what()<<"\n";
-        check(hpatch_FALSE,HDIFF_DIFF_ERROR,"");
+        check_on_error(HDIFF_DIFF_ERROR);
     }
     std::cout<<"diffDataSize: "<<diffData.size()<<"\n";
     check(writeFileAll(diffData.data(),diffData.size(),outDiffFileName),
@@ -432,7 +435,7 @@ static int hdiff_s(const char* oldFileName,const char* newFileName,const char* o
         diffData.base.streamSize=diffData.out_length;
     }catch(const std::exception& e){
         std::cout<<"diff run ERROR! "<<e.what()<<"\n";
-        check(hpatch_FALSE,HDIFF_DIFF_ERROR,"");
+        check_on_error(HDIFF_DIFF_ERROR);
     }
     check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
     std::cout<<"diffDataSize: "<<diffData.base.streamSize<<"\n";

@@ -31,6 +31,7 @@
 
 #include <vector>
 #include "../../HPatch/patch_types.h" //hpatch_packUIntWithTag
+#include <stdexcept>  //std::runtime_error
 namespace hdiff_private{
 
 template<class _UInt>

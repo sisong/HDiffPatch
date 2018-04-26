@@ -21,7 +21,7 @@ memory options:
 special options:
   -c-compressType-compressLevel 
       set diffFile Compress type & level, otherwise DEFAULT uncompress;
-      compress type & level can:
+      support compress type & level:
         (reference: https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
         -zlib[-{1..9}]              DEFAULT level 9
         -bzip2[-{1..9}]             DEFAULT level 9

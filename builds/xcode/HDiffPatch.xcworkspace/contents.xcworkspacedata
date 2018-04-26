@@ -21,13 +21,13 @@
       location = "container:"
       name = "lib">
       <FileRef
-         location = "group:../../../lzma/lzma.xcodeproj">
+         location = "group:lz4.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:../../../lz4/lz4.xcodeproj">
+         location = "group:lzma.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:../../../zstd/zstd.xcodeproj">
+         location = "group:zstd.xcodeproj">
       </FileRef>
    </Group>
 </Workspace>
