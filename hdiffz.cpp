@@ -113,7 +113,7 @@ static void printUsage(){
            "        -lz4\n"
 #endif
 #ifdef _CompressPlugin_lz4hc
-           "        -lz4hc[-{1..12}]            DEFAULT level 11\n"
+           "        -lz4hc[-{3..12}]            DEFAULT level 11\n"
 #endif
 #ifdef _CompressPlugin_zstd
            "        -zstd[-{0..22}]             DEFAULT level 20\n"

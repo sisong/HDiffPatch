@@ -1,7 +1,7 @@
 **HDiffPatch**
 ================
 [![release](https://img.shields.io/badge/release-v2.4-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
-binary data Diff & Patch C\C++ library and tools.   
+binary data Diff & Patch C\C++ library, and file Diff & Patch tools.   
    
 ( Apk\Jar\Zip file diff&patch? can used [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch) )
 
@@ -28,7 +28,7 @@ special options:
         -lzma[-{0..9}[-dictSize]]   DEFAULT level 7
             dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m
         -lz4
-        -lz4hc[-{1..12}]            DEFAULT level 11
+        -lz4hc[-{3..12}]            DEFAULT level 11
         -zstd[-{0..22}]             DEFAULT level 20
   -o  Original diff, unsupport run with -s or -c, DEPRECATED;
       compatible with "diff_demo.c",
