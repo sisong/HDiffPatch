@@ -1,9 +1,9 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v2.4-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![release](https://img.shields.io/badge/release-v2.4.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 binary data Diff & Patch C\C++ library, and file Diff & Patch tools.   
-   
-( Apk\Jar\Zip file diff&patch? can used [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch) )
+( Apk\Jar\Zip file diff&patch? can use [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch) )
 
 ---
 ## command line usage:
@@ -27,7 +27,7 @@ special options:
         -bzip2[-{1..9}]             DEFAULT level 9
         -lzma[-{0..9}[-dictSize]]   DEFAULT level 7
             dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m
-        -lz4
+        -lz4                        no level
         -lz4hc[-{3..12}]            DEFAULT level 11
         -zstd[-{0..22}]             DEFAULT level 20
   -o  Original diff, unsupport run with -s or -c, DEPRECATED;
