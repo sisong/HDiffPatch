@@ -1,0 +1,27 @@
+language: cpp
+matrix:
+  include:
+    - os: linux
+      compiler: clang
+    - os: linux
+      compiler: gcc
+    - os: linux
+      compiler: arm-linux-gnueabi-gcc
+      addons:
+        apt:
+          packages:
+            - qemu
+            - gcc-arm-linux-gnueabi
+            - libc-dev-armel-cross
+      env: CHOST=arm-linux-gnueabi
+    - os: osx
+      osx_image: xcode9.3
+script:
+- git clone https://github.com/sisong/lzma.git ../lzma
+- make
+- if [[ $TRAVIS_OS_NAME == osx ]]; then git clone https://github.com/sisong/lz4.git ../lz4; fi
+- if [[ $TRAVIS_OS_NAME == osx ]]; then git clone https://github.com/sisong/zstd.git ../zstd; fi
+- if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hdiffz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
+- if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
+- if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme unitTest -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
+

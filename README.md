@@ -1,9 +1,8 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v2.4-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
-binary data Diff & Patch C\C++ library, and file Diff & Patch tools.   
-   
-( Apk\Jar\Zip file diff&patch? can used [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch) )
+[![release](https://img.shields.io/badge/release-v2.4.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+a C\C++ library and command-line tools for binary data Diff&Patch.   
+( Apk\Jar\Zip diff&patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch) )
 
 ---
 ## command line usage:
@@ -11,40 +10,40 @@ binary data Diff & Patch C\C++ library, and file Diff & Patch tools.
 ```
 memory options:
   -m-matchScore
-      all file load into Memory, DEFAULT, with matchScore;
-      best diffFileSize, max memory requires O(oldFileSize*9+newFileSize),
-      matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc... 
+      all file load into Memory, with matchScore; DEFAULT; best diffFileSize; 
+      requires (newFileSize+oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1) bytes of memory;
+      matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc...
   -s-matchBlockSize
-      all file load as Stream, with matchBlockSize;
-      fast, memory requires O(oldSize*16/matchBlockSize+matchBlockSize*5),
+      all file load as Stream, with matchBlockSize; fast;
+      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;
       matchBlockSize>=2, DEFAULT 128, recommended 2^3--2^14 32k 1m etc...
 special options:
   -c-compressType-compressLevel 
-      set diffFile Compress type & level, otherwise DEFAULT uncompress;
+      set diffFile Compress type & level, DEFAULT uncompress;
       support compress type & level:
         (reference: https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
         -zlib[-{1..9}]              DEFAULT level 9
         -bzip2[-{1..9}]             DEFAULT level 9
         -lzma[-{0..9}[-dictSize]]   DEFAULT level 7
-            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m
-        -lz4
+            dictSize(==decompress stream size) can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m
+        -lz4                        no level
         -lz4hc[-{3..12}]            DEFAULT level 11
         -zstd[-{0..22}]             DEFAULT level 20
-  -o  Original diff, unsupport run with -s or -c, DEPRECATED;
-      compatible with "diff_demo.c",
-      diffFile must patch by "patch_demo.cpp" or "hpatchz -o ..."
+  -o  Original diff, unsupport run with -s or -c; DEPRECATED;
+      compatible with "diff_demo.cpp",
+      diffFile must patch by "patch_demo.c" or "hpatchz -o ..."
 ```
-**hpatchz**  [-m|-s[-nbytes]] [-o]  **oldFile diffFile outNewFile**
+**hpatchz**  [-m|-s[-cacheSize]] [-o]  **oldFile diffFile outNewFile**
 ```
 memory options:
-  -m  oldFile all load into Memory;
-      fast, memory requires O(oldFileSize + 4 * decompress stream)
-  -s-nbytes 
-      oldFile load as Stream, DEFAULT, with nbytes(cache memory size);
-      memory requires O(nbytes + 4 * decompress stream),
-      nbytes can like 524288 or 512k or 128m(DEFAULT) or 1g etc...
+  -m  oldFile all loaded into Memory; fast;
+      requires (oldFileSize + 4 * decompress stream size) + O(1) bytes of memory
+  -s-cacheSize 
+      oldFile loaded as Stream, with cacheSize; DEFAULT;
+      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;
+      cacheSize can like 524288 or 512k or 128m or 1g etc..., DEFAULT 128m
 special options:
-  -o  Original patch, DEPRECATED; compatible with "patch_demo.c",
+  -o  Original patch; DEPRECATED; compatible with "patch_demo.c",
       diffFile must created by "diff_demo.cpp" or "hdiffz -o ..."
 ```
 
@@ -63,12 +62,12 @@ special options:
    ok , get the newData. 
 
 ---
-*  **patch()** runs in O(oldSize+newSize) time , and requires oldSize+newSize+O(1) bytes of memory. (oldSize and newSize \<2^63 Byte);     
+*  **patch()** runs in O(oldSize+newSize) time , and requires (oldSize+newSize+diffSize)+O(1) bytes of memory;     
    **patch_stream()** min requires O(1) bytes of memory;   
-   **patch_decompress()** min requires 4\*(decompress stream memory)+O(1) bytes.   
+   **patch_decompress()** min requires (4\*decompress stream size)+O(1) bytes of memory.   
    
    **create_diff()**/**create_compressed_diff()** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory;  
-   **create_compressed_diff_stream()** min requires (oldSize\*16/kMatchBlockSize+kMatchBlockSize\*5)+O(1) bytes of memory.
+   **create_compressed_diff_stream()** min requires O(oldSize\*16/kMatchBlockSize+kMatchBlockSize\*5) bytes of memory.
 
 ---
 ## HDiffPatch vs  BsDiff4.3 & xdelta3.1:
