@@ -1,7 +1,6 @@
 **HDiffPatch**
 ================
 [![release](https://img.shields.io/badge/release-v2.4.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
-[![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 a C\C++ library and command-line tools for binary data Diff&Patch.   
 ( Apk\Jar\Zip diff&patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch) )
 

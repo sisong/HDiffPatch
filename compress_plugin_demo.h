@@ -224,10 +224,10 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
                 _compress_error_return("_zlib_compress_stream_part()");
         }
     clear:
-        if (_temp_buf) free(_temp_buf);
         if (!_zlib_compress_close_by(compressPlugin,self))
             { result=kCompressFailResult; if (strlen(errAt)==0) errAt="deflateEnd()"; }
         _check_compress_result(result,outStream_isCanceled,"_zlib_compress_stream()",errAt);
+        if (_temp_buf) free(_temp_buf);
         return result;
     }
     _def_fun_compress_by_compress_stream(_zlib_compress,_zlib_compress_stream)
@@ -307,10 +307,10 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
             }
         }
     clear:
-        if (_temp_buf) free(_temp_buf);
         if (BZ_OK!=BZ2_bzCompressEnd(&s))
             { result=kCompressFailResult; if (strlen(errAt)==0) errAt="BZ2_bzCompressEnd()"; }
         _check_compress_result(result,outStream_isCanceled,"_bz2_compress_stream()",errAt);
+        if (_temp_buf) free(_temp_buf);
         return result;
     }
     _def_fun_compress_by_compress_stream(_bz2_compress,_bz2_compress_stream)
@@ -515,10 +515,10 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
             _stream_out_code_write(out_code,outStream_isCanceled,result,code_buf,codeLen);
         }
     clear:
-        if (_temp_buf) free(_temp_buf);
         if (0!=LZ4_freeStream(s))
             { result=kCompressFailResult; if (strlen(errAt)==0) errAt="LZ4_freeStream()"; }
         _check_compress_result(result,outStream_isCanceled,"_lz4_compress_stream()",errAt);
+        if (_temp_buf) free(_temp_buf);
         return result;
     }
 
@@ -573,10 +573,10 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
             _stream_out_code_write(out_code,outStream_isCanceled,result,code_buf,codeLen);
         }
     clear:
-        if (_temp_buf) free(_temp_buf);
         if (0!=LZ4_freeStreamHC(s))
             { result=kCompressFailResult; if (strlen(errAt)==0) errAt="LZ4_freeStreamHC()"; }
         _check_compress_result(result,outStream_isCanceled,"_lz4hc_compress_stream()",errAt);
+        if (_temp_buf) free(_temp_buf);
         return result;
     }
 
@@ -662,12 +662,12 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
             if (ret==0) break;
         }
     clear:
-        if (_temp_buf) free(_temp_buf);
 #if (!IS_REUSE_compress_handle)
         if (0!=ZSTD_freeCStream(s))
         { result=kCompressFailResult; if (strlen(errAt)==0) errAt="ZSTD_freeCStream()"; }
 #endif
         _check_compress_result(result,outStream_isCanceled,"_zstd_compress_stream()",errAt);
+        if (_temp_buf) free(_temp_buf);
         return result;
     }
     _def_fun_compress_by_compress_stream(_zstd_compress,_zstd_compress_stream)
