@@ -32,6 +32,10 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Linker>
+			<Add library="libz" />
+			<Add library="libbz2" />
+		</Linker>
 		<Unit filename="../../libHDiffPatch/HDiff/diff.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/bytes_rle.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/compress_detect.cpp" />
