@@ -49,6 +49,8 @@
 			<Add option="-D_7ZIP_ST" />
 			<Add directory="../../../zstd/lib" />
 			<Add directory="../../../zstd/lib/common" />
+			<Add directory="../../../lz4/lib/" />
+			<Add directory="../../../lzma/C/" />
 		</Compiler>
 		<Unit filename="../../../bzip2/blocksort.c">
 			<Option compilerVar="CC" />

@@ -256,7 +256,7 @@
     
 #ifdef  _CompressPlugin_lzma
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "../lzma/C/LzmaDec.h" // http://www.7-zip.org/sdk.html
+#   include "LzmaDec.h" // "lzma/C/LzmaDec.h" http://www.7-zip.org/sdk.html
 #endif
     typedef struct _lzma_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
@@ -382,7 +382,7 @@
 
 #if (defined(_CompressPlugin_lz4) || defined(_CompressPlugin_lz4hc))
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "../lz4/lib/lz4.h" // https://github.com/lz4/lz4
+#   include "lz4.h" // "lz4/lib/lz4.h" https://github.com/lz4/lz4
 #endif
     typedef struct _lz4_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
@@ -485,7 +485,7 @@
 
 #ifdef  _CompressPlugin_zstd
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "../zstd/lib/zstd.h" // https://github.com/facebook/zstd
+#   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/facebook/zstd
 #endif
     typedef struct _zstd_TDecompress{
         const struct hpatch_TStreamInput* codeStream;

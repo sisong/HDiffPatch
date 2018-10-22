@@ -320,7 +320,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
     
 #ifdef  _CompressPlugin_lzma
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "../lzma/C/LzmaEnc.h" // http://www.7-zip.org/sdk.html
+#   include "LzmaEnc.h" // "lzma/C/LzmaEnc.h" http://www.7-zip.org/sdk.html
 #endif
     static int lzma_compress_level=7;//0..9
     static UInt32 lzma_dictSize=1<<22;  //patch decompress need 4*lzma_dictSize memroy
@@ -442,8 +442,8 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
 
 #if (defined(_CompressPlugin_lz4) || defined(_CompressPlugin_lz4hc))
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "../lz4/lib/lz4.h"   // https://github.com/lz4/lz4
-#   include "../lz4/lib/lz4hc.h"
+#   include "lz4.h"   // "lz4/lib/lz4.h" https://github.com/lz4/lz4
+#   include "lz4hc.h"
 #endif
     static int lz4hc_compress_level=11; //3..12
     static const char*  _lz4_stream_compressType(const hdiff_TStreamCompress* compressPlugin){
@@ -591,7 +591,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
 
 #ifdef  _CompressPlugin_zstd
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "../zstd/lib/zstd.h" // https://github.com/facebook/zstd
+#   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/facebook/zstd
 #endif
     static int zstd_compress_level=20; //0..22
     static const char*  _zstd_stream_compressType(const hdiff_TStreamCompress* compressPlugin){
