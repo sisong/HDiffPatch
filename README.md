@@ -1,8 +1,8 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v2.4.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![release](https://img.shields.io/badge/release-v2.4.2-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 a C\C++ library and command-line tools for binary data Diff&Patch.   
-( Apk\Jar\Zip diff&patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch) )
+( Apk\Jar\Zip file diff&patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )
 
 ---
 ## command line usage:
@@ -54,8 +54,8 @@ special options:
    
    release the diffData for update oldData.  
    `note:` create_diff() out **uncompressed** diffData;     
-    you can compressed it by yourself or use **create_compressed_diff()**/patch_decompress() create **compressed** diffData;   
-    if your file size very large or request faster and less memory requires, you can use **create_compressed_diff_stream()**. 
+    you can compressed it by yourself or use **create_compressed_diff()**\patch_decompress() create **compressed** diffData;   
+    if your file size very large or request faster and less memory requires, you can use **create_compressed_diff_stream()**/patch_decompress(). 
    
 *  bool **patch**(out newData,oldData,diffData);
    
@@ -63,11 +63,11 @@ special options:
 
 ---
 *  **patch()** runs in O(oldSize+newSize) time , and requires (oldSize+newSize+diffSize)+O(1) bytes of memory;     
-   **patch_stream()** min requires O(1) bytes of memory;   
-   **patch_decompress()** min requires (4\*decompress stream size)+O(1) bytes of memory.   
+   **patch_stream()** requires O(1) bytes of memory;   
+   **patch_decompress()** requires (4\*decompress stream size)+O(1) bytes of memory.   
    
    **create_diff()**/**create_compressed_diff()** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory;  
-   **create_compressed_diff_stream()** min requires O(oldSize\*16/kMatchBlockSize+kMatchBlockSize\*5) bytes of memory.
+   **create_compressed_diff_stream()** requires O(oldSize\*16/kMatchBlockSize+kMatchBlockSize\*5) bytes of memory.
 
 ---
 ## HDiffPatch vs  BsDiff4.3 & xdelta3.1:
