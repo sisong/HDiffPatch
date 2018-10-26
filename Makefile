@@ -30,16 +30,16 @@ all: lzmaLib lz4Lib zstdLib libhdiffpatch.a hdiffz hpatchz
 
 LZ4_OBJ := lz4.o lz4hc.o
 lz4Lib: # https://github.com/lz4/lz4  https://github.com/sisong/lz4
-	cc -c -D_7ZIP_ST '../lz4/lib/lz4.c' '../lz4/lib/lz4hc.c' 
+	$(CC) -c $(CFLAGS) '../lz4/lib/lz4.c' '../lz4/lib/lz4hc.c' 
 
 LZMA_OBJ := 'LzFind.o' 'LzmaDec.o' 'LzmaEnc.o'
 lzmaLib: # https://www.7-zip.org/sdk.html  https://github.com/sisong/lzma
-	cc -c -D_7ZIP_ST '../lzma/C/LzFind.c' '../lzma/C/LzmaDec.c' '../lzma/C/LzmaEnc.c'
+	$(CC) -c $(CFLAGS) -D_7ZIP_ST '../lzma/C/LzFind.c' '../lzma/C/LzmaDec.c' '../lzma/C/LzmaEnc.c'
 
 ZSTD_OBJ := fse_decompress.o zstd_common.o threading.o entropy_common.o error_private.o pool.o xxhash.o \
 	zstdmt_compress.o fse_compress.o zstd_compress.o huf_compress.o huf_decompress.o zstd_decompress.o
 zstdLib: # https://github.com/facebook/zstd  https://github.com/sisong/zstd
-	cc -c -I'../zstd/lib/common' -I'../zstd/lib' \
+	$(CC) -c $(CFLAGS) -I'../zstd/lib/common' -I'../zstd/lib' \
              '../zstd/lib/common/fse_decompress.c' \
              '../zstd/lib/common/zstd_common.c' \
              '../zstd/lib/common/threading.c' \
@@ -58,9 +58,9 @@ libhdiffpatch.a: $(HDIFF_OBJ)
 	$(AR) rcs $@ $^
 
 hdiffz: 
-	c++ hdiffz.cpp libhdiffpatch.a $(LZMA_OBJ) $(LZ4_OBJ) $(ZSTD_OBJ) $(APP_FLAGS) -o hdiffz
+	$(CXX) hdiffz.cpp libhdiffpatch.a $(LZMA_OBJ) $(LZ4_OBJ) $(ZSTD_OBJ) $(APP_FLAGS) -o hdiffz
 hpatchz: 
-	cc  hpatchz.c $(HPATCH_OBJ) $(LZMA_OBJ) $(LZ4_OBJ) $(ZSTD_OBJ) $(APP_FLAGS) -o hpatchz
+	$(CC) hpatchz.c $(HPATCH_OBJ) $(LZMA_OBJ) $(LZ4_OBJ) $(ZSTD_OBJ) $(APP_FLAGS) -o hpatchz
 
 clean:
 	-rm -f libhdiffpatch.a hdiffz hpatchz $(HDIFF_OBJ) $(LZMA_OBJ) $(LZ4_OBJ) $(ZSTD_OBJ)
