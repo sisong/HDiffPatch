@@ -22,9 +22,10 @@ APP_FLAGS := \
     -D_CompressPlugin_bz2 -lbz2 \
     -D_CompressPlugin_lzma  -I'../lzma/C' \
     -D_CompressPlugin_lz4   -I'../lz4/lib' \
+    -D_CompressPlugin_lz4hc \
     -D_CompressPlugin_zstd  -I'../zstd/lib'
 
-.PHONY: all clean
+.PHONY: all install clean
 
 all: lzmaLib lz4Lib zstdLib libhdiffpatch.a hdiffz hpatchz
 
@@ -62,5 +63,16 @@ hdiffz:
 hpatchz: 
 	$(CC) hpatchz.c $(HPATCH_OBJ) $(LZMA_OBJ) $(LZ4_OBJ) $(ZSTD_OBJ) $(APP_FLAGS) -o hpatchz
 
+RM = rm -f
+INSTALL_X = install -m 0755
+INSTALL_BIN = $(DESTDIR)/usr/local/bin
+
 clean:
-	-rm -f libhdiffpatch.a hdiffz hpatchz $(HDIFF_OBJ) $(LZMA_OBJ) $(LZ4_OBJ) $(ZSTD_OBJ)
+	$(RM) libhdiffpatch.a hdiffz hpatchz $(HDIFF_OBJ) $(LZMA_OBJ) $(LZ4_OBJ) $(ZSTD_OBJ)
+
+install: all
+	$(INSTALL_X) hdiffz $(INSTALL_BIN)/hdiffz
+	$(INSTALL_X) hpatchz $(INSTALL_BIN)/hpatchz
+
+uninstall:
+	$(RM)  $(INSTALL_BIN)/hdiffz  $(INSTALL_BIN)/hpatchz

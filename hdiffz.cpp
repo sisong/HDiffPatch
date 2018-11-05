@@ -87,16 +87,16 @@ static void printUsage(){
            "oldFile newFile outDiffFile\n"
            "memory options:\n"
            "  -m-matchScore\n"
-           "      all file load into Memory, DEFAULT, with matchScore;\n"
-           "      best diffFileSize, max memory requires O(oldFileSize*9+newFileSize),\n"
-           "      matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc... \n"
+           "      all file load into Memory, with matchScore; DEFAULT; best diffFileSize;\n"
+           "      requires (newFileSize+oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1) bytes of memory;\n"
+           "      matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc...\n"
            "  -s-matchBlockSize\n"
-           "      all file load as Stream, with matchBlockSize;\n"
-           "      fast, memory requires O(oldSize*16/matchBlockSize+matchBlockSize*5),\n"
-           "      matchBlockSize>=2, DEFAULT 128, recommended 2^3--2^14 32k 1m etc...\n"
+           "      all file load as Stream, with matchBlockSize; fast;\n"
+           "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;\n"
+           "      matchBlockSize>=2, DEFAULT 128, recommended 32--16k 64k 1m etc...\n"
            "special options:\n"
-           "  -c-compressType-compressLevel \n"
-           "      set diffFile Compress type & level, otherwise DEFAULT uncompress;\n"
+           "  -c-compressType-compressLevel\n"
+           "      set diffFile Compress type & level, DEFAULT uncompress;\n"
            "      support compress type & level:\n"
            "        (reference: https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
@@ -110,7 +110,7 @@ static void printUsage(){
            "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m\n"
 #endif
 #ifdef _CompressPlugin_lz4
-           "        -lz4\n"
+           "        -lz4                        no level\n"
 #endif
 #ifdef _CompressPlugin_lz4hc
            "        -lz4hc[-{3..12}]            DEFAULT level 11\n"
@@ -119,9 +119,9 @@ static void printUsage(){
            "        -zstd[-{0..22}]             DEFAULT level 20\n"
 #endif
 #if (_IS_NEED_ORIGINAL)
-           "  -o  Original diff, unsupport run with -s or -c, DEPRECATED;\n"
-           "      compatible with \"diff_demo.c\",\n"
-           "      diffFile must patch by \"patch_demo.cpp\" or \"hpatch -o ...\"\n"
+           "  -o  Original diff, unsupport run with -s or -c; DEPRECATED;\n"
+           "      compatible with \"diff_demo.cpp\",\n"
+           "      diffFile must patch by \"patch_demo.c\" or \"hpatchz -o ...\"\n"
 #endif
            );
 }
