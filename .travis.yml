@@ -15,7 +15,7 @@ matrix:
             - libc-dev-armel-cross
       env: CHOST=arm-linux-gnueabi
     - os: osx
-      osx_image: xcode9.3
+      osx_image: xcode10
 script:
 - git clone https://github.com/sisong/lzma.git ../lzma
 - git clone https://github.com/sisong/lz4.git ../lz4
