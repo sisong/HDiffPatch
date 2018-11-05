@@ -136,6 +136,11 @@
 		<Unit filename="../../../zlib/zutil.h" />
 		<Unit filename="../../../zstd/lib/common/bitstream.h" />
 		<Unit filename="../../../zstd/lib/common/compiler.h" />
+		<Unit filename="../../../zstd/lib/common/cpu.h" />
+		<Unit filename="../../../zstd/lib/common/debug.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/common/debug.h" />
 		<Unit filename="../../../zstd/lib/common/entropy_common.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -169,10 +174,34 @@
 		<Unit filename="../../../zstd/lib/compress/fse_compress.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../zstd/lib/compress/hist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/hist.h" />
 		<Unit filename="../../../zstd/lib/compress/huf_compress.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zstd/lib/compress/zstd_compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_compress_internal.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_double_fast.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_double_fast.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_fast.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_fast.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_lazy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_lazy.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_ldm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_ldm.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_opt.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zstd/lib/compress/zstd_opt.h" />
@@ -183,9 +212,18 @@
 		<Unit filename="../../../zstd/lib/decompress/huf_decompress.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../zstd/lib/decompress/zstd_ddict.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/decompress/zstd_ddict.h" />
 		<Unit filename="../../../zstd/lib/decompress/zstd_decompress.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_block.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_block.h" />
+		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_internal.h" />
 		<Unit filename="../../hdiffz.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/diff.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/bytes_rle.cpp" />

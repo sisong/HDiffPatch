@@ -37,23 +37,34 @@ LZMA_OBJ := 'LzFind.o' 'LzmaDec.o' 'LzmaEnc.o'
 lzmaLib: # https://www.7-zip.org/sdk.html  https://github.com/sisong/lzma
 	$(CC) -c $(CFLAGS) -D_7ZIP_ST '../lzma/C/LzFind.c' '../lzma/C/LzmaDec.c' '../lzma/C/LzmaEnc.c'
 
-ZSTD_OBJ := fse_decompress.o zstd_common.o threading.o entropy_common.o error_private.o pool.o xxhash.o \
-	zstdmt_compress.o fse_compress.o zstd_compress.o huf_compress.o huf_decompress.o zstd_decompress.o
+ZSTD_OBJ := debug.o entropy_common.o error_private.o fse_decompress.o pool.o threading.o \
+	xxhash.o zstd_common.o fse_compress.o hist.o huf_compress.o zstd_compress.o \
+	zstd_double_fast.o zstd_fast.o zstd_lazy.o zstd_ldm.o zstd_opt.o zstdmt_compress.o \
+	huf_decompress.o zstd_ddict.o zstd_decompress_block.o zstd_decompress.o
 zstdLib: # https://github.com/facebook/zstd  https://github.com/sisong/zstd
 	$(CC) -c $(CFLAGS) -I'../zstd/lib/common' -I'../zstd/lib' \
-             '../zstd/lib/common/fse_decompress.c' \
-             '../zstd/lib/common/zstd_common.c' \
-             '../zstd/lib/common/threading.c' \
-             '../zstd/lib/common/entropy_common.c' \
-             '../zstd/lib/common/error_private.c' \
-             '../zstd/lib/common/pool.c' \
-             '../zstd/lib/common/xxhash.c' \
-             '../zstd/lib/compress/zstdmt_compress.c' \
-             '../zstd/lib/compress/fse_compress.c' \
-             '../zstd/lib/compress/zstd_compress.c' \
-             '../zstd/lib/compress/huf_compress.c' \
-             '../zstd/lib/decompress/huf_decompress.c' \
-             '../zstd/lib/decompress/zstd_decompress.c'
+		../zstd/lib/common/debug.c \
+		../zstd/lib/common/entropy_common.c \
+		../zstd/lib/common/error_private.c \
+		../zstd/lib/common/fse_decompress.c \
+		../zstd/lib/common/pool.c \
+		../zstd/lib/common/threading.c \
+		../zstd/lib/common/xxhash.c \
+		../zstd/lib/common/zstd_common.c \
+		../zstd/lib/compress/fse_compress.c \
+		../zstd/lib/compress/hist.c \
+		../zstd/lib/compress/huf_compress.c \
+		../zstd/lib/compress/zstd_compress.c \
+		../zstd/lib/compress/zstd_double_fast.c \
+		../zstd/lib/compress/zstd_fast.c \
+		../zstd/lib/compress/zstd_lazy.c \
+		../zstd/lib/compress/zstd_ldm.c \
+		../zstd/lib/compress/zstd_opt.c \
+		../zstd/lib/compress/zstdmt_compress.c \
+		../zstd/lib/decompress/huf_decompress.c \
+		../zstd/lib/decompress/zstd_ddict.c \
+		../zstd/lib/decompress/zstd_decompress_block.c \
+		../zstd/lib/decompress/zstd_decompress.c
 
 libhdiffpatch.a: $(HDIFF_OBJ)
 	$(AR) rcs $@ $^
