@@ -2,10 +2,10 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:/Users/Shared/HDiffPatch/builds/xcode/hdiffz.xcodeproj">
+      location = "group:hdiffz.xcodeproj">
    </FileRef>
    <FileRef
-      location = "group:/Users/Shared/HDiffPatch/builds/xcode/hpatchz.xcodeproj">
+      location = "group:hpatchz.xcodeproj">
    </FileRef>
    <Group
       location = "container:"
