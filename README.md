@@ -3,7 +3,7 @@
 [![release](https://img.shields.io/badge/release-v2.4.2-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 a C\C++ library and command-line tools for binary data Diff & Patch.   
-( Android Apk file or Jar Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )
+( Jar or Zip file diff & patch? update Android Apk? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )
 
 ---
 ## command line usage:
@@ -55,8 +55,8 @@ special options:
    
    release the diffData for update oldData.  
    `note:` create_diff() out **uncompressed** diffData;     
-    you can compressed it by yourself or use **create_compressed_diff()**\patch_decompress() create **compressed** diffData;   
-    if your file size very large or request faster and less memory requires, you can use **create_compressed_diff_stream()**\patch_decompress(). 
+    you can compressed it by yourself or use **create_compressed_diff()**/patch_decompress() create **compressed** diffData;   
+    if your file size very large or request faster and less memory requires, you can use **create_compressed_diff_stream()**/patch_decompress(). 
    
 *  bool **patch**(out newData,oldData,diffData);
    
@@ -67,11 +67,11 @@ special options:
    **patch_stream()** requires O(1) bytes of memory;   
    **patch_decompress()** requires (4\*decompress stream size)+O(1) bytes of memory.   
    
-   **create_diff()**/**create_compressed_diff()** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory;  
+   **create_diff()** & **create_compressed_diff()** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory;  
    **create_compressed_diff_stream()** requires O(oldSize\*16/kMatchBlockSize+kMatchBlockSize\*5) bytes of memory.
 
 ---
-## HDiffPatch vs BsDiff4.3:
+### HDiffPatch vs BsDiff4.3:
 system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
    (purge file cache before every test)
 ```
@@ -113,7 +113,7 @@ Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      1
 =======================================================================================================
 ```
    
-## HDiffPatch vs xdelta3.1:
+### HDiffPatch vs xdelta3.1:
 ```
 HDiffPatch2.4 hdiffz run by: -s-128 -c-bzip2-9 oldFile newFile outDiffFile
               hpatchz run by: -s-4m oldFile diffFile outNewFile
