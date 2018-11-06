@@ -69,27 +69,27 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>H:\zlib;H:\bzip2;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>H:\zlib;H:\bzip2;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <IncludePath>H:\zlib;H:\bzip2;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <IncludePath>H:\zlib;H:\bzip2;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_IS_NEED_ALL_CompressPlugin=0;_CompressPlugin_zlib;_CompressPlugin_bz2;_7ZIP_ST;_CompressPlugin_lzma;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_7ZIP_ST;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -103,7 +103,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_IS_NEED_ALL_CompressPlugin=0;_CompressPlugin_zlib;_CompressPlugin_bz2;_7ZIP_ST;_CompressPlugin_lzma;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_7ZIP_ST;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -116,7 +116,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_IS_NEED_ALL_CompressPlugin=0;_CompressPlugin_zlib;_CompressPlugin_bz2;_7ZIP_ST;_CompressPlugin_lzma;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_7ZIP_ST;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
@@ -136,7 +136,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_IS_NEED_ALL_CompressPlugin=0;_CompressPlugin_zlib;_CompressPlugin_bz2;_7ZIP_ST;_CompressPlugin_lzma;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_7ZIP_ST;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
@@ -162,6 +162,8 @@
     <ClCompile Include="..\..\..\bzip2\decompress.c" />
     <ClCompile Include="..\..\..\bzip2\huffman.c" />
     <ClCompile Include="..\..\..\bzip2\randtable.c" />
+    <ClCompile Include="..\..\..\lz4\lib\lz4.c" />
+    <ClCompile Include="..\..\..\lz4\lib\lz4hc.c" />
     <ClCompile Include="..\..\..\lzma\C\LzFind.c" />
     <ClCompile Include="..\..\..\lzma\C\LzmaDec.c" />
     <ClCompile Include="..\..\..\lzma\C\LzmaEnc.c" />
@@ -176,10 +178,23 @@
     <ClCompile Include="..\..\..\zlib\trees.c" />
     <ClCompile Include="..\..\..\zlib\uncompr.c" />
     <ClCompile Include="..\..\..\zlib\zutil.c" />
+    <ClCompile Include="..\..\..\zstd\lib\common\debug.c" />
+    <ClCompile Include="..\..\..\zstd\lib\common\entropy_common.c" />
+    <ClCompile Include="..\..\..\zstd\lib\common\error_private.c" />
+    <ClCompile Include="..\..\..\zstd\lib\common\fse_decompress.c" />
+    <ClCompile Include="..\..\..\zstd\lib\common\pool.c" />
+    <ClCompile Include="..\..\..\zstd\lib\common\threading.c" />
+    <ClCompile Include="..\..\..\zstd\lib\common\xxhash.c" />
+    <ClCompile Include="..\..\..\zstd\lib\common\zstd_common.c" />
+    <ClCompile Include="..\..\..\zstd\lib\decompress\huf_decompress.c" />
+    <ClCompile Include="..\..\..\zstd\lib\decompress\zstd_ddict.c" />
+    <ClCompile Include="..\..\..\zstd\lib\decompress\zstd_decompress.c" />
+    <ClCompile Include="..\..\..\zstd\lib\decompress\zstd_decompress_block.c" />
     <ClCompile Include="..\..\hpatchz.c" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\zstd\lib\zstd.h" />
     <ClInclude Include="..\..\libHDiffPatch\HPatch\patch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

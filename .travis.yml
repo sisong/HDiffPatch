@@ -15,12 +15,12 @@ matrix:
             - libc-dev-armel-cross
       env: CHOST=arm-linux-gnueabi
     - os: osx
-      osx_image: xcode9.3
+      osx_image: xcode9.4
 script:
 - git clone https://github.com/sisong/lzma.git ../lzma
+- git clone https://github.com/sisong/lz4.git ../lz4
+- git clone https://github.com/sisong/zstd.git ../zstd
 - make
-- if [[ $TRAVIS_OS_NAME == osx ]]; then git clone https://github.com/sisong/lz4.git ../lz4; fi
-- if [[ $TRAVIS_OS_NAME == osx ]]; then git clone https://github.com/sisong/zstd.git ../zstd; fi
 - if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hdiffz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
 - if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
 - if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme unitTest -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi

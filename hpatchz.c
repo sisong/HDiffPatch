@@ -49,8 +49,13 @@
 #   define _CompressPlugin_zlib
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma
-#   define _CompressPlugin_lz4 // & lz4hc
+#   define _CompressPlugin_lz4 // & _CompressPlugin_lz4hc
 #   define _CompressPlugin_zstd
+#endif
+#ifdef _CompressPlugin_lz4hc
+#   ifndef _CompressPlugin_lz4
+#       define _CompressPlugin_lz4
+#   endif
 #endif
 
 #include "decompress_plugin_demo.h"
@@ -67,22 +72,22 @@
 
 
 static void printUsage(){
-    printf("usage: hpatchz [-m|-s[-nbytes]] "
+    printf("usage: hpatchz [-m|-s[-s-cacheSize]] "
 #if (_IS_NEED_ORIGINAL)
            "[-o] "
 #endif
            "oldFile diffFile outNewFile\n"
            "memory options:\n"
-           "  -m  oldFile all load into Memory;\n"
-           "      fast, memory requires O(oldFileSize + 4 * decompress stream)\n"
-           "  -s-nbytes \n"
-           "      oldFile load as Stream, DEFAULT, with nbytes(cache memory size);\n"
-           "      memory requires O(nbytes + 4 * decompress stream),\n"
-           "      nbytes can like 524288 or 512k or 128m(DEFAULT) or 1g etc...\n"
+           "  -m  oldFile all loaded into Memory; fast;\n"
+           "      requires (oldFileSize + 4 * decompress stream size) + O(1) bytes of memory\n"
+           "  -s-cacheSize \n"
+           "      oldFile loaded as Stream, with cacheSize; DEFAULT;\n"
+           "      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;\n"
+           "      cacheSize can like 524288 or 512k or 64m or 1g etc..., DEFAULT 128m\n"
 #if (_IS_NEED_ORIGINAL)
            "special options:\n"
-           "  -o  Original patch, DEPRECATED; compatible with \"patch_demo.c\",\n"
-           "      diffFile must created by \"diff_demo.cpp\" or \"hdiff -o ...\"\n"
+           "  -o  Original patch; DEPRECATED; compatible with \"patch_demo.c\",\n"
+           "      diffFile must created by \"diff_demo.cpp\" or \"hdiffz -o ...\"\n"
 #endif
            );
 }
