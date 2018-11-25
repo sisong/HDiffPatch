@@ -30,7 +30,6 @@
 #include <assert.h>
 #include <string.h> //memset
 #include <stdexcept> //std::runtime_error
-namespace hdiff_private{
 //排序方法选择.
 #ifndef _SA_SORTBY
 #define _SA_SORTBY
@@ -53,6 +52,7 @@ namespace hdiff_private{
     #include "libdivsufsort/divsufsort64.h"
 #endif
 
+namespace hdiff_private{
 
 namespace {
     typedef TSuffixString::TInt   TInt;
