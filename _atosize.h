@@ -37,8 +37,8 @@ extern "C" {
 
 hpatch_inline static
 hpatch_BOOL a_to_size(const char* pnum,size_t slen,size_t* out_size){
-    enum {  _kSizeMaxDiv10=_kSizeMax/10,
-            _kSizeMaxMod10=_kSizeMax-_kSizeMaxDiv10*10 };
+    const size_t _kSizeMaxDiv10=_kSizeMax/10;
+    const size_t _kSizeMaxMod10=_kSizeMax-_kSizeMaxDiv10*10;
     size_t v=0;
     size_t s;
     if (slen==0) return hpatch_FALSE;
