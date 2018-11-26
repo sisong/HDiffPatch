@@ -313,9 +313,9 @@ static hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char
     size_t dataSize;
     hpatch_StreamPos_t  file_length=0;
     FILE*               file=0;
+    assert((*out_pdata)==0);
     if (!fileOpenForRead(fileName,&file,&file_length)) _file_error(file);
     
-    assert((*out_pdata)==0);
     dataSize=(size_t)file_length;
     if (dataSize!=file_length) _file_error(file);
     *out_pdata=(TByte*)malloc(dataSize);
