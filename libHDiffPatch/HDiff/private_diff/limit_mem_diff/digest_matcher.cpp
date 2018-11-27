@@ -39,7 +39,6 @@ static  const size_t kMinReadSize=1024;      //for random first read speed
 static  const size_t kMinBackupReadSize=256;
 static  const size_t kMatchBlockSize_min=2;
 
-typedef size_t adler_uint_t;
 static inline adler_uint_t adler_start(const adler_data_t* pdata,size_t n){
     if (sizeof(adler_uint_t)>4) return (adler_uint_t)fast_adler64_start(pdata,n);
     else return fast_adler32_start(pdata,n);

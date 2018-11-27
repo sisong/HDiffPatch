@@ -64,9 +64,9 @@ public:
     }
 private:
     inline static size_t bitSizeToCount(size_t bitSize){ return (bitSize+(kBaseTBits-1))/kBaseTBits; }
-    typedef unsigned int base_t;
+    typedef size_t base_t;
     enum {
-        kBaseShr=5,
+        kBaseShr=(sizeof(base_t)==8)?6:((sizeof(base_t)==4)?5:0),
         kBaseTBits=(1<<kBaseShr),
         kBaseMask=kBaseTBits-1 };
     //assert(kBaseTBits==sizeof(base_t)*8);
