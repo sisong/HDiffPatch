@@ -41,10 +41,6 @@ extern "C" {
 #   define adler_data_t unsigned char
 #endif
 
-#ifndef _IS_NEED_ADLER64
-#define _IS_NEED_ADLER64 1
-#endif
-
 #if defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
 #   include <stdint.h> //for uint32_t,uint64_t
 #else
@@ -54,14 +50,10 @@ extern "C" {
 #       else
         typedef unsigned int        uint32_t;
 #       endif
-#       if (defined(_IS_NEED_ADLER64) && (_IS_NEED_ADLER64>0))
         typedef unsigned __int64    uint64_t;
-#       endif
 #   else
         typedef unsigned int        uint32_t;
-#       if (defined(_IS_NEED_ADLER64) && (_IS_NEED_ADLER64>0))
         typedef unsigned long long  uint64_t;
-#       endif
 #   endif
 #endif
     
@@ -75,12 +67,14 @@ extern "C" {
 #define ADLER_INITIAL 1 //must 0 or 1
 #endif
 
-#define  __private_adler_roll_fast(uint_t,half_bit,\
+#define  __private_fast_adler_roll(uint_t,half_bit, \
                                   adler,blockSize,out_data,in_data){ \
-    uint_t sum=adler>>half_bit;        \
-    adler= adler + in_data - out_data; \
-    sum  = sum + adler - ADLER_INITIAL-(uint32_t)blockSize*out_data; \
-    return (adler&(((uint_t)1<<half_bit)-1)) | (sum<<half_bit);      \
+    uint32_t in_v=(uint32_t)in_data*in_data;    \
+    uint32_t out_v=(uint32_t)out_data*out_data; \
+    uint_t sum=adler>>half_bit;  \
+    adler= adler + in_v - out_v; \
+    sum  = sum + adler - ADLER_INITIAL-(uint32_t)blockSize*out_v; \
+    return (adler&(((uint_t)1<<half_bit)-1)) | (sum<<half_bit);   \
 }
 
 uint32_t adler32_append(uint32_t adler,const adler_data_t* pdata,size_t n);
@@ -92,10 +86,8 @@ uint32_t fast_adler32_append(uint32_t adler,const adler_data_t* pdata,size_t n);
 #define  fast_adler32_start(pdata,n) fast_adler32_append(ADLER_INITIAL,pdata,n)
 __adler_inline static
 uint32_t fast_adler32_roll(uint32_t adler,size_t blockSize,adler_data_t out_data,adler_data_t in_data)
-                __private_adler_roll_fast(uint32_t,16,adler,blockSize,out_data,in_data)
+                __private_fast_adler_roll(uint32_t,16,adler,blockSize,out_data,in_data)
 uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right);
-
-#if (defined(_IS_NEED_ADLER64) && (_IS_NEED_ADLER64>0))
     
 uint64_t adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n);
 #define  adler64_start(pdata,n) adler64_append(ADLER_INITIAL,pdata,n)
@@ -106,10 +98,8 @@ uint64_t fast_adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n);
 #define  fast_adler64_start(pdata,n) fast_adler64_append(ADLER_INITIAL,pdata,n)
 __adler_inline static
 uint64_t fast_adler64_roll(uint64_t adler,uint64_t blockSize,adler_data_t out_data,adler_data_t in_data)
-                __private_adler_roll_fast(uint64_t,32,adler,blockSize,out_data,in_data)
+                __private_fast_adler_roll(uint64_t,32,adler,blockSize,out_data,in_data)
 uint64_t fast_adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right);
-
-#endif //_IS_NEED_ADLER64
 
 #ifdef __cplusplus
 }

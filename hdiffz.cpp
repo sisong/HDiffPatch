@@ -313,9 +313,9 @@ static hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char
     size_t dataSize;
     hpatch_StreamPos_t  file_length=0;
     FILE*               file=0;
+    assert((*out_pdata)==0);
     if (!fileOpenForRead(fileName,&file,&file_length)) _file_error(file);
     
-    assert((*out_pdata)==0);
     dataSize=(size_t)file_length;
     if (dataSize!=file_length) _file_error(file);
     *out_pdata=(TByte*)malloc(dataSize);
@@ -393,16 +393,21 @@ static int hdiff_m(const char* oldFileName,const char* newFileName,const char* o
           HDIFF_OPENWRITE_ERROR,"open write diffFile ERROR!");
     std::cout<<"  out hdiffz file ok!\n";
 #if (_IS_NEED_PATCH_CHECK)
-    if (isOriginal){
-        check(check_diff(newData,newData+newDataSize,oldData,oldData+oldDataSize,
-                         diffData.data()+originalNewDataSavedSize,diffData.data()+diffData.size()),
-              HDIFF_PATCH_ERROR,"patch check hdiffz data ERROR!\n");
-    }else{
-        check(check_compressed_diff(newData,newData+newDataSize,oldData,oldData+oldDataSize,
-                                    diffData.data(),diffData.data()+diffData.size(),decompressPlugin),
-              HDIFF_PATCH_ERROR,"patch check hdiffz data ERROR!\n");
+    {
+        double time0=clock_s();
+        bool diffrt;
+        if (isOriginal){
+            diffrt=check_diff(newData,newData+newDataSize,oldData,oldData+oldDataSize,
+                              diffData.data()+originalNewDataSavedSize,diffData.data()+diffData.size());
+        }else{
+            diffrt=check_compressed_diff(newData,newData+newDataSize,oldData,oldData+oldDataSize,
+                                         diffData.data(),diffData.data()+diffData.size(),decompressPlugin);
+        }
+        check(diffrt,HDIFF_PATCH_ERROR,"patch check hdiffz data ERROR!\n");
+        std::cout<<"  patch check hdiffz data ok!\n";
+        double time1=clock_s();
+        std::cout<<"  patch time: "<<(time1-time0)<<" s\n";
     }
-    std::cout<<"  patch check hdiffz data ok!\n";
 #endif
 clear:
     _isInClear=hpatch_TRUE;
@@ -441,12 +446,16 @@ static int hdiff_s(const char* oldFileName,const char* newFileName,const char* o
     std::cout<<"diffDataSize: "<<diffData.base.streamSize<<"\n";
     std::cout<<"  out hdiffz file ok!\n";
 #if (_IS_NEED_PATCH_CHECK)
-    //check diff
-    check(TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile ERROR!");
-    check(check_compressed_diff_stream(&newData.base,&oldData.base,
-                                      &diffData_in.base,decompressPlugin),
-          HDIFF_PATCH_ERROR,"patch check hdiffz data ERROR!!!");
-    std::cout<<"  patch check hdiffz data ok!\n";
+    {
+        double time0=clock_s();
+        check(TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile ERROR!");
+        check(check_compressed_diff_stream(&newData.base,&oldData.base,
+                                           &diffData_in.base,decompressPlugin),
+              HDIFF_PATCH_ERROR,"patch check hdiffz data ERROR!!!");
+        std::cout<<"  patch check hdiffz data ok!\n";
+        double time1=clock_s();
+        std::cout<<"  patch time: "<<(time1-time0)<<" s\n";
+    }
 #endif
 clear:
     _isInClear=hpatch_TRUE;

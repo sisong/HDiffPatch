@@ -26,8 +26,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef HPatch_atosize_h
-#define HPatch_atosize_h
+#ifndef HDiffPatch_atosize_h
+#define HDiffPatch_atosize_h
 #include "libHDiffPatch/HPatch/patch_types.h"
 
 #ifdef __cplusplus
@@ -80,4 +80,4 @@ hpatch_BOOL kmg_to_size(const char* pkmgnum,size_t slen,size_t* out_size){
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif //HDiffPatch_atosize_h

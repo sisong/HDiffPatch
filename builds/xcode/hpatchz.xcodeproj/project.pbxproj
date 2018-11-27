@@ -76,11 +76,11 @@
 		D6553CAA165FA1A9009D4C44 = {
 			isa = PBXGroup;
 			children = (
-				D64B4BEE2077AAAA0039C38B /* hpatchz.c */,
 				D64B4BF32077AB550039C38B /* decompress_plugin_demo.h */,
 				D64B4BF22077AB550039C38B /* _clock_for_demo.h */,
 				D639ACD9208334A800811BB3 /* _atosize.h */,
 				D64B4BF42077AB550039C38B /* file_for_patch.h */,
+				D64B4BEE2077AAAA0039C38B /* hpatchz.c */,
 				D6BD9BC917578601004886DE /* HPatch */,
 				D6553CB4165FA1A9009D4C44 /* Products */,
 				D64B4BF72077B9090039C38B /* Frameworks */,

@@ -39,7 +39,6 @@ static  const size_t kMinReadSize=1024;      //for random first read speed
 static  const size_t kMinBackupReadSize=256;
 static  const size_t kMatchBlockSize_min=2;
 
-typedef size_t adler_uint_t;
 static inline adler_uint_t adler_start(const adler_data_t* pdata,size_t n){
     if (sizeof(adler_uint_t)>4) return (adler_uint_t)fast_adler64_start(pdata,n);
     else return fast_adler32_start(pdata,n);
@@ -393,16 +392,16 @@ public:
 };
 
     static hpatch_StreamPos_t getMatchLength(TOldStreamCache& oldStream,TNewStreamCache& newStream,
-                                             hpatch_StreamPos_t& oldPos,size_t kMatchBlockSize,
+                                             hpatch_StreamPos_t* pOldPos,size_t kMatchBlockSize,
                                              const TCover& lastCover){
-        if (oldStream.resetPos(oldPos)
-                &&(0==memcmp(oldStream.data(),newStream.data(),kMatchBlockSize))){
+        if (oldStream.resetPos(*pOldPos)&&
+            (0==memcmp(oldStream.data(),newStream.data(),kMatchBlockSize))){
             const hpatch_StreamPos_t newPos=newStream.pos();
             size_t feq_len=oldStream.forward_equal_length(newStream);
             if (newPos-feq_len<lastCover.newPos+lastCover.length)
                 feq_len=(size_t)(newPos-(lastCover.newPos+lastCover.length));
             hpatch_StreamPos_t beq_len=oldStream.loop_backward_equal_length(newStream);
-            oldPos-=feq_len;
+            *pOldPos=(*pOldPos)-feq_len;
             return feq_len+kMatchBlockSize+beq_len;
         }else{
             return 0;
@@ -420,7 +419,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     
     const TIndex* best=0;
     size_t bdigests_n=0;
-    //缩小[left best right)范围,留下最多2个(因为签名匹配并不保证一定相等,2个的话应该就够了);
+    //缩小[left best right)范围,留下最多2个(因为签名匹配并不保证一定相等,2个的话应该就够了?);
     if (right-left>1){
         //寻找最长的签名匹配位置(也就是最有可能的最长匹配位置);
         newStream.toBestDataLength();
@@ -472,7 +471,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
                                                         oldStream.streamSize());
         hpatch_StreamPos_t matchedOldPos=oldPos;
         hpatch_StreamPos_t curEqLen=getMatchLength(oldStream,newStream,
-                                                   matchedOldPos,kMatchBlockSize,lastCover);
+                                                   &matchedOldPos,kMatchBlockSize,lastCover);
         if (curEqLen>bestLen){
             isMatched=true;
             bestLen=curEqLen;
@@ -535,7 +534,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
         if (linkOldPos==matchCover.oldPos) return;
         newStream.TBlockStreamCache::resetPos(matchCover.newPos);
         hpatch_StreamPos_t matchedOldPos=linkOldPos;
-        hpatch_StreamPos_t curEqLen=getMatchLength(oldStream,newStream,matchedOldPos,
+        hpatch_StreamPos_t curEqLen=getMatchLength(oldStream,newStream,&matchedOldPos,
                                                    newStream.kMatchBlockSize,lastCover);
         size_t unlinkCost=getOldPosCost(matchCover.oldPos,lastCover);
         size_t unlinkCost_link=getOldPosCost(matchedOldPos,lastCover);
@@ -565,6 +564,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
         range=std::equal_range(iblocks,iblocks_end,digest_value,comp);
         if (range.first==range.second)
             { if (newStream.roll()) continue; else break; }//finish
+        //if (range.second-range.first>32) range.second=range.first+32;
         
         if (kIsSkipSameRange&&is_same_data(newStream.data(),newStream.kMatchBlockSize)){
             if (!newStream.skip_same(*newStream.data())) break;//finish

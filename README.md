@@ -1,6 +1,6 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v2.4.2-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![release](https://img.shields.io/badge/release-v2.4.3-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 a C\C++ library and command-line tools for binary data Diff & Patch.   
 ( Jar or Zip file diff & patch? update Android Apk? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )
@@ -42,7 +42,7 @@ memory options:
   -s-cacheSize 
       oldFile loaded as Stream, with cacheSize; DEFAULT;
       requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;
-      cacheSize can like 524288 or 512k or 64m or 1g etc..., DEFAULT 128m
+      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m
 special options:
   -o  Original patch; DEPRECATED; compatible with "patch_demo.c",
       diffFile must created by "diff_demo.cpp" or "hdiffz -o ..."

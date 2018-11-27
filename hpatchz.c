@@ -83,7 +83,7 @@ static void printUsage(){
            "  -s-cacheSize \n"
            "      oldFile loaded as Stream, with cacheSize; DEFAULT;\n"
            "      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;\n"
-           "      cacheSize can like 524288 or 512k or 64m or 1g etc..., DEFAULT 128m\n"
+           "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m\n"
 #if (_IS_NEED_ORIGINAL)
            "special options:\n"
            "  -o  Original patch; DEPRECATED; compatible with \"patch_demo.c\",\n"
@@ -301,13 +301,13 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     
     if (isLoadOldAll){
         assert(patchCacheSize==0);
-        temp_cache_size=(size_t)(oldData.base.streamSize+kPatchCacheSize_bestmin);
-        if (temp_cache_size!=oldData.base.streamSize+kPatchCacheSize_bestmin)
+        temp_cache_size=(size_t)(poldData->streamSize+kPatchCacheSize_bestmin);
+        if (temp_cache_size!=poldData->streamSize+kPatchCacheSize_bestmin)
             temp_cache_size=kPatchCacheSize_bestmax;//can not load all,load part
     }else{
         temp_cache_size=patchCacheSize;
-        if (temp_cache_size>oldData.base.streamSize+kPatchCacheSize_bestmin)
-            temp_cache_size=(size_t)(oldData.base.streamSize+kPatchCacheSize_bestmin);
+        if (temp_cache_size>poldData->streamSize+kPatchCacheSize_bestmin)
+            temp_cache_size=(size_t)(poldData->streamSize+kPatchCacheSize_bestmin);
     }
     while (!temp_cache) {
         temp_cache=(TByte*)malloc(temp_cache_size);
