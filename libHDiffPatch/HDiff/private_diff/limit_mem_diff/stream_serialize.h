@@ -93,7 +93,7 @@ struct TPlaceholder{
 };
 
 struct TDiffStream{
-    explicit TDiffStream(hpatch_TStreamOutput* _out_diff,const TCovers& _covers);
+    explicit TDiffStream(const hpatch_TStreamOutput* _out_diff,const TCovers& _covers);
     ~TDiffStream();
     
     void pushBack(const unsigned char* src,size_t n);

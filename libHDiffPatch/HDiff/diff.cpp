@@ -2,7 +2,7 @@
 //
 /*
  The MIT License (MIT)
- Copyright (c) 2012-2017 HouSisong
+ Copyright (c) 2012-2018 HouSisong
 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -683,7 +683,7 @@ static void getCovers_stream(const hpatch_TStreamInput*  newData,
 
 static void stream_serialize(const hpatch_TStreamInput*  newData,
                              hpatch_StreamPos_t          oldDataSize,
-                             hpatch_TStreamOutput*       out_diff,
+                             const hpatch_TStreamOutput* out_diff,
                              hdiff_TStreamCompress* compressPlugin,
                              const TCovers& covers){
     
@@ -736,7 +736,7 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
 
 void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
-                                   hpatch_TStreamOutput*       out_diff,
+                                   const hpatch_TStreamOutput* out_diff,
                                    hdiff_TStreamCompress* compressPlugin,
                                    size_t kMatchBlockSize){
     const bool isSkipSameRange=(compressPlugin!=0);

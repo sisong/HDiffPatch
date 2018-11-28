@@ -2,7 +2,7 @@
 //
 /*
  The MIT License (MIT)
- Copyright (c) 2012-2017 HouSisong
+ Copyright (c) 2012-2018 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -81,10 +81,11 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
 //  NOTICE: out_diff->write()'s writeToPos may be back to update headData!
 //  throw std::runtime_error when I/O error,etc.
 static const size_t kMatchBlockSize_default = (1<<7);
-void create_compressed_diff_stream(const hpatch_TStreamInput* newData,
-                                   const hpatch_TStreamInput* oldData,
-                                   hpatch_TStreamOutput*      out_diff,
+void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
+                                   const hpatch_TStreamInput*  oldData,
+                                   const hpatch_TStreamOutput* out_diff,
                                    hdiff_TStreamCompress* compressPlugin=0,
                                    size_t kMatchBlockSize=kMatchBlockSize_default);
+
 
 #endif

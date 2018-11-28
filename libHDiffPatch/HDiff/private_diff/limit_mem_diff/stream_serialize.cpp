@@ -241,7 +241,7 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 }
 
 
-TDiffStream::TDiffStream(hpatch_TStreamOutput* _out_diff,const TCovers& _covers)
+TDiffStream::TDiffStream(const hpatch_TStreamOutput* _out_diff,const TCovers& _covers)
 :out_diff(_out_diff),covers(_covers),writePos(0),_temp_buf(0){
     _temp_buf=(unsigned char*)malloc(kBufSize);
     if (!_temp_buf) throw std::runtime_error("TDiffStream::TDiffStream() malloc() error!");
