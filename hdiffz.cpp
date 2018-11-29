@@ -39,10 +39,6 @@
 #include "_atosize.h"
 #include "file_for_patch.h"
 
-#ifndef _IS_NEED_PATCH_CHECK
-#   define _IS_NEED_PATCH_CHECK 1
-#endif
-
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
 #endif
@@ -80,11 +76,11 @@
 }
 
 static void printUsage(){
-    printf("usage: hdiffz [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] "
+    printf("usage: hdiffz [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-d]"
 #if (_IS_NEED_ORIGINAL)
-           "[-o] "
+           " [-o]"
 #endif
-           "oldFile newFile outDiffFile\n"
+           " oldFile newFile outDiffFile\n"
            "usage: hdiffz [-c-compressType[-compressLevel]] diffFile outDiffFile\n"
            "memory options:\n"
            "  -m-matchScore\n"
@@ -96,6 +92,7 @@ static void printUsage(){
            "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;\n"
            "      matchBlockSize>=2, DEFAULT 128, recommended 32--16k 64k 1m etc...\n"
            "special options:\n"
+           "  -d  Diff only, do't run patch check, DEFAULT run patch check;\n"
            "  -c-compressType-compressLevel\n"
            "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"
            "      for resave diffFile,recompress diffFile to outDiffFile by new set;\n"
@@ -146,7 +143,7 @@ typedef enum THDiffResult {
 int hdiff_cmd_line(int argc, const char * argv[]);
 
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-          hpatch_BOOL isOriginal,hpatch_BOOL isLoadAll,size_t matchValue,
+          hpatch_BOOL isOriginal,hpatch_BOOL isLoadAll,hpatch_BOOL isPatchCheck,size_t matchValue,
           hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
           hpatch_TDecompress* decompressPlugin);
 int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
@@ -212,6 +209,7 @@ static bool _trySetCompress(hdiff_TStreamCompress** streamCompressPlugin,
 int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=_kNULL_VALUE;
     hpatch_BOOL isLoadAll=_kNULL_VALUE;
+    hpatch_BOOL isPatchCheck=_kNULL_VALUE;
     size_t      matchValue=0;
     size_t      compressLevel=0;
 #ifdef _CompressPlugin_lzma
@@ -246,7 +244,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 }
             } break;
             case 's':{
-                _options_check((isLoadAll==_kNULL_VALUE)&&((op[2]=='-')||(op[2]=='\0')),"-s");
                 isLoadAll=hpatch_FALSE; //stream
                 if (op[2]=='-'){
                     const char* pnum=op+3;
@@ -254,6 +251,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 }else{
                     matchValue=kMatchBlockSize_default;
                 }
+            } break;
+            case 'd':{
+                _options_check((isPatchCheck==_kNULL_VALUE)&&(op[2]=='\0'),"-d");
+                isPatchCheck=hpatch_FALSE; //diff only
             } break;
             case 'c':{
                 _options_check((compressPlugin==0)&&(op[2]=='-'),"-c");
@@ -309,21 +310,30 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         if (isOriginal==_kNULL_VALUE)
             isOriginal=hpatch_FALSE;
         if (isOriginal){
-            _options_check((isLoadAll!=hpatch_FALSE)&&(compressPlugin==0),"-o unsupport run with -s or -c");
+            _options_check((isLoadAll!=hpatch_FALSE)&&(compressPlugin==0),
+                           "-o unsupport run with -s or -c");
         }
         if (isLoadAll==_kNULL_VALUE){
             isLoadAll=hpatch_TRUE;
             matchValue=kMinSingleMatchScore_default;
         }
+        if (isPatchCheck==_kNULL_VALUE){
+    #if (defined(_IS_NEED_PATCH_CHECK) && (_IS_NEED_PATCH_CHECK==0))
+            isPatchCheck=hpatch_FALSE;
+    #else
+            isPatchCheck=hpatch_TRUE;
+    #endif
+        }
         
         const char* oldFileName    =arg_values[0];
         const char* newFileName    =arg_values[1];
         const char* outDiffFileName=arg_values[2];
-        return hdiff(oldFileName,newFileName,outDiffFileName,isOriginal,isLoadAll,matchValue,
-                     streamCompressPlugin,compressPlugin,decompressPlugin);
+        return hdiff(oldFileName,newFileName,outDiffFileName,isOriginal,isLoadAll,isPatchCheck,
+                     matchValue,streamCompressPlugin,compressPlugin,decompressPlugin);
     }else{ //resave
         _options_check((isOriginal==_kNULL_VALUE),"-o unsupport run with resave mode");
         _options_check((isLoadAll==_kNULL_VALUE),"-m or -s unsupport run with resave mode");
+        _options_check((isPatchCheck==_kNULL_VALUE),"-d unsupport run with resave mode");
         
         const char* diffFileName   =arg_values[0];
         const char* outDiffFileName=arg_values[1];
@@ -388,7 +398,7 @@ static int saveSize(std::vector<TByte>& outBuf,hpatch_StreamPos_t size){
     if (!(value)){ printf(errorInfo); check_on_error(errorType); } }
 
 static int hdiff_m(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-                   hpatch_BOOL isOriginal,size_t matchScore,
+                   hpatch_BOOL isOriginal,hpatch_BOOL isPatchCheck,size_t matchScore,
                    hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin){
     double diff_time0=clock_s();
     int    result=HDIFF_SUCCESS;
@@ -417,8 +427,7 @@ static int hdiff_m(const char* oldFileName,const char* newFileName,const char* o
           HDIFF_OPENWRITE_ERROR,"open write diffFile ERROR!");
     std::cout<<"  out hdiffz file ok!\n";
     std::cout<<"diff time: "<<(clock_s()-diff_time0)<<" s\n";
-#if (_IS_NEED_PATCH_CHECK)
-    {
+    if (isPatchCheck){
         double patch_time0=clock_s();
         bool diffrt;
         if (isOriginal){
@@ -432,7 +441,6 @@ static int hdiff_m(const char* oldFileName,const char* newFileName,const char* o
         std::cout<<"patch time: "<<(clock_s()-patch_time0)<<" s\n";
         std::cout<<"  patch check hdiffz data ok!\n";
     }
-#endif
 clear:
     _isInClear=hpatch_TRUE;
     _free_mem(newData);
@@ -441,8 +449,8 @@ clear:
 }
 
 static int hdiff_s(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-                   size_t matchBlockSize,hdiff_TStreamCompress* streamCompressPlugin,
-                   hpatch_TDecompress* decompressPlugin){
+                   hpatch_BOOL isPatchCheck,size_t matchBlockSize,
+                   hdiff_TStreamCompress* streamCompressPlugin,hpatch_TDecompress* decompressPlugin){
     double diff_time0=clock_s();
     int result=HDIFF_SUCCESS;
     int _isInClear=hpatch_FALSE;
@@ -472,8 +480,7 @@ static int hdiff_s(const char* oldFileName,const char* newFileName,const char* o
     std::cout<<"diffDataSize: "<<diffData.base.streamSize<<"\n";
     std::cout<<"  out hdiffz file ok!\n";
     std::cout<<"diff  time: "<<(clock_s()-diff_time0)<<" s\n";
-#if (_IS_NEED_PATCH_CHECK)
-    {
+    if (isPatchCheck){
         double patch_time0=clock_s();
         check(TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile ERROR!");
         check(check_compressed_diff_stream(&newData.base,&oldData.base,
@@ -482,7 +489,6 @@ static int hdiff_s(const char* oldFileName,const char* newFileName,const char* o
         std::cout<<"patch time: "<<(clock_s()-patch_time0)<<" s\n";
         std::cout<<"  patch check hdiffz data ok!\n";
     }
-#endif
 clear:
     _isInClear=hpatch_TRUE;
     check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
@@ -493,7 +499,7 @@ clear:
 }
 
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-          hpatch_BOOL isOriginal,hpatch_BOOL isLoadAll,size_t matchValue,
+          hpatch_BOOL isOriginal,hpatch_BOOL isLoadAll,hpatch_BOOL isPatchCheck,size_t matchValue,
           hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin){
     double time0=clock_s();
     std::cout<<"old: \"" <<oldFileName<< "\"\nnew: \""<<newFileName<<"\"\nout: \""<<outDiffFileName<<"\"\n";
@@ -507,10 +513,13 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
     std::cout<<"hdiffz run with "<<(isLoadAll?"":"stream ")<<"compress plugin: \""<<compressType<<"\"\n";
     
     int exitCode;
-    if (isLoadAll)
-        exitCode=hdiff_m(oldFileName,newFileName,outDiffFileName,isOriginal,matchValue,compressPlugin,decompressPlugin);
-    else
-        exitCode=hdiff_s(oldFileName,newFileName,outDiffFileName,matchValue,streamCompressPlugin,decompressPlugin);
+    if (isLoadAll){
+        exitCode=hdiff_m(oldFileName,newFileName,outDiffFileName,isOriginal,isPatchCheck,
+                         matchValue,compressPlugin,decompressPlugin);
+    }else{
+        exitCode=hdiff_s(oldFileName,newFileName,outDiffFileName,isPatchCheck,
+                         matchValue,streamCompressPlugin,decompressPlugin);
+    }
     double time1=clock_s();
     std::cout<<"\nall   time: "<<(time1-time0)<<" s\n";
     return exitCode;

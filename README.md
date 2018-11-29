@@ -7,7 +7,7 @@ a C\C++ library and command-line tools for binary data Diff & Patch.
 
 ---
 ## command line usage:
-**hdiffz** [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-o] **oldFile newFile outDiffFile**
+**hdiffz** [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-d] [-o] **oldFile newFile outDiffFile**
 **hdiffz** [-c-compressType[-compressLevel]] **diffFile outDiffFile**
 ```
 memory options:
@@ -20,6 +20,7 @@ memory options:
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;
       matchBlockSize>=2, DEFAULT 128, recommended 32--16k 64k 1m etc...
 special options:
+  -d  Diff only, do't run patch check, DEFAULT run patch check;
   -c-compressType-compressLevel 
       set outDiffFile Compress type & level, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
