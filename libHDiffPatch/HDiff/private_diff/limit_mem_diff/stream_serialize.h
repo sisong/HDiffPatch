@@ -126,12 +126,16 @@ public:
     explicit TStreamClip(const hpatch_TStreamInput* stream,
                          hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos,
                          hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressSize);
+    ~TStreamClip();
 private:
     const hpatch_TStreamInput*  _src;
     const hpatch_StreamPos_t    _src_begin;
     const hpatch_StreamPos_t    _src_end;
     hpatch_TDecompress*         _decompressPlugin;
     hpatch_StreamPos_t          _read_uncompress_pos;
+    hpatch_decompressHandle     _decompressHandle;
+    void closeDecompressHandle();
+    void openDecompressHandle();
     static long _clip_read(hpatch_TStreamInputHandle streamHandle,
                            const hpatch_StreamPos_t readFromPos,
                            unsigned char* out_data,unsigned char* out_data_end);

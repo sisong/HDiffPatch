@@ -789,9 +789,9 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
     outDiff.packUInt(head.rle_codeBuf_size);//rle_codeBuf size
     TPlaceholder compress_rle_codeBuf_sizePos=
         outDiff.packUInt_pos(compressPlugin?head.rle_codeBuf_size:0);//compress_rle_codeBuf size
-    outDiff.packUInt(head.compress_newDataDiff_size);
+    outDiff.packUInt(head.newDataDiff_size);
     TPlaceholder compress_newDataDiff_sizePos=
-        outDiff.packUInt_pos(compressPlugin?head.compress_newDataDiff_size:0);//compress_newDataDiff size
+        outDiff.packUInt_pos(compressPlugin?head.newDataDiff_size:0);//compress_newDataDiff size
     
     {//save covers
         TStreamClip clip(in_diff,head.headEndPos,head.coverEndPos,

@@ -1,18 +1,19 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v2.4.3-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![release](https://img.shields.io/badge/release-v2.5.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 a C\C++ library and command-line tools for binary data Diff & Patch.   
 ( Jar or Zip file diff & patch? update Android Apk? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )
 
 ---
 ## command line usage:
-**hdiffz**  [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-o]  **oldFile newFile outDiffFile**
+**hdiffz** [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-o] **oldFile newFile outDiffFile**
+**hdiffz** [-c-compressType[-compressLevel]] **diffFile outDiffFile**
 ```
 memory options:
   -m-matchScore
       all file load into Memory, with matchScore; DEFAULT; best diffFileSize; 
-      requires (newFileSize+oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1) bytes of memory;
+      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1) bytes of memory;
       matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc...
   -s-matchBlockSize
       all file load as Stream, with matchBlockSize; fast;
@@ -20,7 +21,8 @@ memory options:
       matchBlockSize>=2, DEFAULT 128, recommended 32--16k 64k 1m etc...
 special options:
   -c-compressType-compressLevel 
-      set diffFile Compress type & level, DEFAULT uncompress;
+      set outDiffFile Compress type & level, DEFAULT uncompress;
+      for resave diffFile,recompress diffFile to outDiffFile by new set;
       support compress type & level:
         (reference: https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
         -zlib[-{1..9}]              DEFAULT level 9
