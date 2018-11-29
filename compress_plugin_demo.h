@@ -400,13 +400,19 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         unsigned char      properties_buf[LZMA_PROPS_SIZE+1];
         SizeT              properties_size=LZMA_PROPS_SIZE;
         SRes               ret;
+        uint32_t           dictSize=lzma_dictSize;
         if (!s) s=LzmaEnc_Create(&alloc);
         if (!s) _compress_error_return("LzmaEnc_Create()");
+        while ((dictSize >= in_data->streamSize*3)&&(dictSize>=4*1024*2))
+            dictSize>>=1;
         LzmaEncProps_Init(&props);
         props.level=lzma_compress_level;
-        props.dictSize=lzma_dictSize;
+        props.dictSize=dictSize;
         LzmaEncProps_Normalize(&props);
         if (SZ_OK!=LzmaEnc_SetProps(s,&props)) _compress_error_return("LzmaEnc_SetProps()");
+        if (IS_NOTICE_compress_canceled){
+            printf("  (add one lzma dictSize: %d)\n",props.dictSize);
+        }
         
         //save properties_size+properties
         assert(LZMA_PROPS_SIZE<256);
