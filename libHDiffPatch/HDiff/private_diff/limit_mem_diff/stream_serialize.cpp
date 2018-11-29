@@ -241,8 +241,8 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 }
 
 
-TDiffStream::TDiffStream(const hpatch_TStreamOutput* _out_diff,const TCovers& _covers)
-:out_diff(_out_diff),covers(_covers),writePos(0),_temp_buf(0){
+TDiffStream::TDiffStream(const hpatch_TStreamOutput* _out_diff)
+:out_diff(_out_diff),writePos(0),_temp_buf(0){
     _temp_buf=(unsigned char*)malloc(kBufSize);
     if (!_temp_buf) throw std::runtime_error("TDiffStream::TDiffStream() malloc() error!");
 }
@@ -319,4 +319,33 @@ void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
     }
 }
 
+TStreamClip::TStreamClip(const hpatch_TStreamInput* stream,
+                         hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos,
+                         hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressSize)
+:_src(stream),_src_begin(clipBeginPos),_src_end(clipEndPos),
+    _decompressPlugin(decompressPlugin),_read_uncompress_pos(0){
+    assert(clipBeginPos<=clipEndPos);
+    assert(clipEndPos<=stream->streamSize);
+    this->streamHandle=this;
+    this->streamSize=uncompressSize;
+    this->read=_clip_read;
+}
+
+long TStreamClip::_clip_read(hpatch_TStreamInputHandle streamHandle,
+                             const hpatch_StreamPos_t readFromPos,
+                             unsigned char* out_data,unsigned char* out_data_end){
+    TStreamClip* self=(TStreamClip*)streamHandle;
+    assert(readFromPos==self->_read_uncompress_pos);
+    assert(out_data<out_data_end);
+    size_t readLen=out_data_end-out_data;
+    assert(readFromPos+readLen <= self->streamSize);
+    self->_read_uncompress_pos+=readLen;
+    
+    if (!self->_decompressPlugin)
+        return self->_src->read(self->_src->streamHandle,self->_src_begin+readFromPos,out_data,out_data_end);
+    
+    //todo:
+    return 0;
+}
+    
 }//namespace hdiff_private

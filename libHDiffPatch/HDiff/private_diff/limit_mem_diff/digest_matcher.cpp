@@ -38,6 +38,7 @@ static  const size_t kBestReadSize=1024*256; //for sequence read
 static  const size_t kMinReadSize=1024;      //for random first read speed
 static  const size_t kMinBackupReadSize=256;
 static  const size_t kMatchBlockSize_min=2;
+static  const size_t kMaxMatchRange=1024*64; //todo: optimize for delete this
 
 static inline adler_uint_t adler_start(const adler_data_t* pdata,size_t n){
     if (sizeof(adler_uint_t)>4) return (adler_uint_t)fast_adler64_start(pdata,n);
@@ -564,7 +565,8 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
         range=std::equal_range(iblocks,iblocks_end,digest_value,comp);
         if (range.first==range.second)
             { if (newStream.roll()) continue; else break; }//finish
-        //if (range.second-range.first>32) range.second=range.first+32;
+        if (range.second-range.first>kMaxMatchRange)
+            range.second=range.first+kMaxMatchRange;
         
         if (kIsSkipSameRange&&is_same_data(newStream.data(),newStream.kMatchBlockSize)){
             if (!newStream.skip_same(*newStream.data())) break;//finish

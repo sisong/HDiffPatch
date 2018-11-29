@@ -36,6 +36,7 @@
 #include "private_diff/compress_detect.h"
 #include "private_diff/pack_uint.h"
 #include "../HPatch/patch.h"
+#include "../HPatch/patch_private.h"
 using namespace hdiff_private;
 
 static const char kHDiffVersionType[8+1]="HDIFF13&";
@@ -695,7 +696,7 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
         assert(rle_codeBuf.empty());
     }
     
-    TDiffStream outDiff(out_diff,covers);
+    TDiffStream outDiff(out_diff);
     const char* compressType="";
     if (compressPlugin){
         compressType=compressPlugin->compressType(compressPlugin);
@@ -745,3 +746,81 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
     stream_serialize(newData,oldData->streamSize,out_diff,compressPlugin,covers);
 }
 
+
+void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
+                            hpatch_TDecompress*         decompressPlugin,
+                            const hpatch_TStreamOutput* out_diff,
+                            hdiff_TStreamCompress*      compressPlugin){
+    _THDiffzHead              head;
+    hpatch_compressedDiffInfo diffInfo;
+    assert(in_diff!=0);
+    assert(in_diff->read!=0);
+    assert(out_diff!=0);
+    assert(out_diff->write!=0);
+    
+    {//read head
+        if (!read_diffz_head(&diffInfo,&head,in_diff))
+            throw std::runtime_error("resave_compressed_diff() read_diffz_head() error!");
+        if ((decompressPlugin==0)&&(diffInfo.compressedCount!=0))
+            throw std::runtime_error("resave_compressed_diff() decompressPlugin null error!");
+        if ((decompressPlugin)&&(diffInfo.compressedCount>0)){
+            if (!decompressPlugin->is_can_open(decompressPlugin,&diffInfo))
+                throw std::runtime_error("resave_compressed_diff() decompressPlugin cannot open compressed data error!");
+        }
+    }
+    
+    TDiffStream outDiff(out_diff);
+    const char* compressType="";
+    if (compressPlugin){
+        compressType=compressPlugin->compressType(compressPlugin);
+        check(strlen(compressType)<=hpatch_kMaxCompressTypeLength);
+    }
+    outDiff.pushBack((const TByte*)kHDiffVersionType,strlen(kHDiffVersionType));
+    outDiff.pushBack((const TByte*)compressType,strlen(compressType)+1);//with '\0'
+    outDiff.packUInt(diffInfo.newDataSize);
+    outDiff.packUInt(diffInfo.oldDataSize);
+    outDiff.packUInt(head.coverCount);
+    outDiff.packUInt(head.cover_buf_size);
+    TPlaceholder compress_cover_buf_sizePos=
+        outDiff.packUInt_pos(compressPlugin?head.cover_buf_size:0);//compress_cover_buf size
+    outDiff.packUInt(head.rle_ctrlBuf_size);//rle_ctrlBuf size
+    TPlaceholder compress_rle_ctrlBuf_sizePos=
+        outDiff.packUInt_pos(compressPlugin?head.rle_ctrlBuf_size:0);//compress_rle_ctrlBuf size
+    outDiff.packUInt(head.rle_codeBuf_size);//rle_codeBuf size
+    TPlaceholder compress_rle_codeBuf_sizePos=
+        outDiff.packUInt_pos(compressPlugin?head.rle_codeBuf_size:0);//compress_rle_codeBuf size
+    outDiff.packUInt(head.compress_newDataDiff_size);
+    TPlaceholder compress_newDataDiff_sizePos=
+        outDiff.packUInt_pos(compressPlugin?head.compress_newDataDiff_size:0);//compress_newDataDiff size
+    
+    {//save covers
+        TStreamClip clip(in_diff,head.headEndPos,head.coverEndPos,
+                         (head.compress_cover_buf_size>0)?decompressPlugin:0,head.cover_buf_size);
+        outDiff.pushStream(&clip,compressPlugin,compress_cover_buf_sizePos);
+    }
+    hpatch_StreamPos_t diffPos0=head.coverEndPos;
+    {//save rle ctrl
+        bool isCompressed=(head.compress_rle_ctrlBuf_size>0);
+        hpatch_StreamPos_t bufSize=isCompressed?head.compress_rle_ctrlBuf_size:head.rle_ctrlBuf_size;
+        TStreamClip clip(in_diff,diffPos0,diffPos0+bufSize,
+                         isCompressed?decompressPlugin:0,head.rle_ctrlBuf_size);
+        outDiff.pushStream(&clip,compressPlugin,compress_rle_ctrlBuf_sizePos);
+        diffPos0+=bufSize;
+    }
+    {//save rle code
+        bool isCompressed=(head.compress_rle_codeBuf_size>0);
+        hpatch_StreamPos_t bufSize=isCompressed?head.compress_rle_codeBuf_size:head.rle_codeBuf_size;
+        TStreamClip clip(in_diff,diffPos0,diffPos0+bufSize,
+                         isCompressed?decompressPlugin:0,head.rle_codeBuf_size);
+        outDiff.pushStream(&clip,compressPlugin,compress_rle_codeBuf_sizePos);
+        diffPos0+=bufSize;
+    }
+    {//save newDataDiff
+        bool isCompressed=(head.compress_newDataDiff_size>0);
+        hpatch_StreamPos_t bufSize=isCompressed?head.compress_newDataDiff_size:head.newDataDiff_size;
+        TStreamClip clip(in_diff,diffPos0,diffPos0+bufSize,
+                         isCompressed?decompressPlugin:0,head.newDataDiff_size);
+        outDiff.pushStream(&clip,compressPlugin,compress_newDataDiff_sizePos);
+        diffPos0+=bufSize;
+    }
+}
