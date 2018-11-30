@@ -59,9 +59,9 @@
     if ((result)==kCompressFailResult){      \
         if (outStream_isCanceled){    \
             if (IS_NOTICE_compress_canceled) \
-                printf("  NOTICE: " _at " is canceled, by out limit.\n"); \
+                printf("  (NOTICE: " _at " is canceled, by out limit.)\n"); \
         }else{ \
-            printf("  NOTICE: " _at " is canceled, %s ERROR!\n",_errAt); \
+            printf("  (NOTICE: " _at " is canceled, %s ERROR!)\n",_errAt); \
         } \
     }
 
@@ -411,7 +411,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         LzmaEncProps_Normalize(&props);
         if (SZ_OK!=LzmaEnc_SetProps(s,&props)) _compress_error_return("LzmaEnc_SetProps()");
         if (IS_NOTICE_compress_canceled){
-            printf("  (add one lzma dictSize: %d)\n",props.dictSize);
+            printf("  (used one lzma dictSize: %d)\n",props.dictSize);
         }
         
         //save properties_size+properties

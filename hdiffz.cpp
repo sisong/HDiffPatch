@@ -90,7 +90,7 @@ static void printUsage(){
            "  -s-matchBlockSize\n"
            "      all file load as Stream, with matchBlockSize; fast;\n"
            "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;\n"
-           "      matchBlockSize>=2, DEFAULT 128, recommended 32--16k 64k 1m etc...\n"
+           "      matchBlockSize>=2, DEFAULT 128, recommended 32,48,1k,64k,1m etc...\n"
            "special options:\n"
            "  -d  Diff only, do't run patch check, DEFAULT run patch check;\n"
            "  -c-compressType-compressLevel\n"
@@ -520,8 +520,8 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
         exitCode=hdiff_s(oldFileName,newFileName,outDiffFileName,isPatchCheck,
                          matchValue,streamCompressPlugin,decompressPlugin);
     }
-    double time1=clock_s();
-    std::cout<<"\nall   time: "<<(time1-time0)<<" s\n";
+    if (isPatchCheck)
+        std::cout<<"\nall   time: "<<(clock_s()-time0)<<" s\n";
     return exitCode;
 }
 

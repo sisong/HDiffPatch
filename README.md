@@ -18,7 +18,7 @@ memory options:
   -s-matchBlockSize
       all file load as Stream, with matchBlockSize; fast;
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;
-      matchBlockSize>=2, DEFAULT 128, recommended 32--16k 64k 1m etc...
+      matchBlockSize>=2, DEFAULT 128, recommended 32,48,1k,64k,1m etc...
 special options:
   -d  Diff only, do't run patch check, DEFAULT run patch check;
   -c-compressType-compressLevel 
