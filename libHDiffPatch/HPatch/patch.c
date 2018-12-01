@@ -2,7 +2,7 @@
 //
 /*
  The MIT License (MIT)
- Copyright (c) 2012-2017 HouSisong
+ Copyright (c) 2012-2018 HouSisong
 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -30,6 +30,7 @@
 #ifdef _IS_NEED_CACHE_OLD_BY_COVERS
 #   include <stdlib.h> //qsort
 #endif
+#include "patch_private.h"
 
 //__RUN_MEM_SAFE_CHECK用来启动内存访问越界检查,用以防御可能被意外或故意损坏的数据.
 #define __RUN_MEM_SAFE_CHECK
@@ -912,30 +913,12 @@ static hpatch_BOOL _patch_stream_with_cache(const struct hpatch_TStreamOutput* o
 
 #define kVersionTypeLen 8
 
-typedef struct _THDiffzHead{
-    TUInt coverCount;
-    
-    TUInt cover_buf_size;
-    TUInt compress_cover_buf_size;
-    TUInt rle_ctrlBuf_size;
-    TUInt compress_rle_ctrlBuf_size;
-    TUInt rle_codeBuf_size;
-    TUInt compress_rle_codeBuf_size;
-    TUInt newDataDiff_size;
-    TUInt compress_newDataDiff_size;
-    
-    TUInt headEndPos;
-    TUInt coverEndPos;
-} _THDiffzHead;
-
-
 //assert(hpatch_kStreamCacheSize>=hpatch_kMaxCompressTypeLength+1);
 struct __private_hpatch_check_kMaxCompressTypeLength {
     char _[(hpatch_kStreamCacheSize>=(hpatch_kMaxCompressTypeLength+1))?1:-1];};
 
-static hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,
-                                   _THDiffzHead* out_head,
-                                   const hpatch_TStreamInput* compressedDiff){
+hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,_THDiffzHead* out_head,
+                            const hpatch_TStreamInput* compressedDiff){
     TStreamClip  _diffHeadClip;
     TStreamClip* diffHeadClip=&_diffHeadClip;
     TByte       temp_cache[hpatch_kStreamCacheSize];

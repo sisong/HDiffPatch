@@ -241,8 +241,8 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 }
 
 
-TDiffStream::TDiffStream(hpatch_TStreamOutput* _out_diff,const TCovers& _covers)
-:out_diff(_out_diff),covers(_covers),writePos(0),_temp_buf(0){
+TDiffStream::TDiffStream(const hpatch_TStreamOutput* _out_diff)
+:out_diff(_out_diff),writePos(0),_temp_buf(0){
     _temp_buf=(unsigned char*)malloc(kBufSize);
     if (!_temp_buf) throw std::runtime_error("TDiffStream::TDiffStream() malloc() error!");
 }
@@ -319,4 +319,65 @@ void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
     }
 }
 
+TStreamClip::TStreamClip(const hpatch_TStreamInput* stream,
+                         hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos,
+                         hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressSize)
+:_src(stream),_src_begin(clipBeginPos),_src_end(clipEndPos),
+_decompressPlugin(decompressPlugin),_read_uncompress_pos(0),_decompressHandle(0){
+    assert(clipBeginPos<=clipEndPos);
+    assert(clipEndPos<=stream->streamSize);
+    this->streamHandle=this;
+    this->streamSize=uncompressSize;
+    this->read=_clip_read;
+    
+    if (decompressPlugin)
+        openDecompressHandle();
+}
+    
+TStreamClip::~TStreamClip(){
+    closeDecompressHandle();
+}
+    
+    
+void TStreamClip::closeDecompressHandle(){
+    hpatch_decompressHandle handle=_decompressHandle;
+    _decompressHandle=0;
+    if (handle)
+        _decompressPlugin->close(_decompressPlugin,handle);
+}
+void TStreamClip::openDecompressHandle(){
+    assert(_decompressHandle==0);
+    assert(_decompressPlugin!=0);
+    _decompressHandle=_decompressPlugin->open(_decompressPlugin,this->streamSize,_src,_src_begin,_src_end);
+    check(_decompressHandle!=0);
+}
+
+long TStreamClip::_clip_read(hpatch_TStreamInputHandle streamHandle,
+                             const hpatch_StreamPos_t readFromPos,
+                             unsigned char* out_data,unsigned char* out_data_end){
+    TStreamClip* self=(TStreamClip*)streamHandle;
+    assert(out_data<out_data_end);
+    if (readFromPos!=self->_read_uncompress_pos){
+        if (readFromPos==0){//reset
+            self->closeDecompressHandle();
+            if (self->_decompressPlugin)
+                self->openDecompressHandle();
+            self->_read_uncompress_pos=0;
+        }else{
+            assert(false); //not support
+        }
+    }
+    size_t readLen=out_data_end-out_data;
+    assert(readFromPos+readLen <= self->streamSize);
+    self->_read_uncompress_pos+=readLen;
+    
+    if (self->_decompressPlugin){
+        return self->_decompressPlugin->decompress_part(self->_decompressPlugin,
+                                                        self->_decompressHandle,out_data,out_data_end);
+    }else{
+        return self->_src->read(self->_src->streamHandle,
+                                self->_src_begin+readFromPos,out_data,out_data_end);
+    }
+}
+    
 }//namespace hdiff_private

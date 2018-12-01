@@ -72,6 +72,7 @@
 		D690ABB61F2079E80089DC57 /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
 		D690AEFA1F2097C90089DC57 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		D690AEFC1F2097D30089DC57 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		D69A372B21AED4B2000A0A93 /* patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_private.h; sourceTree = "<group>"; };
 		D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = digest_matcher.cpp; sourceTree = "<group>"; };
 		D6DD68DF1F4015A900A1B22B /* digest_matcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = digest_matcher.h; sourceTree = "<group>"; };
 		D6DD68E11F40163200A1B22B /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = adler_roll.h; sourceTree = "<group>"; };
@@ -181,6 +182,7 @@
 		D690ABB41F2079E80089DC57 /* HPatch */ = {
 			isa = PBXGroup;
 			children = (
+				D69A372B21AED4B2000A0A93 /* patch_private.h */,
 				D690ABB51F2079E80089DC57 /* patch.c */,
 				D690ABB61F2079E80089DC57 /* patch.h */,
 				D6E150941F21A95200C2AD3D /* patch_types.h */,

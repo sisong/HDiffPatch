@@ -2,7 +2,7 @@
 //
 /*
  The MIT License (MIT)
- Copyright (c) 2012-2017 HouSisong
+ Copyright (c) 2012-2018 HouSisong
 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -36,6 +36,7 @@
 #include "private_diff/compress_detect.h"
 #include "private_diff/pack_uint.h"
 #include "../HPatch/patch.h"
+#include "../HPatch/patch_private.h"
 using namespace hdiff_private;
 
 static const char kHDiffVersionType[8+1]="HDIFF13&";
@@ -52,14 +53,14 @@ namespace{
     
     //覆盖线.
     struct TOldCover {
-        TInt   newPos;
         TInt   oldPos;
+        TInt   newPos;
         TInt   length;
-        inline TOldCover():newPos(0),oldPos(0),length(0) { }
-        inline TOldCover(TInt _newPos,TInt _oldPos,TInt _length)
-            :newPos(_newPos),oldPos(_oldPos),length(_length) { }
+        inline TOldCover():oldPos(0),newPos(0),length(0) { }
+        inline TOldCover(TInt _oldPos,TInt _newPos,TInt _length)
+            :oldPos(_oldPos),newPos(_newPos),length(_length) { }
         inline TOldCover(const TOldCover& cover)
-            :newPos(cover.newPos),oldPos(cover.oldPos),length(cover.length) { }
+            :oldPos(cover.oldPos),newPos(cover.newPos),length(cover.length) { }
         
         inline bool isCanLink(const TOldCover& next)const{//覆盖线是否可以连接.
             return isCollinear(next)&&(linkSpaceLength(next)<=kMaxLinkSpaceLength);
@@ -194,7 +195,7 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring){
     while (newPos<=maxSearchNewPos) {
         TInt matchOldPos=0;
         TInt matchEqLength=getBestMatch(&matchOldPos,sstring,diff.newData+newPos,diff.newData_end);
-        TOldCover matchCover(newPos,matchOldPos,matchEqLength);
+        TOldCover matchCover(matchOldPos,newPos,matchEqLength);
         if (matchEqLength-getCoverCtrlCost(matchCover,lastCover)<kMinMatchScore){
             ++newPos;//下一个需要匹配的字符串(逐位置匹配速度会比较慢).
             continue;
@@ -683,7 +684,7 @@ static void getCovers_stream(const hpatch_TStreamInput*  newData,
 
 static void stream_serialize(const hpatch_TStreamInput*  newData,
                              hpatch_StreamPos_t          oldDataSize,
-                             hpatch_TStreamOutput*       out_diff,
+                             const hpatch_TStreamOutput* out_diff,
                              hdiff_TStreamCompress* compressPlugin,
                              const TCovers& covers){
     
@@ -695,7 +696,7 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
         assert(rle_codeBuf.empty());
     }
     
-    TDiffStream outDiff(out_diff,covers);
+    TDiffStream outDiff(out_diff);
     const char* compressType="";
     if (compressPlugin){
         compressType=compressPlugin->compressType(compressPlugin);
@@ -736,7 +737,7 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
 
 void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
-                                   hpatch_TStreamOutput*       out_diff,
+                                   const hpatch_TStreamOutput* out_diff,
                                    hdiff_TStreamCompress* compressPlugin,
                                    size_t kMatchBlockSize){
     const bool isSkipSameRange=(compressPlugin!=0);
@@ -745,3 +746,81 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
     stream_serialize(newData,oldData->streamSize,out_diff,compressPlugin,covers);
 }
 
+
+void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
+                            hpatch_TDecompress*         decompressPlugin,
+                            const hpatch_TStreamOutput* out_diff,
+                            hdiff_TStreamCompress*      compressPlugin){
+    _THDiffzHead              head;
+    hpatch_compressedDiffInfo diffInfo;
+    assert(in_diff!=0);
+    assert(in_diff->read!=0);
+    assert(out_diff!=0);
+    assert(out_diff->write!=0);
+    
+    {//read head
+        if (!read_diffz_head(&diffInfo,&head,in_diff))
+            throw std::runtime_error("resave_compressed_diff() read_diffz_head() error!");
+        if ((decompressPlugin==0)&&(diffInfo.compressedCount!=0))
+            throw std::runtime_error("resave_compressed_diff() decompressPlugin null error!");
+        if ((decompressPlugin)&&(diffInfo.compressedCount>0)){
+            if (!decompressPlugin->is_can_open(decompressPlugin,&diffInfo))
+                throw std::runtime_error("resave_compressed_diff() decompressPlugin cannot open compressed data error!");
+        }
+    }
+    
+    TDiffStream outDiff(out_diff);
+    const char* compressType="";
+    if (compressPlugin){
+        compressType=compressPlugin->compressType(compressPlugin);
+        check(strlen(compressType)<=hpatch_kMaxCompressTypeLength);
+    }
+    outDiff.pushBack((const TByte*)kHDiffVersionType,strlen(kHDiffVersionType));
+    outDiff.pushBack((const TByte*)compressType,strlen(compressType)+1);//with '\0'
+    outDiff.packUInt(diffInfo.newDataSize);
+    outDiff.packUInt(diffInfo.oldDataSize);
+    outDiff.packUInt(head.coverCount);
+    outDiff.packUInt(head.cover_buf_size);
+    TPlaceholder compress_cover_buf_sizePos=
+        outDiff.packUInt_pos(compressPlugin?head.cover_buf_size:0);//compress_cover_buf size
+    outDiff.packUInt(head.rle_ctrlBuf_size);//rle_ctrlBuf size
+    TPlaceholder compress_rle_ctrlBuf_sizePos=
+        outDiff.packUInt_pos(compressPlugin?head.rle_ctrlBuf_size:0);//compress_rle_ctrlBuf size
+    outDiff.packUInt(head.rle_codeBuf_size);//rle_codeBuf size
+    TPlaceholder compress_rle_codeBuf_sizePos=
+        outDiff.packUInt_pos(compressPlugin?head.rle_codeBuf_size:0);//compress_rle_codeBuf size
+    outDiff.packUInt(head.newDataDiff_size);
+    TPlaceholder compress_newDataDiff_sizePos=
+        outDiff.packUInt_pos(compressPlugin?head.newDataDiff_size:0);//compress_newDataDiff size
+    
+    {//save covers
+        TStreamClip clip(in_diff,head.headEndPos,head.coverEndPos,
+                         (head.compress_cover_buf_size>0)?decompressPlugin:0,head.cover_buf_size);
+        outDiff.pushStream(&clip,compressPlugin,compress_cover_buf_sizePos);
+    }
+    hpatch_StreamPos_t diffPos0=head.coverEndPos;
+    {//save rle ctrl
+        bool isCompressed=(head.compress_rle_ctrlBuf_size>0);
+        hpatch_StreamPos_t bufSize=isCompressed?head.compress_rle_ctrlBuf_size:head.rle_ctrlBuf_size;
+        TStreamClip clip(in_diff,diffPos0,diffPos0+bufSize,
+                         isCompressed?decompressPlugin:0,head.rle_ctrlBuf_size);
+        outDiff.pushStream(&clip,compressPlugin,compress_rle_ctrlBuf_sizePos);
+        diffPos0+=bufSize;
+    }
+    {//save rle code
+        bool isCompressed=(head.compress_rle_codeBuf_size>0);
+        hpatch_StreamPos_t bufSize=isCompressed?head.compress_rle_codeBuf_size:head.rle_codeBuf_size;
+        TStreamClip clip(in_diff,diffPos0,diffPos0+bufSize,
+                         isCompressed?decompressPlugin:0,head.rle_codeBuf_size);
+        outDiff.pushStream(&clip,compressPlugin,compress_rle_codeBuf_sizePos);
+        diffPos0+=bufSize;
+    }
+    {//save newDataDiff
+        bool isCompressed=(head.compress_newDataDiff_size>0);
+        hpatch_StreamPos_t bufSize=isCompressed?head.compress_newDataDiff_size:head.newDataDiff_size;
+        TStreamClip clip(in_diff,diffPos0,diffPos0+bufSize,
+                         isCompressed?decompressPlugin:0,head.newDataDiff_size);
+        outDiff.pushStream(&clip,compressPlugin,compress_newDataDiff_sizePos);
+        diffPos0+=bufSize;
+    }
+}

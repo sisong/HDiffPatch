@@ -49,13 +49,8 @@
 #   define _CompressPlugin_zlib
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma
-#   define _CompressPlugin_lz4 // & _CompressPlugin_lz4hc
+#   define _CompressPlugin_lz4 // || _CompressPlugin_lz4hc
 #   define _CompressPlugin_zstd
-#endif
-#ifdef _CompressPlugin_lz4hc
-#   ifndef _CompressPlugin_lz4
-#       define _CompressPlugin_lz4
-#   endif
 #endif
 
 #include "decompress_plugin_demo.h"
@@ -269,7 +264,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
             if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(&lzmaDecompressPlugin,&diffInfo))
                 decompressPlugin=&lzmaDecompressPlugin;
 #endif
-#ifdef  _CompressPlugin_lz4
+#if (defined(_CompressPlugin_lz4) || (defined(_CompressPlugin_lz4hc)))
             if ((!decompressPlugin)&&lz4DecompressPlugin.is_can_open(&lz4DecompressPlugin,&diffInfo))
                 decompressPlugin=&lz4DecompressPlugin;
 #endif
