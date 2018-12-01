@@ -53,14 +53,14 @@ namespace{
     
     //覆盖线.
     struct TOldCover {
-        TInt   newPos;
         TInt   oldPos;
+        TInt   newPos;
         TInt   length;
-        inline TOldCover():newPos(0),oldPos(0),length(0) { }
-        inline TOldCover(TInt _newPos,TInt _oldPos,TInt _length)
-            :newPos(_newPos),oldPos(_oldPos),length(_length) { }
+        inline TOldCover():oldPos(0),newPos(0),length(0) { }
+        inline TOldCover(TInt _oldPos,TInt _newPos,TInt _length)
+            :oldPos(_oldPos),newPos(_newPos),length(_length) { }
         inline TOldCover(const TOldCover& cover)
-            :newPos(cover.newPos),oldPos(cover.oldPos),length(cover.length) { }
+            :oldPos(cover.oldPos),newPos(cover.newPos),length(cover.length) { }
         
         inline bool isCanLink(const TOldCover& next)const{//覆盖线是否可以连接.
             return isCollinear(next)&&(linkSpaceLength(next)<=kMaxLinkSpaceLength);
@@ -195,7 +195,7 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring){
     while (newPos<=maxSearchNewPos) {
         TInt matchOldPos=0;
         TInt matchEqLength=getBestMatch(&matchOldPos,sstring,diff.newData+newPos,diff.newData_end);
-        TOldCover matchCover(newPos,matchOldPos,matchEqLength);
+        TOldCover matchCover(matchOldPos,newPos,matchEqLength);
         if (matchEqLength-getCoverCtrlCost(matchCover,lastCover)<kMinMatchScore){
             ++newPos;//下一个需要匹配的字符串(逐位置匹配速度会比较慢).
             continue;

@@ -581,7 +581,7 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     
     check(TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),HDIFF_OPENWRITE_ERROR,"open out diffFile ERROR!");
     TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
-    std::cout<<"\ninDiffSize : "<<diffData_in.base.streamSize<<"\n";
+    std::cout<<"inDiffSize : "<<diffData_in.base.streamSize<<"\n";
     try{
         resave_compressed_diff(&diffData_in.base,decompressPlugin,&diffData_out.base,streamCompressPlugin);
         diffData_out.base.streamSize=diffData_out.out_length;
