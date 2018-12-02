@@ -1,6 +1,6 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v2.5.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![release](https://img.shields.io/badge/release-v2.5.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 a C\C++ library and command-line tools for binary data Diff & Patch.   
 ( Jar or Zip file diff & patch? update Android Apk? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )
@@ -8,7 +8,8 @@ a C\C++ library and command-line tools for binary data Diff & Patch.
 ---
 ## command line usage:
 **hdiffz** [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-d] [-o] **oldFile newFile outDiffFile**   
-**hdiffz** [-c-compressType[-compressLevel]] **diffFile outDiffFile**
+**hdiffz** [-c-compressType[-compressLevel]] **diffFile outDiffFile**   
+**hdiffz** -t **oldFile newFile testDiffFile**   
 ```
 memory options:
   -m-matchScore
@@ -20,7 +21,6 @@ memory options:
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;
       matchBlockSize>=2, DEFAULT 128, recommended 32,48,1k,64k,1m etc...
 special options:
-  -d  Diff only, do't run patch check, DEFAULT run patch check;
   -c-compressType-compressLevel 
       set outDiffFile Compress type & level, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
@@ -33,6 +33,8 @@ special options:
         -lz4                        no level
         -lz4hc[-{3..12}]            DEFAULT level 11
         -zstd[-{0..22}]             DEFAULT level 20
+  -d  Diff only, do't run patch check, DEFAULT run patch check;
+  -t  Test only, run patch check, patch(oldFile,testDiffFile)==newFile ?
   -o  Original diff, unsupport run with -s or -c; DEPRECATED;
       compatible with "diff_demo.cpp",
       diffFile must patch by "patch_demo.c" or "hpatchz -o ..."
