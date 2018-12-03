@@ -33,7 +33,8 @@ special options:
         -lz4                        no level
         -lz4hc[-{3..12}]            DEFAULT level 11
         -zstd[-{0..22}]             DEFAULT level 20
-  -d  Diff only, do't run patch check, DEFAULT run patch check;
+  -v  output Version info.
+  -d  Diff only, do't run patch check, DEFAULT run patch check.
   -t  Test only, run patch check, patch(oldFile,testDiffFile)==newFile ?
   -o  Original diff, unsupport run with -s or -c; DEPRECATED;
       compatible with "diff_demo.cpp",
@@ -49,6 +50,7 @@ memory options:
       requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;
       cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m
 special options:
+  -v  output Version info.
   -o  Original patch; DEPRECATED; compatible with "patch_demo.c",
       diffFile must created by "diff_demo.cpp" or "hdiffz -o ..."
 ```

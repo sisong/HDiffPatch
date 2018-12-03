@@ -81,6 +81,7 @@ static void printUsage(){
            "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m\n"
 #if (_IS_NEED_ORIGINAL)
            "special options:\n"
+           "  -v  output Version info. \n"
            "  -o  Original patch; DEPRECATED; compatible with \"patch_demo.c\",\n"
            "      diffFile must created by \"diff_demo.cpp\" or \"hdiffz -o ...\"\n"
 #endif
@@ -127,13 +128,27 @@ int main(int argc, const char * argv[]){
 int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=_kNULL_VALUE;
     hpatch_BOOL isLoadOldAll=_kNULL_VALUE;
+    hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      patchCacheSize=0;
+    #define kMax_arg_values_size 3
+    const char * arg_values[kMax_arg_values_size]={0};
+    int          arg_values_size=0;
     int         i;
-    _options_check(argc>=4,"count");
-    for (i=1; i<argc-3; ++i) {
+    for (i=1; i<argc; ++i) {
         const char* op=argv[i];
+        _options_check((op!=0)&&(strlen(op)>0),"?");
+        if (op[0]!='-'){
+            _options_check(arg_values_size<kMax_arg_values_size,"count");
+            arg_values[arg_values_size]=op; //filename
+            ++arg_values_size;
+            continue;
+        }
         _options_check((op!=0)&&(op[0]=='-'),"?");
         switch (op[1]) {
+            case 'v':{
+                _options_check((isOutputVersion==_kNULL_VALUE)&&(op[2]=='\0'),"-v");
+                isOutputVersion=hpatch_TRUE;
+            } break;
 #if (_IS_NEED_ORIGINAL)
             case 'o':{
                 _options_check((isOriginal==_kNULL_VALUE)&&(op[2]=='\0'),"-o");
@@ -161,6 +176,16 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             } break;
         }//swich
     }
+    
+    if (isOutputVersion==_kNULL_VALUE)
+        isOutputVersion=hpatch_FALSE;
+    if (isOutputVersion){
+        printf("HDiffPatch::hpatchz v" HDIFFPATCH_VERSION_STRING "\n\n");
+        if (arg_values_size==0)
+            return 0; //ok
+    }
+    
+    _options_check(arg_values_size==kMax_arg_values_size,"count");
     if (isOriginal==_kNULL_VALUE)
         isOriginal=hpatch_FALSE;
     if (isLoadOldAll==_kNULL_VALUE){
@@ -169,9 +194,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     }
     
     {
-        const char* oldFileName=argv[argc-3];
-        const char* diffFileName=argv[argc-2];
-        const char* outNewFileName=argv[argc-1];
+        const char* oldFileName=arg_values[0];
+        const char* diffFileName=arg_values[1];
+        const char* outNewFileName=arg_values[2];
         return hpatch(oldFileName,diffFileName,outNewFileName,isOriginal,isLoadOldAll,patchCacheSize);
     }
 }

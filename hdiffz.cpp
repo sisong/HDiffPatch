@@ -117,7 +117,8 @@ static void printUsage(){
 #ifdef _CompressPlugin_zstd
            "        -zstd[-{0..22}]             DEFAULT level 20\n"
 #endif
-           "  -d  Diff only, do't run patch check, DEFAULT run patch check;\n"
+           "  -v  output Version info. \n"
+           "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
            "  -t  Test only, run patch check, patch(oldFile,testDiffFile)==newFile ? \n"
 #if (_IS_NEED_ORIGINAL)
            "  -o  Original diff, unsupport run with -s or -c; DEPRECATED;\n"
@@ -213,6 +214,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isLoadAll=_kNULL_VALUE;
     hpatch_BOOL isPatchCheck=_kNULL_VALUE;
     hpatch_BOOL isTestModel=_kNULL_VALUE;
+    hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      matchValue=0;
     size_t      compressLevel=0;
 #ifdef _CompressPlugin_lzma
@@ -224,7 +226,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     std::vector<const char *> arg_values;
     for (int i=1; i<argc; ++i) {
         const char* op=argv[i];
-        _options_check((op!=0)||(strlen(op)==0),"?");
+        _options_check((op!=0)&&(strlen(op)>0),"?");
         if (op[0]!='-'){
             arg_values.push_back(op); //filename
             continue;
@@ -254,6 +256,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 }else{
                     matchValue=kMatchBlockSize_default;
                 }
+            } break;
+            case 'v':{
+                _options_check((isOutputVersion==_kNULL_VALUE)&&(op[2]=='\0'),"-v");
+                isOutputVersion=hpatch_TRUE;
             } break;
             case 't':{
                 _options_check((isTestModel==_kNULL_VALUE)&&(op[2]=='\0'),"-t");
@@ -310,6 +316,14 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 _options_check(hpatch_FALSE,"-?");
             } break;
         }//swich
+    }
+    
+    if (isOutputVersion==_kNULL_VALUE)
+        isOutputVersion=hpatch_FALSE;
+    if (isOutputVersion){
+        std::cout<<"HDiffPatch::hdiffz v" HDIFFPATCH_VERSION_STRING "\n\n";
+        if (arg_values.empty())
+            return 0; //ok
     }
     
     _options_check((arg_values.size()==2)||(arg_values.size()==3),"count");
