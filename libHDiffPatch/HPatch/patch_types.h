@@ -2,7 +2,7 @@
 //
 /*
  The MIT License (MIT)
- Copyright (c) 2012-2017 HouSisong
+ Copyright (c) 2012-2018 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -29,12 +29,21 @@
 #ifndef HPatch_patch_types_h
 #define HPatch_patch_types_h
 
-#include <string.h>//for size_t
+#include <string.h> //for size_t memset memcpy
 #include <assert.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define HDIFFPATCH_VERSION_MAJOR    2
+#define HDIFFPATCH_VERSION_MINOR    5
+#define HDIFFPATCH_VERSION_RELEASE  1
+
+#define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
+#define _HDIFFPATCH_QUOTE(str) #str
+#define _HDIFFPATCH_EXPAND_AND_QUOTE(str) _HDIFFPATCH_QUOTE(str)
+#define HDIFFPATCH_VERSION_STRING   _HDIFFPATCH_EXPAND_AND_QUOTE(_HDIFFPATCH_VERSION)
     
 #if defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
 #   include <stdint.h> //for uint32_t,uint64_t

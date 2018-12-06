@@ -69,8 +69,8 @@ extern "C" {
 
 #define  __private_fast_adler_roll(uint_t,half_bit, \
                                   adler,blockSize,out_data,in_data){ \
-    uint32_t in_v=((uint32_t)in_data)*in_data;  \
-    uint32_t out_v=(uint32_t)out_data*out_data; \
+    uint32_t in_v=((uint32_t)in_data)*in_data;    \
+    uint32_t out_v=((uint32_t)out_data)*out_data; \
     uint_t sum=adler>>half_bit;  \
     adler= adler + in_v - out_v; \
     sum  = sum + adler - ADLER_INITIAL-(uint32_t)(((uint32_t)blockSize)*out_v); \
