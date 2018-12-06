@@ -29,7 +29,7 @@
 #ifndef HPatch_patch_types_h
 #define HPatch_patch_types_h
 
-#include <string.h>//for size_t
+#include <string.h> //for size_t memset memcpy
 #include <assert.h>
 
 #ifdef __cplusplus
