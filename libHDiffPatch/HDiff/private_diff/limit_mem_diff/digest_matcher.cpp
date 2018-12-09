@@ -524,7 +524,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
             out_curCover->oldPos=matchedOldPos;
             out_curCover->newPos=newPos-(oldPos-matchedOldPos);
             if (curEqLen>=digests_eq_n*kMatchBlockSize)
-                break;//matched best
+                break;//matched mybe best
         }
     }
     return isMatched;
