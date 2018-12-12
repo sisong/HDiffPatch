@@ -45,14 +45,22 @@
 #ifndef _IS_NEED_ORIGINAL
 #   define  _IS_NEED_ORIGINAL 1
 #endif
-#ifndef _IS_NEED_ALL_CompressPlugin
-#   define _IS_NEED_ALL_CompressPlugin 1
+
+#ifndef _IS_NEED_DEFAULT_CompressPlugin
+#   define _IS_NEED_DEFAULT_CompressPlugin 1
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
+#   undef  _IS_NEED_DEFAULT_CompressPlugin
+#   define _IS_NEED_DEFAULT_CompressPlugin 1
+#endif
+#if (_IS_NEED_DEFAULT_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_zlib  // memroy requires less
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma  // better compresser
+#endif
+#if (_IS_NEED_ALL_CompressPlugin)
+//===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_lz4   // faster compresser/decompresser
 #   define _CompressPlugin_lz4hc // faster decompresser
 #   define _CompressPlugin_zstd  // better compresser / faster decompresser

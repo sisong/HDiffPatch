@@ -41,14 +41,22 @@
 #ifndef _IS_NEED_ORIGINAL
 #   define  _IS_NEED_ORIGINAL 1
 #endif
-#ifndef _IS_NEED_ALL_CompressPlugin
-#   define _IS_NEED_ALL_CompressPlugin 1
+
+#ifndef _IS_NEED_DEFAULT_CompressPlugin
+#   define _IS_NEED_DEFAULT_CompressPlugin 1
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
+#   undef  _IS_NEED_DEFAULT_CompressPlugin
+#   define _IS_NEED_DEFAULT_CompressPlugin 1
+#endif
+#if (_IS_NEED_DEFAULT_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_zlib
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma
+#endif
+#if (_IS_NEED_ALL_CompressPlugin)
+//===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_lz4 // || _CompressPlugin_lz4hc
 #   define _CompressPlugin_zstd
 #endif
