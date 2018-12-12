@@ -19,7 +19,6 @@
 		D68CD9171F469DDB00A61337 /* stream_serialize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D68CD9131F469DDB00A61337 /* stream_serialize.cpp */; };
 		D6E150B41F23B66D00C2AD3D /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E150B21F23B66D00C2AD3D /* libbz2.tbd */; };
 		D6E150B51F23B66D00C2AD3D /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E150B31F23B66D00C2AD3D /* libz.tbd */; };
-		D6E1512C1F276E1200C2AD3D /* liblzma.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6E1512B1F276E1200C2AD3D /* liblzma.tbd */; };
 		D6EE50601F2990AD002854A2 /* compress_detect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6EE505E1F2990AD002854A2 /* compress_detect.cpp */; };
 /* End PBXBuildFile section */
 
@@ -68,9 +67,9 @@
 		D6CB33611664FD2900AB34B7 /* bestParams */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bestParams; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6E150B21F23B66D00C2AD3D /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		D6E150B31F23B66D00C2AD3D /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
-		D6E1512B1F276E1200C2AD3D /* liblzma.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = liblzma.tbd; path = usr/lib/liblzma.tbd; sourceTree = SDKROOT; };
 		D6EE505E1F2990AD002854A2 /* compress_detect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compress_detect.cpp; sourceTree = "<group>"; };
 		D6EE505F1F2990AD002854A2 /* compress_detect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compress_detect.h; sourceTree = "<group>"; };
+		D6EF751F21C13CE4000EBBCC /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,7 +77,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D6E1512C1F276E1200C2AD3D /* liblzma.tbd in Frameworks */,
 				D6E150B41F23B66D00C2AD3D /* libbz2.tbd in Frameworks */,
 				D6E150B51F23B66D00C2AD3D /* libz.tbd in Frameworks */,
 			);
@@ -168,7 +166,7 @@
 		D690A7B21F0E6F260089DC57 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D6E1512B1F276E1200C2AD3D /* liblzma.tbd */,
+				D6EF751F21C13CE4000EBBCC /* liblzma.a */,
 				D6E150B21F23B66D00C2AD3D /* libbz2.tbd */,
 				D6E150B31F23B66D00C2AD3D /* libz.tbd */,
 			);

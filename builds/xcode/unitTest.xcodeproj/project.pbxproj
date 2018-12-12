@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		D639ACDC2089C7A200811BB3 /* unit_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D639ACDB2089C7A200811BB3 /* unit_test.cpp */; };
-		D64989801F5FDABF000FCC24 /* liblz4.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D649897E1F5FDABF000FCC24 /* liblz4.a */; };
-		D64989811F5FDABF000FCC24 /* libzstd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D649897F1F5FDABF000FCC24 /* libzstd.a */; };
 		D64989871F602E99000FCC24 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64989861F602E99000FCC24 /* liblzma.a */; };
 		D68CD8FC1F44367A00A61337 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D68CD8F41F44367A00A61337 /* adler_roll.c */; };
 		D68CD8FD1F44367A00A61337 /* digest_matcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D68CD8F81F44367A00A61337 /* digest_matcher.cpp */; };
@@ -40,8 +38,6 @@
 /* Begin PBXFileReference section */
 		801FA5621999090000F7E57B /* pack_uint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pack_uint.h; sourceTree = "<group>"; };
 		D639ACDB2089C7A200811BB3 /* unit_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = unit_test.cpp; path = ../../test/unit_test.cpp; sourceTree = "<group>"; };
-		D649897E1F5FDABF000FCC24 /* liblz4.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = liblz4.a; path = "../../../../housisong/Library/Developer/Xcode/DerivedData/HDiffPatch-eyllrfrhmsokhaatowcgosnaofne/Build/Products/Release/liblz4.a"; sourceTree = "<group>"; };
-		D649897F1F5FDABF000FCC24 /* libzstd.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libzstd.a; path = "../../../../housisong/Library/Developer/Xcode/DerivedData/HDiffPatch-eyllrfrhmsokhaatowcgosnaofne/Build/Products/Release/libzstd.a"; sourceTree = "<group>"; };
 		D64989861F602E99000FCC24 /* liblzma.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = liblzma.a; path = "../../../../housisong/Library/Developer/Xcode/DerivedData/HDiffPatch-eyllrfrhmsokhaatowcgosnaofne/Build/Products/Release/liblzma.a"; sourceTree = "<group>"; };
 		D68CD8F41F44367A00A61337 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = adler_roll.c; sourceTree = "<group>"; };
 		D68CD8F51F44367A00A61337 /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = adler_roll.h; sourceTree = "<group>"; };
@@ -84,8 +80,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				D64989871F602E99000FCC24 /* liblzma.a in Frameworks */,
-				D64989801F5FDABF000FCC24 /* liblz4.a in Frameworks */,
-				D64989811F5FDABF000FCC24 /* libzstd.a in Frameworks */,
 				D6E150A01F238B2C00C2AD3D /* libbz2.tbd in Frameworks */,
 				D6E150A11F238B2C00C2AD3D /* libz.tbd in Frameworks */,
 			);
@@ -195,8 +189,6 @@
 			isa = PBXGroup;
 			children = (
 				D64989861F602E99000FCC24 /* liblzma.a */,
-				D649897E1F5FDABF000FCC24 /* liblz4.a */,
-				D649897F1F5FDABF000FCC24 /* libzstd.a */,
 				D6E1509E1F238B2C00C2AD3D /* libbz2.tbd */,
 				D6E1509F1F238B2C00C2AD3D /* libz.tbd */,
 			);

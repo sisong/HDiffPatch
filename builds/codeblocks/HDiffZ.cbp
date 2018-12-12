@@ -48,9 +48,6 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 			<Add option="-D_7ZIP_ST" />
-			<Add directory="../../../zstd/lib" />
-			<Add directory="../../../zstd/lib/common" />
-			<Add directory="../../../lz4/lib/" />
 			<Add directory="../../../lzma/C/" />
 		</Compiler>
 		<Unit filename="../../../bzip2/blocksort.c">
@@ -60,7 +57,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../bzip2/bzlib.h" />
-		<Unit filename="../../../bzip2/bzlib_private.h" />
 		<Unit filename="../../../bzip2/compress.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -74,12 +70,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../bzip2/randtable.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../lz4/lib/lz4.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../lz4/lib/lz4hc.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/LzFind.c">
@@ -100,130 +90,31 @@
 		<Unit filename="../../../zlib/crc32.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../zlib/crc32.h" />
 		<Unit filename="../../../zlib/deflate.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../zlib/deflate.h" />
 		<Unit filename="../../../zlib/infback.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/inffast.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../zlib/inffast.h" />
-		<Unit filename="../../../zlib/inffixed.h" />
 		<Unit filename="../../../zlib/inflate.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../zlib/inflate.h" />
 		<Unit filename="../../../zlib/inftrees.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../zlib/inftrees.h" />
 		<Unit filename="../../../zlib/trees.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../zlib/trees.h" />
 		<Unit filename="../../../zlib/uncompr.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../zlib/zconf.h" />
 		<Unit filename="../../../zlib/zlib.h" />
 		<Unit filename="../../../zlib/zutil.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../zlib/zutil.h" />
-		<Unit filename="../../../zstd/lib/common/bitstream.h" />
-		<Unit filename="../../../zstd/lib/common/compiler.h" />
-		<Unit filename="../../../zstd/lib/common/cpu.h" />
-		<Unit filename="../../../zstd/lib/common/debug.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/common/debug.h" />
-		<Unit filename="../../../zstd/lib/common/entropy_common.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/common/error_private.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/common/error_private.h" />
-		<Unit filename="../../../zstd/lib/common/fse.h" />
-		<Unit filename="../../../zstd/lib/common/fse_decompress.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/common/huf.h" />
-		<Unit filename="../../../zstd/lib/common/mem.h" />
-		<Unit filename="../../../zstd/lib/common/pool.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/common/pool.h" />
-		<Unit filename="../../../zstd/lib/common/threading.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/common/threading.h" />
-		<Unit filename="../../../zstd/lib/common/xxhash.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/common/xxhash.h" />
-		<Unit filename="../../../zstd/lib/common/zstd_common.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/common/zstd_errors.h" />
-		<Unit filename="../../../zstd/lib/common/zstd_internal.h" />
-		<Unit filename="../../../zstd/lib/compress/fse_compress.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/compress/hist.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/compress/hist.h" />
-		<Unit filename="../../../zstd/lib/compress/huf_compress.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/compress/zstd_compress.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/compress/zstd_compress_internal.h" />
-		<Unit filename="../../../zstd/lib/compress/zstd_double_fast.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/compress/zstd_double_fast.h" />
-		<Unit filename="../../../zstd/lib/compress/zstd_fast.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/compress/zstd_fast.h" />
-		<Unit filename="../../../zstd/lib/compress/zstd_lazy.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/compress/zstd_lazy.h" />
-		<Unit filename="../../../zstd/lib/compress/zstd_ldm.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/compress/zstd_ldm.h" />
-		<Unit filename="../../../zstd/lib/compress/zstd_opt.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/compress/zstd_opt.h" />
-		<Unit filename="../../../zstd/lib/compress/zstdmt_compress.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/compress/zstdmt_compress.h" />
-		<Unit filename="../../../zstd/lib/decompress/huf_decompress.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/decompress/zstd_ddict.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/decompress/zstd_ddict.h" />
-		<Unit filename="../../../zstd/lib/decompress/zstd_decompress.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_block.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_block.h" />
-		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_internal.h" />
 		<Unit filename="../../hdiffz.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/diff.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/bytes_rle.cpp" />

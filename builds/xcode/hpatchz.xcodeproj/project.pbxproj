@@ -10,9 +10,7 @@
 		D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */ = {isa = PBXBuildFile; fileRef = D64B4BEE2077AAAA0039C38B /* hpatchz.c */; };
 		D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BF82077B9090039C38B /* libz.tbd */; };
 		D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFA2077B91A0039C38B /* libbz2.tbd */; };
-		D64B4BFD2077B9240039C38B /* liblz4.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFC2077B9240039C38B /* liblz4.a */; };
 		D64B4BFF2077B9240039C38B /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFE2077B9240039C38B /* liblzma.a */; };
-		D64B4C012077B9240039C38B /* libzstd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4C002077B9240039C38B /* libzstd.a */; };
 		D6BD9BCE17578601004886DE /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BCA17578601004886DE /* patch.c */; };
 /* End PBXBuildFile section */
 
@@ -38,9 +36,7 @@
 		D64B4BF42077AB550039C38B /* file_for_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file_for_patch.h; path = ../../file_for_patch.h; sourceTree = "<group>"; };
 		D64B4BF82077B9090039C38B /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		D64B4BFA2077B91A0039C38B /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
-		D64B4BFC2077B9240039C38B /* liblz4.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblz4.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D64B4BFE2077B9240039C38B /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		D64B4C002077B9240039C38B /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6553CB3165FA1A9009D4C44 /* hpatchz */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hpatchz; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6BD9BCA17578601004886DE /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -50,9 +46,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D64B4BFD2077B9240039C38B /* liblz4.a in Frameworks */,
 				D64B4BFF2077B9240039C38B /* liblzma.a in Frameworks */,
-				D64B4C012077B9240039C38B /* libzstd.a in Frameworks */,
 				D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */,
 				D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */,
 			);
@@ -64,9 +58,7 @@
 		D64B4BF72077B9090039C38B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D64B4BFC2077B9240039C38B /* liblz4.a */,
 				D64B4BFE2077B9240039C38B /* liblzma.a */,
-				D64B4C002077B9240039C38B /* libzstd.a */,
 				D64B4BFA2077B91A0039C38B /* libbz2.tbd */,
 				D64B4BF82077B9090039C38B /* libz.tbd */,
 			);
