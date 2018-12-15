@@ -30,9 +30,6 @@ special options:
         -bzip2[-{1..9}]             DEFAULT level 9
         -lzma[-{0..9}[-dictSize]]   DEFAULT level 7
             dictSize(==decompress stream size) can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m
-        -lz4                        no level
-        -lz4hc[-{3..12}]            DEFAULT level 11
-        -zstd[-{0..22}]             DEFAULT level 20
   -v  output Version info.
   -d  Diff only, do't run patch check, DEFAULT run patch check.
   -t  Test only, run patch check, patch(oldFile,testDiffFile)==newFile ?

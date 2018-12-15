@@ -21,7 +21,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-O2" />
+					<Add option="-O3" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -32,10 +32,9 @@
 				<Option object_output="obj/Release_x86/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-m -c-zlib /media/sf_Shared/test/testDiff/gcc-4.7.0.tar  /media/sf_Shared/test/testDiff/gcc-4.8.0.tar  /media/sf_Shared/test/testDiff/gcc-4.7--4.8.tar.hpat_zlib" />
 				<Compiler>
 					<Add option="-march=i386" />
-					<Add option="-O2" />
+					<Add option="-O3" />
 					<Add option="-m32" />
 				</Compiler>
 				<Linker>
