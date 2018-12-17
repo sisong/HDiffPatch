@@ -99,7 +99,7 @@ static void printUsage(){
            "  -s-matchBlockSize\n"
            "      all file load as Stream, with matchBlockSize; fast;\n"
            "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;\n"
-           "      matchBlockSize>=2, DEFAULT 128, recommended 32,48,1k,64k,1m etc...\n"
+           "      matchBlockSize>=2, DEFAULT 64, recommended 32,48,1k,64k,1m etc...\n"
            "special options:\n"
            "  -c-compressType-compressLevel\n"
            "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"
