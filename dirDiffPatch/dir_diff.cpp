@@ -31,10 +31,12 @@
 #include <map>
 #include <set>
 #include "file_for_dir.h"
+#include "../file_for_patch.h"
+#include "../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 
 #define kFileIOBufSize  (64*1024)
-#define _error(info) throw new std::runtime_error(info);
+#define check(value,info) if (!(value)) throw new std::runtime_error(info);
 
 void assignDirTag(std::string& dir){
     if (dir.empty()||(dir.back()!=kPatch_dirTag))
@@ -72,17 +74,59 @@ bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list){
     return true;
 }
 
-#define hash_value_t uint64_t
-#define get_hash     fast_adler64_start
+
+struct CFileStreamInput:public TFileStreamInput{
+    CFileStreamInput(const std::string& fileName){
+        TFileStreamInput_init(this);
+        check(TFileStreamInput_open(this,fileName.c_str()),"open file \""+fileName+"\" error!");
+    }
+    ~CFileStreamInput(){
+        check(TFileStreamInput_close(this),"close file error!"); }
+};
+
+
+#define hash_value_t                uint64_t
+#define hash_begin(ph)              { (*(ph))=ADLER_INITIAL; }
+#define hash_append(ph,pvalues,n)   { (*(ph))=fast_adler64_append(*(ph),pvalues,n); }
+#define hash_end(ph)                {}
 
 static hash_value_t getFileHash(const std::string& fileName){
-    //todo:
-    return 0;
+    CFileStreamInput f(fileName);
+    hdiff_private::TAutoMem  mem(kFileIOBufSize);
+    hash_value_t result;
+    hash_begin(&result);
+    for (hpatch_StreamPos_t pos=0; pos<f.base.streamSize;) {
+        size_t readLen=kFileIOBufSize;
+        if (pos+readLen>f.base.streamSize)
+            readLen=f.base.streamSize-pos;
+        check((long)readLen!=f.base.read(&f.base,pos,mem.data(),mem.data()+readLen),
+              "read file \""+fileName+"\" error!");
+        hash_append(&result,mem.data(),readLen);
+        pos+=readLen;
+    }
+    hash_end(&result);
+    return result;
 }
 
 static bool fileData_isSame(const std::string& file_x,const std::string& file_y){
-    //todo:
-    return false;
+    CFileStreamInput f_x(file_x);
+    CFileStreamInput f_y(file_y);
+    if (f_x.base.streamSize!=f_y.base.streamSize)
+        return false;
+    hdiff_private::TAutoMem  mem(kFileIOBufSize*2);
+    for (hpatch_StreamPos_t pos=0; pos<f_x.base.streamSize;) {
+        size_t readLen=kFileIOBufSize;
+        if (pos+readLen>f_x.base.streamSize)
+            readLen=f_x.base.streamSize-pos;
+        check((long)readLen!=f_x.base.read(&f_x.base,pos,mem.data(),mem.data()+readLen),
+              "read file \""+file_x+"\" error!");
+        check((long)readLen!=f_y.base.read(&f_y.base,pos,mem.data()+readLen,mem.data()+readLen*2),
+              "read file \""+file_y+"\" error!");
+        if (0!=memcmp(mem.data(),mem.data()+readLen,readLen))
+            return false;
+        pos+=readLen;
+    }
+    return true;
 }
 
 void sortDirFileList(std::vector<std::string>& fileList){
@@ -141,12 +185,12 @@ void dir_diff(IDirDiffListener* listener,const char* _oldPatch,const char* _newP
     std::vector<std::string> newList;
     if (oldIsDir){
         assignDirTag(oldPatch);
-        if (!getDirFileList(oldPatch,oldList)) _error("search old dir error!");
+        check(getDirFileList(oldPatch,oldList),"getDirFileList() for old dir error!");
         sortDirFileList(oldList);
     }
     if (newIsDir){
         assignDirTag(newPatch);
-        if (!getDirFileList(newPatch,newList)) _error("search new dir error!");
+        check(getDirFileList(newPatch,newList),"getDirFileList() for new dir error!");
         sortDirFileList(newList);
     }
     listener->filterFileList(oldList,newList);

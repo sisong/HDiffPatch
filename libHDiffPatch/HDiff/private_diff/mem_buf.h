@@ -1,5 +1,4 @@
-// dir_diff.h
-// hdiffz dir diff
+//  mem_buf.h
 //
 /*
  The MIT License (MIT)
@@ -15,7 +14,7 @@
  conditions:
  
  The above copyright notice and this permission notice shall be
- included in all copies of the Software.
+ included in all copies or substantial portions of the Software.
  
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
@@ -26,29 +25,27 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef hdiff_dir_diff_h
-#define hdiff_dir_diff_h
-#include <string>
-#include <vector>
-#include "../libHDiffPatch/HDiff/diff_types.h"
 
-void assignDirTag(std::string& dir);
-bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list);
-void sortDirFileList(std::vector<std::string>& fileList);
+#ifndef __mem_buf_h
+#define __mem_buf_h
+#include <string.h> //size_t malloc free
+namespace hdiff_private{
 
-struct IDirDiffListener{
-    inline explicit IDirDiffListener(){}
-    virtual ~IDirDiffListener(){}
-    
-    virtual void filterFileList(std::vector<std::string>& oldList,std::vector<std::string>& newList){}
-    
-    virtual bool isNeedSavedOldList()const{ return true; }
-};
+    struct TAutoMem{
+        inline explicit TAutoMem(size_t size)
+        :_data(0),_size(size){
+            if (_size>0){
+                _data=(unsigned char*)malloc(_size);
+                if (!_data) throw std::runtime_error("TAutoMem::TAutoMem() malloc() error!");
+            }
+        }
+        inline ~TAutoMem(){ if (_data) free(_data); }
+        inline unsigned char* data(){ return _data; }
+        inline size_t size()const{ return _size; }
+    private:
+        unsigned char*  _data;
+        size_t          _size;
+    };
 
-void dir_diff(IDirDiffListener* listener,const char* _oldPatch,const char* _newPatch,
-              const char* outDiffFileName,bool oldIsDir,bool newIsDir,bool isLoadAll,size_t matchValue,
-              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TDecompress* decompressPlugin);
-
-
-#endif //hdiff_dir_diff_h
+}//namespace hdiff_private
+#endif //__mem_buf_h

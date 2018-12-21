@@ -35,6 +35,7 @@
 #include "private_diff/bytes_rle.h"
 #include "private_diff/compress_detect.h"
 #include "private_diff/pack_uint.h"
+#include "private_diff/mem_buf.h"
 #include "../HPatch/patch.h"
 #include "../HPatch/patch_private.h"
 using namespace hdiff_private;
@@ -544,21 +545,6 @@ void create_diff(const TByte* newData,const TByte* newData_end,
     serialize_diff(diff,out_diff);
 }
 
-struct TAutoMem{
-    inline explicit TAutoMem(size_t size)
-    :_data(0),_size(size){
-        if (_size>0){
-            _data=(TByte*)malloc(_size);
-            if (!_data) throw std::runtime_error("TAutoMem::TAutoMem() malloc() error!");
-        }
-    }
-    inline ~TAutoMem(){ if (_data) free(_data); }
-    inline TByte* data(){ return _data; }
-    inline size_t size()const{ return _size; }
-private:
-    TByte* _data;
-    size_t _size;
-};
 bool check_diff(const TByte* newData,const TByte* newData_end,
                 const TByte* oldData,const TByte* oldData_end,
                 const TByte* diff,const TByte* diff_end){

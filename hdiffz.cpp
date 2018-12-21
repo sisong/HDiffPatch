@@ -38,7 +38,7 @@
 #include "_clock_for_demo.h"
 #include "_atosize.h"
 #include "file_for_patch.h"
-#include "file_for_dir.h"
+#include "dirDiffPatch/file_for_dir.h"
 #include "dirDiffPatch/dir_diff.h"
 
 #ifndef _IS_NEED_MAIN
