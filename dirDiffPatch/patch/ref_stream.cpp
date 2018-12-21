@@ -26,5 +26,110 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "ref_stream.h"
+#include <stdio.h>
 #include <stdlib.h>
+
+void RefStream_init(RefStream* self){
+    memset(self,0,sizeof(*self));
+}
+
+void RefStream_close(RefStream* self){
+    if (self->_buf) { free(self->_buf); self->_buf=0; }
+}
+
+
+#define  check(value) { \
+    if (!(value)){ printf(#value" ERROR!\n");  \
+        result=false; assert(false); goto clear; } }
+
+static bool _RefStream_read_do(RefStream* self,hpatch_StreamPos_t readFromPos,
+                               unsigned char* out_data,unsigned char* out_data_end,size_t curRangeIndex){
+    bool result=true;
+    hpatch_StreamPos_t readPos=readFromPos - self->_rangeEndList[curRangeIndex-1];
+    const hpatch_TStreamInput* ref=self->_refList[curRangeIndex];
+    check((long)(out_data_end-out_data)==ref->read(ref->streamHandle,readPos,out_data,out_data_end));
+clear:
+    return result;
+}
+
+static size_t findRangeIndex(const hpatch_StreamPos_t* ranges,size_t rangeCount,hpatch_StreamPos_t pos){
+    //not find return rangeCount
+    //optimize, binary search?
+    for (size_t i=0; i<rangeCount; ++i) {
+        if (pos>=ranges[i]) continue;
+        return i;
+    }
+    return rangeCount;
+}
+
+static long _refStream_read(hpatch_TStreamInputHandle streamHandle,
+                            const hpatch_StreamPos_t _readFromPos,
+                            unsigned char* out_data,unsigned char* out_data_end){
+    RefStream* self=(RefStream*)streamHandle;
+    const hpatch_StreamPos_t* ranges=self->_rangeEndList;
+    hpatch_StreamPos_t curRangeIndex=self->_curRangeIndex;
+    long  result=(long)(out_data_end-out_data);
+    size_t readFromPos=(size_t)_readFromPos;
+    while (out_data<out_data_end) {
+        long readLen=(long)(out_data_end-out_data);
+        if (ranges[curRangeIndex-1]<=readFromPos){ //-1 safe
+            if (readFromPos+readLen<=ranges[curRangeIndex]){//hit all
+                check(_RefStream_read_do(self,readFromPos,out_data,out_data_end,curRangeIndex));
+                break; //ok out while
+            }else if (readFromPos<=ranges[curRangeIndex]){//hit left
+                long leftLen=(long)(ranges[curRangeIndex]-readFromPos);
+                if (leftLen>0)
+                    check(_RefStream_read_do(self,readFromPos,out_data,out_data+leftLen,curRangeIndex));
+                ++curRangeIndex;
+                readFromPos+=leftLen;
+                out_data+=leftLen;
+                continue; //next
+            }//else
+        }//else
+        
+        curRangeIndex=findRangeIndex(ranges,self->_rangeCount,readFromPos);
+        check(curRangeIndex<self->_rangeCount);
+    }
+    self->_curRangeIndex=curRangeIndex;
+clear:
+    return result;
+}
+
+bool _createRange(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
+    bool result=true;
+    assert(self->_buf==0);
+    assert(self->_refList==0);
+    size_t   rangIndex=0;
+    hpatch_StreamPos_t curSumSize=0;
+    
+    self->_refList=refList;
+    self->_rangeCount=refCount;
+    self->_buf=(unsigned char*)malloc(sizeof(hpatch_StreamPos_t)*(self->_rangeCount+1));
+    check(self->_buf!=0);
+    self->_rangeEndList=((hpatch_StreamPos_t*)self->_buf)+1; //+1 for _rangeEndList[-1] safe
+    self->_rangeEndList[-1]=0;
+    for (int i=0; i<refCount; ++i) {
+        hpatch_StreamPos_t rangeSize=refList[i]->streamSize;
+        curSumSize+=rangeSize;
+        self->_rangeEndList[rangIndex]=curSumSize;
+        ++rangIndex;
+    }
+    assert(rangIndex==self->_rangeCount);
+    self->_curRangeIndex=0;
+clear:
+    return result;
+}
+
+bool RefStream_open(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
+    bool result=true;
+    check(self->stream==0);
+    check(_createRange(self,refList,refCount));
+    
+    self->_stream.streamHandle=self;
+    self->_stream.streamSize=self->_rangeEndList[self->_rangeCount-1]; //safe
+    self->_stream.read=_refStream_read;
+    self->stream=&self->_stream;
+clear:
+    return result;
+}
 

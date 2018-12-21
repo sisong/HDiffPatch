@@ -31,15 +31,14 @@
 
 //利用refList模拟成一个输入流;
 typedef struct RefStream{
-    const hpatch_TStreamInput* stream;
+    const hpatch_TStreamInput*  stream;
 //private:
     hpatch_TStreamInput         _stream;
     
     const hpatch_TStreamInput** _refList;
-    uint32_t*                   _rangeEndList;
-    uint32_t*                   _rangeFileOffsets;
+    hpatch_StreamPos_t*         _rangeEndList;
     size_t                      _rangeCount;//==refCount
-    int                         _curRangeIndex;
+    size_t                      _curRangeIndex;
     //mem
     unsigned char*              _buf;
 } RefStream;

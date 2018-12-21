@@ -46,9 +46,9 @@ struct IDirDiffListener{
 };
 
 void dir_diff(IDirDiffListener* listener,const char* _oldPatch,const char* _newPatch,
-              const char* outDiffFileName,bool oldIsDir,bool newIsDir,bool isLoadAll,size_t matchValue,
-              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TDecompress* decompressPlugin);
+              const hpatch_TStreamOutput* outDiffStream,bool oldIsDir,bool newIsDir,
+              bool isLoadAll,size_t matchValue,
+              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin);
 
 
 #endif //hdiff_dir_diff_h

@@ -71,19 +71,6 @@
 #include "compress_plugin_demo.h"
 #include "decompress_plugin_demo.h"
 
-#define _error_return(info){ \
-    if (strlen(info)>0)      \
-        printf("\n  ERROR: %s\n",(info)); \
-    exitCode=1; \
-    goto clear; \
-}
-
-#define _check_error(is_error,errorInfo){ \
-    if (is_error){  \
-        exitCode=1; \
-        printf("\n  ERROR: %s\n",(errorInfo)); \
-    } \
-}
 
 static void printUsage(){
     printf("diff usage: hdiffz [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-d]"
@@ -151,6 +138,7 @@ typedef enum THDiffResult {
     HDIFF_RESAVE_HDIFFINFO_ERROR,
     HDIFF_RESAVE_COMPRESSTYPE_ERROR,
     HDIFF_RESAVE_ERROR,
+    HDIFF_DIR_DIFF_ERROR,
 } THDiffResult;
 
 int hdiff_cmd_line(int argc, const char * argv[]);
@@ -259,6 +247,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 if (op[2]=='-'){
                     const char* pnum=op+3;
                     _options_check(kmg_to_size(pnum,strlen(pnum),&matchValue),"-m-?");
+                    _options_check((0<=(int)matchValue)&&(matchValue==(size_t)(int)matchValue),"-m-?");
                 }else{
                     matchValue=kMinSingleMatchScore_default;
                 }
@@ -692,8 +681,8 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
         std::cout<<"resave diffFile run ERROR! "<<e.what()<<"\n";
         check_on_error(HDIFF_RESAVE_ERROR);
     }
-    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
     std::cout<<"outDiffSize: "<<diffData_out.base.streamSize<<"\n";
+    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
     std::cout<<"  out diff file ok!\n";
 clear:
     _isInClear=hpatch_TRUE;
@@ -725,7 +714,6 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
               hpatch_TDecompress* decompressPlugin){
     assert(oldIsDir||newIsDir);
-    int exitCode=0;
     double time0=clock_s();
     std::cout<<(oldIsDir?"old file: \"":"old  dir: \"")<<oldFileName<<"\"\n"
              <<(newIsDir?"new file: \"":"new  dir: \"")<<newFileName<<"\"\n"
@@ -741,16 +729,26 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
         std::cout<<"hdiffz run dir diff with "<<(isLoadAll?"":"stream ")<<"compress plugin: \""<<compressType<<"\"\n";
     }
 
+    int  result=HDIFF_SUCCESS;
+    bool _isInClear=false;
+    TFileStreamOutput diffData_out;
+    TFileStreamOutput_init(&diffData_out);
     if (isDiff){
         try {
+            check(TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),
+                  HDIFF_OPENWRITE_ERROR,"open out diffFile ERROR!");
+            TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
             IDirDiffListener listener;
-            dir_diff(&listener,oldFileName,newFileName,outDiffFileName,
-                     oldIsDir,newIsDir,isLoadAll,matchValue,
-                     streamCompressPlugin,compressPlugin,decompressPlugin);
+            dir_diff(&listener,oldFileName,newFileName,&diffData_out.base,oldIsDir,newIsDir,
+                     isLoadAll,matchValue,streamCompressPlugin,compressPlugin);
+            diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             std::cout<<"dir diff run ERROR! "<<e.what()<<"\n";
-            _error_return("");
+            check_on_error(HDIFF_DIR_DIFF_ERROR);
         }
+        std::cout<<"outDiffSize: "<<diffData_out.base.streamSize<<"\n";
+        check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
+        std::cout<<"  out dir diff file ok!\n";
     }
     if (isPatchCheck){
         //todo: dir_patch(oldFileName,newFileName,outDiffFileName,oldIsDir,newIsDir,isLoadAll,decompressPlugin);
@@ -759,5 +757,7 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
     if (isDiff && isPatchCheck)
         std::cout<<"\nall   time: "<<(clock_s()-time0)<<" s\n";
 clear:
-    return exitCode;
+    _isInClear=true;
+    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"check diffFile close ERROR!");
+    return result;
 }

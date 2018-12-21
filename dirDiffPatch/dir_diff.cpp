@@ -34,9 +34,61 @@
 #include "../file_for_patch.h"
 #include "../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
+#include "patch/ref_stream.h"
+#include "../libHDiffPatch/HDiff/diff.h"
 
-#define kFileIOBufSize  (64*1024)
+#define kFileIOBufSize      (64*1024)
+#define kFileIOBestMaxSize  (1024*1024)
 #define check(value,info) if (!(value)) throw new std::runtime_error(info);
+
+#define hash_value_t                uint64_t
+#define hash_begin(ph)              { (*(ph))=ADLER_INITIAL; }
+#define hash_append(ph,pvalues,n)   { (*(ph))=fast_adler64_append(*(ph),pvalues,n); }
+#define hash_end(ph)                {}
+
+struct CFileStreamInput:public TFileStreamInput{
+    inline CFileStreamInput(){ TFileStreamInput_init(this); }
+    inline void open(const std::string& fileName){
+        assert(this->base.streamHandle==0);
+        check(TFileStreamInput_open(this,fileName.c_str()),"open file \""+fileName+"\" error!"); }
+    inline CFileStreamInput(const std::string& fileName){
+        TFileStreamInput_init(this); open(fileName); }
+    inline ~CFileStreamInput(){
+        check(TFileStreamInput_close(this),"close file error!"); }
+};
+
+struct CRefStream:public RefStream{
+    inline CRefStream(){ RefStream_init(this); }
+    inline void open(const hpatch_TStreamInput** refList,size_t refCount){
+        check(RefStream_open(this,refList,refCount),"RefStream_open() refList error!");
+    }
+    inline ~CRefStream(){ RefStream_close(this); }
+};
+
+bool readAll(const hpatch_TStreamInput* stream,hpatch_StreamPos_t pos,
+             TByte* dst,TByte* dstEnd){
+    while (dst<dstEnd) {
+        size_t readLen=dstEnd-dst;
+        if (readLen>kFileIOBestMaxSize) readLen=kFileIOBestMaxSize;
+        if ((long)readLen!=stream->read(stream->streamHandle,pos,dst,dst+readLen))
+            return false;
+        dst+=readLen;
+        pos+=readLen;
+    }
+    return true;
+}
+bool writeAll(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t pos,
+              const TByte* src,const TByte* srcEnd){
+    while (src<srcEnd) {
+        size_t writeLen=srcEnd-src;
+        if (writeLen>kFileIOBestMaxSize) writeLen=kFileIOBestMaxSize;
+        if ((long)writeLen!=stream->write(stream->streamHandle,pos,src,src+writeLen))
+            return false;
+        src+=writeLen;
+        pos+=writeLen;
+    }
+    return true;
+}
 
 void assignDirTag(std::string& dir){
     if (dir.empty()||(dir.back()!=kPatch_dirTag))
@@ -74,32 +126,17 @@ bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list){
     return true;
 }
 
-
-struct CFileStreamInput:public TFileStreamInput{
-    CFileStreamInput(const std::string& fileName){
-        TFileStreamInput_init(this);
-        check(TFileStreamInput_open(this,fileName.c_str()),"open file \""+fileName+"\" error!");
-    }
-    ~CFileStreamInput(){
-        check(TFileStreamInput_close(this),"close file error!"); }
-};
-
-
-#define hash_value_t                uint64_t
-#define hash_begin(ph)              { (*(ph))=ADLER_INITIAL; }
-#define hash_append(ph,pvalues,n)   { (*(ph))=fast_adler64_append(*(ph),pvalues,n); }
-#define hash_end(ph)                {}
-
-static hash_value_t getFileHash(const std::string& fileName){
+static hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* out_fileSize){
     CFileStreamInput f(fileName);
     hdiff_private::TAutoMem  mem(kFileIOBufSize);
     hash_value_t result;
     hash_begin(&result);
+    *out_fileSize=f.base.streamSize;
     for (hpatch_StreamPos_t pos=0; pos<f.base.streamSize;) {
         size_t readLen=kFileIOBufSize;
         if (pos+readLen>f.base.streamSize)
             readLen=f.base.streamSize-pos;
-        check((long)readLen!=f.base.read(&f.base,pos,mem.data(),mem.data()+readLen),
+        check((long)readLen==f.base.read(&f.base.streamHandle,pos,mem.data(),mem.data()+readLen),
               "read file \""+fileName+"\" error!");
         hash_append(&result,mem.data(),readLen);
         pos+=readLen;
@@ -118,9 +155,9 @@ static bool fileData_isSame(const std::string& file_x,const std::string& file_y)
         size_t readLen=kFileIOBufSize;
         if (pos+readLen>f_x.base.streamSize)
             readLen=f_x.base.streamSize-pos;
-        check((long)readLen!=f_x.base.read(&f_x.base,pos,mem.data(),mem.data()+readLen),
+        check((long)readLen==f_x.base.read(&f_x.base.streamHandle,pos,mem.data(),mem.data()+readLen),
               "read file \""+file_x+"\" error!");
-        check((long)readLen!=f_y.base.read(&f_y.base,pos,mem.data()+readLen,mem.data()+readLen*2),
+        check((long)readLen==f_y.base.read(&f_y.base.streamHandle,pos,mem.data()+readLen,mem.data()+readLen*2),
               "read file \""+file_y+"\" error!");
         if (0!=memcmp(mem.data(),mem.data()+readLen,readLen))
             return false;
@@ -142,7 +179,9 @@ static void getRefList(const std::vector<std::string>& oldList,const std::vector
     for (int i=0; i<oldList.size(); ++i) {
         const std::string& fileName=oldList[i];
         if (isDirName(fileName)) continue;
-        hash_value_t hash=getFileHash(fileName);
+        hpatch_StreamPos_t fileSize=0;
+        hash_value_t hash=getFileHash(fileName,&fileSize);
+        if (fileSize==0) continue;
         hashMap.insert(TMap::value_type(hash,i));
         oldRefList.insert(i);
     }
@@ -151,7 +190,9 @@ static void getRefList(const std::vector<std::string>& oldList,const std::vector
     for (int i=0; i<newList.size(); ++i){
         const std::string& fileName=newList[i];
         if (isDirName(fileName)) continue;
-        hash_value_t hash=getFileHash(fileName);
+        hpatch_StreamPos_t fileSize=0;
+        hash_value_t hash=getFileHash(fileName,&fileSize);
+        if (fileSize==0) continue;
         bool findSame=false;
         size_t oldIndex=(size_t)(-1);
         std::pair<TMap::const_iterator,TMap::const_iterator> range=hashMap.equal_range(hash);
@@ -175,30 +216,69 @@ static void getRefList(const std::vector<std::string>& oldList,const std::vector
 }
 
 void dir_diff(IDirDiffListener* listener,const char* _oldPatch,const char* _newPatch,
-              const char* outDiffFileName,bool oldIsDir,bool newIsDir,bool isLoadAll,size_t matchValue,
-              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TDecompress* decompressPlugin){
+              const hpatch_TStreamOutput* outDiffStream,bool oldIsDir,bool newIsDir,
+              bool isLoadAll,size_t matchValue,
+              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin){
     assert(listener!=0);
     std::string oldPatch(_oldPatch);
     std::string newPatch(_newPatch);
     std::vector<std::string> oldList;
     std::vector<std::string> newList;
-    if (oldIsDir){
-        assignDirTag(oldPatch);
-        check(getDirFileList(oldPatch,oldList),"getDirFileList() for old dir error!");
-        sortDirFileList(oldList);
+    {
+        if (oldIsDir){
+            assignDirTag(oldPatch);
+            check(getDirFileList(oldPatch,oldList),"old dir getDirFileList() error!");
+            sortDirFileList(oldList);
+        }
+        if (newIsDir){
+            assignDirTag(newPatch);
+            check(getDirFileList(newPatch,newList),"new dir getDirFileList() error!");
+            sortDirFileList(newList);
+        }
+        listener->filterFileList(oldList,newList);
     }
-    if (newIsDir){
-        assignDirTag(newPatch);
-        check(getDirFileList(newPatch,newList),"getDirFileList() for new dir error!");
-        sortDirFileList(newList);
-    }
-    listener->filterFileList(oldList,newList);
 
     std::vector<size_t> samePairList; //new map to same old
-    std::vector<size_t> oldRefList;
-    std::vector<size_t> newRefList;
-    getRefList(oldList,newList,samePairList,oldRefList,newRefList);
+    std::vector<const hpatch_TStreamInput*> oldRefSList;
+    std::vector<const hpatch_TStreamInput*> newRefSList;
+    std::vector<CFileStreamInput> _oldRefList;
+    std::vector<CFileStreamInput> _newRefList;
+    {
+        std::vector<size_t> oldRefIList;
+        std::vector<size_t> newRefIList;
+        getRefList(oldList,newList,samePairList,oldRefIList,newRefIList);
+        _oldRefList.resize(oldRefIList.size());
+        _newRefList.resize(newRefIList.size());
+        oldRefSList.resize(oldRefIList.size());
+        newRefSList.resize(newRefIList.size());
+        for (size_t i=0; i<oldRefIList.size(); ++i) {
+            _oldRefList[i].open(oldList[oldRefIList[i]]);
+            oldRefSList[i]=&_oldRefList[i].base;
+        }
+        for (size_t i=0; i<newRefIList.size(); ++i) {
+            _newRefList[i].open(newList[newRefIList[i]]);
+            newRefSList[i]=&_newRefList[i].base;
+        }
+    }
     
-    //
+    CRefStream oldRefStream;
+    CRefStream newRefStream;
+    oldRefStream.open(oldRefSList.data(),oldRefSList.size());
+    newRefStream.open(newRefSList.data(),newRefSList.size());
+    
+    if (isLoadAll){
+        hdiff_private::TAutoMem  mem(oldRefStream.stream->streamSize+newRefStream.stream->streamSize);
+        TByte* oldData=mem.data();
+        TByte* newData=mem.data()+oldRefStream.stream->streamSize;
+        readAll(oldRefStream.stream,0,oldData,oldData+oldRefStream.stream->streamSize);
+        readAll(newRefStream.stream,0,newData,newData+newRefStream.stream->streamSize);
+        std::vector<unsigned char> out_diff;
+        create_compressed_diff(newData,newData+newRefStream.stream->streamSize,
+                               oldData,oldData+oldRefStream.stream->streamSize,
+                               out_diff,compressPlugin,(int)matchValue);
+        writeAll(outDiffStream,0,out_diff.data(),out_diff.data()+out_diff.size());
+    }else{
+        create_compressed_diff_stream(oldRefStream.stream,newRefStream.stream,outDiffStream,
+                                      streamCompressPlugin,matchValue);
+    }
 }

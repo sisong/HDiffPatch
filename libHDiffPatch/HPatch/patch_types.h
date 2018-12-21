@@ -86,7 +86,7 @@ extern "C" {
     
     typedef struct hpatch_TStreamOutput{
         hpatch_TStreamOutputHandle streamHandle;
-        hpatch_StreamPos_t         streamSize;
+        hpatch_StreamPos_t         streamSize; //stream  size,not is write pos!
         //write() must return (out_data_end-out_data), otherwise error
         //   first writeToPos==0; the next writeToPos+=(data_end-data)
         long                       (*write)(hpatch_TStreamOutputHandle streamHandle,
