@@ -3,7 +3,7 @@
 //
 /*
  The MIT License (MIT)
- Copyright (c) 2012-2017 HouSisong
+ Copyright (c) 2012-2019 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -38,6 +38,8 @@
 #include "_clock_for_demo.h"
 #include "_atosize.h"
 #include "file_for_patch.h"
+#include "file_for_dir.h"
+#include "dirDiffPatch/dir_diff.h"
 
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
@@ -153,6 +155,11 @@ typedef enum THDiffResult {
 
 int hdiff_cmd_line(int argc, const char * argv[]);
 
+int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+              hpatch_BOOL oldIsDir, hpatch_BOOL newIsdir,
+              hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
+              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
+              hpatch_TDecompress* decompressPlugin);
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
           hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
           hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
@@ -364,8 +371,20 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* oldFileName    =arg_values[0];
         const char* newFileName    =arg_values[1];
         const char* outDiffFileName=arg_values[2];
-        return hdiff(oldFileName,newFileName,outDiffFileName,isDiff,isLoadAll,matchValue,isPatchCheck,
-                     streamCompressPlugin,compressPlugin,decompressPlugin,isOriginal);
+        TPathType oldType;
+        TPathType newType;
+        _options_check(getPathType(oldFileName,&oldType),"input old path must file or dir");
+        _options_check(getPathType(newFileName,&newType),"input new path must file or dir");
+        
+        if ((kPathType_dir==oldType)||(kPathType_dir==newType)){
+            _options_check(!isOriginal,"-o unsupport dir diff");
+            return hdiff_dir(oldFileName,newFileName,outDiffFileName, (kPathType_dir==oldType),
+                             (kPathType_dir==newType), isDiff,isLoadAll,matchValue,isPatchCheck,
+                             streamCompressPlugin,compressPlugin,decompressPlugin);
+        }else{
+            return hdiff(oldFileName,newFileName,outDiffFileName,isDiff,isLoadAll,matchValue,isPatchCheck,
+                         streamCompressPlugin,compressPlugin,decompressPlugin,isOriginal);
+        }
     }else{ //resave
         _options_check((isOriginal==_kNULL_VALUE),"-o unsupport run with resave mode");
         _options_check((isLoadAll==_kNULL_VALUE),"-m or -s unsupport run with resave mode");
@@ -582,8 +601,9 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
           hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
           hpatch_TDecompress* decompressPlugin,hpatch_BOOL isOriginal){
     double time0=clock_s();
-    std::cout<<"old : \"" <<oldFileName<< "\"\nnew : \""<<newFileName
-             <<(isDiff?"\"\nout : \"":"\"\ntest: \"")<<outDiffFileName<<"\"\n";
+    std::cout<<"old : \""<<oldFileName<<"\"\n"
+             <<"new : \""<<newFileName<<"\"\n"
+             <<(isDiff?"out : \"":"test: \"")<<outDiffFileName<<"\"\n";
     
     if (isDiff) {
         const char* compressType="";
@@ -603,7 +623,7 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
         exitCode=hdiff_s(oldFileName,newFileName,outDiffFileName,
                          isDiff,matchValue,isPatchCheck,streamCompressPlugin,decompressPlugin);
     }
-    if (isPatchCheck && isDiff)
+    if (isDiff && isPatchCheck)
         std::cout<<"\nall   time: "<<(clock_s()-time0)<<" s\n";
     return exitCode;
 }
@@ -685,7 +705,8 @@ clear:
 int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                  hdiff_TStreamCompress* streamCompressPlugin){
     double time0=clock_s();
-    std::cout<<"in_diff : \"" <<diffFileName<< "\"\nout_diff: \""<<outDiffFileName<<"\n";
+    std::cout<<"in_diff : \""<<diffFileName<<"\"\n"
+             <<"out_diff: \""<<outDiffFileName<<"\"\n";
     
     const char* compressType="";
     if (streamCompressPlugin) compressType=streamCompressPlugin->compressType(streamCompressPlugin);
@@ -697,3 +718,46 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
     return exitCode;
 }
 
+
+int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+              hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
+              hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
+              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
+              hpatch_TDecompress* decompressPlugin){
+    assert(oldIsDir||newIsDir);
+    int exitCode=0;
+    double time0=clock_s();
+    std::cout<<(oldIsDir?"old file: \"":"old  dir: \"")<<oldFileName<<"\"\n"
+             <<(newIsDir?"new file: \"":"new  dir: \"")<<newFileName<<"\"\n"
+             <<(isDiff?  "out diff: \"":"    test: \"")<<outDiffFileName<<"\"\n";
+    
+    if (isDiff) {
+        const char* compressType="";
+        if (isLoadAll){
+            if (compressPlugin) compressType=compressPlugin->compressType(compressPlugin);
+        }else{
+            if (streamCompressPlugin) compressType=streamCompressPlugin->compressType(streamCompressPlugin);
+        }
+        std::cout<<"hdiffz run dir diff with "<<(isLoadAll?"":"stream ")<<"compress plugin: \""<<compressType<<"\"\n";
+    }
+
+    if (isDiff){
+        try {
+            IDirDiffListener listener;
+            dir_diff(&listener,oldFileName,newFileName,outDiffFileName,
+                     oldIsDir,newIsDir,isLoadAll,matchValue,
+                     streamCompressPlugin,compressPlugin,decompressPlugin);
+        }catch(const std::exception& e){
+            std::cout<<"dir diff run ERROR! "<<e.what()<<"\n";
+            _error_return("");
+        }
+    }
+    if (isPatchCheck){
+        //todo: dir_patch(oldFileName,newFileName,outDiffFileName,oldIsDir,newIsDir,isLoadAll,decompressPlugin);
+    }
+    
+    if (isDiff && isPatchCheck)
+        std::cout<<"\nall   time: "<<(clock_s()-time0)<<" s\n";
+clear:
+    return exitCode;
+}
