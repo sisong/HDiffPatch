@@ -56,6 +56,30 @@ inline static void pushBack(std::vector<unsigned char>& out_buf,const unsigned c
 inline static void pushBack(std::vector<unsigned char>& out_buf,const std::vector<unsigned char>& data){
     out_buf.insert(out_buf.end(),data.begin(),data.end());
 }
+
     
+struct TPlaceholder{
+    hpatch_StreamPos_t pos;
+    hpatch_StreamPos_t pos_end;
+    inline TPlaceholder(hpatch_StreamPos_t _pos,hpatch_StreamPos_t _pos_end)
+    :pos(_pos),pos_end(_pos_end){ }
+};
+    
+inline static void packUInt_fixSize(unsigned char* out_code,unsigned char* out_code_fixEnd,
+                                    hpatch_StreamPos_t uValue){
+    unsigned char* writed=out_code;
+    if (!hpatch_packUInt(&writed,out_code_fixEnd,uValue))
+        throw std::runtime_error("packUInt_fixSize<_UInt>() hpatch_packUInt() error!"); //too small
+    size_t len=writed-out_code;
+    unsigned char* codeBegin=out_code_fixEnd-len;
+    if (out_code<codeBegin){
+        memmove(codeBegin,out_code,len);
+        while (out_code<codeBegin){
+            --codeBegin;
+            codeBegin[0]=(1<<7);
+        }
+    }
+}
+
 }//namespace hdiff_private
 #endif //__PACK_UINT_H_

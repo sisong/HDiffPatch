@@ -268,16 +268,9 @@ void TDiffStream::packUInt(hpatch_StreamPos_t uValue){
 
 void TDiffStream::_packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize){
     check(limitOutSize<=hpatch_kMaxPackedUIntBytes);
-    unsigned char  _codeBuf[hpatch_kMaxPackedUIntBytes*2];
-    unsigned char* codeBegin=_codeBuf+hpatch_kMaxPackedUIntBytes;
-    unsigned char* codeEnd=codeBegin;
-    check(hpatch_packUInt(&codeEnd,codeBegin+hpatch_kMaxPackedUIntBytes,uValue));
-    check((size_t)(codeEnd-codeBegin)<=limitOutSize);
-    while ((size_t)(codeEnd-codeBegin)<limitOutSize) {
-        --codeBegin;
-        codeBegin[0]=(1<<7);
-    }
-    pushBack(codeBegin,(size_t)(codeEnd-codeBegin));
+    unsigned char  _codeBuf[hpatch_kMaxPackedUIntBytes];
+    packUInt_fixSize(_codeBuf,_codeBuf+limitOutSize,uValue);
+    pushBack(_codeBuf,limitOutSize);
 }
 
 void TDiffStream::packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue){

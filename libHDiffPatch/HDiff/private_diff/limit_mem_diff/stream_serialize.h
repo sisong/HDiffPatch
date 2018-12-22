@@ -28,6 +28,7 @@
 #ifndef stream_serialize_h
 #define stream_serialize_h
 #include "covers.h"
+#include "../pack_uint.h" //for packUInt_fixSize
 struct hdiff_TStreamCompress;
 namespace hdiff_private{
 
@@ -83,13 +84,6 @@ private:
     static long _read(hpatch_TStreamInputHandle streamHandle,
                       const hpatch_StreamPos_t readFromPos,
                       unsigned char* out_data,unsigned char* out_data_end);
-};
-
-struct TPlaceholder{
-    hpatch_StreamPos_t pos;
-    hpatch_StreamPos_t pos_end;
-    inline TPlaceholder(hpatch_StreamPos_t _pos,hpatch_StreamPos_t _pos_end)
-        :pos(_pos),pos_end(_pos_end){ }
 };
 
 struct TDiffStream{
