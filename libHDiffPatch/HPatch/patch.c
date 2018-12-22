@@ -910,9 +910,6 @@ static hpatch_BOOL _patch_stream_with_cache(const struct hpatch_TStreamOutput* o
                        &rle_loader,temp_cache+cacheSize*3,cacheSize);
 }
 
-
-#define kVersionTypeLen 8
-
 //assert(hpatch_kStreamCacheSize>=hpatch_kMaxCompressTypeLength+1);
 struct __private_hpatch_check_kMaxCompressTypeLength {
     char _[(hpatch_kStreamCacheSize>=(hpatch_kMaxCompressTypeLength+1))?1:-1];};
@@ -925,9 +922,11 @@ hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,_THDiffzHead
     _TStreamClip_init(&_diffHeadClip,compressedDiff,0,compressedDiff->streamSize,
                       temp_cache,hpatch_kStreamCacheSize);
     {//type
+        const char* kVersionType="HDIFF13&";
+        const size_t kVersionTypeLen=strlen(kVersionType);
         const TByte* versionType=_TStreamClip_readData(diffHeadClip,kVersionTypeLen);
         if (versionType==0) return _hpatch_FALSE;
-        if (0!=memcmp(versionType,"HDIFF13&",kVersionTypeLen)) return _hpatch_FALSE;
+        if (0!=memcmp(versionType,kVersionType,kVersionTypeLen)) return _hpatch_FALSE;
     }
     {//read compressType
         const TByte* compressType;

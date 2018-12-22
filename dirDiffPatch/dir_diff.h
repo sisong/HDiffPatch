@@ -40,9 +40,10 @@ struct IDirDiffListener{
     inline explicit IDirDiffListener(){}
     virtual ~IDirDiffListener(){}
     
-    virtual void filterFileList(std::vector<std::string>& oldList,std::vector<std::string>& newList){}
-    
-    virtual bool isNeedSavedOldList()const{ return true; }
+    virtual void filterFileList(std::vector<std::string>& newList,std::vector<std::string>& oldList){}
+    virtual void refInfo(size_t sameFileCount,size_t refNewFileCount,size_t refOldFileCount,
+                         hpatch_StreamPos_t refNewFileSize,hpatch_StreamPos_t refOldFileSize){}
+    virtual void externData(std::vector<unsigned char>& out_externData){}
 };
 
 void dir_diff(IDirDiffListener* listener,const char* _oldPatch,const char* _newPatch,
