@@ -33,24 +33,32 @@
 #include "../libHDiffPatch/HDiff/diff_types.h"
 
 void assignDirTag(std::string& dir);
-bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list);
+bool isDirName(const std::string& path);
+struct IDirFilter;
+bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list,IDirFilter* filter);
 void sortDirFileList(std::vector<std::string>& fileList);
 
-struct IDirDiffListener{
-    inline explicit IDirDiffListener(){}
-    virtual ~IDirDiffListener(){}
+struct IDirFilter{
+    virtual ~IDirFilter(){}
+    static bool pathIsEndWith(const std::string& pathName,const char* testEndTag);
+    static bool pathIs(const std::string& pathName,const char* testPathName);
     
-    virtual void filterFileList(std::vector<std::string>& newList,std::vector<std::string>& oldList){}
+    virtual bool isNeedFilter(const std::string& fileName) { return false; }
+};
+
+struct IDirDiffListener:public IDirFilter{
+    virtual ~IDirDiffListener(){}
+    virtual void diffFileList(std::vector<std::string>& newList,std::vector<std::string>& oldList){}
     virtual void refInfo(size_t sameFileCount,size_t refNewFileCount,size_t refOldFileCount,
                          hpatch_StreamPos_t refNewFileSize,hpatch_StreamPos_t refOldFileSize){}
+    virtual void hdiffInfo(hpatch_StreamPos_t diffDataSize,double runDiffTime_s){}
     virtual void externData(std::vector<unsigned char>& out_externData){}
     virtual void externDataPosInOutStream(hpatch_StreamPos_t externDataPos){}
     virtual void file_name_to_utf8(const std::string& fileName,std::string& out_utf8){ out_utf8.assign(fileName); }
 };
 
-void dir_diff(IDirDiffListener* listener,const char* _oldPatch,const char* _newPatch,
-              const hpatch_TStreamOutput* outDiffStream,bool oldIsDir,bool newIsDir,
-              bool isLoadAll,size_t matchValue,
+void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::string& newPatch,
+              const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin);
 
 

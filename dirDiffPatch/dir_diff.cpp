@@ -37,6 +37,7 @@
 #include "../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #include "patch/ref_stream.h"
 #include "../libHDiffPatch/HDiff/diff.h"
+#include "../_clock_for_demo.h"
 using namespace hdiff_private;
 
 #define kFileIOBufSize      (64*1024)
@@ -47,6 +48,20 @@ using namespace hdiff_private;
 #define hash_begin(ph)              { (*(ph))=ADLER_INITIAL; }
 #define hash_append(ph,pvalues,n)   { (*(ph))=fast_adler64_append(*(ph),pvalues,n); }
 #define hash_end(ph)                {}
+
+
+bool IDirFilter::pathIsEndWith(const std::string& pathName,const char* testEndTag){
+    size_t nameSize=pathName.size();
+    size_t testSize=strlen(testEndTag);
+    if (nameSize<testSize) return false;
+    return 0==memcmp(pathName.c_str()+(nameSize-testSize),testEndTag,testSize);
+}
+bool IDirFilter::pathIs(const std::string& pathName,const char* testPathName){ //without dir path
+    if (!pathIsEndWith(pathName,testPathName)) return false;
+    size_t nameSize=pathName.size();
+    size_t testSize=strlen(testPathName);
+    return (nameSize==testSize) || (pathName[nameSize-testSize-1]==kPatch_dirTag);
+}
 
 struct CFileStreamInput:public TFileStreamInput{
     inline CFileStreamInput(){ TFileStreamInput_init(this); }
@@ -69,7 +84,7 @@ struct CRefStream:public RefStream{
 
 struct TOffsetStreamOutput:public hpatch_TStreamOutput{
     inline explicit TOffsetStreamOutput(const hpatch_TStreamOutput* base,hpatch_StreamPos_t offset)
-    :_base(base),_offset(offset){
+    :_base(base),_offset(offset),outSize(0){
         assert(offset<=base->streamSize);
         this->streamHandle=this;
         this->streamSize=base->streamSize-offset;
@@ -77,9 +92,12 @@ struct TOffsetStreamOutput:public hpatch_TStreamOutput{
     }
     const hpatch_TStreamOutput* _base;
     hpatch_StreamPos_t          _offset;
+    hpatch_StreamPos_t          outSize;
     static long _write(hpatch_TStreamOutputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
                        const unsigned char* data,const unsigned char* data_end){
         TOffsetStreamOutput* self=(TOffsetStreamOutput*)streamHandle;
+        hpatch_StreamPos_t newSize=writeToPos+(data_end-data);
+        if (newSize>self->outSize) self->outSize=newSize;
         return self->_base->write(self->_base->streamHandle,self->_offset+writeToPos,data,data_end);
     }
 };
@@ -114,14 +132,14 @@ void assignDirTag(std::string& dir){
         dir.push_back(kPatch_dirTag);
 }
 
-static inline bool isDirName(const std::string& path){
+bool isDirName(const std::string& path){
     return (!path.empty())&&(path.back()==kPatch_dirTag);
 }
 
 template <class TVector>
 static inline void clearVector(TVector& v){ TVector _t; v.swap(_t); }
 
-bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list){
+bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list,IDirFilter* filter){
     assert(isDirName(dir));
     TDirHandle dirh=dirOpenForRead(dir.c_str());
     if (dirh==0) return false;
@@ -132,14 +150,19 @@ bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list){
         if (path==0) break;
         if ((0==strcmp(path,""))||(0==strcmp(path,"."))||(0==strcmp(path,"..")))
             continue;
-        isHaveSub=true;
         std::string subName(dir+path);
         if (type==kPathType_file){
             assert(subName.back()!=kPatch_dirTag);
-            out_list.push_back(subName); //add file
+            if (!filter->isNeedFilter(subName)){
+                isHaveSub=true;
+                out_list.push_back(subName); //add file
+            }
         }else{// if (type==kPathType_dir){
             assignDirTag(subName);
-            if (!getDirFileList(subName,out_list)) return false;
+            if (!filter->isNeedFilter(subName)){
+                isHaveSub=true;
+                if (!getDirFileList(subName,out_list,filter)) return false;
+            }
         }
     }
     if (!isHaveSub)
@@ -302,31 +325,26 @@ static void getRefList(const std::vector<std::string>& newList,const std::vector
     std::sort(out_oldRefList.begin(),out_oldRefList.end());
 }
 
-void dir_diff(IDirDiffListener* listener,const char* _oldPatch,const char* _newPatch,
-              const hpatch_TStreamOutput* outDiffStream,bool oldIsDir,bool newIsDir,
-              bool isLoadAll,size_t matchValue,
+void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::string& newPatch,
+              const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin){
     assert(listener!=0);
-    std::string newPatch(_newPatch);
-    std::string oldPatch(_oldPatch);
     std::vector<std::string> newList;
     std::vector<std::string> oldList;
     {
-        if (newIsDir){
-            assignDirTag(newPatch);
-            check(getDirFileList(newPatch,newList),"new dir getDirFileList() error!");
+        if (isDirName(newPatch)){
+            check(getDirFileList(newPatch,newList,listener),"new dir getDirFileList() error!");
             sortDirFileList(newList);
         }else{
             newList.push_back(newPatch);
         }
-        if (oldIsDir){
-            assignDirTag(oldPatch);
-            check(getDirFileList(oldPatch,oldList),"old dir getDirFileList() error!");
+        if (isDirName(oldPatch)){
+            check(getDirFileList(oldPatch,oldList,listener),"old dir getDirFileList() error!");
             sortDirFileList(oldList);
         }else{
             oldList.push_back(oldPatch);
         }
-        listener->filterFileList(newList,oldList);
+        listener->diffFileList(newList,oldList);
     }
 
     std::vector<size_t> samePairList; //new map to same old
@@ -421,8 +439,12 @@ void dir_diff(IDirDiffListener* listener,const char* _oldPatch,const char* _newP
     _pushv(externData);
 
     //diff data
+    double time0=clock_s();
+    hpatch_StreamPos_t diffDataSize=0;
     if (isLoadAll){
-        TAutoMem  mem(newRefStream.stream->streamSize+oldRefStream.stream->streamSize);
+        hpatch_StreamPos_t memSize=newRefStream.stream->streamSize+oldRefStream.stream->streamSize;
+        check(memSize==(size_t)memSize,"alloc size overflow error!");
+        TAutoMem  mem((size_t)memSize);
         TByte* newData=mem.data();
         TByte* oldData=mem.data()+newRefStream.stream->streamSize;
         check(readAll(newRefStream.stream,0,newData,
@@ -435,10 +457,13 @@ void dir_diff(IDirDiffListener* listener,const char* _oldPatch,const char* _newP
         create_compressed_diff(newData,newData+newRefStream.stream->streamSize,
                                oldData,oldData+oldRefStream.stream->streamSize,
                                out_diff,compressPlugin,(int)matchValue);
+        diffDataSize=out_diff.size();
         _pushv(out_diff);
     }else{
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
         create_compressed_diff_stream(oldRefStream.stream,newRefStream.stream,&ofStream,
                                       streamCompressPlugin,matchValue);
+        diffDataSize=ofStream.outSize;
     }
+    listener->hdiffInfo(diffDataSize,clock_s()-time0);
 }

@@ -708,6 +708,45 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 }
 
 
+
+struct DirDiffListener:public IDirDiffListener{
+    
+    virtual bool isNeedFilter(const std::string& path){
+#if (defined(__APPLE__))
+        if (pathIs(path,".DS_Store")) return true;
+#endif
+        return false;
+    }
+    
+    virtual void file_name_to_utf8(const std::string& fileName,std::string& out_utf8){
+#if (defined(__APPLE__))
+        out_utf8.assign(fileName); //fileName used utf8
+#else
+    #warning fileName unknown string character set, probably can not cross-platform
+        out_utf8.assign(fileName);
+#endif
+    }
+    
+    virtual void diffFileList(std::vector<std::string>& newList,std::vector<std::string>& oldList){
+        std::cout<<"DirDiff old path count: "<<oldList.size()<<"\n";
+        std::cout<<"        new path count: "<<newList.size()<<"\n";
+    }
+    virtual void refInfo(size_t sameFileCount,size_t refNewFileCount,size_t refOldFileCount,
+                         hpatch_StreamPos_t refNewFileSize,hpatch_StreamPos_t refOldFileSize){
+        std::cout<<"       same file count: "<<sameFileCount<<"\n";
+        std::cout<<"    ref old file count: "<<refOldFileCount<<"\n";
+        std::cout<<"   diff new file count: "<<refNewFileCount<<"\n";
+        std::cout<<"\nrun HDiffZ:\n";
+        std::cout<<"  oldDataSize : "<<refOldFileSize<<"\n";
+        std::cout<<"  newDataSize : "<<refNewFileSize<<"\n";
+    }
+    virtual void hdiffInfo(hpatch_StreamPos_t diffDataSize,double runDiffTime_s){
+        std::cout<<"  diffDataSize: "<<diffDataSize<<"\n";
+        std::cout<<"    diff  time: "<<runDiffTime_s<<" s\n";
+    }
+};
+
+
 int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
               hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
@@ -715,9 +754,13 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
               hpatch_TDecompress* decompressPlugin){
     assert(oldIsDir||newIsDir);
     double time0=clock_s();
-    std::cout<<(oldIsDir?"old file: \"":"old  dir: \"")<<oldFileName<<"\"\n"
-             <<(newIsDir?"new file: \"":"new  dir: \"")<<newFileName<<"\"\n"
-             <<(isDiff?  "out diff: \"":"    test: \"")<<outDiffFileName<<"\"\n";
+    std::string oldPatch(oldFileName);
+    std::string newPatch(newFileName);
+    if (oldIsDir) assignDirTag(oldPatch); else assert(!isDirName(oldPatch));
+    if (newIsDir) assignDirTag(newPatch); else assert(!isDirName(newPatch));
+    std::cout<<(oldIsDir?"oldDir : \"":"oldFile: \"")<<oldPatch<<"\"\n"
+             <<(newIsDir?"newDir : \"":"newFile: \"")<<newPatch<<"\"\n"
+             <<(isDiff?  "outDiff: \"":"   test: \"")<<outDiffFileName<<"\"\n";
     
     if (isDiff) {
         const char* compressType="";
@@ -726,7 +769,7 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
         }else{
             if (streamCompressPlugin) compressType=streamCompressPlugin->compressType(streamCompressPlugin);
         }
-        std::cout<<"hdiffz run dir diff with "<<(isLoadAll?"":"stream ")<<"compress plugin: \""<<compressType<<"\"\n";
+        std::cout<<"hdiffz run DirDiff with "<<(isLoadAll?"":"stream ")<<"compress plugin: \""<<compressType<<"\"\n";
     }
 
     int  result=HDIFF_SUCCESS;
@@ -738,20 +781,21 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
             check(TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),
                   HDIFF_OPENWRITE_ERROR,"open out diffFile ERROR!");
             TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
-            IDirDiffListener listener;
-            dir_diff(&listener,oldFileName,newFileName,&diffData_out.base,oldIsDir,newIsDir,
+            DirDiffListener listener;
+            dir_diff(&listener,oldPatch,newPatch,&diffData_out.base,
                      isLoadAll,matchValue,streamCompressPlugin,compressPlugin);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             std::cout<<"dir diff run ERROR! "<<e.what()<<"\n";
             check_on_error(HDIFF_DIR_DIFF_ERROR);
         }
-        std::cout<<"outDiffSize: "<<diffData_out.base.streamSize<<"\n";
+        std::cout<<"\nDirDiff size: "<<diffData_out.base.streamSize<<"\n";
+        std::cout<<"DirDiff time: "<<(clock_s()-time0)<<" s\n";
         check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
         std::cout<<"  out dir diff file ok!\n";
     }
     if (isPatchCheck){
-        //todo: dir_patch(oldFileName,newFileName,outDiffFileName,oldIsDir,newIsDir,isLoadAll,decompressPlugin);
+        //todo: dir_patch(oldPath,newPath,outDiffFileName,isLoadAll,decompressPlugin);
     }
     
     if (isDiff && isPatchCheck)
