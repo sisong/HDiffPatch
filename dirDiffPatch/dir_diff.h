@@ -44,6 +44,8 @@ struct IDirDiffListener{
     virtual void refInfo(size_t sameFileCount,size_t refNewFileCount,size_t refOldFileCount,
                          hpatch_StreamPos_t refNewFileSize,hpatch_StreamPos_t refOldFileSize){}
     virtual void externData(std::vector<unsigned char>& out_externData){}
+    virtual void externDataPosInOutStream(hpatch_StreamPos_t externDataPos){}
+    virtual void file_name_to_utf8(const std::string& fileName,std::string& out_utf8){ out_utf8.assign(fileName); }
 };
 
 void dir_diff(IDirDiffListener* listener,const char* _oldPatch,const char* _newPatch,
