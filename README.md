@@ -1,6 +1,6 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v2.5.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![release](https://img.shields.io/badge/release-v2.5.2-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 a C\C++ library and command-line tools for binary data Diff & Patch.   
 ( Jar or Zip file diff & patch? update Android Apk? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )
@@ -19,7 +19,7 @@ memory options:
   -s-matchBlockSize
       all file load as Stream, with matchBlockSize; fast;
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;
-      matchBlockSize>=2, DEFAULT 128, recommended 32,48,1k,64k,1m etc...
+      matchBlockSize>=2, DEFAULT 64, recommended 32,48,1k,64k,1m etc...
 special options:
   -c-compressType-compressLevel 
       set outDiffFile Compress type & level, DEFAULT uncompress;
@@ -30,9 +30,6 @@ special options:
         -bzip2[-{1..9}]             DEFAULT level 9
         -lzma[-{0..9}[-dictSize]]   DEFAULT level 7
             dictSize(==decompress stream size) can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m
-        -lz4                        no level
-        -lz4hc[-{3..12}]            DEFAULT level 11
-        -zstd[-{0..22}]             DEFAULT level 20
   -v  output Version info.
   -d  Diff only, do't run patch check, DEFAULT run patch check.
   -t  Test only, run patch check, patch(oldFile,testDiffFile)==newFile ?
@@ -40,6 +37,7 @@ special options:
       compatible with "diff_demo.cpp",
       diffFile must patch by "patch_demo.c" or "hpatchz -o ..."
 ```
+   
 **hpatchz**  [-m|-s[-cacheSize]] [-o]  **oldFile diffFile outNewFile**
 ```
 memory options:
@@ -54,7 +52,9 @@ special options:
   -o  Original patch; DEPRECATED; compatible with "patch_demo.c",
       diffFile must created by "diff_demo.cpp" or "hdiffz -o ..."
 ```
-
+( NOTE: This library does not deal with file metadata, such as file last wirte time, executable permissions, link file, etc...   
+   To this library, a file is just as a stream of bytes. )   
+   
 ---
 ## library API usage:
 

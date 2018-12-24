@@ -131,8 +131,10 @@ static hpatch_StreamPos_t blockIndexToPos(size_t index,size_t kMatchBlockSize,
     return pos;
 }
     
-static size_t posToBlockIndex(hpatch_StreamPos_t pos,size_t kMatchBlockSize){
-    return (size_t)( (pos+(kMatchBlockSize>>1))/kMatchBlockSize);
+static size_t posToBlockIndex(hpatch_StreamPos_t pos,size_t kMatchBlockSize,size_t blocksSize){
+    size_t result=(size_t)((pos+(kMatchBlockSize>>1))/kMatchBlockSize);
+    if (result>=blocksSize) result=blocksSize-1;
+    return result;
 }
 
 
@@ -455,8 +457,9 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     }
     //best==0 说明有>2个位置都是最好位置,还需要继续寻找;
     
+    //assert(newStream.pos()>lastCover.newPos);
     hpatch_StreamPos_t linkOldPos=newStream.pos()+lastCover.oldPos-lastCover.newPos;
-    TIndex linkIndex=(TIndex)posToBlockIndex(linkOldPos,kMatchBlockSize);
+    TIndex linkIndex=(TIndex)posToBlockIndex(linkOldPos,kMatchBlockSize,blocksSize);
     //找到lastCover附近的位置当作比较好的best默认值,以利于link或压缩;
     if (best==0){
         TIndex_comp comp(blocksBase,blocksSize,max_digests_n);
@@ -524,7 +527,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
             out_curCover->oldPos=matchedOldPos;
             out_curCover->newPos=newPos-(oldPos-matchedOldPos);
             if (curEqLen>=digests_eq_n*kMatchBlockSize)
-                break;//matched best
+                break;//matched maybe best
         }
     }
     return isMatched;
