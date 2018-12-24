@@ -622,7 +622,7 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     int result=HDIFF_SUCCESS;
     int _isInClear=hpatch_FALSE;
     std::string dirCompressType;
-    bool isDirDiff=isDirDiffFile(diffFileName,dirCompressType);
+    bool isDirDiff=isDirDiffFile(diffFileName,&dirCompressType);
     TFileStreamInput  diffData_in;
     TFileStreamOutput diffData_out;
     TFileStreamInput_init(&diffData_in);
@@ -635,7 +635,7 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
         if (isDirDiff){
             diffInfo.newDataSize=0;
             diffInfo.oldDataSize=0;
-            diffInfo.compressedCount=5;
+            diffInfo.compressedCount=5;//? set max
             strcpy(diffInfo.compressType,dirCompressType.c_str()); //safe
         }else if (!getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
             check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile ERROR!\n");
@@ -673,8 +673,13 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
                 decompressPlugin=0;
             }
         }else{
-            printf("resave diffFile with decompress plugin: \"%s\" (need decompress %d)\n",
-                   diffInfo.compressType,diffInfo.compressedCount);
+            if (isDirDiff){
+                printf("resave diffFile(DirDiff) with decompress plugin: \"%s\"\n",
+                       diffInfo.compressType);
+            }else{
+                printf("resave diffFile with decompress plugin: \"%s\" (need decompress %d)\n",
+                       diffInfo.compressType,diffInfo.compressedCount);
+            }
         }
     }
     
@@ -682,7 +687,13 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
     std::cout<<"inDiffSize : "<<diffData_in.base.streamSize<<"\n";
     try{
-        resave_compressed_diff(&diffData_in.base,decompressPlugin,&diffData_out.base,streamCompressPlugin);
+        if (isDirDiff){
+            resave_compressed_dirdiff(&diffData_in.base,decompressPlugin,
+                                      &diffData_out.base,streamCompressPlugin);
+        }else{
+            resave_compressed_diff(&diffData_in.base,decompressPlugin,
+                                   &diffData_out.base,streamCompressPlugin);
+        }
         diffData_out.base.streamSize=diffData_out.out_length;
     }catch(const std::exception& e){
         std::cout<<"resave diffFile run ERROR! "<<e.what()<<"\n";
@@ -747,7 +758,11 @@ struct DirDiffListener:public IDirDiffListener{
         std::cout<<"  oldDataSize : "<<refOldFileSize<<"\n";
         std::cout<<"  newDataSize : "<<refNewFileSize<<"\n";
     }
-    virtual void hdiffInfo(hpatch_StreamPos_t diffDataSize,double runDiffTime_s){
+    
+    double _runHDiffBegin_time0;
+    virtual void runHDiffBegin(){ _runHDiffBegin_time0=clock_s(); }
+    virtual void runHDiffEnd(hpatch_StreamPos_t diffDataSize){
+        double runDiffTime_s=clock_s()-_runHDiffBegin_time0;
         std::cout<<"  diffDataSize: "<<diffDataSize<<"\n";
         std::cout<<"    diff  time: "<<runDiffTime_s<<" s\n";
     }

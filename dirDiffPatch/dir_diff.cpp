@@ -37,7 +37,6 @@
 #include "../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #include "patch/ref_stream.h"
 #include "../libHDiffPatch/HDiff/diff.h"
-#include "../_clock_for_demo.h"
 using namespace hdiff_private;
 
 static const char* kVersionType="DirDiff19&";
@@ -440,7 +439,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
     _pushv(externData);
 
     //diff data
-    double time0=clock_s();
+    listener->runHDiffBegin();
     hpatch_StreamPos_t diffDataSize=0;
     if (isLoadAll){
         hpatch_StreamPos_t memSize=newRefStream.stream->streamSize+oldRefStream.stream->streamSize;
@@ -466,7 +465,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
                                       streamCompressPlugin,matchValue);
         diffDataSize=ofStream.outSize;
     }
-    listener->hdiffInfo(diffDataSize,clock_s()-time0);
+    listener->runHDiffEnd(diffDataSize);
 }
 
 
@@ -479,16 +478,17 @@ bool isDirDiffStream(const hpatch_TStreamInput* diffFile,std::string* out_compre
     size_t tagSize=strlen(kVersionType);
     if (diffFile->streamSize<tagSize) return false;
     TAutoMem mem(tagSize);
-    check((long)tagSize!=diffFile->read(diffFile->streamHandle,0,
+    check((long)tagSize==diffFile->read(diffFile->streamHandle,0,
                                         mem.data(),mem.data()+tagSize),"diffFile read file type error!");
     if (0!=memcmp(mem.data(),kVersionType,tagSize)) return false;
     if (out_compressType){
         TByte buf[hpatch_kMaxCompressTypeLength+1+1];
-        size_t readLen=sizeof(buf);
+        size_t readLen=sizeof(buf)-1;
+        buf[readLen]='\0';
         if (readLen+tagSize>diffFile->streamSize) readLen=diffFile->streamSize-tagSize;
-        check((long)readLen!=diffFile->read(diffFile->streamHandle,tagSize,
+        check((long)readLen==diffFile->read(diffFile->streamHandle,tagSize,
                                             buf,buf+readLen),"diffFile read compressType error!");
-    todo
+        out_compressType->assign((const char*)buf); //safe
         check(out_compressType->size()<=hpatch_kMaxCompressTypeLength,"saved compressType size error!")
     }
     return true;
