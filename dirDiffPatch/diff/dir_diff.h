@@ -30,7 +30,7 @@
 #define hdiff_dir_diff_h
 #include <string>
 #include <vector>
-#include "../libHDiffPatch/HDiff/diff_types.h"
+#include "../../libHDiffPatch/HDiff/diff_types.h"
 
 void assignDirTag(std::string& dir);
 bool isDirName(const std::string& path);

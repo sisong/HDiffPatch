@@ -31,12 +31,12 @@
 #include <map>
 #include <set>
 #include "file_for_dir.h"
-#include "../file_for_patch.h"
-#include "../libHDiffPatch/HDiff/private_diff/mem_buf.h"
-#include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
-#include "../libHDiffPatch/HDiff/private_diff/pack_uint.h"
-#include "patch/ref_stream.h"
-#include "../libHDiffPatch/HDiff/diff.h"
+#include "../../file_for_patch.h"
+#include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
+#include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
+#include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
+#include "../../libHDiffPatch/HDiff/diff.h"
+#include "../patch/ref_stream.h"
 using namespace hdiff_private;
 
 static const char* kVersionType="DirDiff19&";

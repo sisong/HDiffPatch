@@ -39,7 +39,7 @@
 #include "_atosize.h"
 #include "file_for_patch.h"
 #include "dirDiffPatch/file_for_dir.h"
-#include "dirDiffPatch/dir_diff.h"
+#include "dirDiffPatch/diff/dir_diff.h"
 
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1

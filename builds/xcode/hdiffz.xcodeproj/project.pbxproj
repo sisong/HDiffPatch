@@ -109,8 +109,6 @@
 				D67D3BD621CBCD5D0050632A /* diff */,
 				D67D3BD721CBCD5D0050632A /* patch */,
 				D67D3BDA21CBCD5D0050632A /* file_for_dir.h */,
-				D67D3BD521CBCD5D0050632A /* dir_diff.cpp */,
-				D67D3BDB21CBCD5D0050632A /* dir_diff.h */,
 			);
 			name = dirDiffPatch;
 			path = ../../dirDiffPatch;
@@ -119,6 +117,8 @@
 		D67D3BD621CBCD5D0050632A /* diff */ = {
 			isa = PBXGroup;
 			children = (
+				D67D3BD521CBCD5D0050632A /* dir_diff.cpp */,
+				D67D3BDB21CBCD5D0050632A /* dir_diff.h */,
 			);
 			path = diff;
 			sourceTree = "<group>";
