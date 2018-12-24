@@ -40,6 +40,7 @@
 #include "file_for_patch.h"
 #include "dirDiffPatch/file_for_dir.h"
 #include "dirDiffPatch/diff/dir_diff.h"
+#include "dirDiffPatch/patch/dir_patch.h"
 
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
@@ -622,7 +623,7 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     int result=HDIFF_SUCCESS;
     int _isInClear=hpatch_FALSE;
     std::string dirCompressType;
-    bool isDirDiff=isDirDiffFile(diffFileName,&dirCompressType);
+    bool isDirDiff=false;
     TFileStreamInput  diffData_in;
     TFileStreamOutput diffData_out;
     TFileStreamInput_init(&diffData_in);
@@ -632,11 +633,11 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     check(TFileStreamInput_open(&diffData_in,diffFileName),HDIFF_OPENREAD_ERROR,"open diffFile ERROR!");
     {
         hpatch_compressedDiffInfo diffInfo;
+        isDirDiff=isDirDiffData(&diffData_in.base,diffInfo.compressType);
         if (isDirDiff){
             diffInfo.newDataSize=0;
             diffInfo.oldDataSize=0;
-            diffInfo.compressedCount=5;//? set max
-            strcpy(diffInfo.compressType,dirCompressType.c_str()); //safe
+            diffInfo.compressedCount=5;//unknown set max
         }else if (!getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
             check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile ERROR!\n");
             check(hpatch_FALSE,HDIFF_RESAVE_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo() ERROR!\n");

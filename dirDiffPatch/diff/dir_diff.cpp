@@ -30,7 +30,7 @@
 #include <algorithm> //sort
 #include <map>
 #include <set>
-#include "file_for_dir.h"
+#include "../file_for_dir.h"
 #include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
@@ -466,32 +466,6 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
         diffDataSize=ofStream.outSize;
     }
     listener->runHDiffEnd(diffDataSize);
-}
-
-
-bool isDirDiffFile(const char* diffFileName,std::string* out_compressType){
-    CFileStreamInput stream(diffFileName);
-    return isDirDiffStream(&stream.base,out_compressType);
-}
-
-bool isDirDiffStream(const hpatch_TStreamInput* diffFile,std::string* out_compressType){
-    size_t tagSize=strlen(kVersionType);
-    if (diffFile->streamSize<tagSize) return false;
-    TAutoMem mem(tagSize);
-    check((long)tagSize==diffFile->read(diffFile->streamHandle,0,
-                                        mem.data(),mem.data()+tagSize),"diffFile read file type error!");
-    if (0!=memcmp(mem.data(),kVersionType,tagSize)) return false;
-    if (out_compressType){
-        TByte buf[hpatch_kMaxCompressTypeLength+1+1];
-        size_t readLen=sizeof(buf)-1;
-        buf[readLen]='\0';
-        if (readLen+tagSize>diffFile->streamSize) readLen=diffFile->streamSize-tagSize;
-        check((long)readLen==diffFile->read(diffFile->streamHandle,tagSize,
-                                            buf,buf+readLen),"diffFile read compressType error!");
-        out_compressType->assign((const char*)buf); //safe
-        check(out_compressType->size()<=hpatch_kMaxCompressTypeLength,"saved compressType size error!")
-    }
-    return true;
 }
 
 

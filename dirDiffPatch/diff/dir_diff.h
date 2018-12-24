@@ -62,9 +62,6 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin);
 
-bool isDirDiffFile(const char* diffFileName,std::string* out_compressType=0);
-bool isDirDiffStream(const hpatch_TStreamInput* diffFile,std::string* out_compressType=0);
-
 
 void resave_compressed_dirdiff(const hpatch_TStreamInput*  in_diff,
                                hpatch_TDecompress*         decompressPlugin,

@@ -4,7 +4,7 @@
 /*
  This is the HDiffPatch copyright.
 
- Copyright (c) 2012-2017 HouSisong All Rights Reserved.
+ Copyright (c) 2012-2019 HouSisong All Rights Reserved.
 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -34,6 +34,7 @@
 #include "file_for_patch.h"
 #include "_clock_for_demo.h"
 #include "_atosize.h"
+#include "dirDiffPatch/file_for_dir.h"
 
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
