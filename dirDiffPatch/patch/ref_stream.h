@@ -29,6 +29,10 @@
 #define DirPatch_ref_stream_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+    
 //利用refList模拟成一个输入流;
 typedef struct RefStream{
     const hpatch_TStreamInput*  stream;
@@ -44,7 +48,10 @@ typedef struct RefStream{
 } RefStream;
 
 void RefStream_init(RefStream* self);
-bool RefStream_open(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount);
+hpatch_BOOL RefStream_open(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount);
 void RefStream_close(RefStream* self);
 
+#ifdef __cplusplus
+}
+#endif
 #endif //DirPatch_ref_stream_h

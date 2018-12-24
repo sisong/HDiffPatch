@@ -40,11 +40,11 @@ void RefStream_close(RefStream* self){
 
 #define  check(value) { \
     if (!(value)){ printf(#value" ERROR!\n");  \
-        result=false; assert(false); goto clear; } }
+        result=hpatch_FALSE; assert(hpatch_FALSE); goto clear; } }
 
-static bool _RefStream_read_do(RefStream* self,hpatch_StreamPos_t readFromPos,
+static hpatch_BOOL _RefStream_read_do(RefStream* self,hpatch_StreamPos_t readFromPos,
                                unsigned char* out_data,unsigned char* out_data_end,size_t curRangeIndex){
-    bool result=true;
+    hpatch_BOOL result=hpatch_TRUE;
     hpatch_StreamPos_t readPos=readFromPos - self->_rangeEndList[curRangeIndex-1];
     const hpatch_TStreamInput* ref=self->_refList[curRangeIndex];
     check((long)(out_data_end-out_data)==ref->read(ref->streamHandle,readPos,out_data,out_data_end));
@@ -95,8 +95,8 @@ clear:
     return result;
 }
 
-bool _createRange(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
-    bool result=true;
+hpatch_BOOL _createRange(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
+    hpatch_BOOL result=hpatch_TRUE;
     assert(self->_buf==0);
     assert(self->_refList==0);
     size_t   rangIndex=0;
@@ -120,8 +120,8 @@ clear:
     return result;
 }
 
-bool RefStream_open(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
-    bool result=true;
+hpatch_BOOL RefStream_open(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
+    hpatch_BOOL result=hpatch_TRUE;
     check(self->stream==0);
     check(_createRange(self,refList,refCount));
     
