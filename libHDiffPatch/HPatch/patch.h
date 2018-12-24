@@ -102,6 +102,8 @@ hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,
                                         hpatch_TDecompress* decompressPlugin,
                                         unsigned char* temp_cache,unsigned char* temp_cache_end);
 
+//patch_decompress_repeat_out DEPRECATED
+//  will be remove in a future release version
 //see patch_decompress(), used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*2 used memory)
 //  write newData twice and read newData once,slower than patch_decompress,but memroy requires to be halved.
 //  recommended used in limited memory environment
