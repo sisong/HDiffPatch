@@ -40,6 +40,8 @@
 #include "../_clock_for_demo.h"
 using namespace hdiff_private;
 
+static const char* kVersionType="DirDiff19&";
+
 #define kFileIOBufSize      (64*1024)
 #define kFileIOBestMaxSize  (1024*1024)
 #define check(value,info) if (!(value)) throw new std::runtime_error(info);
@@ -397,7 +399,6 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
     //serialize  dir diff data
     std::vector<TByte> out_data;
     {//type version
-        static const char* kVersionType="DirDiff19&";
         pushBack(out_data,(const TByte*)kVersionType,(const TByte*)kVersionType+strlen(kVersionType));
     }
     {//compressType
@@ -466,4 +467,38 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
         diffDataSize=ofStream.outSize;
     }
     listener->hdiffInfo(diffDataSize,clock_s()-time0);
+}
+
+
+bool isDirDiffFile(const char* diffFileName,std::string* out_compressType){
+    CFileStreamInput stream(diffFileName);
+    return isDirDiffStream(&stream.base,out_compressType);
+}
+
+bool isDirDiffStream(const hpatch_TStreamInput* diffFile,std::string* out_compressType){
+    size_t tagSize=strlen(kVersionType);
+    if (diffFile->streamSize<tagSize) return false;
+    TAutoMem mem(tagSize);
+    check((long)tagSize!=diffFile->read(diffFile->streamHandle,0,
+                                        mem.data(),mem.data()+tagSize),"diffFile read file type error!");
+    if (0!=memcmp(mem.data(),kVersionType,tagSize)) return false;
+    if (out_compressType){
+        TByte buf[hpatch_kMaxCompressTypeLength+1+1];
+        size_t readLen=sizeof(buf);
+        if (readLen+tagSize>diffFile->streamSize) readLen=diffFile->streamSize-tagSize;
+        check((long)readLen!=diffFile->read(diffFile->streamHandle,tagSize,
+                                            buf,buf+readLen),"diffFile read compressType error!");
+    todo
+        check(out_compressType->size()<=hpatch_kMaxCompressTypeLength,"saved compressType size error!")
+    }
+    return true;
+}
+
+
+void resave_compressed_dirdiff(const hpatch_TStreamInput*  in_diff,
+                               hpatch_TDecompress*         decompressPlugin,
+                               const hpatch_TStreamOutput* out_diff,
+                               hdiff_TStreamCompress*      compressPlugin){
+    //todo:
+    
 }

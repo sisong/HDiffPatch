@@ -621,6 +621,8 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
                    hdiff_TStreamCompress* streamCompressPlugin){
     int result=HDIFF_SUCCESS;
     int _isInClear=hpatch_FALSE;
+    std::string dirCompressType;
+    bool isDirDiff=isDirDiffFile(diffFileName,dirCompressType);
     TFileStreamInput  diffData_in;
     TFileStreamOutput diffData_out;
     TFileStreamInput_init(&diffData_in);
@@ -630,7 +632,12 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     check(TFileStreamInput_open(&diffData_in,diffFileName),HDIFF_OPENREAD_ERROR,"open diffFile ERROR!");
     {
         hpatch_compressedDiffInfo diffInfo;
-        if (!getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
+        if (isDirDiff){
+            diffInfo.newDataSize=0;
+            diffInfo.oldDataSize=0;
+            diffInfo.compressedCount=5;
+            strcpy(diffInfo.compressType,dirCompressType.c_str()); //safe
+        }else if (!getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
             check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile ERROR!\n");
             check(hpatch_FALSE,HDIFF_RESAVE_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo() ERROR!\n");
         }
