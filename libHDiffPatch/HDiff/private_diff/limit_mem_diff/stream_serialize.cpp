@@ -54,13 +54,13 @@ long TCompressedStream::_write_code(hpatch_TStreamOutputHandle streamHandle,
     size_t dataLen=(size_t)(data_end-data);
     self->_writeToPos_back=writeToPos+dataLen;
     
-    if (self->out_pos+dataLen>self->out_posLimitEnd){
+    if ((self->_is_overLimit)||(self->out_pos+dataLen>self->out_posLimitEnd)){
         self->_is_overLimit=true;
-        return hdiff_kStreamOutputCancel;
+    }else{
+        if ((long)dataLen!=self->out_code->write(self->out_code->streamHandle,self->out_pos,
+                                                 data,data_end)) return -1;
+        self->out_pos+=dataLen;
     }
-    if ((long)dataLen!=self->out_code->write(self->out_code->streamHandle,self->out_pos,
-                                             data,data_end)) return -1;
-    self->out_pos+=dataLen;
     return (long)dataLen;
 }
 
@@ -303,9 +303,12 @@ void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
         TCompressedStream  out_stream(out_diff,writePos,kLimitOutCodeSize,stream);
         hpatch_StreamPos_t compressed_size=
                                 compressPlugin->compress_stream(compressPlugin,&out_stream,stream);
-        writePos+=compressed_size;
-        if (compressed_size==0)//NOTICE: compress is canceled
+        if (out_stream.is_overLimit()||(compressed_size==0)||(compressed_size>kLimitOutCodeSize)){
+            compressed_size=0;//NOTICE: compress is canceled
             _pushStream(stream);
+        }else{
+            writePos+=compressed_size;
+        }
         packUInt_update(update_compress_sizePos,compressed_size);
     }else if (stream->streamSize>0){
         _pushStream(stream);
