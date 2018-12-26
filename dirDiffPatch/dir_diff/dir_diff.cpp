@@ -36,7 +36,7 @@
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #include "../../libHDiffPatch/HDiff/diff.h"
-#include "../patch/ref_stream.h"
+#include "../dir_patch/ref_stream.h"
 using namespace hdiff_private;
 
 static const char* kVersionType="DirDiff19&";

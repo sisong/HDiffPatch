@@ -109,24 +109,24 @@
 		D67D3BD421CBCD5D0050632A /* dirDiffPatch */ = {
 			isa = PBXGroup;
 			children = (
-				D67D3BD621CBCD5D0050632A /* diff */,
-				D67D3BD721CBCD5D0050632A /* patch */,
+				D67D3BD621CBCD5D0050632A /* dir_diff */,
+				D67D3BD721CBCD5D0050632A /* dir_patch */,
 				D67D3BDA21CBCD5D0050632A /* file_for_dir.h */,
 			);
 			name = dirDiffPatch;
 			path = ../../dirDiffPatch;
 			sourceTree = "<group>";
 		};
-		D67D3BD621CBCD5D0050632A /* diff */ = {
+		D67D3BD621CBCD5D0050632A /* dir_diff */ = {
 			isa = PBXGroup;
 			children = (
 				D67D3BD521CBCD5D0050632A /* dir_diff.cpp */,
 				D67D3BDB21CBCD5D0050632A /* dir_diff.h */,
 			);
-			path = diff;
+			path = dir_diff;
 			sourceTree = "<group>";
 		};
-		D67D3BD721CBCD5D0050632A /* patch */ = {
+		D67D3BD721CBCD5D0050632A /* dir_patch */ = {
 			isa = PBXGroup;
 			children = (
 				D67D3BD821CBCD5D0050632A /* ref_stream.h */,
@@ -134,7 +134,7 @@
 				D67D3BDF21D11DF70050632A /* dir_patch.h */,
 				D67D3BE021D11DF70050632A /* dir_patch.c */,
 			);
-			path = patch;
+			path = dir_patch;
 			sourceTree = "<group>";
 		};
 		D690AB881F2078A40089DC57 = {
