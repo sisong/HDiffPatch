@@ -33,9 +33,21 @@
 extern "C" {
 #endif
 
-hpatch_BOOL isDirDiffData(const hpatch_TStreamInput* diffFile,
-                          char* out_compressType/*[hpatch_kMaxCompressTypeLength+1]*/);
+hpatch_BOOL getDirDiffInfo(const hpatch_TStreamInput* diffFile,
+                           char* out_compressType/*[hpatch_kMaxCompressTypeLength+1]*/,
+                           hpatch_BOOL* out_newIsDir,hpatch_BOOL* out_oldIsDir);
+hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,
+                                 char* out_compressType/*[hpatch_kMaxCompressTypeLength+1]*/,
+                                 hpatch_BOOL* out_newIsDir,hpatch_BOOL* out_oldIsDir);
 
+typedef enum TDirPatchResult{
+    DIRPATCH_SUCCESS=0,
+} TDirPatchResult;
+
+TDirPatchResult dir_patch(const hpatch_TStreamOutput* out_newData,
+                          const char* oldPatch,const hpatch_TStreamInput*  diffData,
+                          hpatch_TDecompress* decompressPlugin,
+                          hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
     
 #ifdef __cplusplus
 }

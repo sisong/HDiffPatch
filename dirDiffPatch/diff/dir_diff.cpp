@@ -332,14 +332,16 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
     assert(listener!=0);
     std::vector<std::string> newList;
     std::vector<std::string> oldList;
+    const bool newIsDir=isDirName(newPatch);
+    const bool oldIsDir=isDirName(oldPatch);
     {
-        if (isDirName(newPatch)){
+        if (newIsDir){
             check(getDirFileList(newPatch,newList,listener),"new dir getDirFileList() error!");
             sortDirFileList(newList);
         }else{
             newList.push_back(newPatch);
         }
-        if (isDirName(oldPatch)){
+        if (oldIsDir){
             check(getDirFileList(oldPatch,oldList,listener),"old dir getDirFileList() error!");
             sortDirFileList(oldList);
         }else{
@@ -385,7 +387,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
     pushIncList(headData,newRefIList);
     pushIncList(headData,oldRefIList);
     std::vector<TByte> headCode;
-    {
+    if (compressPlugin){
         headCode.resize(compressPlugin->maxCompressedSize(compressPlugin,headData.size()));
         size_t codeSize=compressPlugin->compress(compressPlugin,headCode.data(),headCode.data()+headCode.size(),
                                                  headData.data(),headData.data()+headData.size());
@@ -401,7 +403,9 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
         pushBack(out_data,(const TByte*)kVersionType,(const TByte*)kVersionType+strlen(kVersionType));
     }
     {//compressType
-        const char* compressType=compressPlugin->compressType(compressPlugin);
+        const char* compressType="";
+        if (compressPlugin)
+            compressType=compressPlugin->compressType(compressPlugin);
         size_t compressTypeLen=strlen(compressType);
         check(compressTypeLen<=hpatch_kMaxCompressTypeLength,"compressTypeLen error!");
         pushBack(out_data,(const TByte*)compressType,(const TByte*)compressType+compressTypeLen+1); //'\0'
@@ -409,6 +413,8 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
     //head info
     const TByte kPatchModel=0;
     packUInt(out_data,kPatchModel);
+    packUInt(out_data,newIsDir?1:0);
+    packUInt(out_data,oldIsDir?1:0);
     packUInt(out_data,newList.size());      clearVector(newList);
     packUInt(out_data,oldList.size());      clearVector(oldList);
     packUInt(out_data,sameFileCount);       clearVector(samePairList);

@@ -11,6 +11,8 @@
 		D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BF82077B9090039C38B /* libz.tbd */; };
 		D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFA2077B91A0039C38B /* libbz2.tbd */; };
 		D64B4BFF2077B9240039C38B /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFE2077B9240039C38B /* liblzma.a */; };
+		D67D3BED21D321870050632A /* ref_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BE821D321870050632A /* ref_stream.c */; };
+		D67D3BEE21D321870050632A /* dir_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BE921D321870050632A /* dir_patch.c */; };
 		D6BD9BCE17578601004886DE /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BCA17578601004886DE /* patch.c */; };
 /* End PBXBuildFile section */
 
@@ -38,6 +40,11 @@
 		D64B4BFA2077B91A0039C38B /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		D64B4BFE2077B9240039C38B /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6553CB3165FA1A9009D4C44 /* hpatchz */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hpatchz; sourceTree = BUILT_PRODUCTS_DIR; };
+		D67D3BE721D321870050632A /* dir_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch.h; sourceTree = "<group>"; };
+		D67D3BE821D321870050632A /* ref_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ref_stream.c; sourceTree = "<group>"; };
+		D67D3BE921D321870050632A /* dir_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dir_patch.c; sourceTree = "<group>"; };
+		D67D3BEA21D321870050632A /* ref_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ref_stream.h; sourceTree = "<group>"; };
+		D67D3BEB21D321870050632A /* file_for_dir.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = file_for_dir.h; sourceTree = "<group>"; };
 		D6BD9BCA17578601004886DE /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -73,6 +80,7 @@
 				D639ACD9208334A800811BB3 /* _atosize.h */,
 				D64B4BF42077AB550039C38B /* file_for_patch.h */,
 				D64B4BEE2077AAAA0039C38B /* hpatchz.c */,
+				D67D3BE221D321870050632A /* dirDiffPatch */,
 				D6BD9BC917578601004886DE /* HPatch */,
 				D6553CB4165FA1A9009D4C44 /* Products */,
 				D64B4BF72077B9090039C38B /* Frameworks */,
@@ -85,6 +93,27 @@
 				D6553CB3165FA1A9009D4C44 /* hpatchz */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D67D3BE221D321870050632A /* dirDiffPatch */ = {
+			isa = PBXGroup;
+			children = (
+				D67D3BE621D321870050632A /* patch */,
+				D67D3BEB21D321870050632A /* file_for_dir.h */,
+			);
+			name = dirDiffPatch;
+			path = ../../dirDiffPatch;
+			sourceTree = "<group>";
+		};
+		D67D3BE621D321870050632A /* patch */ = {
+			isa = PBXGroup;
+			children = (
+				D67D3BE921D321870050632A /* dir_patch.c */,
+				D67D3BE721D321870050632A /* dir_patch.h */,
+				D67D3BE821D321870050632A /* ref_stream.c */,
+				D67D3BEA21D321870050632A /* ref_stream.h */,
+			);
+			path = patch;
 			sourceTree = "<group>";
 		};
 		D6BD9BC917578601004886DE /* HPatch */ = {
@@ -149,7 +178,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D67D3BED21D321870050632A /* ref_stream.c in Sources */,
 				D6BD9BCE17578601004886DE /* patch.c in Sources */,
+				D67D3BEE21D321870050632A /* dir_patch.c in Sources */,
 				D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

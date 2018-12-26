@@ -47,21 +47,21 @@ typedef enum TPathType{
 } TPathType;
 
 static inline
-bool getPathType(const char* path,TPathType* out_type){
+hpatch_BOOL getPathType(const char* path,TPathType* out_type){
     assert(out_type!=0);
     struct stat s;
     memset(&s,0,sizeof(s));
     int res = stat(path,&s);
     if(res!=0){
-        return false;
+        return hpatch_FALSE;
     }else if (S_ISREG(s.st_mode)){
         *out_type=kPathType_file;
-        return true;
+        return hpatch_TRUE;
     }else if (S_ISDIR(s.st_mode)){
         *out_type=kPathType_dir;
-        return true;
+        return hpatch_TRUE;
     }else{
-        return false;
+        return hpatch_FALSE;
     }
 }
 

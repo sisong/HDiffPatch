@@ -35,6 +35,7 @@
 #include "_clock_for_demo.h"
 #include "_atosize.h"
 #include "dirDiffPatch/file_for_dir.h"
+#include "dirDiffPatch/patch/dir_patch.h"
 
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
@@ -116,6 +117,9 @@ int hpatch_cmd_line(int argc, const char * argv[]);
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
+
+int hpatch_dir(const char* oldPath,const char* diffPath,const char* outNewFileName,
+               hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
 
 #if (_IS_NEED_MAIN)
 int main(int argc, const char * argv[]){
@@ -203,10 +207,29 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     }
     
     {
-        const char* oldFileName=arg_values[0];
-        const char* diffFileName=arg_values[1];
+        const char* oldFileName   =arg_values[0];
+        const char* diffFileName  =arg_values[1];
         const char* outNewFileName=arg_values[2];
-        return hpatch(oldFileName,diffFileName,outNewFileName,isOriginal,isLoadOldAll,patchCacheSize);
+        hpatch_BOOL savedOldIsDir=hpatch_FALSE;
+        TPathType oldType;
+        _options_check(getPathType(oldFileName,&oldType),"input old path must file or dir");
+        hpatch_BOOL isDirDiff=getDirDiffInfoByFile(diffFileName,0,0,&savedOldIsDir);
+        if (isDirDiff){
+            _options_check(!isOriginal,"-o unsupport dir patch");
+            if (savedOldIsDir){
+                _options_check(kPathType_dir==oldType,"input old path need dir");
+            }else{
+                _options_check(kPathType_dir!=oldType,"input old path need file");
+            }
+        }else{
+            _options_check(kPathType_dir!=oldType,"input old path need file");
+        }
+        
+        if (isDirDiff){
+            return hpatch_dir(oldFileName,diffFileName,outNewFileName,isLoadOldAll,patchCacheSize);
+        }else{
+            return hpatch(oldFileName,diffFileName,outNewFileName,isOriginal,isLoadOldAll,patchCacheSize);
+        }
     }
 }
 
@@ -376,3 +399,8 @@ clear:
     return result;
 }
 
+
+int hpatch_dir(const char* oldPath,const char* diffPath,const char* outNewFileName,
+               hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
+    return 1;
+}
