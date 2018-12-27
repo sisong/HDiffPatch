@@ -54,6 +54,64 @@ typedef struct _THDiffzHead{
     
 hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,_THDiffzHead* out_head,
                             const hpatch_TStreamInput* compressedDiff);
+
+// Stream Clip cache
+typedef struct TStreamCacheClip{
+    hpatch_StreamPos_t       streamPos;
+    hpatch_StreamPos_t       streamPos_end;
+    const struct hpatch_TStreamInput*  srcStream;
+    unsigned char*  cacheBuf;
+    size_t          cacheBegin;
+    size_t          cacheEnd;
+} TStreamCacheClip;
+
+hpatch_inline static
+void _TStreamCacheClip_init(TStreamCacheClip* sclip,const struct hpatch_TStreamInput* srcStream,
+                            hpatch_StreamPos_t streamPos,hpatch_StreamPos_t streamPos_end,
+                            unsigned char* aCache,size_t cacheSize){
+    sclip->streamPos=streamPos;
+    sclip->streamPos_end=streamPos_end;
+    sclip->srcStream=srcStream;
+    sclip->cacheBuf=aCache;
+    sclip->cacheBegin=cacheSize;
+    sclip->cacheEnd=cacheSize;
+}
+    
+#define _TStreamCacheClip_isFinish(sclip)     ( 0==_TStreamCacheClip_streamSize(sclip) )
+#define _TStreamCacheClip_isCacheEmpty(sclip) ( (sclip)->cacheBegin==(sclip)->cacheEnd )
+#define _TStreamCacheClip_cachedSize(sclip)   ( (size_t)((sclip)->cacheEnd-(sclip)->cacheBegin) )
+#define _TStreamCacheClip_streamSize(sclip)   \
+            (  (hpatch_StreamPos_t)((sclip)->streamPos_end-(sclip)->streamPos)  \
+                + (hpatch_StreamPos_t)_TStreamCacheClip_cachedSize(sclip)  )
+    
+hpatch_BOOL _TStreamCacheClip_updateCache(TStreamCacheClip* sclip);
+    
+hpatch_inline static //error return 0
+unsigned char* _TStreamCacheClip_accessData(TStreamCacheClip* sclip,size_t readSize){
+    //assert(readSize<=sclip->cacheEnd);
+    if (readSize>_TStreamCacheClip_cachedSize(sclip)){
+        if (!_TStreamCacheClip_updateCache(sclip)) return 0;
+        if (readSize>_TStreamCacheClip_cachedSize(sclip)) return 0;
+    }
+    return &sclip->cacheBuf[sclip->cacheBegin];
+}
+
+#define _TStreamCacheClip_skipData_noCheck(sclip,skipSize) ((sclip)->cacheBegin+=skipSize)
+    
+hpatch_inline static //error return 0
+unsigned char* _TStreamCacheClip_readData(TStreamCacheClip* sclip,size_t readSize){
+    unsigned char* result=_TStreamCacheClip_accessData(sclip,readSize);
+    _TStreamCacheClip_skipData_noCheck(sclip,readSize);
+    return result;
+}
+
+hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,
+                                                hpatch_StreamPos_t* result,const int kTagBit);
+
+#define _TStreamCacheClip_unpackUIntWithTagTo(puint,sclip,kTagBit) \
+    { if (!_TStreamCacheClip_unpackUIntWithTag(sclip,puint,kTagBit)) return _hpatch_FALSE; }
+#define _TStreamCacheClip_unpackUIntTo(puint,sclip) \
+    _TStreamCacheClip_unpackUIntWithTagTo(puint,sclip,0)
     
 #ifdef __cplusplus
 }

@@ -44,6 +44,7 @@
 		D67D3BF121D3C5870050632A /* ref_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ref_stream.c; sourceTree = "<group>"; };
 		D67D3BF221D3C5870050632A /* dir_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dir_patch.c; sourceTree = "<group>"; };
 		D67D3BF321D3C5870050632A /* ref_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ref_stream.h; sourceTree = "<group>"; };
+		D67D3BF621D48DCB0050632A /* patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_private.h; sourceTree = "<group>"; };
 		D6BD9BCA17578601004886DE /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -98,8 +99,8 @@
 			isa = PBXGroup;
 			children = (
 				D67D3BF021D3C5870050632A /* dir_patch.h */,
-				D67D3BF121D3C5870050632A /* ref_stream.c */,
 				D67D3BF221D3C5870050632A /* dir_patch.c */,
+				D67D3BF121D3C5870050632A /* ref_stream.c */,
 				D67D3BF321D3C5870050632A /* ref_stream.h */,
 			);
 			name = dir_patch;
@@ -109,6 +110,7 @@
 		D6BD9BC917578601004886DE /* HPatch */ = {
 			isa = PBXGroup;
 			children = (
+				D67D3BF621D48DCB0050632A /* patch_private.h */,
 				D64B4BF02077AB290039C38B /* patch_types.h */,
 				D64B4BF12077AB2A0039C38B /* patch.h */,
 				D6BD9BCA17578601004886DE /* patch.c */,
