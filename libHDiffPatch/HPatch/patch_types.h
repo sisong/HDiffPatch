@@ -130,6 +130,15 @@ extern "C" {
     void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
                               unsigned char* mem,unsigned char* mem_end);
     
+    typedef struct TStreamInputClip{
+        hpatch_TStreamInput         base;
+        const hpatch_TStreamInput*  srcStream;
+        hpatch_StreamPos_t          clipBeginPos;
+    } TStreamInputClip;
+    //clip srcStream from clipBeginPos to clipEndPos as a new StreamInput;
+    void streamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  srcStream,
+                              hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos);
+    
     #define hpatch_BOOL   int
     #define hpatch_FALSE  ((int)0)
     #define hpatch_TRUE   ((int)(!hpatch_FALSE))

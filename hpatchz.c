@@ -210,13 +210,14 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         const char* oldFileName   =arg_values[0];
         const char* diffFileName  =arg_values[1];
         const char* outNewFileName=arg_values[2];
-        hpatch_BOOL savedOldIsDir=hpatch_FALSE;
-        TPathType oldType;
+        TDirDiffInfo dirDiffInfo;
+        TPathType    oldType;
         _options_check(getPathType(oldFileName,&oldType),"input old path must file or dir");
-        hpatch_BOOL isDirDiff=getDirDiffInfoByFile(diffFileName,0,0,&savedOldIsDir);
+        _options_check(getDirDiffInfoByFile(diffFileName,&dirDiffInfo),"input diffFile open read");
+        hpatch_BOOL isDirDiff=dirDiffInfo.isDirDiff;
         if (isDirDiff){
             _options_check(!isOriginal,"-o unsupport dir patch");
-            if (savedOldIsDir){
+            if (dirDiffInfo.oldPathIsDir){
                 _options_check(kPathType_dir==oldType,"input old path need dir");
             }else{
                 _options_check(kPathType_dir!=oldType,"input old path need file");

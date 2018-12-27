@@ -32,13 +32,19 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+    
+typedef struct TDirDiffInfo{
+    hpatch_BOOL                 isDirDiff;
+    hpatch_BOOL                 newPathIsDir;
+    hpatch_BOOL                 oldPathIsDir;
+    hpatch_BOOL                 dirDataIsCompressed;
+    size_t                      externDataOffset;
+    size_t                      externDataSize;
+    hpatch_compressedDiffInfo   hdiffInfo;
+} TDirDiffInfo;
 
-hpatch_BOOL getDirDiffInfo(const hpatch_TStreamInput* diffFile,
-                           char* out_compressType/*[hpatch_kMaxCompressTypeLength+1]*/,
-                           hpatch_BOOL* out_newIsDir,hpatch_BOOL* out_oldIsDir);
-hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,
-                                 char* out_compressType/*[hpatch_kMaxCompressTypeLength+1]*/,
-                                 hpatch_BOOL* out_newIsDir,hpatch_BOOL* out_oldIsDir);
+hpatch_BOOL getDirDiffInfo(const hpatch_TStreamInput* diffFile,TDirDiffInfo* out_info);
+hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info);
 
 typedef enum TDirPatchResult{
     DIRPATCH_SUCCESS=0,

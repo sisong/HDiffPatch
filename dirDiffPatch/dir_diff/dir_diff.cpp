@@ -420,8 +420,6 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
     packUInt(out_data,sameFileCount);       clearVector(samePairList);
     packUInt(out_data,newRefIList.size());  clearVector(newRefIList);
     packUInt(out_data,oldRefIList.size());  clearVector(oldRefIList);
-    packUInt(out_data,newRefStream.stream->streamSize);
-    packUInt(out_data,oldRefStream.stream->streamSize);
     packUInt(out_data,headData.size());
     packUInt(out_data,headCode.size());
     //externData size

@@ -107,11 +107,6 @@ unsigned char* _TStreamCacheClip_readData(TStreamCacheClip* sclip,size_t readSiz
 
 hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,
                                                 hpatch_StreamPos_t* result,const int kTagBit);
-
-#define _TStreamCacheClip_unpackUIntWithTagTo(puint,sclip,kTagBit) \
-    { if (!_TStreamCacheClip_unpackUIntWithTag(sclip,puint,kTagBit)) return _hpatch_FALSE; }
-#define _TStreamCacheClip_unpackUIntTo(puint,sclip) \
-    _TStreamCacheClip_unpackUIntWithTagTo(puint,sclip,0)
     
 #ifdef __cplusplus
 }

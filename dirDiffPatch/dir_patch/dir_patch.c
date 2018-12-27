@@ -30,60 +30,120 @@
 #include <stdio.h>
 #include <string.h>
 #include "../../libHDiffPatch/HPatch/patch.h"
+#include "../../libHDiffPatch/HPatch/patch_private.h"
 #include "../../file_for_patch.h"
 
 static const char* kVersionType="DirDiff19&";
+
+#define TUInt hpatch_StreamPos_t
 
 #define  check(value) { \
     if (!(value)){ printf(#value" ERROR!\n");  \
         result=hpatch_FALSE; assert(hpatch_FALSE); goto clear; } }
 
-hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,
-                                 char* out_compressType/*[hpatch_kMaxCompressTypeLength+1]*/,
-                                 hpatch_BOOL* out_newIsDir,hpatch_BOOL* out_oldIsDir){
+#define unpackUIntTo(puint,sclip) \
+    check(_TStreamCacheClip_unpackUIntWithTag(sclip,puint,0))
+
+
+hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info){
     hpatch_BOOL          result=hpatch_TRUE;
     TFileStreamInput     diffData;
     TFileStreamInput_init(&diffData);
     
     check(TFileStreamInput_open(&diffData,diffFileName));
-    result=getDirDiffInfo(&diffData.base,out_compressType,out_newIsDir,out_oldIsDir);
+    result=getDirDiffInfo(&diffData.base,out_info);
     check(TFileStreamInput_close(&diffData));
 clear:
     return result;
 }
 
-hpatch_BOOL getDirDiffInfo(const hpatch_TStreamInput* diffFile,
-                           char* out_compressType/*[hpatch_kMaxCompressTypeLength+1]*/,
-                           hpatch_BOOL* out_newIsDir,hpatch_BOOL* out_oldIsDir){
+typedef struct _THDirDiffHead {
+    TUInt       newPathCount;
+    TUInt       oldPathCount;
+    TUInt       sameFileCount;
+    TUInt       newRefFileCount;
+    TUInt       oldRefFileCount;
+    TUInt       headDataSize;
+    TUInt       headDataCompressedSize;
+    TStreamInputClip    headData;
+    TStreamInputClip    hdiffData;
+} _THDirDiffHead;
+
+static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_THDirDiffHead* out_head,
+                                      const hpatch_TStreamInput* dirDiffFile){
     hpatch_BOOL result=hpatch_TRUE;
-    size_t tagSize=strlen(kVersionType);
-    if (diffFile->streamSize<tagSize) return hpatch_FALSE;
-    //assert(tagSize<=hpatch_kStreamCacheSize);
-    assert(hpatch_kStreamCacheSize>=hpatch_kMaxCompressTypeLength+1);
-    unsigned char buf[hpatch_kStreamCacheSize+1];
-    check((long)tagSize==diffFile->read(diffFile->streamHandle,0,
-                                        buf,buf+tagSize));
-    if (0!=memcmp(buf,kVersionType,tagSize))
-        return hpatch_FALSE;
-    if (out_compressType||out_newIsDir||out_oldIsDir){
+    check(out_info!=0);
+    out_info->isDirDiff=hpatch_FALSE;
+    
+    TStreamCacheClip  _headClip;
+    TStreamCacheClip* headClip=&_headClip;
+    TByte             temp_cache[hpatch_kStreamCacheSize];
+    _TStreamCacheClip_init(headClip,dirDiffFile,0,dirDiffFile->streamSize,
+                           temp_cache,hpatch_kStreamCacheSize);
+    
+    {//VersionType
+        const size_t kVersionTypeLen=strlen(kVersionType);
+        if (dirDiffFile->streamSize<kVersionTypeLen)
+            return result;//not is dirDiff data
+        //assert(tagSize<=hpatch_kStreamCacheSize);
+        const TByte* versionType=_TStreamCacheClip_readData(headClip,kVersionTypeLen);
+        check(versionType!=0);
+        if (0!=memcmp(versionType,kVersionType,kVersionTypeLen))
+            return result;//not is dirDiff data
+        out_info->isDirDiff=hpatch_TRUE;
+    }
+    {//read compressType
+        const TByte* compressType;
+        size_t       compressTypeLen;
         size_t readLen=hpatch_kMaxCompressTypeLength+1;
-        buf[readLen]='\0';
-        if (readLen+tagSize>diffFile->streamSize) readLen=diffFile->streamSize-tagSize;
-        check((long)readLen==diffFile->read(diffFile->streamHandle,tagSize,
-                                            buf,buf+readLen));
-        check(strlen((char*)buf)<readLen);
-        if (out_compressType) strcpy(out_compressType,(char*)buf);//safe
+        if (readLen>_TStreamCacheClip_streamSize(headClip))
+            readLen=(size_t)_TStreamCacheClip_streamSize(headClip);
+        compressType=_TStreamCacheClip_accessData(headClip,readLen);
+        check(compressType!=0);
+        compressTypeLen=strnlen((const char*)compressType,readLen);
+        check(compressTypeLen<readLen);
+        memcpy(out_info->hdiffInfo.compressType,compressType,compressTypeLen+1);
+        _TStreamCacheClip_skipData_noCheck(headClip,compressTypeLen+1);
     }
-    if (out_newIsDir||out_oldIsDir){
-        //const TByte kPatchModel=0;
-        //hpatch_unpackUInt(<#src_code#>, <#src_code_end#>, <#result#>)
-        //packUInt(out_data,kPatchModel);
-        //packUInt(out_data,newIsDir?1:0);
-        //packUInt(out_data,oldIsDir?1:0);
-        //todo:
+    {
+        const TByte kPatchMode =0;
+        TUInt savedValue;
+        unpackUIntTo(&savedValue,headClip);
+        check(savedValue==kPatchMode); //now only support
+        unpackUIntTo(&savedValue,headClip);  check(savedValue<=1);
+        out_info->newPathIsDir=(hpatch_BOOL)savedValue;
+        unpackUIntTo(&savedValue,headClip);  check(savedValue<=1);
+        out_info->oldPathIsDir=(hpatch_BOOL)savedValue;
+        
+        unpackUIntTo(&out_head->newPathCount,headClip);
+        unpackUIntTo(&out_head->oldPathCount,headClip);
+        unpackUIntTo(&out_head->sameFileCount,headClip);
+        unpackUIntTo(&out_head->newRefFileCount,headClip);
+        unpackUIntTo(&out_head->oldRefFileCount,headClip);
+        unpackUIntTo(&out_head->headDataSize,headClip);
+        unpackUIntTo(&out_head->headDataCompressedSize,headClip);
+        out_info->dirDataIsCompressed=(out_head->headDataCompressedSize>0);
+        unpackUIntTo(&savedValue,headClip);
+        check(savedValue==(size_t)savedValue);
+        out_info->externDataSize=(size_t)savedValue;
     }
+    TUInt curPos=headClip->streamPos-_TStreamCacheClip_cachedSize(headClip);
+    TUInt headDataSavedSize=(out_head->headDataCompressedSize>0)?
+                                out_head->headDataCompressedSize:out_head->headDataSize;
+    streamInputClip_init(&out_head->headData,dirDiffFile,curPos,curPos+headDataSavedSize);
+    curPos+=headDataSavedSize;
+    check(curPos==(size_t)curPos);
+    out_info->externDataOffset=(size_t)curPos;
+    curPos+=out_info->externDataSize;
+    streamInputClip_init(&out_head->hdiffData,dirDiffFile,curPos,dirDiffFile->streamSize);
+    check(getCompressedDiffInfo(&out_info->hdiffInfo,&out_head->hdiffData.base));
 clear:
     return result;
+}
+
+hpatch_BOOL getDirDiffInfo(const hpatch_TStreamInput* diffFile,TDirDiffInfo* out_info){
+    _THDirDiffHead head;
+    return _read_dirdiff_head(out_info,&head,diffFile);
 }
 
 TDirPatchResult dir_patch(const hpatch_TStreamOutput* out_newData,

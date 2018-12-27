@@ -634,15 +634,16 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     hpatch_TDecompress* decompressPlugin=0;
     check(TFileStreamInput_open(&diffData_in,diffFileName),HDIFF_OPENREAD_ERROR,"open diffFile ERROR!");
     {
+        TDirDiffInfo dirDiffInfo;
+        check(getDirDiffInfo(&diffData_in.base,&dirDiffInfo),HDIFF_OPENREAD_ERROR,"read diffFile ERROR!")
+        isDirDiff=dirDiffInfo.isDirDiff;
         hpatch_compressedDiffInfo diffInfo;
-        isDirDiff=getDirDiffInfo(&diffData_in.base,diffInfo.compressType,0,0);
         if (isDirDiff){
-            diffInfo.newDataSize=0;
-            diffInfo.oldDataSize=0;
-            diffInfo.compressedCount=5;//unknown set max
+            diffInfo=dirDiffInfo.hdiffInfo;
+            diffInfo.compressedCount+=dirDiffInfo.dirDataIsCompressed?1:0;
         }else if (!getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
             check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile ERROR!\n");
-            check(hpatch_FALSE,HDIFF_RESAVE_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo() ERROR!\n");
+            check(hpatch_FALSE,HDIFF_RESAVE_HDIFFINFO_ERROR,"is hdiff file? get diff info ERROR!\n");
         }
         if (strlen(diffInfo.compressType)>0){
 #ifdef  _CompressPlugin_zlib
@@ -668,21 +669,16 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
         }
         if (!decompressPlugin){
             if (diffInfo.compressedCount>0){
-                printf("can no decompress \"%s\" data ERROR!\n",diffInfo.compressType);
+                std::cout<<"can no decompress \""<<diffInfo.compressType<<"\" data ERROR!\n";
                 check_on_error(HDIFF_RESAVE_COMPRESSTYPE_ERROR);
             }else{
                 if (strlen(diffInfo.compressType)>0)
-                    printf("  diffFile added useless compress tag \"%s\"\n",diffInfo.compressType);
+                    std::cout<<"  diffFile added useless compress tag \""<<diffInfo.compressType<<"\"\n";
                 decompressPlugin=0;
             }
         }else{
-            if (isDirDiff){
-                printf("resave diffFile(DirDiff) with decompress plugin: \"%s\"\n",
-                       diffInfo.compressType);
-            }else{
-                printf("resave diffFile with decompress plugin: \"%s\" (need decompress %d)\n",
-                       diffInfo.compressType,diffInfo.compressedCount);
-            }
+            std::cout<<"resave diffFile"<<(isDirDiff?"(DirDiff)":"")<<" with decompress plugin: \""
+                     <<diffInfo.compressType<<"\" (need decompress "<<diffInfo.compressedCount<<")\n";
         }
     }
     

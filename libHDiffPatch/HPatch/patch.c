@@ -71,6 +71,31 @@ void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
     out_stream->write=_write_mem_stream;
 }
 
+static long _TStreamInputClip_read(hpatch_TStreamInputHandle streamHandle,
+                                   const hpatch_StreamPos_t readFromPos,
+                                   unsigned char* out_data,unsigned char* out_data_end){
+    TStreamInputClip* self=(TStreamInputClip*)streamHandle;
+#ifdef __RUN_MEM_SAFE_CHECK
+    if (readFromPos+(out_data_end-out_data)>self->base.streamSize)
+        { assert(_hpatch_FALSE); return -1; }
+#endif
+    return self->srcStream->read(self->srcStream->streamHandle,readFromPos+self->clipBeginPos,
+                                 out_data,out_data_end);
+}
+
+void streamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  srcStream,
+                           hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos){
+    assert(self!=0);
+    assert(srcStream!=0);
+    assert(self->base.streamHandle==0);
+    assert(clipBeginPos<=clipEndPos);
+    assert(clipEndPos<=srcStream->streamSize);
+    self->srcStream=srcStream;
+    self->clipBeginPos=clipBeginPos;
+    self->base.streamHandle=self;
+    self->base.streamSize=clipEndPos-clipBeginPos;
+    self->base.read=_TStreamInputClip_read;
+}
 
 
 static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,
@@ -84,20 +109,14 @@ static hpatch_BOOL _unpackUIntWithTag(const TByte** src_code,const TByte* src_co
     }else{
         hpatch_StreamPos_t u64;
         hpatch_BOOL rt=hpatch_unpackUIntWithTag(src_code,src_code_end,&u64,kTagBit);
+        TUInt u=(TUInt)u64;
+        *result=u;
 #ifdef __RUN_MEM_SAFE_CHECK
-        if (rt){
-            TUInt u=(TUInt)u64;
-            if (u==u64){
-                *result=u;
-                return hpatch_TRUE;
-            }else{
-                return _hpatch_FALSE;
-            }
-        }else{
-            return _hpatch_FALSE;
-        }
+        if (sizeof(TUInt)==sizeof(hpatch_StreamPos_t))
+            return rt;
+        else
+            return rt&(u==u64);
 #else
-        *result=(TUInt)u64;
         return rt;
 #endif
     }
@@ -407,6 +426,11 @@ hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,TUInt* r
     _TStreamCacheClip_skipData_noCheck(sclip,(size_t)(curCode-codeBegin));
     return hpatch_TRUE;
 }
+
+#define _TStreamCacheClip_unpackUIntWithTagTo(puint,sclip,kTagBit) \
+    { if (!_TStreamCacheClip_unpackUIntWithTag(sclip,puint,kTagBit)) return _hpatch_FALSE; }
+#define _TStreamCacheClip_unpackUIntTo(puint,sclip) \
+    _TStreamCacheClip_unpackUIntWithTagTo(puint,sclip,0)
 
 
 typedef struct _TBytesRle_load_stream{
