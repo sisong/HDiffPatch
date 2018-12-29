@@ -34,6 +34,7 @@
 #include "../../file_for_patch.h"
 
 static const char* kVersionType="DirDiff19&";
+static const TByte kPatchMode =0;
 
 #define TUInt hpatch_StreamPos_t
 
@@ -92,6 +93,7 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_THDirDiffHead* out
             return result;//not is dirDiff data
         out_info->isDirDiff=hpatch_TRUE;
     }
+    char savedCompressType[hpatch_kMaxCompressTypeLength+1];
     {//read compressType
         const TByte* compressType;
         size_t       compressTypeLen;
@@ -102,11 +104,10 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_THDirDiffHead* out
         check(compressType!=0);
         compressTypeLen=strnlen((const char*)compressType,readLen);
         check(compressTypeLen<readLen);
-        memcpy(out_info->hdiffInfo.compressType,compressType,compressTypeLen+1);
+        memcpy(savedCompressType,compressType,compressTypeLen+1);
         _TStreamCacheClip_skipData_noCheck(headClip,compressTypeLen+1);
     }
     {
-        const TByte kPatchMode =0;
         TUInt savedValue;
         unpackUIntTo(&savedValue,headClip);
         check(savedValue==kPatchMode); //now only support
@@ -137,6 +138,7 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_THDirDiffHead* out
     curPos+=out_info->externDataSize;
     streamInputClip_init(&out_head->hdiffData,dirDiffFile,curPos,dirDiffFile->streamSize);
     check(getCompressedDiffInfo(&out_info->hdiffInfo,&out_head->hdiffData.base));
+    check(0==strcmp(savedCompressType,out_info->hdiffInfo.compressType));
 clear:
     return result;
 }

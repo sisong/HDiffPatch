@@ -77,7 +77,7 @@ extern "C" {
     
     typedef struct hpatch_TStreamInput{
         hpatch_TStreamInputHandle streamHandle;
-        hpatch_StreamPos_t        streamSize;
+        hpatch_StreamPos_t        streamSize; //stream size,max readable range;
         //read() must return (out_data_end-out_data), otherwise error
         long                      (*read) (hpatch_TStreamInputHandle streamHandle,
                                            const hpatch_StreamPos_t readFromPos,
@@ -86,7 +86,7 @@ extern "C" {
     
     typedef struct hpatch_TStreamOutput{
         hpatch_TStreamOutputHandle streamHandle;
-        hpatch_StreamPos_t         streamSize; //stream  size,not is write pos!
+        hpatch_StreamPos_t         streamSize; //stream size,max writable range; not is write pos!
         //write() must return (out_data_end-out_data), otherwise error
         //   first writeToPos==0; the next writeToPos+=(data_end-data)
         long                       (*write)(hpatch_TStreamOutputHandle streamHandle,

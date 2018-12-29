@@ -730,12 +730,12 @@ struct DirDiffListener:public IDirDiffListener{
     
     virtual bool isNeedFilter(const std::string& path){
 #if (defined(__APPLE__))
-        if (pathIs(path,".DS_Store")) return true;
+        if (pathNameIs(path,".DS_Store")) return true;
 #endif
         return false;
     }
     
-    virtual void file_name_to_utf8(const std::string& fileName,std::string& out_utf8){
+    virtual void sysFileName_to_utf8(const std::string& fileName,std::string& out_utf8){
 #if (defined(__APPLE__))
         out_utf8.assign(fileName); //fileName used utf8
 #else

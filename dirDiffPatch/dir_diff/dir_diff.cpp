@@ -51,13 +51,42 @@ static const char* kVersionType="DirDiff19&";
 #define hash_end(ph)                {}
 
 
+void assignDirTag(std::string& dir){
+    if (dir.empty()||(dir.back()!=kPatch_dirTag))
+        dir.push_back(kPatch_dirTag);
+}
+
+bool isDirName(const std::string& path){
+    return (!path.empty())&&(path.back()==kPatch_dirTag);
+}
+
+static bool isAsciiString(const char* str,const char* strEnd){
+    for (;str<strEnd;++str) {
+        if (isascii(*str))
+            continue;
+        else
+            return false;
+    }
+    return true;
+}
+
+static void formatDirTagForSave(std::string& path){
+    if (kPatch_dirTag==kPatch_dirTag_saved) return;
+    for (size_t i=0;i<path.size();++i){
+        if (path[i]!=kPatch_dirTag)
+            continue;
+        else
+            path[i]=kPatch_dirTag_saved;
+    }
+}
+
 bool IDirFilter::pathIsEndWith(const std::string& pathName,const char* testEndTag){
     size_t nameSize=pathName.size();
     size_t testSize=strlen(testEndTag);
     if (nameSize<testSize) return false;
     return 0==memcmp(pathName.c_str()+(nameSize-testSize),testEndTag,testSize);
 }
-bool IDirFilter::pathIs(const std::string& pathName,const char* testPathName){ //without dir path
+bool IDirFilter::pathNameIs(const std::string& pathName,const char* testPathName){ //without dir path
     if (!pathIsEndWith(pathName,testPathName)) return false;
     size_t nameSize=pathName.size();
     size_t testSize=strlen(testPathName);
@@ -128,14 +157,6 @@ bool writeAll(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t pos,
     return true;
 }
 
-void assignDirTag(std::string& dir){
-    if (dir.empty()||(dir.back()!=kPatch_dirTag))
-        dir.push_back(kPatch_dirTag);
-}
-
-bool isDirName(const std::string& path){
-    return (!path.empty())&&(path.back()==kPatch_dirTag);
-}
 
 template <class TVector>
 static inline void clearVector(TVector& v){ TVector _t; v.swap(_t); }
@@ -243,19 +264,9 @@ static void pushSamePairList(std::vector<TByte>& out_data,const std::vector<size
     }
 }
 
-static bool isAsciiString(const char* str,const char* strEnd){
-    for (;str<strEnd;++str) {
-        if (isascii(*str))
-            continue;
-        else
-            return false;
-    }
-    return true;
-}
-
-static void pushNameList(std::vector<TByte>& out_data,const std::string& rootPatch,
+static void pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
                          const std::vector<std::string>& nameList,IDirDiffListener* listener){
-    const size_t rootLen=rootPatch.size();
+    const size_t rootLen=rootPath.size();
     std::string temp;
     std::string utf8;
     std::string last_utf8="";
@@ -263,15 +274,16 @@ static void pushNameList(std::vector<TByte>& out_data,const std::string& rootPat
         const std::string& name=nameList[i];
         const size_t nameSize=name.size();
         assert(nameSize>=rootLen);
-        assert(0==memcmp(name.data(),rootPatch.data(),rootLen));
+        assert(0==memcmp(name.data(),rootPath.data(),rootLen));
         const char* subName=name.c_str()+rootLen;
         const char* subNameEnd=subName+(nameSize-rootLen);
         if (isAsciiString(subName,subNameEnd)){
             utf8.assign(subName,subNameEnd);
         }else{
             temp.assign(subName,subNameEnd);
-            listener->file_name_to_utf8(temp,utf8);
+            listener->sysFileName_to_utf8(temp,utf8);
         }
+        formatDirTagForSave(utf8);
         size_t eqLen=0;
         while ((eqLen<utf8.size())&&(utf8[eqLen]==last_utf8[eqLen]))
                ++eqLen;
@@ -281,8 +293,40 @@ static void pushNameList(std::vector<TByte>& out_data,const std::string& rootPat
     }
 }
 
-static void getRefList(const std::vector<std::string>& newList,const std::vector<std::string>& oldList,
-                       std::vector<size_t>& out_samePairList,
+
+struct _TCmp_byHit {
+    inline _TCmp_byHit(const char* _newPath,const std::vector<std::string>& _oldList,
+                       size_t _oldRootPathSize,const std::vector<size_t>& _oldHitList)
+    :newPath(_newPath),oldList(_oldList),oldRootPathSize(_oldRootPathSize),oldHitList(_oldHitList){}
+    inline bool operator()(size_t ix,size_t iy)const{
+        size_t vx=ToValue(ix);
+        size_t vy=ToValue(iy);
+        return vx>vy;
+    }
+    size_t ToValue(size_t index)const{
+        const std::string& oldName=oldList[index];
+        bool  isEqPath=(0==strcmp(newPath,oldName.c_str()+oldRootPathSize));
+        size_t hitCount=oldHitList[index];
+        
+        const size_t kMaxValue=(size_t)(-1);
+        if (hitCount==0){
+            if (isEqPath) return kMaxValue;
+            else return kMaxValue-1;
+        }else{
+            if (isEqPath) return kMaxValue-2;
+            else return hitCount;
+        }
+        
+    }
+    const char* newPath;
+    const std::vector<std::string>& oldList;
+    const size_t oldRootPathSize;
+    const std::vector<size_t>& oldHitList;
+};
+
+static void getRefList(const std::string& newRootPath,const std::string& oldRootPath,
+                       const std::vector<std::string>& newList,const std::vector<std::string>& oldList,
+                       std::vector<size_t>& out_dataPathSamePairList,std::vector<size_t>& out_dataSamePairList,
                        std::vector<size_t>& out_newRefList,std::vector<size_t>& out_oldRefList){
     typedef std::multimap<hash_value_t,size_t> TMap;
     TMap hashMap;
@@ -296,28 +340,49 @@ static void getRefList(const std::vector<std::string>& newList,const std::vector
         hashMap.insert(TMap::value_type(hash,i));
         oldRefList.insert(i);
     }
-    out_samePairList.clear();
+    out_dataPathSamePairList.clear();
+    out_dataSamePairList.clear();
     out_newRefList.clear();
+    std::vector<size_t> oldHitList(oldList.size(),0);
     for (int i=0; i<newList.size(); ++i){
         const std::string& fileName=newList[i];
         if (isDirName(fileName)) continue;
         hpatch_StreamPos_t fileSize=0;
         hash_value_t hash=getFileHash(fileName,&fileSize);
         if (fileSize==0) continue;
-        bool findSame=false;
+        
+        bool isFoundSame=false;
+        bool isEqPath=false;
         size_t oldIndex=(size_t)(-1);
         std::pair<TMap::const_iterator,TMap::const_iterator> range=hashMap.equal_range(hash);
-        for (;range.first!=range.second;++range.first) {
-            oldIndex=range.first->second;
-            if (fileData_isSame(oldList[oldIndex],fileName)){
-                findSame=true;
+        std::vector<size_t> oldHashIndexs;
+        for (;range.first!=range.second;++range.first)
+            oldHashIndexs.push_back(range.first->second);
+        const char* newPath=fileName.c_str()+newRootPath.size();
+        if (oldHashIndexs.size()>1)
+            std::sort(oldHashIndexs.begin(),oldHashIndexs.end(),
+                      _TCmp_byHit(newPath,oldList,oldRootPath.size(),oldHitList));
+        for (size_t i=0;i<oldHashIndexs.size();++i){
+            size_t curOldIndex=oldHashIndexs[i];
+            const std::string& oldName=oldList[curOldIndex];
+            if (fileData_isSame(oldName,fileName)){
+                isFoundSame=true;
+                oldIndex=curOldIndex;
+                isEqPath=(0==strcmp(newPath,oldName.c_str()+oldRootPath.size()));
                 break;
             }
         }
-        if (findSame){
+        
+        if (isFoundSame){
+            ++oldHitList[oldIndex];
             oldRefList.erase(oldIndex);
-            out_samePairList.push_back(i);
-            out_samePairList.push_back(oldIndex);
+            if (isEqPath){
+                out_dataPathSamePairList.push_back(i);
+                out_dataPathSamePairList.push_back(oldIndex);
+            }else{
+                out_dataSamePairList.push_back(i);
+                out_dataSamePairList.push_back(oldIndex);
+            }
         }else{
             out_newRefList.push_back(i);
         }
@@ -326,31 +391,32 @@ static void getRefList(const std::vector<std::string>& newList,const std::vector
     std::sort(out_oldRefList.begin(),out_oldRefList.end());
 }
 
-void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::string& newPatch,
+void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin){
     assert(listener!=0);
     std::vector<std::string> newList;
     std::vector<std::string> oldList;
-    const bool newIsDir=isDirName(newPatch);
-    const bool oldIsDir=isDirName(oldPatch);
+    const bool newIsDir=isDirName(newPath);
+    const bool oldIsDir=isDirName(oldPath);
     {
         if (newIsDir){
-            check(getDirFileList(newPatch,newList,listener),"new dir getDirFileList() error!");
+            check(getDirFileList(newPath,newList,listener),"new dir getDirFileList() error!");
             sortDirFileList(newList);
         }else{
-            newList.push_back(newPatch);
+            newList.push_back(newPath);
         }
         if (oldIsDir){
-            check(getDirFileList(oldPatch,oldList,listener),"old dir getDirFileList() error!");
+            check(getDirFileList(oldPath,oldList,listener),"old dir getDirFileList() error!");
             sortDirFileList(oldList);
         }else{
-            oldList.push_back(oldPatch);
+            oldList.push_back(oldPath);
         }
         listener->diffFileList(newList,oldList);
     }
 
-    std::vector<size_t> samePairList; //new map to same old
+    std::vector<size_t> dataPathSamePairList; //new map to same old
+    std::vector<size_t> dataSamePairList;     //new map to same old
     std::vector<const hpatch_TStreamInput*> newRefSList;
     std::vector<const hpatch_TStreamInput*> oldRefSList;
     std::vector<size_t> newRefIList;
@@ -358,7 +424,8 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
     std::vector<CFileStreamInput> _newRefList;
     std::vector<CFileStreamInput> _oldRefList;
     {
-        getRefList(newList,oldList,samePairList,newRefIList,oldRefIList);
+        getRefList(newPath,oldPath,newList,oldList,
+                   dataPathSamePairList,dataSamePairList,newRefIList,oldRefIList);
         _newRefList.resize(newRefIList.size());
         _oldRefList.resize(oldRefIList.size());
         oldRefSList.resize(oldRefIList.size());
@@ -372,18 +439,32 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
             newRefSList[i]=&_newRefList[i].base;
         }
     }
-    size_t sameFileCount=samePairList.size()/2;
+    size_t dataPathSameFileCount=dataPathSamePairList.size()/2;
+    size_t dataSameFileCount=dataSamePairList.size()/2;
     CRefStream newRefStream;
     CRefStream oldRefStream;
     newRefStream.open(newRefSList.data(),newRefSList.size());
     oldRefStream.open(oldRefSList.data(),oldRefSList.size());
-    listener->refInfo(sameFileCount,newRefIList.size(),oldRefIList.size(),
+    listener->refInfo(dataPathSameFileCount+dataSameFileCount,newRefIList.size(),oldRefIList.size(),
                       newRefStream.stream->streamSize,oldRefStream.stream->streamSize);
     
+    //serialize headData
     std::vector<TByte> headData;
-    pushNameList(headData,newPatch,newList,listener);
-    pushNameList(headData,oldPatch,oldList,listener);
-    pushSamePairList(headData,samePairList);
+    pushNameList(headData,oldPath,oldList,listener);
+    {//save newList
+        std::vector<std::string> pathNotSameNewList;
+        size_t last=0;
+        for (size_t i=0;i<dataPathSamePairList.size();i+=2) {
+            size_t endp=dataPathSamePairList[i];
+            pathNotSameNewList.insert(pathNotSameNewList.end(),&newList[last],&newList[endp]);
+            last=endp+1;
+        }
+        pathNotSameNewList.insert(pathNotSameNewList.end(),newList.begin()+last,newList.end());
+        assert(pathNotSameNewList.size()==newList.size()-dataPathSameFileCount);
+        pushNameList(headData,newPath,pathNotSameNewList,listener);
+    }
+    pushSamePairList(headData,dataPathSamePairList);
+    pushSamePairList(headData,dataSamePairList);
     pushIncList(headData,newRefIList);
     pushIncList(headData,oldRefIList);
     std::vector<TByte> headCode;
@@ -415,11 +496,12 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
     packUInt(out_data,kPatchModel);
     packUInt(out_data,newIsDir?1:0);
     packUInt(out_data,oldIsDir?1:0);
-    packUInt(out_data,newList.size());      clearVector(newList);
-    packUInt(out_data,oldList.size());      clearVector(oldList);
-    packUInt(out_data,sameFileCount);       clearVector(samePairList);
-    packUInt(out_data,newRefIList.size());  clearVector(newRefIList);
-    packUInt(out_data,oldRefIList.size());  clearVector(oldRefIList);
+    packUInt(out_data,newList.size());          clearVector(newList);
+    packUInt(out_data,oldList.size());          clearVector(oldList);
+    packUInt(out_data,dataPathSameFileCount);   clearVector(dataPathSamePairList);
+    packUInt(out_data,dataSameFileCount);       clearVector(dataSamePairList);
+    packUInt(out_data,newRefIList.size());      clearVector(newRefIList);
+    packUInt(out_data,oldRefIList.size());      clearVector(oldRefIList);
     packUInt(out_data,headData.size());
     packUInt(out_data,headCode.size());
     //externData size

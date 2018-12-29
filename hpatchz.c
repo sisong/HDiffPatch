@@ -118,7 +118,7 @@ int hpatch_cmd_line(int argc, const char * argv[]);
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
 
-int hpatch_dir(const char* oldPath,const char* diffPath,const char* outNewFileName,
+int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
 
 #if (_IS_NEED_MAIN)
@@ -401,7 +401,7 @@ clear:
 }
 
 
-int hpatch_dir(const char* oldPath,const char* diffPath,const char* outNewFileName,
+int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
     return 1;
 }

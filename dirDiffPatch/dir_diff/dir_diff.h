@@ -41,7 +41,7 @@ void sortDirFileList(std::vector<std::string>& fileList);
 struct IDirFilter{
     virtual ~IDirFilter(){}
     static bool pathIsEndWith(const std::string& pathName,const char* testEndTag);
-    static bool pathIs(const std::string& pathName,const char* testPathName);
+    static bool pathNameIs(const std::string& pathName,const char* testPathName);
     
     virtual bool isNeedFilter(const std::string& fileName) { return false; }
 };
@@ -55,7 +55,7 @@ struct IDirDiffListener:public IDirFilter{
     virtual void runHDiffEnd(hpatch_StreamPos_t diffDataSize){}
     virtual void externData(std::vector<unsigned char>& out_externData){}
     virtual void externDataPosInOutStream(hpatch_StreamPos_t externDataPos){}
-    virtual void file_name_to_utf8(const std::string& fileName,std::string& out_utf8){ out_utf8.assign(fileName); }
+    virtual void sysFileName_to_utf8(const std::string& fileName,std::string& out_utf8){ out_utf8.assign(fileName); }
 };
 
 void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::string& newPatch,
