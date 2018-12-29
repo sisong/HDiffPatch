@@ -112,7 +112,8 @@ typedef enum THPatchResult {
     HPATCH_COMPRESSTYPE_ERROR,
     HPATCH_PATCH_ERROR,
     
-    HPATCH_HDIRDIFFINFO_ERROR,
+    HPATCH_PATHTYPE_ERROR,
+    HPATCH_DIRDIFFINFO_ERROR,
 } THPatchResult;
 
 int hpatch_cmd_line(int argc, const char * argv[]);
@@ -260,7 +261,7 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
 #define  check_on_error(errorType) { \
     if (result==HPATCH_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define  check(value,errorType,errorInfo) { \
-    if (!(value)){ printf(errorInfo); check_on_error(errorType); } }
+    if (!(value)){ printf(errorInfo " ERROR!\n"); check_on_error(errorType); } }
 
 
 static int getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
@@ -291,7 +292,7 @@ static int getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
     }
     if (!decompressPlugin){
         if (diffInfo->compressedCount>0){
-            printf("can no decompress \"%s\" data ERROR!\n",diffInfo->compressType);
+            printf("can no decompress \"%s\" data",diffInfo->compressType);
             result=HPATCH_COMPRESSTYPE_ERROR; //error
         }else{
             if (strlen(diffInfo->compressType)>0)
@@ -348,8 +349,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     TFileStreamOutput_init(&newData);
     {//open
         printf("old : \"%s\"\ndiff: \"%s\"\nout : \"%s\"\n",oldFileName,diffFileName,outNewFileName);
-        check(TFileStreamInput_open(&oldData,oldFileName),HPATCH_OPENREAD_ERROR,"open oldFile for read ERROR!\n");
-        check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read ERROR!\n");
+        check(TFileStreamInput_open(&oldData,oldFileName),HPATCH_OPENREAD_ERROR,"open oldFile for read");
+        check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
     }
 
 #if (_IS_NEED_ORIGINAL)
@@ -359,9 +360,9 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         if (kNewDataSizeSavedSize>diffData.base.streamSize)
             kNewDataSizeSavedSize=(int)diffData.base.streamSize;
         check(kNewDataSizeSavedSize==diffData.base.read(diffData.base.streamHandle,0,buf,buf+kNewDataSizeSavedSize),
-              HPATCH_FILEREAD_ERROR,"read diffFile ERROR!\n");
+              HPATCH_FILEREAD_ERROR,"read diffFile");
         kNewDataSizeSavedSize=readSavedSize(buf,kNewDataSizeSavedSize,&savedNewSize);
-        check(kNewDataSizeSavedSize>0,HPATCH_FILEDATA_ERROR,"read diffFile savedNewSize ERROR!\n");
+        check(kNewDataSizeSavedSize>0,HPATCH_FILEDATA_ERROR,"read diffFile savedNewSize");
         TFileStreamInput_setOffset(&diffData,kNewDataSizeSavedSize);
     }else
 #endif
@@ -369,11 +370,11 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         assert(!isOriginal);
         hpatch_compressedDiffInfo diffInfo;
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
-            check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile ERROR!\n");
-            check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo() ERROR!\n");
+            check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
+            check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
-            printf("oldFile dataSize %" PRId64 " != diffFile saved oldDataSize %" PRId64 " ERROR!\n",
+            printf("oldFile dataSize %" PRId64 " != diffFile saved oldDataSize %" PRId64 "",
                    poldData->streamSize,diffInfo.oldDataSize);
             check_on_error(HPATCH_FILEDATA_ERROR);
         }
@@ -382,12 +383,12 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         savedNewSize=diffInfo.newDataSize;
     }
     check(TFileStreamOutput_open(&newData, outNewFileName,savedNewSize),
-          HPATCH_OPENWRITE_ERROR,"open out newFile for write ERROR!\n");
+          HPATCH_OPENWRITE_ERROR,"open out newFile for write");
     printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
     
     temp_cache=getMemCache(isLoadOldAll,patchCacheSize,poldData->streamSize, &temp_cache_size);
-    check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory ERROR!\n");
+    check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory");
 
 #if (_IS_NEED_ORIGINAL)
     if (isOriginal)
@@ -398,13 +399,13 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         patch_result=patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
                                                  temp_cache,temp_cache+temp_cache_size);
     if (!patch_result){
-        check(!oldData.fileError,HPATCH_FILEREAD_ERROR,"oldFile read ERROR!\n");
-        check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"diffFile read ERROR!\n");
-        check(!newData.fileError,HPATCH_FILEWRITE_ERROR,"out newFile write ERROR!\n");
-        check(hpatch_FALSE,HPATCH_PATCH_ERROR,"patch run ERROR!\n");
+        check(!oldData.fileError,HPATCH_FILEREAD_ERROR,"oldFile read");
+        check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"diffFile read");
+        check(!newData.fileError,HPATCH_FILEWRITE_ERROR,"out newFile write");
+        check(hpatch_FALSE,HPATCH_PATCH_ERROR,"patch run");
     }
     if (newData.out_length!=newData.base.streamSize){
-        printf("out newFile dataSize %" PRId64 " != diffFile saved newDataSize %" PRId64 " ERROR!\n",
+        printf("out newFile dataSize %" PRId64 " != diffFile saved newDataSize %" PRId64 "",
                newData.out_length,newData.base.streamSize);
         check_on_error(HPATCH_FILEDATA_ERROR);
     }
@@ -412,9 +413,9 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     
 clear:
     _isInClear=hpatch_TRUE;
-    check(TFileStreamOutput_close(&newData),HPATCH_FILECLOSE_ERROR,"out newFile close ERROR!\n");
-    check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close ERROR!\n");
-    check(TFileStreamInput_close(&oldData),HPATCH_FILECLOSE_ERROR,"oldFile close ERROR!\n");
+    check(TFileStreamOutput_close(&newData),HPATCH_FILECLOSE_ERROR,"out newFile close");
+    check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
+    check(TFileStreamInput_close(&oldData),HPATCH_FILECLOSE_ERROR,"oldFile close");
     _free_mem(temp_cache);
     printf("\nhpatchz time: %.3f s\n",(clock_s()-time0));
     return result;
@@ -434,21 +435,23 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     TFileStreamInput_init(&diffData);
     {//open
         check(TFileStreamInput_open(&diffData,diffFileName),
-              HPATCH_OPENREAD_ERROR,"open diffFile for read ERROR!\n");
+              HPATCH_OPENREAD_ERROR,"open diffFile for read");
         if(!getDirDiffInfo(&diffData.base,&dirDiffInfo)){
-            check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile ERROR!\n");
-            check(hpatch_FALSE,HPATCH_HDIRDIFFINFO_ERROR,"is hdiff file? getDirDiffInfo() ERROR!\n");
+            check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
+            check(hpatch_FALSE,HPATCH_DIRDIFFINFO_ERROR,"is hdiff file? getDirDiffInfo()");
         }
         printf("%s: \"%s\"\ndiffFile: \"%s\"\n%s: \"%s\"\n",
                dirDiffInfo.oldPathIsDir?"old  dir":"old file", oldPath, diffFileName,
                dirDiffInfo.newPathIsDir?"out  dir":"out file", outNewPath);
+        
+        
     }
     
     
     
 clear:
     _isInClear=hpatch_TRUE;
-    check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close ERROR!\n");
+    check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
     _free_mem(temp_cache);
     printf("\nhpatchz time: %.3f s\n",(clock_s()-time0));
     return result;
