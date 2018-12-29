@@ -320,7 +320,7 @@ struct _TCmp_byHit {
 
 static void getRefList(const std::string& newRootPath,const std::string& oldRootPath,
                        const std::vector<std::string>& newList,const std::vector<std::string>& oldList,
-                       std::vector<size_t>& out_dataPathSamePairList,std::vector<size_t>& out_dataSamePairList,
+                       std::vector<size_t>& out_dataSamePairList,
                        std::vector<size_t>& out_newRefList,std::vector<size_t>& out_oldRefList){
     typedef std::multimap<hash_value_t,size_t> TMap;
     TMap hashMap;
@@ -334,7 +334,6 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
         hashMap.insert(TMap::value_type(hash,i));
         oldRefList.insert(i);
     }
-    out_dataPathSamePairList.clear();
     out_dataSamePairList.clear();
     out_newRefList.clear();
     std::vector<size_t> oldHitList(oldList.size(),0);
@@ -346,7 +345,6 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
         if (fileSize==0) continue;
         
         bool isFoundSame=false;
-        bool isEqPath=false;
         size_t oldIndex=(size_t)(-1);
         std::pair<TMap::const_iterator,TMap::const_iterator> range=hashMap.equal_range(hash);
         std::vector<size_t> oldHashIndexs;
@@ -362,7 +360,6 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
             if (fileData_isSame(oldName,fileName)){
                 isFoundSame=true;
                 oldIndex=curOldIndex;
-                isEqPath=(0==strcmp(newPath,oldName.c_str()+oldRootPath.size()));
                 break;
             }
         }
@@ -370,13 +367,8 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
         if (isFoundSame){
             ++oldHitList[oldIndex];
             oldRefList.erase(oldIndex);
-            if (isEqPath){
-                out_dataPathSamePairList.push_back(i);
-                out_dataPathSamePairList.push_back(oldIndex);
-            }else{
-                out_dataSamePairList.push_back(i);
-                out_dataSamePairList.push_back(oldIndex);
-            }
+            out_dataSamePairList.push_back(i);
+            out_dataSamePairList.push_back(oldIndex);
         }else{
             out_newRefList.push_back(i);
         }
@@ -409,7 +401,6 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         listener->diffFileList(newList,oldList);
     }
 
-    std::vector<size_t> dataPathSamePairList; //new map to same old
     std::vector<size_t> dataSamePairList;     //new map to same old
     std::vector<const hpatch_TStreamInput*> newRefSList;
     std::vector<const hpatch_TStreamInput*> oldRefSList;
@@ -418,8 +409,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     std::vector<CFileStreamInput> _newRefList;
     std::vector<CFileStreamInput> _oldRefList;
     {
-        getRefList(newPath,oldPath,newList,oldList,
-                   dataPathSamePairList,dataSamePairList,newRefIList,oldRefIList);
+        getRefList(newPath,oldPath,newList,oldList,dataSamePairList,newRefIList,oldRefIList);
         _newRefList.resize(newRefIList.size());
         _oldRefList.resize(oldRefIList.size());
         oldRefSList.resize(oldRefIList.size());
@@ -433,31 +423,18 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
             newRefSList[i]=&_newRefList[i].base;
         }
     }
-    size_t dataPathSameFileCount=dataPathSamePairList.size()/2;
     size_t dataSameFileCount=dataSamePairList.size()/2;
     CRefStream newRefStream;
     CRefStream oldRefStream;
     newRefStream.open(newRefSList.data(),newRefSList.size());
     oldRefStream.open(oldRefSList.data(),oldRefSList.size());
-    listener->refInfo(dataPathSameFileCount+dataSameFileCount,newRefIList.size(),oldRefIList.size(),
+    listener->refInfo(dataSameFileCount,newRefIList.size(),oldRefIList.size(),
                       newRefStream.stream->streamSize,oldRefStream.stream->streamSize);
     
     //serialize headData
     std::vector<TByte> headData;
     pushNameList(headData,oldPath,oldList,listener);
-    {//save newList
-        std::vector<std::string> pathNotSameNewList;
-        size_t last=0;
-        for (size_t i=0;i<dataPathSamePairList.size();i+=2) {
-            size_t endp=dataPathSamePairList[i];
-            pathNotSameNewList.insert(pathNotSameNewList.end(),&newList[last],&newList[endp]);
-            last=endp+1;
-        }
-        pathNotSameNewList.insert(pathNotSameNewList.end(),newList.begin()+last,newList.end());
-        assert(pathNotSameNewList.size()==newList.size()-dataPathSameFileCount);
-        pushNameList(headData,newPath,pathNotSameNewList,listener);
-    }
-    pushSamePairList(headData,dataPathSamePairList);
+    pushNameList(headData,newPath,newList,listener);
     pushSamePairList(headData,dataSamePairList);
     pushIncList(headData,newRefIList);
     pushIncList(headData,oldRefIList);
@@ -492,7 +469,6 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     packUInt(out_data,oldIsDir?1:0);
     packUInt(out_data,newList.size());          clearVector(newList);
     packUInt(out_data,oldList.size());          clearVector(oldList);
-    packUInt(out_data,dataPathSameFileCount);   clearVector(dataPathSamePairList);
     packUInt(out_data,dataSameFileCount);       clearVector(dataSamePairList);
     packUInt(out_data,newRefIList.size());      clearVector(newRefIList);
     packUInt(out_data,oldRefIList.size());      clearVector(oldRefIList);
