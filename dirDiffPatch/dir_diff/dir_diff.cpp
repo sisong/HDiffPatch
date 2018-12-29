@@ -269,7 +269,6 @@ static void pushNameList(std::vector<TByte>& out_data,const std::string& rootPat
     const size_t rootLen=rootPath.size();
     std::string temp;
     std::string utf8;
-    std::string last_utf8="";
     for (size_t i=0;i<nameList.size();++i){
         const std::string& name=nameList[i];
         const size_t nameSize=name.size();
@@ -284,12 +283,7 @@ static void pushNameList(std::vector<TByte>& out_data,const std::string& rootPat
             listener->sysFileName_to_utf8(temp,utf8);
         }
         formatDirTagForSave(utf8);
-        size_t eqLen=0;
-        while ((eqLen<utf8.size())&&(utf8[eqLen]==last_utf8[eqLen]))
-               ++eqLen;
-        packUInt(out_data,eqLen);
-        out_data.insert(out_data.end(),utf8.c_str()+eqLen,utf8.c_str()+utf8.size()+1); // '\0'
-        last_utf8.swap(utf8);
+        out_data.insert(out_data.end(),utf8.c_str(),utf8.c_str()+utf8.size()+1); // '\0'
     }
 }
 
