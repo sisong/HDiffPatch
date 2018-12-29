@@ -38,8 +38,8 @@ typedef struct TDirDiffInfo{
     hpatch_BOOL                 newPathIsDir;
     hpatch_BOOL                 oldPathIsDir;
     hpatch_BOOL                 dirDataIsCompressed;
-    size_t                      externDataOffset;
-    size_t                      externDataSize;
+    hpatch_StreamPos_t          externDataOffset;
+    hpatch_StreamPos_t          externDataSize;
     hpatch_compressedDiffInfo   hdiffInfo;
 } TDirDiffInfo;
 

@@ -111,6 +111,8 @@ typedef enum THPatchResult {
     HPATCH_HDIFFINFO_ERROR,
     HPATCH_COMPRESSTYPE_ERROR,
     HPATCH_PATCH_ERROR,
+    
+    HPATCH_HDIRDIFFINFO_ERROR,
 } THPatchResult;
 
 int hpatch_cmd_line(int argc, const char * argv[]);
@@ -260,12 +262,78 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
 #define  check(value,errorType,errorInfo) { \
     if (!(value)){ printf(errorInfo); check_on_error(errorType); } }
 
+
+static int getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
+                               hpatch_TDecompress** out_decompressPlugin){
+    int     result=HPATCH_SUCCESS;
+    hpatch_TDecompress*  decompressPlugin=0;
+    if (strlen(diffInfo->compressType)>0){
+#ifdef  _CompressPlugin_zlib
+        if ((!decompressPlugin)&&zlibDecompressPlugin.is_can_open(&zlibDecompressPlugin,diffInfo))
+            decompressPlugin=&zlibDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_bz2
+        if ((!decompressPlugin)&&bz2DecompressPlugin.is_can_open(&bz2DecompressPlugin,diffInfo))
+            decompressPlugin=&bz2DecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_lzma
+        if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(&lzmaDecompressPlugin,diffInfo))
+            decompressPlugin=&lzmaDecompressPlugin;
+#endif
+#if (defined(_CompressPlugin_lz4) || (defined(_CompressPlugin_lz4hc)))
+        if ((!decompressPlugin)&&lz4DecompressPlugin.is_can_open(&lz4DecompressPlugin,diffInfo))
+            decompressPlugin=&lz4DecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_zstd
+        if ((!decompressPlugin)&&zstdDecompressPlugin.is_can_open(&zstdDecompressPlugin,diffInfo))
+            decompressPlugin=&zstdDecompressPlugin;
+#endif
+    }
+    if (!decompressPlugin){
+        if (diffInfo->compressedCount>0){
+            printf("can no decompress \"%s\" data ERROR!\n",diffInfo->compressType);
+            result=HPATCH_COMPRESSTYPE_ERROR; //error
+        }else{
+            if (strlen(diffInfo->compressType)>0)
+                printf("  diffFile added useless compress tag \"%s\"\n",diffInfo->compressType);
+            decompressPlugin=0;
+        }
+    }else{
+        printf("hpatchz run with decompress plugin: \"%s\" (need decompress %d)\n",
+               diffInfo->compressType,diffInfo->compressedCount);
+    }
+    *out_decompressPlugin=decompressPlugin;
+    return result;
+}
+
+static void* getMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
+                         hpatch_StreamPos_t oldDataSize,size_t* out_memCacheSize){
+    void*  temp_cache=0;
+    size_t temp_cache_size;
+    if (isLoadOldAll){
+        assert(patchCacheSize==0);
+        temp_cache_size=(size_t)(oldDataSize+kPatchCacheSize_bestmin);
+        if (temp_cache_size!=oldDataSize+kPatchCacheSize_bestmin)
+            temp_cache_size=kPatchCacheSize_bestmax;//can not load all,load part
+    }else{
+        temp_cache_size=patchCacheSize;
+        if (temp_cache_size>oldDataSize+kPatchCacheSize_bestmin)
+            temp_cache_size=(size_t)(oldDataSize+kPatchCacheSize_bestmin);
+    }
+    while (!temp_cache) {
+        temp_cache=(TByte*)malloc(temp_cache_size);
+        if ((!temp_cache)&&(temp_cache_size>=kPatchCacheSize_min*2)) temp_cache_size>>=1;
+    }
+    *out_memCacheSize=(temp_cache)?temp_cache_size:0;
+    return temp_cache;
+}
+
+
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
-    double  time1;
     hpatch_TDecompress*  decompressPlugin=0;
     TFileStreamOutput    newData;
     TFileStreamInput     diffData;
@@ -298,6 +366,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     }else
 #endif
     {
+        assert(!isOriginal);
         hpatch_compressedDiffInfo diffInfo;
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile ERROR!\n");
@@ -308,43 +377,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
                    poldData->streamSize,diffInfo.oldDataSize);
             check_on_error(HPATCH_FILEDATA_ERROR);
         }
-        
-        if (strlen(diffInfo.compressType)>0){
-#ifdef  _CompressPlugin_zlib
-            if ((!decompressPlugin)&&zlibDecompressPlugin.is_can_open(&zlibDecompressPlugin,&diffInfo))
-                decompressPlugin=&zlibDecompressPlugin;
-#endif
-#ifdef  _CompressPlugin_bz2
-            if ((!decompressPlugin)&&bz2DecompressPlugin.is_can_open(&bz2DecompressPlugin,&diffInfo))
-                decompressPlugin=&bz2DecompressPlugin;
-#endif
-#ifdef  _CompressPlugin_lzma
-            if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(&lzmaDecompressPlugin,&diffInfo))
-                decompressPlugin=&lzmaDecompressPlugin;
-#endif
-#if (defined(_CompressPlugin_lz4) || (defined(_CompressPlugin_lz4hc)))
-            if ((!decompressPlugin)&&lz4DecompressPlugin.is_can_open(&lz4DecompressPlugin,&diffInfo))
-                decompressPlugin=&lz4DecompressPlugin;
-#endif
-#ifdef  _CompressPlugin_zstd
-            if ((!decompressPlugin)&&zstdDecompressPlugin.is_can_open(&zstdDecompressPlugin,&diffInfo))
-                decompressPlugin=&zstdDecompressPlugin;
-#endif
-        }
-        if (!decompressPlugin){
-            if (diffInfo.compressedCount>0){
-                printf("can no decompress \"%s\" data ERROR!\n",diffInfo.compressType);
-                check_on_error(HPATCH_COMPRESSTYPE_ERROR);
-            }else{
-                if (strlen(diffInfo.compressType)>0)
-                    printf("  diffFile added useless compress tag \"%s\"\n",diffInfo.compressType);
-                decompressPlugin=0;
-            }
-        }else{
-            printf("hpatchz run with decompress plugin: \"%s\" (need decompress %d)\n",
-                   diffInfo.compressType,diffInfo.compressedCount);
-        }
-        
+        result=getDecompressPlugin(&diffInfo,&decompressPlugin);
+        if (result!=HPATCH_SUCCESS) check_on_error(result);
         savedNewSize=diffInfo.newDataSize;
     }
     check(TFileStreamOutput_open(&newData, outNewFileName,savedNewSize),
@@ -352,20 +386,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
     
-    if (isLoadOldAll){
-        assert(patchCacheSize==0);
-        temp_cache_size=(size_t)(poldData->streamSize+kPatchCacheSize_bestmin);
-        if (temp_cache_size!=poldData->streamSize+kPatchCacheSize_bestmin)
-            temp_cache_size=kPatchCacheSize_bestmax;//can not load all,load part
-    }else{
-        temp_cache_size=patchCacheSize;
-        if (temp_cache_size>poldData->streamSize+kPatchCacheSize_bestmin)
-            temp_cache_size=(size_t)(poldData->streamSize+kPatchCacheSize_bestmin);
-    }
-    while (!temp_cache) {
-        temp_cache=(TByte*)malloc(temp_cache_size);
-        if ((!temp_cache)&&(temp_cache_size>=kPatchCacheSize_min*2)) temp_cache_size>>=1;
-    }
+    temp_cache=getMemCache(isLoadOldAll,patchCacheSize,poldData->streamSize, &temp_cache_size);
     check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory ERROR!\n");
 
 #if (_IS_NEED_ORIGINAL)
@@ -395,13 +416,40 @@ clear:
     check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close ERROR!\n");
     check(TFileStreamInput_close(&oldData),HPATCH_FILECLOSE_ERROR,"oldFile close ERROR!\n");
     _free_mem(temp_cache);
-    time1=clock_s();
-    printf("\nhpatchz time: %.3f s\n",(time1-time0));
+    printf("\nhpatchz time: %.3f s\n",(clock_s()-time0));
     return result;
 }
 
 
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
-    return 1;
+    int     result=HPATCH_SUCCESS;
+    int     _isInClear=hpatch_FALSE;
+    double  time0=clock_s();
+    TDirDiffInfo         dirDiffInfo;
+    hpatch_TDecompress*  decompressPlugin=0;
+    TFileStreamInput     diffData;
+    TByte*               temp_cache=0;
+    size_t               temp_cache_size;
+    TFileStreamInput_init(&diffData);
+    {//open
+        check(TFileStreamInput_open(&diffData,diffFileName),
+              HPATCH_OPENREAD_ERROR,"open diffFile for read ERROR!\n");
+        if(!getDirDiffInfo(&diffData.base,&dirDiffInfo)){
+            check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile ERROR!\n");
+            check(hpatch_FALSE,HPATCH_HDIRDIFFINFO_ERROR,"is hdiff file? getDirDiffInfo() ERROR!\n");
+        }
+        printf("%s: \"%s\"\ndiffFile: \"%s\"\n%s: \"%s\"\n",
+               dirDiffInfo.oldPathIsDir?"old  dir":"old file", oldPath, diffFileName,
+               dirDiffInfo.newPathIsDir?"out  dir":"out file", outNewPath);
+    }
+    
+    
+    
+clear:
+    _isInClear=hpatch_TRUE;
+    check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close ERROR!\n");
+    _free_mem(temp_cache);
+    printf("\nhpatchz time: %.3f s\n",(clock_s()-time0));
+    return result;
 }

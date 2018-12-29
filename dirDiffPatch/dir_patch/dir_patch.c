@@ -64,10 +64,11 @@ typedef struct _THDirDiffHead {
     TUInt       sameFileCount;
     TUInt       newRefFileCount;
     TUInt       oldRefFileCount;
+    TUInt       headDataOffset;
     TUInt       headDataSize;
     TUInt       headDataCompressedSize;
-    TStreamInputClip    headData;
-    TStreamInputClip    hdiffData;
+    TUInt       hdiffDataOffset;
+    TUInt       hdiffDataSize;
 } _THDirDiffHead;
 
 static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_THDirDiffHead* out_head,
@@ -124,20 +125,16 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_THDirDiffHead* out
         unpackUIntTo(&out_head->headDataSize,headClip);
         unpackUIntTo(&out_head->headDataCompressedSize,headClip);
         out_info->dirDataIsCompressed=(out_head->headDataCompressedSize>0);
-        unpackUIntTo(&savedValue,headClip);
-        check(savedValue==(size_t)savedValue);
-        out_info->externDataSize=(size_t)savedValue;
+        unpackUIntTo(&out_info->externDataSize,headClip);
     }
     TUInt curPos=headClip->streamPos-_TStreamCacheClip_cachedSize(headClip);
-    TUInt headDataSavedSize=(out_head->headDataCompressedSize>0)?
-                                out_head->headDataCompressedSize:out_head->headDataSize;
-    streamInputClip_init(&out_head->headData,dirDiffFile,curPos,curPos+headDataSavedSize);
-    curPos+=headDataSavedSize;
-    check(curPos==(size_t)curPos);
-    out_info->externDataOffset=(size_t)curPos;
+    out_head->headDataOffset=curPos;
+    curPos+=(out_head->headDataCompressedSize>0)?out_head->headDataCompressedSize:out_head->headDataSize;
+    out_info->externDataOffset=curPos;
     curPos+=out_info->externDataSize;
-    streamInputClip_init(&out_head->hdiffData,dirDiffFile,curPos,dirDiffFile->streamSize);
-    check(getCompressedDiffInfo(&out_info->hdiffInfo,&out_head->hdiffData.base));
+    TStreamInputClip hdiffStream;
+    streamInputClip_init(&hdiffStream,dirDiffFile,curPos,dirDiffFile->streamSize);
+    check(getCompressedDiffInfo(&out_info->hdiffInfo,&hdiffStream.base));
     check(0==strcmp(savedCompressType,out_info->hdiffInfo.compressType));
 clear:
     return result;
@@ -152,5 +149,6 @@ TDirPatchResult dir_patch(const hpatch_TStreamOutput* out_newData,
                           const char* oldPatch,const hpatch_TStreamInput*  diffData,
                           hpatch_TDecompress* decompressPlugin,
                           hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
+    
     return 1;
 }

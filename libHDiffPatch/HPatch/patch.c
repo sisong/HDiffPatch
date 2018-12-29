@@ -87,7 +87,6 @@ void streamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  src
                            hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos){
     assert(self!=0);
     assert(srcStream!=0);
-    assert(self->base.streamHandle==0);
     assert(clipBeginPos<=clipEndPos);
     assert(clipEndPos<=srcStream->streamSize);
     self->srcStream=srcStream;
