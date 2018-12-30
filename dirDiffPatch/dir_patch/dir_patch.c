@@ -58,20 +58,7 @@ clear:
     return result;
 }
 
-typedef struct _THDirDiffHead {
-    TUInt       newPathCount;
-    TUInt       oldPathCount;
-    TUInt       sameFileCount;
-    TUInt       newRefFileCount;
-    TUInt       oldRefFileCount;
-    TUInt       headDataOffset;
-    TUInt       headDataSize;
-    TUInt       headDataCompressedSize;
-    TUInt       hdiffDataOffset;
-    TUInt       hdiffDataSize;
-} _THDirDiffHead;
-
-static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_THDirDiffHead* out_head,
+static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
                                       const hpatch_TStreamInput* dirDiffFile){
     hpatch_BOOL result=hpatch_TRUE;
     check(out_info!=0);
@@ -141,7 +128,7 @@ clear:
 }
 
 hpatch_BOOL getDirDiffInfo(const hpatch_TStreamInput* diffFile,TDirDiffInfo* out_info){
-    _THDirDiffHead head;
+    _TDirDiffHead head;
     return _read_dirdiff_head(out_info,&head,diffFile);
 }
 

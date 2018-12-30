@@ -43,18 +43,49 @@ typedef struct TDirDiffInfo{
     hpatch_compressedDiffInfo   hdiffInfo;
 } TDirDiffInfo;
 
+
 hpatch_BOOL getDirDiffInfo(const hpatch_TStreamInput* diffFile,TDirDiffInfo* out_info);
 hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info);
+hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatch_BOOL* out_isDirDiffFile){
+    TDirDiffInfo info;
+    hpatch_BOOL result=getDirDiffInfoByFile(diffFileName,&info);
+    if (result) *out_isDirDiffFile=info.isDirDiff;
+    return result;
+}
 
 typedef enum TDirPatchResult{
     DIRPATCH_SUCCESS=0,
 } TDirPatchResult;
-
-TDirPatchResult dir_patch(const hpatch_TStreamOutput* out_newData,
-                          const char* oldPatch,const hpatch_TStreamInput*  diffData,
-                          hpatch_TDecompress* decompressPlugin,
-                          hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
     
+    
+    typedef struct _TDirDiffHead {
+        hpatch_StreamPos_t  newPathCount;
+        hpatch_StreamPos_t  oldPathCount;
+        hpatch_StreamPos_t  sameFileCount;
+        hpatch_StreamPos_t  newRefFileCount;
+        hpatch_StreamPos_t  oldRefFileCount;
+        hpatch_StreamPos_t  headDataOffset;
+        hpatch_StreamPos_t  headDataSize;
+        hpatch_StreamPos_t  headDataCompressedSize;
+        hpatch_StreamPos_t  hdiffDataOffset;
+        hpatch_StreamPos_t  hdiffDataSize;
+    } _TDirDiffHead;
+
+typedef struct TDirPatch{
+    
+//private:
+    const hpatch_TStreamInput*  _dirDiffData;
+    hpatch_TDecompress*         _decompressPlugin;
+    
+    TDirDiffInfo                _dirDiffInfo;
+    _TDirDiffHead               _dirDiffHead;
+} TDirPatch;
+
+void          dirPatch_init(TDirPatch* self);
+TDirDiffInfo* dirPatch_open(TDirPatch* self,const hpatch_TStreamInput* dirDiffData,
+                            hpatch_TDecompress* decompressPlugin);
+
+
 #ifdef __cplusplus
 }
 #endif

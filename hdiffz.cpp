@@ -365,11 +365,11 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         TPathType newType;
         _options_check(getPathType(oldFileName,&oldType),"input old path must file or dir");
         _options_check(getPathType(newFileName,&newType),"input new path must file or dir");
-        hpatch_BOOL isDirDiff=(kPathType_dir==oldType)||(kPathType_dir==newType);
-        if (isDirDiff)
+        hpatch_BOOL isUseDirDiff=(kPathType_dir==oldType)||(kPathType_dir==newType);
+        if (isUseDirDiff)
             _options_check(!isOriginal,"-o unsupport dir diff");
         
-        if (isDirDiff){
+        if (isUseDirDiff){
             return hdiff_dir(oldFileName,newFileName,outDiffFileName, (kPathType_dir==oldType),
                              (kPathType_dir==newType), isDiff,isLoadAll,matchValue,isPatchCheck,
                              streamCompressPlugin,compressPlugin,decompressPlugin);
@@ -773,7 +773,6 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
               hpatch_TDecompress* decompressPlugin){
-    assert(oldIsDir||newIsDir);
     double time0=clock_s();
     std::string oldPatch(oldFileName);
     std::string newPatch(newFileName);

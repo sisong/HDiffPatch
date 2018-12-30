@@ -29,6 +29,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D6241ACC21D855DF00E2846A /* file_for_dir.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file_for_dir.h; path = ../../dirDiffPatch/file_for_dir.h; sourceTree = "<group>"; };
 		D639ACD9208334A800811BB3 /* _atosize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _atosize.h; path = ../../_atosize.h; sourceTree = "<group>"; };
 		D64B4BEE2077AAAA0039C38B /* hpatchz.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hpatchz.c; path = ../../hpatchz.c; sourceTree = "<group>"; };
 		D64B4BF02077AB290039C38B /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
@@ -79,6 +80,7 @@
 				D64B4BF22077AB550039C38B /* _clock_for_demo.h */,
 				D639ACD9208334A800811BB3 /* _atosize.h */,
 				D64B4BF42077AB550039C38B /* file_for_patch.h */,
+				D6241ACC21D855DF00E2846A /* file_for_dir.h */,
 				D64B4BEE2077AAAA0039C38B /* hpatchz.c */,
 				D67D3BEF21D3C5870050632A /* dir_patch */,
 				D6BD9BC917578601004886DE /* HPatch */,

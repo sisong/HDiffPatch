@@ -213,23 +213,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         const char* oldFileName   =arg_values[0];
         const char* diffFileName  =arg_values[1];
         const char* outNewFileName=arg_values[2];
-        TDirDiffInfo dirDiffInfo;
-        TPathType    oldType;
-        _options_check(getPathType(oldFileName,&oldType),"input old path must file or dir");
-        _options_check(getDirDiffInfoByFile(diffFileName,&dirDiffInfo),"input diffFile open read");
-        hpatch_BOOL isDirDiff=dirDiffInfo.isDirDiff;
+        hpatch_BOOL isDirDiff;
+        _options_check(getIsDirDiffFile(diffFileName,&isDirDiff),"input diffFile open read");
         if (isDirDiff){
             _options_check(!isOriginal,"-o unsupport dir patch");
-            if (dirDiffInfo.oldPathIsDir){
-                _options_check(kPathType_dir==oldType,"input old path need dir");
-            }else{
-                _options_check(kPathType_dir!=oldType,"input old path need file");
-            }
-        }else{
-            _options_check(kPathType_dir!=oldType,"input old path need file");
-        }
-        
-        if (isDirDiff){
             return hpatch_dir(oldFileName,diffFileName,outNewFileName,isLoadOldAll,patchCacheSize);
         }else{
             return hpatch(oldFileName,diffFileName,outNewFileName,isOriginal,isLoadOldAll,patchCacheSize);
@@ -429,29 +416,62 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     double  time0=clock_s();
     TDirDiffInfo         dirDiffInfo;
     hpatch_TDecompress*  decompressPlugin=0;
+    TFileStreamOutput    newFile;
     TFileStreamInput     diffData;
+    TFileStreamInput     oldFile;
     TByte*               temp_cache=0;
     size_t               temp_cache_size;
+    TFileStreamOutput_init(&newFile);
     TFileStreamInput_init(&diffData);
-    {//open
-        check(TFileStreamInput_open(&diffData,diffFileName),
-              HPATCH_OPENREAD_ERROR,"open diffFile for read");
-        if(!getDirDiffInfo(&diffData.base,&dirDiffInfo)){
+    TFileStreamInput_init(&oldFile);
+    {//diff info
+        TPathType    oldType;
+        check(getPathType(oldPath,&oldType),HPATCH_PATHTYPE_ERROR,"input old path must file or dir");
+        check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
+        if((!getDirDiffInfo(&diffData.base,&dirDiffInfo))||(!dirDiffInfo.isDirDiff)){
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
             check(hpatch_FALSE,HPATCH_DIRDIFFINFO_ERROR,"is hdiff file? getDirDiffInfo()");
+        }
+        if (dirDiffInfo.oldPathIsDir){
+            check(kPathType_dir==oldType,HPATCH_PATHTYPE_ERROR,"input old path need dir");
+        }else{
+            check(kPathType_dir!=oldType,HPATCH_PATHTYPE_ERROR,"input old path need file");
         }
         printf("%s: \"%s\"\ndiffFile: \"%s\"\n%s: \"%s\"\n",
                dirDiffInfo.oldPathIsDir?"old  dir":"old file", oldPath, diffFileName,
                dirDiffInfo.newPathIsDir?"out  dir":"out file", outNewPath);
+    }
+    
+    temp_cache=getMemCache(isLoadOldAll,patchCacheSize,dirDiffInfo.hdiffInfo.oldDataSize, &temp_cache_size);
+    check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory");
+
+    //old data
+    if (!dirDiffInfo.oldPathIsDir){
+        check(TFileStreamInput_open(&oldFile,oldPath),HPATCH_OPENREAD_ERROR,"open oldFile for read");
+        if (oldFile.base.streamSize!=dirDiffInfo.hdiffInfo.oldDataSize){
+            printf("oldFile dataSize %" PRId64 " != diffFile saved oldDataSize %" PRId64 "",
+                   oldFile.base.streamSize,dirDiffInfo.hdiffInfo.oldDataSize);
+            check_on_error(HPATCH_FILEDATA_ERROR);
+        }
+    }else{
+        //todo:
         
-        
+    }
+    //new data
+    if (!dirDiffInfo.newPathIsDir){
+        check(TFileStreamOutput_open(&newFile,outNewPath,dirDiffInfo.hdiffInfo.newDataSize),
+              HPATCH_OPENWRITE_ERROR,"open out newFile for write");
+    }else{
+        //todo:
     }
     
     
     
 clear:
     _isInClear=hpatch_TRUE;
+    check(TFileStreamOutput_close(&newFile),HPATCH_FILECLOSE_ERROR,"out newFile close");
     check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
+    check(TFileStreamInput_close(&oldFile),HPATCH_FILECLOSE_ERROR,"oldFile close");
     _free_mem(temp_cache);
     printf("\nhpatchz time: %.3f s\n",(clock_s()-time0));
     return result;
