@@ -136,8 +136,8 @@ extern "C" {
         hpatch_StreamPos_t          clipBeginPos;
     } TStreamInputClip;
     //clip srcStream from clipBeginPos to clipEndPos as a new StreamInput;
-    void streamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  srcStream,
-                              hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos);
+    void TStreamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  srcStream,
+                               hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos);
     
     #define hpatch_BOOL   int
     #define hpatch_FALSE  ((int)0)

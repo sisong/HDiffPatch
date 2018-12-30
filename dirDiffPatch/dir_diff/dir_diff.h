@@ -49,7 +49,7 @@ struct IDirFilter{
 struct IDirDiffListener:public IDirFilter{
     virtual ~IDirDiffListener(){}
     virtual void diffFileList(std::vector<std::string>& newList,std::vector<std::string>& oldList){}
-    virtual void refInfo(size_t sameFileCount,size_t refNewFileCount,size_t refOldFileCount,
+    virtual void refInfo(size_t sameFilePairCount,size_t refNewFileCount,size_t refOldFileCount,
                          hpatch_StreamPos_t refNewFileSize,hpatch_StreamPos_t refOldFileSize){}
     virtual void runHDiffBegin(){}
     virtual void runHDiffEnd(hpatch_StreamPos_t diffDataSize){}

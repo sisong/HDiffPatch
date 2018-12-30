@@ -748,9 +748,9 @@ struct DirDiffListener:public IDirDiffListener{
         std::cout<<"DirDiff old path count: "<<oldList.size()<<"\n";
         std::cout<<"        new path count: "<<newList.size()<<"\n";
     }
-    virtual void refInfo(size_t sameFileCount,size_t refNewFileCount,size_t refOldFileCount,
+    virtual void refInfo(size_t sameFilePairCount,size_t refNewFileCount,size_t refOldFileCount,
                          hpatch_StreamPos_t refNewFileSize,hpatch_StreamPos_t refOldFileSize){
-        std::cout<<"       same file count: "<<sameFileCount<<"\n";
+        std::cout<<"       same file count: "<<sameFilePairCount<<"\n";
         std::cout<<"    ref old file count: "<<refOldFileCount<<"\n";
         std::cout<<"   diff new file count: "<<refNewFileCount<<"\n";
         std::cout<<"\nrun HDiffZ:\n";

@@ -37,6 +37,7 @@
 #include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #include "../../libHDiffPatch/HDiff/diff.h"
 #include "../dir_patch/ref_stream.h"
+#include "../dir_patch/dir_patch.h"
 using namespace hdiff_private;
 
 static const char* kVersionType="DirDiff19&";
@@ -58,16 +59,6 @@ void assignDirTag(std::string& dir){
 
 bool isDirName(const std::string& path){
     return (!path.empty())&&(path.back()==kPatch_dirTag);
-}
-
-static bool isAsciiString(const char* str,const char* strEnd){
-    for (;str<strEnd;++str) {
-        if (isascii(*str))
-            continue;
-        else
-            return false;
-    }
-    return true;
 }
 
 static void formatDirTagForSave(std::string& path){
@@ -264,11 +255,12 @@ static void pushSamePairList(std::vector<TByte>& out_data,const std::vector<size
     }
 }
 
-static void pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
-                         const std::vector<std::string>& nameList,IDirDiffListener* listener){
+static size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
+                           const std::vector<std::string>& nameList,IDirDiffListener* listener){
     const size_t rootLen=rootPath.size();
     std::string temp;
     std::string utf8;
+    size_t outSize=0;
     for (size_t i=0;i<nameList.size();++i){
         const std::string& name=nameList[i];
         const size_t nameSize=name.size();
@@ -283,8 +275,11 @@ static void pushNameList(std::vector<TByte>& out_data,const std::string& rootPat
             listener->sysFileName_to_utf8(temp,utf8);
         }
         formatDirTagForSave(utf8);
-        out_data.insert(out_data.end(),utf8.c_str(),utf8.c_str()+utf8.size()+1); // '\0'
+        size_t writeLen=utf8.size()+1; // '\0'
+        out_data.insert(out_data.end(),utf8.c_str(),utf8.c_str()+writeLen);
+        outSize+=writeLen;
     }
+    return outSize;
 }
 
 
@@ -310,7 +305,6 @@ struct _TCmp_byHit {
             if (isEqPath) return kMaxValue-2;
             else return hitCount;
         }
-        
     }
     const char* newPath;
     const std::vector<std::string>& oldList;
@@ -423,21 +417,21 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
             newRefSList[i]=&_newRefList[i].base;
         }
     }
-    size_t dataSameFileCount=dataSamePairList.size()/2;
+    size_t sameFilePairCount=dataSamePairList.size()/2;
     CRefStream newRefStream;
     CRefStream oldRefStream;
     newRefStream.open(newRefSList.data(),newRefSList.size());
     oldRefStream.open(oldRefSList.data(),oldRefSList.size());
-    listener->refInfo(dataSameFileCount,newRefIList.size(),oldRefIList.size(),
+    listener->refInfo(sameFilePairCount,newRefIList.size(),oldRefIList.size(),
                       newRefStream.stream->streamSize,oldRefStream.stream->streamSize);
     
     //serialize headData
     std::vector<TByte> headData;
-    pushNameList(headData,oldPath,oldList,listener);
-    pushNameList(headData,newPath,newList,listener);
-    pushSamePairList(headData,dataSamePairList);
-    pushIncList(headData,newRefIList);
+    size_t oldPathSumSize=pushNameList(headData,oldPath,oldList,listener);
+    size_t newPathSumSize=pushNameList(headData,newPath,newList,listener);
     pushIncList(headData,oldRefIList);
+    pushIncList(headData,newRefIList);
+    pushSamePairList(headData,dataSamePairList);
     std::vector<TByte> headCode;
     if (compressPlugin){
         headCode.resize(compressPlugin->maxCompressedSize(compressPlugin,headData.size()));
@@ -465,13 +459,15 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     //head info
     const TByte kPatchModel=0;
     packUInt(out_data,kPatchModel);
-    packUInt(out_data,newIsDir?1:0);
     packUInt(out_data,oldIsDir?1:0);
-    packUInt(out_data,newList.size());          clearVector(newList);
+    packUInt(out_data,newIsDir?1:0);
     packUInt(out_data,oldList.size());          clearVector(oldList);
-    packUInt(out_data,dataSameFileCount);       clearVector(dataSamePairList);
-    packUInt(out_data,newRefIList.size());      clearVector(newRefIList);
+    packUInt(out_data,newList.size());          clearVector(newList);
+    packUInt(out_data,oldPathSumSize);
+    packUInt(out_data,newPathSumSize);
     packUInt(out_data,oldRefIList.size());      clearVector(oldRefIList);
+    packUInt(out_data,newRefIList.size());      clearVector(newRefIList);
+    packUInt(out_data,sameFilePairCount);       clearVector(dataSamePairList);
     packUInt(out_data,headData.size());
     packUInt(out_data,headCode.size());
     //externData size
@@ -480,16 +476,14 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     packUInt(out_data,externData.size());
     
     hpatch_StreamPos_t writeToPos=0;
-    #define _pushv(v){  check(writeAll(outDiffStream,writeToPos,v.data(),v.data()+v.size()), \
+    #define _pushv(v) { check(writeAll(outDiffStream,writeToPos,v.data(),v.data()+v.size()), \
                               "write diff data " #v " error!"); \
-                        writeToPos+=v.size();  clearVector(out_data); }
+                        writeToPos+=v.size();  clearVector(v); }
     _pushv(out_data);
     if (headCode.size()>0){
         _pushv(headCode);
-        clearVector(headData);
     }else{
         _pushv(headData);
-        clearVector(headCode);
     }
     listener->externDataPosInOutStream(writeToPos);
     _pushv(externData);

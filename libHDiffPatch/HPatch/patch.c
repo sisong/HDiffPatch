@@ -83,7 +83,7 @@ static long _TStreamInputClip_read(hpatch_TStreamInputHandle streamHandle,
                                  out_data,out_data_end);
 }
 
-void streamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  srcStream,
+void TStreamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  srcStream,
                            hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos){
     assert(self!=0);
     assert(srcStream!=0);
@@ -111,10 +111,7 @@ static hpatch_BOOL _unpackUIntWithTag(const TByte** src_code,const TByte* src_co
         TUInt u=(TUInt)u64;
         *result=u;
 #ifdef __RUN_MEM_SAFE_CHECK
-        if (sizeof(TUInt)==sizeof(hpatch_StreamPos_t))
-            return rt;
-        else
-            return rt&(u==u64);
+        return rt&(u==u64);
 #else
         return rt;
 #endif
@@ -948,11 +945,6 @@ hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
 }
 
 
-    typedef struct _TDecompressInputSteram{
-        hpatch_TStreamInput         IInputSteram;
-        hpatch_TDecompress*         decompressPlugin;
-        hpatch_decompressHandle     decompressHandle;
-    } _TDecompressInputSteram;
     static long _decompress_read(hpatch_TStreamInputHandle streamHandle,
                                  const hpatch_StreamPos_t  readFromPos,
                                  TByte* out_data,TByte* out_data_end){
@@ -962,11 +954,10 @@ hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
                                                         out_data,out_data_end);
     }
 
-    static hpatch_BOOL getStreamClip(TStreamCacheClip* out_clip,_TDecompressInputSteram* out_stream,
-                                     TUInt dataSize,TUInt compressedSize,
-                                     const hpatch_TStreamInput* stream,TUInt* pCurStreamPos,
-                                     hpatch_TDecompress* decompressPlugin,
-                                     TByte* aCache,size_t cacheSize){
+    hpatch_BOOL getStreamClip(TStreamCacheClip* out_clip,_TDecompressInputSteram* out_stream,
+                              TUInt dataSize,TUInt compressedSize,
+                              const hpatch_TStreamInput* stream,TUInt* pCurStreamPos,
+                              hpatch_TDecompress* decompressPlugin,TByte* aCache,size_t cacheSize){
         TUInt curStreamPos=*pCurStreamPos;
         if (compressedSize==0){
 #ifdef __RUN_MEM_SAFE_CHECK

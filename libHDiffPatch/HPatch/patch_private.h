@@ -108,6 +108,18 @@ unsigned char* _TStreamCacheClip_readData(TStreamCacheClip* sclip,size_t readSiz
 hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,
                                                 hpatch_StreamPos_t* result,const int kTagBit);
     
+    
+    typedef struct _TDecompressInputSteram{
+        hpatch_TStreamInput         IInputSteram;
+        hpatch_TDecompress*         decompressPlugin;
+        hpatch_decompressHandle     decompressHandle;
+    } _TDecompressInputSteram;
+    
+hpatch_BOOL getStreamClip(TStreamCacheClip* out_clip,_TDecompressInputSteram* out_stream,
+                          hpatch_StreamPos_t dataSize,hpatch_StreamPos_t compressedSize,
+                          const hpatch_TStreamInput* stream,hpatch_StreamPos_t* pCurStreamPos,
+                          hpatch_TDecompress* decompressPlugin,unsigned char* aCache,size_t cacheSize);
+    
 #ifdef __cplusplus
 }
 #endif
