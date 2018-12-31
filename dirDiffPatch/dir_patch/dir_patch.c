@@ -32,6 +32,7 @@
 #include "../../libHDiffPatch/HPatch/patch.h"
 #include "../../libHDiffPatch/HPatch/patch_private.h"
 #include "../../file_for_patch.h"
+#include "../file_for_dir.h"
 
 static const char* kVersionType="DirDiff19&";
 static const TByte kPatchMode =0;
@@ -45,6 +46,16 @@ static const TByte kPatchMode =0;
 #define unpackUIntTo(puint,sclip) \
     check(_TStreamCacheClip_unpackUIntWithTag(sclip,puint,0))
 
+
+static void formatDirTagForLoad(char* path,char* pathEnd){
+    if (kPatch_dirTag==kPatch_dirTag_saved) return;
+    for (;path<pathEnd;++path){
+        if ((*path)!=kPatch_dirTag_saved)
+            continue;
+        else
+            *path=kPatch_dirTag;
+    }
+}
 
 hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info){
     hpatch_BOOL          result=hpatch_TRUE;
@@ -224,14 +235,14 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     self->_decompressPlugin=decompressPlugin;
     
     //dir head data clip stream
-    TStreamCacheClip headData;
+    TStreamCacheClip headStream;
     _TDecompressInputSteram decompresser;
     decompresser.decompressHandle=0;
     {
         const size_t cacheSize=hpatch_kStreamCacheSize;
         TByte temp_cache[cacheSize];
         hpatch_StreamPos_t curPos=self->dirDiffHead.headDataOffset;
-        check(getStreamClip(&headData,&decompresser,self->dirDiffHead.headDataSize,
+        check(getStreamClip(&headStream,&decompresser,self->dirDiffHead.headDataSize,
                             self->dirDiffHead.headDataCompressedSize,self->_dirDiffData,&curPos,
                             decompressPlugin,temp_cache,cacheSize));
     }
@@ -247,19 +258,20 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     self->newRefList=(const size_t*)curMem; curMem+=head->newRefFileCount*sizeof(size_t);
     self->dataSamePairList=(const size_t*)curMem; curMem+=head->sameFilePairCount*2*sizeof(size_t);
     //read old & new path List
-    check(_TStreamCacheClip_readDataTo(&headData,curMem,curMem+pathSumSize));
+    check(_TStreamCacheClip_readDataTo(&headStream,curMem,curMem+pathSumSize));
+    formatDirTagForLoad((char*)curMem,(char*)curMem+pathSumSize);
     curMem+=pathSumSize;
     assert(curMem-memSize==self->_pmem);
     check(clipCStrsTo((const char*)curMem-pathSumSize,(const char*)curMem,
                       (const char**)self->oldUtf8PathList,head->oldPathCount+head->newPathCount));
     //read oldRefList
-    check(readIncListTo(&headData,(size_t*)self->oldRefList,head->oldRefFileCount,head->oldPathCount));
+    check(readIncListTo(&headStream,(size_t*)self->oldRefList,head->oldRefFileCount,head->oldPathCount));
     //read newRefList
-    check(readIncListTo(&headData,(size_t*)self->newRefList,head->newRefFileCount,head->newPathCount));
+    check(readIncListTo(&headStream,(size_t*)self->newRefList,head->newRefFileCount,head->newPathCount));
     //read dataSamePairList
-    check(readSamePairListTo(&headData,(size_t*)self->dataSamePairList,head->sameFilePairCount,
+    check(readSamePairListTo(&headStream,(size_t*)self->dataSamePairList,head->sameFilePairCount,
                              head->newPathCount,head->oldPathCount));
-    check(_TStreamCacheClip_isFinish(&headData));
+    check(_TStreamCacheClip_isFinish(&headStream));
 clear:
     if (decompresser.decompressHandle){
         decompressPlugin->close(decompressPlugin,decompresser.decompressHandle);

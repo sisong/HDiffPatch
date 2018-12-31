@@ -431,6 +431,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     TFileStreamInput_init(&diffData);
     TFileStreamInput_init(&oldFile);
     TDirPatcher_init(&dirPatcher);
+    assert(0!=strcmp(oldPath,outNewPath));
     {//dir diff info
         hpatch_BOOL  rt;
         TPathType    oldType;
@@ -476,7 +477,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         oldStream=&oldFile.base;
     }else{
         //todo:
-        
+        size_t oldRefCount=dirPatcher.dirDiffHead.oldRefFileCount;
         if (temp_cache_size>=dirDiffInfo->hdiffInfo.oldDataSize+kPatchCacheSize_min){
             //can load all
         }else{

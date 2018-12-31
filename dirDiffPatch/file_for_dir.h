@@ -36,11 +36,11 @@
 #include <dirent.h> //opendir ...
 
 #ifdef WIN32
-    const char   kPatch_dirTag = '\';
+      static const char kPatch_dirTag = '\';
 #else
-    const char   kPatch_dirTag = '/';
+      static const char kPatch_dirTag = '/';
 #endif
-const char kPatch_dirTag_saved = '/';
+static const char kPatch_dirTag_saved = '/';
 
 typedef enum TPathType{
     kPathType_file,

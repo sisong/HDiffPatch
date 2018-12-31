@@ -43,7 +43,6 @@ using namespace hdiff_private;
 static const char* kVersionType="DirDiff19&";
 
 #define kFileIOBufSize      (64*1024)
-#define kFileIOBestMaxSize  (1024*1024)
 #define check(value,info) if (!(value)) throw new std::runtime_error(info);
 
 #define hash_value_t                uint64_t

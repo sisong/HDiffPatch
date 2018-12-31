@@ -33,6 +33,7 @@
 #include <stdlib.h> //malloc free
 #include "libHDiffPatch/HPatch/patch_types.h"
 typedef unsigned char TByte;
+#define kFileIOBestMaxSize  (1024*1024)
 
 static hpatch_BOOL fileTell64(FILE* file,hpatch_StreamPos_t* out_pos){
 #ifdef _MSC_VER
@@ -67,10 +68,9 @@ static hpatch_BOOL fileClose(FILE** pfile){
 }
 
 static hpatch_BOOL fileRead(FILE* file,TByte* buf,TByte* buf_end){
-    static const size_t kBestSize=1<<20;
     while (buf<buf_end) {
         size_t readLen=(size_t)(buf_end-buf);
-        if (readLen>kBestSize) readLen=kBestSize;
+        if (readLen>kFileIOBestMaxSize) readLen=kFileIOBestMaxSize;
         if (readLen!=fread(buf,1,readLen,file)) return hpatch_FALSE;
         buf+=readLen;
     }
@@ -78,10 +78,9 @@ static hpatch_BOOL fileRead(FILE* file,TByte* buf,TByte* buf_end){
 }
 
 static hpatch_BOOL fileWrite(FILE* file,const TByte* data,const TByte* data_end){
-    static const size_t kBestSize=1<<20;
     while (data<data_end) {
         size_t writeLen=(size_t)(data_end-data);
-        if (writeLen>kBestSize) writeLen=kBestSize;
+        if (writeLen>kFileIOBestMaxSize) writeLen=kFileIOBestMaxSize;
         if (writeLen!=fwrite(data,1,writeLen,file)) return hpatch_FALSE;
         data+=writeLen;
     }
