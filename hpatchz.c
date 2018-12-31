@@ -348,7 +348,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         TByte buf[9];
         if (kNewDataSizeSavedSize>diffData.base.streamSize)
             kNewDataSizeSavedSize=(int)diffData.base.streamSize;
-        check(kNewDataSizeSavedSize==diffData.base.read(diffData.base.streamHandle,0,buf,buf+kNewDataSizeSavedSize),
+        check(diffData.base.read(&diffData.base,0,buf,buf+kNewDataSizeSavedSize),
               HPATCH_FILEREAD_ERROR,"read diffFile");
         kNewDataSizeSavedSize=readSavedSize(buf,kNewDataSizeSavedSize,&savedNewSize);
         check(kNewDataSizeSavedSize>0,HPATCH_FILEDATA_ERROR,"read diffFile savedNewSize");

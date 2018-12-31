@@ -41,6 +41,7 @@ namespace hdiff_private{
         }
         inline ~TAutoMem(){ if (_data) free(_data); }
         inline unsigned char* data(){ return _data; }
+        inline unsigned char* data_end(){ return _data+_size; }
         inline size_t size()const{ return _size; }
     private:
         unsigned char*  _data;

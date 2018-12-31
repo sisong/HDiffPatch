@@ -44,9 +44,8 @@ private:
     const hpatch_TStreamInput*   in_stream;
     hpatch_StreamPos_t           _writeToPos_back;
     bool                         _is_overLimit;
-    static long _write_code(hpatch_TStreamOutputHandle streamHandle,
-                            const hpatch_StreamPos_t writeToPos,
-                            const unsigned char* data,const unsigned char* data_end);
+    static hpatch_BOOL _write_code(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                   const unsigned char* data,const unsigned char* data_end);
 };
 
 struct TCoversStream:public hpatch_TStreamInput{
@@ -64,9 +63,8 @@ private:
     hpatch_StreamPos_t          _readFromPos_back;
     enum { kCodeBufSize = 1024*64 };
     
-    static long _read(hpatch_TStreamInputHandle streamHandle,
-                      const hpatch_StreamPos_t readFromPos,
-                      unsigned char* out_data,unsigned char* out_data_end);
+    static hpatch_BOOL _read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                             unsigned char* out_data,unsigned char* out_data_end);
 };
 
 struct TNewDataDiffStream:public hpatch_TStreamInput{
@@ -81,9 +79,8 @@ private:
     hpatch_StreamPos_t          lastNewEnd;
     size_t                      readedCoverCount;
     hpatch_StreamPos_t          _readFromPos_back;
-    static long _read(hpatch_TStreamInputHandle streamHandle,
-                      const hpatch_StreamPos_t readFromPos,
-                      unsigned char* out_data,unsigned char* out_data_end);
+    static hpatch_BOOL _read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                             unsigned char* out_data,unsigned char* out_data_end);
 };
 
 struct TDiffStream{
@@ -130,9 +127,8 @@ private:
     hpatch_decompressHandle     _decompressHandle;
     void closeDecompressHandle();
     void openDecompressHandle();
-    static long _clip_read(hpatch_TStreamInputHandle streamHandle,
-                           const hpatch_StreamPos_t readFromPos,
-                           unsigned char* out_data,unsigned char* out_data_end);
+    static hpatch_BOOL _clip_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                  unsigned char* out_data,unsigned char* out_data_end);
 };
 
 }//namespace hdiff_private

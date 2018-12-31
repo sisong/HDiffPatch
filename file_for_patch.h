@@ -143,22 +143,23 @@ static void TFileStreamInput_init(TFileStreamInput* self){
     memset(self,0,sizeof(TFileStreamInput));
 }
 
-    #define _fileError_return { self->fileError=hpatch_TRUE; return -1; }
+    #define _fileError_return { self->fileError=hpatch_TRUE; return hpatch_FALSE; }
 
-    static long _read_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t readFromPos,
-                           TByte* out_data,TByte* out_data_end){
+    static hpatch_BOOL _read_file(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                  TByte* out_data,TByte* out_data_end){
         size_t readLen;
-        TFileStreamInput* self=(TFileStreamInput*)streamHandle;
+        TFileStreamInput* self=(TFileStreamInput*)stream->streamImport;
         assert(out_data<=out_data_end);
         readLen=(size_t)(out_data_end-out_data);
-        if ((readFromPos+readLen<readFromPos)
-            ||(readFromPos+readLen>self->base.streamSize)) _fileError_return;
+        if (readLen==0) return hpatch_TRUE;
+        if ((readLen>self->base.streamSize)
+            ||(readFromPos>self->base.streamSize-readLen)) _fileError_return;
         if (self->m_fpos!=readFromPos+self->m_offset){
             if (!fileSeek64(self->m_file,readFromPos+self->m_offset,SEEK_SET)) _fileError_return;
         }
         if (!fileRead(self->m_file,out_data,out_data+readLen)) _fileError_return;
         self->m_fpos=readFromPos+self->m_offset+readLen;
-        return (long)readLen;
+        return hpatch_TRUE;
     }
 
 hpatch_inline static
@@ -167,7 +168,7 @@ hpatch_BOOL TFileStreamInput_open(TFileStreamInput* self,const char* fileName){
     if (self->m_file) return hpatch_FALSE;
     if (!fileOpenForRead(fileName,&self->m_file,&self->base.streamSize)) return hpatch_FALSE;
     
-    self->base.streamHandle=self;
+    self->base.streamImport=self;
     self->base.read=_read_file;
     self->m_fpos=0;
     self->m_offset=0;
@@ -202,14 +203,15 @@ static void TFileStreamOutput_init(TFileStreamOutput* self){
     memset(self,0,sizeof(TFileStreamOutput));
 }
 
-    static long _write_file(hpatch_TStreamInputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
-                            const TByte* data,const TByte* data_end){
-        unsigned long writeLen;
-        TFileStreamOutput* self=(TFileStreamOutput*)streamHandle;
-        assert(data<data_end);
-        writeLen=(unsigned long)(data_end-data);
-        if ((writeToPos+writeLen<writeToPos)
-            ||(writeToPos+writeLen>self->base.streamSize)) _fileError_return;
+    static hpatch_BOOL _write_file(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                   const TByte* data,const TByte* data_end){
+        size_t writeLen;
+        TFileStreamOutput* self=(TFileStreamOutput*)stream->streamImport;
+        assert(data<=data_end);
+        writeLen=(size_t)(data_end-data);
+        if (writeLen==0) return hpatch_TRUE;
+        if ((writeLen>self->base.streamSize)
+            ||(writeToPos>self->base.streamSize-writeLen)) _fileError_return;
         if (writeToPos!=self->out_pos){
             if (self->is_random_out){
                 if (!fileSeek64(self->m_file,writeToPos,SEEK_SET)) _fileError_return;
@@ -221,7 +223,7 @@ static void TFileStreamOutput_init(TFileStreamOutput* self){
         if (!fileWrite(self->m_file,data,data+writeLen)) _fileError_return;
         self->out_pos=writeToPos+writeLen;
         self->out_length=(self->out_length>=self->out_pos)?self->out_length:self->out_pos;
-        return (long)writeLen;
+        return hpatch_TRUE;
     }
 hpatch_inline static
 hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName,
@@ -230,7 +232,7 @@ hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName,
     if (self->m_file) return hpatch_FALSE;
     if (!fileOpenForCreateOrReWrite(fileName,&self->m_file)) return hpatch_FALSE;
     
-    self->base.streamHandle=self;
+    self->base.streamImport=self;
     self->base.streamSize=max_file_length;
     self->base.write=_write_file;
     self->out_pos=0;

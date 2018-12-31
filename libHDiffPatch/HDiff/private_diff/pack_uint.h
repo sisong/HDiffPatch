@@ -72,11 +72,12 @@ inline static void packUInt_fixSize(unsigned char* out_code,unsigned char* out_c
         throw std::runtime_error("packUInt_fixSize<_UInt>() hpatch_packUInt() error!"); //too small
     size_t len=writed-out_code;
     unsigned char* codeBegin=out_code_fixEnd-len;
-    if (out_code<codeBegin){
-        memmove(codeBegin,out_code,len);
-        while (out_code<codeBegin){
+    if (out_code!=codeBegin){
+        for (size_t i=len;i>0;--i)
+            codeBegin[i-1]=out_code[i-1];
+        while (out_code!=codeBegin){
             --codeBegin;
-            codeBegin[0]=(1<<7);
+            *codeBegin=(1<<7);
         }
     }
 }

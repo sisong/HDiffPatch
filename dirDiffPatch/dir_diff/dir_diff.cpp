@@ -86,7 +86,7 @@ bool IDirFilter::pathNameIs(const std::string& pathName,const char* testPathName
 struct CFileStreamInput:public TFileStreamInput{
     inline CFileStreamInput(){ TFileStreamInput_init(this); }
     inline void open(const std::string& fileName){
-        assert(this->base.streamHandle==0);
+        assert(this->base.streamImport==0);
         check(TFileStreamInput_open(this,fileName.c_str()),"open file \""+fileName+"\" error!"); }
     inline CFileStreamInput(const std::string& fileName){
         TFileStreamInput_init(this); open(fileName); }
@@ -106,47 +106,21 @@ struct TOffsetStreamOutput:public hpatch_TStreamOutput{
     inline explicit TOffsetStreamOutput(const hpatch_TStreamOutput* base,hpatch_StreamPos_t offset)
     :_base(base),_offset(offset),outSize(0){
         assert(offset<=base->streamSize);
-        this->streamHandle=this;
+        this->streamImport=this;
         this->streamSize=base->streamSize-offset;
         this->write=_write;
     }
     const hpatch_TStreamOutput* _base;
     hpatch_StreamPos_t          _offset;
     hpatch_StreamPos_t          outSize;
-    static long _write(hpatch_TStreamOutputHandle streamHandle,const hpatch_StreamPos_t writeToPos,
+    static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,const hpatch_StreamPos_t writeToPos,
                        const unsigned char* data,const unsigned char* data_end){
-        TOffsetStreamOutput* self=(TOffsetStreamOutput*)streamHandle;
+        TOffsetStreamOutput* self=(TOffsetStreamOutput*)stream->streamImport;
         hpatch_StreamPos_t newSize=writeToPos+(data_end-data);
         if (newSize>self->outSize) self->outSize=newSize;
-        return self->_base->write(self->_base->streamHandle,self->_offset+writeToPos,data,data_end);
+        return self->_base->write(self->_base,self->_offset+writeToPos,data,data_end);
     }
 };
-
-bool readAll(const hpatch_TStreamInput* stream,hpatch_StreamPos_t pos,
-             TByte* dst,TByte* dstEnd){
-    while (dst<dstEnd) {
-        size_t readLen=dstEnd-dst;
-        if (readLen>kFileIOBestMaxSize) readLen=kFileIOBestMaxSize;
-        if ((long)readLen!=stream->read(stream->streamHandle,pos,dst,dst+readLen))
-            return false;
-        dst+=readLen;
-        pos+=readLen;
-    }
-    return true;
-}
-bool writeAll(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t pos,
-              const TByte* src,const TByte* srcEnd){
-    while (src<srcEnd) {
-        size_t writeLen=srcEnd-src;
-        if (writeLen>kFileIOBestMaxSize) writeLen=kFileIOBestMaxSize;
-        if ((long)writeLen!=stream->write(stream->streamHandle,pos,src,src+writeLen))
-            return false;
-        src+=writeLen;
-        pos+=writeLen;
-    }
-    return true;
-}
-
 
 template <class TVector>
 static inline void clearVector(TVector& v){ TVector _t; v.swap(_t); }
@@ -193,7 +167,7 @@ static hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* 
         size_t readLen=kFileIOBufSize;
         if (pos+readLen>f.base.streamSize)
             readLen=f.base.streamSize-pos;
-        check((long)readLen==f.base.read(&f.base.streamHandle,pos,mem.data(),mem.data()+readLen),
+        check(f.base.read(&f.base,pos,mem.data(),mem.data()+readLen),
               "read file \""+fileName+"\" error!");
         hash_append(&result,mem.data(),readLen);
         pos+=readLen;
@@ -212,9 +186,9 @@ static bool fileData_isSame(const std::string& file_x,const std::string& file_y)
         size_t readLen=kFileIOBufSize;
         if (pos+readLen>f_x.base.streamSize)
             readLen=f_x.base.streamSize-pos;
-        check((long)readLen==f_x.base.read(&f_x.base.streamHandle,pos,mem.data(),mem.data()+readLen),
+        check(f_x.base.read(&f_x.base,pos,mem.data(),mem.data()+readLen),
               "read file \""+file_x+"\" error!");
-        check((long)readLen==f_y.base.read(&f_y.base.streamHandle,pos,mem.data()+readLen,mem.data()+readLen*2),
+        check(f_y.base.read(&f_y.base,pos,mem.data()+readLen,mem.data()+readLen*2),
               "read file \""+file_y+"\" error!");
         if (0!=memcmp(mem.data(),mem.data()+readLen,readLen))
             return false;
@@ -475,7 +449,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     packUInt(out_data,externData.size());
     
     hpatch_StreamPos_t writeToPos=0;
-    #define _pushv(v) { check(writeAll(outDiffStream,writeToPos,v.data(),v.data()+v.size()), \
+    #define _pushv(v) { check(outDiffStream->write(outDiffStream,writeToPos,v.data(),v.data()+v.size()), \
                               "write diff data " #v " error!"); \
                         writeToPos+=v.size();  clearVector(v); }
     _pushv(out_data);
@@ -496,11 +470,11 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         TAutoMem  mem((size_t)memSize);
         TByte* newData=mem.data();
         TByte* oldData=mem.data()+newRefStream.stream->streamSize;
-        check(readAll(newRefStream.stream,0,newData,
-                      newData+newRefStream.stream->streamSize),"read new file error!");
+        check(newRefStream.stream->read(newRefStream.stream,0,newData,
+                                        newData+newRefStream.stream->streamSize),"read new file error!");
         _newRefList.clear();//close files
-        check(readAll(oldRefStream.stream,0,oldData,
-                      oldData+oldRefStream.stream->streamSize),"read old file error!");
+        check(newRefStream.stream->read(newRefStream.stream,0,oldData,
+                                        oldData+oldRefStream.stream->streamSize),"read old file error!");
         _oldRefList.clear();//close files
         std::vector<unsigned char> out_diff;
         create_compressed_diff(newData,newData+newRefStream.stream->streamSize,

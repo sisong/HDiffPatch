@@ -177,14 +177,14 @@ long attackPacth(TInt newSize,const TByte* oldData,const TByte* oldData_end,
 
 struct TVectorStreamOutput:public hpatch_TStreamOutput{
     explicit TVectorStreamOutput(std::vector<TByte>& _dst):dst(_dst){
-        this->streamHandle=this;
+        this->streamImport=this;
         this->streamSize=-1;
         this->write=_write;
     }
-    static long _write(hpatch_TStreamOutputHandle streamHandle,
-                       const hpatch_StreamPos_t writeToPos,
-                       const unsigned char* data,const unsigned char* data_end){
-        TVectorStreamOutput* self=(TVectorStreamOutput*)streamHandle;
+    static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,
+                              const hpatch_StreamPos_t writeToPos,
+                              const unsigned char* data,const unsigned char* data_end){
+        TVectorStreamOutput* self=(TVectorStreamOutput*)stream->streamImport;
         std::vector<TByte>& dst=self->dst;
         size_t writeLen=(size_t)(data_end-data);
         assert(writeToPos<=dst.size());
@@ -196,7 +196,7 @@ struct TVectorStreamOutput:public hpatch_TStreamOutput{
                 dst.resize((size_t)(writeToPos+writeLen));
             memcpy(&dst[(size_t)writeToPos],data,writeLen);
         }
-        return (long)writeLen;
+        return true;
     }
     std::vector<TByte>& dst;
 };

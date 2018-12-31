@@ -59,18 +59,18 @@
     if ((result)==kCompressFailResult){      \
         if (outStream_isCanceled){    \
             if (IS_NOTICE_compress_canceled) \
-                printf("  (NOTICE: " _at " is canceled, by out limit.)\n"); \
+                printf("  (NOTICE: " _at " is canceled, warning.)\n"); \
         }else{ \
             printf("  (NOTICE: " _at " is canceled, %s ERROR!)\n",_errAt); \
         } \
     }
 
 #define _stream_out_code_write(out_code,isCanceled,writePos,buf,len) { \
-    long writeResult=out_code->write(out_code->streamHandle,writePos,buf,buf+len); \
-    isCanceled=(writeResult==hdiff_kStreamOutputCancel);  \
-    if (writeResult!=(long)len) _compress_error_return("out_code->write()");\
-    writePos+=len;  \
-}
+    if (!out_code->write(out_code,writePos,buf,buf+len)){ \
+        isCanceled=1;  \
+        _compress_error_return("out_code->write()");\
+    } \
+    writePos+=len;  }
 
 #define _def_fun_compress_by_compress_stream(_fun_compress_name,_compress_stream) \
 static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
@@ -213,10 +213,10 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         data_buf=_temp_buf+sizeof(_zlib_TCompress)+kCompressBufSize;
         if (!self) _compress_error_return("deflateInit2()");
         while (readFromPos<in_data->streamSize) {
-            long readLen=kCompressBufSize;
-            if ((size_t)readLen>(hpatch_StreamPos_t)(in_data->streamSize-readFromPos))
-                readLen=(long)(in_data->streamSize-readFromPos);
-            if (readLen!=in_data->read(in_data->streamHandle,readFromPos,data_buf,data_buf+readLen))
+            size_t readLen=kCompressBufSize;
+            if (readLen>(hpatch_StreamPos_t)(in_data->streamSize-readFromPos))
+                readLen=in_data->streamSize-readFromPos;
+            if (!in_data->read(in_data,readFromPos,data_buf,data_buf+readLen))
                 _compress_error_return("in_data->read()");
             readFromPos+=readLen;
             if (!_zlib_compress_stream_part(compressPlugin,self,data_buf,data_buf+readLen,
@@ -297,7 +297,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
                     if (readLen==0){
                         is_eof=1;
                     }else{
-                        if ((long)readLen!=in_data->read(in_data->streamHandle,readFromPos,data_buf,data_buf+readLen))
+                        if (!in_data->read(in_data,readFromPos,data_buf,data_buf+readLen))
                             _compress_error_return("in_data->read()");
                         readFromPos+=readLen;
                         s.next_in=(char*)data_buf;
@@ -352,10 +352,10 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         __lzma_SeqOutStream_t* self=(__lzma_SeqOutStream_t*)p;
         const unsigned char* pdata=(const unsigned char*)buf;
         if (size>0){
-            long writeResult=self->out_code->write(self->out_code->streamHandle,self->writeToPos,
-                                                   pdata,pdata+size);
-            self->isCanceled=(writeResult==hdiff_kStreamOutputCancel);
-            if ((long)size!=writeResult) return 0;
+            if (!self->out_code->write(self->out_code,self->writeToPos,pdata,pdata+size)){
+                self->isCanceled=1;
+                return 0;
+            }
         }
         self->writeToPos+=size;
         return size;
@@ -372,8 +372,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
             readLen=(size_t)(self->in_data->streamSize-self->readFromPos);
         if (readLen>0){
             unsigned char* pdata=(unsigned char*)buf;
-            if ((long)readLen!=self->in_data->read(self->in_data->streamHandle,self->readFromPos,
-                                                   pdata,pdata+readLen)){
+            if (!self->in_data->read(self->in_data,self->readFromPos,pdata,pdata+readLen)){
                 *size=0;
                 return SZ_ERROR_READ;
             }
@@ -508,7 +507,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
                 dataLen=(int)(in_data->streamSize-readFromPos);
             if (dataLen==0)
                 break;//finish
-            if (dataLen!=in_data->read(in_data->streamHandle,readFromPos,data_buf,data_buf+dataLen))
+            if (!in_data->read(in_data,readFromPos,data_buf,data_buf+dataLen))
                 _compress_error_return("in_data->read()");
             readFromPos+=dataLen;
             
@@ -566,7 +565,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
                 dataLen=(int)(in_data->streamSize-readFromPos);
             if (dataLen==0)
                 break;//finish
-            if (dataLen!=in_data->read(in_data->streamHandle,readFromPos,data_buf,data_buf+dataLen))
+            if (!in_data->read(in_data,readFromPos,data_buf,data_buf+dataLen))
                 _compress_error_return("in_data->read()");
             readFromPos+=dataLen;
             
@@ -644,8 +643,8 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
             s_input.pos=0;
             if (s_input.size>(in_data->streamSize-readFromPos))
                 s_input.size=(size_t)(in_data->streamSize-readFromPos);
-            if ((long)s_input.size!=in_data->read(in_data->streamHandle,readFromPos,
-                                                  (unsigned char*)s_input.src,(unsigned char*)s_input.src+s_input.size))
+            if (!in_data->read(in_data,readFromPos,(unsigned char*)s_input.src,
+                               (unsigned char*)s_input.src+s_input.size))
                 _compress_error_return("in_data->read()");
             readFromPos+=s_input.size;
             while (s_input.pos<s_input.size) {

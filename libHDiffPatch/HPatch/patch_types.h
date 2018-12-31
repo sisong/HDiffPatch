@@ -69,6 +69,10 @@ extern "C" {
 #   define hpatch_inline inline
 #endif
     
+typedef unsigned int hpatch_BOOL;
+static const hpatch_BOOL hpatch_FALSE=0;
+static const hpatch_BOOL hpatch_TRUE=(!hpatch_FALSE);
+    
 #define _hpatch_align_lower(p,align2pow) (((size_t)(p)) & (~(size_t)((align2pow)-1)))
 #define _hpatch_align_upper(p,align2pow) _hpatch_align_lower(((size_t)(p))+((align2pow)-1),align2pow)
     
@@ -76,22 +80,19 @@ extern "C" {
     typedef void* hpatch_TStreamOutputHandle;
     
     typedef struct hpatch_TStreamInput{
-        hpatch_TStreamInputHandle streamHandle;
-        hpatch_StreamPos_t        streamSize; //stream size,max readable range;
-        //read() must return (out_data_end-out_data), otherwise error
-        long                      (*read) (hpatch_TStreamInputHandle streamHandle,
-                                           const hpatch_StreamPos_t readFromPos,
-                                           unsigned char* out_data,unsigned char* out_data_end);
+        void*               streamImport;
+        hpatch_StreamPos_t  streamSize; //stream size,max readable range;
+        //read() must read (out_data_end-out_data), otherwise error return hpatch_FALSE
+        hpatch_BOOL         (*read)(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                    unsigned char* out_data,unsigned char* out_data_end);
     } hpatch_TStreamInput;
     
     typedef struct hpatch_TStreamOutput{
-        hpatch_TStreamOutputHandle streamHandle;
-        hpatch_StreamPos_t         streamSize; //stream size,max writable range; not is write pos!
-        //write() must return (out_data_end-out_data), otherwise error
-        //   first writeToPos==0; the next writeToPos+=(data_end-data)
-        long                       (*write)(hpatch_TStreamOutputHandle streamHandle,
-                                            const hpatch_StreamPos_t writeToPos,
-                                            const unsigned char* data,const unsigned char* data_end);
+        void*               streamImport;
+        hpatch_StreamPos_t  streamSize; //stream size,max writable range; not is write pos!
+        //write() must wrote (out_data_end-out_data), otherwise error return hpatch_FALSE
+        hpatch_BOOL         (*write)(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                     const unsigned char* data,const unsigned char* data_end);
     } hpatch_TStreamOutput;
     
 
@@ -106,23 +107,22 @@ extern "C" {
     
     typedef void*  hpatch_decompressHandle;
     typedef struct hpatch_TDecompress{
-        int                (*is_can_open)(struct hpatch_TDecompress* decompressPlugin,
+        hpatch_BOOL        (*is_can_open)(const struct hpatch_TDecompress* decompressPlugin,
                                           const hpatch_compressedDiffInfo* compressedDiffInfo);
         //error return 0.
-        hpatch_decompressHandle  (*open)(struct hpatch_TDecompress* decompressPlugin,
-                                         hpatch_StreamPos_t dataSize,
-                                         const struct hpatch_TStreamInput* codeStream,
-                                         hpatch_StreamPos_t code_begin,
-                                         hpatch_StreamPos_t code_end);//codeSize==code_end-code_begin
+        hpatch_decompressHandle   (*open)(struct hpatch_TDecompress* decompressPlugin,
+                                          hpatch_StreamPos_t dataSize,
+                                          const struct hpatch_TStreamInput* codeStream,
+                                          hpatch_StreamPos_t code_begin,
+                                          hpatch_StreamPos_t code_end);//codeSize==code_end-code_begin
         void                     (*close)(struct hpatch_TDecompress* decompressPlugin,
                                           hpatch_decompressHandle decompressHandle);
-        //decompress_part() must return (out_part_data_end-out_part_data), otherwise error
-        long           (*decompress_part)(const struct hpatch_TDecompress* decompressPlugin,
+        //decompress_part() must out (out_part_data_end-out_part_data), otherwise error return hpatch_FALSE
+        hpatch_BOOL    (*decompress_part)(const struct hpatch_TDecompress* decompressPlugin,
                                           hpatch_decompressHandle decompressHandle,
                                           unsigned char* out_part_data,unsigned char* out_part_data_end);
     } hpatch_TDecompress;
 
-    
     
     
     void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
@@ -139,9 +139,6 @@ extern "C" {
     void TStreamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  srcStream,
                                hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos);
     
-    #define hpatch_BOOL   int
-    #define hpatch_FALSE  ((int)0)
-    #define hpatch_TRUE   ((int)(!hpatch_FALSE))
     
     #define  hpatch_kMaxPackedUIntBytes ((sizeof(hpatch_StreamPos_t)*8+6)/7+1)
     hpatch_BOOL hpatch_packUIntWithTag(unsigned char** out_code,unsigned char* out_code_end,
@@ -169,17 +166,6 @@ extern "C" {
         hpatch_BOOL                (*is_finish)(const struct hpatch_TCovers* covers);
         void                           (*close)(struct hpatch_TCovers* covers);
     } hpatch_TCovers;
-    
-    
-    //byte rle type , ctrl code: high 2bit + packedLen(6bit+...)
-    typedef enum TByteRleType{
-        kByteRleType_rle0  = 0,    //00 rle 0  , data code:0 byte
-        kByteRleType_rle255= 1,    //01 rle 255, data code:0 byte
-        kByteRleType_rle   = 2,    //10 rle x(1--254), data code:1 byte (save x)
-        kByteRleType_unrle = 3     //11 n byte data, data code:n byte(save no rle data)
-    } TByteRleType;
-    
-    static const int kByteRleType_bit=2;
     
 #ifdef __cplusplus
 }

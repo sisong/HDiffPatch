@@ -51,7 +51,6 @@ extern "C"
     typedef void*  hdiff_compressHandle;
     typedef hpatch_TStreamOutput hdiff_TStreamOutput;
     typedef hpatch_TStreamInput  hdiff_TStreamInput;
-    #define hdiff_kStreamOutputCancel 0
     //stream compress plugin
     typedef struct hdiff_TStreamCompress{
         //return type tag; strlen(result)<=hpatch_kMaxCompressTypeLength; (Note:result lifetime)

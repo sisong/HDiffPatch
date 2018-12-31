@@ -51,7 +51,7 @@ static inline adler_uint_t adler_roll(adler_uint_t adler,size_t blockSize,adler_
 }
 
 #define readStream(stream,pos,dst,n) { \
-    if ((long)(n)!=(stream)->read((stream)->streamHandle,pos,dst,dst+(n))) \
+    if (((n)>0)&&(!(stream)->read(stream,pos,dst,dst+(n)))) \
         throw std::runtime_error("TStreamCache::_resetPos_continue() stream->read() error!"); }
 
 struct TStreamCache{

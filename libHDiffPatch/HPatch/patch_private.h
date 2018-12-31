@@ -35,6 +35,17 @@
 extern "C" {
 #endif
 
+    
+//byte rle type , ctrl code: high 2bit + packedLen(6bit+...)
+typedef enum TByteRleType{
+    kByteRleType_rle0  = 0,    //00 rle 0  , data code:0 byte
+    kByteRleType_rle255= 1,    //01 rle 255, data code:0 byte
+    kByteRleType_rle   = 2,    //10 rle x(1--254), data code:1 byte (save x)
+    kByteRleType_unrle = 3     //11 n byte data, data code:n byte(save no rle data)
+} TByteRleType;
+    
+static const int kByteRleType_bit=2;
+    
 
 typedef struct _THDiffzHead{
     hpatch_StreamPos_t coverCount;
@@ -57,16 +68,16 @@ hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,_THDiffzHead
 
 // Stream Clip cache
 typedef struct TStreamCacheClip{
-    hpatch_StreamPos_t       streamPos;
-    hpatch_StreamPos_t       streamPos_end;
-    const struct hpatch_TStreamInput*  srcStream;
+    hpatch_StreamPos_t          streamPos;
+    hpatch_StreamPos_t          streamPos_end;
+    const hpatch_TStreamInput*  srcStream;
     unsigned char*  cacheBuf;
     size_t          cacheBegin;
     size_t          cacheEnd;
 } TStreamCacheClip;
 
 hpatch_inline static
-void _TStreamCacheClip_init(TStreamCacheClip* sclip,const struct hpatch_TStreamInput* srcStream,
+void _TStreamCacheClip_init(TStreamCacheClip* sclip,const hpatch_TStreamInput* srcStream,
                             hpatch_StreamPos_t streamPos,hpatch_StreamPos_t streamPos_end,
                             unsigned char* aCache,size_t cacheSize){
     sclip->streamPos=streamPos;
