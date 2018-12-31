@@ -11,6 +11,7 @@
 		80D1B2A5199A40A700F6B3A8 /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B29B199A40A700F6B3A8 /* bytes_rle.cpp */; };
 		80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B29F199A40A700F6B3A8 /* suffix_string.cpp */; };
 		80D1B2A7199A40A700F6B3A8 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B2A2199A40A700F6B3A8 /* patch.c */; };
+		D6241ACD21DA5C9600E2846A /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D6EF751F21C13CE4000EBBCC /* liblzma.a */; };
 		D639ACDE208B458500811BB3 /* _private_searchBestParams.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D639ACDD208B458500811BB3 /* _private_searchBestParams.cpp */; };
 		D66166271E189F5A005C570A /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D661661E1E189F5A005C570A /* divsufsort.c */; };
 		D66166281E189F5A005C570A /* divsufsort64.c in Sources */ = {isa = PBXBuildFile; fileRef = D66166211E189F5A005C570A /* divsufsort64.c */; };
@@ -77,6 +78,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D6241ACD21DA5C9600E2846A /* liblzma.a in Frameworks */,
 				D6E150B41F23B66D00C2AD3D /* libbz2.tbd in Frameworks */,
 				D6E150B51F23B66D00C2AD3D /* libz.tbd in Frameworks */,
 			);
