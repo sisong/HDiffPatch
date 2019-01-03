@@ -736,13 +736,13 @@ struct DirDiffListener:public IDirDiffListener{
         return false;
     }
     
-    virtual void localeFileName_to_utf8(const std::string& fileName,std::string& out_utf8){
-#if (defined(__APPLE__))
-        out_utf8.assign(fileName); //fileName used utf8
-#else
-    #warning fileName unknown string character set, probably can not cross-platform
-        out_utf8.assign(fileName);
-#endif
+    virtual void localePathToUtf8(const std::string& path,std::string& out_utf8){
+        size_t cStrByteSize=localePath_to_utf8(path.c_str(),0,0);
+        if (cStrByteSize<=0) throw std::runtime_error("path encoding error!");
+        out_utf8.resize(cStrByteSize);
+        cStrByteSize=localePath_to_utf8(path.c_str(),&out_utf8[0],&out_utf8[0]+cStrByteSize);
+        if (cStrByteSize<=0) throw std::runtime_error("path encoding error!");
+        out_utf8.resize(cStrByteSize-1); //for C string '\0'
     }
     
     virtual void diffFileList(std::vector<std::string>& newList,std::vector<std::string>& oldList){

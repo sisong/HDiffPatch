@@ -32,7 +32,7 @@
 #include "../../libHDiffPatch/HPatch/patch.h"
 #include "../../libHDiffPatch/HPatch/patch_private.h"
 #include "../../file_for_patch.h"
-#include "../file_for_dir.h"
+#include "../file_for_dirPatch.h"
 
 static const char* kVersionType="DirDiff19&";
 static const TByte kPatchMode =0;
@@ -47,13 +47,13 @@ static const TByte kPatchMode =0;
     check(_TStreamCacheClip_unpackUIntWithTag(sclip,puint,0))
 
 
-static void formatDirTagForLoad(char* path,char* pathEnd){
+static void formatDirTagForLoad(char* utf8_path,char* utf8_pathEnd){
     if (kPatch_dirSeparator==kPatch_dirSeparator_saved) return;
-    for (;path<pathEnd;++path){
-        if ((*path)!=kPatch_dirSeparator_saved)
+    for (;utf8_path<utf8_pathEnd;++utf8_path){
+        if ((*utf8_path)!=kPatch_dirSeparator_saved)
             continue;
         else
-            *path=kPatch_dirSeparator;
+            *utf8_path=kPatch_dirSeparator;
     }
 }
 
@@ -281,7 +281,14 @@ clear:
 }
 
 
-hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
+hpatch_BOOL TDirPatcher_loadOldRefToMem(const TDirPatcher* self,const char* oldRootPath,
+                                        unsigned char* out_buf,unsigned char* out_buf_end){
+    
+    return hpatch_FALSE;
+}
+
+
+hpatch_BOOL TDirPatcher_patch(const TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
                               const hpatch_TStreamInput* oldData,
                               TByte* temp_cache,TByte* temp_cache_end){
     TStreamInputClip hdiffData;
@@ -291,9 +298,10 @@ hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_
                                        self->_decompressPlugin,temp_cache,temp_cache_end);
 }
 
-void TDirPatcher_close(TDirPatcher* self){
+hpatch_BOOL TDirPatcher_close(TDirPatcher* self){
     if (self->_pmem){
         free(self->_pmem);
         self->_pmem=0;
     }
+    return hpatch_TRUE;
 }

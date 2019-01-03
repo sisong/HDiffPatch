@@ -34,7 +34,7 @@
 #include "file_for_patch.h"
 #include "_clock_for_demo.h"
 #include "_atosize.h"
-#include "dirDiffPatch/file_for_dir.h"
+#include "dirDiffPatch/file_for_dirPatch.h"
 #include "dirDiffPatch/dir_patch/dir_patch.h"
 
 #ifndef _IS_NEED_MAIN
@@ -299,8 +299,8 @@ static int getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
     return result;
 }
 
-static void* getMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
-                         hpatch_StreamPos_t oldDataSize,size_t* out_memCacheSize){
+static void* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
+                              hpatch_StreamPos_t oldDataSize,size_t* out_memCacheSize){
     void*  temp_cache=0;
     size_t temp_cache_size;
     if (isLoadOldAll){
@@ -379,7 +379,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
     
-    temp_cache=getMemCache(isLoadOldAll,patchCacheSize,poldData->streamSize, &temp_cache_size);
+    temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,poldData->streamSize, &temp_cache_size);
     check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory");
 
 #if (_IS_NEED_ORIGINAL)
@@ -467,7 +467,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
               HPATCH_DIRPATCH_LAODDATA_ERROR,"load dir data in diffFile");
     }
     //cache
-    p_temp_mem=getMemCache(isLoadOldAll,patchCacheSize,dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
+    p_temp_mem=getPatchMemCache(isLoadOldAll,patchCacheSize,dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
     check(p_temp_mem,HPATCH_MEM_ERROR,"alloc cache memory");
     temp_cache=p_temp_mem;
     //old data

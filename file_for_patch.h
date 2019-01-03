@@ -42,7 +42,6 @@ static hpatch_BOOL fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_pos
     __int64 fpos=_ftelli64(file);
 #else
     off_t fpos=ftello(file);
-    assert(sizeof(off_t)==sizeof(hpatch_StreamPos_t));
 #endif
     hpatch_BOOL result=(fpos>=0);
     if (result) *out_pos=fpos;

@@ -33,7 +33,11 @@
 #include <locale.h> // setlocale
 #include "../libHDiffPatch/HPatch/patch_types.h"
 
-#include <sys/stat.h> //stat
+#ifdef _WIN32
+//todo:
+#else //linux like
+#   include <sys/stat.h> //stat
+#endif
 
 #ifdef _WIN32
       static const char kPatch_dirSeparator = '\';
@@ -82,25 +86,24 @@ hpatch_BOOL isSamePath(const char* xPath,const char* yPath){
     }
 }
 
-static inline //if error return -1 else return outSize
-int utf8Path_to_utf8(const char* path,char* out_utf8,char* out_utf8BufEnd){
+static inline //if error return 0 else return outCStringByteSize
+size_t utf8String_to_utf8(const char* path,char* out_utf8,char* out_utf8BufEnd){
     //copy only
     size_t size=strlen(path)+1; // with '\0'
-    assert((0<=(int)size)&(size==(size_t)(int)size));
     if (out_utf8!=0){
-        if ((out_utf8BufEnd-out_utf8)<size) return -1;//error
+        if ((out_utf8BufEnd-out_utf8)<size) return 0;//error
         memmove(out_utf8,path,size);
     }
-    return (int)size;
+    return size;
 }
 
-static inline //if error return -1 else return outSize
-int utf8_to_localePath(const char* utf8Path,char* out_Path,char* out_PathBufEnd){
-#if (defined(__APPLE__))
-    return utf8Path_to_utf8(utf8Path,out_Path,out_PathBufEnd);
+static inline //if error return 0 else return outCStringByteSize
+size_t utf8_to_localePath(const char* utf8Path,char* out_Path,char* out_PathBufEnd){
+#if ( defined(__APPLE__) || defined(__ANDROID__) || defined(__linux__) )
+    return utf8String_to_utf8(utf8Path,out_Path,out_PathBufEnd);
 #else
     #warning Path unknown character encoding, probably can not cross-platform
-    return utf8Path_to_utf8(utf8Path,out_Path,out_PathBufEnd);
+    return utf8String_to_utf8(utf8Path,out_Path,out_PathBufEnd);
 #endif
 }
 

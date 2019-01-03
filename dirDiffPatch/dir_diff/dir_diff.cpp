@@ -60,13 +60,13 @@ bool isDirName(const std::string& path){
     return (!path.empty())&&(path[path.size()-1]==kPatch_dirSeparator);
 }
 
-static void formatDirTagForSave(std::string& path){
+static void formatDirTagForSave(std::string& utf8_path){
     if (kPatch_dirSeparator==kPatch_dirSeparator_saved) return;
-    for (size_t i=0;i<path.size();++i){
-        if (path[i]!=kPatch_dirSeparator)
+    for (size_t i=0;i<utf8_path.size();++i){
+        if (utf8_path[i]!=kPatch_dirSeparator)
             continue;
         else
-            path[i]=kPatch_dirSeparator_saved;
+            utf8_path[i]=kPatch_dirSeparator_saved;
     }
 }
 
@@ -245,7 +245,7 @@ static size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootP
             utf8.assign(subName,subNameEnd);
         }else{
             temp.assign(subName,subNameEnd);
-            listener->localeFileName_to_utf8(temp,utf8);
+            listener->localePathToUtf8(temp,utf8);
         }
         formatDirTagForSave(utf8);
         size_t writeLen=utf8.size()+1; // '\0'
