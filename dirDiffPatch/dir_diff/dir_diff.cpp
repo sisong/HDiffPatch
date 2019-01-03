@@ -30,7 +30,7 @@
 #include <algorithm> //sort
 #include <map>
 #include <set>
-#include "../file_for_dir.h"
+#include "../file_for_dirDiff.h"
 #include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
@@ -52,21 +52,21 @@ static const char* kVersionType="DirDiff19&";
 
 
 void assignDirTag(std::string& dir){
-    if (dir.empty()||(dir.back()!=kPatch_dirTag))
-        dir.push_back(kPatch_dirTag);
+    if (dir.empty()||(dir[dir.size()-1]!=kPatch_dirSeparator))
+        dir.push_back(kPatch_dirSeparator);
 }
 
 bool isDirName(const std::string& path){
-    return (!path.empty())&&(path.back()==kPatch_dirTag);
+    return (!path.empty())&&(path[path.size()-1]==kPatch_dirSeparator);
 }
 
 static void formatDirTagForSave(std::string& path){
-    if (kPatch_dirTag==kPatch_dirTag_saved) return;
+    if (kPatch_dirSeparator==kPatch_dirSeparator_saved) return;
     for (size_t i=0;i<path.size();++i){
-        if (path[i]!=kPatch_dirTag)
+        if (path[i]!=kPatch_dirSeparator)
             continue;
         else
-            path[i]=kPatch_dirTag_saved;
+            path[i]=kPatch_dirSeparator_saved;
     }
 }
 
@@ -80,7 +80,7 @@ bool IDirFilter::pathNameIs(const std::string& pathName,const char* testPathName
     if (!pathIsEndWith(pathName,testPathName)) return false;
     size_t nameSize=pathName.size();
     size_t testSize=strlen(testPathName);
-    return (nameSize==testSize) || (pathName[nameSize-testSize-1]==kPatch_dirTag);
+    return (nameSize==testSize) || (pathName[nameSize-testSize-1]==kPatch_dirSeparator);
 }
 
 struct CFileStreamInput:public TFileStreamInput{
@@ -138,7 +138,7 @@ bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list,ID
             continue;
         std::string subName(dir+path);
         if (type==kPathType_file){
-            assert(subName.back()!=kPatch_dirTag);
+            assert(subName[subName.size()-1]!=kPatch_dirSeparator);
             if (!filter->isNeedFilter(subName)){
                 isHaveSub=true;
                 out_list.push_back(subName); //add file
@@ -245,7 +245,7 @@ static size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootP
             utf8.assign(subName,subNameEnd);
         }else{
             temp.assign(subName,subNameEnd);
-            listener->sysFileName_to_utf8(temp,utf8);
+            listener->localeFileName_to_utf8(temp,utf8);
         }
         formatDirTagForSave(utf8);
         size_t writeLen=utf8.size()+1; // '\0'
@@ -292,7 +292,7 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
     typedef std::multimap<hash_value_t,size_t> TMap;
     TMap hashMap;
     std::set<size_t> oldRefList;
-    for (int i=0; i<oldList.size(); ++i) {
+    for (size_t i=0; i<oldList.size(); ++i) {
         const std::string& fileName=oldList[i];
         if (isDirName(fileName)) continue;
         hpatch_StreamPos_t fileSize=0;
@@ -304,7 +304,7 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
     out_dataSamePairList.clear();
     out_newRefList.clear();
     std::vector<size_t> oldHitList(oldList.size(),0);
-    for (int i=0; i<newList.size(); ++i){
+    for (size_t i=0; i<newList.size(); ++i){
         const std::string& fileName=newList[i];
         if (isDirName(fileName)) continue;
         hpatch_StreamPos_t fileSize=0;

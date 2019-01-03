@@ -81,12 +81,12 @@ static void printUsage(){
 #if (_IS_NEED_ORIGINAL)
            "[-o] "
 #endif
-           "oldFile diffFile outNewFile\n"
+           "oldPath diffFile outNewPath\n"
            "memory options:\n"
-           "  -m  oldFile all loaded into Memory; fast;\n"
+           "  -m  oldPath all loaded into Memory; fast;\n"
            "      requires (oldFileSize + 4 * decompress stream size) + O(1) bytes of memory\n"
            "  -s-cacheSize \n"
-           "      oldFile loaded as Stream, with cacheSize; DEFAULT;\n"
+           "      oldPath loaded as Stream, with cacheSize; DEFAULT;\n"
            "      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m\n"
 #if (_IS_NEED_ORIGINAL)
@@ -128,6 +128,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
 
 #if (_IS_NEED_MAIN)
 int main(int argc, const char * argv[]){
+    SetDefaultLocale();
     return hpatch_cmd_line(argc,argv);
 }
 #endif
@@ -157,7 +158,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         _options_check((op!=0)&&(strlen(op)>0),"?");
         if (op[0]!='-'){
             _options_check(arg_values_size<kMax_arg_values_size,"count");
-            arg_values[arg_values_size]=op; //filename
+            arg_values[arg_values_size]=op; //path: file or dir
             ++arg_values_size;
             continue;
         }
@@ -212,16 +213,18 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     }
     
     {
-        const char* oldFileName   =arg_values[0];
-        const char* diffFileName  =arg_values[1];
-        const char* outNewFileName=arg_values[2];
+        const char* oldPath     =arg_values[0];
+        const char* diffFileName=arg_values[1];
+        const char* outNewPath  =arg_values[2];
         hpatch_BOOL isDirDiff;
+        if (isSamePath(oldPath,outNewPath))
+            _options_check(hpatch_FALSE,"now unsupport oldPath outNewPath same path");
         _options_check(getIsDirDiffFile(diffFileName,&isDirDiff),"input diffFile open read");
         if (isDirDiff){
             _options_check(!isOriginal,"-o unsupport dir patch");
-            return hpatch_dir(oldFileName,diffFileName,outNewFileName,isLoadOldAll,patchCacheSize);
+            return hpatch_dir(oldPath,diffFileName,outNewPath,isLoadOldAll,patchCacheSize);
         }else{
-            return hpatch(oldFileName,diffFileName,outNewFileName,isOriginal,isLoadOldAll,patchCacheSize);
+            return hpatch(oldPath,diffFileName,outNewPath,isOriginal,isLoadOldAll,patchCacheSize);
         }
     }
 }
@@ -410,9 +413,6 @@ clear:
     return result;
 }
 
-
-//static size_t utf8_to_sysFileName(const char* utf8FileName,char* out_fileName,char* fileNameBufEnd);
-
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
     int     result=HPATCH_SUCCESS;
@@ -421,8 +421,10 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     TFileStreamOutput    newFile;
     TFileStreamInput     diffData;
     TFileStreamInput     oldFile;
+    hpatch_TStreamInput  oldMemStream;
     const hpatch_TStreamInput*  oldStream=0;
     const hpatch_TStreamOutput* newStream=0;
+    TByte*               p_temp_mem=0;
     TByte*               temp_cache=0;
     size_t               temp_cache_size;
     TDirPatcher          dirPatcher;
@@ -430,6 +432,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     TFileStreamOutput_init(&newFile);
     TFileStreamInput_init(&diffData);
     TFileStreamInput_init(&oldFile);
+    memset(&oldMemStream,0,sizeof(oldMemStream));
     TDirPatcher_init(&dirPatcher);
     assert(0!=strcmp(oldPath,outNewPath));
     {//dir diff info
@@ -464,8 +467,9 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
               HPATCH_DIRPATCH_LAODDATA_ERROR,"load dir data in diffFile");
     }
     //cache
-    temp_cache=getMemCache(isLoadOldAll,patchCacheSize,dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
-    check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory");
+    p_temp_mem=getMemCache(isLoadOldAll,patchCacheSize,dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
+    check(p_temp_mem,HPATCH_MEM_ERROR,"alloc cache memory");
+    temp_cache=p_temp_mem;
     //old data
     if (!dirDiffInfo->oldPathIsDir){
         check(TFileStreamInput_open(&oldFile,oldPath),HPATCH_OPENREAD_ERROR,"open oldFile for read");
@@ -476,12 +480,15 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         }
         oldStream=&oldFile.base;
     }else{
-        //todo:
-        size_t oldRefCount=dirPatcher.dirDiffHead.oldRefFileCount;
-        if (temp_cache_size>=dirDiffInfo->hdiffInfo.oldDataSize+kPatchCacheSize_min){
-            //can load all
+        hpatch_StreamPos_t oldDataSize=dirDiffInfo->hdiffInfo.oldDataSize;
+        if (temp_cache_size>=oldDataSize+kPatchCacheSize_min){
+            check(TDirPatcher_loadOldRefToMem(&dirPatcher,oldPath,temp_cache,temp_cache+oldDataSize),
+                  HPATCH_OPENREAD_ERROR,"open oldFiles read");
+            mem_as_hStreamInput(&oldMemStream,temp_cache,temp_cache+oldDataSize);
+            temp_cache+=oldDataSize;
+            oldStream=&oldMemStream;
         }else{
-            //
+            oldStream=TDirPatcher_loadOldRefAsStream(&dirPatcher,oldPath);
         }
     }
     //new data
@@ -499,9 +506,11 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
 clear:
     _isInClear=hpatch_TRUE;
     check(TFileStreamOutput_close(&newFile),HPATCH_FILECLOSE_ERROR,"out newFile close");
+    check(TDirPatcher_closeOldRefStream(&dirPatcher),HPATCH_FILECLOSE_ERROR,"oldFiles close");
+    TDirPatcher_close(&dirPatcher);
     check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
     check(TFileStreamInput_close(&oldFile),HPATCH_FILECLOSE_ERROR,"oldFile close");
-    _free_mem(temp_cache);
+    _free_mem(p_temp_mem);
     printf("\nhpatchz time: %.3f s\n",(clock_s()-time0));
     return result;
 }

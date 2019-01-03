@@ -105,7 +105,7 @@ hpatch_BOOL _createRange(RefStream* self,const hpatch_TStreamInput** refList,siz
     check(self->_buf!=0);
     self->_rangeEndList=((hpatch_StreamPos_t*)self->_buf)+1; //+1 for _rangeEndList[-1] safe
     self->_rangeEndList[-1]=0;
-    for (int i=0; i<refCount; ++i) {
+    for (size_t i=0; i<refCount; ++i) {
         hpatch_StreamPos_t rangeSize=refList[i]->streamSize;
         curSumSize+=rangeSize;
         self->_rangeEndList[rangIndex]=curSumSize;

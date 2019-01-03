@@ -69,7 +69,7 @@ hpatch_inline static
 void packUInt_fixSize(unsigned char* out_code,unsigned char* out_code_fixEnd,
                       hpatch_StreamPos_t uValue){
     if (out_code>=out_code_fixEnd)
-        throw std::runtime_error("packUInt_fixSize() out_code size error!"); //
+        throw std::runtime_error("packUInt_fixSize() out_code size error!");
     --out_code_fixEnd;
     *out_code_fixEnd=uValue&((1<<7)-1); uValue>>=7;
     while (out_code<out_code_fixEnd) {

@@ -55,7 +55,7 @@ struct IDirDiffListener:public IDirFilter{
     virtual void runHDiffEnd(hpatch_StreamPos_t diffDataSize){}
     virtual void externData(std::vector<unsigned char>& out_externData){}
     virtual void externDataPosInOutStream(hpatch_StreamPos_t externDataPos){}
-    virtual void sysFileName_to_utf8(const std::string& fileName,std::string& out_utf8){ out_utf8.assign(fileName); }
+    virtual void localeFileName_to_utf8(const std::string& fileName,std::string& out_utf8){ out_utf8.assign(fileName); }
 };
 
 void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::string& newPatch,

@@ -48,12 +48,12 @@ static const TByte kPatchMode =0;
 
 
 static void formatDirTagForLoad(char* path,char* pathEnd){
-    if (kPatch_dirTag==kPatch_dirTag_saved) return;
+    if (kPatch_dirSeparator==kPatch_dirSeparator_saved) return;
     for (;path<pathEnd;++path){
-        if ((*path)!=kPatch_dirTag_saved)
+        if ((*path)!=kPatch_dirSeparator_saved)
             continue;
         else
-            *path=kPatch_dirTag;
+            *path=kPatch_dirSeparator;
     }
 }
 

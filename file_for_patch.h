@@ -30,23 +30,26 @@
 #ifndef HPatch_file_for_patch_h
 #define HPatch_file_for_patch_h
 #include <stdio.h>
-#include <stdlib.h> //malloc free
+#include <stdlib.h> // malloc free
 #include "libHDiffPatch/HPatch/patch_types.h"
 typedef unsigned char TByte;
 #define kFileIOBestMaxSize  (1024*1024)
 
-static hpatch_BOOL fileTell64(FILE* file,hpatch_StreamPos_t* out_pos){
+typedef FILE* hpatch_FileHandle;
+
+static hpatch_BOOL fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_pos){
 #ifdef _MSC_VER
     __int64 fpos=_ftelli64(file);
 #else
     off_t fpos=ftello(file);
+    assert(sizeof(off_t)==sizeof(hpatch_StreamPos_t));
 #endif
     hpatch_BOOL result=(fpos>=0);
     if (result) *out_pos=fpos;
     return result;
 }
 
-static hpatch_BOOL fileSeek64(FILE* file,hpatch_StreamPos_t seekPos,int whence){
+static hpatch_BOOL fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
 #ifdef _MSC_VER
     int ret=_fseeki64(file,seekPos,whence);
 #else
@@ -57,8 +60,8 @@ static hpatch_BOOL fileSeek64(FILE* file,hpatch_StreamPos_t seekPos,int whence){
     return (ret==0);
 }
 
-static hpatch_BOOL fileClose(FILE** pfile){
-    FILE* file=*pfile;
+static hpatch_BOOL fileClose(hpatch_FileHandle* pfile){
+    hpatch_FileHandle file=*pfile;
     if (file){
         *pfile=0;
         if (0!=fclose(file))
@@ -67,7 +70,7 @@ static hpatch_BOOL fileClose(FILE** pfile){
     return hpatch_TRUE;
 }
 
-static hpatch_BOOL fileRead(FILE* file,TByte* buf,TByte* buf_end){
+static hpatch_BOOL fileRead(hpatch_FileHandle file,TByte* buf,TByte* buf_end){
     while (buf<buf_end) {
         size_t readLen=(size_t)(buf_end-buf);
         if (readLen>kFileIOBestMaxSize) readLen=kFileIOBestMaxSize;
@@ -77,7 +80,7 @@ static hpatch_BOOL fileRead(FILE* file,TByte* buf,TByte* buf_end){
     return buf==buf_end;
 }
 
-static hpatch_BOOL fileWrite(FILE* file,const TByte* data,const TByte* data_end){
+static hpatch_BOOL fileWrite(hpatch_FileHandle file,const TByte* data,const TByte* data_end){
     while (data<data_end) {
         size_t writeLen=(size_t)(data_end-data);
         if (writeLen>kFileIOBestMaxSize) writeLen=kFileIOBestMaxSize;
@@ -102,8 +105,9 @@ static hpatch_BOOL fileWrite(FILE* file,const TByte* data,const TByte* data_end)
 #endif
 
 hpatch_inline static
-hpatch_BOOL fileOpenForRead(const char* fileName,FILE** out_fileHandle,hpatch_StreamPos_t* out_fileLength){
-    FILE* file=0;
+hpatch_BOOL fileOpenForRead(const char* fileName,hpatch_FileHandle* out_fileHandle,
+                            hpatch_StreamPos_t* out_fileLength){
+    hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
     _fileOpenByMode(&file,fileName,"rb");
@@ -120,8 +124,8 @@ hpatch_BOOL fileOpenForRead(const char* fileName,FILE** out_fileHandle,hpatch_St
 }
 
 hpatch_inline static
-hpatch_BOOL fileOpenForCreateOrReWrite(const char* fileName,FILE** out_fileHandle){
-    FILE* file=0;
+hpatch_BOOL fileOpenForCreateOrReWrite(const char* fileName,hpatch_FileHandle* out_fileHandle){
+    hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
     _fileOpenByMode(&file,fileName,"wb");
@@ -132,7 +136,7 @@ hpatch_BOOL fileOpenForCreateOrReWrite(const char* fileName,FILE** out_fileHandl
 
 typedef struct TFileStreamInput{
     hpatch_TStreamInput base;
-    FILE*               m_file;
+    hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
     size_t              m_offset;
     hpatch_BOOL         fileError;
@@ -191,7 +195,7 @@ static hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self){
 
 typedef struct TFileStreamOutput{
     hpatch_TStreamOutput base;
-    FILE*               m_file;
+    hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  out_pos;
     hpatch_StreamPos_t  out_length;
     hpatch_BOOL         fileError;
@@ -252,8 +256,8 @@ hpatch_BOOL TFileStreamOutput_flush(TFileStreamOutput* self){
     return (0!=fflush(self->m_file));
 }
 
-hpatch_inline
-static hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self){
+hpatch_inline static
+hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self){
     return fileClose(&self->m_file);
 }
 

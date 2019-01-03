@@ -1,4 +1,4 @@
-//file_for_dir.h
+//file_for_dirPatch.h
 // file dir tool
 //
 /*
@@ -27,20 +27,20 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef DirDiffPatch_file_for_dir_h
-#define DirDiffPatch_file_for_dir_h
+#ifndef DirDiffPatch_file_for_dirPatch_h
+#define DirDiffPatch_file_for_dirPatch_h
 #include <stdio.h>
+#include <locale.h> // setlocale
 #include "../libHDiffPatch/HPatch/patch_types.h"
 
 #include <sys/stat.h> //stat
-#include <dirent.h> //opendir ...
 
-#ifdef WIN32
-      static const char kPatch_dirTag = '\';
+#ifdef _WIN32
+      static const char kPatch_dirSeparator = '\';
 #else
-      static const char kPatch_dirTag = '/';
+      static const char kPatch_dirSeparator = '/';
 #endif
-static const char kPatch_dirTag_saved = '/';
+static const char kPatch_dirSeparator_saved = '/';
 
 typedef enum TPathType{
     kPathType_file,
@@ -67,37 +67,41 @@ hpatch_BOOL getPathType(const char* path,TPathType* out_type){
 }
 
 
-typedef void* TDirHandle;
-
-static inline
-TDirHandle dirOpenForRead(const char* dir){
-    return opendir(dir);
+hpatch_inline static
+void SetDefaultLocale(){ //for some locale Path character encoding
+    setlocale(LC_ALL, "" );
 }
 
-static inline
-const char* dirNext(TDirHandle dirHandle,TPathType *out_type){
-    assert(dirHandle!=0);
-    assert(out_type!=0);
-    DIR* pdir =(DIR*)dirHandle;
-    struct dirent* pdirent = readdir(pdir);
-    if (pdirent==0) return 0;
-    
-    const char* subName=pdirent->d_name;
-    if (pdirent->d_type==DT_DIR){
-        *out_type=kPathType_dir;
-        return subName;
-    }else if (pdirent->d_type==DT_REG){
-        *out_type=kPathType_file;
-        return subName;
+hpatch_inline static
+hpatch_BOOL isSamePath(const char* xPath,const char* yPath){
+    if (0==strcmp(xPath,yPath)){
+        return hpatch_TRUE;
     }else{
-        return dirNext(dirHandle,out_type);
+        // WARING!!! better return getCanonicalPath(xPath)==getCanonicalPath(yPath);
+        return hpatch_FALSE;
     }
 }
 
-static inline
-void dirClose(TDirHandle dirHandle){
-    if (dirHandle)
-        closedir((DIR*)dirHandle);
+static inline //if error return -1 else return outSize
+int utf8Path_to_utf8(const char* path,char* out_utf8,char* out_utf8BufEnd){
+    //copy only
+    size_t size=strlen(path)+1; // with '\0'
+    assert((0<=(int)size)&(size==(size_t)(int)size));
+    if (out_utf8!=0){
+        if ((out_utf8BufEnd-out_utf8)<size) return -1;//error
+        memmove(out_utf8,path,size);
+    }
+    return (int)size;
+}
+
+static inline //if error return -1 else return outSize
+int utf8_to_localePath(const char* utf8Path,char* out_Path,char* out_PathBufEnd){
+#if (defined(__APPLE__))
+    return utf8Path_to_utf8(utf8Path,out_Path,out_PathBufEnd);
+#else
+    #warning Path unknown character encoding, probably can not cross-platform
+    return utf8Path_to_utf8(utf8Path,out_Path,out_PathBufEnd);
+#endif
 }
 
 #endif

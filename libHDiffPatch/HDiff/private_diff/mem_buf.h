@@ -29,6 +29,7 @@
 #ifndef __mem_buf_h
 #define __mem_buf_h
 #include <string.h> //size_t malloc free
+#include <stdexcept>  //std::runtime_error
 namespace hdiff_private{
 
     struct TAutoMem{

@@ -38,7 +38,7 @@
 #include "_clock_for_demo.h"
 #include "_atosize.h"
 #include "file_for_patch.h"
-#include "dirDiffPatch/file_for_dir.h"
+#include "dirDiffPatch/file_for_dirDiff.h"
 #include "dirDiffPatch/dir_diff/dir_diff.h"
 #include "dirDiffPatch/dir_patch/dir_patch.h"
 
@@ -144,7 +144,7 @@ typedef enum THDiffResult {
 
 int hdiff_cmd_line(int argc, const char * argv[]);
 
-int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+int hdiff_dir(const char* oldPath,const char* newPath,const char* outDiffFileName,
               hpatch_BOOL oldIsDir, hpatch_BOOL newIsdir,
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
@@ -159,6 +159,7 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 
 #if (_IS_NEED_MAIN)
 int main(int argc, const char * argv[]){
+    SetDefaultLocale();
     return  hdiff_cmd_line(argc,argv);
 }
 #endif
@@ -232,7 +233,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* op=argv[i];
         _options_check((op!=0)&&(strlen(op)>0),"?");
         if (op[0]!='-'){
-            arg_values.push_back(op); //filename
+            arg_values.push_back(op); //path:file or dir
             continue;
         }
         switch (op[1]) {
@@ -358,23 +359,23 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         }
         assert(isPatchCheck||isDiff);
         
-        const char* oldFileName    =arg_values[0];
-        const char* newFileName    =arg_values[1];
+        const char* oldPath        =arg_values[0];
+        const char* newPath        =arg_values[1];
         const char* outDiffFileName=arg_values[2];
         TPathType oldType;
         TPathType newType;
-        _options_check(getPathType(oldFileName,&oldType),"input old path must file or dir");
-        _options_check(getPathType(newFileName,&newType),"input new path must file or dir");
+        _options_check(getPathType(oldPath,&oldType),"input old path must file or dir");
+        _options_check(getPathType(newPath,&newType),"input new path must file or dir");
         hpatch_BOOL isUseDirDiff=(kPathType_dir==oldType)||(kPathType_dir==newType);
         if (isUseDirDiff)
             _options_check(!isOriginal,"-o unsupport dir diff");
         
         if (isUseDirDiff){
-            return hdiff_dir(oldFileName,newFileName,outDiffFileName, (kPathType_dir==oldType),
+            return hdiff_dir(oldPath,newPath,outDiffFileName, (kPathType_dir==oldType),
                              (kPathType_dir==newType), isDiff,isLoadAll,matchValue,isPatchCheck,
                              streamCompressPlugin,compressPlugin,decompressPlugin);
         }else{
-            return hdiff(oldFileName,newFileName,outDiffFileName,isDiff,isLoadAll,matchValue,isPatchCheck,
+            return hdiff(oldPath,newPath,outDiffFileName,isDiff,isLoadAll,matchValue,isPatchCheck,
                          streamCompressPlugin,compressPlugin,decompressPlugin,isOriginal);
         }
     }else{ //resave
@@ -391,8 +392,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 
 static hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileName){
     size_t dataSize;
-    hpatch_StreamPos_t  file_length=0;
-    FILE*               file=0;
+    hpatch_StreamPos_t file_length=0;
+    hpatch_FileHandle  file=0;
     assert((*out_pdata)==0);
     if (!fileOpenForRead(fileName,&file,&file_length)) _file_error(file);
     
@@ -409,7 +410,7 @@ static hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char
 #define _free_mem(p) { if (p) { free(p); p=0; } }
 
 static hpatch_BOOL writeFileAll(const TByte* pdata,size_t dataSize,const char* outFileName){
-    FILE*   file=0;
+    hpatch_FileHandle file=0;
     if (!fileOpenForCreateOrReWrite(outFileName,&file)) _file_error(file);
     if (!fileWrite(file,pdata,pdata+dataSize)) _file_error(file);
     return fileClose(&file);
@@ -735,7 +736,7 @@ struct DirDiffListener:public IDirDiffListener{
         return false;
     }
     
-    virtual void sysFileName_to_utf8(const std::string& fileName,std::string& out_utf8){
+    virtual void localeFileName_to_utf8(const std::string& fileName,std::string& out_utf8){
 #if (defined(__APPLE__))
         out_utf8.assign(fileName); //fileName used utf8
 #else
