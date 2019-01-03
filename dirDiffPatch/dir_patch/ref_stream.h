@@ -47,9 +47,10 @@ typedef struct RefStream{
     unsigned char*              _buf;
 } RefStream;
 
-void RefStream_init(RefStream* self);
+hpatch_inline static
+void        RefStream_init(RefStream* self) { memset(self,0,sizeof(*self)); }
 hpatch_BOOL RefStream_open(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount);
-void RefStream_close(RefStream* self);
+void        RefStream_close(RefStream* self);
 
 #ifdef __cplusplus
 }

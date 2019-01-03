@@ -51,7 +51,7 @@ typedef enum TPathType{
     kPathType_dir
 } TPathType;
 
-static inline
+hpatch_inline static
 hpatch_BOOL getPathType(const char* path,TPathType* out_type){
     assert(out_type!=0);
     struct stat s;
@@ -86,7 +86,7 @@ hpatch_BOOL isSamePath(const char* xPath,const char* yPath){
     }
 }
 
-static inline //if error return 0 else return outCStringByteSize
+hpatch_inline static //if error return 0 else return outCStringByteSize
 size_t utf8String_to_utf8(const char* path,char* out_utf8,char* out_utf8BufEnd){
     //copy only
     size_t size=strlen(path)+1; // with '\0'
@@ -97,7 +97,7 @@ size_t utf8String_to_utf8(const char* path,char* out_utf8,char* out_utf8BufEnd){
     return size;
 }
 
-static inline //if error return 0 else return outCStringByteSize
+hpatch_inline static //if error return 0 else return outCStringByteSize
 size_t utf8_to_localePath(const char* utf8Path,char* out_Path,char* out_PathBufEnd){
 #if ( defined(__APPLE__) || defined(__ANDROID__) || defined(__linux__) )
     return utf8String_to_utf8(utf8Path,out_Path,out_PathBufEnd);
@@ -106,5 +106,17 @@ size_t utf8_to_localePath(const char* utf8Path,char* out_Path,char* out_PathBufE
     return utf8String_to_utf8(utf8Path,out_Path,out_PathBufEnd);
 #endif
 }
+
+
+hpatch_inline static //if error return 0 else return outCStringBufSize
+size_t localePath_to_utf8(const char* path,char* out_utf8,char* out_utf8BufEnd){
+#if (defined(__APPLE__))
+    return utf8String_to_utf8(path,out_utf8,out_utf8BufEnd);
+#else
+#warning Path unknown character encoding, probably can not cross-platform
+    return utf8String_to_utf8(path,out_utf8,out_utf8BufEnd);
+#endif
+}
+
 
 #endif

@@ -30,12 +30,12 @@
 #include <algorithm> //sort
 #include <map>
 #include <set>
-#include "../file_for_dirDiff.h"
-#include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #include "../../libHDiffPatch/HDiff/diff.h"
+#include "../../file_for_patch.h"
+#include "../file_for_dirDiff.h"
 #include "../dir_patch/ref_stream.h"
 #include "../dir_patch/dir_patch.h"
 using namespace hdiff_private;
@@ -81,6 +81,15 @@ bool IDirFilter::pathNameIs(const std::string& pathName,const char* testPathName
     size_t nameSize=pathName.size();
     size_t testSize=strlen(testPathName);
     return (nameSize==testSize) || (pathName[nameSize-testSize-1]==kPatch_dirSeparator);
+}
+
+void IDirDiffListener::localePathToUtf8(const std::string& path,std::string& out_utf8){
+    size_t cStrByteSize=localePath_to_utf8(path.c_str(),0,0);
+    if (cStrByteSize<=0) throw std::runtime_error("path encoding error!");
+    out_utf8.resize(cStrByteSize);
+    cStrByteSize=localePath_to_utf8(path.c_str(),&out_utf8[0],&out_utf8[0]+cStrByteSize);
+    if (cStrByteSize<=0) throw std::runtime_error("path encoding error!");
+    out_utf8.resize(cStrByteSize-1); //for C string '\0'
 }
 
 struct CFileStreamInput:public TFileStreamInput{
@@ -458,7 +467,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     }else{
         _pushv(headData);
     }
-    listener->externDataPosInOutStream(writeToPos);
+    listener->externDataPosInDiffStream(writeToPos);
     _pushv(externData);
 
     //diff data
@@ -473,7 +482,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         check(newRefStream.stream->read(newRefStream.stream,0,newData,
                                         newData+newRefStream.stream->streamSize),"read new file error!");
         _newRefList.clear();//close files
-        check(newRefStream.stream->read(newRefStream.stream,0,oldData,
+        check(oldRefStream.stream->read(oldRefStream.stream,0,oldData,
                                         oldData+oldRefStream.stream->streamSize),"read old file error!");
         _oldRefList.clear();//close files
         std::vector<unsigned char> out_diff;
@@ -484,7 +493,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         _pushv(out_diff);
     }else{
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
-        create_compressed_diff_stream(oldRefStream.stream,newRefStream.stream,&ofStream,
+        create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
                                       streamCompressPlugin,matchValue);
         diffDataSize=ofStream.outSize;
     }

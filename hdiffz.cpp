@@ -389,31 +389,29 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     }
 }
 
-
+#define _check_readFile(v) { if (!(v)) { TFileStreamInput_close(&file); return hpatch_FALSE; } }
+#define _free_file_mem(p) { if (p) { free(p); p=0; } }
 static hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileName){
-    size_t dataSize;
-    hpatch_StreamPos_t file_length=0;
-    hpatch_FileHandle  file=0;
-    assert((*out_pdata)==0);
-    if (!fileOpenForRead(fileName,&file,&file_length)) _file_error(file);
-    
-    dataSize=(size_t)file_length;
-    if (dataSize!=file_length) _file_error(file);
+    size_t              dataSize;
+    TFileStreamInput    file;
+    TFileStreamInput_init(&file);
+    _check_readFile(TFileStreamInput_open(&file,fileName));
+    dataSize=(size_t)file.base.streamSize;
+    _check_readFile(dataSize==file.base.streamSize);
     *out_pdata=(TByte*)malloc(dataSize);
-    if (*out_pdata==0) _file_error(file);
+    _check_readFile((*out_pdata)!=0);
     *out_dataSize=dataSize;
-    
-    if (!fileRead(file,*out_pdata,(*out_pdata)+dataSize)) _file_error(file);
-    return fileClose(&file);
+    _check_readFile(file.base.read(&file.base,0,*out_pdata,(*out_pdata)+dataSize));
+    return TFileStreamInput_close(&file);
 }
 
-#define _free_mem(p) { if (p) { free(p); p=0; } }
-
+#define _check_writeFile(v) { if (!(v)) { TFileStreamOutput_close(&file); return hpatch_FALSE; } }
 static hpatch_BOOL writeFileAll(const TByte* pdata,size_t dataSize,const char* outFileName){
-    hpatch_FileHandle file=0;
-    if (!fileOpenForCreateOrReWrite(outFileName,&file)) _file_error(file);
-    if (!fileWrite(file,pdata,pdata+dataSize)) _file_error(file);
-    return fileClose(&file);
+    TFileStreamOutput file;
+    TFileStreamOutput_init(&file);
+    _check_writeFile(TFileStreamOutput_open(&file,outFileName,dataSize));
+    _check_writeFile(file.base.write(&file.base,0,pdata,pdata+dataSize));
+    return TFileStreamOutput_close(&file);
 }
 
 #if (_IS_NEED_ORIGINAL)
@@ -528,9 +526,9 @@ static int hdiff_m(const char* oldFileName,const char* newFileName,const char* o
     }
 clear:
     _isInClear=hpatch_TRUE;
-    _free_mem(diffData);
-    _free_mem(newData);
-    _free_mem(oldData);
+    _free_file_mem(diffData);
+    _free_file_mem(newData);
+    _free_file_mem(oldData);
     return result;
 }
 
@@ -734,15 +732,6 @@ struct DirDiffListener:public IDirDiffListener{
         if (pathNameIs(path,".DS_Store")) return true;
 #endif
         return false;
-    }
-    
-    virtual void localePathToUtf8(const std::string& path,std::string& out_utf8){
-        size_t cStrByteSize=localePath_to_utf8(path.c_str(),0,0);
-        if (cStrByteSize<=0) throw std::runtime_error("path encoding error!");
-        out_utf8.resize(cStrByteSize);
-        cStrByteSize=localePath_to_utf8(path.c_str(),&out_utf8[0],&out_utf8[0]+cStrByteSize);
-        if (cStrByteSize<=0) throw std::runtime_error("path encoding error!");
-        out_utf8.resize(cStrByteSize-1); //for C string '\0'
     }
     
     virtual void diffFileList(std::vector<std::string>& newList,std::vector<std::string>& oldList){

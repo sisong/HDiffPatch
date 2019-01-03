@@ -1130,19 +1130,10 @@ clear:
 }
 
 
-static hpatch_BOOL _cache_load_all(const hpatch_TStreamInput* data,
-                                   TByte* cache,TByte* cache_end){
-    const size_t kBestStepRead =(1<<20);
-    hpatch_StreamPos_t pos=0;
+hpatch_inline static hpatch_BOOL _cache_load_all(const hpatch_TStreamInput* data,
+                                                 TByte* cache,TByte* cache_end){
     assert((size_t)(cache_end-cache)==data->streamSize);
-    while (cache<cache_end) {
-        size_t readLen=(size_t)(cache_end-cache);
-        if (readLen>kBestStepRead) readLen=kBestStepRead;
-        if (!data->read(data,pos,cache,cache+readLen)) return _hpatch_FALSE;
-        cache+=readLen;
-        pos+=readLen;
-    }
-    return hpatch_TRUE;
+    return data->read(data,0,cache,cache_end);
 }
 
 typedef struct _TCompressedCovers{

@@ -66,15 +66,4 @@ void dirClose(TDirHandle dirHandle){
 }
 
 
-static inline //if error return 0 else return outCStringBufSize
-size_t localePath_to_utf8(const char* path,char* out_utf8,char* out_utf8BufEnd){
-#if (defined(__APPLE__))
-    return utf8String_to_utf8(path,out_utf8,out_utf8BufEnd);
-#else
-    #warning Path unknown character encoding, probably can not cross-platform
-    return utf8String_to_utf8(path,out_utf8,out_utf8BufEnd);
-#endif
-}
-
-
 #endif

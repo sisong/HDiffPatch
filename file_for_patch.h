@@ -33,7 +33,7 @@
 #include <stdlib.h> // malloc free
 #include "libHDiffPatch/HPatch/patch_types.h"
 typedef unsigned char TByte;
-#define kFileIOBestMaxSize  (1024*1024)
+#define kFileIOBestMaxSize  (1<<20)
 
 typedef FILE* hpatch_FileHandle;
 

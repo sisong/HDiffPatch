@@ -115,7 +115,8 @@ typedef enum THPatchResult {
     HPATCH_PATHTYPE_ERROR,
     HPATCH_DIRDIFFINFO_ERROR,
     HPATCH_DIRPATCH_ERROR,
-    HPATCH_DIRPATCH_LAODDATA_ERROR,
+    HPATCH_DIRPATCH_LAODDIRDATA_ERROR,
+    HPATCH_DIRPATCH_LAODOLDREF_ERROR,
 } THPatchResult;
 
 int hpatch_cmd_line(int argc, const char * argv[]);
@@ -464,14 +465,14 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         if (result!=HPATCH_SUCCESS) check_on_error(result);
         //load dir data
         check(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin),
-              HPATCH_DIRPATCH_LAODDATA_ERROR,"load dir data in diffFile");
+              HPATCH_DIRPATCH_LAODDIRDATA_ERROR,"load dir data in diffFile");
     }
     //cache
     p_temp_mem=getPatchMemCache(isLoadOldAll,patchCacheSize,dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
     check(p_temp_mem,HPATCH_MEM_ERROR,"alloc cache memory");
     temp_cache=p_temp_mem;
     //old data
-    if (!dirDiffInfo->oldPathIsDir){
+    if (!dirDiffInfo->oldPathIsDir){//old is file
         check(TFileStreamInput_open(&oldFile,oldPath),HPATCH_OPENREAD_ERROR,"open oldFile for read");
         if (oldFile.base.streamSize!=dirDiffInfo->hdiffInfo.oldDataSize){
             printf("oldFile dataSize %" PRId64 " != diffFile saved oldDataSize %" PRId64 "",
@@ -479,24 +480,26 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             check_on_error(HPATCH_FILEDATA_ERROR);
         }
         oldStream=&oldFile.base;
-    }else{
+    }else{//old is dir
         hpatch_StreamPos_t oldDataSize=dirDiffInfo->hdiffInfo.oldDataSize;
-        if (temp_cache_size>=oldDataSize+kPatchCacheSize_min){
+        if (temp_cache_size>=oldDataSize+kPatchCacheSize_min){//optimize: only open one ref file at a time
             check(TDirPatcher_loadOldRefToMem(&dirPatcher,oldPath,temp_cache,temp_cache+oldDataSize),
-                  HPATCH_OPENREAD_ERROR,"open oldFiles read");
+                  HPATCH_DIRPATCH_LAODOLDREF_ERROR,"load all oldFiles");
             mem_as_hStreamInput(&oldMemStream,temp_cache,temp_cache+oldDataSize);
             temp_cache+=oldDataSize;
+            temp_cache_size-=oldDataSize;
             oldStream=&oldMemStream;
-        }else{
-            oldStream=TDirPatcher_loadOldRefAsStream(&dirPatcher,oldPath);
+        }else{ //open all ref files
+            check(TDirPatcher_loadOldRefAsStream(&dirPatcher,oldPath,&oldStream),
+                  HPATCH_DIRPATCH_LAODOLDREF_ERROR,"open oldFiles");
         }
     }
     //new data
-    if (!dirDiffInfo->newPathIsDir){
+    if (!dirDiffInfo->newPathIsDir){//new is file
         check(TFileStreamOutput_open(&newFile,outNewPath,dirDiffInfo->hdiffInfo.newDataSize),
               HPATCH_OPENWRITE_ERROR,"open out newFile for write");
         newStream=&newFile.base;
-    }else{
+    }else{ //new is dir
         //todo:
     }
     

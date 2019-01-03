@@ -29,14 +29,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void RefStream_init(RefStream* self){
-    memset(self,0,sizeof(*self));
-}
-
 void RefStream_close(RefStream* self){
     if (self->_buf) { free(self->_buf); self->_buf=0; }
 }
-
 
 #define  check(value) { \
     if (!(value)){ printf(#value" ERROR!\n");  \
