@@ -104,11 +104,11 @@ struct CFileStreamInput:public TFileStreamInput{
 };
 
 struct CRefStream:public RefStream{
-    inline CRefStream(){ RefStream_init(this); }
+    inline CRefStream(){ TRefStream_init(this); }
     inline void open(const hpatch_TStreamInput** refList,size_t refCount){
-        check(RefStream_open(this,refList,refCount),"RefStream_open() refList error!");
+        check(TRefStream_open(this,refList,refCount),"TRefStream_open() refList error!");
     }
-    inline ~CRefStream(){ RefStream_close(this); }
+    inline ~CRefStream(){ TRefStream_close(this); }
 };
 
 struct TOffsetStreamOutput:public hpatch_TStreamOutput{
@@ -216,6 +216,12 @@ static void pushIncList(std::vector<TByte>& out_data,const std::vector<size_t>& 
         size_t curValue=list[i];
         packUInt(out_data,(size_t)(curValue-(size_t)(backValue+1)));
         backValue=curValue;
+    }
+}
+
+static void pushList(std::vector<TByte>& out_data,const std::vector<hpatch_StreamPos_t>& list){
+    for (size_t i=0;i<list.size();++i){
+        packUInt(out_data,list[i]);
     }
 }
 
@@ -380,6 +386,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     std::vector<size_t> dataSamePairList;     //new map to same old
     std::vector<const hpatch_TStreamInput*> newRefSList;
     std::vector<const hpatch_TStreamInput*> oldRefSList;
+    std::vector<hpatch_StreamPos_t> newRefSizeList;
     std::vector<size_t> newRefIList;
     std::vector<size_t> oldRefIList;
     std::vector<CFileStreamInput> _newRefList;
@@ -390,6 +397,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         _oldRefList.resize(oldRefIList.size());
         oldRefSList.resize(oldRefIList.size());
         newRefSList.resize(newRefIList.size());
+        newRefSizeList.resize(newRefIList.size());
         for (size_t i=0; i<oldRefIList.size(); ++i) {
             _oldRefList[i].open(oldList[oldRefIList[i]]);
             oldRefSList[i]=&_oldRefList[i].base;
@@ -397,6 +405,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         for (size_t i=0; i<newRefIList.size(); ++i) {
             _newRefList[i].open(newList[newRefIList[i]]);
             newRefSList[i]=&_newRefList[i].base;
+            newRefSizeList[i]=newRefSList[i]->streamSize;
         }
     }
     size_t sameFilePairCount=dataSamePairList.size()/2;
@@ -413,6 +422,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     size_t newPathSumSize=pushNameList(headData,newPath,newList,listener);
     pushIncList(headData,oldRefIList);
     pushIncList(headData,newRefIList);
+    pushList(headData,newRefSizeList);
     pushSamePairList(headData,dataSamePairList);
     std::vector<TByte> headCode;
     if (compressPlugin){

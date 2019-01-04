@@ -30,6 +30,7 @@
 #define DirPatch_dir_patch_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
 #include "ref_stream.h"
+#include "new_stream.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -86,11 +87,13 @@ typedef struct TDirPatcher{
     const char* const *         newUtf8PathList;
     const size_t*               oldRefList;
     const size_t*               newRefList;
+    const hpatch_StreamPos_t*   newRefSizeList;
     const size_t*               dataSamePairList; //new map to old index
 //private:
     const hpatch_TStreamInput*  _dirDiffData;
     hpatch_TDecompress*         _decompressPlugin;
-    RefStream                   _oldRefStream;
+    TRefStream                  _oldRefStream;
+    TNewStream                  _newDirStream;
     void*                       _pOldRefMem;
     void*                       _pmem;
 } TDirPatcher;
@@ -101,17 +104,20 @@ hpatch_BOOL     TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* di
     
 hpatch_BOOL     TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin);
 
-hpatch_BOOL     TDirPatcher_loadOldRefToMem(TDirPatcher* self,const char* oldRootPath,
+hpatch_BOOL     TDirPatcher_loadOldRefToMem(TDirPatcher* self,const char* oldRootDir,
                                             unsigned char* out_buf,unsigned char* out_buf_end);
-hpatch_BOOL     TDirPatcher_loadOldRefAsStream(TDirPatcher* self,const char* oldRootPath,
+hpatch_BOOL     TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRootDir,
                                                const hpatch_TStreamInput** out_oldRefStream);
+hpatch_BOOL     TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newRootDir,
+                                               const hpatch_TStreamOutput** out_newDirStream);
 
 hpatch_BOOL     TDirPatcher_patch(const TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
                                   const hpatch_TStreamInput* oldData,
                                   unsigned char* temp_cache,unsigned char* temp_cache_end);
 
-hpatch_BOOL     TDirPatcher_closeOldRefStream(TDirPatcher* self);//for TDirPatcher_loadOldRefAsStream
-
+hpatch_BOOL     TDirPatcher_closeOldRefStream(TDirPatcher* self);//for TDirPatcher_openOldRefAsStream
+hpatch_BOOL     TDirPatcher_closeNewDirStream(TDirPatcher* self);//for TDirPatcher_openNewDirAsStream
+    
 hpatch_BOOL     TDirPatcher_close(TDirPatcher* self);
 
 

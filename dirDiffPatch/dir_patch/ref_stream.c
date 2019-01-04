@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void RefStream_close(RefStream* self){
+void TRefStream_close(TRefStream* self){
     if (self->_buf) { free(self->_buf); self->_buf=0; }
 }
 
@@ -37,7 +37,7 @@ void RefStream_close(RefStream* self){
     if (!(value)){ printf(#value" ERROR!\n");  \
         result=hpatch_FALSE; assert(hpatch_FALSE); goto clear; } }
 
-static hpatch_BOOL _RefStream_read_do(RefStream* self,hpatch_StreamPos_t readFromPos,
+static hpatch_BOOL _TRefStream_read_do(TRefStream* self,hpatch_StreamPos_t readFromPos,
                                unsigned char* out_data,unsigned char* out_data_end,size_t curRangeIndex){
     hpatch_StreamPos_t readPos=readFromPos - self->_rangeEndList[curRangeIndex-1];
     const hpatch_TStreamInput* ref=self->_refList[curRangeIndex];
@@ -58,7 +58,7 @@ static hpatch_BOOL _refStream_read(const hpatch_TStreamInput* stream,
                                    hpatch_StreamPos_t _readFromPos,
                                    unsigned char* out_data,unsigned char* out_data_end){
     hpatch_BOOL  result=hpatch_TRUE;
-    RefStream* self=(RefStream*)stream->streamImport;
+    TRefStream* self=(TRefStream*)stream->streamImport;
     const hpatch_StreamPos_t* ranges=self->_rangeEndList;
     hpatch_StreamPos_t curRangeIndex=self->_curRangeIndex;
     size_t readFromPos=(size_t)_readFromPos;
@@ -66,12 +66,12 @@ static hpatch_BOOL _refStream_read(const hpatch_TStreamInput* stream,
         size_t readLen=(out_data_end-out_data);
         if (ranges[curRangeIndex-1]<=readFromPos){ //-1 safe
             if (readFromPos+readLen<=ranges[curRangeIndex]){//hit all
-                check(_RefStream_read_do(self,readFromPos,out_data,out_data_end,curRangeIndex));
+                check(_TRefStream_read_do(self,readFromPos,out_data,out_data_end,curRangeIndex));
                 break; //ok out while
             }else if (readFromPos<=ranges[curRangeIndex]){//hit left
                 size_t leftLen=ranges[curRangeIndex]-readFromPos;
                 if (leftLen>0)
-                    check(_RefStream_read_do(self,readFromPos,out_data,out_data+leftLen,curRangeIndex));
+                    check(_TRefStream_read_do(self,readFromPos,out_data,out_data+leftLen,curRangeIndex));
                 ++curRangeIndex;
                 readFromPos+=leftLen;
                 out_data+=leftLen;
@@ -87,7 +87,7 @@ clear:
     return result;
 }
 
-hpatch_BOOL _createRange(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
+hpatch_BOOL _createRange(TRefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
     hpatch_BOOL result=hpatch_TRUE;
     assert(self->_buf==0);
     assert(self->_refList==0);
@@ -112,7 +112,7 @@ clear:
     return result;
 }
 
-hpatch_BOOL RefStream_open(RefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
+hpatch_BOOL TRefStream_open(TRefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
     hpatch_BOOL result=hpatch_TRUE;
     check(self->stream==0);
     check(_createRange(self,refList,refCount));

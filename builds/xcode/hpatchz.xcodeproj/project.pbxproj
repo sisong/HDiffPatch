@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		D6241AD321DC6C0F00E2846A /* LzmaDec.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AD221DC6C0F00E2846A /* LzmaDec.c */; };
+		D6241AE521DE47EC00E2846A /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AE321DE47EC00E2846A /* new_stream.c */; };
 		D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */ = {isa = PBXBuildFile; fileRef = D64B4BEE2077AAAA0039C38B /* hpatchz.c */; };
 		D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BF82077B9090039C38B /* libz.tbd */; };
 		D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFA2077B91A0039C38B /* libbz2.tbd */; };
@@ -31,6 +32,8 @@
 /* Begin PBXFileReference section */
 		D6241ACC21D855DF00E2846A /* file_for_dirPatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file_for_dirPatch.h; path = ../../dirDiffPatch/file_for_dirPatch.h; sourceTree = "<group>"; };
 		D6241AD221DC6C0F00E2846A /* LzmaDec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzmaDec.c; path = ../../../lzma/C/LzmaDec.c; sourceTree = "<group>"; };
+		D6241AE321DE47EC00E2846A /* new_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_stream.c; sourceTree = "<group>"; };
+		D6241AE421DE47EC00E2846A /* new_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_stream.h; sourceTree = "<group>"; };
 		D639ACD9208334A800811BB3 /* _atosize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _atosize.h; path = ../../_atosize.h; sourceTree = "<group>"; };
 		D64B4BEE2077AAAA0039C38B /* hpatchz.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hpatchz.c; path = ../../hpatchz.c; sourceTree = "<group>"; };
 		D64B4BF02077AB290039C38B /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
@@ -109,6 +112,8 @@
 		D67D3BEF21D3C5870050632A /* dir_patch */ = {
 			isa = PBXGroup;
 			children = (
+				D6241AE321DE47EC00E2846A /* new_stream.c */,
+				D6241AE421DE47EC00E2846A /* new_stream.h */,
 				D67D3BF021D3C5870050632A /* dir_patch.h */,
 				D67D3BF221D3C5870050632A /* dir_patch.c */,
 				D67D3BF121D3C5870050632A /* ref_stream.c */,
@@ -185,6 +190,7 @@
 				D6BD9BCE17578601004886DE /* patch.c in Sources */,
 				D67D3BF421D3C5870050632A /* ref_stream.c in Sources */,
 				D67D3BF521D3C5870050632A /* dir_patch.c in Sources */,
+				D6241AE521DE47EC00E2846A /* new_stream.c in Sources */,
 				D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

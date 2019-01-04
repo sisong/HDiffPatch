@@ -117,6 +117,8 @@ typedef enum THPatchResult {
     HPATCH_DIRPATCH_ERROR,
     HPATCH_DIRPATCH_LAODDIRDATA_ERROR,
     HPATCH_DIRPATCH_LAODOLDREF_ERROR,
+    HPATCH_DIRPATCH_OPENNEWDIR_ERROR,
+    HPATCH_DIRPATCH_NEWDIRCLOSE_ERROR,
 } THPatchResult;
 
 int hpatch_cmd_line(int argc, const char * argv[]);
@@ -490,7 +492,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             temp_cache_size-=oldDataSize;
             oldStream=&oldMemStream;
         }else{ //open all ref files
-            check(TDirPatcher_loadOldRefAsStream(&dirPatcher,oldPath,&oldStream),
+            check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,&oldStream),
                   HPATCH_DIRPATCH_LAODOLDREF_ERROR,"open oldFiles");
         }
     }
@@ -500,7 +502,8 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
               HPATCH_OPENWRITE_ERROR,"open out newFile for write");
         newStream=&newFile.base;
     }else{ //new is dir
-        //todo:
+        check(TDirPatcher_openNewDirAsStream(&dirPatcher,outNewPath,&newStream),
+              HPATCH_DIRPATCH_OPENNEWDIR_ERROR,"open new dir");
     }
     
     check(TDirPatcher_patch(&dirPatcher,newStream,oldStream, temp_cache,
@@ -509,6 +512,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
 clear:
     _isInClear=hpatch_TRUE;
     check(TFileStreamOutput_close(&newFile),HPATCH_FILECLOSE_ERROR,"out newFile close");
+    check(TDirPatcher_closeNewDirStream(&dirPatcher),HPATCH_DIRPATCH_NEWDIRCLOSE_ERROR,"new dir close");
     check(TDirPatcher_closeOldRefStream(&dirPatcher),HPATCH_FILECLOSE_ERROR,"oldFiles close");
     TDirPatcher_close(&dirPatcher);
     check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
