@@ -129,11 +129,23 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
 
+
 #if (_IS_NEED_MAIN)
+#   ifdef _MSC_VER
+int wmain(int argc,wchar_t* argv_w[]){
+    int result;
+    char** argv_utf8[kPathMaxSize*2/sizeof(char*)];
+    if (!_wFileNames_to_utf8((const wchar_t**)argv_w),argv_utf8,sizeof(argv_utf8))
+        return HPATCH_OPTIONS_ERROR;
+    SetDefaultStringLocale();
+    return hpatch_cmd_line(argc,argv_utf8);
+}
+#   else
 int main(int argc, const char * argv[]){
-    SetDefaultLocale();
+    SetDefaultStringLocale();
     return hpatch_cmd_line(argc,argv);
 }
+#   endif
 #endif
 
 
@@ -502,7 +514,12 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
               HPATCH_OPENWRITE_ERROR,"open out newFile for write");
         newStream=&newFile.base;
     }else{ //new is dir
-        check(TDirPatcher_openNewDirAsStream(&dirPatcher,outNewPath,&newStream),
+        INewDirListener listener;
+        memset(&listener,0,sizeof(listener));
+        listener.listenerImport=0;
+        listener.copySameFile=_os_copy_file;
+        listener.outNewDir=_os_make_dir;
+        check(TDirPatcher_openNewDirAsStream(&dirPatcher,outNewPath,&newStream,&listener),
               HPATCH_DIRPATCH_OPENNEWDIR_ERROR,"open new dir");
     }
     

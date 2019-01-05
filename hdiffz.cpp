@@ -142,7 +142,7 @@ typedef enum THDiffResult {
     HDIFF_DIR_DIFF_ERROR,
 } THDiffResult;
 
-int hdiff_cmd_line(int argc, const char * argv[]);
+int hdiff_cmd_line(int argc,const char * argv[]);
 
 int hdiff_dir(const char* oldPath,const char* newPath,const char* outDiffFileName,
               hpatch_BOOL oldIsDir, hpatch_BOOL newIsdir,
@@ -158,10 +158,21 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 
 
 #if (_IS_NEED_MAIN)
-int main(int argc, const char * argv[]){
-    SetDefaultLocale();
-    return  hdiff_cmd_line(argc,argv);
+#   ifdef _MSC_VER
+int wmain(int argc,wchar_t* argv_w[]){
+    int result;
+    char** argv_utf8[kPathMaxSize*2/sizeof(char*)];
+    if (!_wFileNames_to_utf8((const wchar_t**)argv_w),argv_utf8,sizeof(argv_utf8))
+        return HDIFF_OPTIONS_ERROR;
+    SetDefaultStringLocale();
+    return hdiff_cmd_line(argc,argv_utf8);
 }
+#   else
+int main(int argc,char* argv[]){
+    SetDefaultStringLocale();
+    return  hdiff_cmd_line(argc,(const char**)argv);
+}
+#   endif
 #endif
 
 

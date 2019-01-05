@@ -31,13 +31,18 @@
 #define HPatch_file_for_patch_h
 #include <stdio.h>
 #include <stdlib.h> // malloc free
+#include <locale.h> // setlocale
 #include "libHDiffPatch/HPatch/patch_types.h"
+#ifdef _MSC_VER
+#   include <windows.h> //for file API, character encoding API
+#endif
 typedef unsigned char TByte;
 #define kFileIOBestMaxSize  (1<<20)
+#define kPathMaxSize  1024
 
 typedef FILE* hpatch_FileHandle;
 
-static hpatch_BOOL fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_pos){
+static hpatch_BOOL _import_fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_pos){
 #ifdef _MSC_VER
     __int64 fpos=_ftelli64(file);
 #else
@@ -48,7 +53,7 @@ static hpatch_BOOL fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_pos
     return result;
 }
 
-static hpatch_BOOL fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
+static hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
 #ifdef _MSC_VER
     int ret=_fseeki64(file,seekPos,whence);
 #else
@@ -59,7 +64,7 @@ static hpatch_BOOL fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,
     return (ret==0);
 }
 
-static hpatch_BOOL fileClose(hpatch_FileHandle* pfile){
+static hpatch_BOOL _import_fileClose(hpatch_FileHandle* pfile){
     hpatch_FileHandle file=*pfile;
     if (file){
         *pfile=0;
@@ -69,7 +74,7 @@ static hpatch_BOOL fileClose(hpatch_FileHandle* pfile){
     return hpatch_TRUE;
 }
 
-static hpatch_BOOL fileRead(hpatch_FileHandle file,TByte* buf,TByte* buf_end){
+static hpatch_BOOL _import_fileRead(hpatch_FileHandle file,TByte* buf,TByte* buf_end){
     while (buf<buf_end) {
         size_t readLen=(size_t)(buf_end-buf);
         if (readLen>kFileIOBestMaxSize) readLen=kFileIOBestMaxSize;
@@ -79,7 +84,7 @@ static hpatch_BOOL fileRead(hpatch_FileHandle file,TByte* buf,TByte* buf_end){
     return buf==buf_end;
 }
 
-static hpatch_BOOL fileWrite(hpatch_FileHandle file,const TByte* data,const TByte* data_end){
+static hpatch_BOOL _import_fileWrite(hpatch_FileHandle file,const TByte* data,const TByte* data_end){
     while (data<data_end) {
         size_t writeLen=(size_t)(data_end-data);
         if (writeLen>kFileIOBestMaxSize) writeLen=kFileIOBestMaxSize;
@@ -89,33 +94,86 @@ static hpatch_BOOL fileWrite(hpatch_FileHandle file,const TByte* data,const TByt
     return data==data_end;
 }
 
+static hpatch_BOOL import_fileFlush(hpatch_FileHandle writedFile){
+    return (0==fflush(writedFile));
+}
+
+hpatch_inline static
+void SetDefaultStringLocale(){ //for some locale Path character encoding view
+    setlocale(LC_CTYPE,"");
+}
+
+
 #define _file_error(fileHandle){ \
-    if (fileHandle) fileClose(&fileHandle); \
+    if (fileHandle) _import_fileClose(&fileHandle); \
     return hpatch_FALSE; \
 }
 
-#if defined(_MSC_VER)&&(_MSC_VER>=1400) //VC2005
-#   define _fileOpenByMode(ppFile,fileName,mode) { \
-        errno_t err=fopen_s(ppFile,fileName,mode);  \
-        if (err!=0) *(ppFile)=0; }
+#ifdef _MSC_VER
+static int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
+    return MultiByteToWideChar(CP_UTF8,0,fileName_utf8,-1,out_fileName_w,out_wSize)); }
+
+static int _wFileName_to_utf8(const wchar_t* fileName_w,char* out_fileName_utf8,size_t out_bSize){
+    return WideCharToMultiByte(CP_UTF8,0,fileName_w,-1,out_fileName_utf8,bSize)); }
+
+static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCount,
+                                       char** out_fileNames_utf8,size_t out_byteSize){
+    char*   _bufEnd=((char*)out_fileNames_utf8)+out_byteSize;
+    char*   _bufCur=(char*)(&out_fileNames_utf8[fileCount]);
+    for (size_t i=0; i<fileCount; ++i) {
+        int csize;
+        if (_bufCur>=_bufEnd) return hpatch_FALSE; //error
+        csize=_wFileName_to_utf8(fileNames_w[i],_bufCur,_bufEnd-_bufCur);
+        if (csize<=0) return hpatch_FALSE; //error
+        out_fileNames_utf8[i]=_bufCur;
+        _bufCur+=csize;
+    }
+    return hpatch_TRUE;
+}
+#endif
+
+#ifdef _MSC_VER
+#   define _kFileReadMode  L"rb"
+#   define _kFileWriteMode L"wb"
 #else
-#   define _fileOpenByMode(ppFile,fileName,mode) { \
-        *(ppFile)=fopen(fileName,mode); }
+#   define _kFileReadMode  "rb"
+#   define _kFileWriteMode "wb"
+#endif
+
+#ifdef _MSC_VER
+    static hpatch_FileHandle _import_fileOpenByMode(const char* fileName_utf8,const wchar_t* mode_w){
+        wchar_t fileName_w[kPathMaxSize];
+        int wsize=_utf8FileName_to_w(fileName_utf8,fileName_w,kPathMaxSize);
+        if (wsize>0) {
+    # if (_MSC_VER>=1400) // VC2005
+            hpatch_FileHandle file=0;
+            errno_t err=_wfopen_s(&file,fileName_w,mode_w);
+            return (err==0)?file:0;
+    # else
+            return _wfopen(fileName_w,mode_w);
+    # endif
+        }else{
+            return 0;
+        }
+    }
+#else
+    static hpatch_FileHandle _import_fileOpenByMode(const char* fileName_utf8,const char* mode){
+        return fopen(fileName_utf8,mode); }
 #endif
 
 hpatch_inline static
-hpatch_BOOL fileOpenForRead(const char* fileName,hpatch_FileHandle* out_fileHandle,
-                            hpatch_StreamPos_t* out_fileLength){
+hpatch_BOOL _import_fileOpenRead(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle,
+                                 hpatch_StreamPos_t* out_fileLength){
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
-    _fileOpenByMode(&file,fileName,"rb");
+    file=_import_fileOpenByMode(fileName_utf8,_kFileReadMode);
     if (file==0) _file_error(file);
     if (out_fileLength!=0){
         hpatch_StreamPos_t file_length=0;
-        if (!fileSeek64(file,0,SEEK_END)) _file_error(file);
-        if (!fileTell64(file,&file_length)) _file_error(file);
-        if (!fileSeek64(file,0,SEEK_SET)) _file_error(file);
+        if (!_import_fileSeek64(file,0,SEEK_END)) _file_error(file);
+        if (!_import_fileTell64(file,&file_length)) _file_error(file);
+        if (!_import_fileSeek64(file,0,SEEK_SET)) _file_error(file);
         *out_fileLength=file_length;
     }
     *out_fileHandle=file;
@@ -123,15 +181,28 @@ hpatch_BOOL fileOpenForRead(const char* fileName,hpatch_FileHandle* out_fileHand
 }
 
 hpatch_inline static
-hpatch_BOOL fileOpenForCreateOrReWrite(const char* fileName,hpatch_FileHandle* out_fileHandle){
+hpatch_BOOL _import_fileOpenCreateOrWrite(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle){
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
-    _fileOpenByMode(&file,fileName,"wb");
+    file=_import_fileOpenByMode(fileName_utf8,_kFileWriteMode);
     if (file==0) _file_error(file);
     *out_fileHandle=file;
     return hpatch_TRUE;
 }
+
+hpatch_inline static
+hpatch_BOOL isSamePath(const char* xPath_utf8,const char* yPath_utf8){
+    if (0==strcmp(xPath_utf8,yPath_utf8)){
+        return hpatch_TRUE;
+    }else{
+        // WARING!!! better return getCanonicalPath(xPath_utf8)==getCanonicalPath(yPath_utf8);
+        return hpatch_FALSE;
+    }
+}
+
+#undef _file_error
+
 
 typedef struct TFileStreamInput{
     hpatch_TStreamInput base;
@@ -158,18 +229,18 @@ static void TFileStreamInput_init(TFileStreamInput* self){
         if ((readLen>self->base.streamSize)
             ||(readFromPos>self->base.streamSize-readLen)) _fileError_return;
         if (self->m_fpos!=readFromPos+self->m_offset){
-            if (!fileSeek64(self->m_file,readFromPos+self->m_offset,SEEK_SET)) _fileError_return;
+            if (!_import_fileSeek64(self->m_file,readFromPos+self->m_offset,SEEK_SET)) _fileError_return;
         }
-        if (!fileRead(self->m_file,out_data,out_data+readLen)) _fileError_return;
+        if (!_import_fileRead(self->m_file,out_data,out_data+readLen)) _fileError_return;
         self->m_fpos=readFromPos+self->m_offset+readLen;
         return hpatch_TRUE;
     }
 
 hpatch_inline static
-hpatch_BOOL TFileStreamInput_open(TFileStreamInput* self,const char* fileName){
+hpatch_BOOL TFileStreamInput_open(TFileStreamInput* self,const char* fileName_utf8){
     assert(self->m_file==0);
     if (self->m_file) return hpatch_FALSE;
-    if (!fileOpenForRead(fileName,&self->m_file,&self->base.streamSize)) return hpatch_FALSE;
+    if (!_import_fileOpenRead(fileName_utf8,&self->m_file,&self->base.streamSize)) return hpatch_FALSE;
     
     self->base.streamImport=self;
     self->base.read=_read_file;
@@ -189,7 +260,7 @@ void TFileStreamInput_setOffset(TFileStreamInput* self,size_t offset){
 
 hpatch_inline
 static hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self){
-    return fileClose(&self->m_file);
+    return _import_fileClose(&self->m_file);
 }
 
 typedef struct TFileStreamOutput{
@@ -217,23 +288,23 @@ static void TFileStreamOutput_init(TFileStreamOutput* self){
             ||(writeToPos>self->base.streamSize-writeLen)) _fileError_return;
         if (writeToPos!=self->out_pos){
             if (self->is_random_out){
-                if (!fileSeek64(self->m_file,writeToPos,SEEK_SET)) _fileError_return;
+                if (!_import_fileSeek64(self->m_file,writeToPos,SEEK_SET)) _fileError_return;
                 self->out_pos=writeToPos;
             }else{
                 _fileError_return;
             }
         }
-        if (!fileWrite(self->m_file,data,data+writeLen)) _fileError_return;
+        if (!_import_fileWrite(self->m_file,data,data+writeLen)) _fileError_return;
         self->out_pos=writeToPos+writeLen;
         self->out_length=(self->out_length>=self->out_pos)?self->out_length:self->out_pos;
         return hpatch_TRUE;
     }
 hpatch_inline static
-hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName,
+hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName_utf8,
                                           hpatch_StreamPos_t max_file_length){
     assert(self->m_file==0);
     if (self->m_file) return hpatch_FALSE;
-    if (!fileOpenForCreateOrReWrite(fileName,&self->m_file)) return hpatch_FALSE;
+    if (!_import_fileOpenCreateOrWrite(fileName_utf8,&self->m_file)) return hpatch_FALSE;
     
     self->base.streamImport=self;
     self->base.streamSize=max_file_length;
@@ -252,12 +323,12 @@ void TFileStreamOutput_setRandomOut(TFileStreamOutput* self,hpatch_BOOL is_rando
 
 hpatch_inline static
 hpatch_BOOL TFileStreamOutput_flush(TFileStreamOutput* self){
-    return (0!=fflush(self->m_file));
+    return import_fileFlush(self->m_file);
 }
 
 hpatch_inline static
 hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self){
-    return fileClose(&self->m_file);
+    return _import_fileClose(&self->m_file);
 }
 
 #endif

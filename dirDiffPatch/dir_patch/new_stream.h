@@ -32,11 +32,12 @@
 
 
 typedef struct INewStreamListener{
-    hpatch_BOOL (*outNewDir)   (struct INewStreamListener* Listener,size_t newPathIndex);
-    hpatch_BOOL (*copySameFile)(struct INewStreamListener* Listener,size_t oldPathIndex,size_t newPathIndex);
-    hpatch_BOOL (*openNewFile) (struct INewStreamListener* Listener,size_t newPathIndex,
+    void*         listenerImport;
+    hpatch_BOOL (*outNewDir)   (struct INewStreamListener* listener,size_t newPathIndex);
+    hpatch_BOOL (*copySameFile)(struct INewStreamListener* listener,size_t oldPathIndex,size_t newPathIndex);
+    hpatch_BOOL (*openNewFile) (struct INewStreamListener* listener,size_t newPathIndex,
                                 const hpatch_TStreamOutput** out_newFileStream);
-    hpatch_BOOL (*closeNewFile)(struct INewStreamListener* Listener,const hpatch_TStreamOutput* newFileStream);
+    hpatch_BOOL (*closeNewFile)(struct INewStreamListener* listener,const hpatch_TStreamOutput* newFileStream);
 } INewStreamListener;
 
 //对外模拟成一个输出流;

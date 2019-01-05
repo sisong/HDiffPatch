@@ -83,15 +83,6 @@ bool IDirFilter::pathNameIs(const std::string& pathName,const char* testPathName
     return (nameSize==testSize) || (pathName[nameSize-testSize-1]==kPatch_dirSeparator);
 }
 
-void IDirDiffListener::localePathToUtf8(const std::string& path,std::string& out_utf8){
-    size_t cStrByteSize=localePath_to_utf8(path.c_str(),0,0);
-    if (cStrByteSize<=0) throw std::runtime_error("path encoding error!");
-    out_utf8.resize(cStrByteSize);
-    cStrByteSize=localePath_to_utf8(path.c_str(),&out_utf8[0],&out_utf8[0]+cStrByteSize);
-    if (cStrByteSize<=0) throw std::runtime_error("path encoding error!");
-    out_utf8.resize(cStrByteSize-1); //for C string '\0'
-}
-
 struct CFileStreamInput:public TFileStreamInput{
     inline CFileStreamInput(){ TFileStreamInput_init(this); }
     inline void open(const std::string& fileName){
@@ -103,7 +94,7 @@ struct CFileStreamInput:public TFileStreamInput{
         check(TFileStreamInput_close(this),"close file error!"); }
 };
 
-struct CRefStream:public RefStream{
+struct CRefStream:public TRefStream{
     inline CRefStream(){ TRefStream_init(this); }
     inline void open(const hpatch_TStreamInput** refList,size_t refCount){
         check(TRefStream_open(this,refList,refCount),"TRefStream_open() refList error!");
@@ -246,7 +237,6 @@ static void pushSamePairList(std::vector<TByte>& out_data,const std::vector<size
 static size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
                            const std::vector<std::string>& nameList,IDirDiffListener* listener){
     const size_t rootLen=rootPath.size();
-    std::string temp;
     std::string utf8;
     size_t outSize=0;
     for (size_t i=0;i<nameList.size();++i){
@@ -256,12 +246,7 @@ static size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootP
         assert(0==memcmp(name.data(),rootPath.data(),rootLen));
         const char* subName=name.c_str()+rootLen;
         const char* subNameEnd=subName+(nameSize-rootLen);
-        if (isAsciiString(subName,subNameEnd)){
-            utf8.assign(subName,subNameEnd);
-        }else{
-            temp.assign(subName,subNameEnd);
-            listener->localePathToUtf8(temp,utf8);
-        }
+        utf8.assign(subName,subNameEnd);
         formatDirTagForSave(utf8);
         size_t writeLen=utf8.size()+1; // '\0'
         out_data.insert(out_data.end(),utf8.c_str(),utf8.c_str()+writeLen);
