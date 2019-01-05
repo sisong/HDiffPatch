@@ -57,7 +57,7 @@ char* pushDirPath(char* out_path,char* out_pathEnd,const char* rootDir){
     char*          result=0; //false
     size_t rootDirLen=strlen(rootDir);
     hpatch_BOOL isNeedDirSeparator=(rootDirLen>0)&&(rootDir[rootDirLen-1]!=kPatch_dirSeparator);
-    check(rootDirLen+1+1<=(out_pathEnd-out_path));
+    check((rootDirLen+1+1)<=(size_t)(out_pathEnd-out_path));
     memcpy(out_path,rootDir,rootDirLen);
     out_path+=rootDirLen;
     if (isNeedDirSeparator) *out_path++=kPatch_dirSeparator;
@@ -70,7 +70,7 @@ clear:
 hpatch_BOOL getPath(char* out_path,char* out_pathEnd,const char* utf8fileName){
     hpatch_BOOL          result=hpatch_TRUE;
     size_t utf8fileNameSize=strlen(utf8fileName);
-    check(utf8fileNameSize+1<=(out_pathEnd-out_path));
+    check(utf8fileNameSize+1<=(size_t)(out_pathEnd-out_path));
     memcpy(out_path,utf8fileName,utf8fileNameSize+1);
 clear:
     return result;
@@ -101,27 +101,28 @@ clear:
 static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
                                       const hpatch_TStreamInput* dirDiffFile){
     hpatch_BOOL result=hpatch_TRUE;
-    check(out_info!=0);
-    out_info->isDirDiff=hpatch_FALSE;
-    
     TStreamCacheClip  _headClip;
     TStreamCacheClip* headClip=&_headClip;
     TByte             temp_cache[hpatch_kStreamCacheSize];
+    char savedCompressType[hpatch_kMaxCompressTypeLength+1];
+    check(out_info!=0);
+    out_info->isDirDiff=hpatch_FALSE;
+    
     _TStreamCacheClip_init(headClip,dirDiffFile,0,dirDiffFile->streamSize,
                            temp_cache,hpatch_kStreamCacheSize);
     
     {//VersionType
+        const TByte* versionType;
         const size_t kVersionTypeLen=strlen(kVersionType);
         if (dirDiffFile->streamSize<kVersionTypeLen)
             return result;//not is dirDiff data
         //assert(tagSize<=hpatch_kStreamCacheSize);
-        const TByte* versionType=_TStreamCacheClip_readData(headClip,kVersionTypeLen);
+        versionType=_TStreamCacheClip_readData(headClip,kVersionTypeLen);
         check(versionType!=0);
         if (0!=memcmp(versionType,kVersionType,kVersionTypeLen))
             return result;//not is dirDiff data
         out_info->isDirDiff=hpatch_TRUE;
     }
-    char savedCompressType[hpatch_kMaxCompressTypeLength+1];
     {//read compressType
         const TByte* compressType;
         size_t       compressTypeLen;
@@ -156,18 +157,20 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_
         out_info->dirDataIsCompressed=(out_head->headDataCompressedSize>0);
         unpackUIntTo(&out_info->externDataSize,headClip);
     }
-    TUInt curPos=headClip->streamPos-_TStreamCacheClip_cachedSize(headClip);
-    out_head->headDataOffset=curPos;
-    curPos+=(out_head->headDataCompressedSize>0)?out_head->headDataCompressedSize:out_head->headDataSize;
-    out_info->externDataOffset=curPos;
-    curPos+=out_info->externDataSize;
-    out_head->hdiffDataOffset=curPos;
-    out_head->hdiffDataSize=dirDiffFile->streamSize-curPos;
-    TStreamInputClip hdiffStream;
-    TStreamInputClip_init(&hdiffStream,dirDiffFile,out_head->hdiffDataOffset,
-                          out_head->hdiffDataOffset+out_head->hdiffDataSize);
-    check(getCompressedDiffInfo(&out_info->hdiffInfo,&hdiffStream.base));
-    check(0==strcmp(savedCompressType,out_info->hdiffInfo.compressType));
+    {
+        TStreamInputClip hdiffStream;
+        TUInt curPos=headClip->streamPos-_TStreamCacheClip_cachedSize(headClip);
+        out_head->headDataOffset=curPos;
+        curPos+=(out_head->headDataCompressedSize>0)?out_head->headDataCompressedSize:out_head->headDataSize;
+        out_info->externDataOffset=curPos;
+        curPos+=out_info->externDataSize;
+        out_head->hdiffDataOffset=curPos;
+        out_head->hdiffDataSize=dirDiffFile->streamSize-curPos;
+        TStreamInputClip_init(&hdiffStream,dirDiffFile,out_head->hdiffDataOffset,
+                              out_head->hdiffDataOffset+out_head->hdiffDataSize);
+        check(getCompressedDiffInfo(&out_info->hdiffInfo,&hdiffStream.base));
+        check(0==strcmp(savedCompressType,out_info->hdiffInfo.compressType));
+    }
 clear:
     return result;
 }
@@ -188,9 +191,10 @@ hpatch_BOOL TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* dirDif
 static hpatch_BOOL _TStreamCacheClip_readDataTo(TStreamCacheClip* sclip,TByte* out_buf,TByte* bufEnd){
     const size_t maxReadLen=sclip->cacheEnd;
     while (out_buf<bufEnd) {
+        const TByte* pdata;
         size_t readLen=bufEnd-out_buf;
         if (readLen>maxReadLen) readLen=maxReadLen;
-        const TByte* pdata=_TStreamCacheClip_readData(sclip,readLen);
+        pdata=_TStreamCacheClip_readData(sclip,readLen);
         if (pdata==0) return hpatch_FALSE;
         memcpy(out_buf,pdata,readLen);
         out_buf+=readLen;
@@ -214,7 +218,8 @@ static hpatch_BOOL readIncListTo(TStreamCacheClip* sclip,size_t* out_list,size_t
     //endValue: maxValue+1
     hpatch_BOOL result=hpatch_TRUE;
     TUInt backValue=~(TUInt)0;
-    for (size_t i=0; i<count; ++i) {
+    size_t i;
+    for (i=0; i<count; ++i) {
         TUInt incValue;
         check(_TStreamCacheClip_unpackUIntWithTag(sclip,&incValue,0));
         backValue+=1+incValue;
@@ -227,7 +232,8 @@ clear:
 
 static hpatch_BOOL readListTo(TStreamCacheClip* sclip,hpatch_StreamPos_t* out_list,size_t count){
     hpatch_BOOL result=hpatch_TRUE;
-    for (size_t i=0; i<count; ++i) {
+    size_t i;
+    for (i=0; i<count; ++i) {
         check(_TStreamCacheClip_unpackUIntWithTag(sclip,&out_list[i],0));
     }
 clear:
@@ -240,7 +246,8 @@ static hpatch_BOOL readSamePairListTo(TStreamCacheClip* sclip,size_t* out_pairLi
     hpatch_BOOL result=hpatch_TRUE;
     TUInt backXValue=~(TUInt)0;
     TUInt backYValue=~(TUInt)0;
-    for (size_t i=0; i<pairCount;i+=2) {
+    size_t i;
+    for (i=0; i<pairCount;i+=2) {
         const TByte*  psign;
         TUInt incYValue;
         TUInt incXValue;
@@ -265,25 +272,24 @@ clear:
 
 hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin){
     hpatch_BOOL result=hpatch_TRUE;
-    hpatch_StreamPos_t   memSize=0;
+    size_t               memSize=0;
     TByte*               curMem=0;
     const _TDirDiffHead* head=&self->dirDiffHead;
     const size_t         pathSumSize=head->oldPathSumSize+head->newPathSumSize;
+    TStreamCacheClip        headStream;
+    _TDecompressInputSteram decompresser;
+    decompresser.decompressHandle=0;
     assert(self->_decompressPlugin==0);
     assert(self->_pmem==0);
     self->_decompressPlugin=decompressPlugin;
     
     //dir head data clip stream
-    TStreamCacheClip headStream;
-    _TDecompressInputSteram decompresser;
-    decompresser.decompressHandle=0;
     {
-        const size_t cacheSize=hpatch_kStreamCacheSize;
-        TByte temp_cache[cacheSize];
+        TByte temp_cache[hpatch_kStreamCacheSize];
         hpatch_StreamPos_t curPos=self->dirDiffHead.headDataOffset;
         check(getStreamClip(&headStream,&decompresser,self->dirDiffHead.headDataSize,
                             self->dirDiffHead.headDataCompressedSize,self->_dirDiffData,&curPos,
-                            decompressPlugin,temp_cache,cacheSize));
+                            decompressPlugin,temp_cache,hpatch_kStreamCacheSize));
     }
     //mem
     memSize = (head->oldPathCount+head->newPathCount)*sizeof(const char*)
@@ -328,6 +334,7 @@ hpatch_BOOL TDirPatcher_loadOldRefToMem(TDirPatcher* self,const char* oldRootDir
                                         unsigned char* out_buf,unsigned char* out_buf_end){
     hpatch_BOOL result=hpatch_TRUE;
     size_t      refCount=self->dirDiffHead.oldRefFileCount;
+    size_t      i;
     hpatch_StreamPos_t  sumFSize=0;
     char                fileName[kPathMaxSize];
     char*               curFileNamePush=fileName;
@@ -338,14 +345,14 @@ hpatch_BOOL TDirPatcher_loadOldRefToMem(TDirPatcher* self,const char* oldRootDir
     curFileNamePush=pushDirPath(curFileNamePush,fileName+kPathMaxSize,oldRootDir);
     check(curFileNamePush!=0);
     
-    for (size_t i=0; i<refCount;++i){
+    for (i=0; i<refCount;++i){
         hpatch_StreamPos_t fSize;
         const char* utf8fileName=self->oldUtf8PathList[self->oldRefList[i]];
         check(getPath(curFileNamePush,fileName+kPathMaxSize,utf8fileName));
         check(TFileStreamInput_open(&file,fileName));
         fSize=file.base.streamSize;
         sumFSize+=fSize;
-        check(fSize<=(out_buf_end-out_buf));
+        check(fSize<=(size_t)(out_buf_end-out_buf));
         check(file.base.read(&file.base,0,out_buf,out_buf+fSize)); out_buf+=fSize;
         check(TFileStreamInput_close(&file));
         TFileStreamInput_init(&file);
@@ -358,7 +365,8 @@ clear:
 static hpatch_BOOL _closeOldRefStream(TDirPatcher* self,const hpatch_TStreamInput** slist,size_t count){
     hpatch_BOOL result=hpatch_TRUE;
     if (self->_pOldRefMem){
-        for (size_t i=0; i<count; ++i) {
+        size_t i;
+        for (i=0; i<count; ++i) {
             TFileStreamInput* file=(TFileStreamInput*)slist[i]->streamImport;
             result&=TFileStreamInput_close(file);
         }
@@ -374,6 +382,7 @@ hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRoot
     hpatch_BOOL result=hpatch_TRUE;
     size_t      refCount=self->dirDiffHead.oldRefFileCount;
     size_t      memSize=(sizeof(hpatch_TStreamInput**)+sizeof(TFileStreamInput))*refCount;
+    size_t      i;
     hpatch_StreamPos_t  sumFSize=0;
     char                fileName[kPathMaxSize];
     char*               curFileNamePush=fileName;
@@ -387,11 +396,11 @@ hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRoot
     
     slist=(const hpatch_TStreamInput**)self->_pOldRefMem;
     flist=(TFileStreamInput*)(&slist[refCount]);
-    for (size_t i=0; i<refCount;++i){
+    for (i=0; i<refCount;++i){
         TFileStreamInput_init(&flist[i]);
         slist[i]=&flist[i].base;
     }
-    for (size_t i=0; i<refCount;++i){
+    for (i=0; i<refCount;++i){
         const char* utf8fileName=self->oldUtf8PathList[self->oldRefList[i]];
         check(getPath(curFileNamePush,fileName+kPathMaxSize,utf8fileName));
         check(TFileStreamInput_open(&flist[i],fileName));

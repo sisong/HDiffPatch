@@ -133,9 +133,8 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
 #if (_IS_NEED_MAIN)
 #   ifdef _MSC_VER
 int wmain(int argc,wchar_t* argv_w[]){
-    int result;
-    char** argv_utf8[kPathMaxSize*2/sizeof(char*)];
-    if (!_wFileNames_to_utf8((const wchar_t**)argv_w),argv_utf8,sizeof(argv_utf8))
+    char* argv_utf8[kPathMaxSize*2/sizeof(char*)];
+    if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))
         return HPATCH_OPTIONS_ERROR;
     SetDefaultStringLocale();
     return hpatch_cmd_line(argc,argv_utf8);
@@ -374,8 +373,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     }else
 #endif
     {
-        assert(!isOriginal);
         hpatch_compressedDiffInfo diffInfo;
+        assert(!isOriginal);
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
             check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");
@@ -500,8 +499,8 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             check(TDirPatcher_loadOldRefToMem(&dirPatcher,oldPath,temp_cache,temp_cache+oldDataSize),
                   HPATCH_DIRPATCH_LAODOLDREF_ERROR,"load all oldFiles");
             mem_as_hStreamInput(&oldMemStream,temp_cache,temp_cache+oldDataSize);
-            temp_cache+=oldDataSize;
-            temp_cache_size-=oldDataSize;
+            temp_cache+=(size_t)oldDataSize;
+            temp_cache_size-=(size_t)oldDataSize;
             oldStream=&oldMemStream;
         }else{ //open all ref files
             check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,&oldStream),

@@ -215,7 +215,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         while (readFromPos<in_data->streamSize) {
             size_t readLen=kCompressBufSize;
             if (readLen>(hpatch_StreamPos_t)(in_data->streamSize-readFromPos))
-                readLen=in_data->streamSize-readFromPos;
+                readLen=(size_t)(in_data->streamSize-readFromPos);
             if (!in_data->read(in_data,readFromPos,data_buf,data_buf+readLen))
                 _compress_error_return("in_data->read()");
             readFromPos+=readLen;

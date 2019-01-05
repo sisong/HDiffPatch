@@ -47,7 +47,8 @@ static hpatch_BOOL _TRefStream_read_do(TRefStream* self,hpatch_StreamPos_t readF
 static size_t findRangeIndex(const hpatch_StreamPos_t* ranges,size_t rangeCount,hpatch_StreamPos_t pos){
     //not find return rangeCount
     //optimize, binary search?
-    for (size_t i=0; i<rangeCount; ++i) {
+    size_t i;
+    for (i=0; i<rangeCount; ++i) {
         if (pos>=ranges[i]) continue;
         return i;
     }
@@ -55,13 +56,12 @@ static size_t findRangeIndex(const hpatch_StreamPos_t* ranges,size_t rangeCount,
 }
 
 static hpatch_BOOL _refStream_read(const hpatch_TStreamInput* stream,
-                                   hpatch_StreamPos_t _readFromPos,
+                                   hpatch_StreamPos_t readFromPos,
                                    unsigned char* out_data,unsigned char* out_data_end){
     hpatch_BOOL  result=hpatch_TRUE;
     TRefStream* self=(TRefStream*)stream->streamImport;
     const hpatch_StreamPos_t* ranges=self->_rangeEndList;
-    hpatch_StreamPos_t curRangeIndex=self->_curRangeIndex;
-    size_t readFromPos=(size_t)_readFromPos;
+    size_t curRangeIndex=self->_curRangeIndex;
     while (out_data<out_data_end) {
         size_t readLen=(out_data_end-out_data);
         if (ranges[curRangeIndex-1]<=readFromPos){ //-1 safe
@@ -69,7 +69,7 @@ static hpatch_BOOL _refStream_read(const hpatch_TStreamInput* stream,
                 check(_TRefStream_read_do(self,readFromPos,out_data,out_data_end,curRangeIndex));
                 break; //ok out while
             }else if (readFromPos<=ranges[curRangeIndex]){//hit left
-                size_t leftLen=ranges[curRangeIndex]-readFromPos;
+                hpatch_StreamPos_t leftLen=(ranges[curRangeIndex]-readFromPos);
                 if (leftLen>0)
                     check(_TRefStream_read_do(self,readFromPos,out_data,out_data+leftLen,curRangeIndex));
                 ++curRangeIndex;
@@ -89,10 +89,11 @@ clear:
 
 hpatch_BOOL _createRange(TRefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
     hpatch_BOOL result=hpatch_TRUE;
-    assert(self->_buf==0);
-    assert(self->_refList==0);
+    size_t   i;
     size_t   rangIndex=0;
     hpatch_StreamPos_t curSumSize=0;
+    assert(self->_buf==0);
+    assert(self->_refList==0);
     
     self->_refList=refList;
     self->_rangeCount=refCount;
@@ -100,7 +101,7 @@ hpatch_BOOL _createRange(TRefStream* self,const hpatch_TStreamInput** refList,si
     check(self->_buf!=0);
     self->_rangeEndList=((hpatch_StreamPos_t*)self->_buf)+1; //+1 for _rangeEndList[-1] safe
     self->_rangeEndList[-1]=0;
-    for (size_t i=0; i<refCount; ++i) {
+    for (i=0; i<refCount; ++i) {
         hpatch_StreamPos_t rangeSize=refList[i]->streamSize;
         curSumSize+=rangeSize;
         self->_rangeEndList[rangIndex]=curSumSize;

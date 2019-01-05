@@ -131,10 +131,10 @@
         while (self->d_stream.avail_out>0) {
             uInt avail_out_back,avail_in_back;
             int ret;
-            size_t codeLen=(self->code_end - self->code_begin);
+            hpatch_StreamPos_t codeLen=(self->code_end - self->code_begin);
             if ((self->d_stream.avail_in==0)&&(codeLen>0)) {
-                size_t readLen=codeLen;
-                if (readLen>self->dec_buf_size) readLen=self->dec_buf_size;
+                size_t readLen=self->dec_buf_size;
+                if (readLen>codeLen) readLen=(size_t)codeLen;
                 self->d_stream.next_in=self->dec_buf;
                 if (!self->codeStream->read(self->codeStream,self->code_begin,self->dec_buf,
                                             self->dec_buf+readLen)) return hpatch_FALSE;//error;
@@ -220,11 +220,11 @@
         while (self->d_stream.avail_out>0) {
             unsigned int avail_out_back,avail_in_back;
             int ret;
-            size_t codeLen=(self->code_end - self->code_begin);
+            hpatch_StreamPos_t codeLen=(self->code_end - self->code_begin);
             if ((self->d_stream.avail_in==0)&&(codeLen>0)) {
                 size_t readLen=kDecompressBufSize;
                 self->d_stream.next_in=(char*)self->dec_buf;
-                if (readLen>codeLen) readLen=codeLen;
+                if (readLen>codeLen) readLen=(size_t)codeLen;
                 if (!self->codeStream->read(self->codeStream,self->code_begin,self->dec_buf,
                                             self->dec_buf+readLen)) return hpatch_FALSE;//error;
                 self->d_stream.avail_in=(unsigned int)readLen;
@@ -327,7 +327,7 @@
         while (out_cur<out_part_data_end){
             size_t copyLen=(self->decEnv.dicPos-self->decCopyPos);
             if (copyLen>0){
-                if (copyLen>(out_part_data_end-out_cur))
+                if (copyLen>(size_t)(out_part_data_end-out_cur))
                     copyLen=(out_part_data_end-out_cur);
                 memcpy(out_cur,self->decEnv.dic+self->decCopyPos,copyLen);
                 out_cur+=copyLen;
@@ -341,10 +341,10 @@
                 ELzmaStatus status;
                 SizeT inSize,dicPos_back;
                 SRes res;
-                size_t codeLen=(self->code_end - self->code_begin);
+                hpatch_StreamPos_t codeLen=(self->code_end - self->code_begin);
                 if ((self->decReadPos==kDecompressBufSize)&&(codeLen>0)) {
                     size_t readLen=kDecompressBufSize;
-                    if (readLen>codeLen) readLen=codeLen;
+                    if (readLen>codeLen) readLen=(size_t)codeLen;
                     self->decReadPos=kDecompressBufSize-readLen;
                     if (!self->codeStream->read(self->codeStream,self->code_begin,self->dec_buf+self->decReadPos,
                                                 self->dec_buf+self->decReadPos+readLen)) return hpatch_FALSE;//error;

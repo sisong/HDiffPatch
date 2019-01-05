@@ -32,14 +32,10 @@
 #include <stdio.h>
 #include "../libHDiffPatch/HPatch/patch_types.h"
 
-#ifdef _WIN32
-//todo:
-#else //linux like
-#   include <sys/stat.h> //stat
-#endif
+#include <sys/stat.h> //stat
 
 #ifdef _WIN32
-      static const char kPatch_dirSeparator = '\';
+      static const char kPatch_dirSeparator = '\\';
 #else
       static const char kPatch_dirSeparator = '/';
 #endif
@@ -52,16 +48,17 @@ typedef enum TPathType{
 
 hpatch_inline static
 hpatch_BOOL getPathType(const char* path,TPathType* out_type){
-    assert(out_type!=0);
     struct stat s;
+    int         res;
+    assert(out_type!=0);
     memset(&s,0,sizeof(s));
-    int res = stat(path,&s);
+    res = stat(path,&s);
     if(res!=0){
         return hpatch_FALSE;
-    }else if (S_ISREG(s.st_mode)){
+    }else if ((s.st_mode&S_IFMT)==S_IFREG){
         *out_type=kPathType_file;
         return hpatch_TRUE;
-    }else if (S_ISDIR(s.st_mode)){
+    }else if ((s.st_mode&S_IFMT)==S_IFDIR){
         *out_type=kPathType_dir;
         return hpatch_TRUE;
     }else{

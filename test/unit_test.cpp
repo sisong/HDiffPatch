@@ -187,11 +187,11 @@ struct TVectorStreamOutput:public hpatch_TStreamOutput{
         TVectorStreamOutput* self=(TVectorStreamOutput*)stream->streamImport;
         std::vector<TByte>& dst=self->dst;
         size_t writeLen=(size_t)(data_end-data);
-        assert(writeToPos<=dst.size());
+        if (writeToPos>dst.size()) return false;
         if  (dst.size()==writeToPos){
             dst.insert(dst.end(),data,data_end);
         }else{
-            assert((size_t)(writeToPos+writeLen)==writeToPos+writeLen);
+            if (writeToPos+writeLen!=(size_t)(writeToPos+writeLen)) return false;
             if (dst.size()<writeToPos+writeLen)
                 dst.resize((size_t)(writeToPos+writeLen));
             memcpy(&dst[(size_t)writeToPos],data,writeLen);

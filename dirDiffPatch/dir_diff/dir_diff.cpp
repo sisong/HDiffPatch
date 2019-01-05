@@ -125,36 +125,42 @@ struct TOffsetStreamOutput:public hpatch_TStreamOutput{
 template <class TVector>
 static inline void clearVector(TVector& v){ TVector _t; v.swap(_t); }
 
-bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list,IDirFilter* filter){
-    assert(isDirName(dir));
-    TDirHandle dirh=dirOpenForRead(dir.c_str());
-    if (dirh==0) return false;
+
+struct CDir{
+    inline CDir(const char* dir):handle(0){ handle=dirOpenForRead(dir); }
+    inline ~CDir(){ dirClose(handle); }
+    TDirHandle handle;
+};
+
+void getDirFileList(const std::string& dirPath,std::vector<std::string>& out_list,IDirFilter* filter){
+    assert(isDirName(dirPath));
+    CDir dir(dirPath.c_str());
+    check((dir.handle!=0),"dirOpenForRead \""+dirPath+"\" error!");
     bool isHaveSub=false;
     while (true) {
         TPathType  type;
-        const char* path=dirNext(dirh,&type);
-        if (path==0) break;
+        const char* path=0;
+        check(dirNext(dir.handle,&type,&path),"dirNext \""+dirPath+"\" error!");
+        if (path==0) break; //finish
         if ((0==strcmp(path,""))||(0==strcmp(path,"."))||(0==strcmp(path,"..")))
             continue;
-        std::string subName(dir+path);
-        if (type==kPathType_file){
-            assert(subName[subName.size()-1]!=kPatch_dirSeparator);
+        std::string subName(dirPath+path);
+        assert(subName[subName.size()-1]!=kPatch_dirSeparator);
+        if (type==kPathType_dir){
+            assignDirTag(subName);
+            if (!filter->isNeedFilter(subName)){
+                isHaveSub=true;
+                getDirFileList(subName,out_list,filter);
+            }
+        }else{// if (type==kPathType_file){
             if (!filter->isNeedFilter(subName)){
                 isHaveSub=true;
                 out_list.push_back(subName); //add file
             }
-        }else{// if (type==kPathType_dir){
-            assignDirTag(subName);
-            if (!filter->isNeedFilter(subName)){
-                isHaveSub=true;
-                if (!getDirFileList(subName,out_list,filter)) return false;
-            }
         }
     }
     if (!isHaveSub)
-        out_list.push_back(dir); //add empty dir
-    dirClose(dirh);
-    return true;
+        out_list.push_back(dirPath); //add empty dir
 }
 
 static hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* out_fileSize){
@@ -166,7 +172,7 @@ static hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* 
     for (hpatch_StreamPos_t pos=0; pos<f.base.streamSize;) {
         size_t readLen=kFileIOBufSize;
         if (pos+readLen>f.base.streamSize)
-            readLen=f.base.streamSize-pos;
+            readLen=(size_t)(f.base.streamSize-pos);
         check(f.base.read(&f.base,pos,mem.data(),mem.data()+readLen),
               "read file \""+fileName+"\" error!");
         hash_append(&result,mem.data(),readLen);
@@ -185,7 +191,7 @@ static bool fileData_isSame(const std::string& file_x,const std::string& file_y)
     for (hpatch_StreamPos_t pos=0; pos<f_x.base.streamSize;) {
         size_t readLen=kFileIOBufSize;
         if (pos+readLen>f_x.base.streamSize)
-            readLen=f_x.base.streamSize-pos;
+            readLen=(size_t)(f_x.base.streamSize-pos);
         check(f_x.base.read(&f_x.base,pos,mem.data(),mem.data()+readLen),
               "read file \""+file_x+"\" error!");
         check(f_y.base.read(&f_y.base,pos,mem.data()+readLen,mem.data()+readLen*2),
@@ -205,6 +211,7 @@ static void pushIncList(std::vector<TByte>& out_data,const std::vector<size_t>& 
     size_t backValue=~(size_t)0;
     for (size_t i=0;i<list.size();++i){
         size_t curValue=list[i];
+        assert(curValue>=(size_t)(backValue+1));
         packUInt(out_data,(size_t)(curValue-(size_t)(backValue+1)));
         backValue=curValue;
     }
@@ -222,6 +229,7 @@ static void pushSamePairList(std::vector<TByte>& out_data,const std::vector<size
     assert(pairs.size()==pairs.size()/2*2);
     for (size_t i=0;i<pairs.size();i+=2){
         size_t curNewValue=pairs[i];
+        assert(curNewValue>=(size_t)(backPairNew+1));
         packUInt(out_data,(size_t)(curNewValue-(size_t)(backPairNew+1)));
         backPairNew=curNewValue;
         
@@ -304,8 +312,8 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
     out_dataSamePairList.clear();
     out_newRefList.clear();
     std::vector<size_t> oldHitList(oldList.size(),0);
-    for (size_t i=0; i<newList.size(); ++i){
-        const std::string& fileName=newList[i];
+    for (size_t newi=0; newi<newList.size(); ++newi){
+        const std::string& fileName=newList[newi];
         if (isDirName(fileName)) continue;
         hpatch_StreamPos_t fileSize=0;
         hash_value_t hash=getFileHash(fileName,&fileSize);
@@ -321,8 +329,8 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
         if (oldHashIndexs.size()>1)
             std::sort(oldHashIndexs.begin(),oldHashIndexs.end(),
                       _TCmp_byHit(newPath,oldList,oldRootPath.size(),oldHitList));
-        for (size_t i=0;i<oldHashIndexs.size();++i){
-            size_t curOldIndex=oldHashIndexs[i];
+        for (size_t oldi=0;oldi<oldHashIndexs.size();++oldi){
+            size_t curOldIndex=oldHashIndexs[oldi];
             const std::string& oldName=oldList[curOldIndex];
             if (fileData_isSame(oldName,fileName)){
                 isFoundSame=true;
@@ -334,10 +342,10 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
         if (isFoundSame){
             ++oldHitList[oldIndex];
             oldRefList.erase(oldIndex);
-            out_dataSamePairList.push_back(i);
+            out_dataSamePairList.push_back(newi);
             out_dataSamePairList.push_back(oldIndex);
         }else{
-            out_newRefList.push_back(i);
+            out_newRefList.push_back(newi);
         }
     }
     out_oldRefList.assign(oldRefList.begin(),oldRefList.end());
@@ -354,13 +362,13 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     const bool oldIsDir=isDirName(oldPath);
     {
         if (newIsDir){
-            check(getDirFileList(newPath,newList,listener),"new dir getDirFileList() error!");
+            getDirFileList(newPath,newList,listener);
             sortDirFileList(newList);
         }else{
             newList.push_back(newPath);
         }
         if (oldIsDir){
-            check(getDirFileList(oldPath,oldList,listener),"old dir getDirFileList() error!");
+            getDirFileList(oldPath,oldList,listener);
             sortDirFileList(oldList);
         }else{
             oldList.push_back(oldPath);

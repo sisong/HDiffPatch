@@ -35,7 +35,7 @@
 void assignDirTag(std::string& dir);
 bool isDirName(const std::string& path);
 struct IDirFilter;
-bool getDirFileList(const std::string& dir,std::vector<std::string>& out_list,IDirFilter* filter);
+void getDirFileList(const std::string& dir,std::vector<std::string>& out_list,IDirFilter* filter);
 void sortDirFileList(std::vector<std::string>& fileList);
 
 struct IDirFilter{

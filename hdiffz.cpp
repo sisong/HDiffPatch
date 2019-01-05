@@ -160,12 +160,11 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 #if (_IS_NEED_MAIN)
 #   ifdef _MSC_VER
 int wmain(int argc,wchar_t* argv_w[]){
-    int result;
-    char** argv_utf8[kPathMaxSize*2/sizeof(char*)];
-    if (!_wFileNames_to_utf8((const wchar_t**)argv_w),argv_utf8,sizeof(argv_utf8))
+    char* argv_utf8[kPathMaxSize*2/sizeof(char*)];
+    if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))
         return HDIFF_OPTIONS_ERROR;
     SetDefaultStringLocale();
-    return hdiff_cmd_line(argc,argv_utf8);
+    return hdiff_cmd_line(argc,(const char**)argv_utf8);
 }
 #   else
 int main(int argc,char* argv[]){
@@ -223,7 +222,7 @@ static bool _trySetCompress(hdiff_TStreamCompress** streamCompressPlugin,
 #define _options_check(value,errorInfo){ \
     if (!(value)) { printf("options " errorInfo " ERROR!\n"); printUsage(); return HDIFF_OPTIONS_ERROR; } }
 
-#define _kNULL_VALUE    (-1)
+#define _kNULL_VALUE    ((hpatch_BOOL)(-1))
 
 int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=_kNULL_VALUE;
@@ -633,9 +632,9 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
 static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
                    hdiff_TStreamCompress* streamCompressPlugin){
     int result=HDIFF_SUCCESS;
-    int _isInClear=hpatch_FALSE;
+    hpatch_BOOL _isInClear=hpatch_FALSE;
     std::string dirCompressType;
-    bool isDirDiff=false;
+    hpatch_BOOL isDirDiff=false;
     TFileStreamInput  diffData_in;
     TFileStreamOutput diffData_out;
     TFileStreamInput_init(&diffData_in);
@@ -804,7 +803,7 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
             TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
             DirDiffListener listener;
             dir_diff(&listener,oldPatch,newPatch,&diffData_out.base,
-                     isLoadAll,matchValue,streamCompressPlugin,compressPlugin);
+                     isLoadAll!=0,matchValue,streamCompressPlugin,compressPlugin);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             std::cout<<"dir diff run ERROR! "<<e.what()<<"\n";

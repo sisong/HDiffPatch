@@ -48,7 +48,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <CLRSupport>false</CLRSupport>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -180,6 +180,10 @@
     <ClCompile Include="..\..\..\zlib\trees.c" />
     <ClCompile Include="..\..\..\zlib\uncompr.c" />
     <ClCompile Include="..\..\..\zlib\zutil.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_diff\dir_diff.cpp" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\dir_patch.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\new_stream.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\ref_stream.c" />
     <ClCompile Include="..\..\hdiffz.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\diff.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\bytes_rle.cpp" />

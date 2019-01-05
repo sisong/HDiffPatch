@@ -71,7 +71,7 @@ extern "C" {
     
 typedef int hpatch_BOOL;
 #define     hpatch_FALSE    0
-#define     hpatch_TRUE     (!hpatch_FALSE)
+#define     hpatch_TRUE     ((hpatch_BOOL)(!hpatch_FALSE))
 
 #define _hpatch_align_lower(p,align2pow) (((size_t)(p)) & (~(size_t)((align2pow)-1)))
 #define _hpatch_align_upper(p,align2pow) _hpatch_align_lower(((size_t)(p))+((align2pow)-1),align2pow)

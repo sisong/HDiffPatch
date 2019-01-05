@@ -111,22 +111,23 @@ void SetDefaultStringLocale(){ //for some locale Path character encoding view
 
 #ifdef _MSC_VER
 static int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
-    return MultiByteToWideChar(CP_UTF8,0,fileName_utf8,-1,out_fileName_w,out_wSize)); }
+    return MultiByteToWideChar(CP_UTF8,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize); }
 
 static int _wFileName_to_utf8(const wchar_t* fileName_w,char* out_fileName_utf8,size_t out_bSize){
-    return WideCharToMultiByte(CP_UTF8,0,fileName_w,-1,out_fileName_utf8,bSize)); }
+    return WideCharToMultiByte(CP_UTF8,0,fileName_w,-1,out_fileName_utf8,(int)out_bSize,0,0); }
 
 static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCount,
                                        char** out_fileNames_utf8,size_t out_byteSize){
     char*   _bufEnd=((char*)out_fileNames_utf8)+out_byteSize;
     char*   _bufCur=(char*)(&out_fileNames_utf8[fileCount]);
-    for (size_t i=0; i<fileCount; ++i) {
+    size_t i;
+    for (i=0; i<fileCount; ++i) {
         int csize;
         if (_bufCur>=_bufEnd) return hpatch_FALSE; //error
         csize=_wFileName_to_utf8(fileNames_w[i],_bufCur,_bufEnd-_bufCur);
         if (csize<=0) return hpatch_FALSE; //error
         out_fileNames_utf8[i]=_bufCur;
-        _bufCur+=csize;
+        _bufCur+=csize+1;
     }
     return hpatch_TRUE;
 }

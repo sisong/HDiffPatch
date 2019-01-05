@@ -34,18 +34,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-hpatch_inline static hpatch_BOOL isAsciiString(const char* cstr){
-    while (hpatch_TRUE) {
-        unsigned char c_sub1=(unsigned char)(*cstr++)-1; // 0->255,1->0,255->254,128->127,...
-        if (c_sub1<127)  // c in [1..127]
-            continue;
-        else if (c_sub1<255) // c in [128..255]
-            return hpatch_FALSE;
-        else // c==0
-            return hpatch_TRUE;
-    }
-}
     
 typedef struct TDirDiffInfo{
     hpatch_BOOL                 isDirDiff;
