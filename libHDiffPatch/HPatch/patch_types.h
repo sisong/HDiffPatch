@@ -115,7 +115,7 @@ typedef int hpatch_BOOL;
                                           const struct hpatch_TStreamInput* codeStream,
                                           hpatch_StreamPos_t code_begin,
                                           hpatch_StreamPos_t code_end);//codeSize==code_end-code_begin
-        void                     (*close)(struct hpatch_TDecompress* decompressPlugin,
+        hpatch_BOOL              (*close)(struct hpatch_TDecompress* decompressPlugin,
                                           hpatch_decompressHandle decompressHandle);
         //decompress_part() must out (out_part_data_end-out_part_data), otherwise error return hpatch_FALSE
         hpatch_BOOL    (*decompress_part)(const struct hpatch_TDecompress* decompressPlugin,
@@ -164,7 +164,7 @@ typedef int hpatch_BOOL;
         //read out a cover,and to next cover pos; if error then return false
         hpatch_BOOL               (*read_cover)(struct hpatch_TCovers* covers,hpatch_TCover* out_cover);
         hpatch_BOOL                (*is_finish)(const struct hpatch_TCovers* covers);
-        void                           (*close)(struct hpatch_TCovers* covers);
+        hpatch_BOOL                    (*close)(struct hpatch_TCovers* covers);
     } hpatch_TCovers;
     
 #ifdef __cplusplus

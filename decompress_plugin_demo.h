@@ -42,7 +42,7 @@
 #   define _IsNeedIncludeDefaultCompressHead 1
 #endif
 
-#define _void_check(value) { if (!(value)) fprintf(stderr,#value " ERROR!\n"); }
+#define _close_check(value) { if (!(value)) { fprintf(stderr,#value " ERROR!\n"); result=hpatch_FALSE; } }
 
 #ifdef  _CompressPlugin_zlib
 #if (_IsNeedIncludeDefaultCompressHead)
@@ -109,18 +109,22 @@
             free(_mem_buf);
         return self;
     }
-    static void _zlib_decompress_close_by(struct hpatch_TDecompress* decompressPlugin,_zlib_TDecompress* self){
-        if (!self) return;
+    static hpatch_BOOL _zlib_decompress_close_by(struct hpatch_TDecompress* decompressPlugin,
+                                                 _zlib_TDecompress* self){
+        hpatch_BOOL result=hpatch_TRUE;
+        if (!self) return result;
         if (self->dec_buf!=0){
-            _void_check(Z_OK==inflateEnd(&self->d_stream));
+            _close_check(Z_OK==inflateEnd(&self->d_stream));
         }
         memset(self,0,sizeof(_zlib_TDecompress));
+        return result;
     }
-    static void _zlib_decompress_close(struct hpatch_TDecompress* decompressPlugin,
-                            hpatch_decompressHandle decompressHandle){
+    static hpatch_BOOL _zlib_decompress_close(struct hpatch_TDecompress* decompressPlugin,
+                                              hpatch_decompressHandle decompressHandle){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
-        _zlib_decompress_close_by(decompressPlugin,self);
+        hpatch_BOOL result=_zlib_decompress_close_by(decompressPlugin,self);
         if (self) free(self);
+        return result;
     }
     static hpatch_BOOL _zlib_decompress_part(const hpatch_TDecompress* decompressPlugin,
                                              hpatch_decompressHandle decompressHandle,
@@ -204,12 +208,14 @@
         if (ret!=BZ_OK){ free(self); return 0; }
         return self;
     }
-    static void _bz2_close(struct hpatch_TDecompress* decompressPlugin,
-                            hpatch_decompressHandle decompressHandle){
+    static hpatch_BOOL _bz2_close(struct hpatch_TDecompress* decompressPlugin,
+                                  hpatch_decompressHandle decompressHandle){
+        hpatch_BOOL result=hpatch_TRUE;
         _bz2_TDecompress* self=(_bz2_TDecompress*)decompressHandle;
-        if (!self) return;
-        _void_check(BZ_OK==BZ2_bzDecompressEnd(&self->d_stream));
+        if (!self) return result;
+        _close_check(BZ_OK==BZ2_bzDecompressEnd(&self->d_stream));
         free(self);
+        return result;
     }
     static hpatch_BOOL _bz2_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
                                             hpatch_decompressHandle decompressHandle,
@@ -312,13 +318,14 @@
         LzmaDec_Init(&self->decEnv);
         return self;
     }
-    static void _lzma_close(struct hpatch_TDecompress* decompressPlugin,
+    hpatch_BOOL _lzma_close(struct hpatch_TDecompress* decompressPlugin,
                             hpatch_decompressHandle decompressHandle){
         _lzma_TDecompress* self=(_lzma_TDecompress*)decompressHandle;
         ISzAlloc alloc={__lzma_dec_Alloc,__lzma_dec_Free};
-        if (!self) return;
+        if (!self) return hpatch_TRUE;
         LzmaDec_Free(&self->decEnv,&alloc);
         free(self);
+        return hpatch_TRUE;
     }
     static hpatch_BOOL _lzma_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
                                              hpatch_decompressHandle decompressHandle,
@@ -431,12 +438,14 @@
         if (!self->s){ free(self); return 0; }
         return self;
     }
-    static void _lz4_close(struct hpatch_TDecompress* decompressPlugin,
-                            hpatch_decompressHandle decompressHandle){
+    static hpatch_BOOL _lz4_close(struct hpatch_TDecompress* decompressPlugin,
+                                  hpatch_decompressHandle decompressHandle){
+        hpatch_BOOL result=hpatch_TRUE;
         _lz4_TDecompress* self=(_lz4_TDecompress*)decompressHandle;
-        if (!self) return;
-        _void_check(0==LZ4_freeStreamDecode(self->s));
+        if (!self) return result;
+        _close_check(0==LZ4_freeStreamDecode(self->s));
         free(self);
+        return result;
     }
     static hpatch_BOOL _lz4_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
                                             hpatch_decompressHandle decompressHandle,
@@ -523,12 +532,14 @@
         if (ZSTD_isError(ret)) { ZSTD_freeDStream(self->s); free(self); return 0; }
         return self;
     }
-    static void _zstd_close(struct hpatch_TDecompress* decompressPlugin,
-                            hpatch_decompressHandle decompressHandle){
+    static hpatch_BOOL _zstd_close(struct hpatch_TDecompress* decompressPlugin,
+                                   hpatch_decompressHandle decompressHandle){
+        hpatch_BOOL result=hpatch_TRUE;
         _zstd_TDecompress* self=(_zstd_TDecompress*)decompressHandle;
-        if (!self) return;
-        _void_check(0==ZSTD_freeDStream(self->s));
+        if (!self) return result;
+        _close_check(0==ZSTD_freeDStream(self->s));
         free(self);
+        return result;
     }
     static hpatch_BOOL _zstd_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
                                              hpatch_decompressHandle decompressHandle,

@@ -327,7 +327,7 @@ void TStreamClip::closeDecompressHandle(){
     hpatch_decompressHandle handle=_decompressHandle;
     _decompressHandle=0;
     if (handle)
-        _decompressPlugin->close(_decompressPlugin,handle);
+        check(_decompressPlugin->close(_decompressPlugin,handle));
 }
 void TStreamClip::openDecompressHandle(){
     assert(_decompressHandle==0);

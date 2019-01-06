@@ -322,7 +322,8 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     check(_TStreamCacheClip_isFinish(&headStream));
 clear:
     if (decompresser.decompressHandle){
-        decompressPlugin->close(decompressPlugin,decompresser.decompressHandle);
+        if (!decompressPlugin->close(decompressPlugin,decompresser.decompressHandle))
+            result=hpatch_FALSE;
         decompresser.decompressHandle=0;
     }
     return result;

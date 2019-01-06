@@ -145,10 +145,11 @@ hpatch_BOOL hpatch_coverList_open_compressedDiff(hpatch_TCoverList*         out_
                                                  const hpatch_TStreamInput* compressedDiff,
                                                  hpatch_TDecompress*        decompressPlugin);
 hpatch_inline static
-void        hpatch_coverList_close(hpatch_TCoverList* coverList) {
+hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
+                                   hpatch_BOOL result=hpatch_TRUE;
                                    if ((coverList!=0)&&(coverList->ICovers)){
-                                       coverList->ICovers->close(coverList->ICovers);
-                                       hpatch_coverList_init(coverList); } }
+                                       result=coverList->ICovers->close(coverList->ICovers);
+                                       hpatch_coverList_init(coverList); } return result; }
 
 #ifdef __cplusplus
 }
