@@ -169,7 +169,6 @@ int wmain(int argc,wchar_t* argv_w[]){
 }
 #   else
 int main(int argc,char* argv[]){
-    SetDefaultStringLocale();
     return  hdiff_cmd_line(argc,(const char**)argv);
 }
 #   endif
@@ -469,9 +468,9 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
 
 #define  check_on_error(errorType) { \
     if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
-#define  check(value,errorType,errorInfo) { \
+#define check(value,errorType,errorInfo) { \
     std::string erri=std::string()+errorInfo+" ERROR!\n"; \
-    if (!(value)){ fprintf(stderr,"%s",erri.c_str()); check_on_error(errorType); } }
+    if (!(value)){ printStdErrPath_utf8(erri.c_str()); check_on_error(errorType); } }
 
 static int hdiff_m(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
                    hpatch_BOOL isDiff,size_t matchScore,hpatch_BOOL isPatchCheck,
@@ -604,9 +603,10 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
           hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
           hpatch_TDecompress* decompressPlugin,hpatch_BOOL isOriginal){
     double time0=clock_s();
-    std::string fnameInfo=std::string("old : \"")+oldFileName+"\"\nnew : \""+newFileName+"\"\n"
-                        +(isDiff?"out : \"":"test: \"")+outDiffFileName+"\"\n";
-    printf("%s",fnameInfo.c_str());
+    std::string fnameInfo=std::string("old : \"")+oldFileName+"\"\n"
+                                     +"new : \""+newFileName+"\"\n"
+                             +(isDiff?"out : \"":"test: \"")+outDiffFileName+"\"\n";
+    printPath_utf8(fnameInfo.c_str());
     
     if (isDiff) {
         const char* compressType="";
@@ -722,8 +722,8 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                  hdiff_TStreamCompress* streamCompressPlugin){
     double time0=clock_s();
     std::string fnameInfo=std::string("in_diff : \"")+diffFileName+"\"\n"
-                        +"out_diff: \""+outDiffFileName+"\"\n";
-    printf("%s",fnameInfo.c_str());
+                                     +"out_diff: \""+outDiffFileName+"\"\n";
+    printPath_utf8(fnameInfo.c_str());
     
     const char* compressType="";
     if (streamCompressPlugin) compressType=streamCompressPlugin->compressType(streamCompressPlugin);
@@ -755,7 +755,7 @@ struct DirDiffListener:public IDirDiffListener{
         printf("       same file count: %"PRId64"\n",(hpatch_StreamPos_t)sameFilePairCount);
         printf("    ref old file count: %"PRId64"\n",(hpatch_StreamPos_t)refOldFileCount);
         printf("   diff new file count: %"PRId64"\n",(hpatch_StreamPos_t)refNewFileCount);
-        printf("\nrun HDiffZ:\n");
+        printf("\nrun hdiffz:\n");
         printf("  oldDataSize : %"PRId64"\n",refOldFileSize);
         printf("  newDataSize : %"PRId64"\n",refNewFileSize);
     }
@@ -783,7 +783,7 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
         +(oldIsDir?"oldDir : \"":"oldFile: \"")+oldPatch+"\"\n"
         +(newIsDir?"newDir : \"":"newFile: \"")+newPatch+"\"\n"
         +(isDiff?  "outDiff: \"":"   test: \"")+outDiffFileName+"\"\n";
-    printf("%s",fnameInfo.c_str());
+    printPath_utf8(fnameInfo.c_str());
     
     if (isDiff) {
         const char* compressType="";

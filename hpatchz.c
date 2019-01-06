@@ -133,7 +133,6 @@ int wmain(int argc,wchar_t* argv_w[]){
 }
 #   else
 int main(int argc, const char * argv[]){
-    SetDefaultStringLocale();
     return hpatch_cmd_line(argc,argv);
 }
 #   endif
@@ -347,7 +346,10 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     TFileStreamInput_init(&diffData);
     TFileStreamOutput_init(&newData);
     {//open
-        printf("old : \"%s\"\ndiff: \"%s\"\nout : \"%s\"\n",oldFileName,diffFileName,outNewFileName);
+        printf(    "old : \""); printPath_utf8(oldFileName);
+        printf("\"\ndiff: \""); printPath_utf8(diffFileName);
+        printf("\"\nout : \""); printPath_utf8(outNewFileName);
+        printf("\"\n");
         check(TFileStreamInput_open(&oldData,oldFileName),HPATCH_OPENREAD_ERROR,"open oldFile for read");
         check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
     }
@@ -458,9 +460,12 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         }else{
             check(kPathType_dir!=oldType,HPATCH_PATHTYPE_ERROR,"input old path need file");
         }
-        printf("%s: \"%s\"\ndiffFile: \"%s\"\n%s: \"%s\"\n",
-               dirDiffInfo->oldPathIsDir?"old  dir":"old file", oldPath, diffFileName,
-               dirDiffInfo->newPathIsDir?"out  dir":"out file", outNewPath);
+        printf(        dirDiffInfo->oldPathIsDir?"old  dir: \"":"old file: \"");
+        printPath_utf8(oldPath);
+        printf(                                             "\"\ndiffFile: \"");
+        printPath_utf8(diffFileName);
+        printf(dirDiffInfo->newPathIsDir?"\"\nout  dir: \"":"\"\nout file: \"");
+        printPath_utf8(outNewPath);
     }
     {   //decompressPlugin
         hpatch_TDecompress*  decompressPlugin=0;

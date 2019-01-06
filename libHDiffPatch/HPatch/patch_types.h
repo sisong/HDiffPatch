@@ -102,7 +102,7 @@ typedef int hpatch_BOOL;
         hpatch_StreamPos_t  newDataSize;
         hpatch_StreamPos_t  oldDataSize;
         int                 compressedCount;//need open hpatch_decompressHandle number
-        char                compressType[hpatch_kMaxCompressTypeLength+1];
+        char                compressType[hpatch_kMaxCompressTypeLength+1]; //ascii cstring
     } hpatch_compressedDiffInfo;
     
     typedef void*  hpatch_decompressHandle;

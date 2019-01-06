@@ -45,6 +45,7 @@
 #   define _kMultiBytePage CP_ACP
 #endif
 #if (_WIN32)
+#   include <wchar.h>
 #   include <windows.h> //for file API, character encoding API
 #endif
 
@@ -117,12 +118,6 @@ static hpatch_BOOL _import_fileWrite(hpatch_FileHandle file,const TByte* data,co
 static hpatch_BOOL import_fileFlush(hpatch_FileHandle writedFile){
     return (0==fflush(writedFile));
 }
-
-hpatch_inline static
-void SetDefaultStringLocale(){ //for some locale Path character encoding view
-    setlocale(LC_CTYPE,"");
-}
-
 
 #define _file_error(fileHandle){ \
     if (fileHandle) _import_fileClose(&fileHandle); \
@@ -212,6 +207,15 @@ hpatch_BOOL _import_fileOpenCreateOrWrite(const char* fileName_utf8,hpatch_FileH
     return hpatch_TRUE;
 }
 
+#undef _file_error
+
+#if (_IS_USE_WIN32_UTF8_WAPI)
+hpatch_inline static
+void SetDefaultStringLocale(){ //for some locale Path character encoding view
+    setlocale(LC_CTYPE,"");
+}
+#endif
+
 hpatch_inline static
 hpatch_BOOL isSamePath(const char* xPath_utf8,const char* yPath_utf8){
     if (0==strcmp(xPath_utf8,yPath_utf8)){
@@ -222,8 +226,33 @@ hpatch_BOOL isSamePath(const char* xPath_utf8,const char* yPath_utf8){
     }
 }
 
-#undef _file_error
+hpatch_inline static
+int printPath_utf8(const char* pathTxt_utf8){
+#if (_IS_USE_WIN32_UTF8_WAPI)
+    wchar_t pathTxt_w[kPathMaxSize];
+    int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,kPathMaxSize);
+    if (wsize>0)
+        return wprintf(L"%ls",pathTxt_w);
+    else //view unknow
+        return printf("%s",pathTxt_utf8);
+#else
+    return printf("%s",pathTxt_utf8);
+#endif
+}
 
+hpatch_inline static
+int printStdErrPath_utf8(const char* pathTxt_utf8){
+#if (_IS_USE_WIN32_UTF8_WAPI)
+    wchar_t pathTxt_w[kPathMaxSize];
+    int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,kPathMaxSize);
+    if (wsize>0)
+        return fwprintf(stderr,L"%ls",pathTxt_w);
+    else //view unknow
+        return fprintf(stderr,"%s",pathTxt_utf8);
+#else
+    return fprintf(stderr,"%s",pathTxt_utf8);
+#endif
+}
 
 typedef struct TFileStreamInput{
     hpatch_TStreamInput base;
