@@ -42,6 +42,8 @@
 #   define _IsNeedIncludeDefaultCompressHead 1
 #endif
 
+#define _void_check(value) { if (!(value)) fprintf(stderr,#value " ERROR!\n"); }
+
 #ifdef  _CompressPlugin_zlib
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
@@ -110,7 +112,7 @@
     static void _zlib_decompress_close_by(struct hpatch_TDecompress* decompressPlugin,_zlib_TDecompress* self){
         if (!self) return;
         if (self->dec_buf!=0){
-            if (Z_OK!=inflateEnd(&self->d_stream)) assert(0);
+            _void_check(Z_OK==inflateEnd(&self->d_stream));
         }
         memset(self,0,sizeof(_zlib_TDecompress));
     }
@@ -206,7 +208,7 @@
                             hpatch_decompressHandle decompressHandle){
         _bz2_TDecompress* self=(_bz2_TDecompress*)decompressHandle;
         if (!self) return;
-        if (BZ_OK!=BZ2_bzDecompressEnd(&self->d_stream)) assert(0);
+        _void_check(BZ_OK==BZ2_bzDecompressEnd(&self->d_stream));
         free(self);
     }
     static hpatch_BOOL _bz2_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
@@ -433,7 +435,7 @@
                             hpatch_decompressHandle decompressHandle){
         _lz4_TDecompress* self=(_lz4_TDecompress*)decompressHandle;
         if (!self) return;
-        if (0!=LZ4_freeStreamDecode(self->s)) assert(0);
+        _void_check(0==LZ4_freeStreamDecode(self->s));
         free(self);
     }
     static hpatch_BOOL _lz4_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
@@ -525,7 +527,7 @@
                             hpatch_decompressHandle decompressHandle){
         _zstd_TDecompress* self=(_zstd_TDecompress*)decompressHandle;
         if (!self) return;
-        if (0!=ZSTD_freeDStream(self->s)) assert(0);
+        _void_check(0==ZSTD_freeDStream(self->s));
         free(self);
     }
     static hpatch_BOOL _zstd_decompress_part(const struct hpatch_TDecompress* decompressPlugin,

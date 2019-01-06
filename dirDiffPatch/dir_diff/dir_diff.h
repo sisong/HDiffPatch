@@ -33,7 +33,6 @@
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 
 void assignDirTag(std::string& dir);
-bool isDirName(const std::string& path);
 struct IDirFilter;
 void getDirFileList(const std::string& dir,std::vector<std::string>& out_list,IDirFilter* filter);
 void sortDirFileList(std::vector<std::string>& fileList);
@@ -48,9 +47,9 @@ struct IDirFilter{
 
 struct IDirDiffListener:public IDirFilter{
     virtual ~IDirDiffListener(){}
-    virtual void diffFileList(std::vector<std::string>& newList,std::vector<std::string>& oldList){}
-    virtual void refInfo(size_t sameFilePairCount,size_t refNewFileCount,size_t refOldFileCount,
-                         hpatch_StreamPos_t refNewFileSize,hpatch_StreamPos_t refOldFileSize){}
+    virtual void diffFileList(std::vector<std::string>& oldList,std::vector<std::string>& newList){}
+    virtual void refInfo(size_t sameFilePairCount,size_t refOldFileCount,size_t refNewFileCount,
+                         hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){}
     virtual void runHDiffBegin(){}
     virtual void runHDiffEnd(hpatch_StreamPos_t diffDataSize){}
     virtual void externData(std::vector<unsigned char>& out_externData){}

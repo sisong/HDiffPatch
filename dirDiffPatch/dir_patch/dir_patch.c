@@ -39,9 +39,8 @@ static const TByte kPatchMode =0;
 
 #define TUInt hpatch_StreamPos_t
 
-#define  check(value) { \
-    if (!(value)){ printf(#value" ERROR!\n");  \
-        result=hpatch_FALSE; assert(hpatch_FALSE); goto clear; } }
+#define  check(value) { if (!(value)){ fprintf(stderr,#value" error!\n");  \
+                                       result=hpatch_FALSE; goto clear; } }
 
 #define unpackUIntTo(puint,sclip) \
     check(_TStreamCacheClip_unpackUIntWithTag(sclip,puint,0))
@@ -57,7 +56,7 @@ char* pushDirPath(char* out_path,char* out_pathEnd,const char* rootDir){
     char*          result=0; //false
     size_t rootDirLen=strlen(rootDir);
     hpatch_BOOL isNeedDirSeparator=(rootDirLen>0)&&(rootDir[rootDirLen-1]!=kPatch_dirSeparator);
-    check((rootDirLen+1+1)<=(size_t)(out_pathEnd-out_path));
+    check((rootDirLen+isNeedDirSeparator+1)<=(size_t)(out_pathEnd-out_path));
     memcpy(out_path,rootDir,rootDirLen);
     out_path+=rootDirLen;
     if (isNeedDirSeparator) *out_path++=kPatch_dirSeparator;

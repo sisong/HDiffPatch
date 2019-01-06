@@ -31,6 +31,7 @@
 #define DirDiffPatch_file_for_dirPatch_h
 #include <stdio.h>
 #include "../libHDiffPatch/HPatch/patch_types.h"
+#include "../file_for_patch.h"
 
 #include <sys/stat.h> //stat
 
@@ -41,18 +42,39 @@
 #endif
 static const char kPatch_dirSeparator_saved = '/';
 
+hpatch_inline static
+hpatch_BOOL getIsDirName(const char* path_utf8){
+    size_t len=strlen(path_utf8);
+    return (len>0)&&(path_utf8[len-1]==kPatch_dirSeparator);
+}
+
 typedef enum TPathType{
     kPathType_file,
     kPathType_dir
 } TPathType;
 
 hpatch_inline static
-hpatch_BOOL getPathType(const char* path,TPathType* out_type){
-    struct stat s;
+hpatch_BOOL getPathType(const char* path_utf8,TPathType* out_type){
+#if (_IS_USE_WIN32_UTF8_WAPI)
+    int            wsize;
+    wchar_t        path_w[kPathMaxSize];
+    struct _stat64 s;
+#else
+    struct stat    s;
+#endif
     int         res;
+    hpatch_BOOL isDirName=getIsDirName(path_utf8);
     assert(out_type!=0);
+    if (isDirName){ *out_type=kPathType_dir; return hpatch_TRUE; }
+    
     memset(&s,0,sizeof(s));
-    res = stat(path,&s);
+#if (_IS_USE_WIN32_UTF8_WAPI)
+    wsize=_utf8FileName_to_w(path_utf8,path_w,kPathMaxSize);
+    if (wsize<=0) return hpatch_FALSE;
+    res= _wstat64(path_w,&s);
+#else
+    res = stat(path_utf8,&s);
+#endif
     if(res!=0){
         return hpatch_FALSE;
     }else if ((s.st_mode&S_IFMT)==S_IFREG){

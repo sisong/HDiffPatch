@@ -33,12 +33,32 @@
 #include <stdlib.h> // malloc free
 #include <locale.h> // setlocale
 #include "libHDiffPatch/HPatch/patch_types.h"
-#ifdef _MSC_VER
+
+#ifndef _IS_USE_WIN32_UTF8_WAPI
+#   if (defined(_WIN32) && defined(_MSC_VER))
+#       define _IS_USE_WIN32_UTF8_WAPI 1 // used utf8 string + wchar_t API
+#   endif
+#endif
+#if (_IS_USE_WIN32_UTF8_WAPI)
+#   define _kMultiBytePage CP_UTF8
+#elif defined(_WIN32)
+#   define _kMultiBytePage CP_ACP
+#endif
+#if (_WIN32)
 #   include <windows.h> //for file API, character encoding API
 #endif
+
 typedef unsigned char TByte;
 #define kFileIOBestMaxSize  (1<<20)
 #define kPathMaxSize  1024
+
+#ifndef PRId64
+#   ifdef _MSC_VER
+#       define PRId64 "I64d"
+#   else
+#       define PRId64 "lld"
+#   endif
+#endif
 
 typedef FILE* hpatch_FileHandle;
 
@@ -109,12 +129,12 @@ void SetDefaultStringLocale(){ //for some locale Path character encoding view
     return hpatch_FALSE; \
 }
 
-#ifdef _MSC_VER
+#if (_WIN32)
 static int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
-    return MultiByteToWideChar(CP_UTF8,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize); }
+    return MultiByteToWideChar(_kMultiBytePage,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize); }
 
 static int _wFileName_to_utf8(const wchar_t* fileName_w,char* out_fileName_utf8,size_t out_bSize){
-    return WideCharToMultiByte(CP_UTF8,0,fileName_w,-1,out_fileName_utf8,(int)out_bSize,0,0); }
+    return WideCharToMultiByte(_kMultiBytePage,0,fileName_w,-1,out_fileName_utf8,(int)out_bSize,0,0); }
 
 static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCount,
                                        char** out_fileNames_utf8,size_t out_byteSize){
@@ -127,13 +147,13 @@ static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCo
         csize=_wFileName_to_utf8(fileNames_w[i],_bufCur,_bufEnd-_bufCur);
         if (csize<=0) return hpatch_FALSE; //error
         out_fileNames_utf8[i]=_bufCur;
-        _bufCur+=csize+1;
+        _bufCur+=csize;
     }
     return hpatch_TRUE;
 }
 #endif
 
-#ifdef _MSC_VER
+#if (_IS_USE_WIN32_UTF8_WAPI)
 #   define _kFileReadMode  L"rb"
 #   define _kFileWriteMode L"wb"
 #else
@@ -141,7 +161,7 @@ static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCo
 #   define _kFileWriteMode "wb"
 #endif
 
-#ifdef _MSC_VER
+#if (_IS_USE_WIN32_UTF8_WAPI)
     static hpatch_FileHandle _import_fileOpenByMode(const char* fileName_utf8,const wchar_t* mode_w){
         wchar_t fileName_w[kPathMaxSize];
         int wsize=_utf8FileName_to_w(fileName_utf8,fileName_w,kPathMaxSize);

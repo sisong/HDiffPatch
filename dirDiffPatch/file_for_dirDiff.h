@@ -33,7 +33,7 @@
 
 typedef void* TDirHandle;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 struct _TFindFileData{
     HANDLE              handle;
     char                subName_utf8[kPathMaxSize];
@@ -41,10 +41,13 @@ struct _TFindFileData{
 
 static inline
 TDirHandle dirOpenForRead(const char* dir_utf8){
-    wchar_t  dir_w[kPathMaxSize];
+    size_t      ucSize=strlen(dir_utf8);
+    hpatch_BOOL isNeedDirSeparator=(ucSize>0)&&(dir_utf8[ucSize-1]!=kPatch_dirSeparator);
+    wchar_t     dir_w[kPathMaxSize];
     int wsize=_utf8FileName_to_w(dir_utf8,dir_w,kPathMaxSize-3);
     if (wsize<=0) return 0; //error
-    if (dir_w[wsize-1]!=kPatch_dirSeparator)
+    if (dir_w[wsize-1]=='\0') --wsize;
+    if (isNeedDirSeparator)
         dir_w[wsize++]=kPatch_dirSeparator;
     dir_w[wsize++]='*';
     dir_w[wsize++]='\0';
@@ -99,7 +102,7 @@ void dirClose(TDirHandle dirHandle){
     }
 }
 
-#else  // _MSC_VER
+#else  // _WIN32
 
 #include <dirent.h> //opendir ...
 static inline
@@ -138,5 +141,5 @@ void dirClose(TDirHandle dirHandle){
         closedir((DIR*)dirHandle);
 }
 
-#endif //_MSC_VER
+#endif //_WIN32
 #endif

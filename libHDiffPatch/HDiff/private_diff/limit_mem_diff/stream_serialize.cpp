@@ -30,8 +30,8 @@
 #include <stdexcept> //std::runtime_error
 #include "../../diff.h" //for stream type
 
-#define check(value) { \
-    if (!(value)) { throw std::runtime_error(#value" error!"); } }
+#define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
+#define check(value) checki(value,#value" error!")
 
 namespace hdiff_private{
 TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,
@@ -48,8 +48,7 @@ hpatch_BOOL TCompressedStream::_write_code(const hpatch_TStreamOutput* stream,hp
                                            const unsigned char* data,const unsigned char* data_end){
     assert(data<data_end);
     TCompressedStream* self=(TCompressedStream*)stream->streamImport;
-    if (self->_writeToPos_back!=writeToPos)
-        throw std::runtime_error("TCompressedStream::write() writeToPos error!");
+    checki(self->_writeToPos_back==writeToPos,"TCompressedStream::write() writeToPos error!");
     size_t dataLen=(size_t)(data_end-data);
     self->_writeToPos_back=writeToPos+dataLen;
     
@@ -68,8 +67,7 @@ TCoversStream::TCoversStream(const TCovers& _covers,hpatch_StreamPos_t cover_buf
 readedCoverCount(0),lastOldEnd(0),lastNewEnd(0),_readFromPos_back(0){
     assert(kCodeBufSize>=hpatch_kMaxPackedUIntBytes*3);
     _code_buf=(unsigned char*)malloc(kCodeBufSize);
-    if (!_code_buf)
-        throw std::runtime_error("TCoversStream::TCoversStream() malloc() error!");
+    checki(_code_buf!=0,"TCoversStream::TCoversStream() malloc() error!");
     this->streamImport=this;
     this->streamSize=cover_buf_size;
     this->read=_read;
@@ -98,8 +96,7 @@ hpatch_BOOL TCoversStream::_read(const hpatch_TStreamInput* stream,hpatch_Stream
         self->lastNewEnd=0;
         self->readedCoverCount=0;
     }else{
-        if (self->_readFromPos_back!=readFromPos)
-            throw std::runtime_error("TCoversStream::read() readFromPos error!");
+        checki(self->_readFromPos_back==readFromPos,"TCoversStream::read() readFromPos error!");
     }
     self->_readFromPos_back=readFromPos+(size_t)(out_data_end-out_data);
     
@@ -181,8 +178,7 @@ hpatch_BOOL TNewDataDiffStream::_read(const hpatch_TStreamInput* stream,hpatch_S
         self->lastNewEnd=0;
         self->readedCoverCount=0;
     }else{
-        if (self->_readFromPos_back!=readFromPos)
-            throw std::runtime_error("TNewDataDiffStream::read() readFromPos error!");
+        checki(self->_readFromPos_back==readFromPos,"TNewDataDiffStream::read() readFromPos error!");
     }
     self->_readFromPos_back=readFromPos+(size_t)(out_data_end-out_data);
     
@@ -236,7 +232,7 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 TDiffStream::TDiffStream(const hpatch_TStreamOutput* _out_diff)
 :out_diff(_out_diff),writePos(0),_temp_buf(0){
     _temp_buf=(unsigned char*)malloc(kBufSize);
-    if (!_temp_buf) throw std::runtime_error("TDiffStream::TDiffStream() malloc() error!");
+    checki(_temp_buf!=0,"TDiffStream::TDiffStream() malloc() error!");
 }
 
 TDiffStream::~TDiffStream(){
@@ -245,8 +241,8 @@ TDiffStream::~TDiffStream(){
     
 void TDiffStream::pushBack(const unsigned char* src,size_t n){
     if (n==0) return;
-    if (!out_diff->write(out_diff,writePos,src,src+n))
-        throw std::runtime_error("TDiffStream::pushBack() write stream error!");
+    checki(out_diff->write(out_diff,writePos,src,src+n),
+           "TDiffStream::pushBack() write stream error!");
     writePos+=n;
 }
 
@@ -280,8 +276,8 @@ void TDiffStream::_pushStream(const hpatch_TStreamInput* stream){
         size_t readLen=kBufSize;
         if (readLen+sumReadedLen>stream->streamSize)
             readLen=(size_t)(stream->streamSize-sumReadedLen);
-        if (!stream->read(stream,sumReadedLen,buf,buf+readLen))
-            throw std::runtime_error("TDiffStream::_pushStream() stream->read() error!");
+        checki(stream->read(stream,sumReadedLen,buf,buf+readLen),
+               "TDiffStream::_pushStream() stream->read() error!");
         this->pushBack(buf,readLen);
         sumReadedLen+=readLen;
     }

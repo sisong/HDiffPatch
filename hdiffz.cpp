@@ -158,12 +158,13 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 
 
 #if (_IS_NEED_MAIN)
-#   ifdef _MSC_VER
+#   if (_IS_USE_WIN32_UTF8_WAPI)
 int wmain(int argc,wchar_t* argv_w[]){
     char* argv_utf8[kPathMaxSize*2/sizeof(char*)];
     if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))
         return HDIFF_OPTIONS_ERROR;
     SetDefaultStringLocale();
+    _setmaxstdio(2048);
     return hdiff_cmd_line(argc,(const char**)argv_utf8);
 }
 #   else
@@ -220,7 +221,7 @@ static bool _trySetCompress(hdiff_TStreamCompress** streamCompressPlugin,
 
 
 #define _options_check(value,errorInfo){ \
-    if (!(value)) { printf("options " errorInfo " ERROR!\n"); printUsage(); return HDIFF_OPTIONS_ERROR; } }
+    if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n"); printUsage(); return HDIFF_OPTIONS_ERROR; } }
 
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
 
@@ -337,7 +338,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     if (isOutputVersion==_kNULL_VALUE)
         isOutputVersion=hpatch_FALSE;
     if (isOutputVersion){
-        std::cout<<"HDiffPatch::hdiffz v" HDIFFPATCH_VERSION_STRING "\n\n";
+        printf("HDiffPatch::hdiffz v" HDIFFPATCH_VERSION_STRING "\n\n");
         if (arg_values.empty())
             return 0; //ok
     }
@@ -469,7 +470,8 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
 #define  check_on_error(errorType) { \
     if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define  check(value,errorType,errorInfo) { \
-    if (!(value)){ printf(errorInfo); check_on_error(errorType); } }
+    std::string erri=std::string()+errorInfo+" ERROR!\n"; \
+    if (!(value)){ fprintf(stderr,"%s",erri.c_str()); check_on_error(errorType); } }
 
 static int hdiff_m(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
                    hpatch_BOOL isDiff,size_t matchScore,hpatch_BOOL isPatchCheck,
@@ -480,9 +482,10 @@ static int hdiff_m(const char* oldFileName,const char* newFileName,const char* o
     TByte* oldData=0;  size_t oldDataSize=0;
     TByte* newData=0;  size_t newDataSize=0;
     TByte* diffData=0; size_t diffDataSize=0;
-    check(readFileAll(&oldData,&oldDataSize,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile ERROR!");
-    check(readFileAll(&newData,&newDataSize,newFileName),HDIFF_OPENREAD_ERROR,"open newFile ERROR!");
-    std::cout<<"oldDataSize : "<<oldDataSize<<"\nnewDataSize : "<<newDataSize<<"\n";
+    check(readFileAll(&oldData,&oldDataSize,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
+    check(readFileAll(&newData,&newDataSize,newFileName),HDIFF_OPENREAD_ERROR,"open newFile");
+    printf("oldDataSize : %"PRId64"\nnewDataSize : %"PRId64"\n",
+           (hpatch_StreamPos_t)oldDataSize,(hpatch_StreamPos_t)newDataSize);
     if (isDiff){
         std::vector<TByte> outDiffData;
         try {
@@ -498,30 +501,29 @@ static int hdiff_m(const char* oldFileName,const char* newFileName,const char* o
                                        outDiffData,compressPlugin,(int)matchScore);
             }
         }catch(const std::exception& e){
-            std::cout<<"diff run ERROR! "<<e.what()<<"\n";
-            check_on_error(HDIFF_DIFF_ERROR);
+            check(false,HDIFF_DIFF_ERROR,"diff run an error: "+e.what()+",");
         }
-        std::cout<<"diffDataSize: "<<outDiffData.size()<<"\n";
+        printf("diffDataSize: %"PRId64"\n",(hpatch_StreamPos_t)outDiffData.size());
         check(writeFileAll(outDiffData.data(),outDiffData.size(),outDiffFileName),
-              HDIFF_OPENWRITE_ERROR,"open write diffFile ERROR!");
-        std::cout<<"  out diff file ok!\n";
+              HDIFF_OPENWRITE_ERROR,"open write diffFile");
+        printf("  out diff file ok!\n");
         outDiffData.clear();
-        std::cout<<"diff time: "<<(clock_s()-diff_time0)<<" s\n";
+        printf("diff time: %.3f s\n",(clock_s()-diff_time0));
     }
     if (isPatchCheck){
         double patch_time0=clock_s();
-        std::cout<<"\nload diffFile for test by patch:\n";
+        printf("\nload diffFile for test by patch:\n");
         check(readFileAll(&diffData,&diffDataSize,outDiffFileName),
-              HDIFF_OPENREAD_ERROR,"open diffFile for test ERROR!");
-        std::cout<<"diffDataSize: "<<diffDataSize<<"\n";
+              HDIFF_OPENREAD_ERROR,"open diffFile for test");
+        printf("diffDataSize: %"PRId64"\n",(hpatch_StreamPos_t)diffDataSize);
         
         bool diffrt;
 #if (_IS_NEED_ORIGINAL)
         if (isOriginal){
             hpatch_StreamPos_t savedNewSize=0;
             size_t originalNewDataSavedSize=readSavedSize(diffData,diffDataSize,&savedNewSize);
-            check(originalNewDataSavedSize>0,HDIFF_PATCH_ERROR,"read diffFile savedNewSize ERROR!\n");
-            check(savedNewSize==newDataSize,HDIFF_PATCH_ERROR, "read diffFile savedNewSize value ERROR!\n")
+            check(originalNewDataSavedSize>0,HDIFF_PATCH_ERROR,"read diffFile savedNewSize");
+            check(savedNewSize==newDataSize,HDIFF_PATCH_ERROR, "read diffFile savedNewSize")
             diffrt=check_diff(newData,newData+newDataSize,oldData,oldData+oldDataSize,
                               diffData+originalNewDataSavedSize,diffData+diffDataSize);
         } else
@@ -530,9 +532,9 @@ static int hdiff_m(const char* oldFileName,const char* newFileName,const char* o
             diffrt=check_compressed_diff(newData,newData+newDataSize,oldData,oldData+oldDataSize,
                                          diffData,diffData+diffDataSize,decompressPlugin);
         }
-        check(diffrt,HDIFF_PATCH_ERROR,"patch check diff data ERROR!\n");
-        std::cout<<"  patch check diff data ok!\n";
-        std::cout<<"patch time: "<<(clock_s()-patch_time0)<<" s\n";
+        check(diffrt,HDIFF_PATCH_ERROR,"patch check diff data");
+        printf("  patch check diff data ok!\n");
+        printf("patch time: %.3f s\n",(clock_s()-patch_time0));
     }
 clear:
     _isInClear=hpatch_TRUE;
@@ -557,43 +559,43 @@ static int hdiff_s(const char* oldFileName,const char* newFileName,const char* o
     TFileStreamOutput_init(&diffData);
     TFileStreamInput_init(&diffData_in);
     
-    check(TFileStreamInput_open(&oldData,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile ERROR!");
-    check(TFileStreamInput_open(&newData,newFileName),HDIFF_OPENREAD_ERROR,"open newFile ERROR!");
-    std::cout<<"oldDataSize : "<<oldData.base.streamSize<<"\nnewDataSize : "<<newData.base.streamSize<<"\n";
+    check(TFileStreamInput_open(&oldData,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
+    check(TFileStreamInput_open(&newData,newFileName),HDIFF_OPENREAD_ERROR,"open newFile");
+    printf("oldDataSize : %"PRId64"\nnewDataSize : %"PRId64"\n",
+           oldData.base.streamSize,newData.base.streamSize);
     if (isDiff){
         check(TFileStreamOutput_open(&diffData,outDiffFileName,-1),
-              HDIFF_OPENWRITE_ERROR,"open out diffFile ERROR!");
+              HDIFF_OPENWRITE_ERROR,"open out diffFile");
         TFileStreamOutput_setRandomOut(&diffData,hpatch_TRUE);
         try{
             create_compressed_diff_stream(&newData.base,&oldData.base, &diffData.base,
                                           streamCompressPlugin,matchBlockSize);
             diffData.base.streamSize=diffData.out_length;
         }catch(const std::exception& e){
-            std::cout<<"diff run ERROR! "<<e.what()<<"\n";
-            check_on_error(HDIFF_DIFF_ERROR);
+            check(false,HDIFF_DIFF_ERROR,"stream diff run an error: "+e.what()+",");
         }
-        check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
-        std::cout<<"diffDataSize: "<<diffData.base.streamSize<<"\n";
-        std::cout<<"  out diff file ok!\n";
-        std::cout<<"diff  time: "<<(clock_s()-diff_time0)<<" s\n";
+        check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+        printf("diffDataSize: %"PRId64"\n",diffData.base.streamSize);
+        printf("  out diff file ok!\n");
+        printf("diff  time: %.3f s\n",(clock_s()-diff_time0));
     }
     if (isPatchCheck){
         double patch_time0=clock_s();
-        std::cout<<"\nload diffFile for test by patch check:\n";
-        check(TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile ERROR!");
-        std::cout<<"diffDataSize: "<<diffData_in.base.streamSize<<"\n";
+        printf("\nload diffFile for test by patch check:\n");
+        check(TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
+        printf("diffDataSize: %"PRId64"\n",diffData_in.base.streamSize);
         check(check_compressed_diff_stream(&newData.base,&oldData.base,
                                            &diffData_in.base,decompressPlugin),
-              HDIFF_PATCH_ERROR,"patch check diff data ERROR!!!");
-        std::cout<<"  patch check diff data ok!\n";
-        std::cout<<"patch time: "<<(clock_s()-patch_time0)<<" s\n";
+              HDIFF_PATCH_ERROR,"patch check diff data");
+        printf("  patch check diff data ok!\n");
+        printf("patch time: %.3f s\n",(clock_s()-patch_time0));
     }
 clear:
     _isInClear=hpatch_TRUE;
-    check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
-    check(TFileStreamInput_close(&diffData_in),HDIFF_FILECLOSE_ERROR,"check diffFile close ERROR!");
-    check(TFileStreamInput_close(&newData),HDIFF_FILECLOSE_ERROR,"newFile close ERROR!");
-    check(TFileStreamInput_close(&oldData),HDIFF_FILECLOSE_ERROR,"oldFile close ERROR!");
+    check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+    check(TFileStreamInput_close(&diffData_in),HDIFF_FILECLOSE_ERROR,"check diffFile close");
+    check(TFileStreamInput_close(&newData),HDIFF_FILECLOSE_ERROR,"newFile close");
+    check(TFileStreamInput_close(&oldData),HDIFF_FILECLOSE_ERROR,"oldFile close");
     return result;
 }
 
@@ -602,9 +604,9 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
           hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
           hpatch_TDecompress* decompressPlugin,hpatch_BOOL isOriginal){
     double time0=clock_s();
-    std::cout<<"old : \""<<oldFileName<<"\"\n"
-             <<"new : \""<<newFileName<<"\"\n"
-             <<(isDiff?"out : \"":"test: \"")<<outDiffFileName<<"\"\n";
+    std::string fnameInfo=std::string("old : \"")+oldFileName+"\"\nnew : \""+newFileName+"\"\n"
+                        +(isDiff?"out : \"":"test: \"")+outDiffFileName+"\"\n";
+    printf("%s",fnameInfo.c_str());
     
     if (isDiff) {
         const char* compressType="";
@@ -613,7 +615,7 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
         }else{
             if (streamCompressPlugin) compressType=streamCompressPlugin->compressType(streamCompressPlugin);
         }
-        std::cout<<"hdiffz run with "<<(isLoadAll?"":"stream ")<<"compress plugin: \""<<compressType<<"\"\n";
+        printf("hdiffz run with%s compress plugin: \"%s\"\n",(isLoadAll?"":" stream"),compressType);
     }
     
     int exitCode;
@@ -625,7 +627,7 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
                          isDiff,matchValue,isPatchCheck,streamCompressPlugin,decompressPlugin);
     }
     if (isDiff && isPatchCheck)
-        std::cout<<"\nall   time: "<<(clock_s()-time0)<<" s\n";
+        printf("\nall   time: %.3f s\n",(clock_s()-time0));
     return exitCode;
 }
 
@@ -641,18 +643,18 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     TFileStreamOutput_init(&diffData_out);
     
     hpatch_TDecompress* decompressPlugin=0;
-    check(TFileStreamInput_open(&diffData_in,diffFileName),HDIFF_OPENREAD_ERROR,"open diffFile ERROR!");
+    check(TFileStreamInput_open(&diffData_in,diffFileName),HDIFF_OPENREAD_ERROR,"open diffFile");
     {
         TDirDiffInfo dirDiffInfo;
-        check(getDirDiffInfo(&diffData_in.base,&dirDiffInfo),HDIFF_OPENREAD_ERROR,"read diffFile ERROR!")
+        check(getDirDiffInfo(&diffData_in.base,&dirDiffInfo),HDIFF_OPENREAD_ERROR,"read diffFile")
         isDirDiff=dirDiffInfo.isDirDiff;
         hpatch_compressedDiffInfo diffInfo;
         if (isDirDiff){
             diffInfo=dirDiffInfo.hdiffInfo;
             diffInfo.compressedCount+=dirDiffInfo.dirDataIsCompressed?1:0;
         }else if (!getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
-            check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile ERROR!\n");
-            check(hpatch_FALSE,HDIFF_RESAVE_HDIFFINFO_ERROR,"is hdiff file? get diff info ERROR!\n");
+            check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile");
+            check(hpatch_FALSE,HDIFF_RESAVE_HDIFFINFO_ERROR,"is hdiff file? get diff info");
         }
         if (strlen(diffInfo.compressType)>0){
 #ifdef  _CompressPlugin_zlib
@@ -678,22 +680,22 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
         }
         if (!decompressPlugin){
             if (diffInfo.compressedCount>0){
-                std::cout<<"can no decompress \""<<diffInfo.compressType<<"\" data ERROR!\n";
-                check_on_error(HDIFF_RESAVE_COMPRESSTYPE_ERROR);
+                check(false,HDIFF_RESAVE_COMPRESSTYPE_ERROR,
+                      "can no decompress \""+diffInfo.compressType+" data");
             }else{
                 if (strlen(diffInfo.compressType)>0)
-                    std::cout<<"  diffFile added useless compress tag \""<<diffInfo.compressType<<"\"\n";
+                    printf("  diffFile added useless compress tag \"%s\"\n",diffInfo.compressType);
                 decompressPlugin=0;
             }
         }else{
-            std::cout<<"resave diffFile"<<(isDirDiff?"(DirDiff)":"")<<" with decompress plugin: \""
-                     <<diffInfo.compressType<<"\" (need decompress "<<diffInfo.compressedCount<<")\n";
+            printf("resave diffFile%s with decompress plugin: \"%s\" (need decompress %d)\n",(isDirDiff?"(DirDiff)":""),diffInfo.compressType,diffInfo.compressedCount);
         }
     }
     
-    check(TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),HDIFF_OPENWRITE_ERROR,"open out diffFile ERROR!");
+    check(TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),HDIFF_OPENWRITE_ERROR,
+          "open out diffFile");
     TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
-    std::cout<<"inDiffSize : "<<diffData_in.base.streamSize<<"\n";
+    printf("inDiffSize : %"PRId64"\n",diffData_in.base.streamSize);
     try{
         if (isDirDiff){
             resave_compressed_dirdiff(&diffData_in.base,decompressPlugin,
@@ -704,32 +706,32 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
         }
         diffData_out.base.streamSize=diffData_out.out_length;
     }catch(const std::exception& e){
-        std::cout<<"resave diffFile run ERROR! "<<e.what()<<"\n";
-        check_on_error(HDIFF_RESAVE_ERROR);
+        check(false,HDIFF_RESAVE_ERROR,"resave diff run an error: "+e.what()+",");
     }
-    std::cout<<"outDiffSize: "<<diffData_out.base.streamSize<<"\n";
-    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
-    std::cout<<"  out diff file ok!\n";
+    printf("outDiffSize: %"PRId64"\n",diffData_out.base.streamSize);
+    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+    printf("  out diff file ok!\n");
 clear:
     _isInClear=hpatch_TRUE;
-    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
-    check(TFileStreamInput_close(&diffData_in),HDIFF_FILECLOSE_ERROR,"in diffFile close ERROR!");
+    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+    check(TFileStreamInput_close(&diffData_in),HDIFF_FILECLOSE_ERROR,"in diffFile close");
     return result;
 }
 
 int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                  hdiff_TStreamCompress* streamCompressPlugin){
     double time0=clock_s();
-    std::cout<<"in_diff : \""<<diffFileName<<"\"\n"
-             <<"out_diff: \""<<outDiffFileName<<"\"\n";
+    std::string fnameInfo=std::string("in_diff : \"")+diffFileName+"\"\n"
+                        +"out_diff: \""+outDiffFileName+"\"\n";
+    printf("%s",fnameInfo.c_str());
     
     const char* compressType="";
     if (streamCompressPlugin) compressType=streamCompressPlugin->compressType(streamCompressPlugin);
-    std::cout<<"resave diffFile with stream compress plugin: \""<<compressType<<"\"\n";
+    printf("resave diffFile with stream compress plugin: \"%s\"\n",compressType);
     
     int exitCode=hdiff_r(diffFileName,outDiffFileName,streamCompressPlugin);
     double time1=clock_s();
-    std::cout<<"\nhdiffz resave diffFile time: "<<(time1-time0)<<" s\n";
+    printf("\nhdiffz resave diffFile time: %.3f s\n",(time1-time0));
     return exitCode;
 }
 
@@ -744,26 +746,25 @@ struct DirDiffListener:public IDirDiffListener{
         return false;
     }
     
-    virtual void diffFileList(std::vector<std::string>& newList,std::vector<std::string>& oldList){
-        std::cout<<"DirDiff old path count: "<<oldList.size()<<"\n";
-        std::cout<<"        new path count: "<<newList.size()<<"\n";
+    virtual void diffFileList(std::vector<std::string>& oldList,std::vector<std::string>& newList){
+        printf("DirDiff old path count: %"PRId64"\n",(hpatch_StreamPos_t)oldList.size());
+        printf("        new path count: %"PRId64"\n",(hpatch_StreamPos_t)newList.size());
     }
-    virtual void refInfo(size_t sameFilePairCount,size_t refNewFileCount,size_t refOldFileCount,
-                         hpatch_StreamPos_t refNewFileSize,hpatch_StreamPos_t refOldFileSize){
-        std::cout<<"       same file count: "<<sameFilePairCount<<"\n";
-        std::cout<<"    ref old file count: "<<refOldFileCount<<"\n";
-        std::cout<<"   diff new file count: "<<refNewFileCount<<"\n";
-        std::cout<<"\nrun HDiffZ:\n";
-        std::cout<<"  oldDataSize : "<<refOldFileSize<<"\n";
-        std::cout<<"  newDataSize : "<<refNewFileSize<<"\n";
+    virtual void refInfo(size_t sameFilePairCount,size_t refOldFileCount,size_t refNewFileCount,
+                         hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){
+        printf("       same file count: %"PRId64"\n",(hpatch_StreamPos_t)sameFilePairCount);
+        printf("    ref old file count: %"PRId64"\n",(hpatch_StreamPos_t)refOldFileCount);
+        printf("   diff new file count: %"PRId64"\n",(hpatch_StreamPos_t)refNewFileCount);
+        printf("\nrun HDiffZ:\n");
+        printf("  oldDataSize : %"PRId64"\n",refOldFileSize);
+        printf("  newDataSize : %"PRId64"\n",refNewFileSize);
     }
     
     double _runHDiffBegin_time0;
     virtual void runHDiffBegin(){ _runHDiffBegin_time0=clock_s(); }
     virtual void runHDiffEnd(hpatch_StreamPos_t diffDataSize){
-        double runDiffTime_s=clock_s()-_runHDiffBegin_time0;
-        std::cout<<"  diffDataSize: "<<diffDataSize<<"\n";
-        std::cout<<"    diff  time: "<<runDiffTime_s<<" s\n";
+        printf("  diffDataSize: %"PRId64"\n",diffDataSize);
+        printf("    diff  time: %.3f s\n",clock_s()-_runHDiffBegin_time0);
     }
 };
 
@@ -776,11 +777,13 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
     double time0=clock_s();
     std::string oldPatch(oldFileName);
     std::string newPatch(newFileName);
-    if (oldIsDir) assignDirTag(oldPatch); else assert(!isDirName(oldPatch));
-    if (newIsDir) assignDirTag(newPatch); else assert(!isDirName(newPatch));
-    std::cout<<(oldIsDir?"oldDir : \"":"oldFile: \"")<<oldPatch<<"\"\n"
-             <<(newIsDir?"newDir : \"":"newFile: \"")<<newPatch<<"\"\n"
-             <<(isDiff?  "outDiff: \"":"   test: \"")<<outDiffFileName<<"\"\n";
+    if (oldIsDir) assignDirTag(oldPatch); else assert(!getIsDirName(oldPatch.c_str()));
+    if (newIsDir) assignDirTag(newPatch); else assert(!getIsDirName(newPatch.c_str()));
+    std::string fnameInfo=std::string("")
+        +(oldIsDir?"oldDir : \"":"oldFile: \"")+oldPatch+"\"\n"
+        +(newIsDir?"newDir : \"":"newFile: \"")+newPatch+"\"\n"
+        +(isDiff?  "outDiff: \"":"   test: \"")+outDiffFileName+"\"\n";
+    printf("%s",fnameInfo.c_str());
     
     if (isDiff) {
         const char* compressType="";
@@ -789,7 +792,7 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
         }else{
             if (streamCompressPlugin) compressType=streamCompressPlugin->compressType(streamCompressPlugin);
         }
-        std::cout<<"hdiffz run DirDiff with "<<(isLoadAll?"":"stream ")<<"compress plugin: \""<<compressType<<"\"\n";
+        printf("hdiffz run DirDiff with%s compress plugin: \"%s\"\n",(isLoadAll?"":" stream"),compressType);
     }
 
     int  result=HDIFF_SUCCESS;
@@ -799,28 +802,27 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
     if (isDiff){
         try {
             check(TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),
-                  HDIFF_OPENWRITE_ERROR,"open out diffFile ERROR!");
+                  HDIFF_OPENWRITE_ERROR,"open out diffFile");
             TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
             DirDiffListener listener;
             dir_diff(&listener,oldPatch,newPatch,&diffData_out.base,
                      isLoadAll!=0,matchValue,streamCompressPlugin,compressPlugin);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
-            std::cout<<"dir diff run ERROR! "<<e.what()<<"\n";
-            check_on_error(HDIFF_DIR_DIFF_ERROR);
+            check(false,HDIFF_DIR_DIFF_ERROR,"dir diff run an error: "+e.what()+",");
         }
-        std::cout<<"\nDirDiff size: "<<diffData_out.base.streamSize<<"\n";
-        std::cout<<"DirDiff time: "<<(clock_s()-time0)<<" s\n";
-        check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close ERROR!");
-        std::cout<<"  out dir diff file ok!\n";
+        printf("\nDirDiff size: %"PRId64"\n",diffData_out.base.streamSize);
+        printf("DirDiff time: %.3f s\n",(clock_s()-time0));
+        check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+        printf("  out dir diff file ok!\n");
     }
     if (isPatchCheck){
         //todo: dir_patch(oldPath,newPath,outDiffFileName,isLoadAll,decompressPlugin);
     }
     
-    std::cout<<"\nall   time: "<<(clock_s()-time0)<<" s\n";
+    printf("\nall   time: %.3f s\n",(clock_s()-time0));
 clear:
     _isInClear=true;
-    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"check diffFile close ERROR!");
+    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"check diffFile close");
     return result;
 }

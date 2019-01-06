@@ -48,9 +48,7 @@ static hpatch_BOOL _file_append_part(TNewStream* self,hpatch_StreamPos_t writeTo
                                      const unsigned char* data,const unsigned char* data_end);
 static hpatch_BOOL _file_append_end(TNewStream* self);
 
-#define  check(value) { \
-    if (!(value)){ printf(#value" ERROR!\n");  \
-        assert(hpatch_FALSE); return hpatch_FALSE; } }
+#define  check(value) { if (!(value)){ fprintf(stderr,#value" error!\n"); return hpatch_FALSE; } }
 
 static hpatch_BOOL _TNewStream_write(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                      const unsigned char* data,const unsigned char* data_end){

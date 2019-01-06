@@ -43,7 +43,7 @@ using namespace hdiff_private;
 static const char* kVersionType="DirDiff19&";
 
 #define kFileIOBufSize      (64*1024)
-#define check(value,info) if (!(value)) throw new std::runtime_error(info);
+#define check(value,info) if (!(value)) throw std::runtime_error(info);
 
 #define hash_value_t                uint64_t
 #define hash_begin(ph)              { (*(ph))=ADLER_INITIAL; }
@@ -51,22 +51,22 @@ static const char* kVersionType="DirDiff19&";
 #define hash_end(ph)                {}
 
 
-void assignDirTag(std::string& dir){
-    if (dir.empty()||(dir[dir.size()-1]!=kPatch_dirSeparator))
-        dir.push_back(kPatch_dirSeparator);
+void assignDirTag(std::string& dir_utf8){
+    if (dir_utf8.empty()||(dir_utf8[dir_utf8.size()-1]!=kPatch_dirSeparator))
+        dir_utf8.push_back(kPatch_dirSeparator);
 }
 
-bool isDirName(const std::string& path){
-    return (!path.empty())&&(path[path.size()-1]==kPatch_dirSeparator);
+static inline bool isDirName(const std::string& path_utf8){
+    return 0!=getIsDirName(path_utf8.c_str());
 }
 
-static void formatDirTagForSave(std::string& utf8_path){
+static void formatDirTagForSave(std::string& path_utf8){
     if (kPatch_dirSeparator==kPatch_dirSeparator_saved) return;
-    for (size_t i=0;i<utf8_path.size();++i){
-        if (utf8_path[i]!=kPatch_dirSeparator)
+    for (size_t i=0;i<path_utf8.size();++i){
+        if (path_utf8[i]!=kPatch_dirSeparator)
             continue;
         else
-            utf8_path[i]=kPatch_dirSeparator_saved;
+            path_utf8[i]=kPatch_dirSeparator_saved;
     }
 }
 
@@ -76,11 +76,11 @@ bool IDirFilter::pathIsEndWith(const std::string& pathName,const char* testEndTa
     if (nameSize<testSize) return false;
     return 0==memcmp(pathName.c_str()+(nameSize-testSize),testEndTag,testSize);
 }
-bool IDirFilter::pathNameIs(const std::string& pathName,const char* testPathName){ //without dir path
-    if (!pathIsEndWith(pathName,testPathName)) return false;
-    size_t nameSize=pathName.size();
+bool IDirFilter::pathNameIs(const std::string& pathName_utf8,const char* testPathName){ //without dir path
+    if (!pathIsEndWith(pathName_utf8,testPathName)) return false;
+    size_t nameSize=pathName_utf8.size();
     size_t testSize=strlen(testPathName);
-    return (nameSize==testSize) || (pathName[nameSize-testSize-1]==kPatch_dirSeparator);
+    return (nameSize==testSize) || (pathName_utf8[nameSize-testSize-1]==kPatch_dirSeparator);
 }
 
 struct CFileStreamInput:public TFileStreamInput{
@@ -145,7 +145,7 @@ void getDirFileList(const std::string& dirPath,std::vector<std::string>& out_lis
         if ((0==strcmp(path,""))||(0==strcmp(path,"."))||(0==strcmp(path,"..")))
             continue;
         std::string subName(dirPath+path);
-        assert(subName[subName.size()-1]!=kPatch_dirSeparator);
+        assert(!isDirName(subName));
         if (type==kPathType_dir){
             assignDirTag(subName);
             if (!filter->isNeedFilter(subName)){
@@ -373,7 +373,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         }else{
             oldList.push_back(oldPath);
         }
-        listener->diffFileList(newList,oldList);
+        listener->diffFileList(oldList,newList);
     }
 
     std::vector<size_t> dataSamePairList;     //new map to same old
@@ -406,8 +406,8 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     CRefStream oldRefStream;
     newRefStream.open(newRefSList.data(),newRefSList.size());
     oldRefStream.open(oldRefSList.data(),oldRefSList.size());
-    listener->refInfo(sameFilePairCount,newRefIList.size(),oldRefIList.size(),
-                      newRefStream.stream->streamSize,oldRefStream.stream->streamSize);
+    listener->refInfo(sameFilePairCount,oldRefIList.size(),newRefIList.size(),
+                      oldRefStream.stream->streamSize,newRefStream.stream->streamSize);
     
     //serialize headData
     std::vector<TByte> headData;

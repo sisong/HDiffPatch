@@ -65,14 +65,6 @@
 
 #include "decompress_plugin_demo.h"
 
-#ifndef PRId64
-#   ifdef _MSC_VER
-#       define PRId64 "I64d"
-#   else
-#       define PRId64 "lld"
-#   endif
-#endif
-
 #define _free_mem(p) { if (p) { free(p); p=0; } }
 
 
@@ -131,7 +123,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
 
 
 #if (_IS_NEED_MAIN)
-#   ifdef _MSC_VER
+#   if (_IS_USE_WIN32_UTF8_WAPI)
 int wmain(int argc,wchar_t* argv_w[]){
     char* argv_utf8[kPathMaxSize*2/sizeof(char*)];
     if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))
@@ -149,7 +141,8 @@ int main(int argc, const char * argv[]){
 
 
 #define _options_check(value,errorInfo){ \
-    if (!(value)) { printf("options " errorInfo " ERROR!\n"); printUsage(); return HPATCH_OPTIONS_ERROR; } }
+    if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n"); \
+        printUsage(); return HPATCH_OPTIONS_ERROR; } }
 
 #define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
 #define kPatchCacheSize_bestmin  ((size_t)1<<21)
@@ -267,7 +260,7 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
 #define  check_on_error(errorType) { \
     if (result==HPATCH_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define  check(value,errorType,errorInfo) { \
-    if (!(value)){ printf(errorInfo " ERROR!\n"); check_on_error(errorType); } }
+    if (!(value)){ fprintf(stderr,errorInfo " ERROR!\n"); check_on_error(errorType); } }
 
 
 static int getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
@@ -499,8 +492,8 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             check(TDirPatcher_loadOldRefToMem(&dirPatcher,oldPath,temp_cache,temp_cache+oldDataSize),
                   HPATCH_DIRPATCH_LAODOLDREF_ERROR,"load all oldFiles");
             mem_as_hStreamInput(&oldMemStream,temp_cache,temp_cache+oldDataSize);
-            temp_cache+=(size_t)oldDataSize;
-            temp_cache_size-=(size_t)oldDataSize;
+            temp_cache+=oldDataSize;
+            temp_cache_size-=oldDataSize;
             oldStream=&oldMemStream;
         }else{ //open all ref files
             check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,&oldStream),

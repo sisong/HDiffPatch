@@ -27,7 +27,7 @@
 */
 #include "patch.h"
 #include <string.h> //memcpy memset size_t
-#ifdef _IS_NEED_CACHE_OLD_BY_COVERS
+#if (_IS_NEED_CACHE_OLD_BY_COVERS)
 #   include <stdlib.h> //qsort
 #endif
 #include "patch_private.h"
@@ -1183,7 +1183,7 @@ static hpatch_BOOL _compressedCovers_open(_TCompressedCovers** out_self,
     return hpatch_TRUE;
 }
 
-#ifdef _IS_NEED_CACHE_OLD_BY_COVERS
+#if (_IS_NEED_CACHE_OLD_BY_COVERS)
 
 typedef struct _TArrayCovers{
     hpatch_TCovers  ICovers;
@@ -1586,7 +1586,7 @@ hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
                          hpatch_TDecompress* decompressPlugin,
                          TByte** ptemp_cache,TByte** ptemp_cache_end,hpatch_BOOL* out_isReadError){
     const size_t kMinCacheSize=hpatch_kStreamCacheSize*_kCacheCount;
-#ifdef _IS_NEED_CACHE_OLD_BY_COVERS
+#if (_IS_NEED_CACHE_OLD_BY_COVERS)
     const size_t kBestACacheSize=256*1024;   //内存足够时比较好的hpatch_kStreamCacheSize值;
     const size_t kActiveCacheOldMemorySize=(1<<(20+4)); //激活CacheOld功能的内存下限,>7*kBestACacheSize;
 #endif //_IS_NEED_CACHE_OLD_BY_COVERS
@@ -1612,7 +1612,7 @@ hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
         *ptemp_cache_end=temp_cache_end;
         return hpatch_TRUE;
     }
-#ifdef _IS_NEED_CACHE_OLD_BY_COVERS
+#if (_IS_NEED_CACHE_OLD_BY_COVERS)
     else if ((size_t)(temp_cache_end-temp_cache)>=kActiveCacheOldMemorySize) {
         hpatch_BOOL         isUsedCover32;
         TByte*              temp_cache_end_back=temp_cache_end;

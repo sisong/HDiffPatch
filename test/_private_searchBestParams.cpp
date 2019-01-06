@@ -51,7 +51,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
     size_t needRead=(size_t)file_length;
     if ((file_length<0)||((std::streamsize)needRead!=(std::streamsize)file_length)) {
         file.close();
-        std::cout<<"open read file \""<<fileName<<"\" ERROR!";
+        std::cout<<"open read file \""<<fileName<<"\" ERROR!\n";
         exit(1);
     }
     data.resize(needRead);
@@ -59,7 +59,7 @@ void readFile(std::vector<TByte>& data,const char* fileName){
     std::streamsize readed=file.gcount();
     file.close();
     if ((std::streamsize)needRead!=readed){
-        std::cout<<"read file \""<<fileName<<"\" ERROR!";
+        std::cout<<"read file \""<<fileName<<"\" ERROR!\n";
         exit(1);
     }
 }

@@ -42,8 +42,8 @@ using namespace hdiff_private;
 
 static const char kHDiffVersionType[8+1]="HDIFF13&";
 
-#define check(value) { \
-    if (!(value)) { throw std::runtime_error(#value" error!"); } }
+#define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
+#define check(value) checki(value,#value" error!")
 
 namespace{
     
@@ -576,7 +576,7 @@ bool check_compressed_diff(const unsigned char* newData,const unsigned char* new
     return (0==memcmp(updateNew0,newData,updateNewData.size()));
 }
 
-#define check_return(v) {   \
+#define test_return(v) {   \
     if (!(v))  { return hpatch_FALSE; } \
 }
 
@@ -596,16 +596,16 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
         static hpatch_BOOL _write_check(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                         const unsigned char* data,const unsigned char* data_end){
             _TCheckOutNewDataStream* self=(_TCheckOutNewDataStream*)stream->streamImport;
-            check_return(self->writedLen==writeToPos);
+            test_return(self->writedLen==writeToPos);
             self->writedLen+=(size_t)(data_end-data);
-            check_return(self->writedLen<=self->streamSize);
+            test_return(self->writedLen<=self->streamSize);
             
             hpatch_StreamPos_t readPos=writeToPos;
             while (data<data_end) {
                 size_t readLen=(size_t)(data_end-data);
                 if (readLen>self->bufSize) readLen=self->bufSize;
-                check_return(self->newData->read(self->newData,readPos,self->buf,self->buf+readLen));
-                check_return(0==memcmp(data,self->buf,readLen));
+                test_return(self->newData->read(self->newData,readPos,self->buf,self->buf+readLen));
+                test_return(0==memcmp(data,self->buf,readLen));
                 data+=readLen;
                 readPos+=readLen;
             }
@@ -621,9 +621,9 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
     TAutoMem _cache(kACacheBufSize*8);
     
     _TCheckOutNewDataStream out_newData(newData,_cache.data(),kACacheBufSize);
-    check_return(patch_decompress_with_cache(&out_newData,oldData,compressed_diff,decompressPlugin,
+    test_return(patch_decompress_with_cache(&out_newData,oldData,compressed_diff,decompressPlugin,
                                              _cache.data()+kACacheBufSize,_cache.data_end()));
-    check_return(out_newData.writedLen==newData->streamSize);
+    test_return(out_newData.writedLen==newData->streamSize);
     return true;
 }
 
@@ -741,13 +741,13 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
     assert(out_diff->write!=0);
     
     {//read head
-        if (!read_diffz_head(&diffInfo,&head,in_diff))
-            throw std::runtime_error("resave_compressed_diff() read_diffz_head() error!");
-        if ((decompressPlugin==0)&&(diffInfo.compressedCount!=0))
-            throw std::runtime_error("resave_compressed_diff() decompressPlugin null error!");
+        checki(read_diffz_head(&diffInfo,&head,in_diff),
+               "resave_compressed_diff() read_diffz_head() error!");
+        checki((decompressPlugin!=0)||(diffInfo.compressedCount<=0),
+               "resave_compressed_diff() decompressPlugin null error!");
         if ((decompressPlugin)&&(diffInfo.compressedCount>0)){
-            if (!decompressPlugin->is_can_open(decompressPlugin,&diffInfo))
-                throw std::runtime_error("resave_compressed_diff() decompressPlugin cannot open compressed data error!");
+            checki(decompressPlugin->is_can_open(decompressPlugin,&diffInfo),
+                   "resave_compressed_diff() decompressPlugin cannot open compressed data error!");
         }
     }
     
