@@ -74,24 +74,20 @@
 
 
 static void printUsage(){
-    printf("diff usage: hdiffz [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-d]"
-#if (_IS_NEED_ORIGINAL)
-           " [-o]"
-#endif
-           " oldFile newFile outDiffFile\n"
+    printf("diff   usage: hdiffz [options] oldPath newPath outDiffFile\n"
+           "test   usage: hdiffz    -t     oldPath newPath testDiffFile\n"
            "resave usage: hdiffz [-c-compressType[-compressLevel]] diffFile outDiffFile\n"
-           "test usage: hdiffz -t oldFile newFile testDiffFile\n"
            "memory options:\n"
-           "  -m-matchScore\n"
+           "  -m[-matchScore]\n"
            "      all file load into Memory, with matchScore; DEFAULT; best diffFileSize;\n"
            "      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1) bytes of memory;\n"
            "      matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc...\n"
-           "  -s-matchBlockSize\n"
+           "  -s[-matchBlockSize]\n"
            "      all file load as Stream, with matchBlockSize; fast;\n"
            "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;\n"
            "      matchBlockSize>=2, DEFAULT 64, recommended 32,48,1k,64k,1m etc...\n"
            "special options:\n"
-           "  -c-compressType-compressLevel\n"
+           "  -c-compressType[-compressLevel]\n"
            "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"
            "      for resave diffFile,recompress diffFile to outDiffFile by new set;\n"
            "      support compress type & level:\n"
@@ -115,14 +111,18 @@ static void printUsage(){
 #ifdef _CompressPlugin_zstd
            "        -zstd[-{0..22}]             DEFAULT level 20\n"
 #endif
-           "  -v  output Version info. \n"
            "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
-           "  -t  Test only, run patch check, patch(oldFile,testDiffFile)==newFile ? \n"
+           "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
+           "  -l-maxOpenFileCount\n"
+           "      Limit open files's count at same time when stream directory diff;\n"
+           "      DEFAULT maxOpenFileCount==112, the best limit value by different operating system."
 #if (_IS_NEED_ORIGINAL)
            "  -o  Original diff, unsupport run with -s or -c; DEPRECATED;\n"
            "      compatible with \"diff_demo.cpp\",\n"
            "      diffFile must patch by \"patch_demo.c\" or \"hpatchz -o ...\"\n"
 #endif
+           "  -h  output Help info (this usage). \n"
+           "  -v  output Version info. \n\n"
            );
 }
 
@@ -148,7 +148,7 @@ int hdiff_dir(const char* oldPath,const char* newPath,const char* outDiffFileNam
               hpatch_BOOL oldIsDir, hpatch_BOOL newIsdir,
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TDecompress* decompressPlugin);
+              hpatch_TDecompress* decompressPlugin,size_t kMaxOpenFileCount);
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
           hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
           hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
@@ -223,15 +223,18 @@ static bool _trySetCompress(hdiff_TStreamCompress** streamCompressPlugin,
     if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n"); printUsage(); return HDIFF_OPTIONS_ERROR; } }
 
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
+#define _kNULL_SIZE     ((size_t)(-1))
 
 int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=_kNULL_VALUE;
     hpatch_BOOL isLoadAll=_kNULL_VALUE;
     hpatch_BOOL isPatchCheck=_kNULL_VALUE;
     hpatch_BOOL isDiff=_kNULL_VALUE;
+    hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      matchValue=0;
     size_t      compressLevel=0;
+    size_t      kMaxOpenFileCount=_kNULL_SIZE; //only used in stream dir diff
 #ifdef _CompressPlugin_lzma
     size_t      dictSize=0;
 #endif
@@ -243,7 +246,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* op=argv[i];
         _options_check((op!=0)&&(strlen(op)>0),"?");
         if (op[0]!='-'){
-            arg_values.push_back(op); //path:file or dir
+            arg_values.push_back(op); //path:file or directory
             continue;
         }
         switch (op[1]) {
@@ -272,6 +275,15 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 }else{
                     matchValue=kMatchBlockSize_default;
                 }
+            } break;
+            case 'l':{
+                _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-l-?")
+                const char* pnum=op+3;
+                _options_check(kmg_to_size(pnum,strlen(pnum),&matchValue),"-l-?");
+            } break;
+            case 'h':{
+                _options_check((isOutputHelp==_kNULL_VALUE)&&(op[2]=='\0'),"-h");
+                isOutputHelp=hpatch_TRUE;
             } break;
             case 'v':{
                 _options_check((isOutputVersion==_kNULL_VALUE)&&(op[2]=='\0'),"-v");
@@ -334,13 +346,22 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         }//swich
     }
     
+    if (isOutputHelp==_kNULL_VALUE)
+        isOutputHelp=hpatch_FALSE;
     if (isOutputVersion==_kNULL_VALUE)
         isOutputVersion=hpatch_FALSE;
-    if (isOutputVersion){
+    if (isOutputHelp||isOutputVersion){
         printf("HDiffPatch::hdiffz v" HDIFFPATCH_VERSION_STRING "\n\n");
+        if (isOutputHelp)
+            printUsage();
         if (arg_values.empty())
             return 0; //ok
     }
+    if (kMaxOpenFileCount==_kNULL_SIZE){
+        kMaxOpenFileCount=kMaxOpenFileCount_default;
+    }
+    if (kMaxOpenFileCount<kMaxOpenFileCount_min)
+        kMaxOpenFileCount=kMaxOpenFileCount_min;
     
     _options_check((arg_values.size()==2)||(arg_values.size()==3),"count");
     if (arg_values.size()==3){
@@ -374,8 +395,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* outDiffFileName=arg_values[2];
         TPathType oldType;
         TPathType newType;
-        _options_check(getPathType(oldPath,&oldType),"input old path must file or dir");
-        _options_check(getPathType(newPath,&newType),"input new path must file or dir");
+        _options_check(getPathType(oldPath,&oldType),"input old path must file or directory");
+        _options_check(getPathType(newPath,&newType),"input new path must file or directory");
         hpatch_BOOL isUseDirDiff=(kPathType_dir==oldType)||(kPathType_dir==newType);
         if (isUseDirDiff)
             _options_check(!isOriginal,"-o unsupport dir diff");
@@ -383,7 +404,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         if (isUseDirDiff){
             return hdiff_dir(oldPath,newPath,outDiffFileName, (kPathType_dir==oldType),
                              (kPathType_dir==newType), isDiff,isLoadAll,matchValue,isPatchCheck,
-                             streamCompressPlugin,compressPlugin,decompressPlugin);
+                             streamCompressPlugin,compressPlugin,decompressPlugin,kMaxOpenFileCount);
         }else{
             return hdiff(oldPath,newPath,outDiffFileName,isDiff,isLoadAll,matchValue,isPatchCheck,
                          streamCompressPlugin,compressPlugin,decompressPlugin,isOriginal);
@@ -769,14 +790,14 @@ struct DirDiffListener:public IDirDiffListener{
 };
 
 
-int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileName,
               hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TDecompress* decompressPlugin){
+              hpatch_TDecompress* decompressPlugin,size_t kMaxOpenFileCount){
     double time0=clock_s();
-    std::string oldPatch(oldFileName);
-    std::string newPatch(newFileName);
+    std::string oldPatch(_oldPath);
+    std::string newPatch(_newPath);
     if (oldIsDir) assignDirTag(oldPatch); else assert(!getIsDirName(oldPatch.c_str()));
     if (newIsDir) assignDirTag(newPatch); else assert(!getIsDirName(newPatch.c_str()));
     std::string fnameInfo=std::string("")
@@ -805,8 +826,8 @@ int hdiff_dir(const char* oldFileName,const char* newFileName,const char* outDif
                   HDIFF_OPENWRITE_ERROR,"open out diffFile");
             TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
             DirDiffListener listener;
-            dir_diff(&listener,oldPatch,newPatch,&diffData_out.base,
-                     isLoadAll!=0,matchValue,streamCompressPlugin,compressPlugin);
+            dir_diff(&listener,oldPatch,newPatch,&diffData_out.base,isLoadAll!=0,
+                     matchValue,streamCompressPlugin,compressPlugin,kMaxOpenFileCount);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             check(false,HDIFF_DIR_DIFF_ERROR,"dir diff run an error: "+e.what()+",");

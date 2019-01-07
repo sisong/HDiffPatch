@@ -69,24 +69,24 @@
 
 
 static void printUsage(){
-    printf("usage: hpatchz [-m|-s[-s-cacheSize]] "
-#if (_IS_NEED_ORIGINAL)
-           "[-o] "
-#endif
-           "oldPath diffFile outNewPath\n"
+    printf("usage: hpatchz [options] oldPath diffFile outNewPath\n"
            "memory options:\n"
            "  -m  oldPath all loaded into Memory; fast;\n"
            "      requires (oldFileSize + 4 * decompress stream size) + O(1) bytes of memory\n"
-           "  -s-cacheSize \n"
+           "  -s[-cacheSize] \n"
            "      oldPath loaded as Stream, with cacheSize; DEFAULT;\n"
            "      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m\n"
-#if (_IS_NEED_ORIGINAL)
            "special options:\n"
-           "  -v  output Version info. \n"
+           "  -l-maxOpenFileCount\n"
+           "      Limit open files's count at same time when stream directory diff;\n"
+           "      DEFAULT maxOpenFileCount==112, the best limit value by different operating system."
+#if (_IS_NEED_ORIGINAL)
            "  -o  Original patch; DEPRECATED; compatible with \"patch_demo.c\",\n"
            "      diffFile must created by \"diff_demo.cpp\" or \"hdiffz -o ...\"\n"
 #endif
+           "  -h  output Help info (this usage). \n"
+           "  -v  output Version info. \n\n"
            );
 }
 
@@ -149,12 +149,15 @@ int main(int argc, const char * argv[]){
 #define kPatchCacheSize_bestmax  ((size_t)1<<30)
 
 #define _kNULL_VALUE    (-1)
+#define _kNULL_SIZE     ((size_t)(-1))
 
 int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=_kNULL_VALUE;
     hpatch_BOOL isLoadOldAll=_kNULL_VALUE;
+    hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      patchCacheSize=0;
+    size_t      kMaxOpenFileCount=_kNULL_SIZE; //only used in stream dir patch
     #define kMax_arg_values_size 3
     const char * arg_values[kMax_arg_values_size]={0};
     int          arg_values_size=0;
@@ -164,22 +167,12 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         _options_check((op!=0)&&(strlen(op)>0),"?");
         if (op[0]!='-'){
             _options_check(arg_values_size<kMax_arg_values_size,"count");
-            arg_values[arg_values_size]=op; //path: file or dir
+            arg_values[arg_values_size]=op; //path: file or directory
             ++arg_values_size;
             continue;
         }
         _options_check((op!=0)&&(op[0]=='-'),"?");
         switch (op[1]) {
-            case 'v':{
-                _options_check((isOutputVersion==_kNULL_VALUE)&&(op[2]=='\0'),"-v");
-                isOutputVersion=hpatch_TRUE;
-            } break;
-#if (_IS_NEED_ORIGINAL)
-            case 'o':{
-                _options_check((isOriginal==_kNULL_VALUE)&&(op[2]=='\0'),"-o");
-                isOriginal=hpatch_TRUE;
-            } break;
-#endif
             case 'm':{
                 _options_check((isLoadOldAll==_kNULL_VALUE)&&(op[2]=='\0'),"-m");
                 isLoadOldAll=hpatch_TRUE;
@@ -190,25 +183,51 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 if (op[2]=='-'){
                     const char* pnum=op+3;
                     _options_check(kmg_to_size(pnum,strlen(pnum),&patchCacheSize),"-s-?");
-                    if (patchCacheSize<kPatchCacheSize_min)
-                        patchCacheSize=kPatchCacheSize_min;
                 }else{
                     patchCacheSize=kPatchCacheSize_default;
                 }
             } break;
+            case 'l':{
+                _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-l-?")
+                const char* pnum=op+3;
+                _options_check(kmg_to_size(pnum,strlen(pnum),&matchValue),"-l-?");
+            } break;
+            case 'h':{
+                _options_check((isOutputHelp==_kNULL_VALUE)&&(op[2]=='\0'),"-h");
+                isOutputHelp=hpatch_TRUE;
+            } break;
+            case 'v':{
+                _options_check((isOutputVersion==_kNULL_VALUE)&&(op[2]=='\0'),"-v");
+                isOutputVersion=hpatch_TRUE;
+            } break;
+#if (_IS_NEED_ORIGINAL)
+            case 'o':{
+                _options_check((isOriginal==_kNULL_VALUE)&&(op[2]=='\0'),"-o");
+                isOriginal=hpatch_TRUE;
+            } break;
+#endif
             default: {
                 _options_check(hpatch_FALSE,"-?");
             } break;
         }//swich
     }
     
+    if (isOutputHelp==_kNULL_VALUE)
+        isOutputHelp=hpatch_FALSE;
     if (isOutputVersion==_kNULL_VALUE)
         isOutputVersion=hpatch_FALSE;
-    if (isOutputVersion){
+    if (isOutputHelp||isOutputVersion){
         printf("HDiffPatch::hpatchz v" HDIFFPATCH_VERSION_STRING "\n\n");
+        if (isOutputHelp)
+            printUsage();
         if (arg_values_size==0)
             return 0; //ok
     }
+    if (kMaxOpenFileCount==_kNULL_SIZE){
+        kMaxOpenFileCount=kMaxOpenFileCount_default;
+    }
+    if (kMaxOpenFileCount<kMaxOpenFileCount_min)
+        kMaxOpenFileCount=kMaxOpenFileCount_min;
     
     _options_check(arg_values_size==kMax_arg_values_size,"count");
     if (isOriginal==_kNULL_VALUE)
@@ -310,18 +329,24 @@ static void* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
     void*  temp_cache=0;
     size_t temp_cache_size;
     if (isLoadOldAll){
+        size_t addSize=kPatchCacheSize_bestmin;
+        if (addSize>oldDataSize+kPatchCacheSize_min)
+            addSize=oldDataSize+kPatchCacheSize_min;
         assert(patchCacheSize==0);
-        temp_cache_size=(size_t)(oldDataSize+kPatchCacheSize_bestmin);
-        if (temp_cache_size!=oldDataSize+kPatchCacheSize_bestmin)
+        temp_cache_size=(size_t)(oldDataSize+addSize);
+        if (temp_cache_size!=oldDataSize+addSize)
             temp_cache_size=kPatchCacheSize_bestmax;//can not load all,load part
     }else{
+        if (patchCacheSize<kPatchCacheSize_min)
+            patchCacheSize=kPatchCacheSize_min;
         temp_cache_size=patchCacheSize;
         if (temp_cache_size>oldDataSize+kPatchCacheSize_bestmin)
             temp_cache_size=(size_t)(oldDataSize+kPatchCacheSize_bestmin);
     }
     while (!temp_cache) {
         temp_cache=(TByte*)malloc(temp_cache_size);
-        if ((!temp_cache)&&(temp_cache_size>=kPatchCacheSize_min*2)) temp_cache_size>>=1;
+        if ((!temp_cache)&&(temp_cache_size>=kPatchCacheSize_min*2))
+            temp_cache_size>>=1;
     }
     *out_memCacheSize=(temp_cache)?temp_cache_size:0;
     return temp_cache;

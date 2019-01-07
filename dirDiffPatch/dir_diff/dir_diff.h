@@ -58,7 +58,8 @@ struct IDirDiffListener:public IDirFilter{
 
 void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::string& newPatch,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
-              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin);
+              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
+              size_t kMaxOpenFileCount);
 
 
 void resave_compressed_dirdiff(const hpatch_TStreamInput*  in_diff,

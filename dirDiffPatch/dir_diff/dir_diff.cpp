@@ -293,18 +293,23 @@ struct _TCmp_byHit {
     const std::vector<size_t>& oldHitList;
 };
 
-static void getRefList(const std::string& newRootPath,const std::string& oldRootPath,
-                       const std::vector<std::string>& newList,const std::vector<std::string>& oldList,
+static void getRefList(const std::string& oldRootPath,const std::string& newRootPath,
+                       const std::vector<std::string>& oldList,const std::vector<std::string>& newList,
+                       std::vector<hpatch_StreamPos_t>& out_oldSizeList,
+                       std::vector<hpatch_StreamPos_t>& out_newSizeList,
                        std::vector<size_t>& out_dataSamePairList,
-                       std::vector<size_t>& out_newRefList,std::vector<size_t>& out_oldRefList){
+                       std::vector<size_t>& out_oldRefList,std::vector<size_t>& out_newRefList){
     typedef std::multimap<hash_value_t,size_t> TMap;
     TMap hashMap;
     std::set<size_t> oldRefList;
+    out_oldSizeList.assign(oldList.size(),0);
+    out_newSizeList.assign(oldList.size(),0);
     for (size_t i=0; i<oldList.size(); ++i) {
         const std::string& fileName=oldList[i];
         if (isDirName(fileName)) continue;
         hpatch_StreamPos_t fileSize=0;
         hash_value_t hash=getFileHash(fileName,&fileSize);
+        out_oldSizeList[i]=fileSize;
         if (fileSize==0) continue;
         hashMap.insert(TMap::value_type(hash,i));
         oldRefList.insert(i);
@@ -317,6 +322,7 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
         if (isDirName(fileName)) continue;
         hpatch_StreamPos_t fileSize=0;
         hash_value_t hash=getFileHash(fileName,&fileSize);
+        out_newSizeList[newi]=fileSize;
         if (fileSize==0) continue;
         
         bool isFoundSame=false;
@@ -354,40 +360,46 @@ static void getRefList(const std::string& newRootPath,const std::string& oldRoot
 
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
-              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin){
+              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
+              size_t kMaxOpenFileCount){
+    assert(kMaxOpenFileCount>=kMaxOpenFileCount_min);
     assert(listener!=0);
-    std::vector<std::string> newList;
     std::vector<std::string> oldList;
-    const bool newIsDir=isDirName(newPath);
+    std::vector<std::string> newList;
     const bool oldIsDir=isDirName(oldPath);
+    const bool newIsDir=isDirName(newPath);
     {
-        if (newIsDir){
-            getDirFileList(newPath,newList,listener);
-            sortDirFileList(newList);
-        }else{
-            newList.push_back(newPath);
-        }
         if (oldIsDir){
             getDirFileList(oldPath,oldList,listener);
             sortDirFileList(oldList);
         }else{
             oldList.push_back(oldPath);
         }
+        if (newIsDir){
+            getDirFileList(newPath,newList,listener);
+            sortDirFileList(newList);
+        }else{
+            newList.push_back(newPath);
+        }
         listener->diffFileList(oldList,newList);
     }
-
+    
+    std::vector<hpatch_StreamPos_t> oldSizeList;
+    std::vector<hpatch_StreamPos_t> newSizeList;
     std::vector<size_t> dataSamePairList;     //new map to same old
-    std::vector<const hpatch_TStreamInput*> newRefSList;
-    std::vector<const hpatch_TStreamInput*> oldRefSList;
-    std::vector<hpatch_StreamPos_t> newRefSizeList;
-    std::vector<size_t> newRefIList;
     std::vector<size_t> oldRefIList;
-    std::vector<CFileStreamInput> _newRefList;
+    std::vector<size_t> newRefIList;
+    getRefList(oldPath,newPath,oldList,newList,
+               oldSizeList,newSizeList,dataSamePairList,oldRefIList,newRefIList);
+    kMaxOpenFileCount-=1; // for outDiffStream
+    std::vector<const hpatch_TStreamInput*> oldRefSList;
+    std::vector<const hpatch_TStreamInput*> newRefSList;
+    std::vector<hpatch_StreamPos_t> newRefSizeList;
     std::vector<CFileStreamInput> _oldRefList;
+    std::vector<CFileStreamInput> _newRefList;
     {
-        getRefList(newPath,oldPath,newList,oldList,dataSamePairList,newRefIList,oldRefIList);
-        _newRefList.resize(newRefIList.size());
         _oldRefList.resize(oldRefIList.size());
+        _newRefList.resize(newRefIList.size());
         oldRefSList.resize(oldRefIList.size());
         newRefSList.resize(newRefIList.size());
         newRefSizeList.resize(newRefIList.size());
@@ -399,6 +411,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
             _newRefList[i].open(newList[newRefIList[i]]);
             newRefSList[i]=&_newRefList[i].base;
             newRefSizeList[i]=newRefSList[i]->streamSize;
+            assert(newRefSizeList[i]==newSizeList[newRefIList[i]]);
         }
     }
     size_t sameFilePairCount=dataSamePairList.size()/2;

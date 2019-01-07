@@ -42,6 +42,9 @@
 #endif
 static const char kPatch_dirSeparator_saved = '/';
 
+#define kMaxOpenFileCount_min       8
+#define kMaxOpenFileCount_default   (128-16)
+
 hpatch_inline static
 hpatch_BOOL getIsDirName(const char* path_utf8){
     size_t len=strlen(path_utf8);

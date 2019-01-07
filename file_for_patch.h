@@ -197,7 +197,7 @@ hpatch_BOOL _import_fileOpenRead(const char* fileName_utf8,hpatch_FileHandle* ou
 }
 
 hpatch_inline static
-hpatch_BOOL _import_fileOpenCreateOrWrite(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle){
+hpatch_BOOL _import_fileOpenCreateOrReWrite(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle){
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
@@ -232,7 +232,7 @@ int printPath_utf8(const char* pathTxt_utf8){
     wchar_t pathTxt_w[kPathMaxSize];
     int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,kPathMaxSize);
     if (wsize>0)
-        return wprintf(L"%ls",pathTxt_w);
+        return printf("%ls",pathTxt_w);
     else //view unknow
         return printf("%s",pathTxt_utf8);
 #else
@@ -246,7 +246,7 @@ int printStdErrPath_utf8(const char* pathTxt_utf8){
     wchar_t pathTxt_w[kPathMaxSize];
     int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,kPathMaxSize);
     if (wsize>0)
-        return fwprintf(stderr,L"%ls",pathTxt_w);
+        return fprintf(stderr,"%ls",pathTxt_w);
     else //view unknow
         return fprintf(stderr,"%s",pathTxt_utf8);
 #else
@@ -354,7 +354,7 @@ hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName_
                                           hpatch_StreamPos_t max_file_length){
     assert(self->m_file==0);
     if (self->m_file) return hpatch_FALSE;
-    if (!_import_fileOpenCreateOrWrite(fileName_utf8,&self->m_file)) return hpatch_FALSE;
+    if (!_import_fileOpenCreateOrReWrite(fileName_utf8,&self->m_file)) return hpatch_FALSE;
     
     self->base.streamImport=self;
     self->base.streamSize=max_file_length;
