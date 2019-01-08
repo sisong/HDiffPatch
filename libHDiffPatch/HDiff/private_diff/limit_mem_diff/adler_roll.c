@@ -28,7 +28,8 @@
 #include "adler_roll.h"
 #include <assert.h>
 
-#define MAX_DATA ((1<<sizeof(adler_data_t)*8)-1)
+#define MAX_DATA    255
+#define MAX_DATA64  65025 // (255*255)
 
 #   define _adler32_BASE                65521 //largest prime that is less than 2^32
 #   define _adler_mod(v,BASE)           ((v)%(BASE))
@@ -46,99 +47,108 @@
 #   define _fast_adler64_BASE           ((uint64_t)1<<32)
 
 
-#define adler_add1(adler,sum,byteData){ \
-    (adler) += (byteData); \
-    (sum)   += (adler);    \
-}
-#define fast_adler_add1(adler,sum,byteData){ \
-    adler_data_t v=byteData;    \
-    (adler) += (uint32_t)(((uint32_t)v)*v); \
-    (sum)   += (adler);         \
-}
-
-#define _adler_add8(_adler_add1, adler,sum,pdata,i){ \
-    _adler_add1(adler,sum,pdata[  i]); \
-    _adler_add1(adler,sum,pdata[1+i]); \
-    _adler_add1(adler,sum,pdata[2+i]); \
-    _adler_add1(adler,sum,pdata[3+i]); \
-    _adler_add1(adler,sum,pdata[4+i]); \
-    _adler_add1(adler,sum,pdata[5+i]); \
-    _adler_add1(adler,sum,pdata[6+i]); \
-    _adler_add1(adler,sum,pdata[7+i]); \
+#define adler_add1(half_bit, adler,sum,byteData){ \
+    adler_data_t v=byteData;   \
+    if (half_bit>sizeof(adler_data_t)*16) \
+        (adler) += (((uint32_t)v)*v);    \
+    else \
+        (adler) += v; \
+    (sum) += (adler);          \
 }
 
-//limit: 255*n*(n+1)/2 + (n+1)(B-1) <= 2^32-1
+#define _adler_add8(half_bit, adler,sum,pdata){ \
+    adler_add1(half_bit,adler,sum,pdata[0]); \
+    adler_add1(half_bit,adler,sum,pdata[1]); \
+    adler_add1(half_bit,adler,sum,pdata[2]); \
+    adler_add1(half_bit,adler,sum,pdata[3]); \
+    adler_add1(half_bit,adler,sum,pdata[4]); \
+    adler_add1(half_bit,adler,sum,pdata[5]); \
+    adler_add1(half_bit,adler,sum,pdata[6]); \
+    adler_add1(half_bit,adler,sum,pdata[7]); \
+}
+
+//limit: 255*n*(n+1)/2 + (n+1)(65521-1) <= 2^32-1
 // => max(n)=5552
-// => if (255 to (2^16-1)) then max(n) =360
-#define kFNBest (8*45)     // <=360
+//limit: 255*255*n*(n+1)/2 + (n+1)(0xFFFFFFFB-1) <= 2^64-1
+// => max(n) >>> 5552
+#define kFNBest (16*347)   // <=5552
 #define _adler_append(uint_t,half_bit,BASE,mod,border1, adler,pdata,n){ \
     uint_t sum=adler>>half_bit;      \
     adler&=(((uint_t)1<<half_bit)-1);\
+_case8:        \
+    switch(n){ \
+        case  8: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  7: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  6: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  5: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  4: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  3: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  2: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  1: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  0: { sum  =mod(sum,BASE);              \
+                   border1(adler,BASE);              \
+                   return adler | (sum<<half_bit); } \
+        default: { /* continue */ }                  \
+    } \
     while(n>=kFNBest){  \
-        size_t fn=kFNBest>>3;/* kFNBest/8 */  \
-        do{     \
-            _adler_add8(adler_add1,adler,sum,pdata,0);\
+        n-=kFNBest;     \
+        size_t fn=(kFNBest>>3);\
+        do{ \
+            _adler_add8(half_bit,adler,sum,pdata);\
             pdata+=8;   \
         }while(--fn);   \
         sum  =mod(sum,BASE);   \
         adler=mod(adler,BASE); \
-        n-=kFNBest;     \
-    }           \
-    if (n>=8){  \
-        while (n>=8) {  \
-            _adler_add8(adler_add1,adler,sum,pdata,0);\
+    }       \
+    if (n>8) {         \
+        do{ \
+            _adler_add8(half_bit,adler,sum,pdata);\
             pdata+=8;   \
             n-=8;       \
-        }       \
-        while (n--) {   \
-            adler_add1(adler,sum,*pdata);  \
-            ++pdata;    \
-        }       \
-        sum  =mod(sum,BASE);   \
+        } while(n>=8);  \
         adler=mod(adler,BASE); \
-    }else{      \
-        while (n--) {   \
-            adler_add1(adler,sum,*pdata);  \
-            border1(sum,BASE); \
-            ++pdata;    \
-        }      \
-        border1(adler,BASE);   \
-    }          \
-    return adler | (sum<<half_bit);  \
+    }       \
+    goto _case8; \
 }
 
 #define _fast_adler_append(uint_t,half_bit,BASE,mod, adler,pdata,n){ \
     uint_t sum=adler>>half_bit;      \
     adler&=(((uint_t)1<<half_bit)-1);\
-    while(n>=8){    \
-        _adler_add8(fast_adler_add1,adler,sum,pdata,0); \
-        pdata+=8;   \
-        n-=8;       \
-    }               \
+_case8:  \
     switch(n){ \
-        case 7: { fast_adler_add1(adler,sum,*pdata); ++pdata; } \
-        case 6: { fast_adler_add1(adler,sum,*pdata); ++pdata; } \
-        case 5: { fast_adler_add1(adler,sum,*pdata); ++pdata; } \
-        case 4: { fast_adler_add1(adler,sum,*pdata); ++pdata; } \
-        case 3: { fast_adler_add1(adler,sum,*pdata); ++pdata; } \
-        case 2: { fast_adler_add1(adler,sum,*pdata); ++pdata; } \
-        case 1: { fast_adler_add1(adler,sum,*pdata); ++pdata; } \
-        case 0:  { } \
-        default: { } \
-    } \
-    return mod(adler,BASE) | (sum<<half_bit); \
+        case  8: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  7: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  6: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  5: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  4: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  3: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  2: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  1: { adler_add1(half_bit,adler,sum,*pdata++); } \
+        case  0: { return mod(adler,BASE) | (sum<<half_bit); } \
+        default:{ /* continue */} \
+    }   \
+    do{ \
+        _adler_add8(half_bit,adler,sum,pdata); \
+        pdata+=8;  \
+        n-=8;      \
+    } while(n>=8); \
+    goto _case8;   \
 }
 
 #define  _adler_roll(uint_t,half_bit,BASE,mod,border2,kBestBlockSize,\
                      adler,blockSize,out_data,in_data){ \
     uint_t sum=adler>>half_bit;       \
+    uint32_t _in_data=in_data;        \
+    uint32_t _out_data=out_data;      \
+    if (half_bit>sizeof(adler_data_t)*16){        \
+        _in_data*=in_data; _out_data*=out_data; } \
     adler&=(((uint_t)1<<half_bit)-1); \
     /*  [0..B-1] + [0..255] + B - [0..255]   =>  [0+0+B-255..B-1+255+B-0]*/ \
-    adler=adler+in_data+(uint_t)(BASE-out_data);/* => [B-255..B*2-1+255] */ \
+    adler=adler+_in_data+(uint_t)(BASE-_out_data);/* => [B-255..B*2-1+255] */ \
     border2(adler,BASE);      \
     /* [0..B-1] + [0..B-1] + B-1 - [0..B-1] => [(B-1)-(B-1)..B-1+B-1+B-1]*/ \
     blockSize=(blockSize<=kBestBlockSize)?blockSize:mod(blockSize,BASE);    \
-    sum=sum+adler+(uint_t)((BASE-ADLER_INITIAL) - mod(blockSize*out_data,BASE)); \
+    sum=sum+adler+(uint_t)((BASE-ADLER_INITIAL) - mod(blockSize*_out_data,BASE)); \
     border2(sum,BASE);        \
     return adler | (sum<<half_bit);   \
 }
@@ -162,11 +172,9 @@
 
 //limit: if all result in uint32_t
 //blockSize*255 <= 2^32-1
-// => max(blockSize)=(2^32-1)/255
-// max(blockSize) =16843009 =(1<<24)+65793
-// => if (255 to (2^16-1)) then max(blockSize) =65537 = (1<<16)+1
+// => max(blockSize)=(2^32-1)/255   ( =16843009 =(1<<24)+65793 )
 static const size_t   adler_roll_kBestBlockSize=((size_t)(~(size_t)0))/MAX_DATA;
-static const uint64_t adler64_roll_kBestBlockSize=0xFFFFFFFFFFFFFFFFull/MAX_DATA;
+static const uint64_t adler64_roll_kBestBlockSize=((uint64_t)(~(uint64_t)0))/MAX_DATA64;
 
 uint32_t adler32_append(uint32_t adler,const adler_data_t* pdata,size_t n)
     _adler_append(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border1, adler,pdata,n)
