@@ -64,15 +64,13 @@ extern "C" {
 #ifndef ADLER_INITIAL
 #define ADLER_INITIAL 1 //must 0 or 1
 #endif
-
+extern const uint32_t* _private_fast_adler_table;
+    
 #define  __private_fast_adler_roll(uint_t,half_bit, \
                                   adler,blockSize,out_data,in_data){ \
+    uint32_t in_v=_private_fast_adler_table[in_data];    \
+    uint32_t out_v=_private_fast_adler_table[out_data];  \
     uint_t sum=adler>>half_bit; \
-    uint32_t in_v,out_v;        \
-    if (half_bit>sizeof(adler_data_t)*16){    \
-        in_v=((uint32_t)in_data)*in_data;    \
-        out_v=((uint32_t)out_data)*out_data; \
-    }else{  in_v=in_data; out_v=out_data; }  \
     adler= adler +in_v -out_v;  \
     sum  = sum + adler - ADLER_INITIAL-(uint32_t)(((uint32_t)blockSize)*out_v); \
     return (adler&(((uint_t)1<<half_bit)-1)) | (sum<<half_bit); \

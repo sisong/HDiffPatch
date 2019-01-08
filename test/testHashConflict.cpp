@@ -145,7 +145,7 @@ struct THash_adler64f{
 
 
 const long kRandTestMaxSize=1024*1024*1024;
-const long kMaxHashSize=1024;
+const long kMaxHashSize=256+64;
 const uint64_t kRandTestCount=100000000;
 
 template <class THash>
@@ -216,8 +216,8 @@ int main() {
     }
     
     test<THash_adler32h>(data.data(),data.data()+data.size());
-    test<THash_adler32f>(data.data(),data.data()+data.size());
     test<THash_adler64h>(data.data(),data.data()+data.size());
+    test<THash_adler32f>(data.data(),data.data()+data.size());
     test<THash_adler64f>(data.data(),data.data()+data.size());
     test<THash_adler32>(data.data(),data.data()+data.size());
     test<THash_crc32>(data.data(),data.data()+data.size());
