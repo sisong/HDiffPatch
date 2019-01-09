@@ -164,7 +164,6 @@ int wmain(int argc,wchar_t* argv_w[]){
     if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))
         return HDIFF_OPTIONS_ERROR;
     SetDefaultStringLocale();
-    _setmaxstdio(2048);
     return hdiff_cmd_line(argc,(const char**)argv_utf8);
 }
 #   else
@@ -279,7 +278,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             case 'l':{
                 _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-l-?")
                 const char* pnum=op+3;
-                _options_check(kmg_to_size(pnum,strlen(pnum),&matchValue),"-l-?");
+                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileCount),"-l-?");
             } break;
             case 'h':{
                 _options_check((isOutputHelp==_kNULL_VALUE)&&(op[2]=='\0'),"-h");
@@ -357,11 +356,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         if (arg_values.empty())
             return 0; //ok
     }
-    if (kMaxOpenFileCount==_kNULL_SIZE){
-        kMaxOpenFileCount=kMaxOpenFileCount_default;
-    }
-    if (kMaxOpenFileCount<kMaxOpenFileCount_min)
-        kMaxOpenFileCount=kMaxOpenFileCount_min;
+    if (kMaxOpenFileCount==_kNULL_SIZE)
+        kMaxOpenFileCount=kMaxOpenFileCount_default_diff;
     
     _options_check((arg_values.size()==2)||(arg_values.size()==3),"count");
     if (arg_values.size()==3){
@@ -521,7 +517,7 @@ static int hdiff_m(const char* oldFileName,const char* newFileName,const char* o
                                        outDiffData,compressPlugin,(int)matchScore);
             }
         }catch(const std::exception& e){
-            check(false,HDIFF_DIFF_ERROR,"diff run an error: "+e.what()+",");
+            check(false,HDIFF_DIFF_ERROR,"diff run an error: "+e.what());
         }
         printf("diffDataSize: %"PRId64"\n",(hpatch_StreamPos_t)outDiffData.size());
         check(writeFileAll(outDiffData.data(),outDiffData.size(),outDiffFileName),
@@ -592,7 +588,7 @@ static int hdiff_s(const char* oldFileName,const char* newFileName,const char* o
                                           streamCompressPlugin,matchBlockSize);
             diffData.base.streamSize=diffData.out_length;
         }catch(const std::exception& e){
-            check(false,HDIFF_DIFF_ERROR,"stream diff run an error: "+e.what()+",");
+            check(false,HDIFF_DIFF_ERROR,"stream diff run an error: "+e.what());
         }
         check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close");
         printf("diffDataSize: %"PRId64"\n",diffData.base.streamSize);
@@ -727,7 +723,7 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
         }
         diffData_out.base.streamSize=diffData_out.out_length;
     }catch(const std::exception& e){
-        check(false,HDIFF_RESAVE_ERROR,"resave diff run an error: "+e.what()+",");
+        check(false,HDIFF_RESAVE_ERROR,"resave diff run an error: "+e.what());
     }
     printf("outDiffSize: %"PRId64"\n",diffData_out.base.streamSize);
     check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
@@ -830,7 +826,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
                      matchValue,streamCompressPlugin,compressPlugin,kMaxOpenFileCount);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
-            check(false,HDIFF_DIR_DIFF_ERROR,"dir diff run an error: "+e.what()+",");
+            check(false,HDIFF_DIR_DIFF_ERROR,"dir diff run an error: "+e.what());
         }
         printf("\nDirDiff size: %"PRId64"\n",diffData_out.base.streamSize);
         printf("DirDiff time: %.3f s\n",(clock_s()-time0));

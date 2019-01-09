@@ -3,7 +3,7 @@
 //
 /*
  The MIT License (MIT)
- Copyright (c) 2012-2019 HouSisong
+ Copyright (c) 2018-2019 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -100,9 +100,9 @@ hpatch_BOOL     TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* di
     
 hpatch_BOOL     TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin);
 
-hpatch_BOOL     TDirPatcher_loadOldRefToMem(TDirPatcher* self,const char* oldRootDir,
+hpatch_BOOL     TDirPatcher_loadOldRefToMem(TDirPatcher* self,const char* oldRootDir_utf8,
                                             unsigned char* out_buf,unsigned char* out_buf_end);
-hpatch_BOOL     TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRootDir,
+hpatch_BOOL     TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRootDir_utf8,
                                                const hpatch_TStreamInput** out_oldRefStream);
 hpatch_BOOL     TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newRootDir,INewDirListener* listener,
                                                const hpatch_TStreamOutput** out_newDirStream);

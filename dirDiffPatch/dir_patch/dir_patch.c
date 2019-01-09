@@ -3,7 +3,7 @@
 //
 /*
  The MIT License (MIT)
- Copyright (c) 2012-2019 HouSisong
+ Copyright (c) 2018-2019 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -330,7 +330,7 @@ clear:
 }
 
 
-hpatch_BOOL TDirPatcher_loadOldRefToMem(TDirPatcher* self,const char* oldRootDir,
+hpatch_BOOL TDirPatcher_loadOldRefToMem(TDirPatcher* self,const char* oldRootDir_utf8,
                                         unsigned char* out_buf,unsigned char* out_buf_end){
     hpatch_BOOL result=hpatch_TRUE;
     size_t      refCount=self->dirDiffHead.oldRefFileCount;
@@ -342,7 +342,7 @@ hpatch_BOOL TDirPatcher_loadOldRefToMem(TDirPatcher* self,const char* oldRootDir
     TFileStreamInput_init(&file);
     check(out_buf_end-out_buf==self->dirDiffInfo.hdiffInfo.oldDataSize);
     assert(self->_pOldRefMem==0);
-    curFileNamePush=pushDirPath(curFileNamePush,fileName+kPathMaxSize,oldRootDir);
+    curFileNamePush=pushDirPath(curFileNamePush,fileName+kPathMaxSize,oldRootDir_utf8);
     check(curFileNamePush!=0);
     
     for (i=0; i<refCount;++i){
@@ -377,7 +377,7 @@ static hpatch_BOOL _closeOldRefStream(TDirPatcher* self,const hpatch_TStreamInpu
     return result;
 }
 
-hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRootDir,
+hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRootDir_utf8,
                                            const hpatch_TStreamInput** out_oldRefStream){
     hpatch_BOOL result=hpatch_TRUE;
     size_t      refCount=self->dirDiffHead.oldRefFileCount;
@@ -391,7 +391,7 @@ hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRoot
     assert(self->_pOldRefMem==0);
     self->_pOldRefMem=malloc(memSize);
     check(self->_pOldRefMem!=0);
-    curFileNamePush=pushDirPath(curFileNamePush,fileName+kPathMaxSize,oldRootDir);
+    curFileNamePush=pushDirPath(curFileNamePush,fileName+kPathMaxSize,oldRootDir_utf8);
     check(curFileNamePush!=0);
     
     slist=(const hpatch_TStreamInput**)self->_pOldRefMem;

@@ -22,6 +22,7 @@
 		D690ABBC1F2079E80089DC57 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABB51F2079E80089DC57 /* patch.c */; };
 		D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFA1F2097C90089DC57 /* libbz2.tbd */; };
 		D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFC1F2097D30089DC57 /* libz.tbd */; };
+		D6B240B021E5C21300993A81 /* res_handle_limit.c in Sources */ = {isa = PBXBuildFile; fileRef = D6B240AE21E5C21300993A81 /* res_handle_limit.c */; };
 		D6DD68E01F4015A900A1B22B /* digest_matcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */; };
 		D6DD68E31F40163200A1B22B /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D6DD68E21F40163200A1B22B /* adler_roll.c */; };
 		D6EE505D1F287234002854A2 /* compress_detect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6EE505B1F287234002854A2 /* compress_detect.cpp */; };
@@ -84,6 +85,8 @@
 		D690AEFA1F2097C90089DC57 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		D690AEFC1F2097D30089DC57 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		D69A372B21AED4B2000A0A93 /* patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_private.h; sourceTree = "<group>"; };
+		D6B240AE21E5C21300993A81 /* res_handle_limit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = res_handle_limit.c; sourceTree = "<group>"; };
+		D6B240AF21E5C21300993A81 /* res_handle_limit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = res_handle_limit.h; sourceTree = "<group>"; };
 		D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = digest_matcher.cpp; sourceTree = "<group>"; };
 		D6DD68DF1F4015A900A1B22B /* digest_matcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = digest_matcher.h; sourceTree = "<group>"; };
 		D6DD68E11F40163200A1B22B /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = adler_roll.h; sourceTree = "<group>"; };
@@ -134,6 +137,8 @@
 		D67D3BD721CBCD5D0050632A /* dir_patch */ = {
 			isa = PBXGroup;
 			children = (
+				D6B240AE21E5C21300993A81 /* res_handle_limit.c */,
+				D6B240AF21E5C21300993A81 /* res_handle_limit.h */,
 				D6241AE021DE47D200E2846A /* new_stream.c */,
 				D6241AE121DE47D200E2846A /* new_stream.h */,
 				D67D3BD821CBCD5D0050632A /* ref_stream.h */,
@@ -323,6 +328,7 @@
 				D6DD68E01F4015A900A1B22B /* digest_matcher.cpp in Sources */,
 				D6241AE221DE47D200E2846A /* new_stream.c in Sources */,
 				D690ABBC1F2079E80089DC57 /* patch.c in Sources */,
+				D6B240B021E5C21300993A81 /* res_handle_limit.c in Sources */,
 				D690ABB81F2079E80089DC57 /* bytes_rle.cpp in Sources */,
 				D690ABBB1F2079E80089DC57 /* suffix_string.cpp in Sources */,
 				D67D3BDD21CBCD5D0050632A /* ref_stream.c in Sources */,

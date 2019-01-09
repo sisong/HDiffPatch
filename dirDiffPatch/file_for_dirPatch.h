@@ -4,7 +4,7 @@
 /*
  This is the HDiffPatch copyright.
 
- Copyright (c) 2012-2019 HouSisong All Rights Reserved.
+ Copyright (c) 2018-2019 HouSisong All Rights Reserved.
 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -42,8 +42,9 @@
 #endif
 static const char kPatch_dirSeparator_saved = '/';
 
-#define kMaxOpenFileCount_min       8
-#define kMaxOpenFileCount_default   (128-16)
+#define kMaxOpenFileCount_min               8
+#define kMaxOpenFileCount_default_diff      48
+#define kMaxOpenFileCount_default_patch     24
 
 hpatch_inline static
 hpatch_BOOL getIsDirName(const char* path_utf8){

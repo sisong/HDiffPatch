@@ -67,13 +67,12 @@ extern "C" {
 extern const uint32_t* _private_fast_adler_table;
     
 #define  __private_fast_adler_roll(uint_t,half_bit, \
-                                  adler,blockSize,out_data,in_data){ \
-    uint32_t in_v=_private_fast_adler_table[in_data];    \
-    uint32_t out_v=_private_fast_adler_table[out_data];  \
-    uint_t sum=adler>>half_bit; \
-    adler= adler +in_v -out_v;  \
-    sum  = sum + adler - ADLER_INITIAL-(uint32_t)(((uint32_t)blockSize)*out_v); \
-    return (adler&(((uint_t)1<<half_bit)-1)) | (sum<<half_bit); \
+                                   adler,blockSize,out_data,in_data){ \
+    uint32_t out_v =_private_fast_adler_table[(unsigned char)(out_data)];  \
+    size_t   sum   = (size_t)(adler>>half_bit);     \
+    size_t   _adler= (size_t)adler + _private_fast_adler_table[(unsigned char)(in_data)] -out_v;  \
+    sum  = sum + _adler - ADLER_INITIAL-(uint32_t)(((uint32_t)blockSize)*out_v); \
+    return (_adler&(((uint_t)1<<half_bit)-1)) | ((uint_t)sum<<half_bit); \
 }
 
 #define  adler32_start(pdata,n) adler32_append(ADLER_INITIAL,pdata,n)

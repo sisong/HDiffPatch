@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include "zlib.h"
 #include "md5c.h"
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
@@ -58,12 +59,13 @@ struct THash_md5_128{
 };
 
 namespace std{
-    template<>
-    struct hash<THash_md5_128::TValue>
-    {
-        size_t operator()(const THash_md5_128::TValue& v) const{
-            return v.first^v.second;
-        }
+    template<> struct hash<THash_md5_128::TValue>{
+        inline size_t operator()(const THash_md5_128::TValue& v) const{
+            return v.first^v.second; }
+    };
+    template<> struct less<THash_md5_128::TValue>{
+        inline bool operator()(const THash_md5_128::TValue& x,const THash_md5_128::TValue& y)const{
+            return (x.first^x.second) < (y.first^y.second); }
     };
 }
 
@@ -143,17 +145,18 @@ struct THash_adler64f{
 };
 
 
-
+const uint64_t kMaxMapNodeSize=100000000ull; //run test max need 16GB memory
 const long kRandTestMaxSize=1024*1024*1024;
 const long kMaxHashSize=256+64;
 const uint64_t kRandTestCount=100000000;
 
 template <class THash>
 void test(const TByte* data,const TByte* data_end){
+    typedef typename THash::TValue  TValue;
     typedef std::pair<const TByte*,const TByte*>  TPair;
-    std::unordered_map<typename THash::TValue,TPair> map;
-    map.reserve(kRandTestCount*2);
-    unsigned int rand_seed=3;
+    std::unordered_map<TValue,TPair>  map(kMaxMapNodeSize*3);
+    //std::map<TValue,TPair> map;
+    unsigned int rand_seed=7;
     printf("%s       \t",THash::name());
     double time0=clock_s();
     
@@ -174,7 +177,8 @@ void test(const TByte* data,const TByte* data_end){
         
         auto it=map.find(hv);
         if (it==map.end()){
-            map[hv]=TPair(pv,pv_end);
+            if (map.size()<kMaxMapNodeSize)
+                map[hv]=TPair(pv,pv_end);
             ++i;
         }else{
             const TPair& v=it->second;
@@ -203,6 +207,8 @@ void test(const TByte* data,const TByte* data_end){
             }
         }
     }
+    map.clear();
+    
     double conflictR=conflict*1.0/kRandTestCount;
     printf("conflict: %.3f%%%% (%lld/%lld)   \ttime: %.3f s\n",
            conflictR*10000,conflict,kRandTestCount,(clock_s()-time0));

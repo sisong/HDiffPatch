@@ -82,7 +82,7 @@
 const uint32_t* _private_fast_adler_table =__CRC32_Table;
 
 #define fast_adler_add1(adler,sum,byteData){ \
-    (adler) += _private_fast_adler_table[(byteData)]; \
+    (adler) += _private_fast_adler_table[(unsigned char)(byteData)]; \
     (sum)   += (adler);    \
 }
 

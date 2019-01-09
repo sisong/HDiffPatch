@@ -3,7 +3,7 @@
 //
 /*
  The MIT License (MIT)
- Copyright (c) 2012-2019 HouSisong
+ Copyright (c) 2018-2019 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -38,6 +38,7 @@
 #include "../file_for_dirDiff.h"
 #include "../dir_patch/ref_stream.h"
 #include "../dir_patch/dir_patch.h"
+#include "../dir_patch/res_handle_limit.h"
 using namespace hdiff_private;
 
 static const char* kVersionType="DirDiff19&";
@@ -358,11 +359,50 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
     std::sort(out_oldRefList.begin(),out_oldRefList.end());
 }
 
+struct CFileResHandleLimit{
+    inline CFileResHandleLimit(){ TResHandleLimit_init(&limit); }
+    inline ~CFileResHandleLimit() { close(); }
+    void open(size_t limitMaxOpenCount,std::vector<IResHandle>& _resList){
+        assert(fileList.empty());
+        fileList.resize(_resList.size());
+        memset(fileList.data(),0,sizeof(CFile)*_resList.size());
+        for (size_t i=0;i<_resList.size();++i){
+            fileList[i].fileName=(const char*)_resList[i].resImport;
+            _resList[i].resImport=&fileList[i];
+        }
+        check(TResHandleLimit_open(&limit,limitMaxOpenCount,_resList.data(),
+                                   _resList.size()),"TResHandleLimit_open error!");
+    }
+    void close(){
+        check(TResHandleLimit_close(&limit),"TResHandleLimit_close error!");
+    }
+    
+    struct CFile:public TFileStreamInput{
+        std::string  fileName;
+    };
+    TResHandleLimit     limit;
+    std::vector<CFile>  fileList;
+    static hpatch_BOOL openFile(struct IResHandle* res,hpatch_TStreamInput** out_stream){
+        CFile* self=(CFile*)res->resImport;
+        assert(self->m_file==0);
+        check(TFileStreamInput_open(self,self->fileName.c_str()),"CFileResHandleLimit open file error!");
+        *out_stream=&self->base;
+        return hpatch_TRUE;
+    }
+    static hpatch_BOOL closeFile(struct IResHandle* res,const hpatch_TStreamInput* stream){
+        CFile* self=(CFile*)res->resImport;
+        check(stream==&self->base,"CFileResHandleLimit close unknow file error!");
+        check(TFileStreamInput_close(self),"CFileResHandleLimit close file error!");
+        return hpatch_TRUE;
+    }
+};
+
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
               size_t kMaxOpenFileCount){
-    assert(kMaxOpenFileCount>=kMaxOpenFileCount_min);
+    if (kMaxOpenFileCount<kMaxOpenFileCount_min)
+        kMaxOpenFileCount=kMaxOpenFileCount_min;
     assert(listener!=0);
     std::vector<std::string> oldList;
     std::vector<std::string> newList;
@@ -392,33 +432,36 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     getRefList(oldPath,newPath,oldList,newList,
                oldSizeList,newSizeList,dataSamePairList,oldRefIList,newRefIList);
     kMaxOpenFileCount-=1; // for outDiffStream
-    std::vector<const hpatch_TStreamInput*> oldRefSList;
-    std::vector<const hpatch_TStreamInput*> newRefSList;
     std::vector<hpatch_StreamPos_t> newRefSizeList;
-    std::vector<CFileStreamInput> _oldRefList;
-    std::vector<CFileStreamInput> _newRefList;
+    std::vector<IResHandle>         resList;
     {
-        _oldRefList.resize(oldRefIList.size());
-        _newRefList.resize(newRefIList.size());
-        oldRefSList.resize(oldRefIList.size());
-        newRefSList.resize(newRefIList.size());
+        resList.resize(oldRefIList.size()+newRefIList.size());
+        IResHandle* res=resList.data();
         newRefSizeList.resize(newRefIList.size());
-        for (size_t i=0; i<oldRefIList.size(); ++i) {
-            _oldRefList[i].open(oldList[oldRefIList[i]]);
-            oldRefSList[i]=&_oldRefList[i].base;
+        for (size_t i=0; i<oldRefIList.size(); ++i,++res) {
+            size_t fi=oldRefIList[i];
+            res->open=CFileResHandleLimit::openFile;
+            res->close=CFileResHandleLimit::closeFile;
+            res->resImport=(void*)oldList[fi].c_str();
+            res->resStreamSize=oldSizeList[fi];
         }
-        for (size_t i=0; i<newRefIList.size(); ++i) {
-            _newRefList[i].open(newList[newRefIList[i]]);
-            newRefSList[i]=&_newRefList[i].base;
-            newRefSizeList[i]=newRefSList[i]->streamSize;
-            assert(newRefSizeList[i]==newSizeList[newRefIList[i]]);
+        for (size_t i=0; i<newRefIList.size(); ++i,++res) {
+            size_t fi=newRefIList[i];
+            res->open=CFileResHandleLimit::openFile;
+            res->close=CFileResHandleLimit::closeFile;
+            res->resImport=(void*)newList[fi].c_str();
+            res->resStreamSize=newSizeList[fi];
+            
+            newRefSizeList[i]=newSizeList[fi];
         }
     }
     size_t sameFilePairCount=dataSamePairList.size()/2;
-    CRefStream newRefStream;
+    CFileResHandleLimit resLimit;
+    resLimit.open(kMaxOpenFileCount,resList);
     CRefStream oldRefStream;
-    newRefStream.open(newRefSList.data(),newRefSList.size());
-    oldRefStream.open(oldRefSList.data(),oldRefSList.size());
+    CRefStream newRefStream;
+    oldRefStream.open(resLimit.limit.streamList,oldRefIList.size());
+    newRefStream.open(resLimit.limit.streamList+oldRefIList.size(),newRefIList.size());
     listener->refInfo(sameFilePairCount,oldRefIList.size(),newRefIList.size(),
                       oldRefStream.stream->streamSize,newRefStream.stream->streamSize);
     
@@ -497,10 +540,9 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         TByte* oldData=mem.data()+newRefStream.stream->streamSize;
         check(newRefStream.stream->read(newRefStream.stream,0,newData,
                                         newData+newRefStream.stream->streamSize),"read new file error!");
-        _newRefList.clear();//close files
         check(oldRefStream.stream->read(oldRefStream.stream,0,oldData,
                                         oldData+oldRefStream.stream->streamSize),"read old file error!");
-        _oldRefList.clear();//close files
+        resLimit.close(); //close files
         std::vector<unsigned char> out_diff;
         create_compressed_diff(newData,newData+newRefStream.stream->streamSize,
                                oldData,oldData+oldRefStream.stream->streamSize,

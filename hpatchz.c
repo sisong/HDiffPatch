@@ -223,11 +223,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         if (arg_values_size==0)
             return 0; //ok
     }
-    if (kMaxOpenFileCount==_kNULL_SIZE){
+    if (kMaxOpenFileCount==_kNULL_SIZE)
         kMaxOpenFileCount=kMaxOpenFileCount_default;
-    }
-    if (kMaxOpenFileCount<kMaxOpenFileCount_min)
-        kMaxOpenFileCount=kMaxOpenFileCount_min;
     
     _options_check(arg_values_size==kMax_arg_values_size,"count");
     if (isOriginal==_kNULL_VALUE)
