@@ -71,7 +71,7 @@ static hpatch_BOOL _TResHandleLimit_openHandle(TResHandleLimit* self,size_t inde
 
 static hpatch_BOOL _TResHandleLimit_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                                          unsigned char* out_data,unsigned char* out_data_end){
-    TResHandleBox*   ex=(TResHandleBox*)stream->streamImport;
+    _TResHandleBox*  ex=(_TResHandleBox*)stream->streamImport;
     TResHandleLimit* self=ex->owner;
     size_t           index=ex-self->_ex_streamList;
     const hpatch_TStreamInput* in_stream=self->_in_streamList[index];
@@ -89,7 +89,7 @@ hpatch_BOOL TResHandleLimit_open(TResHandleLimit* self,size_t limitMaxOpenCount,
     unsigned char* curMem=0;
     size_t i=0;
     size_t memSize=resCount*(sizeof(const hpatch_TStreamInput*)
-                             +sizeof(hpatch_TStreamInput*)+sizeof(TResHandleBox));
+                             +sizeof(hpatch_TStreamInput*)+sizeof(_TResHandleBox));
     assert(self->_buf==0);
     if (limitMaxOpenCount<1) limitMaxOpenCount=1;
     self->_buf=malloc(memSize);
@@ -99,15 +99,15 @@ hpatch_BOOL TResHandleLimit_open(TResHandleLimit* self,size_t limitMaxOpenCount,
         curMem+=resCount*sizeof(const hpatch_TStreamInput*);
     self->_in_streamList=(hpatch_TStreamInput**)curMem;
         curMem+=resCount*sizeof(hpatch_TStreamInput*);
-    self->_ex_streamList=(TResHandleBox*)curMem;
-        //curMem+=resCount*sizeof(TResHandleBox);
+    self->_ex_streamList=(_TResHandleBox*)curMem;
+        //curMem+=resCount*sizeof(_TResHandleBox);
     self->streamCount=resCount;
     self->_resList=resList;
     self->_limitMaxOpenCount=limitMaxOpenCount;
     self->_curHit=0;
     self->_curOpenCount=0;
     for (i=0; i<resCount; ++i) {
-        TResHandleBox* ex=&self->_ex_streamList[i];
+        _TResHandleBox* ex=&self->_ex_streamList[i];
         ex->hit=0;
         ex->owner=self;
         ex->box.streamImport=ex;
@@ -126,16 +126,16 @@ hpatch_BOOL TResHandleLimit_close(TResHandleLimit* self){
     size_t i;
     for (i=0; i<count; ++i) {
         const hpatch_TStreamInput* stream=self->_in_streamList[i];
-        IResHandle* res=&self->_resList[i];
         if (stream){
+            IResHandle* res=&self->_resList[i];
             if (!res->close(res,stream)) result=hpatch_FALSE;
         }
     }
+    self->streamList=0;
+    self->streamCount=0;
     if (self->_buf){
         free(self->_buf);
         self->_buf=0;
     }
-    self->streamList=0;
-    self->streamCount=0;
     return result;
 }

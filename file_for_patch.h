@@ -53,11 +53,11 @@ typedef unsigned char TByte;
 #define kFileIOBestMaxSize  (1<<20)
 #define kPathMaxSize  1024
 
-#ifndef PRId64
+#ifndef PRIu64
 #   ifdef _MSC_VER
-#       define PRId64 "I64d"
+#       define PRIu64 "I64u"
 #   else
-#       define PRId64 "lld"
+#       define PRIu64 "llu"
 #   endif
 #endif
 

@@ -41,18 +41,18 @@ typedef struct IResHandle{
 } IResHandle;
     
 struct TResHandleLimit;
-typedef struct TResHandleBox{
+typedef struct _TResHandleBox{
     hpatch_TStreamInput     box;
     struct TResHandleLimit* owner;
     hpatch_StreamPos_t      hit;
-} TResHandleBox;
+} _TResHandleBox;
 
 //内部控制同时最大打开的句柄数,对外模拟成所有资源都能使用的完整流列表;
 typedef struct TResHandleLimit{
     const hpatch_TStreamInput** streamList;
     size_t                      streamCount;
 //private:
-    TResHandleBox*              _ex_streamList;
+    _TResHandleBox*             _ex_streamList;
     hpatch_TStreamInput**       _in_streamList;
     IResHandle*                 _resList;
     hpatch_StreamPos_t          _curHit;

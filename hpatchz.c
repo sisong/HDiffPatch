@@ -85,7 +85,8 @@ static void printUsage(){
            "  -o  Original patch; DEPRECATED; compatible with \"patch_demo.c\",\n"
            "      diffFile must created by \"diff_demo.cpp\" or \"hdiffz -o ...\"\n"
 #endif
-           "  -h  output Help info (this usage). \n"
+           "  -h or -?\n"
+           "      output Help info (this usage). \n"
            "  -v  output Version info. \n\n"
            );
 }
@@ -192,6 +193,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 const char* pnum=op+3;
                 _options_check(kmg_to_size(pnum,strlen(pnum),&matchValue),"-l-?");
             } break;
+            case '?':
             case 'h':{
                 _options_check((isOutputHelp==_kNULL_VALUE)&&(op[2]=='\0'),"-h");
                 isOutputHelp=hpatch_TRUE;
@@ -397,7 +399,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
             check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
-            printf("oldFile dataSize %" PRId64 " != diffFile saved oldDataSize %" PRId64 "",
+            printf("oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 "",
                    poldData->streamSize,diffInfo.oldDataSize);
             check_on_error(HPATCH_FILEDATA_ERROR);
         }
@@ -407,7 +409,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     }
     check(TFileStreamOutput_open(&newData, outNewFileName,savedNewSize),
           HPATCH_OPENWRITE_ERROR,"open out newFile for write");
-    printf("oldDataSize : %" PRId64 "\ndiffDataSize: %" PRId64 "\nnewDataSize : %" PRId64 "\n",
+    printf("oldDataSize : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
     
     temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,poldData->streamSize, &temp_cache_size);
@@ -428,7 +430,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         check(hpatch_FALSE,HPATCH_PATCH_ERROR,"patch run");
     }
     if (newData.out_length!=newData.base.streamSize){
-        printf("out newFile dataSize %" PRId64 " != diffFile saved newDataSize %" PRId64 "",
+        printf("out newFile dataSize %" PRIu64 " != diffFile saved newDataSize %" PRIu64 "",
                newData.out_length,newData.base.streamSize);
         check_on_error(HPATCH_FILEDATA_ERROR);
     }
@@ -508,7 +510,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     if (!dirDiffInfo->oldPathIsDir){//old is file
         check(TFileStreamInput_open(&oldFile,oldPath),HPATCH_OPENREAD_ERROR,"open oldFile for read");
         if (oldFile.base.streamSize!=dirDiffInfo->hdiffInfo.oldDataSize){
-            printf("oldFile dataSize %" PRId64 " != diffFile saved oldDataSize %" PRId64 "",
+            printf("oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 "",
                    oldFile.base.streamSize,dirDiffInfo->hdiffInfo.oldDataSize);
             check_on_error(HPATCH_FILEDATA_ERROR);
         }

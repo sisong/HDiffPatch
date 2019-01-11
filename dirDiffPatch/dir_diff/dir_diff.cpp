@@ -304,7 +304,7 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
     TMap hashMap;
     std::set<size_t> oldRefList;
     out_oldSizeList.assign(oldList.size(),0);
-    out_newSizeList.assign(oldList.size(),0);
+    out_newSizeList.assign(newList.size(),0);
     for (size_t i=0; i<oldList.size(); ++i) {
         const std::string& fileName=oldList[i];
         if (isDirName(fileName)) continue;
@@ -401,9 +401,10 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
               size_t kMaxOpenFileCount){
+    assert(listener!=0);
     if (kMaxOpenFileCount<kMaxOpenFileCount_min)
         kMaxOpenFileCount=kMaxOpenFileCount_min;
-    assert(listener!=0);
+    kMaxOpenFileCount-=1; // for outDiffStream
     std::vector<std::string> oldList;
     std::vector<std::string> newList;
     const bool oldIsDir=isDirName(oldPath);
@@ -431,27 +432,27 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     std::vector<size_t> newRefIList;
     getRefList(oldPath,newPath,oldList,newList,
                oldSizeList,newSizeList,dataSamePairList,oldRefIList,newRefIList);
-    kMaxOpenFileCount-=1; // for outDiffStream
     std::vector<hpatch_StreamPos_t> newRefSizeList;
     std::vector<IResHandle>         resList;
     {
         resList.resize(oldRefIList.size()+newRefIList.size());
         IResHandle* res=resList.data();
         newRefSizeList.resize(newRefIList.size());
-        for (size_t i=0; i<oldRefIList.size(); ++i,++res) {
+        for (size_t i=0; i<oldRefIList.size(); ++i) {
             size_t fi=oldRefIList[i];
             res->open=CFileResHandleLimit::openFile;
             res->close=CFileResHandleLimit::closeFile;
             res->resImport=(void*)oldList[fi].c_str();
             res->resStreamSize=oldSizeList[fi];
+            ++res;
         }
-        for (size_t i=0; i<newRefIList.size(); ++i,++res) {
+        for (size_t i=0; i<newRefIList.size(); ++i) {
             size_t fi=newRefIList[i];
             res->open=CFileResHandleLimit::openFile;
             res->close=CFileResHandleLimit::closeFile;
             res->resImport=(void*)newList[fi].c_str();
             res->resStreamSize=newSizeList[fi];
-            
+            ++res;
             newRefSizeList[i]=newSizeList[fi];
         }
     }

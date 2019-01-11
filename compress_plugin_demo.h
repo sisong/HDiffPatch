@@ -410,7 +410,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         LzmaEncProps_Normalize(&props);
         if (SZ_OK!=LzmaEnc_SetProps(s,&props)) _compress_error_return("LzmaEnc_SetProps()");
 #       if (IS_NOTICE_compress_canceled)
-            printf("  (used one lzma dictSize: %"PRId64")\n",(hpatch_StreamPos_t)props.dictSize);
+            printf("  (used one lzma dictSize: %"PRIu64")\n",(hpatch_StreamPos_t)props.dictSize);
 #       endif
         
         //save properties_size+properties

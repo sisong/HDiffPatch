@@ -45,44 +45,73 @@
 #   define _adler64_BASE                0xFFFFFFFBull
 #   define _fast_adler64_BASE           ((uint64_t)1<<32)
 
- static const uint32_t __CRC32_Table[256] ={
-     0x00000000,0x77073096,0xEE0E612C,0x990951BA,0x076DC419,0x706AF48F,0xE963A535,0x9E6495A3,
-     0x0EDB8832,0x79DCB8A4,0xE0D5E91E,0x97D2D988,0x09B64C2B,0x7EB17CBD,0xE7B82D07,0x90BF1D91,
-     0x1DB71064,0x6AB020F2,0xF3B97148,0x84BE41DE,0x1ADAD47D,0x6DDDE4EB,0xF4D4B551,0x83D385C7,
-     0x136C9856,0x646BA8C0,0xFD62F97A,0x8A65C9EC,0x14015C4F,0x63066CD9,0xFA0F3D63,0x8D080DF5,
-     0x3B6E20C8,0x4C69105E,0xD56041E4,0xA2677172,0x3C03E4D1,0x4B04D447,0xD20D85FD,0xA50AB56B,
-     0x35B5A8FA,0x42B2986C,0xDBBBC9D6,0xACBCF940,0x32D86CE3,0x45DF5C75,0xDCD60DCF,0xABD13D59,
-     0x26D930AC,0x51DE003A,0xC8D75180,0xBFD06116,0x21B4F4B5,0x56B3C423,0xCFBA9599,0xB8BDA50F,
-     0x2802B89E,0x5F058808,0xC60CD9B2,0xB10BE924,0x2F6F7C87,0x58684C11,0xC1611DAB,0xB6662D3D,
-     0x76DC4190,0x01DB7106,0x98D220BC,0xEFD5102A,0x71B18589,0x06B6B51F,0x9FBFE4A5,0xE8B8D433,
-     0x7807C9A2,0x0F00F934,0x9609A88E,0xE10E9818,0x7F6A0DBB,0x086D3D2D,0x91646C97,0xE6635C01,
-     0x6B6B51F4,0x1C6C6162,0x856530D8,0xF262004E,0x6C0695ED,0x1B01A57B,0x8208F4C1,0xF50FC457,
-     0x65B0D9C6,0x12B7E950,0x8BBEB8EA,0xFCB9887C,0x62DD1DDF,0x15DA2D49,0x8CD37CF3,0xFBD44C65,
-     0x4DB26158,0x3AB551CE,0xA3BC0074,0xD4BB30E2,0x4ADFA541,0x3DD895D7,0xA4D1C46D,0xD3D6F4FB,
-     0x4369E96A,0x346ED9FC,0xAD678846,0xDA60B8D0,0x44042D73,0x33031DE5,0xAA0A4C5F,0xDD0D7CC9,
-     0x5005713C,0x270241AA,0xBE0B1010,0xC90C2086,0x5768B525,0x206F85B3,0xB966D409,0xCE61E49F,
-     0x5EDEF90E,0x29D9C998,0xB0D09822,0xC7D7A8B4,0x59B33D17,0x2EB40D81,0xB7BD5C3B,0xC0BA6CAD,
-     0xEDB88320,0x9ABFB3B6,0x03B6E20C,0x74B1D29A,0xEAD54739,0x9DD277AF,0x04DB2615,0x73DC1683,
-     0xE3630B12,0x94643B84,0x0D6D6A3E,0x7A6A5AA8,0xE40ECF0B,0x9309FF9D,0x0A00AE27,0x7D079EB1,
-     0xF00F9344,0x8708A3D2,0x1E01F268,0x6906C2FE,0xF762575D,0x806567CB,0x196C3671,0x6E6B06E7,
-     0xFED41B76,0x89D32BE0,0x10DA7A5A,0x67DD4ACC,0xF9B9DF6F,0x8EBEEFF9,0x17B7BE43,0x60B08ED5,
-     0xD6D6A3E8,0xA1D1937E,0x38D8C2C4,0x4FDFF252,0xD1BB67F1,0xA6BC5767,0x3FB506DD,0x48B2364B,
-     0xD80D2BDA,0xAF0A1B4C,0x36034AF6,0x41047A60,0xDF60EFC3,0xA867DF55,0x316E8EEF,0x4669BE79,
-     0xCB61B38C,0xBC66831A,0x256FD2A0,0x5268E236,0xCC0C7795,0xBB0B4703,0x220216B9,0x5505262F,
-     0xC5BA3BBE,0xB2BD0B28,0x2BB45A92,0x5CB36A04,0xC2D7FFA7,0xB5D0CF31,0x2CD99E8B,0x5BDEAE1D,
-     0x9B64C2B0,0xEC63F226,0x756AA39C,0x026D930A,0x9C0906A9,0xEB0E363F,0x72076785,0x05005713,
-     0x95BF4A82,0xE2B87A14,0x7BB12BAE,0x0CB61B38,0x92D28E9B,0xE5D5BE0D,0x7CDCEFB7,0x0BDBDF21,
-     0x86D3D2D4,0xF1D4E242,0x68DDB3F8,0x1FDA836E,0x81BE16CD,0xF6B9265B,0x6FB077E1,0x18B74777,
-     0x88085AE6,0xFF0F6A70,0x66063BCA,0x11010B5C,0x8F659EFF,0xF862AE69,0x616BFFD3,0x166CCF45,
-     0xA00AE278,0xD70DD2EE,0x4E048354,0x3903B3C2,0xA7672661,0xD06016F7,0x4969474D,0x3E6E77DB,
-     0xAED16A4A,0xD9D65ADC,0x40DF0B66,0x37D83BF0,0xA9BCAE53,0xDEBB9EC5,0x47B2CF7F,0x30B5FFE9,
-     0xBDBDF21C,0xCABAC28A,0x53B39330,0x24B4A3A6,0xBAD03605,0xCDD70693,0x54DE5729,0x23D967BF,
-     0xB3667A2E,0xC4614AB8,0x5D681B02,0x2A6F2B94,0xB40BBE37,0xC30C8EA1,0x5A05DF1B,0x2D02EF8D
- };
-const uint32_t* _private_fast_adler_table =__CRC32_Table;
+static const uint32_t __fast_adler_table[256]=/*create by _gen_fast_adler_table*/{
+        0xdf7aa77e,0x960998f4,0x61bd5b01,0xf3f24b83,0xd5995bf4,0xaa9f9a35,0x1fa1c38b,0xcb456928,
+        0x8acb784b,0x907b4310,0x59b85f0e,0x5a6971aa,0x14e0078d,0xa67ab7b3,0x805c329f,0x821e118a,
+        0x39f17b30,0xecbdde10,0x75bd05aa,0xb728af33,0x72ef55d3,0x8490a70a,0x3bd1cedd,0xdcf62525,
+        0x6ff0385b,0xd96df9d5,0xaa13e8e5,0xead43975,0x8d0fe011,0xf88c68d,0x64ff4a0b,0x3d61944,
+        0xcf44ad62,0xf3b2cac8,0x9bc9a4ac,0x431f876a,0x8013954,0x5182d87a,0x40905084,0xaa1d7605,
+        0x35b6a073,0x76be7fe5,0xa6e97b19,0xba38419,0x38c06eef,0x545d4ff3,0xccdabe95,0x95b7484,
+        0x742ae762,0x724892df,0x32cdba64,0xf3f1dbcd,0x15d05ed2,0x5c10b521,0x772f3739,0x76f02798,
+        0xad7b8851,0xeddd8f58,0x1289f79d,0xc82bfbfd,0x875a9389,0x6e8f9ce5,0x7e783446,0x2e0b058c,
+        0x31510c75,0xf966a1e4,0x714c785,0x4984e5c5,0x2b72223f,0x9e2f4110,0xd984cb1d,0xaaccdd24,
+        0xc7ac1052,0x9658917,0xe1fffaf,0x33beeca3,0x58c11c17,0xebbb959,0x5185ec70,0x8648da5d,
+        0x62e6cb29,0x290ed3f2,0x1b1fd7e4,0x88fcd293,0x1860de55,0x2e08df88,0x51ce64d6,0xe5152517,
+        0x8495ca73,0x3b844db3,0x12269f70,0xb777bd85,0xbdc6477b,0xeb896b21,0x541df5b2,0x5d51fb96,
+        0x5f7724c3,0x6dd03400,0x46944b32,0x5c834b3f,0xf8c35641,0x9a21d625,0xeebd4293,0x3964c3f3,
+        0x2ebefe6e,0xf412742f,0x4cc9489e,0x1a142deb,0xadd096ba,0x50851bbd,0x1d5aa61,0x88bf54b4,
+        0x43cbf5b,0x1ea1840c,0x78b8c5d3,0x6afd60d6,0x1d934578,0x3f52aa69,0x14a3a879,0x2d1bdf46,
+        0x30b6a189,0xd9fb76a6,0xcbfa9ede,0x9e2a424b,0x6a145f22,0x88cbf559,0xd5881b5e,0x1095172d,
+        0xf79bcfe3,0xaf9bbbcb,0x26c7f8fc,0x15350f3,0xa583b8b5,0xaf503911,0x6e515d0e,0x1160c6dc,
+        0x544d465d,0x3486862b,0x9fa6ad6d,0x172cfb21,0x4a5dcf8a,0xee478515,0xbd90acec,0x7bb9ecd1,
+        0x6486ccca,0xae7132e4,0x785a42bc,0x69f93d7e,0x8fca4e47,0xbcf52c10,0x776b4699,0x21003b46,
+        0x4e19e43f,0x9c6b2c3c,0xbf80a266,0x57091370,0x4bccc5a0,0xaa8d6af8,0x30cbee6b,0xe606efb9,
+        0xb54e7fcf,0x7591d25c,0x35ffa606,0x1746bca5,0xadc667b1,0x3316fe5b,0x2642d7cf,0x71e2eb57,
+        0x1262edd0,0x4033cd84,0xcc51790b,0x8efcfdf9,0xa9062acc,0xcd451f5f,0x5e2a9f4a,0xe5fe76ec,
+        0x6c25f042,0x396933c4,0xb82f602a,0xbaa9b2b4,0x3f7dccac,0x28f95a8e,0xb0b1557b,0x656b00af,
+        0x2bd6f7,0xe620689a,0x1afc2562,0x367a4977,0x6d7fb346,0x356ec060,0xc7c484e7,0xb2e460d8,
+        0xa658893a,0x40e1c4d8,0x66d8e91f,0x41972497,0xa806e58,0xec21f19,0xd88ed0c5,0xcb8212b8,
+        0x96e9f268,0x535699cd,0xe3138457,0x1da6273f,0x71e49b04,0xaa916fcc,0x2b8bfd05,0x1d2d4a0,
+        0xd8b2f1f,0xe4a5c23,0x3097e568,0x7518fd18,0xe64d2b1,0xa373c44f,0xf8cc6057,0x606729c6,
+        0xe4bdc0a3,0x8e328068,0x3b571813,0x48273cf5,0x6d0c2a34,0x2fbee154,0xcea1b256,0x47fe9294,
+        0x471b2cb8,0x69afbc8c,0x4a394b2d,0xffddc2db,0xbc5eea38,0x4b90f35d,0x62b47504,0xed48ad6,
+        0xb53d0bc2,0xb0421110,0x27972702,0xf088ff1a,0xad5a8e0b,0x78000267,0x300470df,0x4d78226b,
+        0xd95248d1,0x312a475a,0xe355d339,0xa469e3b4,0x769a1b4c,0x434618d1,0x23d7aeb0,0xfbe20cad,
+        0x7a19b853,0x37b54c00,0x698a59e0,0xbff80bcf,0x6f17ff55,0x64a2eea9,0xe7b7ee82,0xc6446dc6 };
+/*
+#include <set>
+static int _gen_fast_adler_table(){ // better than CRC32Table:{0,0x77073096,..,0x2D02EF8D}
+    std::set<uint32_t> check_set;
+    unsigned int rand_seed=9;
+    printf("{\n");
+    for (int y=32-1; y>=0; --y) {
+        printf("    ");
+        for (int x=8-1; x>=0; --x) {
+            uint32_t v=0;
+            v=(v<<8)|(unsigned char)rand_r(&rand_seed);
+            v=(v<<8)|(unsigned char)rand_r(&rand_seed);
+            v=(v<<8)|(unsigned char)rand_r(&rand_seed);
+            v=(v<<8)|(unsigned char)rand_r(&rand_seed);
+            {//check
+                if (check_set.find(v&0xFFFF)!=check_set.end()) throw v;
+                check_set.insert(v&0xFFFF);
+                if (check_set.find(v>>16)!=check_set.end()) throw v;
+                check_set.insert(v>>16);
+            }
+            printf("0x%x",v);
+            if (x>0) printf(",");
+        }
+        printf((y>0)?",\n":" };\n");
+    }
+    return 0;
+}
+static int _null=_gen_fast_adler_table();
+*/
+const uint16_t* _private_fast_adler32_table =(const uint16_t*)__fast_adler_table;
+const uint32_t* _private_fast_adler64_table =(const uint32_t*)__fast_adler_table;
 
-#define fast_adler_add1(adler,sum,byteData){ \
-    (adler) += _private_fast_adler_table[(unsigned char)(byteData)]; \
+#define fast_adler_add1(_table, adler,sum,byteData){ \
+    (adler) += _table[(unsigned char)(byteData)];    \
     (sum)   += (adler);    \
 }
 
@@ -126,8 +155,9 @@ _case8:        \
         default: { /* continue */ }                  \
     } \
     while(n>=kFNBest){  \
+        size_t fn;      \
         n-=kFNBest;     \
-        size_t fn=(kFNBest>>3);\
+        fn=(kFNBest>>3);\
         do{ \
             _adler_add8(adler,sum,pdata);\
             pdata+=8;   \
@@ -146,31 +176,31 @@ _case8:        \
     goto _case8; \
 }
 
-#define _fast_adler_append(uint_t,half_bit,BASE,mod, _adler,pdata,n){ \
+#define _fast_adler_append(uint_t,half_bit,BASE,mod,_table, _adler,pdata,n){ \
     size_t sum  =(size_t)((_adler)>>half_bit);                \
     size_t adler=(size_t)((_adler)&(((uint_t)1<<half_bit)-1));\
 _case8:  \
     switch(n){ \
-        case  8: { fast_adler_add1(adler,sum,*pdata++); } \
-        case  7: { fast_adler_add1(adler,sum,*pdata++); } \
-        case  6: { fast_adler_add1(adler,sum,*pdata++); } \
-        case  5: { fast_adler_add1(adler,sum,*pdata++); } \
-        case  4: { fast_adler_add1(adler,sum,*pdata++); } \
-        case  3: { fast_adler_add1(adler,sum,*pdata++); } \
-        case  2: { fast_adler_add1(adler,sum,*pdata++); } \
-        case  1: { fast_adler_add1(adler,sum,*pdata++); } \
-        case  0: { return mod(adler,BASE) | (((uint_t)sum)<<half_bit); } \
+        case  8: { fast_adler_add1(_table,adler,sum,*pdata++); } \
+        case  7: { fast_adler_add1(_table,adler,sum,*pdata++); } \
+        case  6: { fast_adler_add1(_table,adler,sum,*pdata++); } \
+        case  5: { fast_adler_add1(_table,adler,sum,*pdata++); } \
+        case  4: { fast_adler_add1(_table,adler,sum,*pdata++); } \
+        case  3: { fast_adler_add1(_table,adler,sum,*pdata++); } \
+        case  2: { fast_adler_add1(_table,adler,sum,*pdata++); } \
+        case  1: { fast_adler_add1(_table,adler,sum,*pdata++); } \
+        case  0: { return mod((uint_t)adler,BASE) | (((uint_t)sum)<<half_bit); } \
         default:{ /* continue */} \
     }   \
     do{ \
-        fast_adler_add1(adler,sum,pdata[0]); \
-        fast_adler_add1(adler,sum,pdata[1]); \
-        fast_adler_add1(adler,sum,pdata[2]); \
-        fast_adler_add1(adler,sum,pdata[3]); \
-        fast_adler_add1(adler,sum,pdata[4]); \
-        fast_adler_add1(adler,sum,pdata[5]); \
-        fast_adler_add1(adler,sum,pdata[6]); \
-        fast_adler_add1(adler,sum,pdata[7]); \
+        fast_adler_add1(_table,adler,sum,pdata[0]); \
+        fast_adler_add1(_table,adler,sum,pdata[1]); \
+        fast_adler_add1(_table,adler,sum,pdata[2]); \
+        fast_adler_add1(_table,adler,sum,pdata[3]); \
+        fast_adler_add1(_table,adler,sum,pdata[4]); \
+        fast_adler_add1(_table,adler,sum,pdata[5]); \
+        fast_adler_add1(_table,adler,sum,pdata[6]); \
+        fast_adler_add1(_table,adler,sum,pdata[7]); \
         pdata+=8;  \
         n-=8;      \
     } while(n>=8); \
@@ -217,23 +247,25 @@ static const uint64_t adler64_roll_kBestBlockSize=((uint64_t)(~(uint64_t)0))/MAX
 uint32_t adler32_append(uint32_t adler,const adler_data_t* pdata,size_t n)
     _adler_append(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border1, adler,pdata,n)
 uint32_t fast_adler32_append(uint32_t _adler,const adler_data_t* pdata,size_t n)
-    _fast_adler_append(uint32_t,16,_fast_adler32_BASE,_fast_adler_mod, _adler,pdata,n)
+    _fast_adler_append(uint32_t,16,_fast_adler32_BASE,_fast_adler_mod,
+                       _private_fast_adler64_table, _adler,pdata,n)
 
 uint32_t adler32_roll(uint32_t adler,size_t blockSize,adler_data_t out_data,adler_data_t in_data)
     _adler_roll(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border2,
-                adler_roll_kBestBlockSize,adler,blockSize, out_data,in_data)
+                adler_roll_kBestBlockSize, adler,blockSize, out_data,in_data)
 
 uint32_t adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
     _adler_by_combine(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border2,_adler_border3,
                       adler_left,adler_right,len_right)
 uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
-    _adler_by_combine(uint32_t,16,_fast_adler32_BASE,_fast_adler_mod,_fast_adler_border2,_fast_adler_border3,
-                      adler_left,adler_right,len_right)
+    _adler_by_combine(uint32_t,16,_fast_adler32_BASE,_fast_adler_mod,_fast_adler_border2,
+                      _fast_adler_border3, adler_left,adler_right,len_right)
 
 uint64_t adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n)
     _adler_append(uint64_t,32,_adler64_BASE,_adler_mod,_adler_border1, adler,pdata,n)
 uint64_t fast_adler64_append(uint64_t _adler,const adler_data_t* pdata,size_t n)
-    _fast_adler_append(uint64_t,32,_fast_adler64_BASE,_fast_adler_mod, _adler,pdata,n)
+    _fast_adler_append(uint64_t,32,_fast_adler64_BASE,_fast_adler_mod,
+                       _private_fast_adler64_table, _adler,pdata,n)
 
 uint64_t adler64_roll(uint64_t adler,uint64_t blockSize,adler_data_t out_data,adler_data_t in_data)
     _adler_roll(uint64_t,32,_adler64_BASE,_adler_mod,_adler_border2,
@@ -243,7 +275,7 @@ uint64_t adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t le
     _adler_by_combine(uint64_t,32,_adler64_BASE,_adler_mod,_adler_border2,_adler_border3,
                       adler_left,adler_right,len_right)
 uint64_t fast_adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right)
-    _adler_by_combine(uint64_t,32,_fast_adler64_BASE,_fast_adler_mod,_fast_adler_border2,_fast_adler_border3,
-                      adler_left,adler_right,len_right)
+    _adler_by_combine(uint64_t,32,_fast_adler64_BASE,_fast_adler_mod,_fast_adler_border2,
+                      _fast_adler_border3, adler_left,adler_right,len_right)
 
 

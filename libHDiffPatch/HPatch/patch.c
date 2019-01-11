@@ -1591,16 +1591,15 @@ hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
                          const hpatch_TStreamInput*  diffData,hpatch_BOOL isCompressedDiff,
                          hpatch_TDecompress* decompressPlugin,
                          TByte** ptemp_cache,TByte** ptemp_cache_end,hpatch_BOOL* out_isReadError){
+    const hpatch_TStreamInput* oldData=*poldData;
     const size_t kMinCacheSize=hpatch_kStreamCacheSize*_kCacheCount;
 #if (_IS_NEED_CACHE_OLD_BY_COVERS)
     const size_t kBestACacheSize=64*1024;   //内存足够时比较好的hpatch_kStreamCacheSize值;
-    const size_t _kMinActiveCacheSize=(1<<23);
-    size_t kActiveCacheOldMemorySize = //尝试激活CacheOld功能的内存下限;
-        kBestACacheSize*kBestACacheSize*2+newDataSize/8;
-    if (kActiveCacheOldMemorySize>_kMinActiveCacheSize)
-        kActiveCacheOldMemorySize=_kMinActiveCacheSize;
+    const size_t _minActiveSize=(1<<20)*8;
+    const hpatch_StreamPos_t _betterActiveSize=kBestACacheSize*_kCacheCount*2+oldData->streamSize/8;
+    const size_t kActiveCacheOldMemorySize = //尝试激活CacheOld功能的内存下限;
+                (_betterActiveSize>_minActiveSize)?_minActiveSize:(size_t)_betterActiveSize;
 #endif //_IS_NEED_CACHE_OLD_BY_COVERS
-    const hpatch_TStreamInput* oldData=*poldData;
     TByte* temp_cache=*ptemp_cache;
     TByte* temp_cache_end=*ptemp_cache_end;
     *out_isReadError=hpatch_FALSE;
