@@ -149,8 +149,8 @@ struct THash_adler64f{
 const uint64_t kMaxMapNodeSize=80000000ull; //run test memory ctrl
 const size_t   kRandTestMaxSize=1024*1024*1024;//test rand data size
 const size_t   kMaxHashSize=256;
-const size_t   kMaxClash=5000000; //fast end
-const uint64_t kRandTestLoop=1000000000ull;//run test max time ctrl
+const size_t   kMaxClash=1000000; //fast end
+const uint64_t kRandTestLoop=100000000ull;//run test max time ctrl
 
 template <class THash>
 void test(const TByte* data,const TByte* data_end){

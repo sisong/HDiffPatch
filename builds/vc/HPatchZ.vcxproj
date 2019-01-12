@@ -174,10 +174,14 @@
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\dir_patch.c" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\new_stream.c" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\ref_stream.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\res_handle_limit.c" />
+    <ClCompile Include="..\..\file_for_patch.c" />
     <ClCompile Include="..\..\hpatchz.c" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\dirDiffPatch\file_for_dirPatch.h" />
+    <ClInclude Include="..\..\file_for_patch.h" />
     <ClInclude Include="..\..\libHDiffPatch\HPatch\patch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

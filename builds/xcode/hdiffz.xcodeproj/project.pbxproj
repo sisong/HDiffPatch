@@ -402,7 +402,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -459,7 +459,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 				VALID_ARCHS = x86_64;

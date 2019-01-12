@@ -382,14 +382,14 @@ struct CFileResHandleLimit{
     };
     TResHandleLimit     limit;
     std::vector<CFile>  fileList;
-    static hpatch_BOOL openFile(struct IResHandle* res,hpatch_TStreamInput** out_stream){
+    static hpatch_BOOL openRes(struct IResHandle* res,hpatch_TStreamInput** out_stream){
         CFile* self=(CFile*)res->resImport;
         assert(self->m_file==0);
         check(TFileStreamInput_open(self,self->fileName.c_str()),"CFileResHandleLimit open file error!");
         *out_stream=&self->base;
         return hpatch_TRUE;
     }
-    static hpatch_BOOL closeFile(struct IResHandle* res,const hpatch_TStreamInput* stream){
+    static hpatch_BOOL closeRes(struct IResHandle* res,const hpatch_TStreamInput* stream){
         CFile* self=(CFile*)res->resImport;
         check(stream==&self->base,"CFileResHandleLimit close unknow file error!");
         check(TFileStreamInput_close(self),"CFileResHandleLimit close file error!");
@@ -439,16 +439,16 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         newRefSizeList.resize(newRefIList.size());
         for (size_t i=0; i<oldRefIList.size(); ++i) {
             size_t fi=oldRefIList[i];
-            res->open=CFileResHandleLimit::openFile;
-            res->close=CFileResHandleLimit::closeFile;
+            res->open=CFileResHandleLimit::openRes;
+            res->close=CFileResHandleLimit::closeRes;
             res->resImport=(void*)oldList[fi].c_str();
             res->resStreamSize=oldSizeList[fi];
             ++res;
         }
         for (size_t i=0; i<newRefIList.size(); ++i) {
             size_t fi=newRefIList[i];
-            res->open=CFileResHandleLimit::openFile;
-            res->close=CFileResHandleLimit::closeFile;
+            res->open=CFileResHandleLimit::openRes;
+            res->close=CFileResHandleLimit::closeRes;
             res->resImport=(void*)newList[fi].c_str();
             res->resStreamSize=newSizeList[fi];
             ++res;

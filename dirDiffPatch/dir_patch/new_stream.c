@@ -82,7 +82,7 @@ static hpatch_BOOL _file_append_ready(TNewStream* self){
             ++self->_curPathIndex;
         }else if ((self->_curNewRefIndex<self->_newRefCount)
                   &&(self->_curPathIndex!=self->_newRefList[self->_curNewRefIndex])){
-            check(self->_listener->outNewDir(self->_listener,self->_curPathIndex));
+            check(self->_listener->makeNewDir(self->_listener,self->_curPathIndex));
             ++self->_curPathIndex;
         }else{
             break;

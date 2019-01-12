@@ -189,8 +189,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 }
             } break;
             case 'f':{
-                _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-f-?")
                 const char* pnum=op+3;
+                _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-f-?")
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileCount),"-f-?");
             } break;
             case '?':
@@ -332,7 +332,7 @@ static void* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
     if (isLoadOldAll){
         size_t addSize=kPatchCacheSize_bestmin;
         if (addSize>oldDataSize+kPatchCacheSize_min)
-            addSize=oldDataSize+kPatchCacheSize_min;
+            addSize=(size_t)(oldDataSize+kPatchCacheSize_min);
         assert(patchCacheSize==0);
         temp_cache_size=(size_t)(oldDataSize+addSize);
         if (temp_cache_size!=oldDataSize+addSize)
@@ -449,7 +449,7 @@ clear:
 }
 
 
-hpatch_BOOL _outNewDir(IDirPatchListener* listener,const char* newDir){
+hpatch_BOOL _makeNewDir(IDirPatchListener* listener,const char* newDir){
     printf("callback: make dir: %s\n",newDir);
     //todo: make dir
     return hpatch_TRUE;
@@ -485,7 +485,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     {//dir diff info
         hpatch_BOOL  rt;
         TPathType    oldType;
-        check(getPathType(oldPath,&oldType),HPATCH_PATHTYPE_ERROR,"input old path must file or dir");
+        check(getPathType(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"input old path must file or dir");
         check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
         rt=TDirPatcher_open(&dirPatcher,&diffData.base,&dirDiffInfo);
         if((!rt)||(!dirDiffInfo->isDirDiff)){
@@ -503,6 +503,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         printPath_utf8(diffFileName);
         printf(dirDiffInfo->newPathIsDir?"\"\nout  dir: \"":"\"\nout file: \"");
         printPath_utf8(outNewPath);
+        printf("\n");
     }
     {   //decompressPlugin
         hpatch_TDecompress*  decompressPlugin=0;
@@ -545,7 +546,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         IDirPatchListener listener;
         memset(&listener,0,sizeof(listener));
         listener.listenerImport=0;
-        listener.outNewDir=_outNewDir;
+        listener.makeNewDir=_makeNewDir;
         listener.copySameFile=_copySameFile;
         check(TDirPatcher_openNewDirAsStream(&dirPatcher,outNewPath,&listener,&newStream),
               HPATCH_DIRPATCH_OPENNEWDIR_ERROR,"open new dir");

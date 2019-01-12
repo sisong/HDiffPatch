@@ -73,11 +73,12 @@ hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatc
     
     typedef struct IDirPatchListener{
         void*       listenerImport;
-        hpatch_BOOL    (*outNewDir)(struct IDirPatchListener* listener,const char* newDir);
+        hpatch_BOOL   (*makeNewDir)(struct IDirPatchListener* listener,const char* newDir);
         hpatch_BOOL (*copySameFile)(struct IDirPatchListener* listener,
                                     const char* oldFileName,const char* newFileName);
     } IDirPatchListener;
 
+struct TFileStreamInput;
 typedef struct TDirPatcher{
     TDirDiffInfo                dirDiffInfo;
     _TDirDiffHead               dirDiffHead;
@@ -88,15 +89,22 @@ typedef struct TDirPatcher{
     const hpatch_StreamPos_t*   newRefSizeList;
     const size_t*               dataSamePairList; //new map to old index
 //private:
-    const hpatch_TStreamInput*  _dirDiffData;
-    hpatch_TDecompress*         _decompressPlugin;
-    TRefStream                  _oldRefStream;
     TNewStream                  _newDirStream;
-    TResHandleLimit             _resLimit;
     INewStreamListener          _nsListener;
-    IDirPatchListener*          _listener;
+    
+    TRefStream                  _oldRefStream;
+    TResHandleLimit             _resLimit;
+    IResHandle*                 _resList;
+    struct TFileStreamInput*    _fileList;
+    char*                       _oldRootDir;
+    char*                       _oldRootDir_end;
+    char*                       _oldRootDir_bufEnd;
     void*                       _pOldRefMem;
-    void*                       _pmem;
+    
+    IDirPatchListener*          _listener;
+    hpatch_TDecompress*         _decompressPlugin;
+    const hpatch_TStreamInput*  _dirDiffData;
+    void*                       _pDiffDataMem;
 } TDirPatcher;
 
 hpatch_inline
@@ -106,7 +114,7 @@ hpatch_BOOL     TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* di
     
 hpatch_BOOL     TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin);
 hpatch_BOOL     TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRootDir_utf8,
-                                               size_t limitMaxOpenCount,
+                                               size_t kMaxOpenFileCount,
                                                const hpatch_TStreamInput** out_oldRefStream);
 hpatch_BOOL     TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newRootDir,
                                                IDirPatchListener* listener,

@@ -59,18 +59,23 @@ typedef enum TPathType{
 } TPathType;
 
 hpatch_inline static
-hpatch_BOOL getPathType(const char* path_utf8,TPathType* out_type){
+hpatch_BOOL getPathType(const char* path_utf8,TPathType* out_type,hpatch_StreamPos_t* out_fileSize){
 #if (_IS_USE_WIN32_UTF8_WAPI)
     int            wsize;
     wchar_t        path_w[kPathMaxSize];
     struct _stat64 s;
 #else
-    struct stat    s;
+    struct stat  s;
 #endif
+    
     int         res;
     hpatch_BOOL isDirName=getIsDirName(path_utf8);
     assert(out_type!=0);
-    if (isDirName){ *out_type=kPathType_dir; return hpatch_TRUE; }
+    if (isDirName){
+        *out_type=kPathType_dir;
+        if (out_fileSize) *out_fileSize=0;
+        return hpatch_TRUE;
+    }
     
     memset(&s,0,sizeof(s));
 #if (_IS_USE_WIN32_UTF8_WAPI)
@@ -78,15 +83,19 @@ hpatch_BOOL getPathType(const char* path_utf8,TPathType* out_type){
     if (wsize<=0) return hpatch_FALSE;
     res= _wstat64(path_w,&s);
 #else
+    assert(sizeof(s.st_size)==sizeof(hpatch_StreamPos_t));
     res = stat(path_utf8,&s);
 #endif
+    
     if(res!=0){
         return hpatch_FALSE;
     }else if ((s.st_mode&S_IFMT)==S_IFREG){
         *out_type=kPathType_file;
+        if (out_fileSize) *out_fileSize=s.st_size;
         return hpatch_TRUE;
     }else if ((s.st_mode&S_IFMT)==S_IFDIR){
         *out_type=kPathType_dir;
+        if (out_fileSize) *out_fileSize=0;
         return hpatch_TRUE;
     }else{
         return hpatch_FALSE;

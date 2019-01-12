@@ -395,8 +395,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* outDiffFileName=arg_values[2];
         TPathType oldType;
         TPathType newType;
-        _options_check(getPathType(oldPath,&oldType),"input old path must file or directory");
-        _options_check(getPathType(newPath,&newType),"input new path must file or directory");
+        _options_check(getPathType(oldPath,&oldType,0),"input old path must file or directory");
+        _options_check(getPathType(newPath,&newType,0),"input new path must file or directory");
         hpatch_BOOL isUseDirDiff=(kPathType_dir==oldType)||(kPathType_dir==newType);
         if (isUseDirDiff)
             _options_check(!isOriginal,"-o unsupport dir diff");
