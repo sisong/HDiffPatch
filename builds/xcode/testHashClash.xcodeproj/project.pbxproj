@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D6B2409021E3298C00993A81 /* testHashConflict.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6B2408F21E3298C00993A81 /* testHashConflict.cpp */; };
+		D6B2409021E3298C00993A81 /* testHashClash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6B2408F21E3298C00993A81 /* testHashClash.cpp */; };
 		D6B2409521E33C2B00993A81 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D6B2409421E33C2B00993A81 /* adler_roll.c */; };
 		D6B2409921E3465700993A81 /* md5c.c in Sources */ = {isa = PBXBuildFile; fileRef = D6B2409821E3465700993A81 /* md5c.c */; };
 		D6B240AA21E4DB9C00993A81 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D6B2409221E3356200993A81 /* libz.tbd */; };
@@ -26,8 +26,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		D6B2408521E3291300993A81 /* testHashConflict */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = testHashConflict; sourceTree = BUILT_PRODUCTS_DIR; };
-		D6B2408F21E3298C00993A81 /* testHashConflict.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = testHashConflict.cpp; path = ../../test/testHashConflict.cpp; sourceTree = "<group>"; };
+		D6B2408521E3291300993A81 /* testHashClash */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = testHashClash; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6B2408F21E3298C00993A81 /* testHashClash.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = testHashClash.cpp; path = ../../test/testHashClash.cpp; sourceTree = "<group>"; };
 		D6B2409221E3356200993A81 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		D6B2409421E33C2B00993A81 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
 		D6B2409721E3465700993A81 /* md5c.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = md5c.h; sourceTree = "<group>"; };
@@ -53,7 +53,7 @@
 				D6B2409621E3465700993A81 /* libmd5 */,
 				D6B2409421E33C2B00993A81 /* adler_roll.c */,
 				D6B240A921E467F600993A81 /* adler_roll.h */,
-				D6B2408F21E3298C00993A81 /* testHashConflict.cpp */,
+				D6B2408F21E3298C00993A81 /* testHashClash.cpp */,
 				D6B2408621E3291300993A81 /* Products */,
 				D6B2409121E3356200993A81 /* Frameworks */,
 			);
@@ -62,7 +62,7 @@
 		D6B2408621E3291300993A81 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D6B2408521E3291300993A81 /* testHashConflict */,
+				D6B2408521E3291300993A81 /* testHashClash */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -88,9 +88,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D6B2408421E3291300993A81 /* testHashConflict */ = {
+		D6B2408421E3291300993A81 /* testHashClash */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D6B2408C21E3291300993A81 /* Build configuration list for PBXNativeTarget "testHashConflict" */;
+			buildConfigurationList = D6B2408C21E3291300993A81 /* Build configuration list for PBXNativeTarget "testHashClash" */;
 			buildPhases = (
 				D6B2408121E3291300993A81 /* Sources */,
 				D6B2408221E3291300993A81 /* Frameworks */,
@@ -100,9 +100,9 @@
 			);
 			dependencies = (
 			);
-			name = testHashConflict;
+			name = testHashClash;
 			productName = testHashConflict;
-			productReference = D6B2408521E3291300993A81 /* testHashConflict */;
+			productReference = D6B2408521E3291300993A81 /* testHashClash */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -119,7 +119,7 @@
 					};
 				};
 			};
-			buildConfigurationList = D6B2408021E3291300993A81 /* Build configuration list for PBXProject "testHashConflict" */;
+			buildConfigurationList = D6B2408021E3291300993A81 /* Build configuration list for PBXProject "testHashClash" */;
 			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -131,7 +131,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				D6B2408421E3291300993A81 /* testHashConflict */,
+				D6B2408421E3291300993A81 /* testHashClash */,
 			);
 		};
 /* End PBXProject section */
@@ -142,7 +142,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6B2409921E3465700993A81 /* md5c.c in Sources */,
-				D6B2409021E3298C00993A81 /* testHashConflict.cpp in Sources */,
+				D6B2409021E3298C00993A81 /* testHashClash.cpp in Sources */,
 				D6B2409521E33C2B00993A81 /* adler_roll.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -280,7 +280,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D6B2408021E3291300993A81 /* Build configuration list for PBXProject "testHashConflict" */ = {
+		D6B2408021E3291300993A81 /* Build configuration list for PBXProject "testHashClash" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D6B2408A21E3291300993A81 /* Debug */,
@@ -289,7 +289,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D6B2408C21E3291300993A81 /* Build configuration list for PBXNativeTarget "testHashConflict" */ = {
+		D6B2408C21E3291300993A81 /* Build configuration list for PBXNativeTarget "testHashClash" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D6B2408D21E3291300993A81 /* Debug */,

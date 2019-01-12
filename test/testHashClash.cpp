@@ -1,6 +1,6 @@
-// testHashConflict.cpp
+// testHashClash.cpp
 // tool for HDiff
-// An estimation method for detecting hash conflicts
+// An estimation method for detecting hash clashs
 /*
  The MIT License (MIT)
  Copyright (c) 2012-2019 HouSisong
@@ -149,33 +149,32 @@ struct THash_adler64f{
 const uint64_t kMaxMapNodeSize=80000000ull; //run test memory ctrl
 const size_t   kRandTestMaxSize=1024*1024*1024;//test rand data size
 const size_t   kMaxHashSize=256;
-const size_t   kMaxConflict=1000000; //fast end
-const uint64_t kRandTestLoop=100000000ull;//run test max time ctrl
+const size_t   kMaxClash=5000000; //fast end
+const uint64_t kRandTestLoop=1000000000ull;//run test max time ctrl
 
 template <class THash>
 void test(const TByte* data,const TByte* data_end){
-    double time0=clock_s();
-    typedef typename THash::TValue  TValue;
-    const size_t map_count=sizeof(TValue)/sizeof(uint32_t);
-    assert(map_count*sizeof(uint32_t)==sizeof(TValue)); //unsupport other bit
+    typedef typename THash::TValue                TValue;
     typedef std::pair<const TByte*,const TByte*>  TPair;
-    typedef std::unordered_map<uint32_t,TPair>  TMap;
-    TMap maps[map_count];
-    for (size_t i=0; i<map_count; ++i) {
-       maps[i].reserve(kMaxMapNodeSize*3/map_count);
-    }
+    typedef std::unordered_map<uint32_t,TPair>    TMap;
+    double time0=clock_s();
+    const size_t clip_count=sizeof(TValue)/sizeof(uint32_t);
+    assert(clip_count*sizeof(uint32_t)==sizeof(TValue)); //unsupport other bit
+    TMap maps[clip_count];
+    for (size_t m=0;m<clip_count;++m)
+        maps[m].reserve(kMaxMapNodeSize*3/clip_count);
     unsigned int rand_seed=7;
     printf("%s%s\t",THash::name(),std::string(12-strlen(THash::name()),' ').c_str());
     
-    uint64_t    conflicts[map_count]={0};
-    double conflictBases[map_count]={0};
+    uint64_t    clashs[clip_count]={0};
+    double clashBases[clip_count]={0};
     size_t i=0;
     while (i<kRandTestLoop) {
-        uint64_t    conflictMin=(uint64_t)-1;
-        for (size_t m=0;m<map_count;++m){
-            if (conflicts[m]<conflictMin) conflictMin=conflicts[m];
+        uint64_t    clashMin=(uint64_t)-1;
+        for (size_t m=0;m<clip_count;++m){
+            if (clashs[m]<clashMin) clashMin=clashs[m];
         }
-        if (conflictMin>=kMaxConflict) break; //break loop
+        if (clashMin>=kMaxClash) break; //break loop
         size_t dlen=rand_r(&rand_seed) % kMaxHashSize;
         size_t dstrat=rand_r(&rand_seed) % ((data_end-data) - dlen);
         assert(dstrat+dlen<=(data_end-data));
@@ -187,23 +186,23 @@ void test(const TByte* data,const TByte* data_end){
         th.hash_begin();
         th.hash(pv,pv_end);
         th.hash_end(&hvs);
-        for (size_t m=0;m<map_count;++m){
-            TMap& map=maps[m];
-            uint64_t& conflict=conflicts[m];
-            double& conflictBase=conflictBases[m];
+        for (size_t m=0;m<clip_count;++m){
+            TMap&     map=maps[m];
+            uint64_t& clash=clashs[m];
+            double& clashBase=clashBases[m];
             uint32_t hv=((uint32_t*)&hvs)[m];
             auto it=map.find(hv);
             if (it==map.end()){
-                if (map.size()*map_count<kMaxMapNodeSize)
+                if (map.size()*clip_count<kMaxMapNodeSize)
                     map[hv]=TPair(pv,pv_end);
-                conflictBase+=map.size();
+                clashBase+=map.size();
                 ++i;
             }else{
                 const TPair& v=it->second;
                 const TByte* vf=v.first;
                 if ((pv_end-pv)!=(v.second-vf)){
-                    ++conflict;
-                    conflictBase+=map.size();
+                    ++clash;
+                    clashBase+=map.size();
                     ++i;
                 } else if (pv==vf){
                     //same i
@@ -220,41 +219,40 @@ void test(const TByte* data,const TByte* data_end){
                     if (isEq){
                         //same i
                     }else{
-                        ++conflict;
-                        conflictBase+=map.size();
+                        ++clash;
+                        clashBase+=map.size();
                         ++i;
                     }
                 }
             }
         }
     }
-    for (size_t i=0; i<map_count; ++i) {
-        maps[i].clear();
-    }
+    for (size_t m=0;m<clip_count;++m)
+        maps[m].clear();
     
-    double conflict=1;
-    double conflictBase=1;
-    for (size_t m=0;m<map_count;++m){
-        conflict*=conflicts[m];
-        conflictBase*=conflictBases[m];
+    double clash=1;
+    double clashBase=1;
+    for (size_t m=0;m<clip_count;++m){
+        clash*=clashs[m];
+        clashBase*=clashBases[m];
     }
-    double conflictR=conflict/conflictBase;
-    printf("conflict rate%s%g (%.0f/%g)  \ttime: %.3f s\n",
+    double clashR=clash/clashBase;
+    printf("clash rate%s%.4e (%.4e/%.4e) \ttime: %.3f s\n",
            (sizeof(TValue)>sizeof(uint32_t))?">=":": ",
-           conflictR,conflict,conflictBase,(clock_s()-time0));
+           clashR,clash,clashBase,(clock_s()-time0));
 }
 
 int main() {
     double bestCR_32bit =1.0/(((uint64_t)1)<<32);
     double bestCR_64bit =bestCR_32bit*bestCR_32bit;
     double bestCR_128bit=bestCR_64bit*bestCR_64bit;
-    printf("32bit hash best\tconflict rate: %g (1/%llu) \n",
+    printf("32bit hash best\tclash rate: %.4e (1/%llu) \n",
            bestCR_32bit,(((uint64_t)1)<<32));
-    printf("48bit hash best\tconflict rate: %g (1/%llu) \n",
+    printf("48bit hash best\tclash rate: %.4e (1/%llu) \n",
            1.0/(((uint64_t)1)<<48),(((uint64_t)1)<<48));
-    printf("64bit hash best\tconflict rate: %g (1/%llu%llu) \n",
+    printf("64bit hash best\tclash rate: %.4e (1/%llu%llu) \n",
            bestCR_64bit,(((uint64_t)-1))/10,(((uint64_t)-1))%10+1);
-    printf("128bithash best\tconflict rate: %g (1/%g) \n\n",
+    printf("128bithash best\tclash rate: %.4e (1/%.4e) \n\n",
            bestCR_128bit,1/bestCR_128bit);
     
     std::vector<TByte> data(kRandTestMaxSize);

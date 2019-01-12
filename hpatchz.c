@@ -78,16 +78,16 @@ static void printUsage(){
            "      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m\n"
            "special options:\n"
-           "  -l-maxOpenFileCount\n"
-           "      Limit open files's count at same time when stream directory diff;\n"
-           "      DEFAULT maxOpenFileCount==112, the best limit value by different operating system."
+           "  -f-maxOpenFileCount\n"
+           "      limit open Files's count at same time when stream directory diff;\n"
+           "      DEFAULT maxOpenFileCount==112, the best limit value by different operating system.\n"
 #if (_IS_NEED_ORIGINAL)
            "  -o  Original patch; DEPRECATED; compatible with \"patch_demo.c\",\n"
            "      diffFile must created by \"diff_demo.cpp\" or \"hdiffz -o ...\"\n"
 #endif
            "  -h or -?\n"
-           "      output Help info (this usage). \n"
-           "  -v  output Version info. \n\n"
+           "      output Help info (this usage).\n"
+           "  -v  output Version info.\n\n"
            );
 }
 
@@ -120,7 +120,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
 
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
-               hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
+               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileCount);
 
 
 #if (_IS_NEED_MAIN)
@@ -188,10 +188,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                     patchCacheSize=kPatchCacheSize_default;
                 }
             } break;
-            case 'l':{
-                _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-l-?")
+            case 'f':{
+                _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-f-?")
                 const char* pnum=op+3;
-                _options_check(kmg_to_size(pnum,strlen(pnum),&matchValue),"-l-?");
+                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileCount),"-f-?");
             } break;
             case '?':
             case 'h':{
@@ -226,7 +226,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             return 0; //ok
     }
     if (kMaxOpenFileCount==_kNULL_SIZE)
-        kMaxOpenFileCount=kMaxOpenFileCount_default;
+        kMaxOpenFileCount=kMaxOpenFileCount_default_patch;
+    if (kMaxOpenFileCount<kMaxOpenFileCount_default_min)
+        kMaxOpenFileCount=kMaxOpenFileCount_default_min;
     
     _options_check(arg_values_size==kMax_arg_values_size,"count");
     if (isOriginal==_kNULL_VALUE)
@@ -246,7 +248,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         _options_check(getIsDirDiffFile(diffFileName,&isDirDiff),"input diffFile open read");
         if (isDirDiff){
             _options_check(!isOriginal,"-o unsupport dir patch");
-            return hpatch_dir(oldPath,diffFileName,outNewPath,isLoadOldAll,patchCacheSize);
+            return hpatch_dir(oldPath,diffFileName,outNewPath,isLoadOldAll,patchCacheSize,kMaxOpenFileCount);
         }else{
             return hpatch(oldPath,diffFileName,outNewPath,isOriginal,isLoadOldAll,patchCacheSize);
         }
@@ -446,8 +448,20 @@ clear:
     return result;
 }
 
+
+hpatch_BOOL _outNewDir(IDirPatchListener* listener,const char* newDir){
+    printf("callback: make dir: %s\n",newDir);
+    //todo: make dir
+    return hpatch_TRUE;
+}
+hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,const char* newFileName){
+    printf("callback: copy file: %s => %s\n",oldFileName,newFileName);
+    //todo: copy file
+    return hpatch_TRUE;
+}
+
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
-               hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
+               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileCount){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
@@ -461,7 +475,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     TByte*               temp_cache=0;
     size_t               temp_cache_size;
     TDirPatcher          dirPatcher;
-    TDirDiffInfo*        dirDiffInfo=0;
+    const TDirDiffInfo*  dirDiffInfo=0;
     TFileStreamOutput_init(&newFile);
     TFileStreamInput_init(&diffData);
     TFileStreamInput_init(&oldFile);
@@ -473,11 +487,10 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         TPathType    oldType;
         check(getPathType(oldPath,&oldType),HPATCH_PATHTYPE_ERROR,"input old path must file or dir");
         check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
-        rt=TDirPatcher_open(&dirPatcher,&diffData.base);
-        dirDiffInfo=&dirPatcher.dirDiffInfo;
+        rt=TDirPatcher_open(&dirPatcher,&diffData.base,&dirDiffInfo);
         if((!rt)||(!dirDiffInfo->isDirDiff)){
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
-            check(hpatch_FALSE,HPATCH_DIRDIFFINFO_ERROR,"is hdiff file? getDirDiffInfo()");
+            check(hpatch_FALSE,HPATCH_DIRDIFFINFO_ERROR,"is hdiff file? get dir diff info");
         }
         if (dirDiffInfo->oldPathIsDir){
             check(kPathType_dir==oldType,HPATCH_PATHTYPE_ERROR,"input old path need dir");
@@ -515,19 +528,13 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             check_on_error(HPATCH_FILEDATA_ERROR);
         }
         oldStream=&oldFile.base;
-    }else{//old is dir
-        hpatch_StreamPos_t oldDataSize=dirDiffInfo->hdiffInfo.oldDataSize;
-        if (temp_cache_size>=oldDataSize+kPatchCacheSize_min){//optimize: only open one ref file at a time
-            check(TDirPatcher_loadOldRefToMem(&dirPatcher,oldPath,temp_cache,temp_cache+oldDataSize),
-                  HPATCH_DIRPATCH_LAODOLDREF_ERROR,"load all oldFiles");
-            mem_as_hStreamInput(&oldMemStream,temp_cache,temp_cache+oldDataSize);
-            temp_cache+=oldDataSize;
-            temp_cache_size-=oldDataSize;
-            oldStream=&oldMemStream;
-        }else{ //open all ref files
-            check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,&oldStream),
-                  HPATCH_DIRPATCH_LAODOLDREF_ERROR,"open oldFiles");
+    }else{//old is dir     all old ref files as a stream
+        if (temp_cache_size>=dirDiffInfo->hdiffInfo.oldDataSize+kPatchCacheSize_min){
+            // all old while auto cache by patch
+            kMaxOpenFileCount=kMaxOpenFileCount_limit_min; //not need open old files at same time
         }
+        check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,kMaxOpenFileCount,&oldStream),
+              HPATCH_DIRPATCH_LAODOLDREF_ERROR,"open oldFiles");
     }
     //new data
     if (!dirDiffInfo->newPathIsDir){//new is file
@@ -535,18 +542,17 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
               HPATCH_OPENWRITE_ERROR,"open out newFile for write");
         newStream=&newFile.base;
     }else{ //new is dir
-        INewDirListener listener;
+        IDirPatchListener listener;
         memset(&listener,0,sizeof(listener));
         listener.listenerImport=0;
-        listener.copySameFile=_os_copy_file;
-        listener.outNewDir=_os_make_dir;
-        check(TDirPatcher_openNewDirAsStream(&dirPatcher,outNewPath,&newStream,&listener),
+        listener.outNewDir=_outNewDir;
+        listener.copySameFile=_copySameFile;
+        check(TDirPatcher_openNewDirAsStream(&dirPatcher,outNewPath,&listener,&newStream),
               HPATCH_DIRPATCH_OPENNEWDIR_ERROR,"open new dir");
     }
     
     check(TDirPatcher_patch(&dirPatcher,newStream,oldStream, temp_cache,
                             temp_cache+temp_cache_size),HPATCH_DIRPATCH_ERROR,"dir patch run");
-    
 clear:
     _isInClear=hpatch_TRUE;
     check(TFileStreamOutput_close(&newFile),HPATCH_FILECLOSE_ERROR,"out newFile close");

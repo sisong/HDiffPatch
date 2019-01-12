@@ -113,17 +113,17 @@ static void printUsage(){
 #endif
            "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
            "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
-           "  -l-maxOpenFileCount\n"
-           "      Limit open files's count at same time when stream directory diff;\n"
-           "      DEFAULT maxOpenFileCount==112, the best limit value by different operating system."
+           "  -f-maxOpenFileCount\n"
+           "      limit open Files's count at same time when stream directory diff;\n"
+           "      DEFAULT maxOpenFileCount==112, the best limit value by different operating system.\n"
 #if (_IS_NEED_ORIGINAL)
            "  -o  Original diff, unsupport run with -s or -c; DEPRECATED;\n"
            "      compatible with \"diff_demo.cpp\",\n"
            "      diffFile must patch by \"patch_demo.c\" or \"hpatchz -o ...\"\n"
 #endif
            "  -h or -?\n"
-           "      output Help info (this usage). \n"
-           "  -v  output Version info. \n\n"
+           "      output Help info (this usage).\n"
+           "  -v  output Version info.\n\n"
            );
 }
 
@@ -276,10 +276,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                     matchValue=kMatchBlockSize_default;
                 }
             } break;
-            case 'l':{
-                _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-l-?")
+            case 'f':{
+                _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-f-?")
                 const char* pnum=op+3;
-                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileCount),"-l-?");
+                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileCount),"-f-?");
             } break;
             case '?':
             case 'h':{
@@ -360,6 +360,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     }
     if (kMaxOpenFileCount==_kNULL_SIZE)
         kMaxOpenFileCount=kMaxOpenFileCount_default_diff;
+    if (kMaxOpenFileCount<kMaxOpenFileCount_default_min)
+        kMaxOpenFileCount=kMaxOpenFileCount_default_min;
     
     _options_check((arg_values.size()==2)||(arg_values.size()==3),"count");
     if (arg_values.size()==3){

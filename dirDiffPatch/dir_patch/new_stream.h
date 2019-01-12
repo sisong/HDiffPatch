@@ -28,8 +28,6 @@
 #ifndef DirPatch_new_stream_h
 #define DirPatch_new_stream_h
 #include "../../HDiffPatch/libHDiffPatch/HPatch/patch_types.h"
-#include "../../file_for_patch.h"
-
 
 typedef struct INewStreamListener{
     void*         listenerImport;

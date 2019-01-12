@@ -402,8 +402,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
               size_t kMaxOpenFileCount){
     assert(listener!=0);
-    if (kMaxOpenFileCount<kMaxOpenFileCount_min)
-        kMaxOpenFileCount=kMaxOpenFileCount_min;
+    assert(kMaxOpenFileCount>=kMaxOpenFileCount_limit_min);
     kMaxOpenFileCount-=1; // for outDiffStream
     std::vector<std::string> oldList;
     std::vector<std::string> newList;

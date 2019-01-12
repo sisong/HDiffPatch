@@ -42,7 +42,8 @@
 #endif
 static const char kPatch_dirSeparator_saved = '/';
 
-#define kMaxOpenFileCount_min               8
+#define kMaxOpenFileCount_limit_min          3
+#define kMaxOpenFileCount_default_min        8 //must >= limit_min
 #define kMaxOpenFileCount_default_diff      48
 #define kMaxOpenFileCount_default_patch     24
 

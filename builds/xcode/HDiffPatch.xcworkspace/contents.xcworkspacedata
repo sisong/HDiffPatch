@@ -11,7 +11,7 @@
       location = "container:"
       name = "test">
       <FileRef
-         location = "group:testHashConflict.xcodeproj">
+         location = "group:testHashClash.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:unitTest.xcodeproj">
