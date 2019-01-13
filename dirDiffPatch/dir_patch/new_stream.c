@@ -73,31 +73,26 @@ static hpatch_BOOL _TNewStream_write(const hpatch_TStreamOutput* stream,hpatch_S
 }
 
 static hpatch_BOOL _file_append_ready(TNewStream* self){
-    
+    assert(self->_curNewFile==0);
+    assert(self->_curWriteToPos==self->_curWriteToPosEnd);
     while (self->_curPathIndex<self->_pathCount) {
-        if ((self->_curSamePairIndex<self->_samePairCount)
+        if((self->_curNewRefIndex<self->_newRefCount)
+           &&(self->_curPathIndex==self->_newRefList[self->_curNewRefIndex])){
+            //open file for write
+            check(self->_listener->openNewFile(self->_listener,self->_curNewRefIndex,&self->_curNewFile));
+            self->_curWriteToPosEnd+=self->_curNewFile->streamSize;
+            ++self->_curNewRefIndex;
+            return hpatch_TRUE;
+        }else if ((self->_curSamePairIndex<self->_samePairCount)
             &&(self->_curPathIndex==self->_samePairList[self->_curSamePairIndex*2])){
             const size_t* pairNewiOldi=self->_samePairList+self->_curSamePairIndex*2;
             check(self->_listener->copySameFile(self->_listener,pairNewiOldi[0],pairNewiOldi[1]));
-            ++self->_curPathIndex;
-        }else if ((self->_curNewRefIndex<self->_newRefCount)
-                  &&(self->_curPathIndex!=self->_newRefList[self->_curNewRefIndex])){
-            check(self->_listener->makeNewDir(self->_listener,self->_curPathIndex));
+            ++self->_curSamePairIndex;
             ++self->_curPathIndex;
         }else{
-            break;
+            check(self->_listener->makeNewDir(self->_listener,self->_curPathIndex));
+            ++self->_curPathIndex;
         }
-    }
-    
-    assert(self->_curNewFile==0);
-    assert(self->_curWriteToPos==self->_curWriteToPosEnd);
-    if (self->_curPathIndex<self->_pathCount){//open file for write
-        check((self->_curNewRefIndex<self->_newRefCount)&&
-              (self->_curPathIndex==self->_newRefList[self->_curNewRefIndex]));
-        ++self->_curNewRefIndex;
-        check(self->_listener->openNewFile(self->_listener,self->_curPathIndex,&self->_curNewFile));
-        self->_curWriteToPosEnd+=self->_curNewFile->streamSize;
-        return hpatch_TRUE;
     }
     //file entry end
     check(_file_entry_end(self));
@@ -106,12 +101,12 @@ static hpatch_BOOL _file_append_ready(TNewStream* self){
 
 static hpatch_BOOL _file_append_part(TNewStream* self,hpatch_StreamPos_t g_writeToPos,
                                      const unsigned char* data,const unsigned char* data_end){
-    hpatch_StreamPos_t curWPos;
+    hpatch_StreamPos_t curFilePos;
     assert(self->_curNewFile!=0);
     assert((g_writeToPos<=self->_curWriteToPosEnd)&&(g_writeToPos==self->_curWriteToPos));
-    curWPos=g_writeToPos-(self->_curWriteToPosEnd-self->_curNewFile->streamSize);
-    self->_curWriteToPos=curWPos+(data_end-data);
-    return self->_curNewFile->write(self->_curNewFile,curWPos,data,data_end);
+    curFilePos=g_writeToPos-(self->_curWriteToPosEnd-self->_curNewFile->streamSize);
+    self->_curWriteToPos=g_writeToPos+(size_t)(data_end-data);
+    return self->_curNewFile->write(self->_curNewFile,curFilePos,data,data_end);
 }
 
 static hpatch_BOOL _file_append_end(TNewStream* self){
@@ -137,6 +132,7 @@ hpatch_BOOL TNewStream_open(TNewStream* self,INewStreamListener* listener,
     assert(self->_listener==0);
     assert(self->stream==0);
     assert(self->_curNewFile==0);
+    self->_listener=listener;
     self->isFinish=hpatch_FALSE;
     self->_pathCount=newPathCount;
     self->_newRefList=newRefList;

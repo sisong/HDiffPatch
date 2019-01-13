@@ -137,7 +137,7 @@ void getDirFileList(const std::string& dirPath,std::vector<std::string>& out_lis
     assert(isDirName(dirPath));
     CDir dir(dirPath.c_str());
     check((dir.handle!=0),"dirOpenForRead \""+dirPath+"\" error!");
-    bool isHaveSub=false;
+    out_list.push_back(dirPath); //add dir
     while (true) {
         TPathType  type;
         const char* path=0;
@@ -150,18 +150,14 @@ void getDirFileList(const std::string& dirPath,std::vector<std::string>& out_lis
         if (type==kPathType_dir){
             assignDirTag(subName);
             if (!filter->isNeedFilter(subName)){
-                isHaveSub=true;
                 getDirFileList(subName,out_list,filter);
             }
         }else{// if (type==kPathType_file){
             if (!filter->isNeedFilter(subName)){
-                isHaveSub=true;
                 out_list.push_back(subName); //add file
             }
         }
     }
-    if (!isHaveSub)
-        out_list.push_back(dirPath); //add empty dir
 }
 
 static hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* out_fileSize){
@@ -391,7 +387,7 @@ struct CFileResHandleLimit{
     }
     static hpatch_BOOL closeRes(struct IResHandle* res,const hpatch_TStreamInput* stream){
         CFile* self=(CFile*)res->resImport;
-        check(stream==&self->base,"CFileResHandleLimit close unknow file error!");
+        assert(stream==&self->base);
         check(TFileStreamInput_close(self),"CFileResHandleLimit close file error!");
         return hpatch_TRUE;
     }
@@ -400,10 +396,10 @@ struct CFileResHandleLimit{
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              size_t kMaxOpenFileCount){
+              size_t kMaxOpenFileNumber){
     assert(listener!=0);
-    assert(kMaxOpenFileCount>=kMaxOpenFileCount_limit_min);
-    kMaxOpenFileCount-=1; // for outDiffStream
+    assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
+    kMaxOpenFileNumber-=1; // for outDiffStream
     std::vector<std::string> oldList;
     std::vector<std::string> newList;
     const bool oldIsDir=isDirName(oldPath);
@@ -457,7 +453,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     }
     size_t sameFilePairCount=dataSamePairList.size()/2;
     CFileResHandleLimit resLimit;
-    resLimit.open(kMaxOpenFileCount,resList);
+    resLimit.open(kMaxOpenFileNumber,resList);
     CRefStream oldRefStream;
     CRefStream newRefStream;
     oldRefStream.open(resLimit.limit.streamList,oldRefIList.size());

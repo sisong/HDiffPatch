@@ -78,9 +78,9 @@ static void printUsage(){
            "      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m\n"
            "special options:\n"
-           "  -f-maxOpenFileCount\n"
-           "      limit open Files's count at same time when stream directory diff;\n"
-           "      DEFAULT maxOpenFileCount==112, the best limit value by different operating system.\n"
+           "  -n-maxOpenFileNumber\n"
+           "      limit Number of open files at same time when stream directory diff;\n"
+           "      DEFAULT maxOpenFileNumber==24, the best limit value by different operating system.\n"
 #if (_IS_NEED_ORIGINAL)
            "  -o  Original patch; DEPRECATED; compatible with \"patch_demo.c\",\n"
            "      diffFile must created by \"diff_demo.cpp\" or \"hdiffz -o ...\"\n"
@@ -120,7 +120,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
 
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
-               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileCount);
+               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber);
 
 
 #if (_IS_NEED_MAIN)
@@ -158,7 +158,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      patchCacheSize=0;
-    size_t      kMaxOpenFileCount=_kNULL_SIZE; //only used in stream dir patch
+    size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir patch
     #define kMax_arg_values_size 3
     const char * arg_values[kMax_arg_values_size]={0};
     int          arg_values_size=0;
@@ -188,10 +188,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                     patchCacheSize=kPatchCacheSize_default;
                 }
             } break;
-            case 'f':{
+            case 'n':{
                 const char* pnum=op+3;
-                _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-f-?")
-                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileCount),"-f-?");
+                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?")
+                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
             } break;
             case '?':
             case 'h':{
@@ -225,10 +225,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         if (arg_values_size==0)
             return 0; //ok
     }
-    if (kMaxOpenFileCount==_kNULL_SIZE)
-        kMaxOpenFileCount=kMaxOpenFileCount_default_patch;
-    if (kMaxOpenFileCount<kMaxOpenFileCount_default_min)
-        kMaxOpenFileCount=kMaxOpenFileCount_default_min;
+    if (kMaxOpenFileNumber==_kNULL_SIZE)
+        kMaxOpenFileNumber=kMaxOpenFileNumber_default_patch;
+    if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
+        kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
     
     _options_check(arg_values_size==kMax_arg_values_size,"count");
     if (isOriginal==_kNULL_VALUE)
@@ -248,7 +248,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         _options_check(getIsDirDiffFile(diffFileName,&isDirDiff),"input diffFile open read");
         if (isDirDiff){
             _options_check(!isOriginal,"-o unsupport dir patch");
-            return hpatch_dir(oldPath,diffFileName,outNewPath,isLoadOldAll,patchCacheSize,kMaxOpenFileCount);
+            return hpatch_dir(oldPath,diffFileName,outNewPath,isLoadOldAll,patchCacheSize,kMaxOpenFileNumber);
         }else{
             return hpatch(oldPath,diffFileName,outNewPath,isOriginal,isLoadOldAll,patchCacheSize);
         }
@@ -450,9 +450,7 @@ clear:
 
 
 hpatch_BOOL _makeNewDir(IDirPatchListener* listener,const char* newDir){
-    printf("callback: make dir: %s\n",newDir);
-    //todo: make dir
-    return hpatch_TRUE;
+    return makeNewDir(newDir);
 }
 hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,const char* newFileName){
     printf("callback: copy file: %s => %s\n",oldFileName,newFileName);
@@ -461,7 +459,7 @@ hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,co
 }
 
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
-               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileCount){
+               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
@@ -485,7 +483,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     {//dir diff info
         hpatch_BOOL  rt;
         TPathType    oldType;
-        check(getPathType(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"input old path must file or dir");
+        check(getPathTypeByName(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"input old path must file or dir");
         check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
         rt=TDirPatcher_open(&dirPatcher,&diffData.base,&dirDiffInfo);
         if((!rt)||(!dirDiffInfo->isDirDiff)){
@@ -532,9 +530,9 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     }else{//old is dir     all old ref files as a stream
         if (temp_cache_size>=dirDiffInfo->hdiffInfo.oldDataSize+kPatchCacheSize_min){
             // all old while auto cache by patch
-            kMaxOpenFileCount=kMaxOpenFileCount_limit_min; //not need open old files at same time
+            kMaxOpenFileNumber=kMaxOpenFileNumber_limit_min; //not need open old files at same time
         }
-        check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,kMaxOpenFileCount,&oldStream),
+        check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,kMaxOpenFileNumber,&oldStream),
               HPATCH_DIRPATCH_LAODOLDREF_ERROR,"open oldFiles");
     }
     //new data

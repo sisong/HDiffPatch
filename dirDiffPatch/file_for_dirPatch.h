@@ -33,7 +33,7 @@
 #include "../libHDiffPatch/HPatch/patch_types.h"
 #include "../file_for_patch.h"
 
-#include <sys/stat.h> //stat
+#include <sys/stat.h> //stat mkdir
 
 #ifdef _WIN32
       static const char kPatch_dirSeparator = '\\';
@@ -42,10 +42,10 @@
 #endif
 static const char kPatch_dirSeparator_saved = '/';
 
-#define kMaxOpenFileCount_limit_min          3
-#define kMaxOpenFileCount_default_min        8 //must >= limit_min
-#define kMaxOpenFileCount_default_diff      48
-#define kMaxOpenFileCount_default_patch     24
+#define kMaxOpenFileNumber_limit_min          3
+#define kMaxOpenFileNumber_default_min        8 //must >= limit_min
+#define kMaxOpenFileNumber_default_diff      48
+#define kMaxOpenFileNumber_default_patch     24
 
 hpatch_inline static
 hpatch_BOOL getIsDirName(const char* path_utf8){
@@ -59,7 +59,7 @@ typedef enum TPathType{
 } TPathType;
 
 hpatch_inline static
-hpatch_BOOL getPathType(const char* path_utf8,TPathType* out_type,hpatch_StreamPos_t* out_fileSize){
+hpatch_BOOL getPathStat(const char* path_utf8,TPathType* out_type,hpatch_StreamPos_t* out_fileSize){
 #if (_IS_USE_WIN32_UTF8_WAPI)
     int            wsize;
     wchar_t        path_w[kPathMaxSize];
@@ -68,26 +68,18 @@ hpatch_BOOL getPathType(const char* path_utf8,TPathType* out_type,hpatch_StreamP
     struct stat  s;
 #endif
     
-    int         res;
-    hpatch_BOOL isDirName=getIsDirName(path_utf8);
+    int          rt;
     assert(out_type!=0);
-    if (isDirName){
-        *out_type=kPathType_dir;
-        if (out_fileSize) *out_fileSize=0;
-        return hpatch_TRUE;
-    }
-    
     memset(&s,0,sizeof(s));
 #if (_IS_USE_WIN32_UTF8_WAPI)
     wsize=_utf8FileName_to_w(path_utf8,path_w,kPathMaxSize);
     if (wsize<=0) return hpatch_FALSE;
-    res= _wstat64(path_w,&s);
+    rt = _wstat64(path_w,&s);
 #else
-    assert(sizeof(s.st_size)==sizeof(hpatch_StreamPos_t));
-    res = stat(path_utf8,&s);
+    rt = stat(path_utf8,&s);
 #endif
     
-    if(res!=0){
+    if(rt!=0){
         return hpatch_FALSE;
     }else if ((s.st_mode&S_IFMT)==S_IFREG){
         *out_type=kPathType_file;
@@ -99,6 +91,30 @@ hpatch_BOOL getPathType(const char* path_utf8,TPathType* out_type,hpatch_StreamP
         return hpatch_TRUE;
     }else{
         return hpatch_FALSE;
+    }
+}
+
+hpatch_inline static
+hpatch_BOOL getPathTypeByName(const char* path_utf8,TPathType* out_type,hpatch_StreamPos_t* out_fileSize){
+    assert(out_type!=0);
+    if (getIsDirName(path_utf8)){
+        *out_type=kPathType_dir;
+        if (out_fileSize) *out_fileSize=0;
+        return hpatch_TRUE;
+    }else{
+        return getPathStat(path_utf8,out_type,out_fileSize);
+    }
+}
+
+hpatch_inline static
+hpatch_BOOL makeNewDir(const char* dirName_utf8){
+    TPathType type;
+    if (getPathStat(dirName_utf8,&type,0)){
+        return type==kPathType_dir;
+    }else{
+        const mode_t kDefalutMode=S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
+        int rt=mkdir(dirName_utf8,kDefalutMode);
+        return rt==0;
     }
 }
 

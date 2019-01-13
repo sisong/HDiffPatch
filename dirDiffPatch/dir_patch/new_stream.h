@@ -32,8 +32,8 @@
 typedef struct INewStreamListener{
     void*       listenerImport;
     hpatch_BOOL   (*makeNewDir)(struct INewStreamListener* listener,size_t newPathIndex);
-    hpatch_BOOL (*copySameFile)(struct INewStreamListener* listener,size_t oldPathIndex,size_t newPathIndex);
-    hpatch_BOOL  (*openNewFile)(struct INewStreamListener* listener,size_t newPathIndex,
+    hpatch_BOOL (*copySameFile)(struct INewStreamListener* listener,size_t newRefIndex,size_t oldRefIndex);
+    hpatch_BOOL  (*openNewFile)(struct INewStreamListener* listener,size_t newRefIndex,
                                 const hpatch_TStreamOutput** out_newFileStream);
     hpatch_BOOL (*closeNewFile)(struct INewStreamListener* listener,const hpatch_TStreamOutput* newFileStream);
 } INewStreamListener;

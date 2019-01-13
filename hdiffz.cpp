@@ -113,9 +113,9 @@ static void printUsage(){
 #endif
            "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
            "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
-           "  -f-maxOpenFileCount\n"
-           "      limit open Files's count at same time when stream directory diff;\n"
-           "      DEFAULT maxOpenFileCount==112, the best limit value by different operating system.\n"
+           "  -n-maxOpenFileNumber\n"
+           "      limit Number of open files at same time when stream directory diff;\n"
+           "      DEFAULT maxOpenFileNumber==48, the best limit value by different operating system.\n"
 #if (_IS_NEED_ORIGINAL)
            "  -o  Original diff, unsupport run with -s or -c; DEPRECATED;\n"
            "      compatible with \"diff_demo.cpp\",\n"
@@ -149,7 +149,7 @@ int hdiff_dir(const char* oldPath,const char* newPath,const char* outDiffFileNam
               hpatch_BOOL oldIsDir, hpatch_BOOL newIsdir,
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TDecompress* decompressPlugin,size_t kMaxOpenFileCount);
+              hpatch_TDecompress* decompressPlugin,size_t kMaxOpenFileNumber);
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
           hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
           hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
@@ -234,7 +234,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      matchValue=0;
     size_t      compressLevel=0;
-    size_t      kMaxOpenFileCount=_kNULL_SIZE; //only used in stream dir diff
+    size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir diff
 #ifdef _CompressPlugin_lzma
     size_t      dictSize=0;
 #endif
@@ -276,10 +276,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                     matchValue=kMatchBlockSize_default;
                 }
             } break;
-            case 'f':{
-                _options_check((kMaxOpenFileCount==_kNULL_SIZE)&&(op[2]=='-'),"-f-?")
+            case 'n':{
+                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?")
                 const char* pnum=op+3;
-                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileCount),"-f-?");
+                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
             } break;
             case '?':
             case 'h':{
@@ -358,10 +358,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         if (arg_values.empty())
             return 0; //ok
     }
-    if (kMaxOpenFileCount==_kNULL_SIZE)
-        kMaxOpenFileCount=kMaxOpenFileCount_default_diff;
-    if (kMaxOpenFileCount<kMaxOpenFileCount_default_min)
-        kMaxOpenFileCount=kMaxOpenFileCount_default_min;
+    if (kMaxOpenFileNumber==_kNULL_SIZE)
+        kMaxOpenFileNumber=kMaxOpenFileNumber_default_diff;
+    if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
+        kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
     
     _options_check((arg_values.size()==2)||(arg_values.size()==3),"count");
     if (arg_values.size()==3){
@@ -395,8 +395,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* outDiffFileName=arg_values[2];
         TPathType oldType;
         TPathType newType;
-        _options_check(getPathType(oldPath,&oldType,0),"input old path must file or directory");
-        _options_check(getPathType(newPath,&newType,0),"input new path must file or directory");
+        _options_check(getPathTypeByName(oldPath,&oldType,0),"input old path must file or directory");
+        _options_check(getPathTypeByName(newPath,&newType,0),"input new path must file or directory");
         hpatch_BOOL isUseDirDiff=(kPathType_dir==oldType)||(kPathType_dir==newType);
         if (isUseDirDiff)
             _options_check(!isOriginal,"-o unsupport dir diff");
@@ -404,7 +404,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         if (isUseDirDiff){
             return hdiff_dir(oldPath,newPath,outDiffFileName, (kPathType_dir==oldType),
                              (kPathType_dir==newType), isDiff,isLoadAll,matchValue,isPatchCheck,
-                             streamCompressPlugin,compressPlugin,decompressPlugin,kMaxOpenFileCount);
+                             streamCompressPlugin,compressPlugin,decompressPlugin,kMaxOpenFileNumber);
         }else{
             return hdiff(oldPath,newPath,outDiffFileName,isDiff,isLoadAll,matchValue,isPatchCheck,
                          streamCompressPlugin,compressPlugin,decompressPlugin,isOriginal);
@@ -794,7 +794,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
               hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TDecompress* decompressPlugin,size_t kMaxOpenFileCount){
+              hpatch_TDecompress* decompressPlugin,size_t kMaxOpenFileNumber){
     double time0=clock_s();
     std::string oldPatch(_oldPath);
     std::string newPatch(_newPath);
@@ -827,7 +827,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
             TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
             DirDiffListener listener;
             dir_diff(&listener,oldPatch,newPatch,&diffData_out.base,isLoadAll!=0,
-                     matchValue,streamCompressPlugin,compressPlugin,kMaxOpenFileCount);
+                     matchValue,streamCompressPlugin,compressPlugin,kMaxOpenFileNumber);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             check(false,HDIFF_DIR_DIFF_ERROR,"dir diff run an error: "+e.what());

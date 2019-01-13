@@ -79,6 +79,7 @@ hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatc
     } IDirPatchListener;
 
 struct TFileStreamInput;
+struct TFileStreamOutput;
 typedef struct TDirPatcher{
     TDirDiffInfo                dirDiffInfo;
     _TDirDiffHead               dirDiffHead;
@@ -89,13 +90,18 @@ typedef struct TDirPatcher{
     const hpatch_StreamPos_t*   newRefSizeList;
     const size_t*               dataSamePairList; //new map to old index
 //private:
+    INewStreamListener          _newDirStreamListener;
     TNewStream                  _newDirStream;
-    INewStreamListener          _nsListener;
+    struct TFileStreamOutput*   _curNewFile;
+    char*                       _newRootDir;
+    char*                       _newRootDir_end;
+    char*                       _newRootDir_bufEnd;
+    void*                       _pNewRefMem;
     
     TRefStream                  _oldRefStream;
     TResHandleLimit             _resLimit;
     IResHandle*                 _resList;
-    struct TFileStreamInput*    _fileList;
+    struct TFileStreamInput*    _oldFileList;
     char*                       _oldRootDir;
     char*                       _oldRootDir_end;
     char*                       _oldRootDir_bufEnd;
@@ -114,9 +120,9 @@ hpatch_BOOL     TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* di
     
 hpatch_BOOL     TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin);
 hpatch_BOOL     TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRootDir_utf8,
-                                               size_t kMaxOpenFileCount,
+                                               size_t kMaxOpenFileNumber,
                                                const hpatch_TStreamInput** out_oldRefStream);
-hpatch_BOOL     TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newRootDir,
+hpatch_BOOL     TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newRootDir_utf8,
                                                IDirPatchListener* listener,
                                                const hpatch_TStreamOutput** out_newDirStream);
 

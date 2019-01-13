@@ -250,7 +250,7 @@ static hpatch_BOOL readSamePairListTo(TStreamCacheClip* sclip,size_t* out_pairLi
     TUInt backXValue=~(TUInt)0;
     TUInt backYValue=~(TUInt)0;
     size_t i;
-    for (i=0; i<pairCount;i+=2) {
+    for (i=0; i<pairCount*2;i+=2) {
         const TByte*  psign;
         TUInt incYValue;
         TUInt incXValue;
@@ -262,7 +262,7 @@ static hpatch_BOOL readSamePairListTo(TStreamCacheClip* sclip,size_t* out_pairLi
         psign=_TStreamCacheClip_accessData(sclip,1);
         check(psign!=0);
         check(_TStreamCacheClip_unpackUIntWithTag(sclip,&incYValue,1));
-        if (!(*psign)>>(8-1))
+        if (!((*psign)>>(8-1)))
             backYValue+=1+incYValue;
         else
             backYValue=backYValue+1-incYValue;
@@ -281,6 +281,7 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     const size_t         pathSumSize=head->oldPathSumSize+head->newPathSumSize;
     TStreamCacheClip        headStream;
     _TDecompressInputSteram decompresser;
+    TByte  temp_cache[hpatch_kStreamCacheSize];
     decompresser.decompressHandle=0;
     assert(self->_decompressPlugin==0);
     assert(self->_pDiffDataMem==0);
@@ -288,7 +289,6 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     
     //dir head data clip stream
     {
-        TByte temp_cache[hpatch_kStreamCacheSize];
         hpatch_StreamPos_t curPos=self->dirDiffHead.headDataOffset;
         check(getStreamClip(&headStream,&decompresser,self->dirDiffHead.headDataSize,
                             self->dirDiffHead.headDataCompressedSize,self->_dirDiffData,&curPos,
@@ -338,7 +338,7 @@ hpatch_BOOL  _openRes(IResHandle* res,hpatch_TStreamInput** out_stream){
     hpatch_BOOL  result=hpatch_TRUE;
     TDirPatcher*        self=(TDirPatcher*)res->resImport;
     size_t              resIndex=res-self->_resList;
-    TFileStreamInput*   file=self->_fileList+resIndex;
+    TFileStreamInput*   file=self->_oldFileList+resIndex;
     const char*         utf8fileName=0;
     assert(resIndex<self->dirDiffHead.oldRefFileCount);
     assert(file->m_file==0);
@@ -353,7 +353,7 @@ hpatch_BOOL _closeRes(IResHandle* res,const hpatch_TStreamInput* stream){
     hpatch_BOOL  result=hpatch_TRUE;
     TDirPatcher*        self=(TDirPatcher*)res->resImport;
     size_t              resIndex=res-self->_resList;
-    TFileStreamInput*   file=self->_fileList+resIndex;
+    TFileStreamInput*   file=self->_oldFileList+resIndex;
     assert(resIndex<self->dirDiffHead.oldRefFileCount);
     assert(file->m_file!=0);
     assert(stream==&file->base);
@@ -362,46 +362,56 @@ clear:
     return result;
 }
 
+static size_t getMaxPathNameLen(const char* const* pathList,size_t count){
+    size_t   maxLen=0;
+    size_t   i;
+    for (i=0;i<count;++i) {
+        const char* path=pathList[i];
+        size_t len=strlen(path);
+        maxLen=(len>maxLen)?len:maxLen;
+    }
+    return maxLen;
+}
+
 hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRootDir_utf8,
-                                           size_t kMaxOpenFileCount,
+                                           size_t kMaxOpenFileNumber,
                                            const hpatch_TStreamInput** out_oldRefStream){
     hpatch_BOOL result=hpatch_TRUE;
     size_t      refCount=self->dirDiffHead.oldRefFileCount;
     size_t      memSize=0;
     size_t      i;
-    size_t              maxFileNameLen=0;
-    size_t              oldRootDirLen=strlen(oldRootDir_utf8);
+    size_t      maxFileNameLen=0;
+    size_t      oldRootDirLen=strlen(oldRootDir_utf8);
     hpatch_StreamPos_t  sumFSize=0;
-    assert(kMaxOpenFileCount>=kMaxOpenFileCount_limit_min);
-    kMaxOpenFileCount-=2;// for diffFile and one newFile
+    assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
+    kMaxOpenFileNumber-=2;// for diffFile and one newFile
     //mem
     assert(self->_pOldRefMem==0);
-    for (i=0;i<refCount;++i) {
-        const char* utf8fileName=self->oldUtf8PathList[self->oldRefList[i]];
-        size_t len=strlen(utf8fileName); //'\0'
-        if (len<=maxFileNameLen) continue; else maxFileNameLen=len;
-    }
-    memSize=oldRootDirLen+2+maxFileNameLen+1; //'/'+'\0'+'\0'
-    memSize+=(sizeof(IResHandle)+sizeof(TFileStreamInput))*refCount;
+    assert(self->_resLimit.streamList==0);
+    assert(self->_oldRefStream.stream==0);
+    maxFileNameLen=getMaxPathNameLen(self->oldUtf8PathList,self->dirDiffHead.oldPathCount);
+    memSize=oldRootDirLen+2+maxFileNameLen+1 // '/'+'\0' +'\0'
+            +(sizeof(IResHandle)+sizeof(TFileStreamInput))*refCount;
     self->_pOldRefMem=malloc(memSize);
     check(self->_pOldRefMem!=0);
     self->_resList=(IResHandle*)self->_pOldRefMem;
-    self->_fileList=(TFileStreamInput*)&self->_resList[refCount];
-    self->_oldRootDir=(char*)&self->_fileList[refCount];
-    self->_oldRootDir_end=pushDirPath(self->_oldRootDir,self->_oldRootDir+oldRootDirLen+2,oldRootDir_utf8);
+    self->_oldFileList=(TFileStreamInput*)&self->_resList[refCount];
+    memset(self->_resList,0,sizeof(IResHandle)*refCount);
+    memset(self->_oldFileList,0,sizeof(TFileStreamInput)*refCount);
+    self->_oldRootDir=(char*)&self->_oldFileList[refCount];
+    self->_oldRootDir_end=pushDirPath(self->_oldRootDir,self->_oldRootDir+oldRootDirLen+2 /* '/'+'\0' */,
+                                      oldRootDir_utf8);
     check(0!=self->_oldRootDir_end);
-    self->_oldRootDir_bufEnd=self->_oldRootDir_end+1+maxFileNameLen+1;
+    self->_oldRootDir_bufEnd=self->_oldRootDir_end+1+maxFileNameLen+1;//'\0'+'\0'
     assert(1>=(size_t)(((char*)self->_pOldRefMem+memSize)-self->_oldRootDir_bufEnd));
     
     //init
-    memset(self->_resList,0,sizeof(IResHandle)*refCount);
-    memset(self->_fileList,0,sizeof(TFileStreamInput)*refCount);
     for (i=0; i<refCount;++i){
         TPathType          ftype;
         hpatch_StreamPos_t fileSize;
         const char* utf8fileName=self->oldUtf8PathList[self->oldRefList[i]];
         check(getPath(self->_oldRootDir_end,self->_oldRootDir_bufEnd,utf8fileName));
-        check(getPathType(self->_oldRootDir,&ftype,&fileSize));
+        check(getPathTypeByName(self->_oldRootDir,&ftype,&fileSize));
         check(ftype==kPathType_file)
         self->_resList[i].resImport=self;
         self->_resList[i].resStreamSize=fileSize;
@@ -411,7 +421,7 @@ hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRoot
     }
     check(sumFSize==self->dirDiffInfo.hdiffInfo.oldDataSize);
     //open
-    check(TResHandleLimit_open(&self->_resLimit,kMaxOpenFileCount,self->_resList,refCount));
+    check(TResHandleLimit_open(&self->_resLimit,kMaxOpenFileNumber,self->_resList,refCount));
     check(TRefStream_open(&self->_oldRefStream,self->_resLimit.streamList,self->_resLimit.streamCount));
     *out_oldRefStream=self->_oldRefStream.stream;
 clear:
@@ -426,7 +436,7 @@ hpatch_BOOL TDirPatcher_closeOldRefStream(TDirPatcher* self){
     self->_oldRootDir_end=0;
     self->_oldRootDir_bufEnd=0;
     self->_resList=0;
-    self->_fileList=0;
+    self->_oldFileList=0;
     if (self->_pOldRefMem){
         free(self->_pOldRefMem);
         self->_pOldRefMem=0;
@@ -436,47 +446,111 @@ hpatch_BOOL TDirPatcher_closeOldRefStream(TDirPatcher* self){
 
 
 static hpatch_BOOL _makeNewDir(INewStreamListener* listener,size_t newPathIndex){
+    hpatch_BOOL  result=hpatch_TRUE;
     TDirPatcher* self=(TDirPatcher*)listener->listenerImport;
-    //return self->_listener->makeNewDir();
-    //todo:
-    return hpatch_FALSE;
+    const char*  dirName=0;
+    assert(newPathIndex<self->dirDiffHead.newPathCount);
+    
+    dirName=self->newUtf8PathList[newPathIndex];
+    check(getPath(self->_newRootDir_end,self->_newRootDir_bufEnd,dirName));
+    check(self->_listener->makeNewDir(self->_listener,self->_newRootDir));
+clear:
+    return result;
 }
-static hpatch_BOOL _copySameFile(INewStreamListener* listener,size_t oldPathIndex,size_t newPathIndex){
+static hpatch_BOOL _copySameFile(INewStreamListener* listener,size_t newRefIndex,size_t oldRefIndex){
+    hpatch_BOOL  result=hpatch_TRUE;
     TDirPatcher* self=(TDirPatcher*)listener->listenerImport;
-    //return self->_listener->copySameFile();
-    //todo:
-    return hpatch_FALSE;
+    const char*  oldFileName=0;
+    const char*  newFileName=0;
+    assert(oldRefIndex<self->dirDiffHead.oldRefFileCount);
+    assert(newRefIndex<self->dirDiffHead.newRefFileCount);
+    
+    oldFileName=self->oldUtf8PathList[self->oldRefList[oldRefIndex]];
+    newFileName=self->newUtf8PathList[self->newRefList[newRefIndex]];
+    check(getPath(self->_oldRootDir_end,self->_oldRootDir_bufEnd,oldFileName));
+    check(getPath(self->_newRootDir_end,self->_newRootDir_bufEnd,newFileName));
+    check(self->_listener->copySameFile(self->_listener,self->_oldRootDir,self->_newRootDir));
+clear:
+    return result;
 }
-static hpatch_BOOL _openNewFile(INewStreamListener* listener,size_t newPathIndex,
+static hpatch_BOOL _openNewFile(INewStreamListener* listener,size_t newRefIndex,
                                 const hpatch_TStreamOutput** out_newFileStream){
+    hpatch_BOOL  result=hpatch_TRUE;
     TDirPatcher* self=(TDirPatcher*)listener->listenerImport;
-    //todo:
-    // TFileStreamInput_open(&hhhh,fileName));
-    return hpatch_FALSE;
+    const char*  utf8fileName=0;
+    assert(newRefIndex<self->dirDiffHead.newRefFileCount);
+    assert(self->_curNewFile->m_file==0);
+    
+    utf8fileName=self->newUtf8PathList[self->newRefList[newRefIndex]];
+    check(getPath(self->_newRootDir_end,self->_newRootDir_bufEnd,utf8fileName));
+    check(TFileStreamOutput_open(self->_curNewFile,self->_newRootDir,self->newRefSizeList[newRefIndex]));
+    *out_newFileStream=&self->_curNewFile->base;
+clear:
+    return result;
 }
 static hpatch_BOOL _closeNewFile(INewStreamListener* listener,const hpatch_TStreamOutput* newFileStream){
+    hpatch_BOOL  result=hpatch_TRUE;
     TDirPatcher* self=(TDirPatcher*)listener->listenerImport;
-    //todo:
-    //TFileStreamInput_close
-    return hpatch_FALSE;
+    assert(self->_curNewFile!=0);
+    assert(newFileStream==&self->_curNewFile->base);
+    check(!self->_curNewFile->fileError);
+    check(TFileStreamOutput_close(self->_curNewFile));
+    TFileStreamOutput_init(self->_curNewFile);
+clear:
+    return result;
 }
 
-hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newRootDir,IDirPatchListener* listener,
+hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newRootDir_utf8,
+                                           IDirPatchListener* listener,
                                            const hpatch_TStreamOutput** out_newDirStream){
+    hpatch_BOOL result=hpatch_TRUE;
+    size_t      refCount=self->dirDiffHead.newRefFileCount;
+    size_t      memSize=0;
+    size_t      maxFileNameLen=0;
+    size_t      newRootDirLen=strlen(newRootDir_utf8);
+    assert(self->_pNewRefMem==0);
     assert(self->_newDirStream.stream==0);
-    assert(self->_nsListener.listenerImport==0);
-    self->_nsListener.listenerImport=self;
-    self->_nsListener.makeNewDir=_makeNewDir;
-    self->_nsListener.copySameFile=_copySameFile;
-    self->_nsListener.openNewFile=_openNewFile;
-    self->_nsListener.closeNewFile=_closeNewFile;
-    return TNewStream_open(&self->_newDirStream,&self->_nsListener,self->dirDiffInfo.hdiffInfo.newDataSize,
-                           self->dirDiffHead.newPathCount,self->newRefList,self->dirDiffHead.newRefFileCount,
-                           self->dataSamePairList,self->dirDiffHead.sameFilePairCount);
+    assert(self->_newDirStreamListener.listenerImport==0);
+    maxFileNameLen=getMaxPathNameLen(self->newUtf8PathList,self->dirDiffHead.newPathCount);
+    memSize=newRootDirLen+2+maxFileNameLen+1 // '/'+'\0' +'\0'
+            +sizeof(TFileStreamOutput);
+    self->_pNewRefMem=malloc(memSize);
+    check(self->_pNewRefMem!=0);
+    self->_curNewFile=(TFileStreamOutput*)self->_pNewRefMem;
+    TFileStreamOutput_init(self->_curNewFile);
+    self->_newRootDir=(char*)self->_curNewFile + sizeof(TFileStreamOutput);
+    self->_newRootDir_end=pushDirPath(self->_newRootDir,self->_newRootDir+newRootDirLen+2 /* '/'+'\0' */,
+                                      newRootDir_utf8);
+    check(0!=self->_newRootDir_end);
+    self->_newRootDir_bufEnd=self->_newRootDir_end+1+maxFileNameLen+1;//'\0'+'\0'
+    assert(1>=(size_t)(((char*)self->_pNewRefMem+memSize)-self->_newRootDir_bufEnd));
+    
+    self->_listener=listener;
+    self->_newDirStreamListener.listenerImport=self;
+    self->_newDirStreamListener.makeNewDir=_makeNewDir;
+    self->_newDirStreamListener.copySameFile=_copySameFile;
+    self->_newDirStreamListener.openNewFile=_openNewFile;
+    self->_newDirStreamListener.closeNewFile=_closeNewFile;
+    check(TNewStream_open(&self->_newDirStream,&self->_newDirStreamListener,
+                          self->dirDiffInfo.hdiffInfo.newDataSize,self->dirDiffHead.newPathCount,
+                          self->newRefList,refCount,
+                          self->dataSamePairList,self->dirDiffHead.sameFilePairCount));
+    *out_newDirStream=self->_newDirStream.stream;
+clear:
+    return result;
 }
 
 hpatch_BOOL TDirPatcher_closeNewDirStream(TDirPatcher* self){
-    return TNewStream_close(&self->_newDirStream);
+    hpatch_BOOL result=TNewStream_close(&self->_newDirStream);
+    self->_newRootDir=0;
+    self->_newRootDir_end=0;
+    self->_newRootDir_bufEnd=0;
+    self->_curNewFile=0;
+    if (self->_pNewRefMem) {
+        free(self->_pNewRefMem);
+        self->_pNewRefMem=0;
+    }
+    return result;
 }
 
 hpatch_BOOL TDirPatcher_patch(const TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
