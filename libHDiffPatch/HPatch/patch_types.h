@@ -45,22 +45,16 @@ extern "C" {
 #define _HDIFFPATCH_EXPAND_AND_QUOTE(str) _HDIFFPATCH_QUOTE(str)
 #define HDIFFPATCH_VERSION_STRING   _HDIFFPATCH_EXPAND_AND_QUOTE(_HDIFFPATCH_VERSION)
     
-#if defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
-#   include <stdint.h> //for uint32_t,uint64_t
-    typedef uint32_t            hpatch_uint32_t;
-    typedef uint64_t            hpatch_StreamPos_t;
-#else
-#   ifdef _MSC_VER
-#       if (_MSC_VER >= 1300)
+#ifdef _MSC_VER
+#   if (_MSC_VER >= 1300)
     typedef unsigned __int32    hpatch_uint32_t;
-#       else
-    typedef unsigned int        hpatch_uint32_t;
-#       endif
-    typedef unsigned __int64    hpatch_StreamPos_t;
 #   else
     typedef unsigned int        hpatch_uint32_t;
-    typedef unsigned long long  hpatch_StreamPos_t;
 #   endif
+    typedef unsigned __int64    hpatch_StreamPos_t;
+#else
+    typedef unsigned int        hpatch_uint32_t;
+    typedef unsigned long long  hpatch_StreamPos_t;
 #endif
     
 #ifdef _MSC_VER

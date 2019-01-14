@@ -52,6 +52,36 @@ static const TByte kPatchMode =0;
     *(psize)=(size_t)v; }
 
 
+hpatch_BOOL copyFileToNewFile(const char* oldFileName_utf8,const char* newFileName_utf8){
+#define _tempCacheSize (hpatch_kStreamCacheSize*4)
+    hpatch_BOOL result=hpatch_TRUE;
+    TByte        temp_cache[_tempCacheSize];
+    hpatch_StreamPos_t pos=0;
+    TFileStreamInput   oldFile;
+    TFileStreamOutput  newFile;
+    TFileStreamInput_init(&oldFile);
+    TFileStreamOutput_init(&newFile);
+    
+    check(TFileStreamInput_open(&oldFile,oldFileName_utf8));
+    check(TFileStreamOutput_open(&newFile,newFileName_utf8,oldFile.base.streamSize));
+    while (pos<oldFile.base.streamSize) {
+        size_t copyLen=_tempCacheSize;
+        if (pos+copyLen>oldFile.base.streamSize)
+            copyLen=(size_t)(oldFile.base.streamSize-pos);
+        check(oldFile.base.read(&oldFile.base,pos,temp_cache,temp_cache+copyLen));
+        check(newFile.base.write(&newFile.base,pos,temp_cache,temp_cache+copyLen));
+        pos+=copyLen;
+    }
+    check(!oldFile.fileError);
+    check(!newFile.fileError);
+    assert(newFile.out_length==newFile.base.streamSize);
+clear:
+    TFileStreamOutput_close(&newFile);
+    TFileStreamInput_close(&oldFile);
+    return result;
+#undef _tempCacheSize
+}
+
 char* pushDirPath(char* out_path,char* out_pathEnd,const char* rootDir){
     char*          result=0; //false
     size_t rootDirLen=strlen(rootDir);
@@ -244,30 +274,31 @@ clear:
 }
 
 
-static hpatch_BOOL readSamePairListTo(TStreamCacheClip* sclip,size_t* out_pairList,size_t pairCount,
-                                      size_t check_endXValue,size_t check_endYValue){
+static hpatch_BOOL readSamePairListTo(TStreamCacheClip* sclip,TSameFileIndexPair* out_pairList,size_t pairCount,
+                                      size_t check_endNewValue,size_t check_endOldValue){
+    //endValue: maxValue+1
     hpatch_BOOL result=hpatch_TRUE;
-    TUInt backXValue=~(TUInt)0;
-    TUInt backYValue=~(TUInt)0;
+    TUInt backNewValue=~(TUInt)0;
+    TUInt backOldValue=~(TUInt)0;
     size_t i;
-    for (i=0; i<pairCount*2;i+=2) {
+    for (i=0; i<pairCount;++i) {
         const TByte*  psign;
-        TUInt incYValue;
-        TUInt incXValue;
-        check(_TStreamCacheClip_unpackUIntWithTag(sclip,&incXValue,0));
-        backXValue+=1+incXValue;
-        check(backXValue<check_endXValue);
-        out_pairList[i+0]=(size_t)backXValue;
+        TUInt incOldValue;
+        TUInt incNewValue;
+        check(_TStreamCacheClip_unpackUIntWithTag(sclip,&incNewValue,0));
+        backNewValue+=1+incNewValue;
+        check(backNewValue<check_endNewValue);
+        out_pairList[i].newIndex=(size_t)backNewValue;
         
         psign=_TStreamCacheClip_accessData(sclip,1);
         check(psign!=0);
-        check(_TStreamCacheClip_unpackUIntWithTag(sclip,&incYValue,1));
-        if (!((*psign)>>(8-1)))
-            backYValue+=1+incYValue;
+        check(_TStreamCacheClip_unpackUIntWithTag(sclip,&incOldValue,1));
+        if (0==((*psign)>>(8-1)))
+            backOldValue+=1+incOldValue;
         else
-            backYValue=backYValue+1-incYValue;
-        check(backYValue<check_endYValue);
-        out_pairList[i+1]=(size_t)backYValue;
+            backOldValue=backOldValue+1-incOldValue;
+        check(backOldValue<check_endOldValue);
+        out_pairList[i].oldIndex=(size_t)backOldValue;
     }
 clear:
     return result;
@@ -296,17 +327,20 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     }
     //mem
     memSize = (head->oldPathCount+head->newPathCount)*sizeof(const char*)
-            + (head->oldRefFileCount+head->newRefFileCount+head->sameFilePairCount*2)*sizeof(size_t)
+            + (head->oldRefFileCount+head->newRefFileCount)*sizeof(size_t)
+            + head->sameFilePairCount*sizeof(TSameFileIndexPair)
             + (head->newRefFileCount)*sizeof(hpatch_StreamPos_t) + pathSumSize;
     self->_pDiffDataMem=malloc(memSize);
     check(self->_pDiffDataMem!=0);
     curMem=self->_pDiffDataMem;
-    self->newRefSizeList=(hpatch_StreamPos_t*)curMem; curMem+=head->newRefFileCount*sizeof(hpatch_StreamPos_t);
+    self->newRefSizeList=(hpatch_StreamPos_t*)curMem;
+        curMem+=head->newRefFileCount*sizeof(hpatch_StreamPos_t);
     self->oldUtf8PathList=(const char**)curMem; curMem+=head->oldPathCount*sizeof(const char*);
     self->newUtf8PathList=(const char**)curMem; curMem+=head->newPathCount*sizeof(const char*);
     self->oldRefList=(const size_t*)curMem; curMem+=head->oldRefFileCount*sizeof(size_t);
     self->newRefList=(const size_t*)curMem; curMem+=head->newRefFileCount*sizeof(size_t);
-    self->dataSamePairList=(const size_t*)curMem; curMem+=head->sameFilePairCount*2*sizeof(size_t);
+    self->dataSamePairList=(const TSameFileIndexPair*)curMem;
+        curMem+=head->sameFilePairCount*sizeof(TSameFileIndexPair);
     //read old & new path List
     check(_TStreamCacheClip_readDataTo(&headStream,curMem,curMem+pathSumSize));
     formatDirTagForLoad((char*)curMem,(char*)curMem+pathSumSize);
@@ -321,7 +355,7 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     //read newRefSizeList
     check(readListTo(&headStream,(hpatch_StreamPos_t*)self->newRefSizeList,head->newRefFileCount));
     //read dataSamePairList
-    check(readSamePairListTo(&headStream,(size_t*)self->dataSamePairList,head->sameFilePairCount,
+    check(readSamePairListTo(&headStream,(TSameFileIndexPair*)self->dataSamePairList,head->sameFilePairCount,
                              head->newPathCount,head->oldPathCount));
     check(_TStreamCacheClip_isFinish(&headStream));
 clear:
@@ -457,16 +491,16 @@ static hpatch_BOOL _makeNewDir(INewStreamListener* listener,size_t newPathIndex)
 clear:
     return result;
 }
-static hpatch_BOOL _copySameFile(INewStreamListener* listener,size_t newRefIndex,size_t oldRefIndex){
+static hpatch_BOOL _copySameFile(INewStreamListener* listener,size_t newPathIndex,size_t oldPathIndex){
     hpatch_BOOL  result=hpatch_TRUE;
     TDirPatcher* self=(TDirPatcher*)listener->listenerImport;
     const char*  oldFileName=0;
     const char*  newFileName=0;
-    assert(oldRefIndex<self->dirDiffHead.oldRefFileCount);
-    assert(newRefIndex<self->dirDiffHead.newRefFileCount);
+    assert(oldPathIndex<self->dirDiffHead.oldPathCount);
+    assert(newPathIndex<self->dirDiffHead.newPathCount);
     
-    oldFileName=self->oldUtf8PathList[self->oldRefList[oldRefIndex]];
-    newFileName=self->newUtf8PathList[self->newRefList[newRefIndex]];
+    oldFileName=self->oldUtf8PathList[oldPathIndex];
+    newFileName=self->newUtf8PathList[newPathIndex];
     check(getPath(self->_oldRootDir_end,self->_oldRootDir_bufEnd,oldFileName));
     check(getPath(self->_newRootDir_end,self->_newRootDir_bufEnd,newFileName));
     check(self->_listener->copySameFile(self->_listener,self->_oldRootDir,self->_newRootDir));

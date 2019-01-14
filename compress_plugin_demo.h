@@ -399,7 +399,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         unsigned char      properties_buf[LZMA_PROPS_SIZE+1];
         SizeT              properties_size=LZMA_PROPS_SIZE;
         SRes               ret;
-        uint32_t           dictSize=lzma_dictSize;
+        hpatch_uint32_t    dictSize=lzma_dictSize;
         if (!s) s=LzmaEnc_Create(&alloc);
         if (!s) _compress_error_return("LzmaEnc_Create()");
         while ((dictSize >= in_data->streamSize*3)&&(dictSize>=4*1024*2))

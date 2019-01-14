@@ -27,16 +27,21 @@
  */
 #ifndef DirPatch_new_stream_h
 #define DirPatch_new_stream_h
-#include "../../HDiffPatch/libHDiffPatch/HPatch/patch_types.h"
+#include "../../libHDiffPatch/HPatch/patch_types.h"
 
 typedef struct INewStreamListener{
     void*       listenerImport;
     hpatch_BOOL   (*makeNewDir)(struct INewStreamListener* listener,size_t newPathIndex);
-    hpatch_BOOL (*copySameFile)(struct INewStreamListener* listener,size_t newRefIndex,size_t oldRefIndex);
+    hpatch_BOOL (*copySameFile)(struct INewStreamListener* listener,size_t newPathIndex,size_t oldPathIndex);
     hpatch_BOOL  (*openNewFile)(struct INewStreamListener* listener,size_t newRefIndex,
                                 const hpatch_TStreamOutput** out_newFileStream);
     hpatch_BOOL (*closeNewFile)(struct INewStreamListener* listener,const hpatch_TStreamOutput* newFileStream);
 } INewStreamListener;
+
+typedef struct TSameFileIndexPair{
+    size_t  newIndex;
+    size_t  oldIndex;
+} TSameFileIndexPair;
 
 //对外模拟成一个输出流;
 //利用samePairList、newRefList等生成新文件和copy文件
@@ -47,7 +52,7 @@ typedef struct TNewStream{
     size_t                  _pathCount;
     const size_t*           _newRefList;
     size_t                  _newRefCount;
-    const size_t*           _samePairList;
+    const TSameFileIndexPair* _samePairList;
     size_t                  _samePairCount;
     hpatch_TStreamOutput    _stream;
     
@@ -65,7 +70,7 @@ void        TNewStream_init(TNewStream* self) { memset(self,0,sizeof(*self)); }
 hpatch_BOOL TNewStream_open(TNewStream* self,INewStreamListener* listener,
                             hpatch_StreamPos_t newRefDataSize,size_t newPathCount,
                             const size_t* newRefList,size_t newRefCount,
-                            const size_t* samePairList,size_t samePairCount);
+                            const TSameFileIndexPair* samePairList,size_t samePairCount);
 hpatch_BOOL TNewStream_close(TNewStream* self);
 
 #endif

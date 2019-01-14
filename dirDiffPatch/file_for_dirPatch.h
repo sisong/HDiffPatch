@@ -34,6 +34,9 @@
 #include "../file_for_patch.h"
 
 #include <sys/stat.h> //stat mkdir
+#ifdef _MSC_VER
+#   include <direct.h> // *mkdir
+#endif
 
 #ifdef _WIN32
       static const char kPatch_dirSeparator = '\\';
@@ -112,8 +115,21 @@ hpatch_BOOL makeNewDir(const char* dirName_utf8){
     if (getPathStat(dirName_utf8,&type,0)){
         return type==kPathType_dir;
     }else{
+#if (_IS_USE_WIN32_UTF8_WAPI)
+        int     rt;
+        int     wsize;
+        wchar_t path_w[kPathMaxSize];
+        wsize=_utf8FileName_to_w(dirName_utf8,path_w,kPathMaxSize);
+        if (wsize<=0) return hpatch_FALSE;
+        rt = _wmkdir(path_w);
+#else
+#   ifdef _MSC_VER
+        int rt=_mkdir(dirName_utf8);
+#   else
         const mode_t kDefalutMode=S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
         int rt=mkdir(dirName_utf8,kDefalutMode);
+#   endif
+#endif
         return rt==0;
     }
 }

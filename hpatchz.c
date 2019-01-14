@@ -450,12 +450,12 @@ clear:
 
 
 hpatch_BOOL _makeNewDir(IDirPatchListener* listener,const char* newDir){
+    //printf("callback make dir: %s\n",newDir);
     return makeNewDir(newDir);
 }
 hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,const char* newFileName){
-    printf("callback: copy file: %s => %s\n",oldFileName,newFileName);
-    //todo: copy file
-    return hpatch_TRUE;
+    //printf("callback copy file: %s => %s\n",oldFileName,newFileName);
+    return copyFileToNewFile(oldFileName,newFileName);
 }
 
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,

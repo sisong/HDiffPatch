@@ -1,5 +1,10 @@
 HPATCH_OBJ := \
-    libHDiffPatch/HPatch/patch.o
+    libHDiffPatch/HPatch/patch.o \
+    dirDiffPatch/dir_patch/dir_patch.o \
+    dirDiffPatch/dir_patch/res_handle_limit.o \
+    dirDiffPatch/dir_patch/ref_stream.o \
+    dirDiffPatch/dir_patch/new_stream.o \
+    file_for_patch.o
 
 HDIFF_OBJ := \
     libHDiffPatch/HDiff/diff.o \
@@ -11,6 +16,7 @@ HDIFF_OBJ := \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.o \
+    dirDiffPatch/dir_diff/dir_diff.o \
     $(HPATCH_OBJ)
 
 CFLAGS     += -O3 -DNDEBUG

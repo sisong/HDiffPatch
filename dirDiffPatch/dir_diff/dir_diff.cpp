@@ -220,17 +220,16 @@ static void pushList(std::vector<TByte>& out_data,const std::vector<hpatch_Strea
     }
 }
 
-static void pushSamePairList(std::vector<TByte>& out_data,const std::vector<size_t>& pairs){
+static void pushSamePairList(std::vector<TByte>& out_data,const std::vector<TSameFileIndexPair>& pairs){
     size_t backPairNew=~(size_t)0;
     size_t backPairOld=~(size_t)0;
-    assert(pairs.size()==pairs.size()/2*2);
-    for (size_t i=0;i<pairs.size();i+=2){
-        size_t curNewValue=pairs[i];
+    for (size_t i=0;i<pairs.size();++i){
+        size_t curNewValue=pairs[i].newIndex;
         assert(curNewValue>=(size_t)(backPairNew+1));
         packUInt(out_data,(size_t)(curNewValue-(size_t)(backPairNew+1)));
         backPairNew=curNewValue;
         
-        size_t curOldValue=pairs[i+1];
+        size_t curOldValue=pairs[i].oldIndex;
         if (curOldValue>=(size_t)(backPairOld+1))
             packUIntWithTag(out_data,(size_t)(curOldValue-(size_t)(backPairOld+1)),0,1);
         else
@@ -294,11 +293,11 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
                        const std::vector<std::string>& oldList,const std::vector<std::string>& newList,
                        std::vector<hpatch_StreamPos_t>& out_oldSizeList,
                        std::vector<hpatch_StreamPos_t>& out_newSizeList,
-                       std::vector<size_t>& out_dataSamePairList,
+                       std::vector<TSameFileIndexPair>& out_dataSamePairList,
                        std::vector<size_t>& out_oldRefList,std::vector<size_t>& out_newRefList){
     typedef std::multimap<hash_value_t,size_t> TMap;
     TMap hashMap;
-    std::set<size_t> oldRefList;
+    std::set<size_t> oldRefSet;
     out_oldSizeList.assign(oldList.size(),0);
     out_newSizeList.assign(newList.size(),0);
     for (size_t i=0; i<oldList.size(); ++i) {
@@ -309,7 +308,7 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
         out_oldSizeList[i]=fileSize;
         if (fileSize==0) continue;
         hashMap.insert(TMap::value_type(hash,i));
-        oldRefList.insert(i);
+        oldRefSet.insert(i);
     }
     out_dataSamePairList.clear();
     out_newRefList.clear();
@@ -344,14 +343,14 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
         
         if (isFoundSame){
             ++oldHitList[oldIndex];
-            oldRefList.erase(oldIndex);
-            out_dataSamePairList.push_back(newi);
-            out_dataSamePairList.push_back(oldIndex);
+            oldRefSet.erase(oldIndex);
+            TSameFileIndexPair pair; pair.newIndex=newi; pair.oldIndex=oldIndex;
+            out_dataSamePairList.push_back(pair);
         }else{
             out_newRefList.push_back(newi);
         }
     }
-    out_oldRefList.assign(oldRefList.begin(),oldRefList.end());
+    out_oldRefList.assign(oldRefSet.begin(),oldRefSet.end());
     std::sort(out_oldRefList.begin(),out_oldRefList.end());
 }
 
@@ -422,7 +421,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     
     std::vector<hpatch_StreamPos_t> oldSizeList;
     std::vector<hpatch_StreamPos_t> newSizeList;
-    std::vector<size_t> dataSamePairList;     //new map to same old
+    std::vector<TSameFileIndexPair> dataSamePairList;     //new map to same old
     std::vector<size_t> oldRefIList;
     std::vector<size_t> newRefIList;
     getRefList(oldPath,newPath,oldList,newList,
@@ -451,7 +450,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
             newRefSizeList[i]=newSizeList[fi];
         }
     }
-    size_t sameFilePairCount=dataSamePairList.size()/2;
+    size_t sameFilePairCount=dataSamePairList.size();
     CFileResHandleLimit resLimit;
     resLimit.open(kMaxOpenFileNumber,resList);
     CRefStream oldRefStream;

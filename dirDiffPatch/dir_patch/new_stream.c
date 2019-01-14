@@ -30,8 +30,6 @@
 #include <stdlib.h>
 #include <stdio.h> //printf
 
-const size_t kBufSize=1024*128;
-
 hpatch_BOOL TNewStream_close(TNewStream* self){
     hpatch_BOOL result=hpatch_TRUE;
     const hpatch_TStreamOutput* curNewFile=self->_curNewFile;
@@ -53,43 +51,43 @@ static hpatch_BOOL _file_append_end(TNewStream* self);
 static hpatch_BOOL _TNewStream_write(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                      const unsigned char* data,const unsigned char* data_end){
     TNewStream* self=(TNewStream*)stream->streamImport;
-    size_t dataSize=data_end-data;
-    check(!self->isFinish);
-    check(writeToPos<self->_curWriteToPosEnd);
-    if (writeToPos+dataSize>self->_curWriteToPosEnd){
-        size_t leftLen=(size_t)(self->_curWriteToPosEnd-writeToPos);
-        check(_TNewStream_write(stream,writeToPos,data,data+leftLen));
-        return _TNewStream_write(stream,writeToPos+leftLen,data+leftLen,data_end);
+    while (data!=data_end) {
+        size_t writeLen=(size_t)(data_end-data);
+        check(!self->isFinish);
+        check(writeToPos<self->_curWriteToPosEnd);
+        if (writeToPos+writeLen>self->_curWriteToPosEnd)
+            writeLen=(size_t)(self->_curWriteToPosEnd-writeToPos);
+        check(self->_curPathIndex<self->_pathCount);
+        check(_file_append_part(self,writeToPos,data,data+writeLen));
+        data+=writeLen;
+        writeToPos+=writeLen;
+        
+        if (writeToPos==self->_curWriteToPosEnd){//write one file end?
+            check(_file_append_end(self));
+            ++self->_curPathIndex;
+            check(_file_append_ready(self));
+        }
     }
-    //write data
-    check(self->_curPathIndex<self->_pathCount);
-    check(_file_append_part(self,writeToPos,data,data_end));
-    if (writeToPos+dataSize<self->_curWriteToPosEnd)//write continue
-        return hpatch_TRUE;
-    //write one end
-    check(_file_append_end(self));
-    ++self->_curPathIndex;
-    return _file_append_ready(self);
+    return hpatch_TRUE;
 }
 
 static hpatch_BOOL _file_append_ready(TNewStream* self){
     assert(self->_curNewFile==0);
     assert(self->_curWriteToPos==self->_curWriteToPosEnd);
     while (self->_curPathIndex<self->_pathCount) {
-        if((self->_curNewRefIndex<self->_newRefCount)
+        if((self->_curNewRefIndex<self->_newRefCount) //write file ?
            &&(self->_curPathIndex==self->_newRefList[self->_curNewRefIndex])){
-            //open file for write
             check(self->_listener->openNewFile(self->_listener,self->_curNewRefIndex,&self->_curNewFile));
             self->_curWriteToPosEnd+=self->_curNewFile->streamSize;
             ++self->_curNewRefIndex;
             return hpatch_TRUE;
-        }else if ((self->_curSamePairIndex<self->_samePairCount)
-            &&(self->_curPathIndex==self->_samePairList[self->_curSamePairIndex*2])){
-            const size_t* pairNewiOldi=self->_samePairList+self->_curSamePairIndex*2;
-            check(self->_listener->copySameFile(self->_listener,pairNewiOldi[0],pairNewiOldi[1]));
+        }else if ((self->_curSamePairIndex<self->_samePairCount) //copy file ?
+            &&(self->_curPathIndex==self->_samePairList[self->_curSamePairIndex].newIndex)){
+            const TSameFileIndexPair* pair=self->_samePairList+self->_curSamePairIndex;
+            check(self->_listener->copySameFile(self->_listener,pair->newIndex,pair->oldIndex));
             ++self->_curSamePairIndex;
             ++self->_curPathIndex;
-        }else{
+        }else{ //make dir
             check(self->_listener->makeNewDir(self->_listener,self->_curPathIndex));
             ++self->_curPathIndex;
         }
@@ -128,7 +126,7 @@ static hpatch_BOOL _file_entry_end(TNewStream* self){
 hpatch_BOOL TNewStream_open(TNewStream* self,INewStreamListener* listener,
                             hpatch_StreamPos_t newRefDataSize, size_t newPathCount,
                             const size_t* newRefList,size_t newRefCount,
-                            const size_t* samePairList,size_t samePairCount){
+                            const TSameFileIndexPair* samePairList,size_t samePairCount){
     assert(self->_listener==0);
     assert(self->stream==0);
     assert(self->_curNewFile==0);

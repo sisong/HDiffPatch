@@ -36,6 +36,8 @@
 extern "C" {
 #endif
     
+hpatch_BOOL copyFileToNewFile(const char* oldFileName_utf8,const char* newFileName_utf8);
+    
 typedef struct TDirDiffInfo{
     hpatch_BOOL                 isDirDiff;
     hpatch_BOOL                 newPathIsDir;
@@ -55,7 +57,7 @@ hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatc
     if (result) *out_isDirDiffFile=info.isDirDiff;
     return result;
 }
-
+    
     typedef struct _TDirDiffHead {
         size_t              oldPathCount;
         size_t              newPathCount;
@@ -88,7 +90,7 @@ typedef struct TDirPatcher{
     const size_t*               oldRefList;
     const size_t*               newRefList;
     const hpatch_StreamPos_t*   newRefSizeList;
-    const size_t*               dataSamePairList; //new map to old index
+    const TSameFileIndexPair*   dataSamePairList; //new map to old index
 //private:
     INewStreamListener          _newDirStreamListener;
     TNewStream                  _newDirStream;
