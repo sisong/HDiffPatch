@@ -47,9 +47,10 @@ struct IDirFilter{
 
 struct IDirDiffListener:public IDirFilter{
     virtual ~IDirDiffListener(){}
-    virtual void diffFileList(std::vector<std::string>& oldList,std::vector<std::string>& newList){}
-    virtual void refInfo(size_t sameFilePairCount,size_t refOldFileCount,size_t refNewFileCount,
-                         hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){}
+    virtual void diffPathList(std::vector<std::string>& oldPathList,std::vector<std::string>& newPathList){}
+    virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,
+                             size_t refOldFileCount,size_t refNewFileCount,
+                             hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){}
     virtual void runHDiffBegin(){}
     virtual void runHDiffEnd(hpatch_StreamPos_t diffDataSize){}
     virtual void externData(std::vector<unsigned char>& out_externData){}
@@ -61,6 +62,9 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
               size_t kMaxOpenFileNumber);
 
+bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,
+                   const std::string& newPath,const hpatch_TStreamInput* testDiffData,
+                   hpatch_TDecompress* decompressPlugin,size_t kMaxOpenFileNumber);
 
 void resave_compressed_dirdiff(const hpatch_TStreamInput*  in_diff,
                                hpatch_TDecompress*         decompressPlugin,

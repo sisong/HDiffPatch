@@ -43,7 +43,7 @@ using namespace hdiff_private;
 
 static const char* kVersionType="DirDiff19&";
 
-#define kFileIOBufSize      (64*1024)
+#define kFileIOBufSize      (1024*64)
 #define check(value,info) if (!(value)) throw std::runtime_error(info);
 
 #define hash_value_t                uint64_t
@@ -416,7 +416,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         }else{
             newList.push_back(newPath);
         }
-        listener->diffFileList(oldList,newList);
+        listener->diffPathList(oldList,newList);
     }
     
     std::vector<hpatch_StreamPos_t> oldSizeList;
@@ -457,8 +457,9 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     CRefStream newRefStream;
     oldRefStream.open(resLimit.limit.streamList,oldRefIList.size());
     newRefStream.open(resLimit.limit.streamList+oldRefIList.size(),newRefIList.size());
-    listener->refInfo(sameFilePairCount,oldRefIList.size(),newRefIList.size(),
-                      oldRefStream.stream->streamSize,newRefStream.stream->streamSize);
+    listener->diffRefInfo(oldList.size(),newList.size(), sameFilePairCount,
+                          oldRefIList.size(),newRefIList.size(),
+                          oldRefStream.stream->streamSize,newRefStream.stream->streamSize);
     
     //serialize headData
     std::vector<TByte> headData;
@@ -511,6 +512,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     listener->externData(externData);
     packUInt(out_data,externData.size());
     
+    //begin write
     hpatch_StreamPos_t writeToPos=0;
     #define _pushv(v) { check(outDiffStream->write(outDiffStream,writeToPos,v.data(),v.data()+v.size()), \
                               "write diff data " #v " error!"); \
@@ -551,6 +553,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         diffDataSize=ofStream.outSize;
     }
     listener->runHDiffEnd(diffDataSize);
+    #undef _pushv
 }
 
 

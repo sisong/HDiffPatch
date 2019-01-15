@@ -113,6 +113,7 @@ static void printUsage(){
 #endif
            "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
            "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
+           "  -D  force run Directory Diff, DEFAULT need oldPath or newPath is directory.\n"
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory diff;\n"
            "      DEFAULT maxOpenFileNumber==48, the best limit value by different operating system.\n"
@@ -141,6 +142,7 @@ typedef enum THDiffResult {
     HDIFF_RESAVE_COMPRESSTYPE_ERROR,
     HDIFF_RESAVE_ERROR,
     HDIFF_DIR_DIFF_ERROR,
+    HDIFF_DIR_PATCH_ERROR,
 } THDiffResult;
 
 int hdiff_cmd_line(int argc,const char * argv[]);
@@ -230,6 +232,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isLoadAll=_kNULL_VALUE;
     hpatch_BOOL isPatchCheck=_kNULL_VALUE;
     hpatch_BOOL isDiff=_kNULL_VALUE;
+    hpatch_BOOL isForceRunDirDiff=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      matchValue=0;
@@ -297,6 +300,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             case 'd':{
                 _options_check((isDiff==_kNULL_VALUE)&&(op[2]=='\0'),"-d");
                 isDiff=hpatch_TRUE; //diff only
+            } break;
+            case 'D':{
+                _options_check((isForceRunDirDiff==_kNULL_VALUE)&&(op[2]=='\0'),"-D");
+                isForceRunDirDiff=hpatch_TRUE; //force run DirDiff
             } break;
             case 'c':{
                 _options_check((compressPlugin==0)&&(op[2]=='-'),"-c");
@@ -389,6 +396,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     #endif
         }
         assert(isPatchCheck||isDiff);
+        if (isForceRunDirDiff==_kNULL_VALUE)
+            isForceRunDirDiff=hpatch_FALSE;
         
         const char* oldPath        =arg_values[0];
         const char* newPath        =arg_values[1];
@@ -397,7 +406,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         TPathType newType;
         _options_check(getPathTypeByName(oldPath,&oldType,0),"input old path must file or directory");
         _options_check(getPathTypeByName(newPath,&newType,0),"input new path must file or directory");
-        hpatch_BOOL isUseDirDiff=(kPathType_dir==oldType)||(kPathType_dir==newType);
+        hpatch_BOOL isUseDirDiff=isForceRunDirDiff||(kPathType_dir==oldType)||(kPathType_dir==newType);
         if (isUseDirDiff)
             _options_check(!isOriginal,"-o unsupport dir diff");
         
@@ -413,6 +422,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         _options_check((isOriginal==_kNULL_VALUE),"-o unsupport run with resave mode");
         _options_check((isLoadAll==_kNULL_VALUE),"-m or -s unsupport run with resave mode");
         _options_check((isPatchCheck==_kNULL_VALUE),"-d unsupport run with resave mode");
+        _options_check((isForceRunDirDiff==_kNULL_VALUE),"-D unsupport run with resave mode");
         
         const char* diffFileName   =arg_values[0];
         const char* outDiffFileName=arg_values[1];
@@ -767,18 +777,17 @@ struct DirDiffListener:public IDirDiffListener{
         return false;
     }
     
-    virtual void diffFileList(std::vector<std::string>& oldList,std::vector<std::string>& newList){
-        printf("DirDiff old path count: %"PRIu64"\n",(hpatch_StreamPos_t)oldList.size());
-        printf("        new path count: %"PRIu64"\n",(hpatch_StreamPos_t)newList.size());
-    }
-    virtual void refInfo(size_t sameFilePairCount,size_t refOldFileCount,size_t refNewFileCount,
-                         hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){
+    virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,
+                             size_t refOldFileCount,size_t refNewFileCount,
+                             hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){
+        printf("DirDiff old path count: %"PRIu64"\n",(hpatch_StreamPos_t)oldPathCount);
+        printf("        new path count: %"PRIu64"\n",(hpatch_StreamPos_t)newPathCount);
         printf("       same file count: %"PRIu64"\n",(hpatch_StreamPos_t)sameFilePairCount);
         printf("    ref old file count: %"PRIu64"\n",(hpatch_StreamPos_t)refOldFileCount);
         printf("   diff new file count: %"PRIu64"\n",(hpatch_StreamPos_t)refNewFileCount);
         printf("\nrun hdiffz:\n");
-        printf("  oldDataSize : %"PRIu64"\n",refOldFileSize);
-        printf("  newDataSize : %"PRIu64"\n",refNewFileSize);
+        printf("  oldRefSize  : %"PRIu64"\n",refOldFileSize);
+        printf("  newRefSize  : %"PRIu64"\n",refNewFileSize);
     }
     
     double _runHDiffBegin_time0;
@@ -819,26 +828,37 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
     int  result=HDIFF_SUCCESS;
     bool _isInClear=false;
     TFileStreamOutput diffData_out;
+    TFileStreamInput diffData_in;
     TFileStreamOutput_init(&diffData_out);
+    TFileStreamInput_init(&diffData_in);
     if (isDiff){
         try {
             check(TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),
                   HDIFF_OPENWRITE_ERROR,"open out diffFile");
             TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
             DirDiffListener listener;
-            dir_diff(&listener,oldPatch,newPatch,&diffData_out.base,isLoadAll!=0,
-                     matchValue,streamCompressPlugin,compressPlugin,kMaxOpenFileNumber);
+            dir_diff(&listener,oldPatch,newPatch,&diffData_out.base,isLoadAll!=0,matchValue,
+                     streamCompressPlugin,compressPlugin,kMaxOpenFileNumber);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             check(false,HDIFF_DIR_DIFF_ERROR,"dir diff run an error: "+e.what());
         }
-        printf("\nDirDiff size: %"PRIu64"\n",diffData_out.base.streamSize);
-        printf("DirDiff time: %.3f s\n",(clock_s()-time0));
+        printf("\nDirDiff  size: %"PRIu64"\n",diffData_out.base.streamSize);
+        printf("DirDiff  time: %.3f s\n",(clock_s()-time0));
         check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
-        printf("  out dir diff file ok!\n");
+        printf("  out dir diffFile ok!\n");
     }
     if (isPatchCheck){
         //todo: dir_patch(oldPath,newPath,outDiffFileName,isLoadAll,decompressPlugin);
+        double patch_time0=clock_s();
+        printf("\nload dir diffFile for test by DirPatch check:\n");
+        check(TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
+        printf("diffDataSize : %"PRIu64"\n",diffData_in.base.streamSize);
+        DirDiffListener listener;
+        check(check_dirdiff(&listener,oldPatch,newPatch,&diffData_in.base,decompressPlugin,kMaxOpenFileNumber),
+              HDIFF_DIR_PATCH_ERROR,"DirPatch check diff data");
+        printf("  DirPatch check diff data ok!\n");
+        printf("DirPatch time: %.3f s\n",(clock_s()-patch_time0));
     }
     
     printf("\nall   time: %.3f s\n",(clock_s()-time0));

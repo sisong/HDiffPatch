@@ -37,7 +37,7 @@
 #include <stdlib.h> //malloc free
 #include "libHDiffPatch/HPatch/patch_types.h"
 
-#define kDecompressBufSize (1024*32)
+#define kDecompressBufSize (1024*16)
 #ifndef _IsNeedIncludeDefaultCompressHead
 #   define _IsNeedIncludeDefaultCompressHead 1
 #endif

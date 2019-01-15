@@ -576,9 +576,7 @@ bool check_compressed_diff(const unsigned char* newData,const unsigned char* new
     return (0==memcmp(updateNew0,newData,updateNewData.size()));
 }
 
-#define test_return(v) {   \
-    if (!(v))  { return hpatch_FALSE; } \
-}
+#define test_return(v) { if (!(v)) { return hpatch_FALSE; } }
 
 bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                   const hpatch_TStreamInput*  oldData,
@@ -617,7 +615,7 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
         size_t                      bufSize;
     };
     
-    const size_t kACacheBufSize=1024*128;
+    const size_t kACacheBufSize=1024*64;
     TAutoMem _cache(kACacheBufSize*8);
     
     _TCheckOutNewDataStream out_newData(newData,_cache.data(),kACacheBufSize);

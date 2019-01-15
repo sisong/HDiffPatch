@@ -1594,7 +1594,7 @@ hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
     const hpatch_TStreamInput* oldData=*poldData;
     const size_t kMinCacheSize=hpatch_kStreamCacheSize*_kCacheCount;
 #if (_IS_NEED_CACHE_OLD_BY_COVERS)
-    const size_t kBestACacheSize=64*1024;   //内存足够时比较好的hpatch_kStreamCacheSize值;
+    const size_t kBestACacheSize=1024*64;   //内存足够时比较好的hpatch_kStreamCacheSize值;
     const size_t _minActiveSize=(1<<20)*8;
     const hpatch_StreamPos_t _betterActiveSize=kBestACacheSize*_kCacheCount*2+oldData->streamSize/8;
     const size_t kActiveCacheOldMemorySize = //尝试激活CacheOld功能的内存下限;

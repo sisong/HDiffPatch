@@ -108,10 +108,11 @@ typedef enum THPatchResult {
     HPATCH_PATHTYPE_ERROR,
     HPATCH_DIRDIFFINFO_ERROR,
     HPATCH_DIRPATCH_ERROR,
-    HPATCH_DIRPATCH_LAODDIRDATA_ERROR,
-    HPATCH_DIRPATCH_LAODOLDREF_ERROR,
-    HPATCH_DIRPATCH_OPENNEWDIR_ERROR,
-    HPATCH_DIRPATCH_NEWDIRCLOSE_ERROR,
+    HPATCH_DIRPATCH_LAOD_DIRDIFFDATA_ERROR,
+    HPATCH_DIRPATCH_OPEN_OLDPATH_ERROR,
+    HPATCH_DIRPATCH_OPEN_NEWPATH_ERROR,
+    HPATCH_DIRPATCH_CLOSE_OLDPATH_ERROR,
+    HPATCH_DIRPATCH_CLOSE_NEWPATH_ERROR,
 } THPatchResult;
 
 int hpatch_cmd_line(int argc, const char * argv[]);
@@ -310,7 +311,7 @@ static int getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
     }
     if (!decompressPlugin){
         if (diffInfo->compressedCount>0){
-            printf("can no decompress \"%s\" data",diffInfo->compressType);
+            printf("can not decompress \"%s\" data",diffInfo->compressType);
             result=HPATCH_COMPRESSTYPE_ERROR; //error
         }else{
             if (strlen(diffInfo->compressType)>0)
@@ -463,21 +464,17 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
-    TFileStreamOutput    newFile;
+    IDirPatchListener    listener;
     TFileStreamInput     diffData;
-    TFileStreamInput     oldFile;
-    hpatch_TStreamInput  oldMemStream;
-    const hpatch_TStreamInput*  oldStream=0;
-    const hpatch_TStreamOutput* newStream=0;
+    TDirPatcher          dirPatcher;
+    const TDirDiffInfo*  dirDiffInfo=0;
     TByte*               p_temp_mem=0;
     TByte*               temp_cache=0;
     size_t               temp_cache_size;
-    TDirPatcher          dirPatcher;
-    const TDirDiffInfo*  dirDiffInfo=0;
-    TFileStreamOutput_init(&newFile);
+    const hpatch_TStreamInput*  oldStream=0;
+    const hpatch_TStreamOutput* newStream=0;
+    memset(&listener,0,sizeof(listener));
     TFileStreamInput_init(&diffData);
-    TFileStreamInput_init(&oldFile);
-    memset(&oldMemStream,0,sizeof(oldMemStream));
     TDirPatcher_init(&dirPatcher);
     assert(0!=strcmp(oldPath,outNewPath));
     {//dir diff info
@@ -512,55 +509,41 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         if (result!=HPATCH_SUCCESS) check_on_error(result);
         //load dir data
         check(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin),
-              HPATCH_DIRPATCH_LAODDIRDATA_ERROR,"load dir data in diffFile");
+              HPATCH_DIRPATCH_LAOD_DIRDIFFDATA_ERROR,"load dir data in diffFile");
     }
-    //cache
-    p_temp_mem=getPatchMemCache(isLoadOldAll,patchCacheSize,dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
-    check(p_temp_mem,HPATCH_MEM_ERROR,"alloc cache memory");
-    temp_cache=p_temp_mem;
-    //old data
-    if (!dirDiffInfo->oldPathIsDir){//old is file
-        check(TFileStreamInput_open(&oldFile,oldPath),HPATCH_OPENREAD_ERROR,"open oldFile for read");
-        if (oldFile.base.streamSize!=dirDiffInfo->hdiffInfo.oldDataSize){
-            printf("oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 "",
-                   oldFile.base.streamSize,dirDiffInfo->hdiffInfo.oldDataSize);
-            check_on_error(HPATCH_FILEDATA_ERROR);
-        }
-        oldStream=&oldFile.base;
-    }else{//old is dir     all old ref files as a stream
+    printf("oldRefSize  : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewRefSize  : %" PRIu64 "\n",
+           dirDiffInfo->hdiffInfo.oldDataSize,diffData.base.streamSize,dirDiffInfo->hdiffInfo.newDataSize);
+    {//mem cache
+        p_temp_mem=getPatchMemCache(isLoadOldAll,patchCacheSize,dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
+        check(p_temp_mem,HPATCH_MEM_ERROR,"alloc cache memory");
+        temp_cache=p_temp_mem;
+    }
+    {//old data
         if (temp_cache_size>=dirDiffInfo->hdiffInfo.oldDataSize+kPatchCacheSize_min){
-            // all old while auto cache by patch
-            kMaxOpenFileNumber=kMaxOpenFileNumber_limit_min; //not need open old files at same time
+            // all old while auto cache by patch; not need open old files at same time
+            kMaxOpenFileNumber=kMaxOpenFileNumber_limit_min;
         }
         check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,kMaxOpenFileNumber,&oldStream),
-              HPATCH_DIRPATCH_LAODOLDREF_ERROR,"open oldFiles");
+              HPATCH_DIRPATCH_OPEN_OLDPATH_ERROR,"open oldFile");
     }
-    //new data
-    if (!dirDiffInfo->newPathIsDir){//new is file
-        check(TFileStreamOutput_open(&newFile,outNewPath,dirDiffInfo->hdiffInfo.newDataSize),
-              HPATCH_OPENWRITE_ERROR,"open out newFile for write");
-        newStream=&newFile.base;
-    }else{ //new is dir
-        IDirPatchListener listener;
+    {//new data
         memset(&listener,0,sizeof(listener));
         listener.listenerImport=0;
         listener.makeNewDir=_makeNewDir;
         listener.copySameFile=_copySameFile;
         check(TDirPatcher_openNewDirAsStream(&dirPatcher,outNewPath,&listener,&newStream),
-              HPATCH_DIRPATCH_OPENNEWDIR_ERROR,"open new dir");
+              HPATCH_DIRPATCH_OPEN_NEWPATH_ERROR,"open newFile");
     }
-    
+    //patch
     check(TDirPatcher_patch(&dirPatcher,newStream,oldStream, temp_cache,
                             temp_cache+temp_cache_size),HPATCH_DIRPATCH_ERROR,"dir patch run");
 clear:
     _isInClear=hpatch_TRUE;
-    check(TFileStreamOutput_close(&newFile),HPATCH_FILECLOSE_ERROR,"out newFile close");
-    check(TDirPatcher_closeNewDirStream(&dirPatcher),HPATCH_DIRPATCH_NEWDIRCLOSE_ERROR,"new dir close");
-    check(TDirPatcher_closeOldRefStream(&dirPatcher),HPATCH_FILECLOSE_ERROR,"oldFiles close");
+    check(TDirPatcher_closeNewDirStream(&dirPatcher),HPATCH_DIRPATCH_CLOSE_NEWPATH_ERROR,"newPath close");
+    check(TDirPatcher_closeOldRefStream(&dirPatcher),HPATCH_DIRPATCH_CLOSE_OLDPATH_ERROR,"oldPath close");
     TDirPatcher_close(&dirPatcher);
     check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
-    check(TFileStreamInput_close(&oldFile),HPATCH_FILECLOSE_ERROR,"oldFile close");
     _free_mem(p_temp_mem);
-    printf("\nhpatchz time: %.3f s\n",(clock_s()-time0));
+    printf("\nhpatchz dir patch time: %.3f s\n",(clock_s()-time0));
     return result;
 }

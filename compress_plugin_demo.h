@@ -37,7 +37,7 @@
 
 #include "libHDiffPatch/HDiff/diff_types.h"
 
-#define kCompressBufSize (1024*64)
+#define kCompressBufSize (1024*32)
 #ifndef _IsNeedIncludeDefaultCompressHead
 #   define _IsNeedIncludeDefaultCompressHead 1
 #endif
@@ -100,7 +100,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         return _zlib_stream_compressType(0);
     }
     static size_t  _zlib_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
-        return dataSize*5/4+16*1024;
+        return dataSize*5/4+1024*4;
     }
     typedef struct _zlib_TCompress{
         hpatch_StreamPos_t curWritePos;
@@ -248,7 +248,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         return _bz2_stream_compressType(0);
     }
     static size_t  _bz2_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
-        return dataSize*5/4+16*1024;
+        return dataSize*5/4+1024*4;
     }
     static hpatch_StreamPos_t _bz2_compress_stream(const hdiff_TStreamCompress* compressPlugin,
                                                    const hdiff_TStreamOutput* out_code,
@@ -332,7 +332,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         return _lzma_stream_compressType(0);
     }
     static size_t  _lzma_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
-        return dataSize*5/4+16*1024;
+        return dataSize*5/4+1024*4;
     }
     
     static void * __lzma_enc_Alloc(ISzAllocPtr p, size_t size){
@@ -402,7 +402,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         hpatch_uint32_t    dictSize=lzma_dictSize;
         if (!s) s=LzmaEnc_Create(&alloc);
         if (!s) _compress_error_return("LzmaEnc_Create()");
-        while ((dictSize >= in_data->streamSize*3)&&(dictSize>=4*1024*2))
+        while ((dictSize >= in_data->streamSize*3)&&(dictSize>=1024*8))
             dictSize>>=1;
         LzmaEncProps_Init(&props);
         props.level=lzma_compress_level;
@@ -459,7 +459,7 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
         return _lz4_stream_compressType(0);
     }
     static size_t  _lz4_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
-        return dataSize*5/4+16*1024;
+        return dataSize*5/4+1024*4;
     }
     #define _lz4_write_len4(out_code,isCanceled,writePos,len) { \
         unsigned char _temp_buf4[4];  \

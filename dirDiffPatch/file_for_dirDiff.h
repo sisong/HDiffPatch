@@ -30,6 +30,10 @@
 #ifndef DirDiffPatch_file_for_dirDiff_h
 #define DirDiffPatch_file_for_dirDiff_h
 #include "file_for_dirPatch.h"
+#ifdef _WIN32
+#else
+#   include <dirent.h> //opendir ...
+#endif
 
 typedef void* TDirHandle;
 
@@ -104,7 +108,6 @@ void dirClose(TDirHandle dirHandle){
 
 #else  // _WIN32
 
-#include <dirent.h> //opendir ...
 static inline
 TDirHandle dirOpenForRead(const char* dir_utf8){
     TDirHandle h=opendir(dir_utf8);

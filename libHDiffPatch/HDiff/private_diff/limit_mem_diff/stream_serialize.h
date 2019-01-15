@@ -102,7 +102,7 @@ struct TDiffStream{
 private:
     const hpatch_TStreamOutput*  out_diff;
     hpatch_StreamPos_t     writePos;
-    enum{ kBufSize=1024*128 };
+    enum{ kBufSize=1024*64 };
     unsigned char*         _temp_buf;
     
     void _packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize);

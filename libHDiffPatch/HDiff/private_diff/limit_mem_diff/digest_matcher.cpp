@@ -32,7 +32,7 @@
 #include "../compress_detect.h" //_getUIntCost
 #include "adler_roll.h"
 namespace hdiff_private{
-static  const size_t kMinTrustMatchedLength=16*1024;
+static  const size_t kMinTrustMatchedLength=1024*16;
 static  const size_t kMinMatchedLength = 16;
 static  const size_t kBestReadSize=1024*256; //for sequence read
 static  const size_t kMinReadSize=1024;      //for random first read speed
