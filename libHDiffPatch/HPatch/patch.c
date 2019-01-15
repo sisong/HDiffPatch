@@ -910,12 +910,13 @@ hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,_THDiffzHead
         if (compressTypeLen>=readLen) return _hpatch_FALSE;
         memcpy(out_diffInfo->compressType,compressType,compressTypeLen+1);
         _TStreamCacheClip_skipData_noCheck(diffHeadClip,compressTypeLen+1);
+        out_head->typesEndPos=compressedDiff->streamSize-_TStreamCacheClip_streamSize(diffHeadClip);
     }
     
     _TStreamCacheClip_unpackUIntTo(&out_diffInfo->newDataSize,diffHeadClip);
     _TStreamCacheClip_unpackUIntTo(&out_diffInfo->oldDataSize,diffHeadClip);
     _TStreamCacheClip_unpackUIntTo(&out_head->coverCount,diffHeadClip);
-    
+    out_head->compressSizeBeginPos=compressedDiff->streamSize-_TStreamCacheClip_streamSize(diffHeadClip);
     _TStreamCacheClip_unpackUIntTo(&out_head->cover_buf_size,diffHeadClip);
     _TStreamCacheClip_unpackUIntTo(&out_head->compress_cover_buf_size,diffHeadClip);
     _TStreamCacheClip_unpackUIntTo(&out_head->rle_ctrlBuf_size,diffHeadClip);
@@ -924,12 +925,12 @@ hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,_THDiffzHead
     _TStreamCacheClip_unpackUIntTo(&out_head->compress_rle_codeBuf_size,diffHeadClip);
     _TStreamCacheClip_unpackUIntTo(&out_head->newDataDiff_size,diffHeadClip);
     _TStreamCacheClip_unpackUIntTo(&out_head->compress_newDataDiff_size,diffHeadClip);
+    out_head->headEndPos=compressedDiff->streamSize-_TStreamCacheClip_streamSize(diffHeadClip);
     
     out_diffInfo->compressedCount=((out_head->compress_cover_buf_size)?1:0)
                                  +((out_head->compress_rle_ctrlBuf_size)?1:0)
                                  +((out_head->compress_rle_codeBuf_size)?1:0)
                                  +((out_head->compress_newDataDiff_size)?1:0);
-    out_head->headEndPos=compressedDiff->streamSize-_TStreamCacheClip_streamSize(diffHeadClip);
     if (out_head->compress_cover_buf_size>0)
         out_head->coverEndPos=out_head->headEndPos+out_head->compress_cover_buf_size;
     else

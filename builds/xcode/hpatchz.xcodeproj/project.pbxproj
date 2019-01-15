@@ -56,6 +56,7 @@
 		D6BF3A5521E8CDC300833537 /* res_handle_limit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = res_handle_limit.h; sourceTree = "<group>"; };
 		D6BF3A5621E8CDC300833537 /* res_handle_limit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = res_handle_limit.c; sourceTree = "<group>"; };
 		D6BF3A5821E95F4200833537 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
+		D6BF3A6221EDD5A900833537 /* dir_patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_private.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,8 +125,9 @@
 				D6241AE421DE47EC00E2846A /* new_stream.h */,
 				D67D3BF121D3C5870050632A /* ref_stream.c */,
 				D67D3BF321D3C5870050632A /* ref_stream.h */,
-				D67D3BF221D3C5870050632A /* dir_patch.c */,
+				D6BF3A6221EDD5A900833537 /* dir_patch_private.h */,
 				D67D3BF021D3C5870050632A /* dir_patch.h */,
+				D67D3BF221D3C5870050632A /* dir_patch.c */,
 			);
 			name = dir_patch;
 			path = ../../dirDiffPatch/dir_patch;

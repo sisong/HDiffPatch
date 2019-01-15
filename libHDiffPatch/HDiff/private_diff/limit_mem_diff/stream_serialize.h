@@ -99,6 +99,9 @@ struct TDiffStream{
     void pushStream(const hpatch_TStreamInput*   stream,
                     const hdiff_TStreamCompress* compressPlugin,
                     const TPlaceholder&          update_compress_sizePos);
+    void pushStream(const hpatch_TStreamInput*   stream){
+                            TPlaceholder nullPos(0,0); pushStream(stream,0,nullPos); }
+    hpatch_StreamPos_t getWritedPos()const{ return writePos; }
 private:
     const hpatch_TStreamOutput*  out_diff;
     hpatch_StreamPos_t     writePos;
@@ -116,7 +119,7 @@ class TStreamClip:public hpatch_TStreamInput{
 public:
     explicit TStreamClip(const hpatch_TStreamInput* stream,
                          hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos,
-                         hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressSize);
+                         hpatch_TDecompress* decompressPlugin=0,hpatch_StreamPos_t uncompressSize=0);
     ~TStreamClip();
 private:
     const hpatch_TStreamInput*  _src;

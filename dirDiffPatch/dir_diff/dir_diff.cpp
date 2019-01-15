@@ -32,19 +32,22 @@
 #include <set>
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
+#include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
 #include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #include "../../libHDiffPatch/HDiff/diff.h"
 #include "../../file_for_patch.h"
 #include "../file_for_dirDiff.h"
 #include "../dir_patch/ref_stream.h"
 #include "../dir_patch/dir_patch.h"
+#include "../dir_patch/dir_patch_private.h"
 #include "../dir_patch/res_handle_limit.h"
 using namespace hdiff_private;
 
-static const char* kVersionType="DirDiff19&";
+static const char* kDirDiffVersionType="DirDiff19&";
 
 #define kFileIOBufSize      (1024*64)
-#define check(value,info) if (!(value)) throw std::runtime_error(info);
+#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
+#define checkv(value)     check(value,#value" error!")
 
 #define hash_value_t                uint64_t
 #define hash_begin(ph)              { (*(ph))=ADLER_INITIAL; }
@@ -483,7 +486,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     //serialize  dir diff data
     std::vector<TByte> out_data;
     {//type version
-        pushBack(out_data,(const TByte*)kVersionType,(const TByte*)kVersionType+strlen(kVersionType));
+        pushBack(out_data,(const TByte*)kDirDiffVersionType,(const TByte*)kDirDiffVersionType+strlen(kDirDiffVersionType));
     }
     {//compressType
         const char* compressType="";
@@ -505,12 +508,12 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     packUInt(out_data,oldRefIList.size());      clearVector(oldRefIList);
     packUInt(out_data,newRefIList.size());      clearVector(newRefIList);
     packUInt(out_data,sameFilePairCount);       clearVector(dataSamePairList);
-    packUInt(out_data,headData.size());
-    packUInt(out_data,headCode.size());
     //externData size
     std::vector<TByte> externData;
     listener->externData(externData);
     packUInt(out_data,externData.size());
+    packUInt(out_data,headData.size());
+    packUInt(out_data,headCode.size());
     
     //begin write
     hpatch_StreamPos_t writeToPos=0;
@@ -739,10 +742,63 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,
 #undef _test
 
 
-void resave_compressed_dirdiff(const hpatch_TStreamInput*  in_diff,
-                               hpatch_TDecompress*         decompressPlugin,
-                               const hpatch_TStreamOutput* out_diff,
-                               hdiff_TStreamCompress*      compressPlugin){
-    //todo:
+void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decompressPlugin,
+                    const hpatch_TStreamOutput* out_diff,hdiff_TStreamCompress* compressPlugin){
+    _TDirDiffHead       head;
+    TDirDiffInfo        diffInfo;
+    assert(in_diff!=0);
+    assert(in_diff->read!=0);
+    assert(out_diff!=0);
+    assert(out_diff->write!=0);
     
+    {//read head
+        check(read_dirdiff_head(&diffInfo,&head,in_diff),
+              "resave_dirdiff() read_dirdiff_head() error!");
+        int compressedCount=diffInfo.hdiffInfo.compressedCount+((head.headDataCompressedSize>0)?1:0);
+        check((decompressPlugin!=0)||(compressedCount<=0),
+              "resave_dirdiff() decompressPlugin null error!");
+        if ((decompressPlugin)&&(compressedCount>0)){
+            hpatch_compressedDiffInfo   hdiffInfo=diffInfo.hdiffInfo;
+            hdiffInfo.compressedCount=compressedCount;
+            check(decompressPlugin->is_can_open(decompressPlugin,&hdiffInfo),
+                  "resave_dirdiff() decompressPlugin cannot open compressed data error!");
+        }
+    }
+    hpatch_StreamPos_t writeToPos=0;
+    {//save head
+        TDiffStream outDiff(out_diff);
+        const char* compressType="";
+        if (compressPlugin){
+            compressType=compressPlugin->compressType(compressPlugin);
+            checkv(strlen(compressType)<=hpatch_kMaxCompressTypeLength);
+        }
+        outDiff.pushBack((const TByte*)kDirDiffVersionType,strlen(kDirDiffVersionType));
+        outDiff.pushBack((const TByte*)compressType,strlen(compressType)+1);//with '\0'
+        {//copy other
+            TStreamClip clip(in_diff,head.typesEndPos,head.compressSizeBeginPos);
+            outDiff.pushStream(&clip);
+        }
+        //headData
+        outDiff.packUInt(head.headDataSize);
+        TPlaceholder compress_headData_sizePos=
+        outDiff.packUInt_pos(compressPlugin?head.headDataSize:0);//headDataCompressedSize
+        {//resave headData
+            bool isCompressed=(head.headDataCompressedSize>0);
+            hpatch_StreamPos_t bufSize=isCompressed?head.headDataCompressedSize:head.headDataSize;
+            TStreamClip clip(in_diff,head.headDataOffset,head.headDataOffset+bufSize,
+                             (isCompressed?decompressPlugin:0),head.headDataSize);
+            outDiff.pushStream(&clip,compressPlugin,compress_headData_sizePos);
+        }
+        {//save externData
+            TStreamClip clip(in_diff,diffInfo.externDataOffset,
+                             diffInfo.externDataOffset+diffInfo.externDataSize);
+            outDiff.pushStream(&clip);
+        }
+        writeToPos=outDiff.getWritedPos();
+    }
+    {//resave hdiffData
+        TOffsetStreamOutput ofStream(out_diff,writeToPos);
+        TStreamClip clip(in_diff,head.hdiffDataOffset,head.hdiffDataOffset+head.hdiffDataSize);
+        resave_compressed_diff(&clip,decompressPlugin,&ofStream,compressPlugin);
+    }
 }

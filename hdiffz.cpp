@@ -729,8 +729,8 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     printf("inDiffSize : %"PRIu64"\n",diffData_in.base.streamSize);
     try{
         if (isDirDiff){
-            resave_compressed_dirdiff(&diffData_in.base,decompressPlugin,
-                                      &diffData_out.base,streamCompressPlugin);
+            resave_dirdiff(&diffData_in.base,decompressPlugin,
+                           &diffData_out.base,streamCompressPlugin);
         }else{
             resave_compressed_diff(&diffData_in.base,decompressPlugin,
                                    &diffData_out.base,streamCompressPlugin);

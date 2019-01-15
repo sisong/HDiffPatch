@@ -1,5 +1,5 @@
 // dir_patch.h
-// hdiffz dir diff
+// hdiffz dir patch
 //
 /*
  The MIT License (MIT)
@@ -66,6 +66,8 @@ hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatc
         size_t              oldRefFileCount;
         size_t              newRefFileCount;
         size_t              sameFilePairCount;
+        hpatch_StreamPos_t  typesEndPos;
+        hpatch_StreamPos_t  compressSizeBeginPos;
         hpatch_StreamPos_t  headDataOffset;
         hpatch_StreamPos_t  headDataSize;
         hpatch_StreamPos_t  headDataCompressedSize;

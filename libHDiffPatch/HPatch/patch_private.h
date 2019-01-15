@@ -59,6 +59,8 @@ typedef struct _THDiffzHead{
     hpatch_StreamPos_t newDataDiff_size;
     hpatch_StreamPos_t compress_newDataDiff_size;
     
+    hpatch_StreamPos_t typesEndPos;
+    hpatch_StreamPos_t compressSizeBeginPos;
     hpatch_StreamPos_t headEndPos;
     hpatch_StreamPos_t coverEndPos;
 } _THDiffzHead;

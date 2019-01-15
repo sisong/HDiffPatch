@@ -1,5 +1,5 @@
 // dir_patch.c
-// hdiffz dir diff
+// hdiffz dir patch
 //
 /*
  The MIT License (MIT)
@@ -27,6 +27,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_patch.h"
+#include "dir_patch_private.h"
 #include <stdio.h>
 #include <string.h>
 #include "../../libHDiffPatch/HPatch/patch.h"
@@ -126,8 +127,8 @@ clear:
     return result;
 }
 
-static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
-                                      const hpatch_TStreamInput* dirDiffFile){
+hpatch_BOOL read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
+                               const hpatch_TStreamInput* dirDiffFile){
     hpatch_BOOL result=hpatch_TRUE;
     TStreamCacheClip  _headClip;
     TStreamCacheClip* headClip=&_headClip;
@@ -180,10 +181,10 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_
         unpackToSize(&out_head->oldRefFileCount,headClip);
         unpackToSize(&out_head->newRefFileCount,headClip);
         unpackToSize(&out_head->sameFilePairCount,headClip);
+        unpackUIntTo(&out_info->externDataSize,headClip);
         unpackUIntTo(&out_head->headDataSize,headClip);
         unpackUIntTo(&out_head->headDataCompressedSize,headClip);
         out_info->dirDataIsCompressed=(out_head->headDataCompressedSize>0);
-        unpackUIntTo(&out_info->externDataSize,headClip);
     }
     {
         TStreamInputClip hdiffStream;
@@ -205,7 +206,7 @@ clear:
 
 hpatch_BOOL getDirDiffInfo(const hpatch_TStreamInput* diffFile,TDirDiffInfo* out_info){
     _TDirDiffHead head;
-    return _read_dirdiff_head(out_info,&head,diffFile);
+    return read_dirdiff_head(out_info,&head,diffFile);
 }
 
 
@@ -214,7 +215,7 @@ hpatch_BOOL TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* dirDif
     hpatch_BOOL result;
     assert(self->_dirDiffData==0);
     self->_dirDiffData=dirDiffData;
-    result=_read_dirdiff_head(&self->dirDiffInfo,&self->dirDiffHead,self->_dirDiffData);
+    result=read_dirdiff_head(&self->dirDiffInfo,&self->dirDiffHead,self->_dirDiffData);
     if (result)
         *out_dirDiffInfo=&self->dirDiffInfo;
     return result;

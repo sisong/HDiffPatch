@@ -758,9 +758,10 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
     }
     outDiff.pushBack((const TByte*)kHDiffVersionType,strlen(kHDiffVersionType));
     outDiff.pushBack((const TByte*)compressType,strlen(compressType)+1);//with '\0'
-    outDiff.packUInt(diffInfo.newDataSize);
-    outDiff.packUInt(diffInfo.oldDataSize);
-    outDiff.packUInt(head.coverCount);
+    {//copy other
+        TStreamClip clip(in_diff,head.typesEndPos,head.compressSizeBeginPos);
+        outDiff.pushStream(&clip);
+    }
     outDiff.packUInt(head.cover_buf_size);
     TPlaceholder compress_cover_buf_sizePos=
         outDiff.packUInt_pos(compressPlugin?head.cover_buf_size:0);//compress_cover_buf size
