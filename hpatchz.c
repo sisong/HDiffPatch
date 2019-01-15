@@ -449,15 +449,25 @@ clear:
     return result;
 }
 
-
+//IDirPatchListener
 hpatch_BOOL _makeNewDir(IDirPatchListener* listener,const char* newDir){
-    //printf("callback make dir: %s\n",newDir);
+    //printf("callback makeNewDir: %s\n",newDir);
     return makeNewDir(newDir);
 }
 hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,const char* newFileName){
-    //printf("callback copy file: %s => %s\n",oldFileName,newFileName);
-    return copyFileToNewFile(oldFileName,newFileName);
+    //printf("callback copySameFile: %s => %s\n",oldFileName,newFileName);
+    return TDirPatcher_copyFile(oldFileName,newFileName);
 }
+hpatch_BOOL _openNewFile(IDirPatchListener* listener,TFileStreamOutput*  out_curNewFile,
+                         const char* newFileName,hpatch_StreamPos_t newFileSize){
+    //printf("callback openNewFile: %s size:%"PRIu64"\n",newFileName,newFileSize);
+    return TFileStreamOutput_open(out_curNewFile,newFileName,newFileSize);
+}
+hpatch_BOOL _closeNewFile(IDirPatchListener* listener,TFileStreamOutput* curNewFile){
+    //printf("callback closeNewFile\n");
+    return TFileStreamOutput_close(curNewFile);
+}
+//IDirPatchListener
 
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber){
@@ -527,10 +537,11 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
               HPATCH_DIRPATCH_OPEN_OLDPATH_ERROR,"open oldFile");
     }
     {//new data
-        memset(&listener,0,sizeof(listener));
         listener.listenerImport=0;
         listener.makeNewDir=_makeNewDir;
         listener.copySameFile=_copySameFile;
+        listener.openNewFile=_openNewFile;
+        listener.closeNewFile=_closeNewFile;
         check(TDirPatcher_openNewDirAsStream(&dirPatcher,outNewPath,&listener,&newStream),
               HPATCH_DIRPATCH_OPEN_NEWPATH_ERROR,"open newFile");
     }

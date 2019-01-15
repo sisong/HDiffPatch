@@ -36,7 +36,7 @@
 extern "C" {
 #endif
     
-hpatch_BOOL copyFileToNewFile(const char* oldFileName_utf8,const char* newFileName_utf8);
+hpatch_BOOL TDirPatcher_copyFile(const char* oldFileName_utf8,const char* newFileName_utf8);
     
 typedef struct TDirDiffInfo{
     hpatch_BOOL                 isDirDiff;
@@ -73,15 +73,19 @@ hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatc
         hpatch_StreamPos_t  hdiffDataSize;
     } _TDirDiffHead;
     
+    struct TFileStreamInput;
+    struct TFileStreamOutput;
+    
     typedef struct IDirPatchListener{
         void*       listenerImport;
         hpatch_BOOL   (*makeNewDir)(struct IDirPatchListener* listener,const char* newDir);
         hpatch_BOOL (*copySameFile)(struct IDirPatchListener* listener,
                                     const char* oldFileName,const char* newFileName);
+        hpatch_BOOL  (*openNewFile)(struct IDirPatchListener* listener,struct TFileStreamOutput*  out_curNewFile,
+                                    const char* newFileName,hpatch_StreamPos_t newFileSize);
+        hpatch_BOOL (*closeNewFile)(struct IDirPatchListener* listener,struct TFileStreamOutput* curNewFile);
     } IDirPatchListener;
 
-struct TFileStreamInput;
-struct TFileStreamOutput;
 typedef struct TDirPatcher{
     TDirDiffInfo                dirDiffInfo;
     _TDirDiffHead               dirDiffHead;
@@ -121,10 +125,10 @@ hpatch_BOOL     TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* di
                                  const TDirDiffInfo**  out_dirDiffInfo);
     
 hpatch_BOOL     TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin);
-hpatch_BOOL     TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldRootDir_utf8,
+hpatch_BOOL     TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldPath_utf8,
                                                size_t kMaxOpenFileNumber,
                                                const hpatch_TStreamInput** out_oldRefStream);
-hpatch_BOOL     TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newRootDir_utf8,
+hpatch_BOOL     TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newPath_utf8,
                                                IDirPatchListener* listener,
                                                const hpatch_TStreamOutput** out_newDirStream);
 

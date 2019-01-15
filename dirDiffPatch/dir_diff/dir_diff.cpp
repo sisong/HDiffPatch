@@ -557,6 +557,188 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
 }
 
 
+#define _test(v) { if (!(v)) { fprintf(stderr,"DirPatch test "#v" error!\n");  return hpatch_FALSE; } }
+
+struct CDirPatchListener:public IDirPatchListener{
+    explicit CDirPatchListener(const std::string& newRootDir,
+                               const std::vector<std::string>& oldList,
+                               const std::vector<std::string>& newList)
+    :_oldSet(oldList.begin(),oldList.end()),_newSet(newList.begin(),newList.end()),
+    _buf(kFileIOBufSize){
+        _dirSet.insert(getParentDir(newRootDir));
+        this->listenerImport=this;
+        this->makeNewDir=_makeNewDir;
+        this->copySameFile=_copySameFile;
+        this->openNewFile=_openNewFile;
+        this->closeNewFile=_closeNewFile;
+    }
+    bool isNewOk()const{ return _newSet.empty(); }
+    std::set<std::string>   _oldSet;
+    std::set<std::string>   _newSet;
+    std::set<std::string>   _dirSet;
+    static inline std::string getParentDir(const std::string& _path){
+        std::string path(_path);
+        if (path.empty()) return path;
+        if (path[path.size()-1]==kPatch_dirSeparator)
+            path.pop_back();
+        while ((!path.empty())&&(path[path.size()-1]!=kPatch_dirSeparator)) {
+            path.pop_back();
+        }
+        return path;
+    }
+    inline bool isParentDirExists(const std::string& _path)const{
+        std::string path=getParentDir(_path);
+        if (path.empty()) return true;
+        return _dirSet.find(path)!=_dirSet.end();
+    }
+    
+    static hpatch_BOOL _makeNewDir(IDirPatchListener* listener,const char* _newDir){
+        CDirPatchListener* self=(CDirPatchListener*)listener->listenerImport;
+        std::string newDir(_newDir);
+        _test(self->isParentDirExists(newDir));
+        self->_dirSet.insert(newDir);
+        self->_newSet.erase(newDir);
+        return hpatch_TRUE;
+    }
+    static hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* _oldFileName,const char* _newFileName){
+        CDirPatchListener* self=(CDirPatchListener*)listener->listenerImport;
+        std::string oldFileName(_oldFileName);
+        std::string newFileName(_newFileName);
+        _test(self->isParentDirExists(newFileName));
+        _test(self->_oldSet.find(oldFileName)!=self->_oldSet.end());
+        _test(self->_newSet.find(newFileName)!=self->_newSet.end());
+        _test(fileData_isSame(oldFileName,newFileName));
+        self->_newSet.erase(newFileName);
+        return hpatch_TRUE;
+    }
+    
+    struct _TCheckOutNewDataStream:public hpatch_TStreamOutput{
+        explicit _TCheckOutNewDataStream(const char* _newFileName,
+                                         TByte* _buf,size_t _bufSize)
+        :newData(0),writedLen(0),buf(_buf),bufSize(_bufSize),newFileName(_newFileName){
+            TFileStreamInput_init(&newFile);
+            if (TFileStreamInput_open(&newFile,newFileName.c_str())){
+                newData=&newFile.base;
+                streamSize=newData->streamSize;
+            }else{
+                streamSize=(hpatch_StreamPos_t)(-1);
+            }
+            streamImport=this;
+            write=_write_check;
+        }
+        ~_TCheckOutNewDataStream(){  TFileStreamInput_close(&newFile); }
+        static hpatch_BOOL _write_check(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                        const unsigned char* data,const unsigned char* data_end){
+            _TCheckOutNewDataStream* self=(_TCheckOutNewDataStream*)stream->streamImport;
+            _test(self->isOpenOk());
+            _test(self->writedLen==writeToPos);
+            self->writedLen+=(size_t)(data_end-data);
+            _test(self->writedLen<=self->streamSize);
+            
+            hpatch_StreamPos_t readPos=writeToPos;
+            while (data<data_end) {
+                size_t readLen=(size_t)(data_end-data);
+                if (readLen>self->bufSize) readLen=self->bufSize;
+                _test(self->newData->read(self->newData,readPos,self->buf,self->buf+readLen));
+                _test(0==memcmp(data,self->buf,readLen));
+                data+=readLen;
+                readPos+=readLen;
+            }
+            return hpatch_TRUE;
+        }
+        bool isOpenOk()const{ return (newData!=0); };
+        bool isWriteOk()const{ return (!newFile.fileError)&&(writedLen==newData->streamSize); }
+        const hpatch_TStreamInput*  newData;
+        hpatch_StreamPos_t          writedLen;
+        TByte*                      buf;
+        size_t                      bufSize;
+        TFileStreamInput            newFile;
+        std::string                 newFileName;
+    };
+    
+    TAutoMem _buf;
+    static hpatch_BOOL _openNewFile(IDirPatchListener* listener,TFileStreamOutput*  out_curNewFile,
+                             const char* newFileName,hpatch_StreamPos_t newFileSize){
+        CDirPatchListener* self=(CDirPatchListener*)listener->listenerImport;
+        _TCheckOutNewDataStream* newFile=new _TCheckOutNewDataStream(newFileName,self->_buf.data(),
+                                                                     self->_buf.size());
+        out_curNewFile->base=*newFile;
+        _test(newFile->isOpenOk());
+        _test(self->_newSet.find(newFile->newFileName)!=self->_newSet.end());
+        return true;
+    }
+    static hpatch_BOOL _closeNewFile(IDirPatchListener* listener,TFileStreamOutput* curNewFile){
+        CDirPatchListener* self=(CDirPatchListener*)listener->listenerImport;
+        if (curNewFile==0) return true;
+        _TCheckOutNewDataStream* newFile=(_TCheckOutNewDataStream*)curNewFile->base.streamImport;
+        if (newFile==0) return true;
+        _test(newFile->isWriteOk());
+        _test(self->_newSet.find(newFile->newFileName)!=self->_newSet.end());
+        self->_newSet.erase(newFile->newFileName);
+        delete newFile;
+        return true;
+    }
+};
+
+struct CDirPatcher:public TDirPatcher{
+    CDirPatcher(){ TDirPatcher_init(this); }
+    ~CDirPatcher() { TDirPatcher_close(this); }
+};
+
+bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,
+                   const std::string& newPath,const hpatch_TStreamInput* testDiffData,
+                   hpatch_TDecompress* decompressPlugin,size_t kMaxOpenFileNumber){
+    bool     result=true;
+    assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
+    std::vector<std::string> oldList;
+    std::vector<std::string> newList;
+    {
+        if (isDirName(oldPath)){
+            getDirFileList(oldPath,oldList,listener);
+            sortDirFileList(oldList);
+        }else{
+            oldList.push_back(oldPath);
+        }
+        if (isDirName(newPath)){
+            getDirFileList(newPath,newList,listener);
+            sortDirFileList(newList);
+        }else{
+            newList.push_back(newPath);
+        }
+        listener->diffPathList(oldList,newList);
+    }
+    
+    CDirPatchListener    patchListener(newPath,oldList,newList);
+    CDirPatcher          dirPatcher;
+    const TDirDiffInfo*  dirDiffInfo=0;
+    TAutoMem             p_temp_mem(kFileIOBufSize*5);
+    TByte*               temp_cache=p_temp_mem.data();
+    size_t               temp_cache_size=p_temp_mem.size();
+    const hpatch_TStreamInput*  oldStream=0;
+    const hpatch_TStreamOutput* newStream=0;
+    {//dir diff info
+        TPathType    oldType;
+        _test(getPathTypeByName(oldPath.c_str(),&oldType,0));
+        _test(TDirPatcher_open(&dirPatcher,testDiffData,&dirDiffInfo));
+        _test(dirDiffInfo->isDirDiff);
+        if (dirDiffInfo->oldPathIsDir){
+            _test(kPathType_dir==oldType);
+        }else{
+            _test(kPathType_dir!=oldType);
+        }
+    }
+    _test(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin));
+    _test(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath.c_str(),kMaxOpenFileNumber,&oldStream));
+    _test(TDirPatcher_openNewDirAsStream(&dirPatcher,newPath.c_str(),&patchListener,&newStream));
+    _test(TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size));
+    _test(TDirPatcher_closeNewDirStream(&dirPatcher));
+    _test(TDirPatcher_closeOldRefStream(&dirPatcher));
+    _test(patchListener.isNewOk());
+    return result;
+}
+#undef _test
+
+
 void resave_compressed_dirdiff(const hpatch_TStreamInput*  in_diff,
                                hpatch_TDecompress*         decompressPlugin,
                                const hpatch_TStreamOutput* out_diff,

@@ -576,7 +576,7 @@ bool check_compressed_diff(const unsigned char* newData,const unsigned char* new
     return (0==memcmp(updateNew0,newData,updateNewData.size()));
 }
 
-#define test_return(v) { if (!(v)) { return hpatch_FALSE; } }
+#define _test(v) { if (!(v)) { fprintf(stderr,"patch test "#v" error!\n");  return hpatch_FALSE; } }
 
 bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                   const hpatch_TStreamInput*  oldData,
@@ -594,21 +594,22 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
         static hpatch_BOOL _write_check(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                         const unsigned char* data,const unsigned char* data_end){
             _TCheckOutNewDataStream* self=(_TCheckOutNewDataStream*)stream->streamImport;
-            test_return(self->writedLen==writeToPos);
+            _test(self->writedLen==writeToPos);
             self->writedLen+=(size_t)(data_end-data);
-            test_return(self->writedLen<=self->streamSize);
+            _test(self->writedLen<=self->streamSize);
             
             hpatch_StreamPos_t readPos=writeToPos;
             while (data<data_end) {
                 size_t readLen=(size_t)(data_end-data);
                 if (readLen>self->bufSize) readLen=self->bufSize;
-                test_return(self->newData->read(self->newData,readPos,self->buf,self->buf+readLen));
-                test_return(0==memcmp(data,self->buf,readLen));
+                _test(self->newData->read(self->newData,readPos,self->buf,self->buf+readLen));
+                _test(0==memcmp(data,self->buf,readLen));
                 data+=readLen;
                 readPos+=readLen;
             }
             return hpatch_TRUE;
         }
+        bool isWriteFinish()const{ return writedLen==newData->streamSize; }
         const hpatch_TStreamInput*  newData;
         hpatch_StreamPos_t          writedLen;
         TByte*                      buf;
@@ -617,13 +618,13 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
     
     const size_t kACacheBufSize=1024*64;
     TAutoMem _cache(kACacheBufSize*8);
-    
     _TCheckOutNewDataStream out_newData(newData,_cache.data(),kACacheBufSize);
-    test_return(patch_decompress_with_cache(&out_newData,oldData,compressed_diff,decompressPlugin,
+    _test(patch_decompress_with_cache(&out_newData,oldData,compressed_diff,decompressPlugin,
                                              _cache.data()+kACacheBufSize,_cache.data_end()));
-    test_return(out_newData.writedLen==newData->streamSize);
+    _test(out_newData.isWriteFinish());
     return true;
 }
+#undef _test
 
 //for test
 void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* newData_end,

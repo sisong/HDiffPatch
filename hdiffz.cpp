@@ -769,14 +769,12 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 
 
 struct DirDiffListener:public IDirDiffListener{
-    
     virtual bool isNeedFilter(const std::string& path){
 #if (defined(__APPLE__))
         if (pathNameIs(path,".DS_Store")) return true;
 #endif
         return false;
     }
-    
     virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,
                              size_t refOldFileCount,size_t refNewFileCount,
                              hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){
@@ -849,7 +847,6 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         printf("  out dir diffFile ok!\n");
     }
     if (isPatchCheck){
-        //todo: dir_patch(oldPath,newPath,outDiffFileName,isLoadAll,decompressPlugin);
         double patch_time0=clock_s();
         printf("\nload dir diffFile for test by DirPatch check:\n");
         check(TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
