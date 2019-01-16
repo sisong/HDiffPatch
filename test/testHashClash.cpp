@@ -32,7 +32,7 @@
 #include <vector>
 #include <unordered_map>
 #include "zlib.h"
-#include "md5c.h"
+#include "md5.h" // https://sourceforge.net/projects/libmd5-rfc
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../_clock_for_demo.h"
 typedef unsigned char   TByte;
@@ -52,10 +52,10 @@ struct THash_md5_128{
     typedef std::pair<uint64_t,uint64_t> TValue;
     inline static const char* name() { return "md5_128"; }
     md5_state_t _hv;
-    inline void hash_begin() { md5_init_c(&_hv); }
+    inline void hash_begin() { md5_init(&_hv); }
     inline void hash(const TByte* pdata,const TByte* pdata_end)
-    { md5_append_c(&_hv,pdata,(int)(pdata_end-pdata)); }
-    inline void hash_end(TValue* hv) { md5_finish_c(&_hv,(TByte*)hv); }
+        { md5_append(&_hv,pdata,(int)(pdata_end-pdata)); }
+    inline void hash_end(TValue* hv) { md5_finish(&_hv,(TByte*)hv); }
 };
 
 namespace std{
@@ -148,7 +148,7 @@ struct THash_adler64f{
 
 const uint64_t kMaxMapNodeSize=80000000ull; //run test memory ctrl
 const size_t   kRandTestMaxSize=1024*1024*1024;//test rand data size
-const size_t   kMaxHashSize=256;
+const size_t   kMaxHashDataSize=256;
 const size_t   kMaxClash=1000000; //fast end
 const uint64_t kRandTestLoop=100000000ull;//run test max time ctrl
 
@@ -175,7 +175,7 @@ void test(const TByte* data,const TByte* data_end){
             if (clashs[m]<clashMin) clashMin=clashs[m];
         }
         if (clashMin>=kMaxClash) break; //break loop
-        size_t dlen=rand_r(&rand_seed) % kMaxHashSize;
+        size_t dlen=rand_r(&rand_seed) % kMaxHashDataSize;
         size_t dstrat=rand_r(&rand_seed) % ((data_end-data) - dlen);
         assert(dstrat+dlen<=(data_end-data));
         const TByte* pv    =data+dstrat;
@@ -237,9 +237,8 @@ void test(const TByte* data,const TByte* data_end){
         clashBase*=clashBases[m];
     }
     double clashR=clash/clashBase;
-    printf("clash rate%s%.4e (%.4e/%.4e) \ttime: %.3f s\n",
-           (sizeof(TValue)>sizeof(uint32_t))?">=":": ",
-           clashR,clash,clashBase,(clock_s()-time0));
+    printf("clash rate%s%.4e (%.1fbit) \ttime: %.3f s\n",
+           ((sizeof(TValue)>sizeof(uint32_t))?">=":": "),clashR,log2(1/clashR),(clock_s()-time0));
 }
 
 int main() {

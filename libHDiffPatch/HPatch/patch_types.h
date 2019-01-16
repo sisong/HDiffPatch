@@ -51,11 +51,12 @@ extern "C" {
 #   else
     typedef unsigned int        hpatch_uint32_t;
 #   endif
-    typedef unsigned __int64    hpatch_StreamPos_t;
+    typedef unsigned __int64    hpatch_uint64_t;
 #else
     typedef unsigned int        hpatch_uint32_t;
-    typedef unsigned long long  hpatch_StreamPos_t;
+    typedef unsigned long long  hpatch_uint64_t;
 #endif
+typedef hpatch_uint64_t  hpatch_StreamPos_t;
     
 #ifdef _MSC_VER
 #   define hpatch_inline _inline

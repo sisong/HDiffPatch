@@ -90,6 +90,8 @@
 		D6B240AF21E5C21300993A81 /* res_handle_limit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = res_handle_limit.h; sourceTree = "<group>"; };
 		D6BF3A5C21E97A0A00833537 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
 		D6BF3A6121EDD5A000833537 /* dir_patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_private.h; sourceTree = "<group>"; };
+		D6BF3A6421EE17EB00833537 /* checksum_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checksum_plugin_demo.h; path = ../../checksum_plugin_demo.h; sourceTree = "<group>"; };
+		D6BF3A6521EE18BB00833537 /* checksum_plugin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = checksum_plugin.h; sourceTree = "<group>"; };
 		D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = digest_matcher.cpp; sourceTree = "<group>"; };
 		D6DD68DF1F4015A900A1B22B /* digest_matcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = digest_matcher.h; sourceTree = "<group>"; };
 		D6DD68E11F40163200A1B22B /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = adler_roll.h; sourceTree = "<group>"; };
@@ -160,6 +162,7 @@
 				D690AB9E1F2079E80089DC57 /* libHDiffPatch */,
 				D6E150981F223B2700C2AD3D /* compress_plugin_demo.h */,
 				D6E1509A1F223DC100C2AD3D /* decompress_plugin_demo.h */,
+				D6BF3A6421EE17EB00833537 /* checksum_plugin_demo.h */,
 				D6BF3A5C21E97A0A00833537 /* file_for_patch.c */,
 				D68CD8FF1F45D22C00A61337 /* file_for_patch.h */,
 				D6367E4E21A65CB20032B717 /* _atosize.h */,
@@ -237,6 +240,7 @@
 		D690ABB41F2079E80089DC57 /* HPatch */ = {
 			isa = PBXGroup;
 			children = (
+				D6BF3A6521EE18BB00833537 /* checksum_plugin.h */,
 				D69A372B21AED4B2000A0A93 /* patch_private.h */,
 				D690ABB51F2079E80089DC57 /* patch.c */,
 				D690ABB61F2079E80089DC57 /* patch.h */,

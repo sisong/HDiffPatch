@@ -72,6 +72,12 @@
 #include "compress_plugin_demo.h"
 #include "decompress_plugin_demo.h"
 
+#define _ChecksumPlugin_crc32
+#define _ChecksumPlugin_adler32
+#define _ChecksumPlugin_adler64
+#define _ChecksumPlugin_adler32f
+#define _ChecksumPlugin_adler64f
+#include "checksum_plugin_demo.h"
 
 static void printUsage(){
     printf("diff   usage: hdiffz [options] oldPath newPath outDiffFile\n"

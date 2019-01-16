@@ -32,7 +32,7 @@
 #define  check(value) { if (!(value)){ fprintf(stderr,#value" error!\n"); return hpatch_FALSE; } }
 
 static hpatch_BOOL _TResHandleLimit_closeOneHandle(TResHandleLimit* self){
-    size_t              best_i=(hpatch_StreamPos_t)-1;
+    size_t              best_i=(size_t)-1;
     hpatch_StreamPos_t  best_hit=(hpatch_StreamPos_t)-1;
     hpatch_TStreamInput*    cur=0;
     IResHandle*             res=0;
