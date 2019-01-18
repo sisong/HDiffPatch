@@ -78,21 +78,22 @@ hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self){
         size_t writeLen;
         TFileStreamOutput* self=(TFileStreamOutput*)stream->streamImport;
         assert(data<=data_end);
+        assert(self->m_offset==0);
         writeLen=(size_t)(data_end-data);
         if (writeLen==0) return hpatch_TRUE;
         if ((writeLen>self->base.streamSize)
             ||(writeToPos>self->base.streamSize-writeLen)) _fileError_return;
-        if (writeToPos!=self->out_pos){
+        if (writeToPos!=self->m_pos){
             if (self->is_random_out){
                 if (!_import_fileSeek64(self->m_file,writeToPos,SEEK_SET)) _fileError_return;
-                self->out_pos=writeToPos;
+                self->m_pos=writeToPos;
             }else{
                 _fileError_return;
             }
         }
         if (!_import_fileWrite(self->m_file,data,data+writeLen)) _fileError_return;
-        self->out_pos=writeToPos+writeLen;
-        self->out_length=(self->out_length>=self->out_pos)?self->out_length:self->out_pos;
+        self->m_pos=writeToPos+writeLen;
+        self->out_length=(self->out_length>=self->m_pos)?self->out_length:self->m_pos;
         return hpatch_TRUE;
     }
 hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName_utf8,
@@ -104,10 +105,12 @@ hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName_
     self->base.streamImport=self;
     self->base.streamSize=max_file_length;
     self->base.write=_write_file;
-    self->out_pos=0;
-    self->out_length=0;
-    self->is_random_out=hpatch_FALSE;
+    *(void**)(&self->base.read_writed)=_read_file; //TFileStreamOutput is A TFileStreamInput !
+    self->m_pos=0;
+    self->m_offset=0;
     self->fileError=hpatch_FALSE;
+    self->is_random_out=hpatch_FALSE;
+    self->out_length=0;
     return hpatch_TRUE;
 }
 

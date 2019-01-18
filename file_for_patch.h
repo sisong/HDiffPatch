@@ -157,10 +157,10 @@ static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCo
 
 #if (_IS_USE_WIN32_UTF8_WAPI)
 #   define _kFileReadMode  L"rb"
-#   define _kFileWriteMode L"wb"
+#   define _kFileWriteMode L"wb+"
 #else
 #   define _kFileReadMode  "rb"
-#   define _kFileWriteMode "wb"
+#   define _kFileWriteMode "wb+"
 #endif
 
 #if (_IS_USE_WIN32_UTF8_WAPI)
@@ -263,9 +263,10 @@ int printStdErrPath_utf8(const char* pathTxt_utf8){
 
 typedef struct TFileStreamInput{
     hpatch_TStreamInput base;
+    const void*         _null_write;
     hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
-    size_t              m_offset;
+    hpatch_StreamPos_t  m_offset;
     hpatch_BOOL         fileError;
 } TFileStreamInput;
 
@@ -277,13 +278,15 @@ hpatch_BOOL TFileStreamInput_open(TFileStreamInput* self,const char* fileName_ut
 void TFileStreamInput_setOffset(TFileStreamInput* self,size_t offset);
 hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self);
 
-typedef struct TFileStreamOutput{
-    hpatch_TStreamOutput base;
+typedef struct TFileStreamOutput{ //is TFileStreamInput !
+    hpatch_TStreamOutput base; //is hpatch_TStreamInput + write
     hpatch_FileHandle   m_file;
-    hpatch_StreamPos_t  out_pos;
-    hpatch_StreamPos_t  out_length;
+    hpatch_StreamPos_t  m_pos;
+    hpatch_StreamPos_t  m_offset; //now not used
     hpatch_BOOL         fileError;
+    //
     hpatch_BOOL         is_random_out;
+    hpatch_StreamPos_t  out_length;
 } TFileStreamOutput;
 
 hpatch_inline

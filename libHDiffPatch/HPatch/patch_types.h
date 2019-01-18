@@ -75,35 +75,37 @@ typedef int hpatch_BOOL;
     typedef void* hpatch_TStreamOutputHandle;
     
     typedef struct hpatch_TStreamInput{
-        void*               streamImport;
-        hpatch_StreamPos_t  streamSize; //stream size,max readable range;
+        void*            streamImport;
+        hpatch_StreamPos_t streamSize; //stream size,max readable range;
         //read() must read (out_data_end-out_data), otherwise error return hpatch_FALSE
-        hpatch_BOOL         (*read)(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
-                                    unsigned char* out_data,unsigned char* out_data_end);
+        hpatch_BOOL            (*read)(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                       unsigned char* out_data,unsigned char* out_data_end);
     } hpatch_TStreamInput;
     
     typedef struct hpatch_TStreamOutput{
-        void*               streamImport;
-        hpatch_StreamPos_t  streamSize; //stream size,max writable range; not is write pos!
+        void*            streamImport;
+        hpatch_StreamPos_t streamSize; //stream size,max writable range; not is write pos!
+        //read_writed for ReadWriteIO, can null!
+        hpatch_BOOL     (*read_writed)(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
+                                       unsigned char* out_data,unsigned char* out_data_end);
         //write() must wrote (out_data_end-out_data), otherwise error return hpatch_FALSE
-        hpatch_BOOL         (*write)(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
-                                     const unsigned char* data,const unsigned char* data_end);
+        hpatch_BOOL           (*write)(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                       const unsigned char* data,const unsigned char* data_end);
     } hpatch_TStreamOutput;
     
 
-    #define hpatch_kMaxCompressTypeLength   256
+    #define hpatch_kMaxPluginTypeLength   259
     
     typedef struct hpatch_compressedDiffInfo{
         hpatch_StreamPos_t  newDataSize;
         hpatch_StreamPos_t  oldDataSize;
         int                 compressedCount;//need open hpatch_decompressHandle number
-        char                compressType[hpatch_kMaxCompressTypeLength+1]; //ascii cstring
+        char                compressType[hpatch_kMaxPluginTypeLength+1]; //ascii cstring 
     } hpatch_compressedDiffInfo;
     
     typedef void*  hpatch_decompressHandle;
     typedef struct hpatch_TDecompress{
-        hpatch_BOOL        (*is_can_open)(const struct hpatch_TDecompress* decompressPlugin,
-                                          const hpatch_compressedDiffInfo* compressedDiffInfo);
+        hpatch_BOOL        (*is_can_open)(const char* compresseType);
         //error return 0.
         hpatch_decompressHandle   (*open)(struct hpatch_TDecompress* decompressPlugin,
                                           hpatch_StreamPos_t dataSize,
@@ -113,8 +115,7 @@ typedef int hpatch_BOOL;
         hpatch_BOOL              (*close)(struct hpatch_TDecompress* decompressPlugin,
                                           hpatch_decompressHandle decompressHandle);
         //decompress_part() must out (out_part_data_end-out_part_data), otherwise error return hpatch_FALSE
-        hpatch_BOOL    (*decompress_part)(const struct hpatch_TDecompress* decompressPlugin,
-                                          hpatch_decompressHandle decompressHandle,
+        hpatch_BOOL    (*decompress_part)(hpatch_decompressHandle decompressHandle,
                                           unsigned char* out_part_data,unsigned char* out_part_data_end);
     } hpatch_TDecompress;
 
