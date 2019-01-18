@@ -57,10 +57,8 @@
         size_t          dec_buf_size;
         z_stream        d_stream;
     } _zlib_TDecompress;
-    static hpatch_BOOL _zlib_is_can_open(const hpatch_TDecompress* decompressPlugin,
-                                         const hpatch_compressedDiffInfo* compressedDiffInfo){
-        return (compressedDiffInfo->compressedCount==0)
-            ||(0==strcmp(compressedDiffInfo->compressType,"zlib"));
+    static hpatch_BOOL _zlib_is_can_open(const char* compressType){
+        return (0==strcmp(compressType,"zlib"));
     }
 
     static _zlib_TDecompress*  _zlib_decompress_open_by(hpatch_TDecompress* decompressPlugin,
@@ -126,8 +124,7 @@
         if (self) free(self);
         return result;
     }
-    static hpatch_BOOL _zlib_decompress_part(const hpatch_TDecompress* decompressPlugin,
-                                             hpatch_decompressHandle decompressHandle,
+    static hpatch_BOOL _zlib_decompress_part(hpatch_decompressHandle decompressHandle,
                                              unsigned char* out_part_data,unsigned char* out_part_data_end){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
         assert(out_part_data!=out_part_data_end);
@@ -186,10 +183,8 @@
         bz_stream       d_stream;
         unsigned char   dec_buf[kDecompressBufSize];
     } _bz2_TDecompress;
-    static hpatch_BOOL _bz2_is_can_open(const hpatch_TDecompress* decompressPlugin,
-                                        const hpatch_compressedDiffInfo* compressedDiffInfo){
-        return (compressedDiffInfo->compressedCount==0)
-            ||(0==strcmp(compressedDiffInfo->compressType,"bz2"));
+    static hpatch_BOOL _bz2_is_can_open(const char* compressType){
+        return (0==strcmp(compressType,"bz2"));
     }
     static hpatch_decompressHandle  _bz2_open(struct hpatch_TDecompress* decompressPlugin,
                                                hpatch_StreamPos_t dataSize,
@@ -217,8 +212,7 @@
         free(self);
         return result;
     }
-    static hpatch_BOOL _bz2_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
-                                            hpatch_decompressHandle decompressHandle,
+    static hpatch_BOOL _bz2_decompress_part(hpatch_decompressHandle decompressHandle,
                                             unsigned char* out_part_data,unsigned char* out_part_data_end){
         _bz2_TDecompress* self=(_bz2_TDecompress*)decompressHandle;
         assert(out_part_data!=out_part_data_end);
@@ -278,10 +272,8 @@
     static void __lzma_dec_Free(ISzAllocPtr p, void *address){
         if (address) free(address);
     }
-    static hpatch_BOOL _lzma_is_can_open(const hpatch_TDecompress* decompressPlugin,
-                                         const hpatch_compressedDiffInfo* compressedDiffInfo){
-        return (compressedDiffInfo->compressedCount==0)
-            ||(0==strcmp(compressedDiffInfo->compressType,"lzma"));
+    static hpatch_BOOL _lzma_is_can_open(const char* compressType){
+        return (0==strcmp(compressType,"lzma"));
     }
     static hpatch_decompressHandle  _lzma_open(hpatch_TDecompress* decompressPlugin,
                                                hpatch_StreamPos_t dataSize,
@@ -327,8 +319,7 @@
         free(self);
         return hpatch_TRUE;
     }
-    static hpatch_BOOL _lzma_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
-                                             hpatch_decompressHandle decompressHandle,
+    static hpatch_BOOL _lzma_decompress_part(hpatch_decompressHandle decompressHandle,
                                              unsigned char* out_part_data,unsigned char* out_part_data_end){
         _lzma_TDecompress* self=(_lzma_TDecompress*)decompressHandle;
         unsigned char* out_cur=out_part_data;
@@ -395,10 +386,8 @@
         int                data_end;
         unsigned char      buf[1];
     } _lz4_TDecompress;
-    static hpatch_BOOL _lz4_is_can_open(const hpatch_TDecompress* decompressPlugin,
-                                        const hpatch_compressedDiffInfo* compressedDiffInfo){
-        return (compressedDiffInfo->compressedCount==0)
-             ||(0==strcmp(compressedDiffInfo->compressType,"lz4"));
+    static hpatch_BOOL _lz4_is_can_open(const char* compressType){
+        return (0==strcmp(compressType,"lz4"));
     }
     #define _lz4_read_len4(len,in_code,code_begin,code_end) { \
         unsigned char _temp_buf4[4];  \
@@ -447,8 +436,7 @@
         free(self);
         return result;
     }
-    static hpatch_BOOL _lz4_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
-                                            hpatch_decompressHandle decompressHandle,
+    static hpatch_BOOL _lz4_decompress_part(hpatch_decompressHandle decompressHandle,
                                             unsigned char* out_part_data,unsigned char* out_part_data_end){
         _lz4_TDecompress* self=(_lz4_TDecompress*)decompressHandle;
         unsigned char* data_buf=self->buf;
@@ -497,10 +485,8 @@
         ZSTD_DStream*      s;
         unsigned char      buf[1];
     } _zstd_TDecompress;
-    static hpatch_BOOL _zstd_is_can_open(const hpatch_TDecompress* decompressPlugin,
-                                         const hpatch_compressedDiffInfo* compressedDiffInfo){
-        return (compressedDiffInfo->compressedCount==0)
-             ||(0==strcmp(compressedDiffInfo->compressType,"zstd"));
+    static hpatch_BOOL _zstd_is_can_open(const char* compressType){
+        return (0==strcmp(compressType,"zstd"));
     }
     static hpatch_decompressHandle  _zstd_open(hpatch_TDecompress* decompressPlugin,
                                                hpatch_StreamPos_t dataSize,
@@ -541,8 +527,7 @@
         free(self);
         return result;
     }
-    static hpatch_BOOL _zstd_decompress_part(const struct hpatch_TDecompress* decompressPlugin,
-                                             hpatch_decompressHandle decompressHandle,
+    static hpatch_BOOL _zstd_decompress_part(hpatch_decompressHandle decompressHandle,
                                              unsigned char* out_part_data,unsigned char* out_part_data_end){
         _zstd_TDecompress* self=(_zstd_TDecompress*)decompressHandle;
         while (out_part_data<out_part_data_end) {

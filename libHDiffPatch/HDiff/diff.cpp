@@ -752,7 +752,7 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
         checki((decompressPlugin!=0)||(diffInfo.compressedCount<=0),
                "resave_compressed_diff() decompressPlugin null error!");
         if ((decompressPlugin)&&(diffInfo.compressedCount>0)){
-            checki(decompressPlugin->is_can_open(decompressPlugin,&diffInfo),
+            checki(decompressPlugin->is_can_open(diffInfo.compressType),
                    "resave_compressed_diff() decompressPlugin cannot open compressed data error!");
         }
     }

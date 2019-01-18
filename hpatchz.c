@@ -289,23 +289,23 @@ static int getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
     hpatch_TDecompress*  decompressPlugin=0;
     if (strlen(diffInfo->compressType)>0){
 #ifdef  _CompressPlugin_zlib
-        if ((!decompressPlugin)&&zlibDecompressPlugin.is_can_open(&zlibDecompressPlugin,diffInfo))
+        if ((!decompressPlugin)&&zlibDecompressPlugin.is_can_open(diffInfo->compressType))
             decompressPlugin=&zlibDecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_bz2
-        if ((!decompressPlugin)&&bz2DecompressPlugin.is_can_open(&bz2DecompressPlugin,diffInfo))
+        if ((!decompressPlugin)&&bz2DecompressPlugin.is_can_open(diffInfo->compressType))
             decompressPlugin=&bz2DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lzma
-        if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(&lzmaDecompressPlugin,diffInfo))
+        if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(diffInfo->compressType))
             decompressPlugin=&lzmaDecompressPlugin;
 #endif
 #if (defined(_CompressPlugin_lz4) || (defined(_CompressPlugin_lz4hc)))
-        if ((!decompressPlugin)&&lz4DecompressPlugin.is_can_open(&lz4DecompressPlugin,diffInfo))
+        if ((!decompressPlugin)&&lz4DecompressPlugin.is_can_open(diffInfo->compressType))
             decompressPlugin=&lz4DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_zstd
-        if ((!decompressPlugin)&&zstdDecompressPlugin.is_can_open(&zstdDecompressPlugin,diffInfo))
+        if ((!decompressPlugin)&&zstdDecompressPlugin.is_can_open(diffInfo->compressType))
             decompressPlugin=&zstdDecompressPlugin;
 #endif
     }

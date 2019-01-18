@@ -37,8 +37,8 @@ extern "C"
     
     //compress plugin
     typedef struct hdiff_TCompress{
-        //return type tag; strlen(result)<=hpatch_kMaxCompressTypeLength; (Note:result lifetime)
-        const char*  (*compressType)(const hdiff_TCompress* compressPlugin);
+        //return type tag; strlen(result)<=hpatch_kMaxPluginTypeLength; (Note:result lifetime)
+        const char*  (*compressType)(void);//ascii cstring,cannot contain '&'
         //return the max compressed size, if input dataSize data;
         size_t  (*maxCompressedSize)(const hdiff_TCompress* compressPlugin,size_t dataSize);
         //compress data to out_code; return compressed size, if error or not need compress then return 0;
@@ -53,11 +53,11 @@ extern "C"
     typedef hpatch_TStreamInput  hdiff_TStreamInput;
     //stream compress plugin
     typedef struct hdiff_TStreamCompress{
-        //return type tag; strlen(result)<=hpatch_kMaxCompressTypeLength; (Note:result lifetime)
-        const char*           (*compressType)(const hdiff_TStreamCompress* compressPlugin);
+        //return type tag; strlen(result)<=hpatch_kMaxPluginTypeLength; (Note:result lifetime)
+        const char*           (*compressType)(void);//ascii cstring,cannot contain '&'
         
         //compress data to out_code; return compressed size, if error or not need compress then return 0;
-        //if out_code->write() return hdiff_stream_kCancelCompress then return 0;
+        //if out_code->write() return hdiff_stream_kCancelCompress(error) then return 0;
         hpatch_StreamPos_t (*compress_stream)(const hdiff_TStreamCompress* compressPlugin,
                                               const hdiff_TStreamOutput*   out_code,
                                               const hdiff_TStreamInput*    in_data);

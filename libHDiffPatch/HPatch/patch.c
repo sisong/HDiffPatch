@@ -977,9 +977,7 @@ hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
                                         const hpatch_StreamPos_t  readFromPos,
                                         TByte* out_data,TByte* out_data_end){
         _TDecompressInputSteram* self=(_TDecompressInputSteram*)stream->streamImport;
-        return self->decompressPlugin->decompress_part(self->decompressPlugin,
-                                                        self->decompressHandle,
-                                                        out_data,out_data_end);
+        return self->decompressPlugin->decompress_part(self->decompressHandle,out_data,out_data_end);
     }
 
     hpatch_BOOL getStreamClip(TStreamCacheClip* out_clip,_TDecompressInputSteram* out_stream,
@@ -1061,7 +1059,7 @@ hpatch_BOOL _patch_decompress_step(const hpatch_TStreamOutput*  out_newData,
             
         if ((decompressPlugin==0)&&(diffInfo.compressedCount!=0)) return _hpatch_FALSE;
         if ((decompressPlugin)&&(diffInfo.compressedCount>0))
-            if (!decompressPlugin->is_can_open(decompressPlugin,&diffInfo)) return _hpatch_FALSE;
+            if (!decompressPlugin->is_can_open(diffInfo.compressType)) return _hpatch_FALSE;
         diffPos0=head.headEndPos;
         
         if ((!is_copy_step)||(!is_add_rle_step)){//request use step
@@ -1198,7 +1196,7 @@ static hpatch_BOOL _compressedCovers_open(_TCompressedCovers** out_self,
     diffPos0=head.headEndPos;
     if (head.compress_cover_buf_size>0){
         if (decompressPlugin==0) return _hpatch_FALSE;
-        if (!decompressPlugin->is_can_open(decompressPlugin,out_diffInfo)) return _hpatch_FALSE;
+        if (!decompressPlugin->is_can_open(out_diffInfo->compressType)) return _hpatch_FALSE;
     }
     
     _covers_init(&self->base,head.coverCount,&self->coverClip,

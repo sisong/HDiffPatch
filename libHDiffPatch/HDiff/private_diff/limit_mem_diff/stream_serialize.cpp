@@ -357,8 +357,7 @@ hpatch_BOOL TStreamClip::_clip_read(const hpatch_TStreamInput* stream,hpatch_Str
     self->_read_uncompress_pos+=readLen;
     
     if (self->_decompressPlugin){
-        return self->_decompressPlugin->decompress_part(self->_decompressPlugin,
-                                                        self->_decompressHandle,out_data,out_data_end);
+        return self->_decompressPlugin->decompress_part(self->_decompressHandle,out_data,out_data_end);
     }else{
         return self->_src->read(self->_src,self->_src_begin+readFromPos,out_data,out_data_end);
     }
