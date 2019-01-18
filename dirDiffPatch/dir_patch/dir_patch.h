@@ -95,10 +95,10 @@ hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatc
     
     typedef struct TPatchChecksumSet{
         hpatch_TChecksum*   checksumPlugin;
-        hpatch_BOOL         isCheck_dirDiffData;
         hpatch_BOOL         isCheck_oldRefData;
         hpatch_BOOL         isCheck_newRefData;   //recommend
         hpatch_BOOL         isCheck_sameFileData; //recommend
+        hpatch_BOOL         isCheck_dirDiffData;
     } TPatchChecksumSet;
 
 typedef struct TDirPatcher{
@@ -129,6 +129,9 @@ typedef struct TDirPatcher{
     void*                       _pOldRefMem;
     
     TPatchChecksumSet           _checksumSet;
+    hpatch_checksumHandle       _newRefChecksumHandle;
+    hpatch_checksumHandle       _sameFileChecksumHandle;
+    unsigned char*              _pChecksumMem;
     
     IDirPatchListener*          _listener;
     hpatch_TDecompress*         _decompressPlugin;

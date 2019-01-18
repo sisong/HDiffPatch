@@ -814,6 +814,7 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
     CDirPatchListener    patchListener(newPath,oldList,newList);
     CDirPatcher          dirPatcher;
     const TDirDiffInfo*  dirDiffInfo=0;
+    TPatchChecksumSet    checksumSet={checksumPlugin,hpatch_TRUE,hpatch_TRUE,hpatch_TRUE,hpatch_TRUE};
     TAutoMem             p_temp_mem(kFileIOBufSize*5);
     TByte*               temp_cache=p_temp_mem.data();
     size_t               temp_cache_size=p_temp_mem.size();
@@ -830,6 +831,7 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
             _test(kPathType_dir!=oldType);
         }
     }
+    _test(TDirPatcher_checksum(&dirPatcher,&checksumSet));
     _test(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin));
     _test(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath.c_str(),kMaxOpenFileNumber,&oldStream));
     _test(TDirPatcher_openNewDirAsStream(&dirPatcher,newPath.c_str(),&patchListener,&newStream));
