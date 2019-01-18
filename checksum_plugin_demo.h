@@ -36,6 +36,7 @@
 //  md5ChecksumPlugin           ~ 128? bit effective
 
 #include "libHDiffPatch/HPatch/checksum_plugin.h"
+#include "libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 
 #ifndef _IsNeedIncludeDefaultChecksumHead
 #   define _IsNeedIncludeDefaultChecksumHead 1
@@ -99,13 +100,6 @@ static hpatch_TChecksum crc32ChecksumPlugin={ _crc32_checksumType,_crc32_checksu
 #endif//_ChecksumPlugin_crc32
 
 
-#ifdef  _ChecksumPlugin_adler32
-#if (_IsNeedIncludeDefaultChecksumHead)
-#   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
-#endif
-#ifndef ZLIB_VERSION
-#   include "libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
-#endif
 static const char* _adler32_checksumType(){
     static const char* type="adler32";
     return type;
@@ -121,7 +115,7 @@ static void _adler32_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle
 }
 static void  _adler32_begin(hpatch_checksumHandle handle){
     hpatch_uint32_t* pv=(hpatch_uint32_t*)handle;
-#ifdef ZLIB_VERSION
+#ifdef _ChecksumPlugin_crc32
     *pv=(hpatch_uint32_t)adler32(0,0,0);
 #else
     *pv=adler32_start(0,0);
@@ -130,7 +124,7 @@ static void  _adler32_begin(hpatch_checksumHandle handle){
 static void _adler32_append(hpatch_checksumHandle handle,
                           const unsigned char* part_data,const unsigned char* part_data_end){
     hpatch_uint32_t* pv=(hpatch_uint32_t*)handle;
-#ifdef ZLIB_VERSION
+#ifdef _ChecksumPlugin_crc32
     uLong v=*pv;
     while (part_data!=part_data_end) {
         size_t dataSize=(size_t)(part_data_end-part_data);
@@ -154,11 +148,8 @@ static void _adler32_end(hpatch_checksumHandle handle,
 }
 static hpatch_TChecksum adler32ChecksumPlugin={ _adler32_checksumType,_adler32_checksumByteSize,_adler32_open,
                                                 _adler32_close,_adler32_begin,_adler32_append,_adler32_end};
-#endif//_ChecksumPlugin_adler32
 
 
-#ifdef  _ChecksumPlugin_adler64
-#include "libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 static const char* _adler64_checksumType(){
     static const char* type="adler64";
     return type;
@@ -189,11 +180,8 @@ static void _adler64_end(hpatch_checksumHandle handle,
 }
 static hpatch_TChecksum adler64ChecksumPlugin={ _adler64_checksumType,_adler64_checksumByteSize,_adler64_open,
                                                 _adler64_close,_adler64_begin,_adler64_append,_adler64_end};
-#endif//_ChecksumPlugin_adler64
 
 
-#ifdef  _ChecksumPlugin_adler32f
-#include "libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 static const char* _adler32f_checksumType(){
     static const char* type="adler32f";
     return type;
@@ -224,11 +212,8 @@ static void _adler32f_end(hpatch_checksumHandle handle,
 }
 static hpatch_TChecksum adler32fChecksumPlugin={ _adler32f_checksumType,_adler32f_checksumByteSize,_adler32f_open,
                                                  _adler32f_close,_adler32f_begin,_adler32f_append,_adler32f_end};
-#endif//_ChecksumPlugin_adler32f
 
 
-#ifdef  _ChecksumPlugin_adler64f
-#include "libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 static const char* _adler64f_checksumType(){
     static const char* type="adler64f";
     return type;
@@ -259,7 +244,6 @@ static void _adler64f_end(hpatch_checksumHandle handle,
 }
 static hpatch_TChecksum adler64fChecksumPlugin={ _adler64f_checksumType,_adler64f_checksumByteSize,_adler64f_open,
                                                  _adler64f_close,_adler64f_begin,_adler64f_append,_adler64f_end};
-#endif//_ChecksumPlugin_adler64f
 
 
 #ifdef  _ChecksumPlugin_md5

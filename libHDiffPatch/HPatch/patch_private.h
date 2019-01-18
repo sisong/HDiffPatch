@@ -110,6 +110,7 @@ unsigned char* _TStreamCacheClip_accessData(TStreamCacheClip* sclip,size_t readS
 }
 
 #define _TStreamCacheClip_skipData_noCheck(sclip,skipSize) ((sclip)->cacheBegin+=skipSize)
+hpatch_BOOL _TStreamCacheClip_skipData(TStreamCacheClip* sclip,hpatch_StreamPos_t skipLongSize);
     
 hpatch_inline static //error return 0
 unsigned char* _TStreamCacheClip_readData(TStreamCacheClip* sclip,size_t readSize){
@@ -121,7 +122,10 @@ unsigned char* _TStreamCacheClip_readData(TStreamCacheClip* sclip,size_t readSiz
 hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,
                                                 hpatch_StreamPos_t* result,const int kTagBit);
     
-    
+hpatch_BOOL _TStreamCacheClip_readType_end(TStreamCacheClip* sclip,unsigned char endTag,
+                                           char out_type[hpatch_kMaxPluginTypeLength+1]);
+        
+        
     typedef struct _TDecompressInputSteram{
         hpatch_TStreamInput         IInputSteram;
         hpatch_TDecompress*         decompressPlugin;

@@ -40,7 +40,7 @@
 #include "../HPatch/patch_private.h"
 using namespace hdiff_private;
 
-static const char kHDiffVersionType[8+1]="HDIFF13&";
+static const char* kHDiffVersionType="HDIFF13";
 
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,#value" error!")
@@ -439,6 +439,24 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
             pushBack(out_diff,compress_code);
     }
     
+    template<class T>
+    static void _outType(std::vector<TByte>& out_data,T* compressPlugin){
+        //type version
+        pushCStr(out_data,kHDiffVersionType);
+        pushCStr(out_data,"&");
+        {//compressType
+            const char* compressType="";
+            if (compressPlugin)
+                compressType=compressPlugin->compressType();
+            size_t compressTypeLen=strlen(compressType);
+            check(compressTypeLen<=hpatch_kMaxPluginTypeLength);
+            check(0==strchr(compressType,'&'));
+            pushCStr(out_data,compressType);
+        }
+        const TByte _cstrEndTag='\0';//c string end tag
+        pushBack(out_data,&_cstrEndTag,(&_cstrEndTag)+1);
+    }
+    
 static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& out_diff,
                                       const hdiff_TCompress* compressPlugin){
     const TUInt coverCount=(TUInt)diff.covers.size();
@@ -475,16 +493,7 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     do_compress(compress_rle_codeBuf,rle_codeBuf,compressPlugin);
     do_compress(compress_newDataDiff,diff.newDataDiff,compressPlugin);
 
-    const char* compressType="";
-    if (compressPlugin){
-        compressType=compressPlugin->compressType(compressPlugin);
-        check(strlen(compressType)<=hpatch_kMaxCompressTypeLength);
-    }
-    pushBack(out_diff,(const TByte*)kHDiffVersionType,
-                      (const TByte*)kHDiffVersionType+strlen(kHDiffVersionType));
-    pushBack(out_diff,(const TByte*)compressType,
-                      (const TByte*)compressType+strlen(compressType)+1);//with '\0'
-    
+    _outType(out_diff,compressPlugin);
     const TUInt newDataSize=(TUInt)(diff.newData_end-diff.newData);
     const TUInt oldDataSize=(TUInt)(diff.oldData_end-diff.oldData);
     packUInt(out_diff, newDataSize);
@@ -678,13 +687,11 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
     }
     
     TDiffStream outDiff(out_diff);
-    const char* compressType="";
-    if (compressPlugin){
-        compressType=compressPlugin->compressType(compressPlugin);
-        check(strlen(compressType)<=hpatch_kMaxCompressTypeLength);
+    {//type
+        std::vector<TByte> out_type;
+        _outType(out_type,compressPlugin);
+        outDiff.pushBack(out_type.data(),out_type.size());
     }
-    outDiff.pushBack((const TByte*)kHDiffVersionType,strlen(kHDiffVersionType));
-    outDiff.pushBack((const TByte*)compressType,strlen(compressType)+1);//with '\0'
     outDiff.packUInt(newData->streamSize);
     outDiff.packUInt(oldDataSize);
     outDiff.packUInt(covers.coverCount());
@@ -751,13 +758,11 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
     }
     
     TDiffStream outDiff(out_diff);
-    const char* compressType="";
-    if (compressPlugin){
-        compressType=compressPlugin->compressType(compressPlugin);
-        check(strlen(compressType)<=hpatch_kMaxCompressTypeLength);
+    {//type
+        std::vector<TByte> out_type;
+        _outType(out_type,compressPlugin);
+        outDiff.pushBack(out_type.data(),out_type.size());
     }
-    outDiff.pushBack((const TByte*)kHDiffVersionType,strlen(kHDiffVersionType));
-    outDiff.pushBack((const TByte*)compressType,strlen(compressType)+1);//with '\0'
     {//copy other
         TStreamClip clip(in_diff,head.typesEndPos,head.compressSizeBeginPos);
         outDiff.pushStream(&clip);

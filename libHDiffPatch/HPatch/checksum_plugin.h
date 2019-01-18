@@ -34,8 +34,9 @@ extern "C" {
     
     typedef void*  hpatch_checksumHandle;
     typedef struct hpatch_TChecksum{
-        const char*   (*checksumType)();
-        size_t    (*checksumByteSize)();
+        //return type tag; strlen(result)<=hpatch_kMaxPluginTypeLength; (Note:result lifetime)
+        const char*   (*checksumType)(void); //ascii cstring,cannot contain '&'
+        size_t    (*checksumByteSize)(void); //<= hpatch_kStreamCacheSize
         hpatch_checksumHandle (*open)(struct hpatch_TChecksum* plugin);
         void                 (*close)(struct hpatch_TChecksum* plugin,hpatch_checksumHandle handle);
         void                 (*begin)(hpatch_checksumHandle handle);

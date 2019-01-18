@@ -31,6 +31,7 @@
 #include <string>
 #include <vector>
 #include "../../libHDiffPatch/HDiff/diff_types.h"
+#include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 
 void assignDirTag(std::string& dir);
 struct IDirFilter;
@@ -57,16 +58,17 @@ struct IDirDiffListener:public IDirFilter{
     virtual void externDataPosInDiffStream(hpatch_StreamPos_t externDataPos){}
 };
 
-void dir_diff(IDirDiffListener* listener,const std::string& oldPatch,const std::string& newPatch,
+void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              size_t kMaxOpenFileNumber);
+              hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
 
-bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,
-                   const std::string& newPath,const hpatch_TStreamInput* testDiffData,
-                   hpatch_TDecompress* decompressPlugin,size_t kMaxOpenFileNumber);
+bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
+                   const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
+                   hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
 
 void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decompressPlugin,
-                    const hpatch_TStreamOutput* out_diff,hdiff_TStreamCompress* compressPlugin);
+                    const hpatch_TStreamOutput* out_diff,hdiff_TStreamCompress* compressPlugin,
+                    hpatch_TChecksum* checksumPlugin);
 
 #endif //hdiff_dir_diff_h

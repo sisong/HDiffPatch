@@ -35,7 +35,7 @@
 #include "../../file_for_patch.h"
 #include "../file_for_dirPatch.h"
 
-static const char* kVersionType="DirDiff19&";
+static const char* kVersionType="DirDiff19";
 static const TByte kPatchMode =0;
 
 #define TUInt hpatch_StreamPos_t
@@ -128,43 +128,27 @@ clear:
 }
 
 hpatch_BOOL read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
-                               const hpatch_TStreamInput* dirDiffFile){
+                              const hpatch_TStreamInput* dirDiffFile){
     hpatch_BOOL result=hpatch_TRUE;
     TStreamCacheClip  _headClip;
     TStreamCacheClip* headClip=&_headClip;
     TByte             temp_cache[hpatch_kStreamCacheSize];
-    char savedCompressType[hpatch_kMaxCompressTypeLength+1];
+    char savedCompressType[hpatch_kMaxPluginTypeLength+1];
     check(out_info!=0);
     out_info->isDirDiff=hpatch_FALSE;
     
     _TStreamCacheClip_init(headClip,dirDiffFile,0,dirDiffFile->streamSize,
                            temp_cache,hpatch_kStreamCacheSize);
-    
-    {//VersionType
-        const TByte* versionType;
-        const size_t kVersionTypeLen=strlen(kVersionType);
-        if (dirDiffFile->streamSize<kVersionTypeLen)
-            return result;//not is dirDiff data
-        //assert(tagSize<=hpatch_kStreamCacheSize);
-        versionType=_TStreamCacheClip_readData(headClip,kVersionTypeLen);
-        check(versionType!=0);
-        if (0!=memcmp(versionType,kVersionType,kVersionTypeLen))
-            return result;//not is dirDiff data
+    {//type
+        char* tempType=out_info->hdiffInfo.compressType;
+        if (!_TStreamCacheClip_readType_end(headClip,'&',tempType)) return result;
+        if (0!=strcmp(tempType,kVersionType)) return result;
         out_info->isDirDiff=hpatch_TRUE;
     }
-    {//read compressType
-        const TByte* compressType;
-        size_t       compressTypeLen;
-        size_t readLen=hpatch_kMaxCompressTypeLength+1;
-        if (readLen>_TStreamCacheClip_streamSize(headClip))
-            readLen=(size_t)_TStreamCacheClip_streamSize(headClip);
-        compressType=_TStreamCacheClip_accessData(headClip,readLen);
-        check(compressType!=0);
-        compressTypeLen=strnlen((const char*)compressType,readLen);
-        check(compressTypeLen<readLen);
-        memcpy(savedCompressType,compressType,compressTypeLen+1);
-        _TStreamCacheClip_skipData_noCheck(headClip,compressTypeLen+1);
-    }
+    //read compressType
+    check(_TStreamCacheClip_readType_end(headClip,'&',savedCompressType));
+    //read checksumType
+    check(_TStreamCacheClip_readType_end(headClip,'\0',out_info->checksumType));
     {
         TUInt savedValue;
         unpackUIntTo(&savedValue,headClip);
@@ -184,6 +168,10 @@ hpatch_BOOL read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
         unpackUIntTo(&out_info->externDataSize,headClip);
         unpackUIntTo(&out_head->headDataSize,headClip);
         unpackUIntTo(&out_head->headDataCompressedSize,headClip);
+        unpackToSize(&out_info->checksumByteSize,headClip);
+        out_info->checksumOffset=headClip->streamPos-_TStreamCacheClip_cachedSize(headClip);
+        if (out_info->checksumByteSize)
+            check(_TStreamCacheClip_skipData(headClip,out_info->checksumByteSize*4));
         out_info->dirDataIsCompressed=(out_head->headDataCompressedSize>0);
     }
     {
@@ -220,7 +208,6 @@ hpatch_BOOL TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* dirDif
         *out_dirDiffInfo=&self->dirDiffInfo;
     return result;
 }
-
 
 static hpatch_BOOL _TStreamCacheClip_readDataTo(TStreamCacheClip* sclip,TByte* out_buf,TByte* bufEnd){
     const size_t maxReadLen=sclip->cacheEnd;

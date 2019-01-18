@@ -29,6 +29,7 @@
 #ifndef DirPatch_dir_patch_h
 #define DirPatch_dir_patch_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
+#include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #include "ref_stream.h"
 #include "new_stream.h"
 #include "res_handle_limit.h"
@@ -43,9 +44,13 @@ typedef struct TDirDiffInfo{
     hpatch_BOOL                 newPathIsDir;
     hpatch_BOOL                 oldPathIsDir;
     hpatch_BOOL                 dirDataIsCompressed;
+    //compressType saved in hdiffInfo
+    hpatch_compressedDiffInfo   hdiffInfo;
     hpatch_StreamPos_t          externDataOffset;
     hpatch_StreamPos_t          externDataSize;
-    hpatch_compressedDiffInfo   hdiffInfo;
+    hpatch_StreamPos_t          checksumOffset;
+    size_t                      checksumByteSize;
+    char                        checksumType[hpatch_kMaxPluginTypeLength+1]; //ascii cstring
 } TDirDiffInfo;
 
 
@@ -87,6 +92,14 @@ hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatc
                                     const char* newFileName,hpatch_StreamPos_t newFileSize);
         hpatch_BOOL (*closeNewFile)(struct IDirPatchListener* listener,struct TFileStreamOutput* curNewFile);
     } IDirPatchListener;
+    
+    typedef struct TPatchChecksumSet{
+        hpatch_TChecksum*   checksumPlugin;
+        hpatch_BOOL         isCheck_dirDiffData;
+        hpatch_BOOL         isCheck_oldRefData;
+        hpatch_BOOL         isCheck_newRefData;   //recommend
+        hpatch_BOOL         isCheck_sameFileData; //recommend
+    } TPatchChecksumSet;
 
 typedef struct TDirPatcher{
     TDirDiffInfo                dirDiffInfo;
@@ -115,6 +128,8 @@ typedef struct TDirPatcher{
     char*                       _oldRootDir_bufEnd;
     void*                       _pOldRefMem;
     
+    TPatchChecksumSet           _checksumSet;
+    
     IDirPatchListener*          _listener;
     hpatch_TDecompress*         _decompressPlugin;
     const hpatch_TStreamInput*  _dirDiffData;
@@ -122,26 +137,27 @@ typedef struct TDirPatcher{
 } TDirPatcher;
 
 hpatch_inline
-static void     TDirPatcher_init(TDirPatcher* self)  { memset(self,0,sizeof(*self)); }
-hpatch_BOOL     TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* dirDiffData,
-                                 const TDirDiffInfo**  out_dirDiffInfo);
-    
-hpatch_BOOL     TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin);
-hpatch_BOOL     TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldPath_utf8,
-                                               size_t kMaxOpenFileNumber,
-                                               const hpatch_TStreamInput** out_oldRefStream);
-hpatch_BOOL     TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newPath_utf8,
-                                               IDirPatchListener* listener,
-                                               const hpatch_TStreamOutput** out_newDirStream);
+static void TDirPatcher_init(TDirPatcher* self)  { memset(self,0,sizeof(*self)); }
+hpatch_BOOL TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* dirDiffData,
+                             const TDirDiffInfo**  out_dirDiffInfo);
+//if checksumSet->isCheck_dirDiffData return  checksum(dirDiffData);
+hpatch_BOOL TDirPatcher_checksum(TDirPatcher* self,const TPatchChecksumSet* checksumSet);
 
-hpatch_BOOL     TDirPatcher_patch(const TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
-                                  const hpatch_TStreamInput* oldData,
-                                  unsigned char* temp_cache,unsigned char* temp_cache_end);
+hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin);
+hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldPath_utf8,
+                                           size_t kMaxOpenFileNumber,
+                                           const hpatch_TStreamInput** out_oldRefStream);
+hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newPath_utf8,
+                                           IDirPatchListener* listener,
+                                           const hpatch_TStreamOutput** out_newDirStream);
 
-hpatch_BOOL     TDirPatcher_closeOldRefStream(TDirPatcher* self);//for TDirPatcher_openOldRefAsStream
-hpatch_BOOL     TDirPatcher_closeNewDirStream(TDirPatcher* self);//for TDirPatcher_openNewDirAsStream
+hpatch_BOOL TDirPatcher_patch(const TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
+                              const hpatch_TStreamInput* oldData,
+                              unsigned char* temp_cache,unsigned char* temp_cache_end);
 
-hpatch_BOOL     TDirPatcher_close(TDirPatcher* self);
+hpatch_BOOL TDirPatcher_closeOldRefStream(TDirPatcher* self);//for TDirPatcher_openOldRefAsStream
+hpatch_BOOL TDirPatcher_closeNewDirStream(TDirPatcher* self);//for TDirPatcher_openNewDirAsStream
+hpatch_BOOL TDirPatcher_close(TDirPatcher* self);
 
 
 #ifdef __cplusplus

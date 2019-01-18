@@ -405,6 +405,21 @@ hpatch_BOOL _TStreamCacheClip_updateCache(TStreamCacheClip* sclip){
     return hpatch_TRUE;
 }
 
+hpatch_BOOL _TStreamCacheClip_skipData(TStreamCacheClip* sclip,hpatch_StreamPos_t skipLongSize){
+    while (skipLongSize>0) {
+        size_t len=sclip->cacheEnd;
+        if (len>skipLongSize)
+            len=skipLongSize;
+        if (_TStreamCacheClip_accessData(sclip,len)){
+            _TStreamCacheClip_skipData_noCheck(sclip,len);
+            skipLongSize-=len;
+        }else{
+            return hpatch_FALSE;
+        }
+    }
+    return hpatch_TRUE;
+}
+
 //assert(hpatch_kStreamCacheSize>=hpatch_kMaxPackedUIntBytes);
 struct __private_hpatch_check_hpatch_kMaxPackedUIntBytes {
     char _[(hpatch_kStreamCacheSize>=hpatch_kMaxPackedUIntBytes)?1:-1]; };
@@ -880,9 +895,30 @@ static hpatch_BOOL _patch_stream_with_cache(const hpatch_TStreamOutput* out_newD
                        &rle_loader,temp_cache+cacheSize*3,cacheSize);
 }
 
-//assert(hpatch_kStreamCacheSize>=hpatch_kMaxCompressTypeLength+1);
+//assert(hpatch_kStreamCacheSize>=hpatch_kMaxPluginTypeLength+1);
 struct __private_hpatch_check_kMaxCompressTypeLength {
-    char _[(hpatch_kStreamCacheSize>=(hpatch_kMaxCompressTypeLength+1))?1:-1];};
+    char _[(hpatch_kStreamCacheSize>=(hpatch_kMaxPluginTypeLength+1))?1:-1];};
+
+hpatch_BOOL _TStreamCacheClip_readType_end(TStreamCacheClip* sclip,TByte endTag,
+                                           char out_type[hpatch_kMaxPluginTypeLength+1]){
+    const TByte* type_begin;
+    size_t i;
+    size_t readLen=hpatch_kMaxPluginTypeLength+1;
+    if (readLen>_TStreamCacheClip_streamSize(sclip))
+        readLen=(size_t)_TStreamCacheClip_streamSize(sclip);
+    type_begin=_TStreamCacheClip_accessData(sclip,readLen);
+    if (type_begin==0) return _hpatch_FALSE;//not found
+    for (i=0; i<readLen; ++i) {
+        if (type_begin[i]!=endTag)
+            continue;
+        else{
+            memcpy(out_type,type_begin,i);  out_type[i]='\0';
+            _TStreamCacheClip_skipData_noCheck(sclip,i+1);
+            return hpatch_TRUE;
+        }
+    }
+    return _hpatch_FALSE;//not found
+}
 
 hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,_THDiffzHead* out_head,
                             const hpatch_TStreamInput* compressedDiff){
@@ -892,27 +928,16 @@ hpatch_BOOL read_diffz_head(hpatch_compressedDiffInfo* out_diffInfo,_THDiffzHead
     _TStreamCacheClip_init(&_diffHeadClip,compressedDiff,0,compressedDiff->streamSize,
                            temp_cache,hpatch_kStreamCacheSize);
     {//type
-        const char* kVersionType="HDIFF13&";
-        const size_t kVersionTypeLen=strlen(kVersionType);
-        const TByte* versionType=_TStreamCacheClip_readData(diffHeadClip,kVersionTypeLen);
-        if (versionType==0) return _hpatch_FALSE;
-        if (0!=memcmp(versionType,kVersionType,kVersionTypeLen)) return _hpatch_FALSE;
+        const char* kVersionType="HDIFF13";
+        char* tempType=out_diffInfo->compressType;
+        if (!_TStreamCacheClip_readType_end(diffHeadClip,'&',tempType)) return _hpatch_FALSE;
+        if (0!=strcmp(tempType,kVersionType)) return _hpatch_FALSE;
     }
     {//read compressType
-        const TByte* compressType;
-        size_t       compressTypeLen;
-        size_t readLen=hpatch_kMaxCompressTypeLength+1;
-        if (readLen>_TStreamCacheClip_streamSize(diffHeadClip))
-            readLen=(size_t)_TStreamCacheClip_streamSize(diffHeadClip);
-        compressType=_TStreamCacheClip_accessData(diffHeadClip,readLen);
-        if (compressType==0) return _hpatch_FALSE;
-        compressTypeLen=strnlen((const char*)compressType,readLen);
-        if (compressTypeLen>=readLen) return _hpatch_FALSE;
-        memcpy(out_diffInfo->compressType,compressType,compressTypeLen+1);
-        _TStreamCacheClip_skipData_noCheck(diffHeadClip,compressTypeLen+1);
+        if (!_TStreamCacheClip_readType_end(diffHeadClip,'\0',
+                                            out_diffInfo->compressType)) return _hpatch_FALSE;
         out_head->typesEndPos=compressedDiff->streamSize-_TStreamCacheClip_streamSize(diffHeadClip);
     }
-    
     _TStreamCacheClip_unpackUIntTo(&out_diffInfo->newDataSize,diffHeadClip);
     _TStreamCacheClip_unpackUIntTo(&out_diffInfo->oldDataSize,diffHeadClip);
     _TStreamCacheClip_unpackUIntTo(&out_head->coverCount,diffHeadClip);
@@ -1022,7 +1047,7 @@ hpatch_BOOL _patch_decompress_step(const hpatch_TStreamOutput*  out_newData,
     TByte virtual_buf[2+hpatch_kMaxPackedUIntBytes];
     TByte* virtual_buf_end=virtual_buf+2+hpatch_kMaxPackedUIntBytes;
     
-    if (cacheSize<hpatch_kMaxCompressTypeLength) return _hpatch_FALSE;
+    if (cacheSize<hpatch_kMaxPluginTypeLength) return _hpatch_FALSE;
     assert(out_newData!=0);
     assert(out_newData->write!=0);
     assert(oldData!=0);

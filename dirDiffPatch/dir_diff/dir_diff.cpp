@@ -43,7 +43,7 @@
 #include "../dir_patch/res_handle_limit.h"
 using namespace hdiff_private;
 
-static const char* kDirDiffVersionType="DirDiff19&";
+static const char* kDirDiffVersionType="DirDiff19";
 
 #define kFileIOBufSize      (1024*64)
 #define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
@@ -118,7 +118,7 @@ struct TOffsetStreamOutput:public hpatch_TStreamOutput{
     hpatch_StreamPos_t          _offset;
     hpatch_StreamPos_t          outSize;
     static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,const hpatch_StreamPos_t writeToPos,
-                       const unsigned char* data,const unsigned char* data_end){
+                              const unsigned char* data,const unsigned char* data_end){
         TOffsetStreamOutput* self=(TOffsetStreamOutput*)stream->streamImport;
         hpatch_StreamPos_t newSize=writeToPos+(data_end-data);
         if (newSize>self->outSize) self->outSize=newSize;
@@ -395,12 +395,80 @@ struct CFileResHandleLimit{
     }
 };
 
+struct CChecksum{
+    inline explicit CChecksum(hpatch_TChecksum* checksumPlugin)
+    :_checksumPlugin(checksumPlugin),_handle(0) {
+        if (checksumPlugin){
+            _handle=checksumPlugin->open(checksumPlugin);
+            checkv(_handle!=0);
+            checksumPlugin->begin(_handle);
+        } }
+    inline ~CChecksum(){
+        if (_handle) _checksumPlugin->close(_checksumPlugin,_handle); }
+    inline void append(const unsigned char* data,const unsigned char* data_end){
+        if (_handle) _checksumPlugin->append(_handle,data,data_end); }
+    inline void append(const std::vector<TByte>& data){ append(data.data(),data.data()+data.size()); }
+    inline void append(const hpatch_TStreamInput* data){ append(data,0,data->streamSize); }
+    void append(const hpatch_TStreamInput* data,hpatch_StreamPos_t begin,hpatch_StreamPos_t end){
+        if (!_handle) return;
+        TAutoMem buf(1024*32);
+        while (begin<end){
+            size_t len=buf.size();
+            if (len>(end-begin))
+                len=(size_t)(end-begin);
+            checkv(data->read(data,begin,buf.data(),buf.data()+len));
+            append(buf.data(),buf.data()+len);
+            begin+=len;
+        }
+    }
+    inline void appendEnd(){
+        if (_handle){
+            checksum.resize(_checksumPlugin->checksumByteSize());
+            _checksumPlugin->end(_handle,checksum.data(),checksum.data()+checksum.size());
+        } }
+    hpatch_TChecksum*       _checksumPlugin;
+    hpatch_checksumHandle   _handle;
+    std::vector<TByte>      checksum;
+};
+
+static void _outType(std::vector<TByte>& out_data,hdiff_TStreamCompress* compressPlugin,
+                     hpatch_TChecksum* checksumPlugin){
+    //type version
+    pushCStr(out_data,kDirDiffVersionType);
+    pushCStr(out_data,"&");
+    {//compressType
+        const char* compressType="";
+        if (compressPlugin)
+            compressType=compressPlugin->compressType();
+        size_t compressTypeLen=strlen(compressType);
+        check(compressTypeLen<=hpatch_kMaxPluginTypeLength,"compressTypeLen error!");
+        check(0==strchr(compressType,'&'), "compressType cannot contain '&'");
+        pushCStr(out_data,compressType);
+    }
+    pushCStr(out_data,"&");
+    {//checksumType
+        const char* checksumType="";
+        if (checksumPlugin)
+            checksumType=checksumPlugin->checksumType();
+        size_t checksumTypeLen=strlen(checksumType);
+        check(checksumTypeLen<=hpatch_kMaxPluginTypeLength,"checksumTypeLen error!");
+        check(0==strchr(checksumType,'&'), "checksumType cannot contain '&'");
+        pushCStr(out_data,checksumType);
+    }
+    const TByte _cstrEndTag='\0';//c string end tag
+    pushBack(out_data,&_cstrEndTag,(&_cstrEndTag)+1);
+}
+
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              size_t kMaxOpenFileNumber){
+              hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
     assert(listener!=0);
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
+    if ((checksumPlugin)&&(!isLoadAll)){
+        check((outDiffStream->read_writed!=0),
+              "for update checksum, outDiffStream->read_writed can't null error!");
+    }
     kMaxOpenFileNumber-=1; // for outDiffStream
     std::vector<std::string> oldList;
     std::vector<std::string> newList;
@@ -453,17 +521,31 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
             newRefSizeList[i]=newSizeList[fi];
         }
     }
-    size_t sameFilePairCount=dataSamePairList.size();
     CFileResHandleLimit resLimit;
     resLimit.open(kMaxOpenFileNumber,resList);
     CRefStream oldRefStream;
     CRefStream newRefStream;
     oldRefStream.open(resLimit.limit.streamList,oldRefIList.size());
     newRefStream.open(resLimit.limit.streamList+oldRefIList.size(),newRefIList.size());
-    listener->diffRefInfo(oldList.size(),newList.size(), sameFilePairCount,
+    listener->diffRefInfo(oldList.size(),newList.size(),dataSamePairList.size(),
                           oldRefIList.size(),newRefIList.size(),
                           oldRefStream.stream->streamSize,newRefStream.stream->streamSize);
     
+    //checksum
+    const size_t checksumByteSize=(checksumPlugin==0)?0:checksumPlugin->checksumByteSize();
+    CChecksum oldRefChecksum(checksumPlugin);
+    CChecksum newRefChecksum(checksumPlugin);
+    CChecksum sameFileChecksum(checksumPlugin);
+    oldRefChecksum.append(oldRefStream.stream);
+    oldRefChecksum.appendEnd();
+    newRefChecksum.append(newRefStream.stream);
+    newRefChecksum.appendEnd();
+    for (size_t i=0; i<dataSamePairList.size(); ++i) {
+        CFileStreamInput file(newList[dataSamePairList[i].newIndex]);
+        sameFileChecksum.append(&file.base);
+    }
+    sameFileChecksum.appendEnd();
+
     //serialize headData
     std::vector<TByte> headData;
     size_t oldPathSumSize=pushNameList(headData,oldPath,oldList,listener);
@@ -485,17 +567,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     
     //serialize  dir diff data
     std::vector<TByte> out_data;
-    {//type version
-        pushBack(out_data,(const TByte*)kDirDiffVersionType,(const TByte*)kDirDiffVersionType+strlen(kDirDiffVersionType));
-    }
-    {//compressType
-        const char* compressType="";
-        if (compressPlugin)
-            compressType=compressPlugin->compressType(compressPlugin);
-        size_t compressTypeLen=strlen(compressType);
-        check(compressTypeLen<=hpatch_kMaxCompressTypeLength,"compressTypeLen error!");
-        pushBack(out_data,(const TByte*)compressType,(const TByte*)compressType+compressTypeLen+1); //'\0'
-    }
+    _outType(out_data,streamCompressPlugin,checksumPlugin);
     //head info
     const TByte kPatchModel=0;
     packUInt(out_data,kPatchModel);
@@ -507,18 +579,34 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     packUInt(out_data,newPathSumSize);
     packUInt(out_data,oldRefIList.size());      clearVector(oldRefIList);
     packUInt(out_data,newRefIList.size());      clearVector(newRefIList);
-    packUInt(out_data,sameFilePairCount);       clearVector(dataSamePairList);
+    packUInt(out_data,dataSamePairList.size()); clearVector(dataSamePairList);
     //externData size
     std::vector<TByte> externData;
     listener->externData(externData);
     packUInt(out_data,externData.size());
+    //headData info
     packUInt(out_data,headData.size());
     packUInt(out_data,headCode.size());
+    //checksum info
+    packUInt(out_data,checksumByteSize);
+    if (checksumByteSize>0){
+        pushBack(out_data,oldRefChecksum.checksum);
+        pushBack(out_data,newRefChecksum.checksum);
+        pushBack(out_data,sameFileChecksum.checksum);
+    }
+    CChecksum diffChecksum(checksumPlugin);
+    TPlaceholder diffChecksumPlaceholder(out_data.size(),out_data.size()+checksumByteSize);
+    if (checksumByteSize>0){
+        diffChecksum.append(out_data);
+        out_data.insert(out_data.end(),checksumByteSize,0);//placeholder
+    }
     
     //begin write
     hpatch_StreamPos_t writeToPos=0;
-    #define _pushv(v) { check(outDiffStream->write(outDiffStream,writeToPos,v.data(),v.data()+v.size()), \
-                              "write diff data " #v " error!"); \
+    #define _pushv(v) { if ((checksumByteSize>0)&&(writeToPos>=diffChecksumPlaceholder.pos_end))\
+                            diffChecksum.append(v); \
+                        check(outDiffStream->write(outDiffStream,writeToPos,v.data(),v.data()+v.size()), \
+                            "write diff data " #v " error!"); \
                         writeToPos+=v.size();  clearVector(v); }
     _pushv(out_data);
     if (headCode.size()>0){
@@ -554,8 +642,20 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
                                       streamCompressPlugin,matchValue);
         diffDataSize=ofStream.outSize;
+        if (checksumByteSize>0){
+            assert(outDiffStream->read_writed!=0);
+            diffChecksum.append((const hpatch_TStreamInput*)outDiffStream,
+                                writeToPos,writeToPos+diffDataSize);
+        }
     }
     listener->runHDiffEnd(diffDataSize);
+    if (checksumByteSize>0){ //update diffChecksum
+        diffChecksum.appendEnd();
+        const std::vector<TByte>& v=diffChecksum.checksum;
+        assert(diffChecksumPlaceholder.size()==v.size());
+        check(outDiffStream->write(outDiffStream,diffChecksumPlaceholder.pos,v.data(),v.data()+v.size()),
+              "write diff data checksum error!");
+    }
     #undef _pushv
 }
 
@@ -688,9 +788,9 @@ struct CDirPatcher:public TDirPatcher{
     ~CDirPatcher() { TDirPatcher_close(this); }
 };
 
-bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,
-                   const std::string& newPath,const hpatch_TStreamInput* testDiffData,
-                   hpatch_TDecompress* decompressPlugin,size_t kMaxOpenFileNumber){
+bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
+                   const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
+                   hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
     bool     result=true;
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     std::vector<std::string> oldList;
@@ -743,7 +843,8 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,
 
 
 void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decompressPlugin,
-                    const hpatch_TStreamOutput* out_diff,hdiff_TStreamCompress* compressPlugin){
+                    const hpatch_TStreamOutput* out_diff,hdiff_TStreamCompress* compressPlugin,
+                    hpatch_TChecksum* checksumPlugin){
     _TDirDiffHead       head;
     TDirDiffInfo        diffInfo;
     assert(in_diff!=0);
@@ -754,26 +855,22 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
     {//read head
         check(read_dirdiff_head(&diffInfo,&head,in_diff),
               "resave_dirdiff() read_dirdiff_head() error!");
-        int compressedCount=diffInfo.hdiffInfo.compressedCount+((head.headDataCompressedSize>0)?1:0);
+        int compressedCount=diffInfo.hdiffInfo.compressedCount+((head.headDataCompressedSize)?1:0);
         check((decompressPlugin!=0)||(compressedCount<=0),
               "resave_dirdiff() decompressPlugin null error!");
         if ((decompressPlugin)&&(compressedCount>0)){
-            hpatch_compressedDiffInfo   hdiffInfo=diffInfo.hdiffInfo;
-            hdiffInfo.compressedCount=compressedCount;
-            check(decompressPlugin->is_can_open(decompressPlugin,&hdiffInfo),
+            check(decompressPlugin->is_can_open(diffInfo.hdiffInfo.compressType),
                   "resave_dirdiff() decompressPlugin cannot open compressed data error!");
         }
     }
     hpatch_StreamPos_t writeToPos=0;
     {//save head
         TDiffStream outDiff(out_diff);
-        const char* compressType="";
-        if (compressPlugin){
-            compressType=compressPlugin->compressType(compressPlugin);
-            checkv(strlen(compressType)<=hpatch_kMaxCompressTypeLength);
+        {//type
+            std::vector<TByte> out_type;
+            _outType(out_type,compressPlugin,checksumPlugin);
+            outDiff.pushBack(out_type.data(),out_type.size());
         }
-        outDiff.pushBack((const TByte*)kDirDiffVersionType,strlen(kDirDiffVersionType));
-        outDiff.pushBack((const TByte*)compressType,strlen(compressType)+1);//with '\0'
         {//copy other
             TStreamClip clip(in_diff,head.typesEndPos,head.compressSizeBeginPos);
             outDiff.pushStream(&clip);

@@ -50,11 +50,16 @@ inline static void packUInt(std::vector<unsigned char>& out_code,_UInt uValue){
 }
 
     
-inline static void pushBack(std::vector<unsigned char>& out_buf,const unsigned char* data,const unsigned char* data_end){
+inline static void pushBack(std::vector<unsigned char>& out_buf,
+                            const unsigned char* data,const unsigned char* data_end){
     out_buf.insert(out_buf.end(),data,data_end);
 }
 inline static void pushBack(std::vector<unsigned char>& out_buf,const std::vector<unsigned char>& data){
     out_buf.insert(out_buf.end(),data.begin(),data.end());
+}
+inline static void pushCStr(std::vector<unsigned char>& out_buf,const char* cstr){
+    const unsigned char* data=(const unsigned char*)cstr;
+    pushBack(out_buf,data,data+strlen(cstr));
 }
 
     
@@ -62,7 +67,8 @@ struct TPlaceholder{
     hpatch_StreamPos_t pos;
     hpatch_StreamPos_t pos_end;
     inline TPlaceholder(hpatch_StreamPos_t _pos,hpatch_StreamPos_t _pos_end)
-    :pos(_pos),pos_end(_pos_end){ }
+    :pos(_pos),pos_end(_pos_end){ assert(_pos<=_pos_end); }
+    inline hpatch_StreamPos_t size()const{ return pos_end-pos; }
 };
 
 hpatch_inline static
