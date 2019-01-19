@@ -37,7 +37,16 @@
 extern "C" {
 #endif
     
-hpatch_BOOL TDirPatcher_copyFile(const char* oldFileName_utf8,const char* newFileName_utf8);
+    typedef struct ICopyDataListener{
+        void* listenerImport;
+        void    (*copyedData)(struct ICopyDataListener* listener,const unsigned char* data,
+                              const unsigned char* dataEnd);
+    } ICopyDataListener;
+    
+hpatch_BOOL TDirPatcher_copyFile(const char* oldFileName_utf8,const char* newFileName_utf8,
+                                 ICopyDataListener* copyListener);
+hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,ICopyDataListener* copyListener);
+    
     
 typedef struct TDirDiffInfo{
     hpatch_BOOL                 isDirDiff;
@@ -86,8 +95,8 @@ hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatc
     typedef struct IDirPatchListener{
         void*       listenerImport;
         hpatch_BOOL   (*makeNewDir)(struct IDirPatchListener* listener,const char* newDir);
-        hpatch_BOOL (*copySameFile)(struct IDirPatchListener* listener,
-                                    const char* oldFileName,const char* newFileName);
+        hpatch_BOOL (*copySameFile)(struct IDirPatchListener* listener,const char* oldFileName,
+                                    const char* newFileName,ICopyDataListener* copyListener);
         hpatch_BOOL  (*openNewFile)(struct IDirPatchListener* listener,struct TFileStreamOutput*  out_curNewFile,
                                     const char* newFileName,hpatch_StreamPos_t newFileSize);
         hpatch_BOOL (*closeNewFile)(struct IDirPatchListener* listener,struct TFileStreamOutput* curNewFile);
@@ -110,6 +119,10 @@ typedef struct TDirPatcher{
     const size_t*               newRefList;
     const hpatch_StreamPos_t*   newRefSizeList;
     const TSameFileIndexPair*   dataSamePairList; //new map to old index
+    hpatch_BOOL                 isDiffDataChecksumError;
+    hpatch_BOOL                 isNewRefDataChecksumError;
+    hpatch_BOOL                 isOldRefDataChecksumError;
+    hpatch_BOOL                 isCopyDataChecksumError;
 //private:
     INewStreamListener          _newDirStreamListener;
     TNewStream                  _newDirStream;
@@ -127,6 +140,8 @@ typedef struct TDirPatcher{
     char*                       _oldRootDir_end;
     char*                       _oldRootDir_bufEnd;
     void*                       _pOldRefMem;
+    
+    ICopyDataListener           _sameFileCopyListener;
     
     TPatchChecksumSet           _checksumSet;
     hpatch_checksumHandle       _newRefChecksumHandle;

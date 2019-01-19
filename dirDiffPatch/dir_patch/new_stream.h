@@ -36,6 +36,9 @@ typedef struct INewStreamListener{
     hpatch_BOOL  (*openNewFile)(struct INewStreamListener* listener,size_t newRefIndex,
                                 const hpatch_TStreamOutput** out_newFileStream);
     hpatch_BOOL (*closeNewFile)(struct INewStreamListener* listener,const hpatch_TStreamOutput* newFileStream);
+    void    (*writedNewRefData)(struct INewStreamListener* listener,const unsigned char* data,
+                                const unsigned char* dataEnd);
+    hpatch_BOOL (*writedFinish)(struct INewStreamListener* listener);
 } INewStreamListener;
 
 typedef struct TSameFileIndexPair{

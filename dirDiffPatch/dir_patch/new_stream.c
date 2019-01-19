@@ -51,6 +51,7 @@ static hpatch_BOOL _file_append_end(TNewStream* self);
 static hpatch_BOOL _TNewStream_write(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                      const unsigned char* data,const unsigned char* data_end){
     TNewStream* self=(TNewStream*)stream->streamImport;
+    self->_listener->writedNewRefData(self->_listener,data,data_end);
     while (data!=data_end) {
         size_t writeLen=(size_t)(data_end-data);
         check(!self->isFinish);
@@ -120,6 +121,7 @@ static hpatch_BOOL _file_entry_end(TNewStream* self){
     check(self->_curPathIndex==self->_pathCount);
     check(self->_curSamePairIndex==self->_samePairCount);
     self->isFinish=hpatch_TRUE;
+    check(self->_listener->writedFinish(self->_listener));
     return hpatch_TRUE;
 }
 

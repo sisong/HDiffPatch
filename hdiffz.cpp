@@ -241,23 +241,25 @@ static bool _trySetCompress(hdiff_TStreamCompress** streamCompressPlugin,
     return true;
 }
 
-static void _trySetChecksum(hpatch_TChecksum** checksumPlugin,const char* ptype,
-                            hpatch_TChecksum* _checksumPlugin){
-    if ((*checksumPlugin)!=0) return;
-    if (0==strcmp(ptype,_checksumPlugin->checksumType()))
-        *checksumPlugin=_checksumPlugin;
+static void _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType,
+                            hpatch_TChecksum* testChecksumPlugin){
+    if ((*out_checksumPlugin)!=0) return;
+    if (0==strcmp(checksumType,testChecksumPlugin->checksumType()))
+        *out_checksumPlugin=testChecksumPlugin;
 }
-static void _findChecksum(hpatch_TChecksum** checksumPlugin,const char* ptype){
+static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType){
+    assert(0==*out_checksumPlugin);
 #ifdef _ChecksumPlugin_crc32
-    _trySetChecksum(checksumPlugin,ptype,&crc32ChecksumPlugin);
+    _trySetChecksum(out_checksumPlugin,checksumType,&crc32ChecksumPlugin);
 #endif
-    _trySetChecksum(checksumPlugin,ptype,&adler32ChecksumPlugin);
-    _trySetChecksum(checksumPlugin,ptype,&adler64ChecksumPlugin);
-    _trySetChecksum(checksumPlugin,ptype,&adler32fChecksumPlugin);
-    _trySetChecksum(checksumPlugin,ptype,&adler64fChecksumPlugin);
+    _trySetChecksum(out_checksumPlugin,checksumType,&adler32ChecksumPlugin);
+    _trySetChecksum(out_checksumPlugin,checksumType,&adler64ChecksumPlugin);
+    _trySetChecksum(out_checksumPlugin,checksumType,&adler32fChecksumPlugin);
+    _trySetChecksum(out_checksumPlugin,checksumType,&adler64fChecksumPlugin);
 #ifdef _ChecksumPlugin_md5
-    _trySetChecksum(checksumPlugin,ptype,&md5ChecksumPlugin);
+    _trySetChecksum(out_checksumPlugin,checksumType,&md5ChecksumPlugin);
 #endif
+    return (0!=*out_checksumPlugin);
 }
 
 
@@ -395,8 +397,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             case 'C':{
                 _options_check((checksumPlugin==0)&&(op[2]=='-'),"-C");
                 const char* ptype=op+3;
-                _findChecksum(&checksumPlugin,ptype);
-                _options_check(checksumPlugin!=0,"-C-?");
+                _options_check(_findChecksum(&checksumPlugin,ptype),"-C-?");
             } break;
             default: {
                 _options_check(hpatch_FALSE,"-?");

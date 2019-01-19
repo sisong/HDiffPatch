@@ -182,7 +182,8 @@ static hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* 
     return result;
 }
 
-static bool fileData_isSame(const std::string& file_x,const std::string& file_y){
+static bool fileData_isSame(const std::string& file_x,const std::string& file_y,
+                            ICopyDataListener* copyListener=0){
     CFileStreamInput f_x(file_x);
     CFileStreamInput f_y(file_y);
     if (f_x.base.streamSize!=f_y.base.streamSize)
@@ -198,6 +199,8 @@ static bool fileData_isSame(const std::string& file_x,const std::string& file_y)
               "read file \""+file_y+"\" error!");
         if (0!=memcmp(mem.data(),mem.data()+readLen,readLen))
             return false;
+        if (copyListener)
+            copyListener->copyedData(copyListener,mem.data(),mem.data()+readLen);
         pos+=readLen;
     }
     return true;
@@ -703,14 +706,15 @@ struct CDirPatchListener:public IDirPatchListener{
         self->_newSet.erase(newDir);
         return hpatch_TRUE;
     }
-    static hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* _oldFileName,const char* _newFileName){
+    static hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* _oldFileName,
+                                     const char* _newFileName,ICopyDataListener* copyListener){
         CDirPatchListener* self=(CDirPatchListener*)listener->listenerImport;
         std::string oldFileName(_oldFileName);
         std::string newFileName(_newFileName);
         _test(self->isParentDirExists(newFileName));
         _test(self->_oldSet.find(oldFileName)!=self->_oldSet.end());
         _test(self->_newSet.find(newFileName)!=self->_newSet.end());
-        _test(fileData_isSame(oldFileName,newFileName));
+        _test(fileData_isSame(oldFileName,newFileName,copyListener));
         self->_newSet.erase(newFileName);
         return hpatch_TRUE;
     }
@@ -815,7 +819,7 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
     CDirPatcher          dirPatcher;
     const TDirDiffInfo*  dirDiffInfo=0;
     TPatchChecksumSet    checksumSet={checksumPlugin,hpatch_TRUE,hpatch_TRUE,hpatch_TRUE,hpatch_TRUE};
-    TAutoMem             p_temp_mem(kFileIOBufSize*5);
+    TAutoMem             p_temp_mem(kFileIOBufSize*4);
     TByte*               temp_cache=p_temp_mem.data();
     size_t               temp_cache_size=p_temp_mem.size();
     const hpatch_TStreamInput*  oldStream=0;
@@ -831,7 +835,8 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
             _test(kPathType_dir!=oldType);
         }
     }
-    _test(TDirPatcher_checksum(&dirPatcher,&checksumSet));
+    if (checksumPlugin)
+        _test(TDirPatcher_checksum(&dirPatcher,&checksumSet));
     _test(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin));
     _test(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath.c_str(),kMaxOpenFileNumber,&oldStream));
     _test(TDirPatcher_openNewDirAsStream(&dirPatcher,newPath.c_str(),&patchListener,&newStream));

@@ -27,13 +27,13 @@
  */
 #ifndef HPatch_checksum_plugin_demo_h
 #define HPatch_checksum_plugin_demo_h
-//compress plugin demo:
-//  crc32ChecksumPlugin         =  32 bit effective
-//  adler32ChecksumPlugin       ~  29 bit effective
-//  adler64ChecksumPlugin       ~  36 bit effective
-//  adler32fChecksumPlugin      ~  32 bit effective
-//  adler64fChecksumPlugin      ~  63 bit effective
-//  md5ChecksumPlugin           ~ 128? bit effective
+//checksum plugin demo:
+//  crc32ChecksumPlugin     =  32 bit effective
+//  adler32ChecksumPlugin   ~  29 bit effective
+//  adler64ChecksumPlugin   ~  36 bit effective
+//  adler32fChecksumPlugin  ~  32 bit effective
+//  adler64fChecksumPlugin  ~  63 bit effective
+//  md5ChecksumPlugin       ? 128 bit effective
 
 #include "libHDiffPatch/HPatch/checksum_plugin.h"
 #include "libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"

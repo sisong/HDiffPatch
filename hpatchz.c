@@ -65,6 +65,12 @@
 
 #include "decompress_plugin_demo.h"
 
+//===== select needs checksum plugins or change to your plugin=====
+#define _ChecksumPlugin_crc32   //used zlib
+//#define _ChecksumPlugin_md5
+
+#include "checksum_plugin_demo.h"
+
 #define _free_mem(p) { if (p) { free(p); p=0; } }
 
 
@@ -107,6 +113,12 @@ typedef enum THPatchResult {
     
     HPATCH_PATHTYPE_ERROR,
     HPATCH_DIRDIFFINFO_ERROR,
+    HPATCH_DIRPATCH_CHECKSUMTYPE_ERROR,
+    HPATCH_DIRPATCH_CHECKSUMSET_ERROR,
+    HPATCH_DIRPATCH_CHECKSUM_DIFFDATA_ERROR,
+    HPATCH_DIRPATCH_CHECKSUM_OLDDATA_ERROR,
+    HPATCH_DIRPATCH_CHECKSUM_NEWDATA_ERROR,
+    HPATCH_DIRPATCH_CHECKSUM_COPYDATA_ERROR,
     HPATCH_DIRPATCH_ERROR,
     HPATCH_DIRPATCH_LAOD_DIRDIFFDATA_ERROR,
     HPATCH_DIRPATCH_OPEN_OLDPATH_ERROR,
@@ -121,7 +133,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
 
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
-               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber);
+               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
+               TPatchChecksumSet* checksumSet);
 
 
 #if (_IS_NEED_MAIN)
@@ -160,6 +173,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      patchCacheSize=0;
     size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir patch
+    TPatchChecksumSet checksumSet={0,hpatch_FALSE,hpatch_FALSE,hpatch_FALSE,hpatch_FALSE};
     #define kMax_arg_values_size 3
     const char * arg_values[kMax_arg_values_size]={0};
     int          arg_values_size=0;
@@ -249,7 +263,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         _options_check(getIsDirDiffFile(diffFileName,&isDirDiff),"input diffFile open read");
         if (isDirDiff){
             _options_check(!isOriginal,"-o unsupport dir patch");
-            return hpatch_dir(oldPath,diffFileName,outNewPath,isLoadOldAll,patchCacheSize,kMaxOpenFileNumber);
+            return hpatch_dir(oldPath,diffFileName,outNewPath,isLoadOldAll,patchCacheSize,
+                              kMaxOpenFileNumber,&checksumSet);
         }else{
             return hpatch(oldPath,diffFileName,outNewPath,isOriginal,isLoadOldAll,patchCacheSize);
         }
@@ -283,10 +298,10 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
     if (!(value)){ fprintf(stderr,errorInfo " ERROR!\n"); check_on_error(errorType); } }
 
 
-static int getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
-                               hpatch_TDecompress** out_decompressPlugin){
-    int     result=HPATCH_SUCCESS;
+static hpatch_BOOL getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
+                                       hpatch_TDecompress** out_decompressPlugin){
     hpatch_TDecompress*  decompressPlugin=0;
+    assert(0==*out_decompressPlugin);
     if (strlen(diffInfo->compressType)>0){
 #ifdef  _CompressPlugin_zlib
         if ((!decompressPlugin)&&zlibDecompressPlugin.is_can_open(diffInfo->compressType))
@@ -311,8 +326,7 @@ static int getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
     }
     if (!decompressPlugin){
         if (diffInfo->compressedCount>0){
-            printf("can not decompress \"%s\" data",diffInfo->compressType);
-            result=HPATCH_COMPRESSTYPE_ERROR; //error
+            return hpatch_FALSE; //error
         }else{
             if (strlen(diffInfo->compressType)>0)
                 printf("  diffFile added useless compress tag \"%s\"\n",diffInfo->compressType);
@@ -323,7 +337,28 @@ static int getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
                diffInfo->compressType,diffInfo->compressedCount);
     }
     *out_decompressPlugin=decompressPlugin;
-    return result;
+    return hpatch_TRUE;
+}
+
+static void _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType,
+                            hpatch_TChecksum* testChecksumPlugin){
+    if ((*out_checksumPlugin)!=0) return;
+    if (0==strcmp(checksumType,testChecksumPlugin->checksumType()))
+        *out_checksumPlugin=testChecksumPlugin;
+}
+static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType){
+    assert(0==*out_checksumPlugin);
+#ifdef _ChecksumPlugin_crc32
+    _trySetChecksum(out_checksumPlugin,checksumType,&crc32ChecksumPlugin);
+#endif
+    _trySetChecksum(out_checksumPlugin,checksumType,&adler32ChecksumPlugin);
+    _trySetChecksum(out_checksumPlugin,checksumType,&adler64ChecksumPlugin);
+    _trySetChecksum(out_checksumPlugin,checksumType,&adler32fChecksumPlugin);
+    _trySetChecksum(out_checksumPlugin,checksumType,&adler64fChecksumPlugin);
+#ifdef _ChecksumPlugin_md5
+    _trySetChecksum(out_checksumPlugin,checksumType,&md5ChecksumPlugin);
+#endif
+    return (0!=*out_checksumPlugin);
 }
 
 static void* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
@@ -402,12 +437,14 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
             check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
-            printf("oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 "",
-                   poldData->streamSize,diffInfo.oldDataSize);
+            fprintf(stderr,"oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 " ERROR!",
+                    poldData->streamSize,diffInfo.oldDataSize);
             check_on_error(HPATCH_FILEDATA_ERROR);
         }
-        result=getDecompressPlugin(&diffInfo,&decompressPlugin);
-        if (result!=HPATCH_SUCCESS) check_on_error(result);
+        if(!getDecompressPlugin(&diffInfo,&decompressPlugin)){
+            fprintf(stderr,"can not decompress \"%s\" data ERROR!",diffInfo.compressType);
+            check_on_error(HPATCH_COMPRESSTYPE_ERROR);
+        }
         savedNewSize=diffInfo.newDataSize;
     }
     check(TFileStreamOutput_open(&newData, outNewFileName,savedNewSize),
@@ -454,9 +491,10 @@ hpatch_BOOL _makeNewDir(IDirPatchListener* listener,const char* newDir){
     //printf("callback makeNewDir: %s\n",newDir);
     return makeNewDir(newDir);
 }
-hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,const char* newFileName){
+hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,
+                          const char* newFileName,ICopyDataListener* copyListener){
     //printf("callback copySameFile: %s => %s\n",oldFileName,newFileName);
-    return TDirPatcher_copyFile(oldFileName,newFileName);
+    return TDirPatcher_copyFile(oldFileName,newFileName,copyListener);
 }
 hpatch_BOOL _openNewFile(IDirPatchListener* listener,TFileStreamOutput*  out_curNewFile,
                          const char* newFileName,hpatch_StreamPos_t newFileSize){
@@ -470,7 +508,8 @@ hpatch_BOOL _closeNewFile(IDirPatchListener* listener,TFileStreamOutput* curNewF
 //IDirPatchListener
 
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
-               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber){
+               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
+               TPatchChecksumSet* checksumSet){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
@@ -510,13 +549,31 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         printPath_utf8(outNewPath);
         printf("\n");
     }
+    {// checksumPlugin
+        assert(checksumSet->checksumPlugin==0);
+        hpatch_BOOL isNeedChecksum= checksumSet->isCheck_dirDiffData||checksumSet->isCheck_oldRefData||
+                                    checksumSet->isCheck_newRefData||checksumSet->isCheck_sameFileData;
+        if (isNeedChecksum){
+            if (!_findChecksum(&checksumSet->checksumPlugin,dirDiffInfo->checksumType)){
+                fprintf(stderr,"not found checksumType \"%s\" ERROR!",dirDiffInfo->checksumType);
+                check_on_error(HPATCH_DIRPATCH_CHECKSUMTYPE_ERROR);
+            }
+            if (!TDirPatcher_checksum(&dirPatcher,checksumSet)){
+                check(!dirPatcher.isDiffDataChecksumError,
+                      HPATCH_DIRPATCH_CHECKSUM_DIFFDATA_ERROR,"diffFile checksum");
+                check(hpatch_FALSE,HPATCH_DIRPATCH_CHECKSUMSET_ERROR,"diffFile set checksum");
+            }
+        }
+    }
     {   //decompressPlugin
         hpatch_TDecompress*  decompressPlugin=0;
         hpatch_compressedDiffInfo hdiffInfo;
         hdiffInfo=dirDiffInfo->hdiffInfo;
         hdiffInfo.compressedCount+=(dirDiffInfo->dirDataIsCompressed)?1:0;
-        result=getDecompressPlugin(&hdiffInfo,&decompressPlugin);
-        if (result!=HPATCH_SUCCESS) check_on_error(result);
+        if(!getDecompressPlugin(&hdiffInfo,&decompressPlugin)){
+            fprintf(stderr,"can not decompress \"%s\" data ERROR!",hdiffInfo.compressType);
+            check_on_error(HPATCH_COMPRESSTYPE_ERROR);
+        }
         //load dir data
         check(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin),
               HPATCH_DIRPATCH_LAOD_DIRDIFFDATA_ERROR,"load dir data in diffFile");
@@ -533,8 +590,11 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             // all old while auto cache by patch; not need open old files at same time
             kMaxOpenFileNumber=kMaxOpenFileNumber_limit_min;
         }
-        check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,kMaxOpenFileNumber,&oldStream),
-              HPATCH_DIRPATCH_OPEN_OLDPATH_ERROR,"open oldFile");
+        if(!TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,kMaxOpenFileNumber,&oldStream)){
+            check(!dirPatcher.isOldRefDataChecksumError,
+                  HPATCH_DIRPATCH_CHECKSUM_OLDDATA_ERROR,"oldFile checksum");
+            check(hpatch_FALSE,HPATCH_DIRPATCH_OPEN_OLDPATH_ERROR,"open oldFile");
+        }
     }
     {//new data
         listener.listenerImport=0;
@@ -546,8 +606,13 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
               HPATCH_DIRPATCH_OPEN_NEWPATH_ERROR,"open newFile");
     }
     //patch
-    check(TDirPatcher_patch(&dirPatcher,newStream,oldStream, temp_cache,
-                            temp_cache+temp_cache_size),HPATCH_DIRPATCH_ERROR,"dir patch run");
+    if(!TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size)){
+        check(!dirPatcher.isNewRefDataChecksumError,
+              HPATCH_DIRPATCH_CHECKSUM_NEWDATA_ERROR,"newFile checksum");
+        check(!dirPatcher.isCopyDataChecksumError,
+              HPATCH_DIRPATCH_CHECKSUM_COPYDATA_ERROR,"copyOldFile checksum");
+        check(hpatch_FALSE,HPATCH_DIRPATCH_ERROR,"dir patch run");
+    }
 clear:
     _isInClear=hpatch_TRUE;
     check(TDirPatcher_closeNewDirStream(&dirPatcher),HPATCH_DIRPATCH_CLOSE_NEWPATH_ERROR,"newPath close");
