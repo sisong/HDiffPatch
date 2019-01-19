@@ -33,6 +33,7 @@
 #include <vector>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HPatch/patch.h"
 #include "_clock_for_demo.h"
@@ -72,9 +73,26 @@
 #include "compress_plugin_demo.h"
 #include "decompress_plugin_demo.h"
 
+
+#ifndef _IS_NEED_DEFAULT_ChecksumPlugin
+#   define _IS_NEED_DEFAULT_ChecksumPlugin 1
+#endif
+#if (_IS_NEED_ALL_ChecksumPlugin)
+#   undef  _IS_NEED_DEFAULT_ChecksumPlugin
+#   define _IS_NEED_DEFAULT_ChecksumPlugin 1
+#endif
+#if (_IS_NEED_DEFAULT_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
-#define _ChecksumPlugin_crc32   //used zlib
-//#define _ChecksumPlugin_md5
+#   define _ChecksumPlugin_crc32    // =  32 bit effective  //need zlib
+#   define _ChecksumPlugin_adler64f // ~  63 bit effective
+#endif
+#if (_IS_NEED_ALL_ChecksumPlugin)
+//===== select needs checksum plugins or change to your plugin=====
+#   define _ChecksumPlugin_adler32  // ~  29 bit effective
+#   define _ChecksumPlugin_adler64  // ~  36 bit effective
+#   define _ChecksumPlugin_adler32f // ~  32 bit effective
+#   define _ChecksumPlugin_md5      // ? 128 bit effective
+#endif
 
 #include "checksum_plugin_demo.h"
 
@@ -124,19 +142,27 @@ static void printUsage(){
 #ifdef _ChecksumPlugin_crc32
            "        -crc32\n"
 #endif
+#ifdef _ChecksumPlugin_adler32
            "        -adler32\n"
+#endif
+#ifdef _ChecksumPlugin_adler64
            "        -adler64\n"
+#endif
+#ifdef _ChecksumPlugin_adler32f
            "        -adler32f\n"
+#endif
+#ifdef _ChecksumPlugin_adler64f
            "        -adler64f\n"
+#endif
 #ifdef _ChecksumPlugin_md5
            "        -md5\n"
 #endif
-           "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
-           "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
-           "  -D  force run Directory Diff, DEFAULT need oldPath or newPath is directory.\n"
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory diff;\n"
            "      DEFAULT maxOpenFileNumber==48, the best limit value by different operating system.\n"
+           "  -D  force run Directory Diff, DEFAULT need oldPath or newPath is directory.\n"
+           "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
+           "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
 #if (_IS_NEED_ORIGINAL)
            "  -o  Original diff, unsupport run with -s -c -C -D; DEPRECATED;\n"
            "      compatible with \"diff_demo.cpp\",\n"
@@ -252,10 +278,18 @@ static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const cha
 #ifdef _ChecksumPlugin_crc32
     _trySetChecksum(out_checksumPlugin,checksumType,&crc32ChecksumPlugin);
 #endif
+#ifdef _ChecksumPlugin_adler32
     _trySetChecksum(out_checksumPlugin,checksumType,&adler32ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_adler64
     _trySetChecksum(out_checksumPlugin,checksumType,&adler64ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_adler32f
     _trySetChecksum(out_checksumPlugin,checksumType,&adler32fChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_adler64f
     _trySetChecksum(out_checksumPlugin,checksumType,&adler64fChecksumPlugin);
+#endif
 #ifdef _ChecksumPlugin_md5
     _trySetChecksum(out_checksumPlugin,checksumType,&md5ChecksumPlugin);
 #endif
@@ -267,7 +301,7 @@ static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const cha
     if (!(value)) { fprintf(stderr,errorInfo " ERROR!\n"); return exitCode; } }
 
 #define _options_check(value,errorInfo){ \
-    if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n"); printUsage(); return HDIFF_OPTIONS_ERROR; } }
+    if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n\n"); printUsage(); return HDIFF_OPTIONS_ERROR; } }
 
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
 #define _kNULL_SIZE     ((size_t)(-1))
@@ -567,11 +601,11 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
 }
 #endif
 
-#define  check_on_error(errorType) { \
+#define  _check_on_error(errorType) { \
     if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define check(value,errorType,errorInfo) { \
     std::string erri=std::string()+errorInfo+" ERROR!\n"; \
-    if (!(value)){ printStdErrPath_utf8(erri.c_str()); check_on_error(errorType); } }
+    if (!(value)){ printStdErrPath_utf8(erri.c_str()); _check_on_error(errorType); } }
 
 static int hdiff_m(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
                    hpatch_BOOL isDiff,size_t matchScore,hpatch_BOOL isPatchCheck,
@@ -847,16 +881,18 @@ struct DirDiffListener:public IDirDiffListener{
         return false;
     }
     virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,
-                             size_t refOldFileCount,size_t refNewFileCount,
+                             hpatch_StreamPos_t sameFileSize,size_t refOldFileCount,size_t refNewFileCount,
                              hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){
         printf("DirDiff old path count: %"PRIu64"\n",(hpatch_StreamPos_t)oldPathCount);
-        printf("        new path count: %"PRIu64"\n",(hpatch_StreamPos_t)newPathCount);
-        printf("       same file count: %"PRIu64"\n",(hpatch_StreamPos_t)sameFilePairCount);
+        printf("        new path count: %"PRIu64" (fileCount:%"PRIu64")\n",
+               (hpatch_StreamPos_t)newPathCount,(hpatch_StreamPos_t)(sameFilePairCount+refNewFileCount));
+        printf("       same file count: %"PRIu64" (dataSize: %"PRIu64")\n",
+               (hpatch_StreamPos_t)sameFilePairCount,sameFileSize);
         printf("    ref old file count: %"PRIu64"\n",(hpatch_StreamPos_t)refOldFileCount);
         printf("   diff new file count: %"PRIu64"\n",(hpatch_StreamPos_t)refNewFileCount);
         printf("\nrun hdiffz:\n");
         printf("  oldRefSize  : %"PRIu64"\n",refOldFileSize);
-        printf("  newRefSize  : %"PRIu64"\n",refNewFileSize);
+        printf("  newRefSize  : %"PRIu64" (all newSize: %"PRIu64")\n",refNewFileSize,refNewFileSize+sameFileSize);
     }
     
     double _runHDiffBegin_time0;
@@ -885,12 +921,16 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
     printPath_utf8(fnameInfo.c_str());
     
     if (isDiff) {
+        const char* checksumType="";
         const char* compressType="";
+        if (checksumPlugin)
+            checksumType=checksumPlugin->checksumType();
         if (isLoadAll){
             if (compressPlugin) compressType=compressPlugin->compressType();
         }else{
             if (streamCompressPlugin) compressType=streamCompressPlugin->compressType();
         }
+        printf("hdiffz run DirDiff with checksum plugin: \"%s\"\n",checksumType);
         printf("hdiffz run DirDiff with%s compress plugin: \"%s\"\n",(isLoadAll?"":" stream"),compressType);
     }
 

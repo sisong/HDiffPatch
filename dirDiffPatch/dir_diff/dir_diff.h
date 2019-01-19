@@ -50,7 +50,7 @@ struct IDirDiffListener:public IDirFilter{
     virtual ~IDirDiffListener(){}
     virtual void diffPathList(std::vector<std::string>& oldPathList,std::vector<std::string>& newPathList){}
     virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,
-                             size_t refOldFileCount,size_t refNewFileCount,
+                             hpatch_StreamPos_t sameFileSize,size_t refOldFileCount,size_t refNewFileCount,
                              hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){}
     virtual void runHDiffBegin(){}
     virtual void runHDiffEnd(hpatch_StreamPos_t diffDataSize){}

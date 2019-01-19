@@ -92,11 +92,11 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
 #   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
 #endif
     static int zlib_compress_level=9; //1..9
-    static const char*  _zlib_stream_compressType(){
+    static const char*  _zlib_stream_compressType(void){
         static const char* kCompressType="zlib";
         return kCompressType;
     }
-    static const char*  _zlib_compressType(){
+    static const char*  _zlib_compressType(void){
         return _zlib_stream_compressType();
     }
     static size_t  _zlib_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
@@ -240,11 +240,11 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
 #   include "bzlib.h" // http://www.bzip.org/
 #endif
     static int bz2_compress_level=9; //1..9
-    static const char*  _bz2_stream_compressType(){
+    static const char*  _bz2_stream_compressType(void){
         static const char* kCompressType="bz2";
         return kCompressType;
     }
-    static const char*  _bz2_compressType(){
+    static const char*  _bz2_compressType(void){
         return _bz2_stream_compressType();
     }
     static size_t  _bz2_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
@@ -324,11 +324,11 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
 #endif
     static int lzma_compress_level=7;//0..9
     static UInt32 lzma_dictSize=1<<22;  //patch decompress need 4*lzma_dictSize memroy
-    static const char*  _lzma_stream_compressType(){
+    static const char*  _lzma_stream_compressType(void){
         static const char* kCompressType="lzma";
         return kCompressType;
     }
-    static const char*  _lzma_compressType(){
+    static const char*  _lzma_compressType(void){
         return _lzma_stream_compressType();
     }
     static size_t  _lzma_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
@@ -451,11 +451,11 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
 #   include "lz4hc.h"
 #endif
     static int lz4hc_compress_level=11; //3..12
-    static const char*  _lz4_stream_compressType(){
+    static const char*  _lz4_stream_compressType(void){
         static const char* kCompressType="lz4";
         return kCompressType;
     }
-    static const char*  _lz4_compressType(){
+    static const char*  _lz4_compressType(void){
         return _lz4_stream_compressType();
     }
     static size_t  _lz4_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){
@@ -599,11 +599,11 @@ static size_t _fun_compress_name(const hdiff_TCompress* compressPlugin, \
 #   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/facebook/zstd
 #endif
     static int zstd_compress_level=20; //0..22
-    static const char*  _zstd_stream_compressType(){
+    static const char*  _zstd_stream_compressType(void){
         static const char* kCompressType="zstd";
         return kCompressType;
     }
-    static const char*  _zstd_compressType(){
+    static const char*  _zstd_compressType(void){
         return _zstd_stream_compressType();
     }
     static size_t  _zstd_maxCompressedSize(const hdiff_TCompress* compressPlugin,size_t dataSize){

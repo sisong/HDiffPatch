@@ -110,7 +110,7 @@ static hpatch_BOOL _unpackUIntWithTag(const TByte** src_code,const TByte* src_co
     if (sizeof(TUInt)==sizeof(hpatch_StreamPos_t)){
         return hpatch_unpackUIntWithTag(src_code,src_code_end,(hpatch_StreamPos_t*)result,kTagBit);
     }else{
-        hpatch_StreamPos_t u64;
+        hpatch_StreamPos_t u64=0;
         hpatch_BOOL rt=hpatch_unpackUIntWithTag(src_code,src_code_end,&u64,kTagBit);
         TUInt u=(TUInt)u64;
         *result=u;
@@ -409,7 +409,7 @@ hpatch_BOOL _TStreamCacheClip_skipData(TStreamCacheClip* sclip,hpatch_StreamPos_
     while (skipLongSize>0) {
         size_t len=sclip->cacheEnd;
         if (len>skipLongSize)
-            len=skipLongSize;
+            len=(size_t)skipLongSize;
         if (_TStreamCacheClip_accessData(sclip,len)){
             _TStreamCacheClip_skipData_noCheck(sclip,len);
             skipLongSize-=len;

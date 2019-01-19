@@ -14,6 +14,7 @@
 		D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFA2077B91A0039C38B /* libbz2.tbd */; };
 		D67D3BF421D3C5870050632A /* ref_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BF121D3C5870050632A /* ref_stream.c */; };
 		D67D3BF521D3C5870050632A /* dir_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BF221D3C5870050632A /* dir_patch.c */; };
+		D6BAF70321F2F61B00C30C0A /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BAF70121F2F61B00C30C0A /* adler_roll.c */; };
 		D6BD9BCE17578601004886DE /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BCA17578601004886DE /* patch.c */; };
 		D6BF3A5721E8CDC300833537 /* res_handle_limit.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5621E8CDC300833537 /* res_handle_limit.c */; };
 		D6BF3A5921E95F4200833537 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5821E95F4200833537 /* file_for_patch.c */; };
@@ -52,6 +53,10 @@
 		D67D3BF221D3C5870050632A /* dir_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dir_patch.c; sourceTree = "<group>"; };
 		D67D3BF321D3C5870050632A /* ref_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ref_stream.h; sourceTree = "<group>"; };
 		D67D3BF621D48DCB0050632A /* patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_private.h; sourceTree = "<group>"; };
+		D6BAF6F221F2E08000C30C0A /* checksum_plugin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = checksum_plugin.h; sourceTree = "<group>"; };
+		D6BAF6F521F2E34600C30C0A /* checksum_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checksum_plugin_demo.h; path = ../../checksum_plugin_demo.h; sourceTree = "<group>"; };
+		D6BAF70121F2F61B00C30C0A /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
+		D6BAF70221F2F61B00C30C0A /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = adler_roll.h; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h; sourceTree = "<group>"; };
 		D6BD9BCA17578601004886DE /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
 		D6BF3A5521E8CDC300833537 /* res_handle_limit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = res_handle_limit.h; sourceTree = "<group>"; };
 		D6BF3A5621E8CDC300833537 /* res_handle_limit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = res_handle_limit.c; sourceTree = "<group>"; };
@@ -93,10 +98,12 @@
 		D6553CAA165FA1A9009D4C44 = {
 			isa = PBXGroup;
 			children = (
+				D6BAF70021F2F60500C30C0A /* adler_roll */,
 				D67D3BEF21D3C5870050632A /* dir_patch */,
 				D6BD9BC917578601004886DE /* HPatch */,
 				D6241AD021DC6B6900E2846A /* lzma */,
 				D64B4BF32077AB550039C38B /* decompress_plugin_demo.h */,
+				D6BAF6F521F2E34600C30C0A /* checksum_plugin_demo.h */,
 				D64B4BF22077AB550039C38B /* _clock_for_demo.h */,
 				D639ACD9208334A800811BB3 /* _atosize.h */,
 				D6BF3A5821E95F4200833537 /* file_for_patch.c */,
@@ -133,9 +140,19 @@
 			path = ../../dirDiffPatch/dir_patch;
 			sourceTree = "<group>";
 		};
+		D6BAF70021F2F60500C30C0A /* adler_roll */ = {
+			isa = PBXGroup;
+			children = (
+				D6BAF70121F2F61B00C30C0A /* adler_roll.c */,
+				D6BAF70221F2F61B00C30C0A /* adler_roll.h */,
+			);
+			name = adler_roll;
+			sourceTree = "<group>";
+		};
 		D6BD9BC917578601004886DE /* HPatch */ = {
 			isa = PBXGroup;
 			children = (
+				D6BAF6F221F2E08000C30C0A /* checksum_plugin.h */,
 				D67D3BF621D48DCB0050632A /* patch_private.h */,
 				D64B4BF02077AB290039C38B /* patch_types.h */,
 				D64B4BF12077AB2A0039C38B /* patch.h */,
@@ -203,6 +220,7 @@
 				D6BF3A5721E8CDC300833537 /* res_handle_limit.c in Sources */,
 				D6241AE521DE47EC00E2846A /* new_stream.c in Sources */,
 				D6BF3A5921E95F4200833537 /* file_for_patch.c in Sources */,
+				D6BAF70321F2F61B00C30C0A /* adler_roll.c in Sources */,
 				D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

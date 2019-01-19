@@ -29,7 +29,7 @@
  */
 #ifndef HPatch_file_for_patch_h
 #define HPatch_file_for_patch_h
-#include <stdio.h>
+#include <stdio.h>  //fprintf
 #include <stdlib.h> // malloc free
 #include <locale.h> // setlocale
 #include "libHDiffPatch/HPatch/patch_types.h"
@@ -281,12 +281,14 @@ hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self);
 typedef struct TFileStreamOutput{ //is TFileStreamInput !
     hpatch_TStreamOutput base; //is hpatch_TStreamInput + write
     hpatch_FileHandle   m_file;
-    hpatch_StreamPos_t  m_pos;
+    hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset; //now not used
     hpatch_BOOL         fileError;
     //
     hpatch_BOOL         is_random_out;
+    hpatch_BOOL         is_in_readModel;
     hpatch_StreamPos_t  out_length;
+    
 } TFileStreamOutput;
 
 hpatch_inline

@@ -177,11 +177,13 @@
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\res_handle_limit.c" />
     <ClCompile Include="..\..\file_for_patch.c" />
     <ClCompile Include="..\..\hpatchz.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\limit_mem_diff\adler_roll.c" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\dirDiffPatch\file_for_dirPatch.h" />
     <ClInclude Include="..\..\file_for_patch.h" />
+    <ClInclude Include="..\..\libHDiffPatch\HDiff\private_diff\limit_mem_diff\adler_roll.h" />
     <ClInclude Include="..\..\libHDiffPatch\HPatch\patch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

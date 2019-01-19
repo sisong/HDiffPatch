@@ -83,18 +83,31 @@ hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self){
         if (writeLen==0) return hpatch_TRUE;
         if ((writeLen>self->base.streamSize)
             ||(writeToPos>self->base.streamSize-writeLen)) _fileError_return;
-        if (writeToPos!=self->m_pos){
+        self->is_in_readModel=hpatch_FALSE;
+        if (writeToPos!=self->m_fpos){
             if (self->is_random_out){
                 if (!_import_fileSeek64(self->m_file,writeToPos,SEEK_SET)) _fileError_return;
-                self->m_pos=writeToPos;
+                self->m_fpos=writeToPos;
             }else{
                 _fileError_return;
             }
         }
         if (!_import_fileWrite(self->m_file,data,data+writeLen)) _fileError_return;
-        self->m_pos=writeToPos+writeLen;
-        self->out_length=(self->out_length>=self->m_pos)?self->out_length:self->m_pos;
+        self->m_fpos=writeToPos+writeLen;
+        self->out_length=(self->out_length>=self->m_fpos)?self->out_length:self->m_fpos;
         return hpatch_TRUE;
+    }
+    static hpatch_BOOL _TFileStreamOutput_read_file(const hpatch_TStreamOutput* stream,
+                                                    hpatch_StreamPos_t readFromPos,
+                                                    TByte* out_data,TByte* out_data_end){
+         //TFileStreamOutput is A TFileStreamInput !
+        TFileStreamOutput* self=(TFileStreamOutput*)stream->streamImport;
+        const hpatch_TStreamInput* in_stream=(const hpatch_TStreamInput*)stream;
+        if (!self->is_in_readModel){
+            if (!TFileStreamOutput_flush(self)) return hpatch_FALSE;
+            self->is_in_readModel=hpatch_TRUE;
+        }
+        return _read_file(in_stream,readFromPos,out_data,out_data_end);
     }
 hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName_utf8,
                                           hpatch_StreamPos_t max_file_length){
@@ -105,10 +118,11 @@ hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName_
     self->base.streamImport=self;
     self->base.streamSize=max_file_length;
     self->base.write=_write_file;
-    *(void**)(&self->base.read_writed)=_read_file; //TFileStreamOutput is A TFileStreamInput !
-    self->m_pos=0;
+    self->base.read_writed=_TFileStreamOutput_read_file;
+    self->m_fpos=0;
     self->m_offset=0;
     self->fileError=hpatch_FALSE;
+    self->is_in_readModel=hpatch_FALSE;
     self->is_random_out=hpatch_FALSE;
     self->out_length=0;
     return hpatch_TRUE;

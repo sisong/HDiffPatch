@@ -27,6 +27,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_diff.h"
+#include <stdio.h>
 #include <algorithm> //sort
 #include <map>
 #include <set>
@@ -530,9 +531,6 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     CRefStream newRefStream;
     oldRefStream.open(resLimit.limit.streamList,oldRefIList.size());
     newRefStream.open(resLimit.limit.streamList+oldRefIList.size(),newRefIList.size());
-    listener->diffRefInfo(oldList.size(),newList.size(),dataSamePairList.size(),
-                          oldRefIList.size(),newRefIList.size(),
-                          oldRefStream.stream->streamSize,newRefStream.stream->streamSize);
     
     //checksum
     const size_t checksumByteSize=(checksumPlugin==0)?0:checksumPlugin->checksumByteSize();
@@ -543,11 +541,17 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     oldRefChecksum.appendEnd();
     newRefChecksum.append(newRefStream.stream);
     newRefChecksum.appendEnd();
+    hpatch_StreamPos_t sameFileSize=0;
     for (size_t i=0; i<dataSamePairList.size(); ++i) {
         CFileStreamInput file(newList[dataSamePairList[i].newIndex]);
         sameFileChecksum.append(&file.base);
+        sameFileSize+=file.base.streamSize;
     }
     sameFileChecksum.appendEnd();
+    
+    listener->diffRefInfo(oldList.size(),newList.size(),dataSamePairList.size(),
+                          sameFileSize,oldRefIList.size(),newRefIList.size(),
+                          oldRefStream.stream->streamSize,newRefStream.stream->streamSize);
 
     //serialize headData
     std::vector<TByte> headData;
@@ -583,6 +587,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     packUInt(out_data,oldRefIList.size());      clearVector(oldRefIList);
     packUInt(out_data,newRefIList.size());      clearVector(newRefIList);
     packUInt(out_data,dataSamePairList.size()); clearVector(dataSamePairList);
+    packUInt(out_data,sameFileSize);
     //externData size
     std::vector<TByte> externData;
     listener->externData(externData);
@@ -686,9 +691,9 @@ struct CDirPatchListener:public IDirPatchListener{
         std::string path(_path);
         if (path.empty()) return path;
         if (path[path.size()-1]==kPatch_dirSeparator)
-            path.pop_back();
+            path.resize(path.size()-1);
         while ((!path.empty())&&(path[path.size()-1]!=kPatch_dirSeparator)) {
-            path.pop_back();
+            path.resize(path.size()-1);
         }
         return path;
     }

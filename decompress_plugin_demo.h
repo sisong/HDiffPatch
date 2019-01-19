@@ -35,6 +35,7 @@
 //  zstdDecompressPlugin;
 
 #include <stdlib.h> //malloc free
+#include <stdio.h>  //fprintf
 #include "libHDiffPatch/HPatch/patch_types.h"
 
 #define kDecompressBufSize (1024*16)

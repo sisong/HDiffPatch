@@ -1,5 +1,5 @@
 //adler_roll.h
-//support: adler32,adler64,roll,fast adler,combine adler
+//support: adler32,adler64,roll,fast roll,combine
 //https://github.com/madler/zlib/blob/master/adler32.c not find roll
 //
 /*

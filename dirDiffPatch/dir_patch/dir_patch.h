@@ -80,6 +80,7 @@ hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatc
         size_t              oldRefFileCount;
         size_t              newRefFileCount;
         size_t              sameFilePairCount;
+        hpatch_StreamPos_t  sameFileSize;
         hpatch_StreamPos_t  typesEndPos;
         hpatch_StreamPos_t  compressSizeBeginPos;
         hpatch_StreamPos_t  headDataOffset;
@@ -105,8 +106,8 @@ hpatch_inline static hpatch_BOOL getIsDirDiffFile(const char* diffFileName,hpatc
     typedef struct TPatchChecksumSet{
         hpatch_TChecksum*   checksumPlugin;
         hpatch_BOOL         isCheck_oldRefData;
-        hpatch_BOOL         isCheck_newRefData;   //recommend
-        hpatch_BOOL         isCheck_sameFileData; //recommend
+        hpatch_BOOL         isCheck_newRefData;  
+        hpatch_BOOL         isCheck_copyFileData;
         hpatch_BOOL         isCheck_dirDiffData;
     } TPatchChecksumSet;
 

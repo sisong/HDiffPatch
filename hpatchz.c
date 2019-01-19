@@ -30,6 +30,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>  //fprintf
 #include "libHDiffPatch/HPatch/patch.h"
 #include "file_for_patch.h"
 #include "_clock_for_demo.h"
@@ -65,9 +66,26 @@
 
 #include "decompress_plugin_demo.h"
 
+
+#ifndef _IS_NEED_DEFAULT_ChecksumPlugin
+#   define _IS_NEED_DEFAULT_ChecksumPlugin 1
+#endif
+#if (_IS_NEED_ALL_ChecksumPlugin)
+#   undef  _IS_NEED_DEFAULT_ChecksumPlugin
+#   define _IS_NEED_DEFAULT_ChecksumPlugin 1
+#endif
+#if (_IS_NEED_DEFAULT_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
-#define _ChecksumPlugin_crc32   //used zlib
-//#define _ChecksumPlugin_md5
+#   define _ChecksumPlugin_crc32    // =  32 bit effective  //need zlib
+#   define _ChecksumPlugin_adler64f // ~  63 bit effective
+#endif
+#if (_IS_NEED_ALL_ChecksumPlugin)
+//===== select needs checksum plugins or change to your plugin=====
+#   define _ChecksumPlugin_adler32  // ~  29 bit effective
+#   define _ChecksumPlugin_adler64  // ~  36 bit effective
+#   define _ChecksumPlugin_adler32f // ~  32 bit effective
+#   define _ChecksumPlugin_md5      // ? 128 bit effective
+#endif
 
 #include "checksum_plugin_demo.h"
 
@@ -84,8 +102,16 @@ static void printUsage(){
            "      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m\n"
            "special options:\n"
+           "  -C-checksumSets\n"
+           "      set checksum data for directory patch, DEFAULT not checksum any data;\n"
+           "      checksumSets support (can choose multiple):\n"
+           "        -diff         checksum diffFile;\n"
+           "        -old          checksum old reference files;\n"
+           "        -new          checksum new reference files edited from old reference files;\n"
+           "        -copy         checksum new files copy from old same files;\n"
+           "        -all          same as: -diff-old-new-copy\n"
            "  -n-maxOpenFileNumber\n"
-           "      limit Number of open files at same time when stream directory diff;\n"
+           "      limit Number of open files at same time when stream directory patch;\n"
            "      DEFAULT maxOpenFileNumber==24, the best limit value by different operating system.\n"
 #if (_IS_NEED_ORIGINAL)
            "  -o  Original patch; DEPRECATED; compatible with \"patch_demo.c\",\n"
@@ -153,9 +179,40 @@ int main(int argc, const char * argv[]){
 #   endif
 #endif
 
+hpatch_inline static const char* findEnd(const char* str,char c){
+    const char* result=strchr(str,c);
+    return (result!=0)?result:(str+strlen(str));
+}
+static hpatch_BOOL _toChecksumSet(const char* psets,TPatchChecksumSet* checksumSet){
+    while (hpatch_TRUE) {
+        const char* pend=findEnd(psets,'-');
+        size_t len=(size_t)(pend-psets);
+        if (len==0) return hpatch_FALSE; //error no set
+        if        ((len==4)&&(0==memcmp(psets,"diff",len))){
+            checksumSet->isCheck_dirDiffData=hpatch_TRUE;
+        }else  if ((len==3)&&(0==memcmp(psets,"old",len))){
+            checksumSet->isCheck_oldRefData=hpatch_TRUE;
+        }else  if ((len==3)&&(0==memcmp(psets,"new",len))){
+            checksumSet->isCheck_newRefData=hpatch_TRUE;
+        }else  if ((len==4)&&(0==memcmp(psets,"copy",len))){
+            checksumSet->isCheck_copyFileData=hpatch_TRUE;
+        }else  if ((len==3)&&(0==memcmp(psets,"all",len))){
+            checksumSet->isCheck_dirDiffData=hpatch_TRUE;
+            checksumSet->isCheck_oldRefData=hpatch_TRUE;
+            checksumSet->isCheck_newRefData=hpatch_TRUE;
+            checksumSet->isCheck_copyFileData=hpatch_TRUE;
+        }else{
+            return hpatch_FALSE;//error unknow set
+        }
+        if (*pend=='\0')
+            return hpatch_TRUE; //ok
+        else
+            psets=pend+1;
+    }
+}
 
 #define _options_check(value,errorInfo){ \
-    if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n"); \
+    if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n\n"); \
         printUsage(); return HPATCH_OPTIONS_ERROR; } }
 
 #define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
@@ -203,9 +260,14 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                     patchCacheSize=kPatchCacheSize_default;
                 }
             } break;
+            case 'C':{
+                const char* psets=op+3;
+                _options_check((op[2]=='-'),"-C-?");
+                _options_check(_toChecksumSet(psets,&checksumSet),"-C-?");
+            } break;
             case 'n':{
                 const char* pnum=op+3;
-                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?")
+                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?");
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
             } break;
             case '?':
@@ -351,10 +413,18 @@ static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const cha
 #ifdef _ChecksumPlugin_crc32
     _trySetChecksum(out_checksumPlugin,checksumType,&crc32ChecksumPlugin);
 #endif
+#ifdef _ChecksumPlugin_adler32
     _trySetChecksum(out_checksumPlugin,checksumType,&adler32ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_adler64
     _trySetChecksum(out_checksumPlugin,checksumType,&adler64ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_adler32f
     _trySetChecksum(out_checksumPlugin,checksumType,&adler32fChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_adler64f
     _trySetChecksum(out_checksumPlugin,checksumType,&adler64fChecksumPlugin);
+#endif
 #ifdef _ChecksumPlugin_md5
     _trySetChecksum(out_checksumPlugin,checksumType,&md5ChecksumPlugin);
 #endif
@@ -437,12 +507,12 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
             check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
-            fprintf(stderr,"oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 " ERROR!",
+            fprintf(stderr,"oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 " ERROR!\n",
                     poldData->streamSize,diffInfo.oldDataSize);
             check_on_error(HPATCH_FILEDATA_ERROR);
         }
         if(!getDecompressPlugin(&diffInfo,&decompressPlugin)){
-            fprintf(stderr,"can not decompress \"%s\" data ERROR!",diffInfo.compressType);
+            fprintf(stderr,"can not decompress \"%s\" data ERROR!\n",diffInfo.compressType);
             check_on_error(HPATCH_COMPRESSTYPE_ERROR);
         }
         savedNewSize=diffInfo.newDataSize;
@@ -470,7 +540,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         check(hpatch_FALSE,HPATCH_PATCH_ERROR,"patch run");
     }
     if (newData.out_length!=newData.base.streamSize){
-        printf("out newFile dataSize %" PRIu64 " != diffFile saved newDataSize %" PRIu64 "",
+        fprintf(stderr,"out newFile dataSize %" PRIu64 " != diffFile saved newDataSize %" PRIu64 " ERROR!\n",
                newData.out_length,newData.base.streamSize);
         check_on_error(HPATCH_FILEDATA_ERROR);
     }
@@ -543,25 +613,34 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         }
         printf(        dirDiffInfo->oldPathIsDir?"old  dir: \"":"old file: \"");
         printPath_utf8(oldPath);
+        if (dirDiffInfo->oldPathIsDir&&(!getIsDirName(oldPath))) printf("%c",kPatch_dirSeparator);
         printf(                                             "\"\ndiffFile: \"");
         printPath_utf8(diffFileName);
         printf(dirDiffInfo->newPathIsDir?"\"\nout  dir: \"":"\"\nout file: \"");
         printPath_utf8(outNewPath);
-        printf("\n");
+        if (dirDiffInfo->newPathIsDir&&(!getIsDirName(outNewPath))) printf("%c",kPatch_dirSeparator);
+        printf("\"\n");
     }
     {// checksumPlugin
+        int wantChecksumCount = checksumSet->isCheck_dirDiffData+checksumSet->isCheck_oldRefData+
+                                checksumSet->isCheck_newRefData+checksumSet->isCheck_copyFileData;
         assert(checksumSet->checksumPlugin==0);
-        hpatch_BOOL isNeedChecksum= checksumSet->isCheck_dirDiffData||checksumSet->isCheck_oldRefData||
-                                    checksumSet->isCheck_newRefData||checksumSet->isCheck_sameFileData;
-        if (isNeedChecksum){
-            if (!_findChecksum(&checksumSet->checksumPlugin,dirDiffInfo->checksumType)){
-                fprintf(stderr,"not found checksumType \"%s\" ERROR!",dirDiffInfo->checksumType);
-                check_on_error(HPATCH_DIRPATCH_CHECKSUMTYPE_ERROR);
-            }
-            if (!TDirPatcher_checksum(&dirPatcher,checksumSet)){
-                check(!dirPatcher.isDiffDataChecksumError,
-                      HPATCH_DIRPATCH_CHECKSUM_DIFFDATA_ERROR,"diffFile checksum");
-                check(hpatch_FALSE,HPATCH_DIRPATCH_CHECKSUMSET_ERROR,"diffFile set checksum");
+        if (wantChecksumCount>0){
+            if (strlen(dirDiffInfo->checksumType)==0){
+                memset(checksumSet,0,sizeof(*checksumSet));
+                printf("  NOTE: no checksum saved in diffFile,can not do checksum\n");
+            }else{
+                if (!_findChecksum(&checksumSet->checksumPlugin,dirDiffInfo->checksumType)){
+                    fprintf(stderr,"not found checksumType \"%s\" ERROR!\n",dirDiffInfo->checksumType);
+                    check_on_error(HPATCH_DIRPATCH_CHECKSUMTYPE_ERROR);
+                }
+                printf("hpatchz run with checksum plugin: \"%s\" (need checksum %d)\n",
+                       dirDiffInfo->checksumType,wantChecksumCount);
+                if (!TDirPatcher_checksum(&dirPatcher,checksumSet)){
+                    check(!dirPatcher.isDiffDataChecksumError,
+                          HPATCH_DIRPATCH_CHECKSUM_DIFFDATA_ERROR,"diffFile checksum");
+                    check(hpatch_FALSE,HPATCH_DIRPATCH_CHECKSUMSET_ERROR,"diffFile set checksum");
+                }
             }
         }
     }
@@ -571,15 +650,25 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         hdiffInfo=dirDiffInfo->hdiffInfo;
         hdiffInfo.compressedCount+=(dirDiffInfo->dirDataIsCompressed)?1:0;
         if(!getDecompressPlugin(&hdiffInfo,&decompressPlugin)){
-            fprintf(stderr,"can not decompress \"%s\" data ERROR!",hdiffInfo.compressType);
+            fprintf(stderr,"can not decompress \"%s\" data ERROR!\n",hdiffInfo.compressType);
             check_on_error(HPATCH_COMPRESSTYPE_ERROR);
         }
         //load dir data
         check(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin),
               HPATCH_DIRPATCH_LAOD_DIRDIFFDATA_ERROR,"load dir data in diffFile");
     }
-    printf("oldRefSize  : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewRefSize  : %" PRIu64 "\n",
-           dirDiffInfo->hdiffInfo.oldDataSize,diffData.base.streamSize,dirDiffInfo->hdiffInfo.newDataSize);
+    {//info
+        const _TDirDiffHead* head=&dirPatcher.dirDiffHead;
+        printf("DirPatch new path count: %"PRIu64" (fileCount:%"PRIu64")\n",(hpatch_StreamPos_t)head->newPathCount,
+               (hpatch_StreamPos_t)(head->sameFilePairCount+head->newRefFileCount));
+        printf("    copy from old count: %"PRIu64" (dataSize: %"PRIu64")\n",
+               (hpatch_StreamPos_t)head->sameFilePairCount,head->sameFileSize);
+        printf("     ref old file count: %"PRIu64"\n",(hpatch_StreamPos_t)head->oldRefFileCount);
+        printf("     ref new file count: %"PRIu64"\n",(hpatch_StreamPos_t)head->newRefFileCount);
+        printf("oldRefSize  : %"PRIu64"\ndiffDataSize: %"PRIu64"\nnewRefSize  : %"PRIu64" (all newSize: %"PRIu64")\n",
+               dirDiffInfo->hdiffInfo.oldDataSize,diffData.base.streamSize,dirDiffInfo->hdiffInfo.newDataSize,
+               dirDiffInfo->hdiffInfo.newDataSize+head->sameFileSize);
+    }
     {//mem cache
         p_temp_mem=getPatchMemCache(isLoadOldAll,patchCacheSize,dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
         check(p_temp_mem,HPATCH_MEM_ERROR,"alloc cache memory");
