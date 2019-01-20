@@ -34,6 +34,7 @@
 #include "../file_for_patch.h"
 
 #include <sys/stat.h> //stat mkdir
+#include <errno.h>    //errno
 #ifdef _MSC_VER
 #   include <direct.h> // *mkdir
 #endif
@@ -57,18 +58,24 @@ hpatch_BOOL getIsDirName(const char* path_utf8){
 }
 
 typedef enum TPathType{
+    kPathType_notExist,
     kPathType_file,
-    kPathType_dir
+    kPathType_dir,
 } TPathType;
 
 hpatch_inline static
-hpatch_BOOL getPathStat(const char* path_utf8,TPathType* out_type,hpatch_StreamPos_t* out_fileSize){
+hpatch_BOOL _getPathStat_noEndDirSeparator(const char* path_utf8,TPathType* out_type,
+                                           hpatch_StreamPos_t* out_fileSize){
 #if (_IS_USE_WIN32_UTF8_WAPI)
     int            wsize;
     wchar_t        path_w[kPathMaxSize];
     struct _stat64 s;
 #else
+#   ifdef _MSC_VER
+    struct _stat64 s;
+#   else
     struct stat  s;
+#   endif
 #endif
     
     int          rt;
@@ -79,11 +86,19 @@ hpatch_BOOL getPathStat(const char* path_utf8,TPathType* out_type,hpatch_StreamP
     if (wsize<=0) return hpatch_FALSE;
     rt = _wstat64(path_w,&s);
 #else
+#   ifdef _MSC_VER
+    rt = _stat64(path_utf8,&s);
+#   else
     rt = stat(path_utf8,&s);
+#   endif
 #endif
     
     if(rt!=0){
-        return hpatch_FALSE;
+        if (errno==ENOENT){
+            *out_type=kPathType_notExist;
+            return hpatch_TRUE;
+        }
+        return hpatch_FALSE; //error
     }else if ((s.st_mode&S_IFMT)==S_IFREG){
         *out_type=kPathType_file;
         if (out_fileSize) *out_fileSize=s.st_size;
@@ -93,7 +108,26 @@ hpatch_BOOL getPathStat(const char* path_utf8,TPathType* out_type,hpatch_StreamP
         if (out_fileSize) *out_fileSize=0;
         return hpatch_TRUE;
     }else{
-        return hpatch_FALSE;
+        return hpatch_FALSE; //as error; unknow how to dispose
+    }
+}
+
+#define _path_noEndDirSeparator(dst_path,src_path)  \
+    char  dst_path[kPathMaxSize];      \
+    {   size_t len=strlen(src_path);   \
+        if (len>=kPathMaxSize) return hpatch_FALSE; /* error */ \
+        if ((len>0)&&(src_path[len-1]==kPatch_dirSeparator)) --len; /* without '/' */\
+        memcpy(dst_path,src_path,len); \
+        dst_path[len]='\0';  } /* safe */
+
+hpatch_inline static
+hpatch_BOOL getPathStat(const char* path_utf8,TPathType* out_type,
+                        hpatch_StreamPos_t* out_fileSize){
+    if (!getIsDirName(path_utf8)){
+        return _getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize);
+    }else{//dir name
+        _path_noEndDirSeparator(path,path_utf8);
+        return _getPathStat_noEndDirSeparator(path,out_type,out_fileSize);
     }
 }
 
@@ -105,32 +139,36 @@ hpatch_BOOL getPathTypeByName(const char* path_utf8,TPathType* out_type,hpatch_S
         if (out_fileSize) *out_fileSize=0;
         return hpatch_TRUE;
     }else{
-        return getPathStat(path_utf8,out_type,out_fileSize);
+        return _getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize);
     }
 }
 
 hpatch_inline static
 hpatch_BOOL makeNewDir(const char* dirName_utf8){
     TPathType type;
-    if (getPathStat(dirName_utf8,&type,0)){
-        return type==kPathType_dir;
-    }else{
+    _path_noEndDirSeparator(path,dirName_utf8);
+    if (!_getPathStat_noEndDirSeparator(path,&type,0)) return hpatch_FALSE; //error
+    switch (type) {
+        case kPathType_dir :{ return hpatch_TRUE; } break; //exist
+        case kPathType_file:{ return hpatch_FALSE; } break; //error, not overwite
+        case kPathType_notExist:{
 #if (_IS_USE_WIN32_UTF8_WAPI)
-        int     rt;
-        int     wsize;
-        wchar_t path_w[kPathMaxSize];
-        wsize=_utf8FileName_to_w(dirName_utf8,path_w,kPathMaxSize);
-        if (wsize<=0) return hpatch_FALSE;
-        rt = _wmkdir(path_w);
+            int     rt;
+            int     wsize;
+            wchar_t path_w[kPathMaxSize];
+            wsize=_utf8FileName_to_w(path,path_w,kPathMaxSize);
+            if (wsize<=0) return hpatch_FALSE;
+            rt = _wmkdir(path_w);
 #else
 #   ifdef _MSC_VER
-        int rt=_mkdir(dirName_utf8);
+            int rt=_mkdir(path);
 #   else
-        const mode_t kDefalutMode=S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
-        int rt=mkdir(dirName_utf8,kDefalutMode);
+            const mode_t kDefalutMode=S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
+            int rt=mkdir(path,kDefalutMode);
 #   endif
 #endif
-        return rt==0;
+            return rt==0;
+        } break;
     }
 }
 

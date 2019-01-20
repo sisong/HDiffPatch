@@ -170,7 +170,7 @@ hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,const char* newPath
                                            IDirPatchListener* listener,
                                            const hpatch_TStreamOutput** out_newDirStream);
 
-hpatch_BOOL TDirPatcher_patch(const TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
+hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
                               const hpatch_TStreamInput* oldData,
                               unsigned char* temp_cache,unsigned char* temp_cache_end);
 

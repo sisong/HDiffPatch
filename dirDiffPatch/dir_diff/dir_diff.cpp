@@ -151,15 +151,19 @@ void getDirFileList(const std::string& dirPath,std::vector<std::string>& out_lis
             continue;
         std::string subName(dirPath+path);
         assert(!isDirName(subName));
-        if (type==kPathType_dir){
-            assignDirTag(subName);
-            if (!filter->isNeedFilter(subName)){
-                getDirFileList(subName,out_list,filter);
-            }
-        }else{// if (type==kPathType_file){
-            if (!filter->isNeedFilter(subName)){
-                out_list.push_back(subName); //add file
-            }
+        switch (type) {
+            case kPathType_dir:{
+                assignDirTag(subName);
+                if (!filter->isNeedFilter(subName))
+                    getDirFileList(subName,out_list,filter);
+            } break;
+            case kPathType_file:{
+                if (!filter->isNeedFilter(subName))
+                    out_list.push_back(subName); //add file
+            } break;
+            default:{
+                //nothing
+            } break;
         }
     }
 }
@@ -832,12 +836,13 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
     {//dir diff info
         TPathType    oldType;
         _test(getPathTypeByName(oldPath.c_str(),&oldType,0));
+        _test(oldType!=kPathType_notExist);
         _test(TDirPatcher_open(&dirPatcher,testDiffData,&dirDiffInfo));
         _test(dirDiffInfo->isDirDiff);
         if (dirDiffInfo->oldPathIsDir){
             _test(kPathType_dir==oldType);
         }else{
-            _test(kPathType_dir!=oldType);
+            _test(kPathType_file==oldType);
         }
     }
     if (checksumPlugin)

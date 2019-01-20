@@ -103,19 +103,20 @@ static void printUsage(){
            "resave usage: hdiffz [-c-[...]] diffFile outDiffFile\n"
            "memory options:\n"
            "  -m[-matchScore]\n"
-           "      all file load into Memory, with matchScore; DEFAULT; best diffFileSize;\n"
-           "      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1) bytes of memory;\n"
+           "      DEFAULT; all file load into Memory; best diffFileSize;\n"
+           "      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1)\n"
+           "        bytes of memory;\n"
            "      matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc...\n"
            "  -s[-matchBlockSize]\n"
-           "      all file load as Stream, with matchBlockSize; fast;\n"
-           "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;\n"
-           "      matchBlockSize>=2, DEFAULT 64, recommended 32,48,1k,64k,1m etc...\n"
+           "      all file load as Stream; fast;\n"
+           "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;\n"
+           "      matchBlockSize>=4, DEFAULT 64, recommended 16,32,48,1k,64k,1m etc...\n"
            "special options:\n"
            "  -c-compressType[-compressLevel]\n"
            "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"
            "      for resave diffFile,recompress diffFile to outDiffFile by new set;\n"
            "      support compress type & level:\n"
-           "        (reference: https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
+           "        (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
            "        -zlib[-{1..9}]              DEFAULT level 9\n"
 #endif
@@ -159,12 +160,16 @@ static void printUsage(){
 #endif
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory diff;\n"
-           "      DEFAULT maxOpenFileNumber==48, the best limit value by different operating system.\n"
+           "      maxOpenFileNumber>=8, DEFAULT 48, the best limit value by different\n"
+           "        operating system.\n"
            "  -D  force run Directory Diff, DEFAULT need oldPath or newPath is directory.\n"
            "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
            "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
+           "  -f  Force overwrite, ignore diffFile already exists;\n"
+           "      DEFAULT (no -f) not overwrite and then return error;\n"
+           "      if used -f and outNewPath is exist directory, will always return error.\n"
 #if (_IS_NEED_ORIGINAL)
-           "  -o  Original diff, unsupport run with -s -c -C -D; DEPRECATED;\n"
+           "  -o  DEPRECATED; Original diff, unsupport run with -s -c -C -D;\n"
            "      compatible with \"diff_demo.cpp\",\n"
            "      diffFile must patch by \"patch_demo.c\" or \"hpatchz -o ...\"\n"
 #endif
@@ -312,6 +317,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isPatchCheck=_kNULL_VALUE;
     hpatch_BOOL isDiff=_kNULL_VALUE;
     hpatch_BOOL isForceRunDirDiff=_kNULL_VALUE;
+    hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      matchValue=0;
@@ -376,6 +382,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             case 't':{
                 _options_check((isPatchCheck==_kNULL_VALUE)&&(op[2]=='\0'),"-t");
                 isPatchCheck=hpatch_TRUE; //test diffFile
+            } break;
+            case 'f':{
+                _options_check((isForceOverwrite==_kNULL_VALUE)&&(op[2]=='\0'),"-f");
+                isForceOverwrite=hpatch_TRUE;
             } break;
             case 'd':{
                 _options_check((isDiff==_kNULL_VALUE)&&(op[2]=='\0'),"-d");
@@ -443,6 +453,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         isOutputHelp=hpatch_FALSE;
     if (isOutputVersion==_kNULL_VALUE)
         isOutputVersion=hpatch_FALSE;
+    if (isForceOverwrite==_kNULL_VALUE)
+        isForceOverwrite=hpatch_FALSE;
     if (isOutputHelp||isOutputVersion){
         printf("HDiffPatch::hdiffz v" HDIFFPATCH_VERSION_STRING "\n\n");
         if (isOutputHelp)
@@ -487,10 +499,17 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* oldPath        =arg_values[0];
         const char* newPath        =arg_values[1];
         const char* outDiffFileName=arg_values[2];
+        if (!isForceOverwrite){
+            TPathType   outDiffFileType;
+            _options_check(getPathStat(outDiffFileName,&outDiffFileType,0),"get outDiffFile type");
+            _options_check(outDiffFileType==kPathType_notExist,"outDiffFile already exists, not overwrite");
+        }
         TPathType oldType;
         TPathType newType;
-        _options_check(getPathTypeByName(oldPath,&oldType,0),"input old path must file or directory");
-        _options_check(getPathTypeByName(newPath,&newType,0),"input new path must file or directory");
+        _options_check(getPathTypeByName(oldPath,&oldType,0),"get oldPath type");
+        _options_check(getPathTypeByName(newPath,&newType,0),"get newPath type");
+        _options_check((oldType!=kPathType_notExist),"oldPath not exist");
+        _options_check((newType!=kPathType_notExist),"newPath not exist");
         hpatch_BOOL isUseDirDiff=isForceRunDirDiff||(kPathType_dir==oldType)||(kPathType_dir==newType);
         if (isUseDirDiff){
             _options_check(!isOriginal,"-o unsupport dir diff");
@@ -516,8 +535,13 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         
         const char* diffFileName   =arg_values[0];
         const char* outDiffFileName=arg_values[1];
+        if (!isForceOverwrite){
+            TPathType   outDiffFileType;
+            _options_check(getPathStat(outDiffFileName,&outDiffFileType,0),"get outDiffFile type");
+            _options_check(outDiffFileType==kPathType_notExist,"outDiffFile already exists, not overwrite");
+        }
         hpatch_BOOL isDirDiffFile=hpatch_FALSE;
-        //checksumPlugin=0;
+        assert(checksumPlugin==0);
         _return_check(getIsDirDiffFile(diffFileName,&isDirDiffFile),
                       HDIFF_RESAVE_FILEREAD_ERROR,"open read diffFile");
         if (isDirDiffFile){

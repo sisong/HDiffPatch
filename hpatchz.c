@@ -96,25 +96,35 @@ static void printUsage(){
     printf("usage: hpatchz [options] oldPath diffFile outNewPath\n"
            "memory options:\n"
            "  -m  oldPath all loaded into Memory; fast;\n"
-           "      requires (oldFileSize + 4 * decompress stream size) + O(1) bytes of memory\n"
+           "      requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.\n"
            "  -s[-cacheSize] \n"
-           "      oldPath loaded as Stream, with cacheSize; DEFAULT;\n"
-           "      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;\n"
-           "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m\n"
+           "      DEFAULT; oldPath loaded as Stream;\n"
+           "      requires (cacheSize+ 4*decompress stream size)+O(1) bytes of memory;\n"
+           "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 64m.\n"
            "special options:\n"
            "  -C-checksumSets\n"
-           "      set checksum data for directory patch, DEFAULT not checksum any data;\n"
+           "      set Checksum data for directory patch, DEFAULT not checksum any data;\n"
            "      checksumSets support (can choose multiple):\n"
-           "        -diff         checksum diffFile;\n"
-           "        -old          checksum old reference files;\n"
-           "        -new          checksum new reference files edited from old reference files;\n"
-           "        -copy         checksum new files copy from old same files;\n"
-           "        -all          same as: -diff-old-new-copy\n"
+           "        -diff      checksum diffFile;\n"
+           "        -old       checksum old reference files;\n"
+           "        -new       checksum new reference files edited from old reference files;\n"
+           "        -copy      checksum new files copy from old same files;\n"
+           "        -all       same as: -diff-old-new-copy\n"
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory patch;\n"
-           "      DEFAULT maxOpenFileNumber==24, the best limit value by different operating system.\n"
+           "      maxOpenFileNumber>=8, DEFAULT 24, the best limit value by different\n"
+           "        operating system.\n"
+           "  -f  Force overwrite, ignore outNewPath already exists;\n"
+           "      DEFAULT (no -f) not overwrite and then return error;\n"
+           "      if used -f and outNewPath is exist file:\n"
+           "        if patch output file, will overwrite;\n"
+           "        if patch output directory, will always return error;\n"
+           "      if used -f and outNewPath is exist directory:\n"
+           "        if patch output file, will always return error;\n"
+           "        if patch output directory, will overwrite, but not delete\n"
+           "          needless existing files in folder.\n"
 #if (_IS_NEED_ORIGINAL)
-           "  -o  Original patch; DEPRECATED; compatible with \"patch_demo.c\",\n"
+           "  -o  DEPRECATED; Original patch; compatible with \"patch_demo.c\",\n"
            "      diffFile must created by \"diff_demo.cpp\" or \"hdiffz -o ...\"\n"
 #endif
            "  -h or -?\n"
@@ -217,7 +227,7 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TPatchChecksumSet* checksumS
 
 #define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
 #define kPatchCacheSize_bestmin  ((size_t)1<<21)
-#define kPatchCacheSize_default  ((size_t)1<<27)
+#define kPatchCacheSize_default  ((size_t)1<<26)
 #define kPatchCacheSize_bestmax  ((size_t)1<<30)
 
 #define _kNULL_VALUE    (-1)
@@ -226,6 +236,7 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TPatchChecksumSet* checksumS
 int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=_kNULL_VALUE;
     hpatch_BOOL isLoadOldAll=_kNULL_VALUE;
+    hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      patchCacheSize=0;
@@ -259,6 +270,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 }else{
                     patchCacheSize=kPatchCacheSize_default;
                 }
+            } break;
+            case 'f':{
+                _options_check((isForceOverwrite==_kNULL_VALUE)&&(op[2]=='\0'),"-f");
+                isForceOverwrite=hpatch_TRUE;
             } break;
             case 'C':{
                 const char* psets=op+3;
@@ -295,6 +310,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         isOutputHelp=hpatch_FALSE;
     if (isOutputVersion==_kNULL_VALUE)
         isOutputVersion=hpatch_FALSE;
+    if (isForceOverwrite==_kNULL_VALUE)
+        isForceOverwrite=hpatch_FALSE;
     if (isOutputHelp||isOutputVersion){
         printf("HDiffPatch::hpatchz v" HDIFFPATCH_VERSION_STRING "\n\n");
         if (isOutputHelp)
@@ -322,6 +339,11 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         hpatch_BOOL isDirDiff;
         if (isSamePath(oldPath,outNewPath))
             _options_check(hpatch_FALSE,"now unsupport oldPath outNewPath same path");
+        if (!isForceOverwrite){
+            TPathType   outNewPathType;
+            _options_check(getPathStat(outNewPath,&outNewPathType,0),"get outNewPath type");
+            _options_check(outNewPathType==kPathType_notExist,"outNewPath already exists, not overwrite");
+        }
         _options_check(getIsDirDiffFile(diffFileName,&isDirDiff),"input diffFile open read");
         if (isDirDiff){
             _options_check(!isOriginal,"-o unsupport dir patch");
@@ -599,7 +621,8 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     {//dir diff info
         hpatch_BOOL  rt;
         TPathType    oldType;
-        check(getPathTypeByName(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"input old path must file or dir");
+        check(getPathTypeByName(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"get oldPath type");
+        check((oldType!=kPathType_notExist),HPATCH_PATHTYPE_ERROR,"oldPath not exist");
         check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
         rt=TDirPatcher_open(&dirPatcher,&diffData.base,&dirDiffInfo);
         if((!rt)||(!dirDiffInfo->isDirDiff)){
@@ -609,7 +632,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         if (dirDiffInfo->oldPathIsDir){
             check(kPathType_dir==oldType,HPATCH_PATHTYPE_ERROR,"input old path need dir");
         }else{
-            check(kPathType_dir!=oldType,HPATCH_PATHTYPE_ERROR,"input old path need file");
+            check(kPathType_file==oldType,HPATCH_PATHTYPE_ERROR,"input old path need file");
         }
         printf(        dirDiffInfo->oldPathIsDir?"old  dir: \"":"old file: \"");
         printPath_utf8(oldPath);
@@ -679,11 +702,8 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             // all old while auto cache by patch; not need open old files at same time
             kMaxOpenFileNumber=kMaxOpenFileNumber_limit_min;
         }
-        if(!TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,kMaxOpenFileNumber,&oldStream)){
-            check(!dirPatcher.isOldRefDataChecksumError,
-                  HPATCH_DIRPATCH_CHECKSUM_OLDDATA_ERROR,"oldFile checksum");
-            check(hpatch_FALSE,HPATCH_DIRPATCH_OPEN_OLDPATH_ERROR,"open oldFile");
-        }
+        check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,kMaxOpenFileNumber,&oldStream),
+              HPATCH_DIRPATCH_OPEN_OLDPATH_ERROR,"open oldFile");
     }
     {//new data
         listener.listenerImport=0;
@@ -696,10 +716,12 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     }
     //patch
     if(!TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size)){
-        check(!dirPatcher.isNewRefDataChecksumError,
-              HPATCH_DIRPATCH_CHECKSUM_NEWDATA_ERROR,"newFile checksum");
+        check(!dirPatcher.isOldRefDataChecksumError,
+              HPATCH_DIRPATCH_CHECKSUM_OLDDATA_ERROR,"oldFile checksum");
         check(!dirPatcher.isCopyDataChecksumError,
               HPATCH_DIRPATCH_CHECKSUM_COPYDATA_ERROR,"copyOldFile checksum");
+        check(!dirPatcher.isNewRefDataChecksumError,
+              HPATCH_DIRPATCH_CHECKSUM_NEWDATA_ERROR,"newFile checksum");
         check(hpatch_FALSE,HPATCH_DIRPATCH_ERROR,"dir patch run");
     }
 clear:

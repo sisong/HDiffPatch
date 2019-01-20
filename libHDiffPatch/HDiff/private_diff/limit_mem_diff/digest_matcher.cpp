@@ -37,7 +37,7 @@ static  const size_t kMinMatchedLength = 16;
 static  const size_t kBestReadSize=1024*256; //for sequence read
 static  const size_t kMinReadSize=1024;      //for random first read speed
 static  const size_t kMinBackupReadSize=256;
-static  const size_t kMatchBlockSize_min=2;
+static  const size_t kMatchBlockSize_min=4;
 static  const size_t kMaxMatchRange=1024*64;
 static  const size_t kMaxLinkIndexFindSize=64;
 

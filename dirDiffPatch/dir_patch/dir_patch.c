@@ -529,10 +529,11 @@ hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldPath
         for (i=0; i<refCount;++i){
             TPathType          ftype;
             hpatch_StreamPos_t fileSize;
-            const char* utf8fileName=self->oldUtf8PathList[self->oldRefList[i]];
-            check(addingPath(self->_oldRootDir_end,self->_oldRootDir_bufEnd,utf8fileName));
-            check(getPathTypeByName(self->_oldRootDir,&ftype,&fileSize));
-            check(ftype==kPathType_file)
+            const char* oldRefFileName=self->oldUtf8PathList[self->oldRefList[i]];
+            check(addingPath(self->_oldRootDir_end,self->_oldRootDir_bufEnd,oldRefFileName));
+            oldRefFileName=self->_oldRootDir;
+            check(getPathTypeByName(oldRefFileName,&ftype,&fileSize));
+            check(ftype==kPathType_file);
             self->_resList[i].resImport=self;
             self->_resList[i].resStreamSize=fileSize;
             self->_resList[i].open=_openRes;
@@ -544,14 +545,6 @@ hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,const char* oldPath
         check(TResHandleLimit_open(&self->_resLimit,kMaxOpenFileNumber,self->_resList,refCount));
         check(TRefStream_open(&self->_oldRefStream,self->_resLimit.streamList,self->_resLimit.streamCount));
         *out_oldRefStream=self->_oldRefStream.stream;
-    }
-    //checksum oldRefData
-    if (self->_checksumSet.isCheck_oldRefData){
-        size_t checksumByteSize=self->dirDiffInfo.checksumByteSize;
-        TByte* checksumTemp=self->_pChecksumMem+checksumByteSize*4;
-        if(!_do_checksum(self,self->_pChecksumMem+checksumByteSize*0,checksumTemp,
-                         *out_oldRefStream,0,0)) self->isOldRefDataChecksumError=hpatch_TRUE;
-        check(!self->isOldRefDataChecksumError);
     }
 clear:
     return result;
@@ -582,7 +575,9 @@ static hpatch_BOOL _makeNewDir(INewStreamListener* listener,size_t newPathIndex)
     
     dirName=self->newUtf8PathList[newPathIndex];
     check(addingPath(self->_newRootDir_end,self->_newRootDir_bufEnd,dirName));
-    check(self->_listener->makeNewDir(self->_listener,self->_newRootDir));
+    dirName=self->_newRootDir;
+    assert(getIsDirName(dirName));
+    check(self->_listener->makeNewDir(self->_listener,dirName));
 clear:
     return result;
 }
@@ -744,8 +739,7 @@ clear:
 }
 
 hpatch_BOOL TDirPatcher_closeNewDirStream(TDirPatcher* self){
-    hpatch_BOOL result=hpatch_TRUE;
-    result=TNewStream_close(&self->_newDirStream) & result;
+    hpatch_BOOL result=TNewStream_close(&self->_newDirStream);
     self->_newRootDir=0;
     self->_newRootDir_end=0;
     self->_newRootDir_bufEnd=0;
@@ -757,14 +751,37 @@ hpatch_BOOL TDirPatcher_closeNewDirStream(TDirPatcher* self){
     return result;
 }
 
-hpatch_BOOL TDirPatcher_patch(const TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
+hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
                               const hpatch_TStreamInput* oldData,
                               TByte* temp_cache,TByte* temp_cache_end){
-    TStreamInputClip hdiffData;
+#define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
+    hpatch_BOOL         result=hpatch_TRUE;
+    TStreamInputClip    hdiffData;
+    hpatch_TStreamInput _cacheOldData;
+    if (self->_checksumSet.isCheck_oldRefData){
+        if ((size_t)(temp_cache_end-temp_cache)>=oldData->streamSize+kPatchCacheSize_min){
+            //load all oldData into memory for optimize speed of checksum oldData
+            size_t redLen=(size_t)oldData->streamSize;
+            check(oldData->read(oldData,0,temp_cache,temp_cache+redLen));
+            mem_as_hStreamInput(&_cacheOldData,temp_cache,temp_cache+redLen);
+            temp_cache+=redLen;
+            oldData=&_cacheOldData;
+        }
+        {//checksum oldRefData
+            size_t checksumByteSize=self->dirDiffInfo.checksumByteSize;
+            TByte* checksumTemp=self->_pChecksumMem+checksumByteSize*4;
+            if(!_do_checksum(self,self->_pChecksumMem+checksumByteSize*0,checksumTemp,oldData,0,0)){
+                self->isOldRefDataChecksumError=hpatch_TRUE;
+            }
+            check(!self->isOldRefDataChecksumError);
+        }
+    }
     TStreamInputClip_init(&hdiffData,self->_dirDiffData,self->dirDiffHead.hdiffDataOffset,
                           self->dirDiffHead.hdiffDataOffset+self->dirDiffHead.hdiffDataSize);
-    return patch_decompress_with_cache(out_newData,oldData,&hdiffData.base,
-                                       self->_decompressPlugin,temp_cache,temp_cache_end);
+    check(patch_decompress_with_cache(out_newData,oldData,&hdiffData.base,
+                                      self->_decompressPlugin,temp_cache,temp_cache_end));
+clear:
+    return result;
 }
 
 hpatch_BOOL TDirPatcher_close(TDirPatcher* self){
