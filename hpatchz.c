@@ -122,7 +122,7 @@ static void printUsage(){
            "      if used -f and outNewPath is exist directory:\n"
            "        if patch output file, will always return error;\n"
            "        if patch output directory, will overwrite, but not delete\n"
-           "          needless existing files in folder.\n"
+           "          needless existing files in directory.\n"
 #if (_IS_NEED_ORIGINAL)
            "  -o  DEPRECATED; Original patch; compatible with \"patch_demo.c\",\n"
            "      diffFile must created by \"diff_demo.cpp\" or \"hdiffz -o ...\"\n"
@@ -147,20 +147,21 @@ typedef enum THPatchResult {
     HPATCH_COMPRESSTYPE_ERROR,
     HPATCH_PATCH_ERROR,
     
-    HPATCH_PATHTYPE_ERROR,
-    HPATCH_DIRDIFFINFO_ERROR,
-    HPATCH_DIRPATCH_CHECKSUMTYPE_ERROR,
-    HPATCH_DIRPATCH_CHECKSUMSET_ERROR,
-    HPATCH_DIRPATCH_CHECKSUM_DIFFDATA_ERROR,
-    HPATCH_DIRPATCH_CHECKSUM_OLDDATA_ERROR,
-    HPATCH_DIRPATCH_CHECKSUM_NEWDATA_ERROR,
-    HPATCH_DIRPATCH_CHECKSUM_COPYDATA_ERROR,
-    HPATCH_DIRPATCH_ERROR,
-    HPATCH_DIRPATCH_LAOD_DIRDIFFDATA_ERROR,
-    HPATCH_DIRPATCH_OPEN_OLDPATH_ERROR,
-    HPATCH_DIRPATCH_OPEN_NEWPATH_ERROR,
-    HPATCH_DIRPATCH_CLOSE_OLDPATH_ERROR,
-    HPATCH_DIRPATCH_CLOSE_NEWPATH_ERROR,
+    HPATCH_PATHTYPE_ERROR, //adding begin v3.0
+    
+    DIRPATCH_DIRDIFFINFO_ERROR=101,
+    DIRPATCH_CHECKSUMTYPE_ERROR,
+    DIRPATCH_CHECKSUMSET_ERROR,
+    DIRPATCH_CHECKSUM_DIFFDATA_ERROR,
+    DIRPATCH_CHECKSUM_OLDDATA_ERROR,
+    DIRPATCH_CHECKSUM_NEWDATA_ERROR,
+    DIRPATCH_CHECKSUM_COPYDATA_ERROR,
+    DIRPATCH_PATCH_ERROR,
+    DIRPATCH_LAOD_DIRDIFFDATA_ERROR,
+    DIRPATCH_OPEN_OLDPATH_ERROR,
+    DIRPATCH_OPEN_NEWPATH_ERROR,
+    DIRPATCH_CLOSE_OLDPATH_ERROR,
+    DIRPATCH_CLOSE_NEWPATH_ERROR,
 } THPatchResult;
 
 int hpatch_cmd_line(int argc, const char * argv[]);
@@ -220,6 +221,9 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TPatchChecksumSet* checksumS
             psets=pend+1;
     }
 }
+
+#define _return_check(value,exitCode,errorInfo){ \
+    if (!(value)) { fprintf(stderr,errorInfo " ERROR!\n"); return exitCode; } }
 
 #define _options_check(value,errorInfo){ \
     if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n\n"); \
@@ -341,10 +345,13 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             _options_check(hpatch_FALSE,"now unsupport oldPath outNewPath same path");
         if (!isForceOverwrite){
             TPathType   outNewPathType;
-            _options_check(getPathStat(outNewPath,&outNewPathType,0),"get outNewPath type");
-            _options_check(outNewPathType==kPathType_notExist,"outNewPath already exists, not overwrite");
+            _return_check(getPathStat(outNewPath,&outNewPathType,0),
+                          HPATCH_PATHTYPE_ERROR,"get outNewPath type");
+            _return_check(outNewPathType==kPathType_notExist,
+                          HPATCH_PATHTYPE_ERROR,"outNewPath already exists, not overwrite");
         }
-        _options_check(getIsDirDiffFile(diffFileName,&isDirDiff),"input diffFile open read");
+        _return_check(getIsDirDiffFile(diffFileName,&isDirDiff),
+                      HPATCH_OPENREAD_ERROR,"input diffFile open read");
         if (isDirDiff){
             _options_check(!isOriginal,"-o unsupport dir patch");
             return hpatch_dir(oldPath,diffFileName,outNewPath,isLoadOldAll,patchCacheSize,
@@ -627,7 +634,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         rt=TDirPatcher_open(&dirPatcher,&diffData.base,&dirDiffInfo);
         if((!rt)||(!dirDiffInfo->isDirDiff)){
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
-            check(hpatch_FALSE,HPATCH_DIRDIFFINFO_ERROR,"is hdiff file? get dir diff info");
+            check(hpatch_FALSE,DIRPATCH_DIRDIFFINFO_ERROR,"is hdiff file? get dir diff info");
         }
         if (dirDiffInfo->oldPathIsDir){
             check(kPathType_dir==oldType,HPATCH_PATHTYPE_ERROR,"input old path need dir");
@@ -655,19 +662,19 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             }else{
                 if (!_findChecksum(&checksumSet->checksumPlugin,dirDiffInfo->checksumType)){
                     fprintf(stderr,"not found checksumType \"%s\" ERROR!\n",dirDiffInfo->checksumType);
-                    check_on_error(HPATCH_DIRPATCH_CHECKSUMTYPE_ERROR);
+                    check_on_error(DIRPATCH_CHECKSUMTYPE_ERROR);
                 }
                 printf("hpatchz run with checksum plugin: \"%s\" (need checksum %d)\n",
                        dirDiffInfo->checksumType,wantChecksumCount);
                 if (!TDirPatcher_checksum(&dirPatcher,checksumSet)){
                     check(!dirPatcher.isDiffDataChecksumError,
-                          HPATCH_DIRPATCH_CHECKSUM_DIFFDATA_ERROR,"diffFile checksum");
-                    check(hpatch_FALSE,HPATCH_DIRPATCH_CHECKSUMSET_ERROR,"diffFile set checksum");
+                          DIRPATCH_CHECKSUM_DIFFDATA_ERROR,"diffFile checksum");
+                    check(hpatch_FALSE,DIRPATCH_CHECKSUMSET_ERROR,"diffFile set checksum");
                 }
             }
         }
     }
-    {   //decompressPlugin
+    {//decompressPlugin
         hpatch_TDecompress*  decompressPlugin=0;
         hpatch_compressedDiffInfo hdiffInfo;
         hdiffInfo=dirDiffInfo->hdiffInfo;
@@ -678,7 +685,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         }
         //load dir data
         check(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin),
-              HPATCH_DIRPATCH_LAOD_DIRDIFFDATA_ERROR,"load dir data in diffFile");
+              DIRPATCH_LAOD_DIRDIFFDATA_ERROR,"load dir data in diffFile");
     }
     {//info
         const _TDirDiffHead* head=&dirPatcher.dirDiffHead;
@@ -703,7 +710,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             kMaxOpenFileNumber=kMaxOpenFileNumber_limit_min;
         }
         check(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath,kMaxOpenFileNumber,&oldStream),
-              HPATCH_DIRPATCH_OPEN_OLDPATH_ERROR,"open oldFile");
+              DIRPATCH_OPEN_OLDPATH_ERROR,"open oldFile");
     }
     {//new data
         listener.listenerImport=0;
@@ -712,22 +719,22 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         listener.openNewFile=_openNewFile;
         listener.closeNewFile=_closeNewFile;
         check(TDirPatcher_openNewDirAsStream(&dirPatcher,outNewPath,&listener,&newStream),
-              HPATCH_DIRPATCH_OPEN_NEWPATH_ERROR,"open newFile");
+              DIRPATCH_OPEN_NEWPATH_ERROR,"open newFile");
     }
     //patch
     if(!TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size)){
         check(!dirPatcher.isOldRefDataChecksumError,
-              HPATCH_DIRPATCH_CHECKSUM_OLDDATA_ERROR,"oldFile checksum");
+              DIRPATCH_CHECKSUM_OLDDATA_ERROR,"oldFile checksum");
         check(!dirPatcher.isCopyDataChecksumError,
-              HPATCH_DIRPATCH_CHECKSUM_COPYDATA_ERROR,"copyOldFile checksum");
+              DIRPATCH_CHECKSUM_COPYDATA_ERROR,"copyOldFile checksum");
         check(!dirPatcher.isNewRefDataChecksumError,
-              HPATCH_DIRPATCH_CHECKSUM_NEWDATA_ERROR,"newFile checksum");
-        check(hpatch_FALSE,HPATCH_DIRPATCH_ERROR,"dir patch run");
+              DIRPATCH_CHECKSUM_NEWDATA_ERROR,"newFile checksum");
+        check(hpatch_FALSE,DIRPATCH_PATCH_ERROR,"dir patch run");
     }
 clear:
     _isInClear=hpatch_TRUE;
-    check(TDirPatcher_closeNewDirStream(&dirPatcher),HPATCH_DIRPATCH_CLOSE_NEWPATH_ERROR,"newPath close");
-    check(TDirPatcher_closeOldRefStream(&dirPatcher),HPATCH_DIRPATCH_CLOSE_OLDPATH_ERROR,"oldPath close");
+    check(TDirPatcher_closeNewDirStream(&dirPatcher),DIRPATCH_CLOSE_NEWPATH_ERROR,"newPath close");
+    check(TDirPatcher_closeOldRefStream(&dirPatcher),DIRPATCH_CLOSE_OLDPATH_ERROR,"oldPath close");
     TDirPatcher_close(&dirPatcher);
     check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
     _free_mem(p_temp_mem);

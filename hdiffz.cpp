@@ -193,8 +193,11 @@ typedef enum THDiffResult {
     HDIFF_RESAVE_COMPRESSTYPE_ERROR,
     HDIFF_RESAVE_ERROR,
     HDIFF_RESAVE_CHECKSUMTYPE_ERROR,
-    HDIFF_DIR_DIFF_ERROR,
-    HDIFF_DIR_PATCH_ERROR,
+    
+    HDIFF_PATHTYPE_ERROR, //adding begin v3.0
+    
+    DIRDIFF_DIFF_ERROR=101,
+    DIRDIFF_PATCH_ERROR,
 } THDiffResult;
 
 int hdiff_cmd_line(int argc,const char * argv[]);
@@ -501,15 +504,17 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* outDiffFileName=arg_values[2];
         if (!isForceOverwrite){
             TPathType   outDiffFileType;
-            _options_check(getPathStat(outDiffFileName,&outDiffFileType,0),"get outDiffFile type");
-            _options_check(outDiffFileType==kPathType_notExist,"outDiffFile already exists, not overwrite");
+            _return_check(getPathStat(outDiffFileName,&outDiffFileType,0),
+                          HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
+            _return_check(outDiffFileType==kPathType_notExist,HDIFF_PATHTYPE_ERROR,
+                          "outDiffFile already exists, not overwrite");
         }
         TPathType oldType;
         TPathType newType;
-        _options_check(getPathTypeByName(oldPath,&oldType,0),"get oldPath type");
-        _options_check(getPathTypeByName(newPath,&newType,0),"get newPath type");
-        _options_check((oldType!=kPathType_notExist),"oldPath not exist");
-        _options_check((newType!=kPathType_notExist),"newPath not exist");
+        _return_check(getPathTypeByName(oldPath,&oldType,0),HDIFF_PATHTYPE_ERROR,"get oldPath type");
+        _return_check(getPathTypeByName(newPath,&newType,0),HDIFF_PATHTYPE_ERROR,"get newPath type");
+        _return_check((oldType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"oldPath not exist");
+        _return_check((newType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"newPath not exist");
         hpatch_BOOL isUseDirDiff=isForceRunDirDiff||(kPathType_dir==oldType)||(kPathType_dir==newType);
         if (isUseDirDiff){
             _options_check(!isOriginal,"-o unsupport dir diff");
@@ -537,8 +542,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* outDiffFileName=arg_values[1];
         if (!isForceOverwrite){
             TPathType   outDiffFileType;
-            _options_check(getPathStat(outDiffFileName,&outDiffFileType,0),"get outDiffFile type");
-            _options_check(outDiffFileType==kPathType_notExist,"outDiffFile already exists, not overwrite");
+            _return_check(getPathStat(outDiffFileName,&outDiffFileType,0),
+                          HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
+            _return_check(outDiffFileType==kPathType_notExist,
+                          HDIFF_PATHTYPE_ERROR,"outDiffFile already exists, not overwrite");
         }
         hpatch_BOOL isDirDiffFile=hpatch_FALSE;
         assert(checksumPlugin==0);
@@ -974,7 +981,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
                      streamCompressPlugin,compressPlugin,checksumPlugin,kMaxOpenFileNumber);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
-            check(false,HDIFF_DIR_DIFF_ERROR,"dir diff run an error: "+e.what());
+            check(false,DIRDIFF_DIFF_ERROR,"dir diff run an error: "+e.what());
         }
         printf("\nDirDiff  size: %"PRIu64"\n",diffData_out.base.streamSize);
         printf("DirDiff  time: %.3f s\n",(clock_s()-time0));
@@ -988,7 +995,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         printf("diffDataSize : %"PRIu64"\n",diffData_in.base.streamSize);
         DirDiffListener listener;
         check(check_dirdiff(&listener,oldPatch,newPatch,&diffData_in.base,decompressPlugin,checksumPlugin,
-                            kMaxOpenFileNumber), HDIFF_DIR_PATCH_ERROR,"DirPatch check diff data");
+                            kMaxOpenFileNumber), DIRDIFF_PATCH_ERROR,"DirPatch check diff data");
         printf("  DirPatch check diff data ok!\n");
         printf("DirPatch time: %.3f s\n",(clock_s()-patch_time0));
     }
