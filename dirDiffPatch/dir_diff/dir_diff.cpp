@@ -132,40 +132,58 @@ static inline void clearVector(TVector& v){ TVector _t; v.swap(_t); }
 
 
 struct CDir{
-    inline CDir(const char* dir):handle(0){ handle=dirOpenForRead(dir); }
+    inline CDir(const std::string& dir):handle(0){ handle=dirOpenForRead(dir.c_str()); }
     inline ~CDir(){ dirClose(handle); }
     TDirHandle handle;
 };
 
-void getDirFileList(const std::string& dirPath,std::vector<std::string>& out_list,IDirFilter* filter){
-    assert(isDirName(dirPath));
-    CDir dir(dirPath.c_str());
-    check((dir.handle!=0),"dirOpenForRead \""+dirPath+"\" error!");
-    out_list.push_back(dirPath); //add dir
-    while (true) {
-        TPathType  type;
-        const char* path=0;
-        check(dirNext(dir.handle,&type,&path),"dirNext \""+dirPath+"\" error!");
-        if (path==0) break; //finish
-        if ((0==strcmp(path,""))||(0==strcmp(path,"."))||(0==strcmp(path,"..")))
-            continue;
-        std::string subName(dirPath+path);
-        assert(!isDirName(subName));
-        switch (type) {
-            case kPathType_dir:{
-                assignDirTag(subName);
-                if (!filter->isNeedFilter(subName))
-                    getDirFileList(subName,out_list,filter);
-            } break;
-            case kPathType_file:{
-                if (!filter->isNeedFilter(subName))
-                    out_list.push_back(subName); //add file
-            } break;
-            default:{
-                //nothing
-            } break;
+
+void _getDirSubFileList(const std::string& dirPath,std::vector<std::string>& out_list,IDirFilter* filter){
+    assert(!isDirName(dirPath));
+    std::vector<std::string> subDirs;
+    {//serach cur dir
+        CDir dir(dirPath);
+        check((dir.handle!=0),"dirOpenForRead \""+dirPath+"\" error!");
+        while (true) {
+            TPathType  type;
+            const char* path=0;
+            check(dirNext(dir.handle,&type,&path),"dirNext \""+dirPath+"\" error!");
+            if (path==0) break; //finish
+            if ((0==strcmp(path,""))||(0==strcmp(path,"."))||(0==strcmp(path,"..")))
+                continue;
+            std::string subName(dirPath+kPatch_dirSeparator+path);
+            assert(!isDirName(subName));
+            switch (type) {
+                case kPathType_dir:{
+                    if (!filter->isNeedFilter(subName)){
+                        subDirs.push_back(subName); //no '/'
+                        
+                        assignDirTag(subName);
+                        out_list.push_back(subName); //add dir
+                    }
+                } break;
+                case kPathType_file:{
+                    if (!filter->isNeedFilter(subName))
+                        out_list.push_back(subName); //add file
+                } break;
+                default:{
+                    //nothing
+                } break;
+            }
         }
     }
+    
+    for (size_t i=0; i<subDirs.size(); ++i) {
+        assert(!isDirName(subDirs[i]));
+        _getDirSubFileList(subDirs[i],out_list,filter);
+    }
+}
+
+void getDirFileList(const std::string& dirPath,std::vector<std::string>& out_list,IDirFilter* filter){
+    assert(isDirName(dirPath));
+    out_list.push_back(dirPath);
+    const std::string dirName(dirPath.c_str(),dirPath.c_str()+dirPath.size()-1); //without '/'
+    _getDirSubFileList(dirName,out_list,filter);
 }
 
 static hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* out_fileSize){
