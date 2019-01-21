@@ -39,7 +39,6 @@
 #include "_clock_for_demo.h"
 #include "_atosize.h"
 #include "file_for_patch.h"
-#include "dirDiffPatch/file_for_dirDiff.h"
 #include "dirDiffPatch/dir_diff/dir_diff.h"
 #include "dirDiffPatch/dir_patch/dir_patch.h"
 
@@ -195,6 +194,9 @@ typedef enum THDiffResult {
     HDIFF_RESAVE_CHECKSUMTYPE_ERROR,
     
     HDIFF_PATHTYPE_ERROR, //adding begin v3.0
+    HDIFF_TEMPPATH_ERROR,
+    HDIFF_DELETEPATH_ERROR,
+    HDIFF_RENAMEPATH_ERROR,
     
     DIRDIFF_DIFF_ERROR=101,
     DIRDIFF_PATCH_ERROR,
@@ -502,12 +504,15 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* oldPath        =arg_values[0];
         const char* newPath        =arg_values[1];
         const char* outDiffFileName=arg_values[2];
+        
+        _return_check(!getIsSamePath(oldPath,outDiffFileName),HDIFF_PATHTYPE_ERROR,"oldPath outDiffFile same path");
+        _return_check(!getIsSamePath(newPath,outDiffFileName),HDIFF_PATHTYPE_ERROR,"newPath outDiffFile same path");
         if (!isForceOverwrite){
             TPathType   outDiffFileType;
             _return_check(getPathStat(outDiffFileName,&outDiffFileType,0),
                           HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
-            _return_check(outDiffFileType==kPathType_notExist,HDIFF_PATHTYPE_ERROR,
-                          "outDiffFile already exists, not overwrite");
+            _return_check(outDiffFileType==kPathType_notExist,
+                          HDIFF_PATHTYPE_ERROR,"outDiffFile already exists, not overwrite");
         }
         TPathType oldType;
         TPathType newType;
@@ -547,6 +552,9 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             _return_check(outDiffFileType==kPathType_notExist,
                           HDIFF_PATHTYPE_ERROR,"outDiffFile already exists, not overwrite");
         }
+        bool isSamePath=getIsSamePath(diffFileName,outDiffFileName);
+        if (isSamePath) _return_check(isForceOverwrite,HDIFF_PATHTYPE_ERROR,"diffFile outDiffFile same name");
+        
         hpatch_BOOL isDirDiffFile=hpatch_FALSE;
         assert(checksumPlugin==0);
         _return_check(getIsDirDiffFile(diffFileName,&isDirDiffFile),
@@ -561,7 +569,28 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                               HDIFF_RESAVE_CHECKSUMTYPE_ERROR,"not find dirDiffFile used checksumType");
             }
         }
-        return hdiff_resave(diffFileName,outDiffFileName,streamCompressPlugin,checksumPlugin);
+        if (!isSamePath){
+            return hdiff_resave(diffFileName,outDiffFileName,streamCompressPlugin,checksumPlugin);
+        }else{
+            // 1. resave to newDiffTempName
+            // 2. if resave ok    then  { delelte oldDiffFile; rename newDiffTempName to oldDiffName; }
+            //    if resave error then  { delelte newDiffTempName; }
+            char newDiffTempName[kPathMaxSize];
+            _return_check(getTempPathName(outDiffFileName,newDiffTempName,newDiffTempName+kPathMaxSize),
+                          HDIFF_TEMPPATH_ERROR,"getTempPathName(diffFile)");
+            printf("NOTE: out_diff temp file will be rename to in_diff name after resave!\n");
+            int result=hdiff_resave(diffFileName,newDiffTempName,streamCompressPlugin,checksumPlugin);
+            if (result==0){//resave ok
+                _return_check(removeFile(diffFileName),
+                              HDIFF_DELETEPATH_ERROR,"deletePath(diffFile)");
+                _return_check(renamePath(newDiffTempName,diffFileName),
+                              HDIFF_RENAMEPATH_ERROR,"renamePath(diffFile)");
+                printf("out_diff temp file renamed to in_diff name!\n");
+            }else{//resave error
+                removeFile(newDiffTempName);//not check return
+            }
+            return result;
+        }
     }
 }
 

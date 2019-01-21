@@ -37,7 +37,7 @@
 #include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #include "../../libHDiffPatch/HDiff/diff.h"
 #include "../../file_for_patch.h"
-#include "../file_for_dirDiff.h"
+#include "file_for_dirDiff.h"
 #include "../dir_patch/ref_stream.h"
 #include "../dir_patch/dir_patch.h"
 #include "../dir_patch/dir_patch_private.h"

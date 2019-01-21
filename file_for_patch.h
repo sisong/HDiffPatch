@@ -32,6 +32,11 @@
 #include <stdio.h>  //fprintf
 #include <stdlib.h> // malloc free
 #include <locale.h> // setlocale
+#include <unistd.h> // rmdir
+#ifdef _MSC_VER
+#   include <direct.h> // *mkdir *rmdir
+#endif
+
 #include "libHDiffPatch/HPatch/patch_types.h"
 
 #ifndef _IS_USE_WIN32_UTF8_WAPI
@@ -54,7 +59,35 @@ extern "C" {
 
 typedef unsigned char TByte;
 #define kFileIOBestMaxSize  (1<<20)
-#define kPathMaxSize  1024
+#define kPathMaxSize  512
+
+#define kMaxOpenFileNumber_limit_min          3
+#define kMaxOpenFileNumber_default_min        8 //must >= limit_min
+#define kMaxOpenFileNumber_default_diff      48
+#define kMaxOpenFileNumber_default_patch     24
+
+    
+#ifdef _WIN32
+    static const char kPatch_dirSeparator = '\\';
+#else
+    static const char kPatch_dirSeparator = '/';
+#endif
+    static const char kPatch_dirSeparator_saved = '/';
+    
+hpatch_inline static
+hpatch_BOOL getIsDirName(const char* path_utf8){
+    size_t len=strlen(path_utf8);
+    return (len>0)&&(path_utf8[len-1]==kPatch_dirSeparator);
+}
+
+
+#define _path_noEndDirSeparator(dst_path,src_path)  \
+    char  dst_path[kPathMaxSize];      \
+    {   size_t len=strlen(src_path);   \
+        if (len>=kPathMaxSize) return hpatch_FALSE; /* error */ \
+        if ((len>0)&&(src_path[len-1]==kPatch_dirSeparator)) --len; /* without '/' */\
+        memcpy(dst_path,src_path,len); \
+        dst_path[len]='\0';  } /* safe */
 
 #ifndef PRIu64
 #   ifdef _MSC_VER
@@ -64,7 +97,6 @@ typedef unsigned char TByte;
 #   endif
 #endif
 
-typedef FILE* hpatch_FileHandle;
 
 #if (_WIN32)
 static int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
@@ -98,7 +130,7 @@ void SetDefaultStringLocale(){ //for some locale Path character encoding view
 #endif
 
 hpatch_inline static
-hpatch_BOOL isSamePath(const char* xPath_utf8,const char* yPath_utf8){
+hpatch_BOOL getIsSamePath(const char* xPath_utf8,const char* yPath_utf8){
     if (0==strcmp(xPath_utf8,yPath_utf8)){
         return hpatch_TRUE;
     }else{
@@ -134,6 +166,55 @@ int printStdErrPath_utf8(const char* pathTxt_utf8){
     return fprintf(stderr,"%s",pathTxt_utf8);
 #endif
 }
+    
+
+    typedef enum TPathType{
+        kPathType_notExist,
+        kPathType_file,
+        kPathType_dir,
+    } TPathType;
+    
+    
+hpatch_BOOL _getPathStat_noEndDirSeparator(const char* path_utf8,TPathType* out_type,
+                                           hpatch_StreamPos_t* out_fileSize);
+    
+hpatch_inline static
+hpatch_BOOL getPathStat(const char* path_utf8,TPathType* out_type,
+                        hpatch_StreamPos_t* out_fileSize){
+    if (!getIsDirName(path_utf8)){
+        return _getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize);
+    }else{//dir name
+        _path_noEndDirSeparator(path,path_utf8);
+        return _getPathStat_noEndDirSeparator(path,out_type,out_fileSize);
+    }
+}
+
+hpatch_inline static
+hpatch_BOOL getPathTypeByName(const char* path_utf8,TPathType* out_type,hpatch_StreamPos_t* out_fileSize){
+    assert(out_type!=0);
+    if (getIsDirName(path_utf8)){
+        *out_type=kPathType_dir;
+        if (out_fileSize) *out_fileSize=0;
+        return hpatch_TRUE;
+    }else{
+        return _getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize);
+    }
+}
+
+hpatch_BOOL getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end);
+    
+hpatch_BOOL renamePath(const char* oldPath_utf8,const char* newPath_utf8);
+
+hpatch_BOOL removeFile(const char* fileName_utf8);
+hpatch_BOOL removeDir(const char* dirName_utf8);
+    
+hpatch_BOOL makeNewDir(const char* dirName_utf8);
+    
+
+
+    
+    
+typedef FILE* hpatch_FileHandle;
 
 typedef struct TFileStreamInput{
     hpatch_TStreamInput base;

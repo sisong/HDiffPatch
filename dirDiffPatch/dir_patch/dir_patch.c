@@ -33,7 +33,6 @@
 #include "../../libHDiffPatch/HPatch/patch.h"
 #include "../../libHDiffPatch/HPatch/patch_private.h"
 #include "../../file_for_patch.h"
-#include "../file_for_dirPatch.h"
 
 static const char* kVersionType="DirDiff19";
 static const TByte kPatchMode =0;

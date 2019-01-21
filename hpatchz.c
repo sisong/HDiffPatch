@@ -341,7 +341,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         const char* diffFileName=arg_values[1];
         const char* outNewPath  =arg_values[2];
         hpatch_BOOL isDirDiff;
-        if (isSamePath(oldPath,outNewPath))
+        hpatch_BOOL isSamePath=getIsSamePath(oldPath,outNewPath);
             _options_check(hpatch_FALSE,"now unsupport oldPath outNewPath same path");
         if (!isForceOverwrite){
             TPathType   outNewPathType;

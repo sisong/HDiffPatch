@@ -28,6 +28,153 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "file_for_patch.h"
+#include <sys/stat.h> //stat mkdir
+#include <errno.h>    //errno
+
+hpatch_BOOL _getPathStat_noEndDirSeparator(const char* path_utf8,TPathType* out_type,
+                                           hpatch_StreamPos_t* out_fileSize){
+#if (_IS_USE_WIN32_UTF8_WAPI)
+    int            wsize;
+    wchar_t        path_w[kPathMaxSize];
+    struct _stat64 s;
+#else
+#   ifdef _MSC_VER
+    struct _stat64 s;
+#   else
+    struct stat  s;
+#   endif
+#endif
+    
+    int          rt;
+    assert(out_type!=0);
+    memset(&s,0,sizeof(s));
+#if (_IS_USE_WIN32_UTF8_WAPI)
+    wsize=_utf8FileName_to_w(path_utf8,path_w,kPathMaxSize);
+    if (wsize<=0) return hpatch_FALSE;
+    rt = _wstat64(path_w,&s);
+#else
+#   ifdef _MSC_VER
+    rt = _stat64(path_utf8,&s);
+#   else
+    rt = stat(path_utf8,&s);
+#   endif
+#endif
+    
+    if(rt!=0){
+        if (errno==ENOENT){
+            *out_type=kPathType_notExist;
+            return hpatch_TRUE;
+        }
+        return hpatch_FALSE; //error
+    }else if ((s.st_mode&S_IFMT)==S_IFREG){
+        *out_type=kPathType_file;
+        if (out_fileSize) *out_fileSize=s.st_size;
+        return hpatch_TRUE;
+    }else if ((s.st_mode&S_IFMT)==S_IFDIR){
+        *out_type=kPathType_dir;
+        if (out_fileSize) *out_fileSize=0;
+        return hpatch_TRUE;
+    }else{
+        return hpatch_FALSE; //as error; unknow how to dispose
+    }
+}
+
+hpatch_BOOL getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end){
+    //use tmpnam()?
+#define _AddingLen 8
+    size_t len=strlen(path_utf8);
+    if ((len>0)&&(path_utf8[len-1]==kPatch_dirSeparator)) --len; //without '/'
+    if (len+(4+_AddingLen)>(size_t)(out_tempPath_end-out_tempPath_utf8)) return hpatch_FALSE;
+    memcpy(out_tempPath_utf8,path_utf8,len);
+    out_tempPath_utf8+=len;
+    for (size_t i=1; i<1000; ++i) {
+        TPathType tmpPathType;
+        char adding[_AddingLen]={'0','0','0','.','t','m','p','\0'};
+        adding[2]+=i%10;    adding[1]+=(i/10)%10;   adding[0]+=(i/100)%10;
+        memcpy(out_tempPath_utf8,adding,sizeof(adding));
+        if (!_getPathStat_noEndDirSeparator(out_tempPath_utf8,&tmpPathType,0)) return hpatch_FALSE;
+        if (tmpPathType==kPathType_notExist)
+            return hpatch_TRUE; //ok
+    }
+    return hpatch_FALSE;
+#undef _AddingLen
+}
+
+
+hpatch_BOOL renamePath(const char* oldPath_utf8,const char* newPath_utf8){
+    _path_noEndDirSeparator(oldPath,oldPath_utf8);
+    {   _path_noEndDirSeparator(newPath,newPath_utf8);
+#if (_IS_USE_WIN32_UTF8_WAPI)
+        int     wsize;
+        wchar_t oldPath_w[kPathMaxSize];
+        wchar_t newPath_w[kPathMaxSize];
+        wsize=_utf8FileName_to_w(oldPath,oldPath_w,kPathMaxSize);
+        if (wsize<=0) return hpatch_FALSE;
+        wsize=_utf8FileName_to_w(newPath,newPath_w,kPathMaxSize);
+        if (wsize<=0) return hpatch_FALSE;
+        return 0==_wrename(oldPath_w,newPath_w);
+#else
+        return 0==rename(oldPath,newPath);
+#endif
+    }
+}
+
+hpatch_BOOL removeFile(const char* fileName_utf8){
+    _path_noEndDirSeparator(fileName,fileName_utf8);
+#if (_IS_USE_WIN32_UTF8_WAPI)
+    int     wsize;
+    wchar_t path_w[kPathMaxSize];
+    wsize=_utf8FileName_to_w(fileName,path_w,kPathMaxSize);
+    if (wsize<=0) return hpatch_FALSE;
+    return 0==_wremove(path_w);
+#else
+    return 0==remove(fileName);
+#endif
+}
+
+hpatch_BOOL removeDir(const char* dirName_utf8){
+    _path_noEndDirSeparator(dirName,dirName_utf8);
+#if (_IS_USE_WIN32_UTF8_WAPI)
+    int     wsize;
+    wchar_t path_w[kPathMaxSize];
+    wsize=_utf8FileName_to_w(dirName,path_w,kPathMaxSize);
+    if (wsize<=0) return hpatch_FALSE;
+    return 0==_wrmdir(path_w);
+#else
+#   ifdef _MSC_VER
+    return 0==_rmdir(dirName);
+#   else
+    return 0==rmdir(dirName);
+#   endif
+#endif
+}
+
+hpatch_BOOL makeNewDir(const char* dirName_utf8){
+    TPathType type;
+    _path_noEndDirSeparator(path,dirName_utf8);
+    if (!_getPathStat_noEndDirSeparator(path,&type,0)) return hpatch_FALSE; //error
+    switch (type) {
+        case kPathType_dir :{ return hpatch_TRUE; } break; //exist
+        case kPathType_file:{ return hpatch_FALSE; } break; //error, not overwite
+        case kPathType_notExist:{
+#if (_IS_USE_WIN32_UTF8_WAPI)
+            int     wsize;
+            wchar_t path_w[kPathMaxSize];
+            wsize=_utf8FileName_to_w(path,path_w,kPathMaxSize);
+            if (wsize<=0) return hpatch_FALSE;
+            return 0==_wmkdir(path_w);
+#else
+#   ifdef _MSC_VER
+            return 0==_mkdir(path);
+#   else
+            const mode_t kDefalutMode=S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;//0755
+            return 0==mkdir(path,kDefalutMode);
+#   endif
+#endif
+        } break;
+    }
+}
+
 
 
 hpatch_inline static

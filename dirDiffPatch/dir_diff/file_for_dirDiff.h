@@ -29,7 +29,7 @@
  */
 #ifndef DirDiffPatch_file_for_dirDiff_h
 #define DirDiffPatch_file_for_dirDiff_h
-#include "file_for_dirPatch.h"
+#include "../../file_for_patch.h"
 #ifdef _WIN32
 #else
 #   include <dirent.h> //opendir ...

@@ -52,7 +52,6 @@
 		D67D3BD521CBCD5D0050632A /* dir_diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_diff.cpp; sourceTree = "<group>"; };
 		D67D3BD821CBCD5D0050632A /* ref_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ref_stream.h; sourceTree = "<group>"; };
 		D67D3BD921CBCD5D0050632A /* ref_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ref_stream.c; sourceTree = "<group>"; };
-		D67D3BDA21CBCD5D0050632A /* file_for_dirPatch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = file_for_dirPatch.h; sourceTree = "<group>"; };
 		D67D3BDB21CBCD5D0050632A /* dir_diff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_diff.h; sourceTree = "<group>"; };
 		D67D3BDE21CC96740050632A /* mem_buf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mem_buf.h; sourceTree = "<group>"; };
 		D67D3BDF21D11DF70050632A /* dir_patch.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dir_patch.h; sourceTree = "<group>"; };
@@ -123,8 +122,6 @@
 			children = (
 				D67D3BD621CBCD5D0050632A /* dir_diff */,
 				D67D3BD721CBCD5D0050632A /* dir_patch */,
-				D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */,
-				D67D3BDA21CBCD5D0050632A /* file_for_dirPatch.h */,
 			);
 			name = dirDiffPatch;
 			path = ../../dirDiffPatch;
@@ -133,6 +130,7 @@
 		D67D3BD621CBCD5D0050632A /* dir_diff */ = {
 			isa = PBXGroup;
 			children = (
+				D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */,
 				D67D3BD521CBCD5D0050632A /* dir_diff.cpp */,
 				D67D3BDB21CBCD5D0050632A /* dir_diff.h */,
 			);
