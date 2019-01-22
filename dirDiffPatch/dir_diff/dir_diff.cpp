@@ -614,26 +614,31 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     std::vector<TByte> externData;
     listener->externData(externData);
     packUInt(out_data,externData.size());
-    //headData info
-    packUInt(out_data,headData.size());
-    packUInt(out_data,headCode.size());
-    //checksum info
+    //other checksum info
     packUInt(out_data,checksumByteSize);
     if (checksumByteSize>0){
         pushBack(out_data,oldRefChecksum.checksum);
         pushBack(out_data,newRefChecksum.checksum);
         pushBack(out_data,sameFileChecksum.checksum);
     }
+    //checksum(dirdiff)
     CChecksum diffChecksum(checksumPlugin);
     TPlaceholder diffChecksumPlaceholder(out_data.size(),out_data.size()+checksumByteSize);
     if (checksumByteSize>0){
         diffChecksum.append(out_data);
         out_data.insert(out_data.end(),checksumByteSize,0);//placeholder
     }
-    
+    //headData size
+    packUInt(out_data,headData.size());
+    packUInt(out_data,headCode.size());
+    if (checksumByteSize>0){
+        diffChecksum.append(out_data.data()+diffChecksumPlaceholder.pos_end,
+                            out_data.data()+out_data.size());
+    }
+
     //begin write
     hpatch_StreamPos_t writeToPos=0;
-    #define _pushv(v) { if ((checksumByteSize>0)&&(writeToPos>=diffChecksumPlaceholder.pos_end))\
+    #define _pushv(v) { if ((checksumByteSize>0)&&(writeToPos>diffChecksumPlaceholder.pos_end))\
                             diffChecksum.append(v); \
                         check(outDiffStream->write(outDiffStream,writeToPos,v.data(),v.data()+v.size()), \
                             "write diff data " #v " error!"); \
@@ -644,7 +649,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     }else{
         _pushv(headData);
     }
-    listener->externDataPosInDiffStream(writeToPos);
+    listener->externDataPosInDiffStream(writeToPos,externData.size());
     _pushv(externData);
 
     //diff data
@@ -886,10 +891,15 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
     assert(in_diff->read!=0);
     assert(out_diff!=0);
     assert(out_diff->write!=0);
-    
+    if (checksumPlugin){
+        check((out_diff->read_writed!=0),
+              "for update checksum, out_diff->read_writed can't null error!");
+    }
     {//read head
         check(read_dirdiff_head(&diffInfo,&head,in_diff),
               "resave_dirdiff() read_dirdiff_head() error!");
+        assert(0==strcmp(diffInfo.checksumType,(checksumPlugin?checksumPlugin->checksumType():"")));
+        assert(diffInfo.checksumByteSize==(checksumPlugin?checksumPlugin->checksumByteSize():0));
         int compressedCount=diffInfo.hdiffInfo.compressedCount+((head.headDataCompressedSize)?1:0);
         check((decompressPlugin!=0)||(compressedCount<=0),
               "resave_dirdiff() decompressPlugin null error!");
@@ -910,7 +920,7 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
             TStreamClip clip(in_diff,head.typesEndPos,head.compressSizeBeginPos);
             outDiff.pushStream(&clip);
         }
-        //headData
+        //headDataSize
         outDiff.packUInt(head.headDataSize);
         TPlaceholder compress_headData_sizePos=
         outDiff.packUInt_pos(compressPlugin?head.headDataSize:0);//headDataCompressedSize
@@ -932,5 +942,20 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
         TOffsetStreamOutput ofStream(out_diff,writeToPos);
         TStreamClip clip(in_diff,head.hdiffDataOffset,head.hdiffDataOffset+head.hdiffDataSize);
         resave_compressed_diff(&clip,decompressPlugin,&ofStream,compressPlugin);
+        writeToPos+=ofStream.outSize;
+    }
+    if (diffInfo.checksumByteSize>0){// update dirdiff checksum
+        const size_t checksumByteSize=diffInfo.checksumByteSize;
+        CChecksum    diffChecksum(checksumPlugin);
+        TPlaceholder diffChecksumPlaceholder(head.compressSizeBeginPos-checksumByteSize,
+                                             head.compressSizeBeginPos);
+        assert(out_diff->read_writed!=0);
+        diffChecksum.append((const hpatch_TStreamInput*)out_diff,0,diffChecksumPlaceholder.pos);
+        diffChecksum.append((const hpatch_TStreamInput*)out_diff,diffChecksumPlaceholder.pos_end,writeToPos);
+        diffChecksum.appendEnd();
+        const std::vector<TByte>& v=diffChecksum.checksum;
+        assert(diffChecksumPlaceholder.size()==v.size());
+        check(out_diff->write(out_diff,diffChecksumPlaceholder.pos,v.data(),v.data()+v.size()),
+              "write diff data checksum error!");
     }
 }

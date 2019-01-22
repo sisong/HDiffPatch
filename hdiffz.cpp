@@ -214,7 +214,7 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
           hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
           hpatch_TDecompress* decompressPlugin,hpatch_BOOL isOriginal);
 int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
-                 hdiff_TStreamCompress* streamCompressPlugin,hpatch_TChecksum* checksumPlugin);
+                 hdiff_TStreamCompress* streamCompressPlugin);
 
 
 #if (_IS_NEED_MAIN)
@@ -512,7 +512,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             _return_check(getPathStat(outDiffFileName,&outDiffFileType,0),
                           HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
             _return_check(outDiffFileType==kPathType_notExist,
-                          HDIFF_PATHTYPE_ERROR,"outDiffFile already exists, not overwrite");
+                          HDIFF_PATHTYPE_ERROR,"diff outDiffFile already exists, not overwrite");
         }
         TPathType oldType;
         TPathType newType;
@@ -550,27 +550,14 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             _return_check(getPathStat(outDiffFileName,&outDiffFileType,0),
                           HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
             _return_check(outDiffFileType==kPathType_notExist,
-                          HDIFF_PATHTYPE_ERROR,"outDiffFile already exists, not overwrite");
+                          HDIFF_PATHTYPE_ERROR,"resave outDiffFile already exists, not overwrite");
         }
         bool isSamePath=getIsSamePath(diffFileName,outDiffFileName);
-        if (isSamePath) _return_check(isForceOverwrite,HDIFF_PATHTYPE_ERROR,"diffFile outDiffFile same name");
+        if (isSamePath)
+            _return_check(isForceOverwrite,HDIFF_PATHTYPE_ERROR,"diffFile outDiffFile same name");
         
-        hpatch_BOOL isDirDiffFile=hpatch_FALSE;
-        assert(checksumPlugin==0);
-        _return_check(getIsDirDiffFile(diffFileName,&isDirDiffFile),
-                      HDIFF_RESAVE_FILEREAD_ERROR,"open read diffFile");
-        if (isDirDiffFile){
-            TDirDiffInfo diffInfo;
-            _return_check(getDirDiffInfoByFile(diffFileName,&diffInfo),
-                          HDIFF_RESAVE_HDIFFINFO_ERROR,"open read dirDiffFile");
-            if (strlen(diffInfo.checksumType)>0){
-                _findChecksum(&checksumPlugin,diffInfo.checksumType);
-                _return_check(checksumPlugin!=0,
-                              HDIFF_RESAVE_CHECKSUMTYPE_ERROR,"not find dirDiffFile used checksumType");
-            }
-        }
         if (!isSamePath){
-            return hdiff_resave(diffFileName,outDiffFileName,streamCompressPlugin,checksumPlugin);
+            return hdiff_resave(diffFileName,outDiffFileName,streamCompressPlugin);
         }else{
             // 1. resave to newDiffTempName
             // 2. if resave ok    then  { delelte oldDiffFile; rename newDiffTempName to oldDiffName; }
@@ -579,7 +566,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             _return_check(getTempPathName(outDiffFileName,newDiffTempName,newDiffTempName+kPathMaxSize),
                           HDIFF_TEMPPATH_ERROR,"getTempPathName(diffFile)");
             printf("NOTE: out_diff temp file will be rename to in_diff name after resave!\n");
-            int result=hdiff_resave(diffFileName,newDiffTempName,streamCompressPlugin,checksumPlugin);
+            int result=hdiff_resave(diffFileName,newDiffTempName,streamCompressPlugin);
             if (result==0){//resave ok
                 _return_check(removeFile(diffFileName),
                               HDIFF_DELETEPATH_ERROR,"deletePath(diffFile)");
@@ -827,11 +814,13 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
 }
 
 static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
-                   hdiff_TStreamCompress* streamCompressPlugin,hpatch_TChecksum* checksumPlugin){
+                   hdiff_TStreamCompress* streamCompressPlugin){
     int result=HDIFF_SUCCESS;
-    hpatch_BOOL _isInClear=hpatch_FALSE;
-    std::string dirCompressType;
-    hpatch_BOOL isDirDiff=false;
+    hpatch_BOOL  _isInClear=hpatch_FALSE;
+    std::string  dirCompressType;
+    hpatch_BOOL  isDirDiff=false;
+    TDirDiffInfo dirDiffInfo;
+    hpatch_TChecksum* checksumPlugin=0;
     TFileStreamInput  diffData_in;
     TFileStreamOutput diffData_out;
     TFileStreamInput_init(&diffData_in);
@@ -839,10 +828,9 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     
     hpatch_TDecompress* decompressPlugin=0;
     check(TFileStreamInput_open(&diffData_in,diffFileName),HDIFF_OPENREAD_ERROR,"open diffFile");
-    {
-        TDirDiffInfo dirDiffInfo;
-        check(getDirDiffInfo(&diffData_in.base,&dirDiffInfo),HDIFF_OPENREAD_ERROR,"read diffFile")
-        isDirDiff=dirDiffInfo.isDirDiff;
+    check(getDirDiffInfo(&diffData_in.base,&dirDiffInfo),HDIFF_OPENREAD_ERROR,"read diffFile");
+    isDirDiff=dirDiffInfo.isDirDiff;
+    { //decompressPlugin
         hpatch_compressedDiffInfo diffInfo;
         if (isDirDiff){
             diffInfo=dirDiffInfo.hdiffInfo;
@@ -883,8 +871,22 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
                 decompressPlugin=0;
             }
         }else{
-            printf("resave diffFile%s with decompress plugin: \"%s\" (need decompress %d)\n",(isDirDiff?"(DirDiff)":""),diffInfo.compressType,diffInfo.compressedCount);
+            printf("resave %s with decompress plugin: \"%s\" (need decompress %d)\n",(isDirDiff?"dirDiffFile":"diffFile"),diffInfo.compressType,diffInfo.compressedCount);
         }
+    }
+    {
+        const char* compressType="";
+        if (streamCompressPlugin) compressType=streamCompressPlugin->compressType();
+        printf("resave %s with stream compress plugin: \"%s\"\n",                           (isDirDiff?"dirDiffFile":"diffFile"),compressType);
+    }
+    if (isDirDiff){ //checksumPlugin
+        if (strlen(dirDiffInfo.checksumType)>0){
+            check(_findChecksum(&checksumPlugin,dirDiffInfo.checksumType), HDIFF_RESAVE_CHECKSUMTYPE_ERROR,
+                  "not found checksum plugin dirDiffFile used: \""+dirDiffInfo.checksumType+"\"\n");
+            check(checksumPlugin->checksumByteSize()==dirDiffInfo.checksumByteSize,HDIFF_RESAVE_CHECKSUMTYPE_ERROR,
+                  "found checksum plugin not same as dirDiffFile used: \""+dirDiffInfo.checksumType+"\"\n");
+        }
+        printf("resave dirDiffFile with checksum plugin: \"%s\"\n",dirDiffInfo.checksumType);
     }
     
     check(TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),HDIFF_OPENWRITE_ERROR,
@@ -915,17 +917,13 @@ clear:
 }
 
 int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
-                 hdiff_TStreamCompress* streamCompressPlugin,hpatch_TChecksum* checksumPlugin){
+                 hdiff_TStreamCompress* streamCompressPlugin){
     double time0=clock_s();
     std::string fnameInfo=std::string("in_diff : \"")+diffFileName+"\"\n"
                                      +"out_diff: \""+outDiffFileName+"\"\n";
     printPath_utf8(fnameInfo.c_str());
     
-    const char* compressType="";
-    if (streamCompressPlugin) compressType=streamCompressPlugin->compressType();
-    printf("resave diffFile with stream compress plugin: \"%s\"\n",compressType);
-    
-    int exitCode=hdiff_r(diffFileName,outDiffFileName,streamCompressPlugin,checksumPlugin);
+    int exitCode=hdiff_r(diffFileName,outDiffFileName,streamCompressPlugin);
     double time1=clock_s();
     printf("\nhdiffz resave diffFile time: %.3f s\n",(time1-time0));
     return exitCode;
@@ -990,8 +988,8 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         }else{
             if (streamCompressPlugin) compressType=streamCompressPlugin->compressType();
         }
-        printf("hdiffz run DirDiff with checksum plugin: \"%s\"\n",checksumType);
         printf("hdiffz run DirDiff with%s compress plugin: \"%s\"\n",(isLoadAll?"":" stream"),compressType);
+        printf("hdiffz run DirDiff with checksum plugin: \"%s\"\n",checksumType);
     }
 
     int  result=HDIFF_SUCCESS;

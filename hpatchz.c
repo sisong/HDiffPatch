@@ -651,9 +651,22 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         if (dirDiffInfo->newPathIsDir&&(!getIsDirName(outNewPath))) printf("%c",kPatch_dirSeparator);
         printf("\"\n");
     }
+    {//decompressPlugin
+        hpatch_TDecompress*  decompressPlugin=0;
+        hpatch_compressedDiffInfo hdiffInfo;
+        hdiffInfo=dirDiffInfo->hdiffInfo;
+        hdiffInfo.compressedCount+=(dirDiffInfo->dirDataIsCompressed)?1:0;
+        if(!getDecompressPlugin(&hdiffInfo,&decompressPlugin)){
+            fprintf(stderr,"can not decompress \"%s\" data ERROR!\n",hdiffInfo.compressType);
+            check_on_error(HPATCH_COMPRESSTYPE_ERROR);
+        }
+        //load dir data
+        check(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin),
+              DIRPATCH_LAOD_DIRDIFFDATA_ERROR,"load dir data in diffFile");
+    }
     {// checksumPlugin
         int wantChecksumCount = checksumSet->isCheck_dirDiffData+checksumSet->isCheck_oldRefData+
-                                checksumSet->isCheck_newRefData+checksumSet->isCheck_copyFileData;
+        checksumSet->isCheck_newRefData+checksumSet->isCheck_copyFileData;
         assert(checksumSet->checksumPlugin==0);
         if (wantChecksumCount>0){
             if (strlen(dirDiffInfo->checksumType)==0){
@@ -673,19 +686,6 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
                 }
             }
         }
-    }
-    {//decompressPlugin
-        hpatch_TDecompress*  decompressPlugin=0;
-        hpatch_compressedDiffInfo hdiffInfo;
-        hdiffInfo=dirDiffInfo->hdiffInfo;
-        hdiffInfo.compressedCount+=(dirDiffInfo->dirDataIsCompressed)?1:0;
-        if(!getDecompressPlugin(&hdiffInfo,&decompressPlugin)){
-            fprintf(stderr,"can not decompress \"%s\" data ERROR!\n",hdiffInfo.compressType);
-            check_on_error(HPATCH_COMPRESSTYPE_ERROR);
-        }
-        //load dir data
-        check(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin),
-              DIRPATCH_LAOD_DIRDIFFDATA_ERROR,"load dir data in diffFile");
     }
     {//info
         const _TDirDiffHead* head=&dirPatcher.dirDiffHead;

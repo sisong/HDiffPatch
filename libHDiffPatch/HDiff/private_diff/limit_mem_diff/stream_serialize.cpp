@@ -343,13 +343,14 @@ hpatch_BOOL TStreamClip::_clip_read(const hpatch_TStreamInput* stream,hpatch_Str
     TStreamClip* self=(TStreamClip*)stream->streamImport;
     assert(out_data<out_data_end);
     if (readFromPos!=self->_read_uncompress_pos){
-        if (readFromPos==0){//reset
+        if (self->_decompressPlugin){
+            check(readFromPos==0); //not support random read compressed cdata
+            //reset
             self->closeDecompressHandle();
-            if (self->_decompressPlugin)
-                self->openDecompressHandle();
+            self->openDecompressHandle();
             self->_read_uncompress_pos=0;
         }else{
-            assert(false); //not support
+            self->_read_uncompress_pos=readFromPos;
         }
     }
     size_t readLen=out_data_end-out_data;

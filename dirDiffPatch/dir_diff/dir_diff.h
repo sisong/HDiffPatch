@@ -55,7 +55,7 @@ struct IDirDiffListener:public IDirFilter{
     virtual void runHDiffBegin(){}
     virtual void runHDiffEnd(hpatch_StreamPos_t diffDataSize){}
     virtual void externData(std::vector<unsigned char>& out_externData){}
-    virtual void externDataPosInDiffStream(hpatch_StreamPos_t externDataPos){}
+    virtual void externDataPosInDiffStream(hpatch_StreamPos_t externDataPos,size_t externDataSize){}
 };
 
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,

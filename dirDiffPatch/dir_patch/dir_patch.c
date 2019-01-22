@@ -166,6 +166,7 @@ hpatch_BOOL read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
     check(_TStreamCacheClip_readType_end(headClip,'&',savedCompressType));
     //read checksumType
     check(_TStreamCacheClip_readType_end(headClip,'\0',out_info->checksumType));
+    out_head->typesEndPos=_TStreamCacheClip_readPosOfSrcStream(headClip);
     {
         TUInt savedValue;
         unpackUIntTo(&savedValue,headClip);
@@ -184,17 +185,18 @@ hpatch_BOOL read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
         unpackToSize(&out_head->sameFilePairCount,headClip);
         unpackUIntTo(&out_head->sameFileSize,headClip);
         unpackUIntTo(&out_info->externDataSize,headClip);
-        unpackUIntTo(&out_head->headDataSize,headClip);
-        unpackUIntTo(&out_head->headDataCompressedSize,headClip);
         unpackToSize(&out_info->checksumByteSize,headClip);
-        out_info->checksumOffset=headClip->streamPos-_TStreamCacheClip_cachedSize(headClip);
+        out_info->checksumOffset=_TStreamCacheClip_readPosOfSrcStream(headClip);
         if (out_info->checksumByteSize)
             check(_TStreamCacheClip_skipData(headClip,out_info->checksumByteSize*4));
+        out_head->compressSizeBeginPos=_TStreamCacheClip_readPosOfSrcStream(headClip);
+        unpackUIntTo(&out_head->headDataSize,headClip);
+        unpackUIntTo(&out_head->headDataCompressedSize,headClip);
         out_info->dirDataIsCompressed=(out_head->headDataCompressedSize>0);
     }
     {
         TStreamInputClip hdiffStream;
-        TUInt curPos=headClip->streamPos-_TStreamCacheClip_cachedSize(headClip);
+        TUInt curPos=_TStreamCacheClip_readPosOfSrcStream(headClip);
         out_head->headDataOffset=curPos;
         curPos+=(out_head->headDataCompressedSize>0)?out_head->headDataCompressedSize:out_head->headDataSize;
         out_info->externDataOffset=curPos;
