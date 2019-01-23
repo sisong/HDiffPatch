@@ -695,7 +695,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
 }
 
 
-#define _test(v) { if (!(value)) { fprintf(stderr,"DirPatch check "#value" error!\n");  return hpatch_FALSE; } }
+#define _test(value) { if (!(value)) { fprintf(stderr,"DirPatch check "#value" error!\n");  return hpatch_FALSE; } }
 
 struct CDirPatchListener:public IDirPatchListener{
     explicit CDirPatchListener(const std::string& newRootDir,
@@ -870,9 +870,9 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
     }
     if (checksumPlugin)
         _test(TDirPatcher_checksum(&dirPatcher,&checksumSet));
-    _test(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin));
-    _test(TDirPatcher_openOldRefAsStream(&dirPatcher,oldPath.c_str(),kMaxOpenFileNumber,&oldStream));
-    _test(TDirPatcher_openNewDirAsStream(&dirPatcher,newPath.c_str(),&patchListener,&newStream));
+    _test(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin,oldPath.c_str(),newPath.c_str()));
+    _test(TDirPatcher_openOldRefAsStream(&dirPatcher,kMaxOpenFileNumber,&oldStream));
+    _test(TDirPatcher_openNewDirAsStream(&dirPatcher,&patchListener,&newStream));
     _test(TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size));
     _test(TDirPatcher_closeNewDirStream(&dirPatcher));
     _test(TDirPatcher_closeOldRefStream(&dirPatcher));

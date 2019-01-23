@@ -32,9 +32,10 @@
 #include <stdio.h>  //fprintf
 #include <stdlib.h> // malloc free
 #include <locale.h> // setlocale
-#include <unistd.h> // rmdir
 #ifdef _MSC_VER
 #   include <direct.h> // *mkdir *rmdir
+#else
+#   include <unistd.h> // rmdir
 #endif
 
 #include "libHDiffPatch/HPatch/patch_types.h"

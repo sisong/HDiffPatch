@@ -35,7 +35,6 @@
 #include "_clock_for_demo.h"
 #include "_atosize.h"
 #include "file_for_patch.h"
-#include "dirDiffPatch/dir_diff/file_for_dirDiff.h"
 #include "dirDiffPatch/dir_patch/dir_patch.h"
 #include "hpatch_dir_listener.h"
 

@@ -79,15 +79,17 @@ hpatch_BOOL _getPathStat_noEndDirSeparator(const char* path_utf8,TPathType* out_
     }
 }
 
+
 hpatch_BOOL getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end){
     //use tmpnam()?
 #define _AddingLen 8
+    size_t i;
     size_t len=strlen(path_utf8);
     if ((len>0)&&(path_utf8[len-1]==kPatch_dirSeparator)) --len; //without '/'
     if (len+(4+_AddingLen)>(size_t)(out_tempPath_end-out_tempPath_utf8)) return hpatch_FALSE;
     memcpy(out_tempPath_utf8,path_utf8,len);
     out_tempPath_utf8+=len;
-    for (size_t i=1; i<1000; ++i) {
+    for (i=1; i<1000; ++i) {
         TPathType tmpPathType;
         char adding[_AddingLen]={'0','0','0','.','t','m','p','\0'};
         adding[2]+=i%10;    adding[1]+=(i/10)%10;   adding[0]+=(i/100)%10;
@@ -102,20 +104,21 @@ hpatch_BOOL getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* 
 
 
 hpatch_BOOL renamePath(const char* oldPath_utf8,const char* newPath_utf8){
-    _path_noEndDirSeparator(oldPath,oldPath_utf8);
-    {   _path_noEndDirSeparator(newPath,newPath_utf8);
+    _path_noEndDirSeparator(oldPath,oldPath_utf8); {
+        _path_noEndDirSeparator(newPath,newPath_utf8); {
 #if (_IS_USE_WIN32_UTF8_WAPI)
-        int     wsize;
-        wchar_t oldPath_w[kPathMaxSize];
-        wchar_t newPath_w[kPathMaxSize];
-        wsize=_utf8FileName_to_w(oldPath,oldPath_w,kPathMaxSize);
-        if (wsize<=0) return hpatch_FALSE;
-        wsize=_utf8FileName_to_w(newPath,newPath_w,kPathMaxSize);
-        if (wsize<=0) return hpatch_FALSE;
-        return 0==_wrename(oldPath_w,newPath_w);
+            int     wsize;
+            wchar_t oldPath_w[kPathMaxSize];
+            wchar_t newPath_w[kPathMaxSize];
+            wsize=_utf8FileName_to_w(oldPath,oldPath_w,kPathMaxSize);
+            if (wsize<=0) return hpatch_FALSE;
+            wsize=_utf8FileName_to_w(newPath,newPath_w,kPathMaxSize);
+            if (wsize<=0) return hpatch_FALSE;
+            return 0==_wrename(oldPath_w,newPath_w);
 #else
-        return 0==rename(oldPath,newPath);
+            return 0==rename(oldPath,newPath);
 #endif
+        }
     }
 }
 
@@ -123,35 +126,36 @@ hpatch_BOOL moveFile(const char* oldPath_utf8,const char* newPath_utf8){
     return renamePath(oldPath_utf8,newPath_utf8);
 }
 
-
 hpatch_BOOL removeFile(const char* fileName_utf8){
-    _path_noEndDirSeparator(fileName,fileName_utf8);
+    _path_noEndDirSeparator(fileName,fileName_utf8);{
 #if (_IS_USE_WIN32_UTF8_WAPI)
-    int     wsize;
-    wchar_t path_w[kPathMaxSize];
-    wsize=_utf8FileName_to_w(fileName,path_w,kPathMaxSize);
-    if (wsize<=0) return hpatch_FALSE;
-    return 0==_wremove(path_w);
+        int     wsize;
+        wchar_t path_w[kPathMaxSize];
+        wsize=_utf8FileName_to_w(fileName,path_w,kPathMaxSize);
+        if (wsize<=0) return hpatch_FALSE;
+        return 0==_wremove(path_w);
 #else
-    return 0==remove(fileName);
+        return 0==remove(fileName);
 #endif
+    }
 }
 
 hpatch_BOOL removeDir(const char* dirName_utf8){
-    _path_noEndDirSeparator(dirName,dirName_utf8);
+    _path_noEndDirSeparator(dirName,dirName_utf8);{
 #if (_IS_USE_WIN32_UTF8_WAPI)
-    int     wsize;
-    wchar_t path_w[kPathMaxSize];
-    wsize=_utf8FileName_to_w(dirName,path_w,kPathMaxSize);
-    if (wsize<=0) return hpatch_FALSE;
-    return 0==_wrmdir(path_w);
+        int     wsize;
+        wchar_t path_w[kPathMaxSize];
+        wsize=_utf8FileName_to_w(dirName,path_w,kPathMaxSize);
+        if (wsize<=0) return hpatch_FALSE;
+        return 0==_wrmdir(path_w);
 #else
 #   ifdef _MSC_VER
-    return 0==_rmdir(dirName);
+        return 0==_rmdir(dirName);
 #   else
-    return 0==rmdir(dirName);
+        return 0==rmdir(dirName);
 #   endif
 #endif
+    }
 }
 
 hpatch_BOOL makeNewDir(const char* dirName_utf8){
@@ -178,6 +182,7 @@ hpatch_BOOL makeNewDir(const char* dirName_utf8){
 #endif
         } break;
     }
+    return hpatch_FALSE;
 }
 
 

@@ -552,7 +552,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             _return_check(outDiffFileType==kPathType_notExist,
                           HDIFF_PATHTYPE_ERROR,"resave outDiffFile already exists, not overwrite");
         }
-        bool isSamePath=getIsSamePath(diffFileName,outDiffFileName);
+        hpatch_BOOL isSamePath=getIsSamePath(diffFileName,outDiffFileName);
         if (isSamePath)
             _return_check(isForceOverwrite,HDIFF_PATHTYPE_ERROR,"diffFile outDiffFile same name");
         

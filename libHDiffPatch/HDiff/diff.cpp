@@ -586,7 +586,7 @@ bool check_compressed_diff(const unsigned char* newData,const unsigned char* new
     return (0==memcmp(updateNew0,newData,updateNewData.size()));
 }
 
-#define _test(v) { if (!(value)) { fprintf(stderr,"patch check "#value" error!\n");  return hpatch_FALSE; } }
+#define _test(value) { if (!(value)) { fprintf(stderr,"patch check "#value" error!\n");  return hpatch_FALSE; } }
 
 bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                   const hpatch_TStreamInput*  oldData,
