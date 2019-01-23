@@ -31,7 +31,7 @@
 #include "../../diff.h" //for stream type
 
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
-#define check(value) checki(value,#value" error!")
+#define check(value) checki(value,"check "#value" error!")
 
 namespace hdiff_private{
 TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,

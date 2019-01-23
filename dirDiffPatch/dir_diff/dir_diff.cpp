@@ -48,7 +48,7 @@ static const char* kDirDiffVersionType="DirDiff19";
 
 #define kFileIOBufSize      (1024*64)
 #define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
-#define checkv(value)     check(value,#value" error!")
+#define checkv(value)     check(value,"check "#value" error!")
 
 #define hash_value_t                uint64_t
 #define hash_begin(ph)              { (*(ph))=ADLER_INITIAL; }
@@ -695,7 +695,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
 }
 
 
-#define _test(v) { if (!(v)) { fprintf(stderr,"DirPatch test "#v" error!\n");  return hpatch_FALSE; } }
+#define _test(v) { if (!(value)) { fprintf(stderr,"DirPatch check "#value" error!\n");  return hpatch_FALSE; } }
 
 struct CDirPatchListener:public IDirPatchListener{
     explicit CDirPatchListener(const std::string& newRootDir,

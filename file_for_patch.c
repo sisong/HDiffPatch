@@ -119,6 +119,11 @@ hpatch_BOOL renamePath(const char* oldPath_utf8,const char* newPath_utf8){
     }
 }
 
+hpatch_BOOL moveFile(const char* oldPath_utf8,const char* newPath_utf8){
+    return renamePath(oldPath_utf8,newPath_utf8);
+}
+
+
 hpatch_BOOL removeFile(const char* fileName_utf8){
     _path_noEndDirSeparator(fileName,fileName_utf8);
 #if (_IS_USE_WIN32_UTF8_WAPI)

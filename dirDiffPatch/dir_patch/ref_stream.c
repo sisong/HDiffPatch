@@ -33,7 +33,7 @@ void TRefStream_close(TRefStream* self){
     if (self->_buf) { free(self->_buf); self->_buf=0; }
 }
 
-#define  check(value) { if (!(value)){ fprintf(stderr,#value" error!\n");  \
+#define  check(value) { if (!(value)){ fprintf(stderr,"check "#value" error!\n");  \
                                        result=hpatch_FALSE; goto clear; } }
 
 static hpatch_BOOL _TRefStream_read_do(TRefStream* self,hpatch_StreamPos_t readFromPos,

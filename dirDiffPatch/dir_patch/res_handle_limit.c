@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define  check(value) { if (!(value)){ fprintf(stderr,#value" error!\n"); return hpatch_FALSE; } }
+#define  check(value) { if (!(value)){ fprintf(stderr,"check "#value" error!\n"); return hpatch_FALSE; } }
 
 static hpatch_BOOL _TResHandleLimit_closeOneHandle(TResHandleLimit* self){
     size_t              best_i=(size_t)-1;

@@ -49,7 +49,7 @@
 #elif defined(_WIN32)
 #   define _kMultiBytePage CP_ACP
 #endif
-#if (_WIN32)
+#ifdef _WIN32
 #   include <wchar.h>
 #   include <windows.h> //for file API, character encoding API
 #endif
@@ -98,7 +98,7 @@ hpatch_BOOL getIsDirName(const char* path_utf8){
 #endif
 
 
-#if (_WIN32)
+#ifdef _WIN32
 static int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
     return MultiByteToWideChar(_kMultiBytePage,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize); }
 
@@ -131,11 +131,14 @@ void SetDefaultStringLocale(){ //for some locale Path character encoding view
 
 hpatch_inline static
 hpatch_BOOL getIsSamePath(const char* xPath_utf8,const char* yPath_utf8){
-    if (0==strcmp(xPath_utf8,yPath_utf8)){
-        return hpatch_TRUE;
-    }else{
-        // WARING!!! better return getCanonicalPath(xPath_utf8)==getCanonicalPath(yPath_utf8);
-        return hpatch_FALSE;
+    _path_noEndDirSeparator(xPath,xPath_utf8);
+    {   _path_noEndDirSeparator(yPath,yPath_utf8);
+        if (0==strcmp(xPath,yPath)){
+            return hpatch_TRUE;
+        }else{
+            // WARING!!! better return getCanonicalPath(xPath)==getCanonicalPath(yPath);
+            return hpatch_FALSE;
+        }
     }
 }
 
@@ -202,17 +205,16 @@ hpatch_BOOL getPathTypeByName(const char* path_utf8,TPathType* out_type,hpatch_S
 }
 
 hpatch_BOOL getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end);
-    
+
 hpatch_BOOL renamePath(const char* oldPath_utf8,const char* newPath_utf8);
+hpatch_BOOL moveFile(const char* oldPath_utf8,const char* newPath_utf8);
 
 hpatch_BOOL removeFile(const char* fileName_utf8);
 hpatch_BOOL removeDir(const char* dirName_utf8);
-    
+
 hpatch_BOOL makeNewDir(const char* dirName_utf8);
-    
+   
 
-
-    
     
 typedef FILE* hpatch_FileHandle;
 

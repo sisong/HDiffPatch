@@ -569,19 +569,22 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             int result=hdiff_resave(diffFileName,newDiffTempName,streamCompressPlugin);
             if (result==0){//resave ok
                 _return_check(removeFile(diffFileName),
-                              HDIFF_DELETEPATH_ERROR,"deletePath(diffFile)");
+                              HDIFF_DELETEPATH_ERROR,"removeFile(diffFile)");
                 _return_check(renamePath(newDiffTempName,diffFileName),
-                              HDIFF_RENAMEPATH_ERROR,"renamePath(diffFile)");
+                              HDIFF_RENAMEPATH_ERROR,"renamePath(temp,diffFile)");
                 printf("out_diff temp file renamed to in_diff name!\n");
             }else{//resave error
-                removeFile(newDiffTempName);//not check return
+                if (!removeFile(newDiffTempName)){
+                    printf("WARNING: can't remove temp file \"");
+                    printPath_utf8(newDiffTempName); printf("\"\n");
+                }
             }
             return result;
         }
     }
 }
 
-#define _check_readFile(v) { if (!(v)) { TFileStreamInput_close(&file); return hpatch_FALSE; } }
+#define _check_readFile(value) { if (!(value)) { TFileStreamInput_close(&file); return hpatch_FALSE; } }
 #define _free_file_mem(p) { if (p) { free(p); p=0; } }
 static hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileName){
     size_t              dataSize;
@@ -597,7 +600,7 @@ static hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char
     return TFileStreamInput_close(&file);
 }
 
-#define _check_writeFile(v) { if (!(v)) { TFileStreamOutput_close(&file); return hpatch_FALSE; } }
+#define _check_writeFile(value) { if (!(value)) { TFileStreamOutput_close(&file); return hpatch_FALSE; } }
 static hpatch_BOOL writeFileAll(const TByte* pdata,size_t dataSize,const char* outFileName){
     TFileStreamOutput file;
     TFileStreamOutput_init(&file);
