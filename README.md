@@ -3,10 +3,10 @@
 [![release](https://img.shields.io/badge/release-v3.0.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 a C\C++ library and command-line tools for binary data Diff & Patch; fast and create small delta/differential; support large files and directory(folder) and limit memory requires both diff & patch.    
-
+   
 ( update Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )   
-( NOTE: This library does not deal with file metadata, such as file last wirte time, executable permissions, link file, etc...   
-   To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
+( NOTE: This library does not deal with file metadata, such as file last wirte time, executable permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
+   
 ---
 ## command line usage:   
 diff   usage: **hdiffz** [options]  **oldPath newPath outDiffFile**   
