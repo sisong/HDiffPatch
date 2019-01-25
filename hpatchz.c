@@ -116,6 +116,7 @@ static void printUsage(){
            "        operating system.\n"
            "  -f  Force overwrite, ignore outNewPath already exists;\n"
            "      DEFAULT (no -f) not overwrite and then return error;\n"
+           "      support oldPath outNewPath same path!(patch to tempPath and overwrite old)\n"
            "      if used -f and outNewPath is exist file:\n"
            "        if patch output file, will overwrite;\n"
            "        if patch output directory, will always return error;\n"

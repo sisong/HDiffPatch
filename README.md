@@ -1,59 +1,100 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v2.5.3-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![release](https://img.shields.io/badge/release-v3.0.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
-a C\C++ library and command-line tools for binary data Diff & Patch.   
-( Jar or Zip file diff & patch? update Android Apk? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )
+a C\C++ library and command-line tools for binary data Diff & Patch; fast and create small delta/differential; support large files and directory(folder) and limit memory requires both diff & patch.    
 
+( update Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )   
+( NOTE: This library does not deal with file metadata, such as file last wirte time, executable permissions, link file, etc...   
+   To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
 ---
-## command line usage:
-**hdiffz** [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-d] [-o] **oldFile newFile outDiffFile**   
-**hdiffz** [-c-compressType[-compressLevel]] **diffFile outDiffFile**   
-**hdiffz** -t **oldFile newFile testDiffFile**   
+## command line usage:   
+diff   usage: **hdiffz** [options]  **oldPath newPath outDiffFile**   
+test   usage: **hdiffz**    -t      **oldPath newPath testDiffFile**   
+resave usage: **hdiffz** [-c-[...]] **diffFile outDiffFile**   
 ```
 memory options:
-  -m-matchScore
-      all file load into Memory, with matchScore; DEFAULT; best diffFileSize; 
-      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1) bytes of memory;
+  -m[-matchScore]
+      DEFAULT; all file load into Memory; best diffFileSize;
+      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1)
+        bytes of memory;
       matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc...
-  -s-matchBlockSize
-      all file load as Stream, with matchBlockSize; fast;
-      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;
-      matchBlockSize>=2, DEFAULT 64, recommended 32,48,1k,64k,1m etc...
+  -s[-matchBlockSize]
+      all file load as Stream; fast;
+      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;
+      matchBlockSize>=4, DEFAULT 64, recommended 16,32,48,1k,64k,1m etc...
 special options:
-  -c-compressType-compressLevel 
+  -c-compressType[-compressLevel]
       set outDiffFile Compress type & level, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
       support compress type & level:
-        (reference: https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
+       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
         -zlib[-{1..9}]              DEFAULT level 9
         -bzip2[-{1..9}]             DEFAULT level 9
         -lzma[-{0..9}[-dictSize]]   DEFAULT level 7
-            dictSize(==decompress stream size) can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m
-  -v  output Version info.
+            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m
+  -C-checksumType
+      set outDiffFile Checksum type for dir diff, DEFAULT no checksum;
+      for resave dirDiffFile,reChecksum diffFile to outDiffFile by new set;
+      support checksum type:
+        -crc32
+        -adler64f
+  -n-maxOpenFileNumber
+      limit Number of open files at same time when stream directory diff;
+      maxOpenFileNumber>=8, DEFAULT 48, the best limit value by different
+        operating system.
+  -D  force run Directory Diff, DEFAULT need oldPath or newPath is directory.
   -d  Diff only, do't run patch check, DEFAULT run patch check.
-  -t  Test only, run patch check, patch(oldFile,testDiffFile)==newFile ?
-  -o  Original diff, unsupport run with -s or -c; DEPRECATED;
+  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? 
+  -f  Force overwrite, ignore diffFile already exists;
+      DEFAULT (no -f) not overwrite and then return error;
+      if used -f and outNewPath is exist directory, will always return error.
+  -o  DEPRECATED; Original diff, unsupport run with -s -c -C -D;
       compatible with "diff_demo.cpp",
       diffFile must patch by "patch_demo.c" or "hpatchz -o ..."
+  -h or -?
+      output Help info (this usage).
+  -v  output Version info.
 ```
    
-**hpatchz**  [-m|-s[-cacheSize]] [-o]  **oldFile diffFile outNewFile**
+**hpatchz** [options] **oldPath diffFile outNewPath**   
 ```
 memory options:
-  -m  oldFile all loaded into Memory; fast;
-      requires (oldFileSize + 4 * decompress stream size) + O(1) bytes of memory
-  -s-cacheSize 
-      oldFile loaded as Stream, with cacheSize; DEFAULT;
-      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;
-      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m
+  -m  oldPath all loaded into Memory; fast;
+      requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.
+  -s[-cacheSize] 
+      DEFAULT; oldPath loaded as Stream;
+      requires (cacheSize+ 4*decompress stream size)+O(1) bytes of memory;
+      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 64m.
 special options:
-  -v  output Version info.
-  -o  Original patch; DEPRECATED; compatible with "patch_demo.c",
+  -C-checksumSets
+      set Checksum data for directory patch, DEFAULT not checksum any data;
+      checksumSets support (can choose multiple):
+        -diff      checksum diffFile;
+        -old       checksum old reference files;
+        -new       checksum new reference files edited from old reference files;
+        -copy      checksum new files copy from old same files;
+        -all       same as: -diff-old-new-copy
+  -n-maxOpenFileNumber
+      limit Number of open files at same time when stream directory patch;
+      maxOpenFileNumber>=8, DEFAULT 24, the best limit value by different
+        operating system.
+  -f  Force overwrite, ignore outNewPath already exists;
+      DEFAULT (no -f) not overwrite and then return error;
+      support oldPath outNewPath same path!(patch to tempPath and overwrite old)
+      if used -f and outNewPath is exist file:
+        if patch output file, will overwrite;
+        if patch output directory, will always return error;
+      if used -f and outNewPath is exist directory:
+        if patch output file, will always return error;
+        if patch output directory, will overwrite, but not delete
+          needless existing files in directory.
+  -o  DEPRECATED; Original patch; compatible with "patch_demo.c",
       diffFile must created by "diff_demo.cpp" or "hdiffz -o ..."
+  -h or -?
+      output Help info (this usage).
+  -v  output Version info.
 ```
-( NOTE: This library does not deal with file metadata, such as file last wirte time, executable permissions, link file, etc...   
-   To this library, a file is just as a stream of bytes. )   
    
 ---
 ## library API usage:
@@ -77,6 +118,9 @@ special options:
    **create_diff()** & **create_compressed_diff()** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory;  
    **create_compressed_diff_stream()** requires O(oldSize\*16/kMatchBlockSize+kMatchBlockSize\*5) bytes of memory.
 
+---
+*  **dir_diff()** & **dir patch APIs** read source code;   
+   
 ---
 ### HDiffPatch vs BsDiff4.3:
 system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   

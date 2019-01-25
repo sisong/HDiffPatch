@@ -115,7 +115,7 @@ static void printUsage(){
            "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"
            "      for resave diffFile,recompress diffFile to outDiffFile by new set;\n"
            "      support compress type & level:\n"
-           "        (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
+           "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
            "        -zlib[-{1..9}]              DEFAULT level 9\n"
 #endif
