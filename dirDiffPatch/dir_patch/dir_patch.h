@@ -76,6 +76,8 @@ hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info
         size_t              sameFilePairCount;
         hpatch_StreamPos_t  sameFileSize;
         hpatch_StreamPos_t  typesEndPos;
+        hpatch_StreamPos_t  privateExternDataOffset;
+        hpatch_StreamPos_t  privateExternDataSize;
         hpatch_StreamPos_t  compressSizeBeginPos;
         hpatch_StreamPos_t  headDataOffset;
         hpatch_StreamPos_t  headDataSize;

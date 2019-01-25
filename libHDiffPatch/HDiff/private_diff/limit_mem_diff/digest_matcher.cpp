@@ -30,7 +30,6 @@
 #include <stdexcept>  //std::runtime_error
 #include <algorithm>  //std::sort,std::equal_range
 #include "../compress_detect.h" //_getUIntCost
-#include "adler_roll.h"
 namespace hdiff_private{
 static  const size_t kMinTrustMatchedLength=1024*16;
 static  const size_t kMinMatchedLength = 16;
@@ -40,15 +39,6 @@ static  const size_t kMinBackupReadSize=256;
 static  const size_t kMatchBlockSize_min=4;
 static  const size_t kMaxMatchRange=1024*64;
 static  const size_t kMaxLinkIndexFindSize=64;
-
-static inline adler_uint_t adler_start(const adler_data_t* pdata,size_t n){
-    if (sizeof(adler_uint_t)>4) return (adler_uint_t)fast_adler64_start(pdata,n);
-    else return fast_adler32_start(pdata,n);
-}
-static inline adler_uint_t adler_roll(adler_uint_t adler,size_t blockSize,adler_data_t out_data,adler_data_t in_data){
-    if (sizeof(adler_uint_t)>4) return (adler_uint_t)fast_adler64_roll(adler,blockSize,out_data,in_data);
-    else return fast_adler32_roll((uint32_t)adler,blockSize,out_data,in_data);
-}
 
 #define readStream(stream,pos,dst,n) { \
     if (((n)>0)&&(!(stream)->read(stream,pos,dst,dst+(n)))) \
@@ -334,8 +324,7 @@ struct TNewStreamCache:public TBlockStreamCache{
         //warning: after running _loop_backward_cache(),cache roll logic is failure
         if (dataLength()>kMatchBlockSize){
             const unsigned char* cur_datas=data();
-            roll_digest=adler_roll(roll_digest,(adler_uint_t)kMatchBlockSize,
-                                    cur_datas[0],cur_datas[kMatchBlockSize]);
+            roll_digest=adler_roll(roll_digest,kMatchBlockSize,cur_datas[0],cur_datas[kMatchBlockSize]);
             ++cachePos;
             return true;
         }else{
@@ -587,7 +576,7 @@ template <class TIndex>
 static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
                             const TIndex* iblocks,const TIndex* iblocks_end,
                             TOldStreamCache& oldStream,TNewStreamCache& newStream,
-                            const TBloomFilter<adler_uint_t>& filter,
+                            const TBloomFilter<adler_hash_t>& filter,
                             bool kIsSkipSameRange, TCovers* out_covers) {
     TDigest_comp comp(blocksBase);
     TCover  lastCover={0,0,0};

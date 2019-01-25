@@ -35,7 +35,6 @@
 #include "../../file_for_patch.h"
 
 static const char* kVersionType="DirDiff19";
-static const TByte kPatchMode =0;
 
 #define TUInt hpatch_StreamPos_t
 
@@ -169,8 +168,6 @@ hpatch_BOOL read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
     out_head->typesEndPos=_TStreamCacheClip_readPosOfSrcStream(headClip);
     {
         TUInt savedValue;
-        unpackUIntTo(&savedValue,headClip);
-        check(savedValue==kPatchMode); //now only support
         unpackUIntTo(&savedValue,headClip);  check(savedValue<=1);
         out_info->oldPathIsDir=(hpatch_BOOL)savedValue;
         unpackUIntTo(&savedValue,headClip);  check(savedValue<=1);
@@ -184,6 +181,7 @@ hpatch_BOOL read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
         unpackToSize(&out_head->newRefFileCount,headClip);
         unpackToSize(&out_head->sameFilePairCount,headClip);
         unpackUIntTo(&out_head->sameFileSize,headClip);
+        unpackUIntTo(&out_head->privateExternDataSize,headClip);
         unpackUIntTo(&out_info->externDataSize,headClip);
         unpackToSize(&out_info->checksumByteSize,headClip);
         out_info->checksumOffset=_TStreamCacheClip_readPosOfSrcStream(headClip);
@@ -199,6 +197,8 @@ hpatch_BOOL read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
         TUInt curPos=_TStreamCacheClip_readPosOfSrcStream(headClip);
         out_head->headDataOffset=curPos;
         curPos+=(out_head->headDataCompressedSize>0)?out_head->headDataCompressedSize:out_head->headDataSize;
+        out_head->privateExternDataOffset=curPos;
+        curPos+=out_head->privateExternDataSize;
         out_info->externDataOffset=curPos;
         curPos+=out_info->externDataSize;
         out_head->hdiffDataOffset=curPos;

@@ -598,8 +598,6 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     std::vector<TByte> out_data;
     _outType(out_data,streamCompressPlugin,checksumPlugin);
     //head info
-    const TByte kPatchModel=0;
-    packUInt(out_data,kPatchModel);
     packUInt(out_data,oldIsDir?1:0);
     packUInt(out_data,newIsDir?1:0);
     packUInt(out_data,oldList.size());          clearVector(oldList);
@@ -610,6 +608,9 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     packUInt(out_data,newRefIList.size());      clearVector(newRefIList);
     packUInt(out_data,dataSamePairList.size()); clearVector(dataSamePairList);
     packUInt(out_data,sameFileSize);
+    std::vector<TByte> privateExternData;//now empty
+    //privateExtern size
+    packUInt(out_data,privateExternData.size());
     //externData size
     std::vector<TByte> externData;
     listener->externData(externData);
@@ -649,6 +650,9 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     }else{
         _pushv(headData);
     }
+    //privateExtern data
+    _pushv(privateExternData);
+    //externData
     listener->externDataPosInDiffStream(writeToPos,externData.size());
     _pushv(externData);
 
@@ -931,7 +935,12 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
                              (isCompressed?decompressPlugin:0),head.headDataSize);
             outDiff.pushStream(&clip,compressPlugin,compress_headData_sizePos);
         }
-        {//save externData
+        if (head.privateExternDataSize>0){//resave privateExternData
+            TStreamClip clip(in_diff,head.privateExternDataOffset,
+                             head.privateExternDataOffset+head.privateExternDataSize);
+            outDiff.pushStream(&clip);
+        }
+        if (diffInfo.externDataSize>0){//resave externData
             TStreamClip clip(in_diff,diffInfo.externDataOffset,
                              diffInfo.externDataOffset+diffInfo.externDataSize);
             outDiff.pushStream(&clip);

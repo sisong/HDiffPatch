@@ -107,9 +107,9 @@ struct THash_adler32h{
     typedef uint32_t TValue;
     inline static const char* name() { return "adler32h"; }
     TValue _hv;
-    inline void hash_begin() { _hv=(TValue)adler32_start(0,0); }
+    inline void hash_begin() { _hv=adler32_start(0,0); }
     inline void hash(const TByte* pdata,const TByte* pdata_end)
-                        { _hv=(TValue)adler32_append(_hv,pdata,(pdata_end-pdata));
+                        { _hv=adler32_append(_hv,pdata,(pdata_end-pdata));
                             //assert(_hv==(TValue)adler32(1,pdata,(pdata_end-pdata)));
                         }
     inline void hash_end(TValue* hv) { *hv=_hv; }
@@ -119,9 +119,9 @@ struct THash_adler32f{
     typedef uint32_t TValue;
     inline static const char* name() { return "adler32f"; }
     TValue _hv;
-    inline void hash_begin() { _hv=(TValue)fast_adler32_start(0,0); }
+    inline void hash_begin() { _hv=fast_adler32_start(0,0); }
     inline void hash(const TByte* pdata,const TByte* pdata_end)
-                    { _hv=(TValue)fast_adler32_append(_hv,pdata,(pdata_end-pdata)); }
+                    { _hv=fast_adler32_append(_hv,pdata,(pdata_end-pdata)); }
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 
@@ -129,9 +129,9 @@ struct THash_adler64h{
     typedef uint64_t TValue;
     inline static const char* name() { return "adler64h"; }
     TValue _hv;
-    inline void hash_begin() { _hv=(TValue)adler64_start(0,0); }
+    inline void hash_begin() { _hv=adler64_start(0,0); }
     inline void hash(const TByte* pdata,const TByte* pdata_end)
-                    { _hv=(TValue)adler64_append(_hv,pdata,(pdata_end-pdata)); }
+                    { _hv=adler64_append(_hv,pdata,(pdata_end-pdata)); }
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 
@@ -139,9 +139,9 @@ struct THash_adler64f{
     typedef uint64_t TValue;
     inline static const char* name() { return "adler64f"; }
     TValue _hv;
-    inline void hash_begin() { _hv=(TValue)fast_adler64_start(0,0); }
+    inline void hash_begin() { _hv=fast_adler64_start(0,0); }
     inline void hash(const TByte* pdata,const TByte* pdata_end)
-                    { _hv=(TValue)fast_adler64_append(_hv,pdata,(pdata_end-pdata)); }
+                    { _hv=fast_adler64_append(_hv,pdata,(pdata_end-pdata)); }
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 
