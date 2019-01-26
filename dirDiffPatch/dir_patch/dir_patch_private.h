@@ -29,6 +29,7 @@
 #ifndef DirPatch_dir_patch_private_h
 #define DirPatch_dir_patch_private_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,5 +42,6 @@ hpatch_BOOL read_dirdiff_head(struct TDirDiffInfo* out_info,struct _TDirDiffHead
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif //DirPatch_dir_patch_private_h

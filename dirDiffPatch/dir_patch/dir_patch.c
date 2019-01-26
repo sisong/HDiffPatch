@@ -27,6 +27,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_patch.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dir_patch_private.h"
 #include <stdio.h>
 #include <string.h>
@@ -34,7 +35,7 @@
 #include "../../libHDiffPatch/HPatch/patch_private.h"
 #include "../../file_for_patch.h"
 
-static const char* kVersionType="DirDiff19";
+static const char* kVersionType="HDIFF19";
 
 #define TUInt hpatch_StreamPos_t
 
@@ -860,3 +861,5 @@ void TDirPatcher_decOldSameRefCount(TDirPatcher* self,size_t sameIndex){
     assert(self->_pOldSameRefCount[oldIndex]>0);
     --self->_pOldSameRefCount[oldIndex];
 }
+
+#endif

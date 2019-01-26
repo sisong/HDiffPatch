@@ -26,6 +26,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "res_handle_limit.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -139,3 +140,5 @@ hpatch_BOOL hpatch_TResHandleLimit_close(hpatch_TResHandleLimit* self){
     }
     return result;
 }
+
+#endif

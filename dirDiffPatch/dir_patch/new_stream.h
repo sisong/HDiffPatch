@@ -28,6 +28,7 @@
 #ifndef DirPatch_new_stream_h
 #define DirPatch_new_stream_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 
 typedef struct hpatch_INewStreamListener{
     void*       listenerImport;
@@ -76,4 +77,5 @@ hpatch_BOOL hpatch_TNewStream_open(hpatch_TNewStream* self,hpatch_INewStreamList
                                    const hpatch_TSameFilePair* samePairList,size_t samePairCount);
 hpatch_BOOL hpatch_TNewStream_close(hpatch_TNewStream* self);
 
+#endif
 #endif

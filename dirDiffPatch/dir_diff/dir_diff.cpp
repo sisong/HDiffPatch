@@ -27,6 +27,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_diff.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include <stdio.h>
 #include <algorithm> //sort
 #include <map>
@@ -44,7 +45,7 @@
 #include "../dir_patch/res_handle_limit.h"
 using namespace hdiff_private;
 
-static const char* kDirDiffVersionType="DirDiff19";
+static const char* kDirDiffVersionType="HDIFF19";
 
 #define kFileIOBufSize      (1024*64)
 #define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
@@ -968,3 +969,5 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
               "write diff data checksum error!");
     }
 }
+
+#endif

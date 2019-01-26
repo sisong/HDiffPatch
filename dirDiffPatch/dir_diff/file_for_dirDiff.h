@@ -30,6 +30,7 @@
 #ifndef DirDiffPatch_file_for_dirDiff_h
 #define DirDiffPatch_file_for_dirDiff_h
 #include "../../file_for_patch.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #ifdef _WIN32
 #else
 #   include <dirent.h> //opendir ...
@@ -145,4 +146,5 @@ void hdiff_dirClose(hdiff_TDirHandle dirHandle){
 }
 
 #endif //_WIN32
+#endif
 #endif

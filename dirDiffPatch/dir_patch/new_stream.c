@@ -26,6 +26,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "new_stream.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h> //printf
@@ -152,3 +153,5 @@ hpatch_BOOL hpatch_TNewStream_open(hpatch_TNewStream* self,hpatch_INewStreamList
     self->_curSamePairIndex=0;
     return _file_append_ready(self);
 }
+
+#endif

@@ -28,7 +28,7 @@
 #ifndef DirPatch_res_handle_limit_h
 #define DirPatch_res_handle_limit_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
-
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -70,5 +70,6 @@ hpatch_BOOL hpatch_TResHandleLimit_close(hpatch_TResHandleLimit* self);
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif //DirPatch_res_handle_limit_h

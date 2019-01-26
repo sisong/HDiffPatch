@@ -35,8 +35,11 @@
 #include "_clock_for_demo.h"
 #include "_atosize.h"
 #include "file_for_patch.h"
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dirDiffPatch/dir_patch/dir_patch.h"
 #include "hpatch_dir_listener.h"
+#endif
 
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
@@ -66,6 +69,7 @@
 
 #include "decompress_plugin_demo.h"
 
+#if (_IS_NEED_DIR_DIFF_PATCH)
 
 #ifndef _IS_NEED_DEFAULT_ChecksumPlugin
 #   define _IS_NEED_DEFAULT_ChecksumPlugin 1
@@ -88,6 +92,7 @@
 #endif
 
 #include "checksum_plugin_demo.h"
+#endif
 
 #define _free_mem(p) { if (p) { free(p); p=0; } }
 
@@ -102,6 +107,7 @@ static void printUsage(){
            "      requires (cacheSize+ 4*decompress stream size)+O(1) bytes of memory;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 64m.\n"
            "special options:\n"
+#if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumSets\n"
            "      set Checksum data for directory patch, DEFAULT -new-copy;\n"
            "      checksumSets support (can choose multiple):\n"
@@ -115,16 +121,29 @@ static void printUsage(){
            "      limit Number of open files at same time when stream directory patch;\n"
            "      maxOpenFileNumber>=8, DEFAULT 24, the best limit value by different\n"
            "        operating system.\n"
+#endif
            "  -f  Force overwrite, ignore outNewPath already exists;\n"
            "      DEFAULT (no -f) not overwrite and then return error;\n"
            "      support oldPath outNewPath same path!(patch to tempPath and overwrite old)\n"
            "      if used -f and outNewPath is exist file:\n"
+#if (_IS_NEED_DIR_DIFF_PATCH)
            "        if patch output file, will overwrite;\n"
+#else
+           "        will overwrite;\n"
+#endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
            "        if patch output directory, will always return error;\n"
+#endif
            "      if used -f and outNewPath is exist directory:\n"
+#if (_IS_NEED_DIR_DIFF_PATCH)
            "        if patch output file, will always return error;\n"
+#else
+           "        will always return error;\n"
+#endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
            "        if patch output directory, will overwrite, but not delete\n"
            "          needless existing files in directory.\n"
+#endif
 #if (_IS_NEED_ORIGINAL)
            "  -o  DEPRECATED; Original patch; compatible with \"patch_demo.c\",\n"
            "      diffFile must created by \"diff_demo.cpp\" or \"hdiffz -o ...\"\n"
@@ -175,11 +194,11 @@ int hpatch_cmd_line(int argc, const char * argv[]);
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
-
+#if (_IS_NEED_DIR_DIFF_PATCH)
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
                TDirPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener);
-
+#endif
 
 #if (_IS_NEED_MAIN)
 #   if (_IS_USE_WIN32_UTF8_WAPI)
@@ -197,10 +216,12 @@ int main(int argc, const char * argv[]){
 #   endif
 #endif
 
+#if (_IS_NEED_DIR_DIFF_PATCH)
 hpatch_inline static const char* findEnd(const char* str,char c){
     const char* result=strchr(str,c);
     return (result!=0)?result:(str+strlen(str));
 }
+
 static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checksumSet){
     while (hpatch_TRUE) {
         const char* pend=findEnd(psets,'-');
@@ -233,6 +254,7 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
             psets=pend+1;
     }
 }
+#endif
 
 #define _return_check(value,exitCode,errorInfo){ \
     if (!(value)) { fprintf(stderr,errorInfo " ERROR!\n"); return exitCode; } }
@@ -256,8 +278,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      patchCacheSize=0;
+#if (_IS_NEED_DIR_DIFF_PATCH)
     size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir patch
     TDirPatchChecksumSet checksumSet={0,hpatch_FALSE,hpatch_TRUE,hpatch_TRUE,hpatch_FALSE}; //DEFAULT
+#endif
     #define kMax_arg_values_size 3
     const char* arg_values[kMax_arg_values_size]={0};
     int         arg_values_size=0;
@@ -291,6 +315,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 _options_check((isForceOverwrite==_kNULL_VALUE)&&(op[2]=='\0'),"-f");
                 isForceOverwrite=hpatch_TRUE;
             } break;
+#if (_IS_NEED_DIR_DIFF_PATCH)
             case 'C':{
                 const char* psets=op+3;
                 _options_check((op[2]=='-'),"-C-?");
@@ -302,6 +327,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?");
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
             } break;
+#endif
             case '?':
             case 'h':{
                 _options_check((isOutputHelp==_kNULL_VALUE)&&(op[2]=='\0'),"-h");
@@ -336,11 +362,13 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         if (arg_values_size==0)
             return 0; //ok
     }
+#if (_IS_NEED_DIR_DIFF_PATCH)
     if (kMaxOpenFileNumber==_kNULL_SIZE)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_patch;
     if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
-    
+#endif
+
     _options_check(arg_values_size==kMax_arg_values_size,"count");
     if (isOriginal==_kNULL_VALUE)
         isOriginal=hpatch_FALSE;
@@ -353,8 +381,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         const char* oldPath     =arg_values[0];
         const char* diffFileName=arg_values[1];
         const char* outNewPath  =arg_values[2];
+#if (_IS_NEED_DIR_DIFF_PATCH)
         TDirDiffInfo dirDiffInfo;
         hpatch_BOOL  isOutDir;
+#endif
         hpatch_BOOL  isSamePath=hpatch_getIsSamePath(oldPath,outNewPath);
         _return_check(!hpatch_getIsSamePath(oldPath,diffFileName),
                       HPATCH_PATHTYPE_ERROR,"oldPath diffFile same path");
@@ -369,34 +399,48 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         }
         if (isSamePath)
             _return_check(isForceOverwrite,HPATCH_PATHTYPE_ERROR,"oldPath outNewPath same path");
+#if (_IS_NEED_DIR_DIFF_PATCH)
         _return_check(getDirDiffInfoByFile(diffFileName,&dirDiffInfo),
                       HPATCH_OPENREAD_ERROR,"input diffFile open read");
         if (dirDiffInfo.isDirDiff)
             _options_check(!isOriginal,"-o unsupport dir patch");
         isOutDir=(dirDiffInfo.isDirDiff)&&(dirDiffInfo.newPathIsDir);
+#endif
         if (!isSamePath){ // out new file or new dir
+#if (_IS_NEED_DIR_DIFF_PATCH)
             if (dirDiffInfo.isDirDiff){
                 return hpatch_dir(oldPath,diffFileName,outNewPath,isLoadOldAll,patchCacheSize,
                                   kMaxOpenFileNumber,&checksumSet,&defaultPatchDirlistener);
-            }else{
+            }else
+#endif
+            {
                 return hpatch(oldPath,diffFileName,outNewPath,isOriginal,isLoadOldAll,patchCacheSize);
             }
-        }else if (!isOutDir){ // isSamePath==true and out to file
+        }else
+#if (_IS_NEED_DIR_DIFF_PATCH)
+            if (!isOutDir)
+#endif
+        { // isSamePath==true and out to file
             int result;
             char newTempName[hpatch_kPathMaxSize];
+#if (_IS_NEED_DIR_DIFF_PATCH)
             if (dirDiffInfo.isDirDiff)
                 _return_check(!dirDiffInfo.oldPathIsDir,
                               HPATCH_PATHTYPE_ERROR,"can not use file overwrite oldDirectory");
+#endif
             // 1. patch to newTempName
             // 2. if patch ok    then  { delelte oldPath; rename newTempName to oldPath; }
             //    if patch error then  { delelte newTempName; }
             _return_check(hpatch_getTempPathName(outNewPath,newTempName,newTempName+hpatch_kPathMaxSize),
                           HPATCH_TEMPPATH_ERROR,"getTempPathName(outNewPath)");
             printf("NOTE: outNewPath temp file will be rename to oldPath name after patch!\n");
+#if (_IS_NEED_DIR_DIFF_PATCH)
             if (dirDiffInfo.isDirDiff){
                 result=hpatch_dir(oldPath,diffFileName,newTempName,isLoadOldAll,patchCacheSize,
                                   kMaxOpenFileNumber,&checksumSet,&defaultPatchDirlistener);
-            }else{
+            }else
+#endif
+            {
                 result=hpatch(oldPath,diffFileName,newTempName,isOriginal,isLoadOldAll,patchCacheSize);
             }
             if (result==HPATCH_SUCCESS){
@@ -412,7 +456,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 }
             }
             return result;
-        }else{ // isDirDiff==true isSamePath==true and out to dir
+        }
+#if (_IS_NEED_DIR_DIFF_PATCH)
+        else{ // isDirDiff==true isSamePath==true and out to dir
             int result;
             char newTempDir[hpatch_kPathMaxSize];
             assert(dirDiffInfo.isDirDiff);
@@ -431,6 +477,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             }
             return result;
         }
+#endif
     }
 }
 
@@ -503,6 +550,7 @@ static hpatch_BOOL getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo
     return hpatch_TRUE;
 }
 
+#if (_IS_NEED_DIR_DIFF_PATCH)
 static void _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType,
                             hpatch_TChecksum* testChecksumPlugin){
     if ((*out_checksumPlugin)!=0) return;
@@ -531,6 +579,7 @@ static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const cha
 #endif
     return (0!=*out_checksumPlugin);
 }
+#endif
 
 static void* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
                               hpatch_StreamPos_t oldDataSize,size_t* out_memCacheSize){
@@ -657,7 +706,7 @@ clear:
     return result;
 }
 
-
+#if (_IS_NEED_DIR_DIFF_PATCH)
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
                TDirPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener){
@@ -790,3 +839,4 @@ clear:
     printf("\nhpatchz dir patch time: %.3f s\n",(clock_s()-time0));
     return result;
 }
+#endif

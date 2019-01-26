@@ -26,6 +26,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "ref_stream.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -125,3 +126,4 @@ clear:
     return result;
 }
 
+#endif

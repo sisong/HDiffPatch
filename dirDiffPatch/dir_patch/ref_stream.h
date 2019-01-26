@@ -28,7 +28,7 @@
 #ifndef DirPatch_ref_stream_h
 #define DirPatch_ref_stream_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
-
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -54,5 +54,6 @@ void        hpatch_TRefStream_close(hpatch_TRefStream* self);
 
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif //DirPatch_ref_stream_h

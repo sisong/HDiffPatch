@@ -28,6 +28,7 @@
 #ifndef HPatch_checksum_plugin_h
 #define HPatch_checksum_plugin_h
 #include "patch_types.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,8 +46,9 @@ extern "C" {
         void                   (*end)(hpatch_checksumHandle handle,
                                       unsigned char* checksum,unsigned char* checksum_end);
     } hpatch_TChecksum;
-
+    
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif

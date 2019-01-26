@@ -29,6 +29,7 @@
 #ifndef DirPatch_dir_patch_h
 #define DirPatch_dir_patch_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #include "ref_stream.h"
 #include "new_stream.h"
@@ -187,8 +188,8 @@ const char* TDirPatcher_getNewPathBySameIndex(TDirPatcher* self,size_t sameIndex
 size_t      TDirPatcher_oldSameRefCount(TDirPatcher* self,size_t sameIndex);
 void        TDirPatcher_decOldSameRefCount(TDirPatcher* self,size_t sameIndex);
     
-    
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif //DirPatch_dir_patch_h
