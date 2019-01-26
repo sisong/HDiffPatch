@@ -103,12 +103,13 @@ static void printUsage(){
            "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 64m.\n"
            "special options:\n"
            "  -C-checksumSets\n"
-           "      set Checksum data for directory patch, DEFAULT not checksum any data;\n"
+           "      set Checksum data for directory patch, DEFAULT -new-copy;\n"
            "      checksumSets support (can choose multiple):\n"
            "        -diff      checksum diffFile;\n"
            "        -old       checksum old reference files;\n"
            "        -new       checksum new reference files edited from old reference files;\n"
            "        -copy      checksum new files copy from old same files;\n"
+           "        -no        no checksum\n"
            "        -all       same as: -diff-old-new-copy\n"
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory patch;\n"
@@ -218,6 +219,11 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TPatchChecksumSet* checksumS
             checksumSet->isCheck_oldRefData=hpatch_TRUE;
             checksumSet->isCheck_newRefData=hpatch_TRUE;
             checksumSet->isCheck_copyFileData=hpatch_TRUE;
+        }else  if ((len==2)&&(0==memcmp(psets,"no",len))){
+            checksumSet->isCheck_dirDiffData=hpatch_FALSE;
+            checksumSet->isCheck_oldRefData=hpatch_FALSE;
+            checksumSet->isCheck_newRefData=hpatch_FALSE;
+            checksumSet->isCheck_copyFileData=hpatch_FALSE;
         }else{
             return hpatch_FALSE;//error unknow set
         }
@@ -251,10 +257,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      patchCacheSize=0;
     size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir patch
-    TPatchChecksumSet checksumSet={0,hpatch_FALSE,hpatch_FALSE,hpatch_FALSE,hpatch_FALSE};
+    TPatchChecksumSet checksumSet={0,hpatch_FALSE,hpatch_TRUE,hpatch_TRUE,hpatch_FALSE}; //DEFAULT
     #define kMax_arg_values_size 3
-    const char * arg_values[kMax_arg_values_size]={0};
-    int          arg_values_size=0;
+    const char* arg_values[kMax_arg_values_size]={0};
+    int         arg_values_size=0;
     int         i;
     for (i=1; i<argc; ++i) {
         const char* op=argv[i];
@@ -288,6 +294,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             case 'C':{
                 const char* psets=op+3;
                 _options_check((op[2]=='-'),"-C-?");
+                memset(&checksumSet,0,sizeof(checksumSet));//all set false
                 _options_check(_toChecksumSet(psets,&checksumSet),"-C-?");
             } break;
             case 'n':{
@@ -349,8 +356,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         TDirDiffInfo dirDiffInfo;
         hpatch_BOOL  isOutDir;
         hpatch_BOOL  isSamePath=getIsSamePath(oldPath,outNewPath);
-        _return_check(!getIsSamePath(oldPath,diffFileName),HPATCH_PATHTYPE_ERROR,"oldPath diffFile same path");
-        _return_check(!getIsSamePath(outNewPath,diffFileName),HPATCH_PATHTYPE_ERROR,"outNewPath diffFile same path");
+        _return_check(!getIsSamePath(oldPath,diffFileName),
+                      HPATCH_PATHTYPE_ERROR,"oldPath diffFile same path");
+        _return_check(!getIsSamePath(outNewPath,diffFileName),
+                      HPATCH_PATHTYPE_ERROR,"outNewPath diffFile same path");
         if (!isForceOverwrite){
             TPathType   outNewPathType;
             _return_check(getPathStat(outNewPath,&outNewPathType,0),
