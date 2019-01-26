@@ -115,9 +115,9 @@ struct THash_adler32h{
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 
-struct THash_adler32f{
+struct THash_fadler32{
     typedef uint32_t TValue;
-    inline static const char* name() { return "adler32f"; }
+    inline static const char* name() { return "fadler32"; }
     TValue _hv;
     inline void hash_begin() { _hv=fast_adler32_start(0,0); }
     inline void hash(const TByte* pdata,const TByte* pdata_end)
@@ -135,9 +135,9 @@ struct THash_adler64h{
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 
-struct THash_adler64f{
+struct THash_fadler64{
     typedef uint64_t TValue;
-    inline static const char* name() { return "adler64f"; }
+    inline static const char* name() { return "fadler64"; }
     TValue _hv;
     inline void hash_begin() { _hv=fast_adler64_start(0,0); }
     inline void hash(const TByte* pdata,const TByte* pdata_end)
@@ -263,9 +263,9 @@ int main() {
     test<THash_crc32>(data.data(),data.data()+data.size());
     test<THash_adler32>(data.data(),data.data()+data.size());
     test<THash_adler32h>(data.data(),data.data()+data.size());
-    test<THash_adler32f>(data.data(),data.data()+data.size());
+    test<THash_fadler32>(data.data(),data.data()+data.size());
     test<THash_adler64h>(data.data(),data.data()+data.size());
-    test<THash_adler64f>(data.data(),data.data()+data.size());
+    test<THash_fadler64>(data.data(),data.data()+data.size());
     test<THash_md5_32>(data.data(),data.data()+data.size());
     test<THash_md5_64>(data.data(),data.data()+data.size());
     test<THash_md5_128>(data.data(),data.data()+data.size());

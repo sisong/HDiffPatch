@@ -31,8 +31,8 @@
 //  crc32ChecksumPlugin
 //  adler32ChecksumPlugin
 //  adler64ChecksumPlugin
-//  adler32fChecksumPlugin
-//  adler64fChecksumPlugin
+//  fadler32ChecksumPlugin
+//  fadler64ChecksumPlugin
 //  md5ChecksumPlugin
 
 #include "libHDiffPatch/HPatch/checksum_plugin.h"
@@ -189,74 +189,74 @@ static hpatch_TChecksum adler64ChecksumPlugin={ _adler64_checksumType,_adler64_c
 #endif//_ChecksumPlugin_adler64
 
 
-#ifdef  _ChecksumPlugin_adler32f
+#ifdef  _ChecksumPlugin_fadler32
 #include "libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
-static const char* _adler32f_checksumType(void){
-    static const char* type="adler32f";
+static const char* _fadler32_checksumType(void){
+    static const char* type="fadler32";
     return type;
 }
-static size_t _adler32f_checksumByteSize(void){
+static size_t _fadler32_checksumByteSize(void){
     return sizeof(hpatch_uint32_t);
 }
-static hpatch_checksumHandle _adler32f_open(hpatch_TChecksum* plugin){
+static hpatch_checksumHandle _fadler32_open(hpatch_TChecksum* plugin){
     return malloc(sizeof(hpatch_uint32_t));
 }
-static void _adler32f_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
+static void _fadler32_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
     if (handle) free(handle);
 }
-static void  _adler32f_begin(hpatch_checksumHandle handle){
+static void  _fadler32_begin(hpatch_checksumHandle handle){
     hpatch_uint32_t* pv=(hpatch_uint32_t*)handle;
     *pv=*pv=fast_adler32_start(0,0);
 }
-static void _adler32f_append(hpatch_checksumHandle handle,
+static void _fadler32_append(hpatch_checksumHandle handle,
                              const unsigned char* part_data,const unsigned char* part_data_end){
     hpatch_uint32_t* pv=(hpatch_uint32_t*)handle;
     *pv=fast_adler32_append(*pv,part_data,part_data_end-part_data);
 }
-static void _adler32f_end(hpatch_checksumHandle handle,
+static void _fadler32_end(hpatch_checksumHandle handle,
                          unsigned char* checksum,unsigned char* checksum_end){
     hpatch_uint32_t v=*(hpatch_uint32_t*)handle;
     assert(4==checksum_end-checksum);
     __out_checksum4(checksum,v);
 }
-static hpatch_TChecksum adler32fChecksumPlugin={ _adler32f_checksumType,_adler32f_checksumByteSize,_adler32f_open,
-                                                 _adler32f_close,_adler32f_begin,_adler32f_append,_adler32f_end};
-#endif//_ChecksumPlugin_adler32f
+static hpatch_TChecksum fadler32ChecksumPlugin={ _fadler32_checksumType,_fadler32_checksumByteSize,_fadler32_open,
+                                                 _fadler32_close,_fadler32_begin,_fadler32_append,_fadler32_end};
+#endif//_ChecksumPlugin_fadler32
 
 
-#ifdef  _ChecksumPlugin_adler64f
+#ifdef  _ChecksumPlugin_fadler64
 #include "libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
-static const char* _adler64f_checksumType(void){
-    static const char* type="adler64f";
+static const char* _fadler64_checksumType(void){
+    static const char* type="fadler64";
     return type;
 }
-static size_t _adler64f_checksumByteSize(void){
+static size_t _fadler64_checksumByteSize(void){
     return sizeof(hpatch_uint64_t);
 }
-static hpatch_checksumHandle _adler64f_open(hpatch_TChecksum* plugin){
+static hpatch_checksumHandle _fadler64_open(hpatch_TChecksum* plugin){
     return malloc(sizeof(hpatch_uint64_t));
 }
-static void _adler64f_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
+static void _fadler64_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
     if (handle) free(handle);
 }
-static void  _adler64f_begin(hpatch_checksumHandle handle){
+static void  _fadler64_begin(hpatch_checksumHandle handle){
     hpatch_uint64_t* pv=(hpatch_uint64_t*)handle;
     *pv=fast_adler64_start(0,0);
 }
-static void _adler64f_append(hpatch_checksumHandle handle,
+static void _fadler64_append(hpatch_checksumHandle handle,
                             const unsigned char* part_data,const unsigned char* part_data_end){
     hpatch_uint64_t* pv=(hpatch_uint64_t*)handle;
     *pv=fast_adler64_append(*pv,part_data,part_data_end-part_data);
 }
-static void _adler64f_end(hpatch_checksumHandle handle,
+static void _fadler64_end(hpatch_checksumHandle handle,
                          unsigned char* checksum,unsigned char* checksum_end){
     hpatch_uint64_t v=*(hpatch_uint64_t*)handle;
     assert(8==checksum_end-checksum);
     __out_checksum8(checksum,v);
 }
-static hpatch_TChecksum adler64fChecksumPlugin={ _adler64f_checksumType,_adler64f_checksumByteSize,_adler64f_open,
-                                                 _adler64f_close,_adler64f_begin,_adler64f_append,_adler64f_end};
-#endif//_ChecksumPlugin_adler64f
+static hpatch_TChecksum fadler64ChecksumPlugin={ _fadler64_checksumType,_fadler64_checksumByteSize,_fadler64_open,
+                                                 _fadler64_close,_fadler64_begin,_fadler64_append,_fadler64_end};
+#endif//_ChecksumPlugin_fadler64
 
 
 #ifdef  _ChecksumPlugin_md5

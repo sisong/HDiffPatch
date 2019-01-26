@@ -83,13 +83,13 @@
 #if (_IS_NEED_DEFAULT_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
 #   define _ChecksumPlugin_crc32    // =  32 bit effective  //need zlib
-#   define _ChecksumPlugin_adler64f // ~  63 bit effective
+#   define _ChecksumPlugin_fadler64 // ~  63 bit effective
 #endif
 #if (_IS_NEED_ALL_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
 #   define _ChecksumPlugin_adler32  // ~  29 bit effective
 #   define _ChecksumPlugin_adler64  // ~  36 bit effective
-#   define _ChecksumPlugin_adler32f // ~  32 bit effective
+#   define _ChecksumPlugin_fadler32 // ~  32 bit effective
 #   define _ChecksumPlugin_md5      // ? 128 bit effective
 #endif
 
@@ -136,9 +136,14 @@ static void printUsage(){
            "        -zstd[-{0..22}]             DEFAULT level 20\n"
 #endif
            "  -C-checksumType\n"
-           "      set outDiffFile Checksum type for dir diff, DEFAULT no checksum;\n"
-           "      for resave dirDiffFile,reChecksum diffFile to outDiffFile by new set;\n"
+           "      set outDiffFile Checksum type for dir diff, DEFAULT "
+#ifdef _ChecksumPlugin_fadler64
+           "used fadler64;\n"
+#else
+           "no checksum;\n"
+#endif
            "      support checksum type:\n"
+           "        -no                         no checksum\n"
 #ifdef _ChecksumPlugin_crc32
            "        -crc32\n"
 #endif
@@ -148,11 +153,11 @@ static void printUsage(){
 #ifdef _ChecksumPlugin_adler64
            "        -adler64\n"
 #endif
-#ifdef _ChecksumPlugin_adler32f
-           "        -adler32f\n"
+#ifdef _ChecksumPlugin_fadler32
+           "        -fadler32\n"
 #endif
-#ifdef _ChecksumPlugin_adler64f
-           "        -adler64f\n"
+#ifdef _ChecksumPlugin_fadler64
+           "        -fadler64                   DEFAULT\n"
 #endif
 #ifdef _ChecksumPlugin_md5
            "        -md5\n"
@@ -294,17 +299,27 @@ static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const cha
 #ifdef _ChecksumPlugin_adler64
     _trySetChecksum(out_checksumPlugin,checksumType,&adler64ChecksumPlugin);
 #endif
-#ifdef _ChecksumPlugin_adler32f
-    _trySetChecksum(out_checksumPlugin,checksumType,&adler32fChecksumPlugin);
+#ifdef _ChecksumPlugin_fadler32
+    _trySetChecksum(out_checksumPlugin,checksumType,&fadler32ChecksumPlugin);
 #endif
-#ifdef _ChecksumPlugin_adler64f
-    _trySetChecksum(out_checksumPlugin,checksumType,&adler64fChecksumPlugin);
+#ifdef _ChecksumPlugin_fadler64
+    _trySetChecksum(out_checksumPlugin,checksumType,&fadler64ChecksumPlugin);
 #endif
 #ifdef _ChecksumPlugin_md5
     _trySetChecksum(out_checksumPlugin,checksumType,&md5ChecksumPlugin);
 #endif
     return (0!=*out_checksumPlugin);
 }
+
+static hpatch_BOOL _getoptChecksum(hpatch_TChecksum** out_checksumPlugin,
+                                   const char* checksumType,const char* kNoChecksum){
+    assert(0==*out_checksumPlugin);
+    if (0==strcmp(checksumType,kNoChecksum))
+        return hpatch_TRUE;
+    else
+        return _findChecksum(out_checksumPlugin,checksumType);
+}
+
 
 
 #define _return_check(value,exitCode,errorInfo){ \
@@ -334,6 +349,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     hdiff_TStreamCompress*  streamCompressPlugin=0;
     hdiff_TCompress*        compressPlugin=0;
     hpatch_TDecompress*     decompressPlugin=0;
+    hpatch_BOOL             isSetChecksum=_kNULL_VALUE;
     hpatch_TChecksum*       checksumPlugin=0;
     std::vector<const char *> arg_values;
     for (int i=1; i<argc; ++i) {
@@ -441,12 +457,13 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                                                ptype,ptypeEnd,"zstd" ,&compressLevel,0,22,20),"-c-zstd-?");
                 if (compressPlugin==&zstdCompressPlugin) { zstd_compress_level=(int)compressLevel; }
 #endif
-                _options_check(compressPlugin!=0,"-c-?");
+                _options_check((compressPlugin!=0),"-c-?");
             } break;
             case 'C':{
-                _options_check((checksumPlugin==0)&&(op[2]=='-'),"-C");
+                _options_check((isSetChecksum==_kNULL_VALUE)&&(checksumPlugin==0)&&(op[2]=='-'),"-C");
                 const char* ptype=op+3;
-                _options_check(_findChecksum(&checksumPlugin,ptype),"-C-?");
+                isSetChecksum=hpatch_TRUE;
+                _options_check(_getoptChecksum(&checksumPlugin,ptype,"no"),"-C-?");
             } break;
             default: {
                 _options_check(hpatch_FALSE,"-?");
@@ -500,7 +517,9 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         assert(isPatchCheck||isDiff);
         if (isForceRunDirDiff==_kNULL_VALUE)
             isForceRunDirDiff=hpatch_FALSE;
-        
+        if (isSetChecksum==_kNULL_VALUE)
+            isSetChecksum=hpatch_FALSE;
+
         const char* oldPath        =arg_values[0];
         const char* newPath        =arg_values[1];
         const char* outDiffFileName=arg_values[2];
@@ -522,6 +541,12 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         _return_check((newType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"newPath not exist");
         hpatch_BOOL isUseDirDiff=isForceRunDirDiff||(kPathType_dir==oldType)||(kPathType_dir==newType);
         if (isUseDirDiff){
+#ifdef _ChecksumPlugin_fadler64
+            if (isSetChecksum==hpatch_FALSE){
+                checksumPlugin=&fadler64ChecksumPlugin; //DEFAULT
+                isSetChecksum=hpatch_TRUE;
+            }
+#endif
             _options_check(!isOriginal,"-o unsupport dir diff");
         }else{
             _options_check(checksumPlugin==0,"-C now only support dir diff, unsupport diff");
@@ -539,7 +564,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     }else{ //resave
         _options_check((isOriginal==_kNULL_VALUE),"-o unsupport run with resave mode");
         _options_check((isLoadAll==_kNULL_VALUE),"-m or -s unsupport run with resave mode");
-        _options_check((isPatchCheck==_kNULL_VALUE),"-d unsupport run with resave mode");
+        _options_check((isDiff==_kNULL_VALUE),"-d unsupport run with resave mode");
+        _options_check((isPatchCheck==_kNULL_VALUE),"-t unsupport run with resave mode");
         _options_check((isForceRunDirDiff==_kNULL_VALUE),"-D unsupport run with resave mode");
         _options_check((checksumPlugin==0),"-C unsupport run with resave mode");
         

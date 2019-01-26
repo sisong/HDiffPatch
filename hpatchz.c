@@ -77,13 +77,13 @@
 #if (_IS_NEED_DEFAULT_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
 #   define _ChecksumPlugin_crc32    // =  32 bit effective  //need zlib
-#   define _ChecksumPlugin_adler64f // ~  63 bit effective
+#   define _ChecksumPlugin_fadler64 // ~  63 bit effective
 #endif
 #if (_IS_NEED_ALL_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
 #   define _ChecksumPlugin_adler32  // ~  29 bit effective
 #   define _ChecksumPlugin_adler64  // ~  36 bit effective
-#   define _ChecksumPlugin_adler32f // ~  32 bit effective
+#   define _ChecksumPlugin_fadler32 // ~  32 bit effective
 #   define _ChecksumPlugin_md5      // ? 128 bit effective
 #endif
 
@@ -511,11 +511,11 @@ static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const cha
 #ifdef _ChecksumPlugin_adler64
     _trySetChecksum(out_checksumPlugin,checksumType,&adler64ChecksumPlugin);
 #endif
-#ifdef _ChecksumPlugin_adler32f
-    _trySetChecksum(out_checksumPlugin,checksumType,&adler32fChecksumPlugin);
+#ifdef _ChecksumPlugin_fadler32
+    _trySetChecksum(out_checksumPlugin,checksumType,&fadler32ChecksumPlugin);
 #endif
-#ifdef _ChecksumPlugin_adler64f
-    _trySetChecksum(out_checksumPlugin,checksumType,&adler64fChecksumPlugin);
+#ifdef _ChecksumPlugin_fadler64
+    _trySetChecksum(out_checksumPlugin,checksumType,&fadler64ChecksumPlugin);
 #endif
 #ifdef _ChecksumPlugin_md5
     _trySetChecksum(out_checksumPlugin,checksumType,&md5ChecksumPlugin);
