@@ -35,27 +35,27 @@
 #   include <dirent.h> //opendir ...
 #endif
 
-typedef void* TDirHandle;
+typedef void* hdiff_TDirHandle;
 
 #ifdef _WIN32
-struct _TFindFileData{
+struct _hdiff_TFindFileData{
     HANDLE              handle;
-    char                subName_utf8[kPathMaxSize];
+    char                subName_utf8[hpatch_kPathMaxSize];
 };
 
 static inline
-TDirHandle dirOpenForRead(const char* dir_utf8){
+hdiff_TDirHandle hdiff_dirOpenForRead(const char* dir_utf8){
     size_t      ucSize=strlen(dir_utf8);
     hpatch_BOOL isNeedDirSeparator=(ucSize>0)&&(dir_utf8[ucSize-1]!=kPatch_dirSeparator);
-    wchar_t     dir_w[kPathMaxSize];
-    int wsize=_utf8FileName_to_w(dir_utf8,dir_w,kPathMaxSize-3);
+    wchar_t     dir_w[hpatch_kPathMaxSize];
+    int wsize=_utf8FileName_to_w(dir_utf8,dir_w,hpatch_kPathMaxSize-3);
     if (wsize<=0) return 0; //error
     if (dir_w[wsize-1]=='\0') --wsize;
     if (isNeedDirSeparator)
         dir_w[wsize++]=kPatch_dirSeparator;
     dir_w[wsize++]='*';
     dir_w[wsize++]='\0';
-    _TFindFileData*  finder=(_TFindFileData*)malloc(sizeof(_TFindFileData));
+    _hdiff_TFindFileData*  finder=(_hdiff_TFindFileData*)malloc(sizeof(_hdiff_TFindFileData));
     WIN32_FIND_DATAW findData;
     finder->handle=FindFirstFileW(dir_w,&findData);
     if (finder->handle!=INVALID_HANDLE_VALUE){
@@ -72,9 +72,9 @@ TDirHandle dirOpenForRead(const char* dir_utf8){
 }
 
 static inline
-hpatch_BOOL dirNext(TDirHandle dirHandle,TPathType *out_type,const char** out_subName_utf8){
+hpatch_BOOL hdiff_dirNext(hdiff_TDirHandle dirHandle,hpatch_TPathType *out_type,const char** out_subName_utf8){
     assert(dirHandle!=0);
-    _TFindFileData* finder=(_TFindFileData*)dirHandle;
+    _hdiff_TFindFileData* finder=(_hdiff_TFindFileData*)dirHandle;
     if (finder->handle==INVALID_HANDLE_VALUE) { *out_subName_utf8=0; return hpatch_TRUE; }//finish
     WIN32_FIND_DATAW findData;
     if (!FindNextFileW(finder->handle,&findData)){
@@ -84,7 +84,7 @@ hpatch_BOOL dirNext(TDirHandle dirHandle,TPathType *out_type,const char** out_su
     }
     //get name
     const wchar_t* subName_w=(const wchar_t*)findData.cFileName;
-    int bsize=_wFileName_to_utf8(subName_w,finder->subName_utf8,kPathMaxSize);
+    int bsize=_wFileName_to_utf8(subName_w,finder->subName_utf8,hpatch_kPathMaxSize);
     if (bsize<=0) return hpatch_FALSE; //error
     *out_subName_utf8=finder->subName_utf8;
     //get type
@@ -97,8 +97,8 @@ hpatch_BOOL dirNext(TDirHandle dirHandle,TPathType *out_type,const char** out_su
 }
 
 static inline
-void dirClose(TDirHandle dirHandle){
-    _TFindFileData* finder=(_TFindFileData*)dirHandle;
+void hdiff_dirClose(hdiff_TDirHandle dirHandle){
+    _hdiff_TFindFileData* finder=(_hdiff_TFindFileData*)dirHandle;
     if (finder!=0){
         if (finder->handle!=INVALID_HANDLE_VALUE)
             FindClose(finder->handle);
@@ -109,14 +109,14 @@ void dirClose(TDirHandle dirHandle){
 #else  // _WIN32
 
 static inline
-TDirHandle dirOpenForRead(const char* dir_utf8){
-    TDirHandle h=opendir(dir_utf8);
+hdiff_TDirHandle hdiff_dirOpenForRead(const char* dir_utf8){
+    hdiff_TDirHandle h=opendir(dir_utf8);
     if (!h) return 0; //error
     return h;
 }
 
 static inline
-hpatch_BOOL dirNext(TDirHandle dirHandle,TPathType *out_type,const char** out_subName_utf8){
+hpatch_BOOL hdiff_dirNext(hdiff_TDirHandle dirHandle,hpatch_TPathType *out_type,const char** out_subName_utf8){
     assert(dirHandle!=0);
     DIR* pdir =(DIR*)dirHandle;
     struct dirent* pdirent = readdir(pdir);
@@ -134,12 +134,12 @@ hpatch_BOOL dirNext(TDirHandle dirHandle,TPathType *out_type,const char** out_su
         *out_subName_utf8=pdirent->d_name;
         return hpatch_TRUE;
     }else{
-        return dirNext(dirHandle,out_type,out_subName_utf8);
+        return hdiff_dirNext(dirHandle,out_type,out_subName_utf8);
     }
 }
 
 static inline
-void dirClose(TDirHandle dirHandle){
+void hdiff_dirClose(hdiff_TDirHandle dirHandle){
     if (dirHandle)
         closedir((DIR*)dirHandle);
 }

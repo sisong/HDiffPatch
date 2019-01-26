@@ -46,9 +46,9 @@
 #   endif
 #endif
 #if (_IS_USE_WIN32_UTF8_WAPI)
-#   define _kMultiBytePage CP_UTF8
+#   define _hpatch_kMultiBytePage CP_UTF8
 #elif defined(_WIN32)
-#   define _kMultiBytePage CP_ACP
+#   define _hpatch_kMultiBytePage CP_ACP
 #endif
 #ifdef _WIN32
 #   include <wchar.h>
@@ -59,8 +59,8 @@ extern "C" {
 #endif
 
 typedef unsigned char TByte;
-#define kFileIOBestMaxSize  (1<<20)
-#define kPathMaxSize  512
+#define hpatch_kFileIOBestMaxSize  (1<<20)
+#define hpatch_kPathMaxSize  512
 
 #define kMaxOpenFileNumber_limit_min          3
 #define kMaxOpenFileNumber_default_min        8 //must >= limit_min
@@ -76,16 +76,16 @@ typedef unsigned char TByte;
     static const char kPatch_dirSeparator_saved = '/';
     
 hpatch_inline static
-hpatch_BOOL getIsDirName(const char* path_utf8){
+hpatch_BOOL hpatch_getIsDirName(const char* path_utf8){
     size_t len=strlen(path_utf8);
     return (len>0)&&(path_utf8[len-1]==kPatch_dirSeparator);
 }
 
 
 #define _path_noEndDirSeparator(dst_path,src_path)  \
-    char  dst_path[kPathMaxSize];      \
+    char  dst_path[hpatch_kPathMaxSize];      \
     {   size_t len=strlen(src_path);   \
-        if (len>=kPathMaxSize) return hpatch_FALSE; /* error */ \
+        if (len>=hpatch_kPathMaxSize) return hpatch_FALSE; /* error */ \
         if ((len>0)&&(src_path[len-1]==kPatch_dirSeparator)) --len; /* without '/' */\
         memcpy(dst_path,src_path,len); \
         dst_path[len]='\0';  } /* safe */
@@ -101,10 +101,10 @@ hpatch_BOOL getIsDirName(const char* path_utf8){
 
 #ifdef _WIN32
 static int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
-    return MultiByteToWideChar(_kMultiBytePage,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize); }
+    return MultiByteToWideChar(_hpatch_kMultiBytePage,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize); }
 
 static int _wFileName_to_utf8(const wchar_t* fileName_w,char* out_fileName_utf8,size_t out_bSize){
-    return WideCharToMultiByte(_kMultiBytePage,0,fileName_w,-1,out_fileName_utf8,(int)out_bSize,0,0); }
+    return WideCharToMultiByte(_hpatch_kMultiBytePage,0,fileName_w,-1,out_fileName_utf8,(int)out_bSize,0,0); }
 
 static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCount,
                                        char** out_fileNames_utf8,size_t out_byteSize){
@@ -131,7 +131,7 @@ void SetDefaultStringLocale(){ //for some locale Path character encoding view
 #endif
 
 hpatch_inline static
-hpatch_BOOL getIsSamePath(const char* xPath_utf8,const char* yPath_utf8){
+hpatch_BOOL hpatch_getIsSamePath(const char* xPath_utf8,const char* yPath_utf8){
     _path_noEndDirSeparator(xPath,xPath_utf8);
     {   _path_noEndDirSeparator(yPath,yPath_utf8);
         if (0==strcmp(xPath,yPath)){
@@ -144,10 +144,10 @@ hpatch_BOOL getIsSamePath(const char* xPath_utf8,const char* yPath_utf8){
 }
 
 hpatch_inline static
-int printPath_utf8(const char* pathTxt_utf8){
+int hpatch_printPath_utf8(const char* pathTxt_utf8){
 #if (_IS_USE_WIN32_UTF8_WAPI)
-    wchar_t pathTxt_w[kPathMaxSize];
-    int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,kPathMaxSize);
+    wchar_t pathTxt_w[hpatch_kPathMaxSize];
+    int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,hpatch_kPathMaxSize);
     if (wsize>0)
         return printf("%ls",pathTxt_w);
     else //view unknow
@@ -158,10 +158,10 @@ int printPath_utf8(const char* pathTxt_utf8){
 }
 
 hpatch_inline static
-int printStdErrPath_utf8(const char* pathTxt_utf8){
+int hpatch_printStdErrPath_utf8(const char* pathTxt_utf8){
 #if (_IS_USE_WIN32_UTF8_WAPI)
-    wchar_t pathTxt_w[kPathMaxSize];
-    int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,kPathMaxSize);
+    wchar_t pathTxt_w[hpatch_kPathMaxSize];
+    int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,hpatch_kPathMaxSize);
     if (wsize>0)
         return fprintf(stderr,"%ls",pathTxt_w);
     else //view unknow
@@ -172,71 +172,71 @@ int printStdErrPath_utf8(const char* pathTxt_utf8){
 }
     
 
-    typedef enum TPathType{
+    typedef enum hpatch_TPathType{
         kPathType_notExist,
         kPathType_file,
         kPathType_dir,
-    } TPathType;
+    } hpatch_TPathType;
     
     
-hpatch_BOOL _getPathStat_noEndDirSeparator(const char* path_utf8,TPathType* out_type,
+hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_TPathType* out_type,
                                            hpatch_StreamPos_t* out_fileSize);
     
 hpatch_inline static
-hpatch_BOOL getPathStat(const char* path_utf8,TPathType* out_type,
+hpatch_BOOL hpatch_getPathStat(const char* path_utf8,hpatch_TPathType* out_type,
                         hpatch_StreamPos_t* out_fileSize){
-    if (!getIsDirName(path_utf8)){
-        return _getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize);
+    if (!hpatch_getIsDirName(path_utf8)){
+        return _hpatch_getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize);
     }else{//dir name
         _path_noEndDirSeparator(path,path_utf8);
-        return _getPathStat_noEndDirSeparator(path,out_type,out_fileSize);
+        return _hpatch_getPathStat_noEndDirSeparator(path,out_type,out_fileSize);
     }
 }
 
 hpatch_inline static
-hpatch_BOOL getPathTypeByName(const char* path_utf8,TPathType* out_type,hpatch_StreamPos_t* out_fileSize){
+hpatch_BOOL hpatch_getPathTypeByName(const char* path_utf8,hpatch_TPathType* out_type,hpatch_StreamPos_t* out_fileSize){
     assert(out_type!=0);
-    if (getIsDirName(path_utf8)){
+    if (hpatch_getIsDirName(path_utf8)){
         *out_type=kPathType_dir;
         if (out_fileSize) *out_fileSize=0;
         return hpatch_TRUE;
     }else{
-        return _getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize);
+        return _hpatch_getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize);
     }
 }
 
-hpatch_BOOL getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end);
+hpatch_BOOL hpatch_getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end);
 
-hpatch_BOOL renamePath(const char* oldPath_utf8,const char* newPath_utf8);
-hpatch_BOOL moveFile(const char* oldPath_utf8,const char* newPath_utf8);
+hpatch_BOOL hpatch_renamePath(const char* oldPath_utf8,const char* newPath_utf8);
+hpatch_BOOL hpatch_moveFile(const char* oldPath_utf8,const char* newPath_utf8);
 
-hpatch_BOOL removeFile(const char* fileName_utf8);
-hpatch_BOOL removeDir(const char* dirName_utf8);
+hpatch_BOOL hpatch_removeFile(const char* fileName_utf8);
+hpatch_BOOL hpatch_removeDir(const char* dirName_utf8);
 
-hpatch_BOOL makeNewDir(const char* dirName_utf8);
+hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8);
    
 
     
 typedef FILE* hpatch_FileHandle;
 
-typedef struct TFileStreamInput{
+typedef struct hpatch_TFileStreamInput{
     hpatch_TStreamInput base;
     const void*         _null_write;
     hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset;
     hpatch_BOOL         fileError;
-} TFileStreamInput;
+} hpatch_TFileStreamInput;
 
 hpatch_inline
-static void TFileStreamInput_init(TFileStreamInput* self){
-    memset(self,0,sizeof(TFileStreamInput));
+static void hpatch_TFileStreamInput_init(hpatch_TFileStreamInput* self){
+    memset(self,0,sizeof(hpatch_TFileStreamInput));
 }
-hpatch_BOOL TFileStreamInput_open(TFileStreamInput* self,const char* fileName_utf8);
-void TFileStreamInput_setOffset(TFileStreamInput* self,size_t offset);
-hpatch_BOOL TFileStreamInput_close(TFileStreamInput* self);
+hpatch_BOOL hpatch_TFileStreamInput_open(hpatch_TFileStreamInput* self,const char* fileName_utf8);
+void hpatch_TFileStreamInput_setOffset(hpatch_TFileStreamInput* self,size_t offset);
+hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self);
 
-typedef struct TFileStreamOutput{ //is TFileStreamInput !
+typedef struct hpatch_TFileStreamOutput{ //is hpatch_TFileStreamInput !
     hpatch_TStreamOutput base; //is hpatch_TStreamInput + write
     hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
@@ -247,21 +247,21 @@ typedef struct TFileStreamOutput{ //is TFileStreamInput !
     hpatch_BOOL         is_in_readModel;
     hpatch_StreamPos_t  out_length;
     
-} TFileStreamOutput;
+} hpatch_TFileStreamOutput;
 
 hpatch_inline
-static void TFileStreamOutput_init(TFileStreamOutput* self){
-    memset(self,0,sizeof(TFileStreamOutput));
+static void hpatch_TFileStreamOutput_init(hpatch_TFileStreamOutput* self){
+    memset(self,0,sizeof(hpatch_TFileStreamOutput));
 }
-hpatch_BOOL TFileStreamOutput_open(TFileStreamOutput* self,const char* fileName_utf8,
+hpatch_BOOL hpatch_TFileStreamOutput_open(hpatch_TFileStreamOutput* self,const char* fileName_utf8,
                                    hpatch_StreamPos_t max_file_length);
 hpatch_inline static
-void TFileStreamOutput_setRandomOut(TFileStreamOutput* self,hpatch_BOOL is_random_out){
+void hpatch_TFileStreamOutput_setRandomOut(hpatch_TFileStreamOutput* self,hpatch_BOOL is_random_out){
     self->is_random_out=is_random_out;
 }
 
-hpatch_BOOL TFileStreamOutput_flush(TFileStreamOutput* self);
-hpatch_BOOL TFileStreamOutput_close(TFileStreamOutput* self);
+hpatch_BOOL hpatch_TFileStreamOutput_flush(hpatch_TFileStreamOutput* self);
+hpatch_BOOL hpatch_TFileStreamOutput_close(hpatch_TFileStreamOutput* self);
 
 #ifdef __cplusplus
 }

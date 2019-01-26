@@ -34,7 +34,7 @@ extern "C" {
 #endif
     
 //利用refList模拟成一个输入流;
-typedef struct TRefStream{
+typedef struct hpatch_TRefStream{
     const hpatch_TStreamInput*  stream;
 //private:
     hpatch_TStreamInput         _stream;
@@ -45,12 +45,12 @@ typedef struct TRefStream{
     size_t                      _curRangeIndex;
     //mem
     unsigned char*              _buf;
-} TRefStream;
+} hpatch_TRefStream;
 
 hpatch_inline static
-void        TRefStream_init(TRefStream* self) { memset(self,0,sizeof(*self)); }
-hpatch_BOOL TRefStream_open(TRefStream* self,const hpatch_TStreamInput** refList,size_t refCount);
-void        TRefStream_close(TRefStream* self);
+void        hpatch_TRefStream_init(hpatch_TRefStream* self) { memset(self,0,sizeof(*self)); }
+hpatch_BOOL hpatch_TRefStream_open(hpatch_TRefStream* self,const hpatch_TStreamInput** refList,size_t refCount);
+void        hpatch_TRefStream_close(hpatch_TRefStream* self);
 
 #ifdef __cplusplus
 }

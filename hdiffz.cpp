@@ -225,7 +225,7 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 #if (_IS_NEED_MAIN)
 #   if (_IS_USE_WIN32_UTF8_WAPI)
 int wmain(int argc,wchar_t* argv_w[]){
-    char* argv_utf8[kPathMaxSize*2/sizeof(char*)];
+    char* argv_utf8[hpatch_kPathMaxSize*2/sizeof(char*)];
     if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))
         return HDIFF_OPTIONS_ERROR;
     SetDefaultStringLocale();
@@ -524,19 +524,19 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* newPath        =arg_values[1];
         const char* outDiffFileName=arg_values[2];
         
-        _return_check(!getIsSamePath(oldPath,outDiffFileName),HDIFF_PATHTYPE_ERROR,"oldPath outDiffFile same path");
-        _return_check(!getIsSamePath(newPath,outDiffFileName),HDIFF_PATHTYPE_ERROR,"newPath outDiffFile same path");
+        _return_check(!hpatch_getIsSamePath(oldPath,outDiffFileName),HDIFF_PATHTYPE_ERROR,"oldPath outDiffFile same path");
+        _return_check(!hpatch_getIsSamePath(newPath,outDiffFileName),HDIFF_PATHTYPE_ERROR,"newPath outDiffFile same path");
         if (!isForceOverwrite){
-            TPathType   outDiffFileType;
-            _return_check(getPathStat(outDiffFileName,&outDiffFileType,0),
+            hpatch_TPathType   outDiffFileType;
+            _return_check(hpatch_getPathStat(outDiffFileName,&outDiffFileType,0),
                           HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
             _return_check(outDiffFileType==kPathType_notExist,
                           HDIFF_PATHTYPE_ERROR,"diff outDiffFile already exists, not overwrite");
         }
-        TPathType oldType;
-        TPathType newType;
-        _return_check(getPathTypeByName(oldPath,&oldType,0),HDIFF_PATHTYPE_ERROR,"get oldPath type");
-        _return_check(getPathTypeByName(newPath,&newType,0),HDIFF_PATHTYPE_ERROR,"get newPath type");
+        hpatch_TPathType oldType;
+        hpatch_TPathType newType;
+        _return_check(hpatch_getPathTypeByName(oldPath,&oldType,0),HDIFF_PATHTYPE_ERROR,"get oldPath type");
+        _return_check(hpatch_getPathTypeByName(newPath,&newType,0),HDIFF_PATHTYPE_ERROR,"get newPath type");
         _return_check((oldType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"oldPath not exist");
         _return_check((newType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"newPath not exist");
         hpatch_BOOL isUseDirDiff=isForceRunDirDiff||(kPathType_dir==oldType)||(kPathType_dir==newType);
@@ -572,13 +572,13 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* diffFileName   =arg_values[0];
         const char* outDiffFileName=arg_values[1];
         if (!isForceOverwrite){
-            TPathType   outDiffFileType;
-            _return_check(getPathStat(outDiffFileName,&outDiffFileType,0),
+            hpatch_TPathType   outDiffFileType;
+            _return_check(hpatch_getPathStat(outDiffFileName,&outDiffFileType,0),
                           HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
             _return_check(outDiffFileType==kPathType_notExist,
                           HDIFF_PATHTYPE_ERROR,"resave outDiffFile already exists, not overwrite");
         }
-        hpatch_BOOL isSamePath=getIsSamePath(diffFileName,outDiffFileName);
+        hpatch_BOOL isSamePath=hpatch_getIsSamePath(diffFileName,outDiffFileName);
         if (isSamePath)
             _return_check(isForceOverwrite,HDIFF_PATHTYPE_ERROR,"diffFile outDiffFile same name");
         
@@ -588,21 +588,21 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             // 1. resave to newDiffTempName
             // 2. if resave ok    then  { delelte oldDiffFile; rename newDiffTempName to oldDiffName; }
             //    if resave error then  { delelte newDiffTempName; }
-            char newDiffTempName[kPathMaxSize];
-            _return_check(getTempPathName(outDiffFileName,newDiffTempName,newDiffTempName+kPathMaxSize),
+            char newDiffTempName[hpatch_kPathMaxSize];
+            _return_check(hpatch_getTempPathName(outDiffFileName,newDiffTempName,newDiffTempName+hpatch_kPathMaxSize),
                           HDIFF_TEMPPATH_ERROR,"getTempPathName(diffFile)");
             printf("NOTE: out_diff temp file will be rename to in_diff name after resave!\n");
             int result=hdiff_resave(diffFileName,newDiffTempName,streamCompressPlugin);
             if (result==0){//resave ok
-                _return_check(removeFile(diffFileName),
+                _return_check(hpatch_removeFile(diffFileName),
                               HDIFF_DELETEPATH_ERROR,"removeFile(diffFile)");
-                _return_check(renamePath(newDiffTempName,diffFileName),
+                _return_check(hpatch_renamePath(newDiffTempName,diffFileName),
                               HDIFF_RENAMEPATH_ERROR,"renamePath(temp,diffFile)");
                 printf("out_diff temp file renamed to in_diff name!\n");
             }else{//resave error
-                if (!removeFile(newDiffTempName)){
+                if (!hpatch_removeFile(newDiffTempName)){
                     printf("WARNING: can't remove temp file \"");
-                    printPath_utf8(newDiffTempName); printf("\"\n");
+                    hpatch_printPath_utf8(newDiffTempName); printf("\"\n");
                 }
             }
             return result;
@@ -610,29 +610,29 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     }
 }
 
-#define _check_readFile(value) { if (!(value)) { TFileStreamInput_close(&file); return hpatch_FALSE; } }
+#define _check_readFile(value) { if (!(value)) { hpatch_TFileStreamInput_close(&file); return hpatch_FALSE; } }
 #define _free_file_mem(p) { if (p) { free(p); p=0; } }
 static hpatch_BOOL readFileAll(TByte** out_pdata,size_t* out_dataSize,const char* fileName){
     size_t              dataSize;
-    TFileStreamInput    file;
-    TFileStreamInput_init(&file);
-    _check_readFile(TFileStreamInput_open(&file,fileName));
+    hpatch_TFileStreamInput    file;
+    hpatch_TFileStreamInput_init(&file);
+    _check_readFile(hpatch_TFileStreamInput_open(&file,fileName));
     dataSize=(size_t)file.base.streamSize;
     _check_readFile(dataSize==file.base.streamSize);
     *out_pdata=(TByte*)malloc(dataSize);
     _check_readFile((*out_pdata)!=0);
     *out_dataSize=dataSize;
     _check_readFile(file.base.read(&file.base,0,*out_pdata,(*out_pdata)+dataSize));
-    return TFileStreamInput_close(&file);
+    return hpatch_TFileStreamInput_close(&file);
 }
 
-#define _check_writeFile(value) { if (!(value)) { TFileStreamOutput_close(&file); return hpatch_FALSE; } }
+#define _check_writeFile(value) { if (!(value)) { hpatch_TFileStreamOutput_close(&file); return hpatch_FALSE; } }
 static hpatch_BOOL writeFileAll(const TByte* pdata,size_t dataSize,const char* outFileName){
-    TFileStreamOutput file;
-    TFileStreamOutput_init(&file);
-    _check_writeFile(TFileStreamOutput_open(&file,outFileName,dataSize));
+    hpatch_TFileStreamOutput file;
+    hpatch_TFileStreamOutput_init(&file);
+    _check_writeFile(hpatch_TFileStreamOutput_open(&file,outFileName,dataSize));
     _check_writeFile(file.base.write(&file.base,0,pdata,pdata+dataSize));
-    return TFileStreamOutput_close(&file);
+    return hpatch_TFileStreamOutput_close(&file);
 }
 
 #if (_IS_NEED_ORIGINAL)
@@ -681,7 +681,7 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
     if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define check(value,errorType,errorInfo) { \
     std::string erri=std::string()+errorInfo+" ERROR!\n"; \
-    if (!(value)){ printStdErrPath_utf8(erri.c_str()); _check_on_error(errorType); } }
+    if (!(value)){ hpatch_printStdErrPath_utf8(erri.c_str()); _check_on_error(errorType); } }
 
 static int hdiff_m(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
                    hpatch_BOOL isDiff,size_t matchScore,hpatch_BOOL isPatchCheck,
@@ -760,23 +760,23 @@ static int hdiff_s(const char* oldFileName,const char* newFileName,const char* o
     double diff_time0=clock_s();
     int result=HDIFF_SUCCESS;
     int _isInClear=hpatch_FALSE;
-    TFileStreamInput  oldData;
-    TFileStreamInput  newData;
-    TFileStreamOutput diffData;
-    TFileStreamInput  diffData_in;
-    TFileStreamInput_init(&oldData);
-    TFileStreamInput_init(&newData);
-    TFileStreamOutput_init(&diffData);
-    TFileStreamInput_init(&diffData_in);
+    hpatch_TFileStreamInput  oldData;
+    hpatch_TFileStreamInput  newData;
+    hpatch_TFileStreamOutput diffData;
+    hpatch_TFileStreamInput  diffData_in;
+    hpatch_TFileStreamInput_init(&oldData);
+    hpatch_TFileStreamInput_init(&newData);
+    hpatch_TFileStreamOutput_init(&diffData);
+    hpatch_TFileStreamInput_init(&diffData_in);
     
-    check(TFileStreamInput_open(&oldData,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
-    check(TFileStreamInput_open(&newData,newFileName),HDIFF_OPENREAD_ERROR,"open newFile");
+    check(hpatch_TFileStreamInput_open(&oldData,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
+    check(hpatch_TFileStreamInput_open(&newData,newFileName),HDIFF_OPENREAD_ERROR,"open newFile");
     printf("oldDataSize : %"PRIu64"\nnewDataSize : %"PRIu64"\n",
            oldData.base.streamSize,newData.base.streamSize);
     if (isDiff){
-        check(TFileStreamOutput_open(&diffData,outDiffFileName,-1),
+        check(hpatch_TFileStreamOutput_open(&diffData,outDiffFileName,-1),
               HDIFF_OPENWRITE_ERROR,"open out diffFile");
-        TFileStreamOutput_setRandomOut(&diffData,hpatch_TRUE);
+        hpatch_TFileStreamOutput_setRandomOut(&diffData,hpatch_TRUE);
         try{
             create_compressed_diff_stream(&newData.base,&oldData.base, &diffData.base,
                                           streamCompressPlugin,matchBlockSize);
@@ -784,7 +784,7 @@ static int hdiff_s(const char* oldFileName,const char* newFileName,const char* o
         }catch(const std::exception& e){
             check(false,HDIFF_DIFF_ERROR,"stream diff run an error: "+e.what());
         }
-        check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+        check(hpatch_TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close");
         printf("diffDataSize: %"PRIu64"\n",diffData.base.streamSize);
         printf("  out diff file ok!\n");
         printf("diff  time: %.3f s\n",(clock_s()-diff_time0));
@@ -792,7 +792,7 @@ static int hdiff_s(const char* oldFileName,const char* newFileName,const char* o
     if (isPatchCheck){
         double patch_time0=clock_s();
         printf("\nload diffFile for test by patch check:\n");
-        check(TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
+        check(hpatch_TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
         printf("diffDataSize: %"PRIu64"\n",diffData_in.base.streamSize);
         check(check_compressed_diff_stream(&newData.base,&oldData.base,
                                            &diffData_in.base,decompressPlugin),
@@ -802,10 +802,10 @@ static int hdiff_s(const char* oldFileName,const char* newFileName,const char* o
     }
 clear:
     _isInClear=hpatch_TRUE;
-    check(TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close");
-    check(TFileStreamInput_close(&diffData_in),HDIFF_FILECLOSE_ERROR,"check diffFile close");
-    check(TFileStreamInput_close(&newData),HDIFF_FILECLOSE_ERROR,"newFile close");
-    check(TFileStreamInput_close(&oldData),HDIFF_FILECLOSE_ERROR,"oldFile close");
+    check(hpatch_TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+    check(hpatch_TFileStreamInput_close(&diffData_in),HDIFF_FILECLOSE_ERROR,"check diffFile close");
+    check(hpatch_TFileStreamInput_close(&newData),HDIFF_FILECLOSE_ERROR,"newFile close");
+    check(hpatch_TFileStreamInput_close(&oldData),HDIFF_FILECLOSE_ERROR,"oldFile close");
     return result;
 }
 
@@ -817,7 +817,7 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
     std::string fnameInfo=std::string("old : \"")+oldFileName+"\"\n"
                                      +"new : \""+newFileName+"\"\n"
                              +(isDiff?"out : \"":"test: \"")+outDiffFileName+"\"\n";
-    printPath_utf8(fnameInfo.c_str());
+    hpatch_printPath_utf8(fnameInfo.c_str());
     
     if (isDiff) {
         const char* compressType="";
@@ -850,13 +850,13 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
     hpatch_BOOL  isDirDiff=false;
     TDirDiffInfo dirDiffInfo;
     hpatch_TChecksum* checksumPlugin=0;
-    TFileStreamInput  diffData_in;
-    TFileStreamOutput diffData_out;
-    TFileStreamInput_init(&diffData_in);
-    TFileStreamOutput_init(&diffData_out);
+    hpatch_TFileStreamInput  diffData_in;
+    hpatch_TFileStreamOutput diffData_out;
+    hpatch_TFileStreamInput_init(&diffData_in);
+    hpatch_TFileStreamOutput_init(&diffData_out);
     
     hpatch_TDecompress* decompressPlugin=0;
-    check(TFileStreamInput_open(&diffData_in,diffFileName),HDIFF_OPENREAD_ERROR,"open diffFile");
+    check(hpatch_TFileStreamInput_open(&diffData_in,diffFileName),HDIFF_OPENREAD_ERROR,"open diffFile");
     check(getDirDiffInfo(&diffData_in.base,&dirDiffInfo),HDIFF_OPENREAD_ERROR,"read diffFile");
     isDirDiff=dirDiffInfo.isDirDiff;
     { //decompressPlugin
@@ -918,9 +918,9 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
         printf("resave dirDiffFile with checksum plugin: \"%s\"\n",dirDiffInfo.checksumType);
     }
     
-    check(TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),HDIFF_OPENWRITE_ERROR,
+    check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),HDIFF_OPENWRITE_ERROR,
           "open out diffFile");
-    TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
+    hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
     printf("inDiffSize : %"PRIu64"\n",diffData_in.base.streamSize);
     try{
         if (isDirDiff){
@@ -936,12 +936,12 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
         check(false,HDIFF_RESAVE_ERROR,"resave diff run an error: "+e.what());
     }
     printf("outDiffSize: %"PRIu64"\n",diffData_out.base.streamSize);
-    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+    check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
     printf("  out diff file ok!\n");
 clear:
     _isInClear=hpatch_TRUE;
-    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
-    check(TFileStreamInput_close(&diffData_in),HDIFF_FILECLOSE_ERROR,"in diffFile close");
+    check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+    check(hpatch_TFileStreamInput_close(&diffData_in),HDIFF_FILECLOSE_ERROR,"in diffFile close");
     return result;
 }
 
@@ -950,7 +950,7 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
     double time0=clock_s();
     std::string fnameInfo=std::string("in_diff : \"")+diffFileName+"\"\n"
                                      +"out_diff: \""+outDiffFileName+"\"\n";
-    printPath_utf8(fnameInfo.c_str());
+    hpatch_printPath_utf8(fnameInfo.c_str());
     
     int exitCode=hdiff_r(diffFileName,outDiffFileName,streamCompressPlugin);
     double time1=clock_s();
@@ -999,13 +999,13 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
     double time0=clock_s();
     std::string oldPatch(_oldPath);
     std::string newPatch(_newPath);
-    if (oldIsDir) assignDirTag(oldPatch); else assert(!getIsDirName(oldPatch.c_str()));
-    if (newIsDir) assignDirTag(newPatch); else assert(!getIsDirName(newPatch.c_str()));
+    if (oldIsDir) assignDirTag(oldPatch); else assert(!hpatch_getIsDirName(oldPatch.c_str()));
+    if (newIsDir) assignDirTag(newPatch); else assert(!hpatch_getIsDirName(newPatch.c_str()));
     std::string fnameInfo=std::string("")
         +(oldIsDir?"oldDir : \"":"oldFile: \"")+oldPatch+"\"\n"
         +(newIsDir?"newDir : \"":"newFile: \"")+newPatch+"\"\n"
         +(isDiff?  "outDiff: \"":"   test: \"")+outDiffFileName+"\"\n";
-    printPath_utf8(fnameInfo.c_str());
+    hpatch_printPath_utf8(fnameInfo.c_str());
     
     if (isDiff) {
         const char* checksumType="";
@@ -1023,15 +1023,15 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
 
     int  result=HDIFF_SUCCESS;
     bool _isInClear=false;
-    TFileStreamOutput diffData_out;
-    TFileStreamInput diffData_in;
-    TFileStreamOutput_init(&diffData_out);
-    TFileStreamInput_init(&diffData_in);
+    hpatch_TFileStreamOutput diffData_out;
+    hpatch_TFileStreamInput diffData_in;
+    hpatch_TFileStreamOutput_init(&diffData_out);
+    hpatch_TFileStreamInput_init(&diffData_in);
     if (isDiff){
         try {
-            check(TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),
+            check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),
                   HDIFF_OPENWRITE_ERROR,"open out diffFile");
-            TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
+            hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
             DirDiffListener listener;
             dir_diff(&listener,oldPatch,newPatch,&diffData_out.base,isLoadAll!=0,matchValue,
                      streamCompressPlugin,compressPlugin,checksumPlugin,kMaxOpenFileNumber);
@@ -1041,13 +1041,13 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         }
         printf("\nDirDiff  size: %"PRIu64"\n",diffData_out.base.streamSize);
         printf("DirDiff  time: %.3f s\n",(clock_s()-time0));
-        check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+        check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
         printf("  out dir diffFile ok!\n");
     }
     if (isPatchCheck){
         double patch_time0=clock_s();
         printf("\nload dir diffFile for test by DirPatch check:\n");
-        check(TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
+        check(hpatch_TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
         printf("diffDataSize : %"PRIu64"\n",diffData_in.base.streamSize);
         DirDiffListener listener;
         check(check_dirdiff(&listener,oldPatch,newPatch,&diffData_in.base,decompressPlugin,checksumPlugin,
@@ -1059,6 +1059,6 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
     printf("\nall   time: %.3f s\n",(clock_s()-time0));
 clear:
     _isInClear=true;
-    check(TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"check diffFile close");
+    check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"check diffFile close");
     return result;
 }

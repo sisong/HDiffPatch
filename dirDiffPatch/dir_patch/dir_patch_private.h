@@ -37,7 +37,7 @@ struct TDirDiffInfo;
 struct _TDirDiffHead;
 
 hpatch_BOOL read_dirdiff_head(struct TDirDiffInfo* out_info,struct _TDirDiffHead* out_head,
-                               const hpatch_TStreamInput* dirDiffFile);
+                              const hpatch_TStreamInput* dirDiffFile);
 
 #ifdef __cplusplus
 }

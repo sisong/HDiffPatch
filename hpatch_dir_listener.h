@@ -45,18 +45,18 @@ typedef struct IHPatchDirListener {
 
 //IDirPatchListener
 hpatch_BOOL _makeNewDir(IDirPatchListener* listener,const char* newDir){
-    return makeNewDir(newDir);
+    return hpatch_makeNewDir(newDir);
 }
 hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,
-                          const char* newFileName,ICopyDataListener* copyListener){
+                          const char* newFileName,hpatch_ICopyDataListener* copyListener){
     return TDirPatcher_copyFile(oldFileName,newFileName,copyListener);
 }
-hpatch_BOOL _openNewFile(IDirPatchListener* listener,TFileStreamOutput*  out_curNewFile,
+hpatch_BOOL _openNewFile(IDirPatchListener* listener,hpatch_TFileStreamOutput*  out_curNewFile,
                          const char* newFileName,hpatch_StreamPos_t newFileSize){
-    return TFileStreamOutput_open(out_curNewFile,newFileName,newFileSize);
+    return hpatch_TFileStreamOutput_open(out_curNewFile,newFileName,newFileSize);
 }
-hpatch_BOOL _closeNewFile(IDirPatchListener* listener,TFileStreamOutput* curNewFile){
-    return TFileStreamOutput_close(curNewFile);
+hpatch_BOOL _closeNewFile(IDirPatchListener* listener,hpatch_TFileStreamOutput* curNewFile){
+    return hpatch_TFileStreamOutput_close(curNewFile);
 }
 //IHPatchDirListener
 hpatch_BOOL _dirPatchBegin(IHPatchDirListener* listener,TDirPatcher* dirPatcher){
@@ -73,7 +73,7 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
 
 //IDirPatchListener
 hpatch_BOOL _tempDir_copySameFile(IDirPatchListener* listener,const char* oldFileName,
-                                  const char* newFileName,ICopyDataListener* copyListener){
+                                  const char* newFileName,hpatch_ICopyDataListener* copyListener){
     //checksum same file
     //not copy now
     if (copyListener==0) return hpatch_TRUE;
@@ -86,19 +86,19 @@ hpatch_BOOL _tempDirPatchBegin(IHPatchDirListener* self,TDirPatcher* dirPatcher)
     return hpatch_TRUE;
 }
     
-    static hpatch_BOOL isPathNotExist(const char* pathName){
-        TPathType type;
+    static hpatch_BOOL _isPathNotExist(const char* pathName){
+        hpatch_TPathType type;
         if (pathName==0) return hpatch_FALSE;
-        if (!getPathStat(pathName,&type,0)) return hpatch_FALSE;
+        if (!hpatch_getPathStat(pathName,&type,0)) return hpatch_FALSE;
         return (kPathType_notExist==type);
     }
     static hpatch_BOOL _tryRemovePath(const char* pathName){
         if (pathName==0) return hpatch_TRUE;
-        if (isPathNotExist(pathName)) return hpatch_TRUE;
-        if (getIsDirName(pathName))
-            return removeDir(pathName);
+        if (_isPathNotExist(pathName)) return hpatch_TRUE;
+        if (hpatch_getIsDirName(pathName))
+            return hpatch_removeDir(pathName);
         else
-            return removeFile(pathName);
+            return hpatch_removeFile(pathName);
     }
 hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPatchSuccess){
     hpatch_BOOL  result=hpatch_TRUE;
@@ -120,13 +120,13 @@ hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPatchSucc
                 if (!TDirPatcher_copyFile(oldPath,newPath,0)){
                     result=hpatch_FALSE;
                     fprintf(stderr,"can't copy new file to newTempDir from same old file \"");
-                    printStdErrPath_utf8(newPath); fprintf(stderr,"\"  ERROR!\n");
+                    hpatch_printStdErrPath_utf8(newPath); fprintf(stderr,"\"  ERROR!\n");
                 }
             }else{
-                if (!moveFile(oldPath,newPath)){//move old to new
+                if (!hpatch_moveFile(oldPath,newPath)){//move old to new
                     result=hpatch_FALSE;
                     fprintf(stderr,"can't move new file to newTempDir from same old file \"");
-                    printStdErrPath_utf8(newPath); fprintf(stderr,"\"  ERROR!\n");
+                    hpatch_printStdErrPath_utf8(newPath); fprintf(stderr,"\"  ERROR!\n");
                 }
             }
             TDirPatcher_decOldSameRefCount(dirPatcher,sameIndex);
@@ -139,13 +139,13 @@ hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPatchSucc
             size_t oldPathIndex=i-1;
             const char* oldPath=TDirPatcher_getOldPathByIndex(dirPatcher,oldPathIndex);
             if (oldPath==0) continue;
-            if (!getIsDirName(oldPath)){
+            if (!hpatch_getIsDirName(oldPath)){
                 if (!_tryRemovePath(oldPath)){
                     printf("WARNING: can't remove old file \"");
-                    printPath_utf8(oldPath); printf("\"\n");
+                    hpatch_printPath_utf8(oldPath); printf("\"\n");
                 }
             }else{
-                removeDir(oldPath);
+                hpatch_removeDir(oldPath);
             }
         }
         
@@ -154,26 +154,26 @@ hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPatchSucc
             size_t newPathIndex=i;
             const char* newPath=TDirPatcher_getNewPathByIndex(dirPatcher,newPathIndex);
             if (newPath==0) { result=hpatch_FALSE; continue; }
-            if (getIsDirName(newPath)){
+            if (hpatch_getIsDirName(newPath)){
                 const char* oldDir=TDirPatcher_getOldPathByNewPath(dirPatcher,newPath);
                 if (oldDir==0) { result=hpatch_FALSE; continue; }
-                if (!makeNewDir(oldDir)) { result=hpatch_FALSE; continue; }
+                if (!hpatch_makeNewDir(oldDir)) { result=hpatch_FALSE; continue; }
             }
         }
         for (i=dirPatcher->dirDiffHead.newPathCount; i>0; --i) {//move files to old and remove dir
             size_t newPathIndex=i-1;
             const char* newPath=TDirPatcher_getNewPathByIndex(dirPatcher,newPathIndex);
             if (newPath==0) { result=hpatch_FALSE; continue; }
-            if (getIsDirName(newPath)){
-                removeDir(newPath);
+            if (hpatch_getIsDirName(newPath)){
+                hpatch_removeDir(newPath);
             }else{
                 const char* oldPath=TDirPatcher_getOldPathByNewPath(dirPatcher,newPath);
                 if (oldPath==0) { result=hpatch_FALSE; continue; }
-                removeFile(oldPath);//overwrite
-                if (!moveFile(newPath,oldPath)){//move new to old
+                hpatch_removeFile(oldPath);//overwrite
+                if (!hpatch_moveFile(newPath,oldPath)){//move new to old
                     result=hpatch_FALSE;
                     fprintf(stderr,"can't move new file to oldDirectory \"");
-                    printStdErrPath_utf8(newPath); fprintf(stderr,"\"  ERROR!\n");
+                    hpatch_printStdErrPath_utf8(newPath); fprintf(stderr,"\"  ERROR!\n");
                     continue;
                 }
             }
@@ -188,7 +188,7 @@ hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPatchSucc
         }
         {//check remove newTempDir result
             const char* newTempDir=TDirPatcher_getNewPathRoot(dirPatcher);
-            result=result && isPathNotExist(newTempDir);
+            result=result && _isPathNotExist(newTempDir);
         }
     }
     return result;

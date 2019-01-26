@@ -34,19 +34,19 @@
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 
 void assignDirTag(std::string& dir);
-struct IDirFilter;
-void getDirFileList(const std::string& dir,std::vector<std::string>& out_list,IDirFilter* filter);
-void sortDirFileList(std::vector<std::string>& fileList);
+struct IDirPathFilter;
+void getDirAllPathList(const std::string& dir,std::vector<std::string>& out_list,IDirPathFilter* filter);
+void sortDirPathList(std::vector<std::string>& fileList);
 
-struct IDirFilter{
-    virtual ~IDirFilter(){}
+struct IDirPathFilter{
+    virtual ~IDirPathFilter(){}
     static bool pathIsEndWith(const std::string& pathName,const char* testEndTag);
     static bool pathNameIs(const std::string& pathName,const char* testPathName);
     
-    virtual bool isNeedFilter(const std::string& fileName) { return false; }
+    virtual bool isNeedFilter(const std::string& path) { return false; }
 };
 
-struct IDirDiffListener:public IDirFilter{
+struct IDirDiffListener:public IDirPathFilter{
     virtual ~IDirDiffListener(){}
     virtual void diffPathList(std::vector<std::string>& oldPathList,std::vector<std::string>& newPathList){}
     virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,

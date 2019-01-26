@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include <stdio.h> //printf
 
-hpatch_BOOL TNewStream_close(TNewStream* self){
+hpatch_BOOL hpatch_TNewStream_close(hpatch_TNewStream* self){
     hpatch_BOOL result=hpatch_TRUE;
     const hpatch_TStreamOutput* curNewFile=self->_curNewFile;
     if (curNewFile){
@@ -40,17 +40,17 @@ hpatch_BOOL TNewStream_close(TNewStream* self){
     return result;
 }
 
-static hpatch_BOOL _file_entry_end(TNewStream* self);
-static hpatch_BOOL _file_append_ready(TNewStream* self);
-static hpatch_BOOL _file_append_part(TNewStream* self,hpatch_StreamPos_t writeToPos,
+static hpatch_BOOL _file_entry_end(hpatch_TNewStream* self);
+static hpatch_BOOL _file_append_ready(hpatch_TNewStream* self);
+static hpatch_BOOL _file_append_part(hpatch_TNewStream* self,hpatch_StreamPos_t writeToPos,
                                      const unsigned char* data,const unsigned char* data_end);
-static hpatch_BOOL _file_append_end(TNewStream* self);
+static hpatch_BOOL _file_append_end(hpatch_TNewStream* self);
 
 #define  check(value) { if (!(value)){ fprintf(stderr,"check "#value" error!\n"); return hpatch_FALSE; } }
 
 static hpatch_BOOL _TNewStream_write(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                      const unsigned char* data,const unsigned char* data_end){
-    TNewStream* self=(TNewStream*)stream->streamImport;
+    hpatch_TNewStream* self=(hpatch_TNewStream*)stream->streamImport;
     self->_listener->writedNewRefData(self->_listener,data,data_end);
     while (data!=data_end) {
         size_t writeLen=(size_t)(data_end-data);
@@ -72,7 +72,7 @@ static hpatch_BOOL _TNewStream_write(const hpatch_TStreamOutput* stream,hpatch_S
     return hpatch_TRUE;
 }
 
-static hpatch_BOOL _file_append_ready(TNewStream* self){
+static hpatch_BOOL _file_append_ready(hpatch_TNewStream* self){
     assert(self->_curNewFile==0);
     assert(self->_curWriteToPos==self->_curWriteToPosEnd);
     while (self->_curPathIndex<self->_pathCount) {
@@ -84,7 +84,7 @@ static hpatch_BOOL _file_append_ready(TNewStream* self){
             return hpatch_TRUE;
         }else if ((self->_curSamePairIndex<self->_samePairCount) //copy file ?
             &&(self->_curPathIndex==self->_samePairList[self->_curSamePairIndex].newIndex)){
-            const TSameFileIndexPair* pair=self->_samePairList+self->_curSamePairIndex;
+            const hpatch_TSameFilePair* pair=self->_samePairList+self->_curSamePairIndex;
             check(self->_listener->copySameFile(self->_listener,pair->newIndex,pair->oldIndex));
             ++self->_curSamePairIndex;
             ++self->_curPathIndex;
@@ -98,7 +98,7 @@ static hpatch_BOOL _file_append_ready(TNewStream* self){
     return hpatch_TRUE;
 }
 
-static hpatch_BOOL _file_append_part(TNewStream* self,hpatch_StreamPos_t g_writeToPos,
+static hpatch_BOOL _file_append_part(hpatch_TNewStream* self,hpatch_StreamPos_t g_writeToPos,
                                      const unsigned char* data,const unsigned char* data_end){
     hpatch_StreamPos_t curFilePos;
     assert(self->_curNewFile!=0);
@@ -108,7 +108,7 @@ static hpatch_BOOL _file_append_part(TNewStream* self,hpatch_StreamPos_t g_write
     return self->_curNewFile->write(self->_curNewFile,curFilePos,data,data_end);
 }
 
-static hpatch_BOOL _file_append_end(TNewStream* self){
+static hpatch_BOOL _file_append_end(hpatch_TNewStream* self){
     const hpatch_TStreamOutput* curNewFile=self->_curNewFile;
     assert(curNewFile!=0);
     assert(self->_curWriteToPos==self->_curWriteToPosEnd);
@@ -116,7 +116,7 @@ static hpatch_BOOL _file_append_end(TNewStream* self){
     return self->_listener->closeNewFile(self->_listener,curNewFile);
 }
 
-static hpatch_BOOL _file_entry_end(TNewStream* self){
+static hpatch_BOOL _file_entry_end(hpatch_TNewStream* self){
     check(!self->isFinish);
     check(self->_curPathIndex==self->_pathCount);
     check(self->_curSamePairIndex==self->_samePairCount);
@@ -125,10 +125,10 @@ static hpatch_BOOL _file_entry_end(TNewStream* self){
     return hpatch_TRUE;
 }
 
-hpatch_BOOL TNewStream_open(TNewStream* self,INewStreamListener* listener,
+hpatch_BOOL hpatch_TNewStream_open(hpatch_TNewStream* self,hpatch_INewStreamListener* listener,
                             hpatch_StreamPos_t newRefDataSize, size_t newPathCount,
                             const size_t* newRefList,size_t newRefCount,
-                            const TSameFileIndexPair* samePairList,size_t samePairCount){
+                            const hpatch_TSameFilePair* samePairList,size_t samePairCount){
     assert(self->_listener==0);
     assert(self->stream==0);
     assert(self->_curNewFile==0);

@@ -37,15 +37,15 @@
 extern "C" {
 #endif
     
-    typedef struct ICopyDataListener{
+    typedef struct hpatch_ICopyDataListener{
         void* listenerImport;
-        void    (*copyedData)(struct ICopyDataListener* listener,const unsigned char* data,
+        void    (*copyedData)(struct hpatch_ICopyDataListener* listener,const unsigned char* data,
                               const unsigned char* dataEnd);
-    } ICopyDataListener;
+    } hpatch_ICopyDataListener;
     
 hpatch_BOOL TDirPatcher_copyFile(const char* oldFileName_utf8,const char* newFileName_utf8,
-                                 ICopyDataListener* copyListener);
-hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,ICopyDataListener* copyListener);
+                                 hpatch_ICopyDataListener* copyListener);
+hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,hpatch_ICopyDataListener* copyListener);
     
     
 typedef struct TDirDiffInfo{
@@ -86,26 +86,26 @@ hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info
         hpatch_StreamPos_t  hdiffDataSize;
     } _TDirDiffHead;
     
-    struct TFileStreamInput;
-    struct TFileStreamOutput;
+    struct hpatch_TFileStreamInput;
+    struct hpatch_TFileStreamOutput;
     
     typedef struct IDirPatchListener{
         void*       listenerImport;
         hpatch_BOOL   (*makeNewDir)(struct IDirPatchListener* listener,const char* newDir);
         hpatch_BOOL (*copySameFile)(struct IDirPatchListener* listener,const char* oldFileName,
-                                    const char* newFileName,ICopyDataListener* copyListener);
-        hpatch_BOOL  (*openNewFile)(struct IDirPatchListener* listener,struct TFileStreamOutput*  out_curNewFile,
+                                    const char* newFileName,hpatch_ICopyDataListener* copyListener);
+        hpatch_BOOL  (*openNewFile)(struct IDirPatchListener* listener,struct hpatch_TFileStreamOutput*  out_curNewFile,
                                     const char* newFileName,hpatch_StreamPos_t newFileSize);
-        hpatch_BOOL (*closeNewFile)(struct IDirPatchListener* listener,struct TFileStreamOutput* curNewFile);
+        hpatch_BOOL (*closeNewFile)(struct IDirPatchListener* listener,struct hpatch_TFileStreamOutput* curNewFile);
     } IDirPatchListener;
     
-    typedef struct TPatchChecksumSet{
+    typedef struct TDirPatchChecksumSet{
         hpatch_TChecksum*   checksumPlugin;
         hpatch_BOOL         isCheck_oldRefData;
         hpatch_BOOL         isCheck_newRefData;  
         hpatch_BOOL         isCheck_copyFileData;
         hpatch_BOOL         isCheck_dirDiffData;
-    } TPatchChecksumSet;
+    } TDirPatchChecksumSet;
 
 typedef struct TDirPatcher{
     TDirDiffInfo                dirDiffInfo;
@@ -115,32 +115,32 @@ typedef struct TDirPatcher{
     const size_t*               oldRefList;
     const size_t*               newRefList;
     const hpatch_StreamPos_t*   newRefSizeList;
-    const TSameFileIndexPair*   dataSamePairList; //new map to old index
+    const hpatch_TSameFilePair* dataSamePairList; //new map to old index
     hpatch_BOOL                 isDiffDataChecksumError;
     hpatch_BOOL                 isNewRefDataChecksumError;
     hpatch_BOOL                 isOldRefDataChecksumError;
     hpatch_BOOL                 isCopyDataChecksumError;
 //private:
-    INewStreamListener          _newDirStreamListener;
-    TNewStream                  _newDirStream;
-    struct TFileStreamOutput*   _curNewFile;
+    hpatch_INewStreamListener   _newDirStreamListener;
+    hpatch_TNewStream           _newDirStream;
+    struct hpatch_TFileStreamOutput*   _curNewFile;
     char*                       _newRootDir;
     char*                       _newRootDir_end;
     char*                       _newRootDir_bufEnd;
     void*                       _pNewRefMem;
     
-    TRefStream                  _oldRefStream;
-    TResHandleLimit             _resLimit;
-    IResHandle*                 _resList;
-    struct TFileStreamInput*    _oldFileList;
+    hpatch_TRefStream           _oldRefStream;
+    hpatch_TResHandleLimit      _resLimit;
+    hpatch_IResHandle*          _resList;
+    struct hpatch_TFileStreamInput*    _oldFileList;
     char*                       _oldRootDir;
     char*                       _oldRootDir_end;
     char*                       _oldRootDir_bufEnd;
     void*                       _pOldRefMem;
     
-    ICopyDataListener           _sameFileCopyListener;
+    hpatch_ICopyDataListener    _sameFileCopyListener;
     
-    TPatchChecksumSet           _checksumSet;
+    TDirPatchChecksumSet        _checksumSet;
     hpatch_checksumHandle       _newRefChecksumHandle;
     hpatch_checksumHandle       _sameFileChecksumHandle;
     unsigned char*              _pChecksumMem;
@@ -156,16 +156,16 @@ hpatch_inline
 static void TDirPatcher_init(TDirPatcher* self)  { memset(self,0,sizeof(*self)); }
 hpatch_BOOL TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* dirDiffData,
                              const TDirDiffInfo**  out_dirDiffInfo);
-//if checksumSet->isCheck_dirDiffData return  checksum(dirDiffData);
-hpatch_BOOL TDirPatcher_checksum(TDirPatcher* self,const TPatchChecksumSet* checksumSet);
-
+//if checksumSet->isCheck_dirDiffData then result&=checksum(dirDiffData);
+hpatch_BOOL TDirPatcher_checksum(TDirPatcher* self,const TDirPatchChecksumSet* checksumSet);
 hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin,
                                     const char* oldPath_utf8,const char* newPath_utf8);
+    
+    
 hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,size_t kMaxOpenFileNumber,
                                            const hpatch_TStreamInput** out_oldRefStream);
 hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,IDirPatchListener* listener,
                                            const hpatch_TStreamOutput** out_newDirStream);
-
 hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
                               const hpatch_TStreamInput* oldData,
                               unsigned char* temp_cache,unsigned char* temp_cache_end);

@@ -33,40 +33,40 @@
 extern "C" {
 #endif
 
-typedef struct IResHandle{
+typedef struct hpatch_IResHandle{
     void*               resImport;
     hpatch_StreamPos_t  resStreamSize;
-    hpatch_BOOL  (*open)(struct IResHandle* self,hpatch_TStreamInput** out_stream);
-    hpatch_BOOL (*close)(struct IResHandle* self,const hpatch_TStreamInput* stream);
-} IResHandle;
+    hpatch_BOOL  (*open)(struct hpatch_IResHandle* self,hpatch_TStreamInput** out_stream);
+    hpatch_BOOL (*close)(struct hpatch_IResHandle* self,const hpatch_TStreamInput* stream);
+} hpatch_IResHandle;
     
-struct TResHandleLimit;
-typedef struct _TResHandleBox{
+struct hpatch_TResHandleLimit;
+typedef struct _hpatch_TResHandleBox{
     hpatch_TStreamInput     box;
-    struct TResHandleLimit* owner;
+    struct hpatch_TResHandleLimit* owner;
     hpatch_StreamPos_t      hit;
-} _TResHandleBox;
+} _hpatch_TResHandleBox;
 
 //内部控制同时最大打开的句柄数,对外模拟成所有资源都能使用的完整流列表;
-typedef struct TResHandleLimit{
+typedef struct hpatch_TResHandleLimit{
     const hpatch_TStreamInput** streamList;
     size_t                      streamCount;
 //private:
-    _TResHandleBox*             _ex_streamList;
+    _hpatch_TResHandleBox*      _ex_streamList;
     hpatch_TStreamInput**       _in_streamList;
-    IResHandle*                 _resList;
+    hpatch_IResHandle*          _resList;
     hpatch_StreamPos_t          _curHit;
     size_t                      _curOpenCount;
     size_t                      _limitMaxOpenCount;
     //mem
     unsigned char*              _buf;
-} TResHandleLimit;
+} hpatch_TResHandleLimit;
 
 hpatch_inline static
-void        TResHandleLimit_init(TResHandleLimit* self) { memset(self,0,sizeof(*self)); }
-hpatch_BOOL TResHandleLimit_open(TResHandleLimit* self,size_t limitMaxOpenCount,
-                                 IResHandle* resList,size_t resCount);
-hpatch_BOOL TResHandleLimit_close(TResHandleLimit* self);
+void        hpatch_TResHandleLimit_init(hpatch_TResHandleLimit* self) { memset(self,0,sizeof(*self)); }
+hpatch_BOOL hpatch_TResHandleLimit_open(hpatch_TResHandleLimit* self,size_t limitMaxOpenCount,
+                                        hpatch_IResHandle* resList,size_t resCount);
+hpatch_BOOL hpatch_TResHandleLimit_close(hpatch_TResHandleLimit* self);
 
 #ifdef __cplusplus
 }

@@ -29,33 +29,33 @@
 #define DirPatch_new_stream_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
 
-typedef struct INewStreamListener{
+typedef struct hpatch_INewStreamListener{
     void*       listenerImport;
-    hpatch_BOOL   (*makeNewDir)(struct INewStreamListener* listener,size_t newPathIndex);
-    hpatch_BOOL (*copySameFile)(struct INewStreamListener* listener,size_t newPathIndex,size_t oldPathIndex);
-    hpatch_BOOL  (*openNewFile)(struct INewStreamListener* listener,size_t newRefIndex,
+    hpatch_BOOL   (*makeNewDir)(struct hpatch_INewStreamListener* listener,size_t newPathIndex);
+    hpatch_BOOL (*copySameFile)(struct hpatch_INewStreamListener* listener,size_t newPathIndex,size_t oldPathIndex);
+    hpatch_BOOL  (*openNewFile)(struct hpatch_INewStreamListener* listener,size_t newRefIndex,
                                 const hpatch_TStreamOutput** out_newFileStream);
-    hpatch_BOOL (*closeNewFile)(struct INewStreamListener* listener,const hpatch_TStreamOutput* newFileStream);
-    void    (*writedNewRefData)(struct INewStreamListener* listener,const unsigned char* data,
+    hpatch_BOOL (*closeNewFile)(struct hpatch_INewStreamListener* listener,const hpatch_TStreamOutput* newFileStream);
+    void    (*writedNewRefData)(struct hpatch_INewStreamListener* listener,const unsigned char* data,
                                 const unsigned char* dataEnd);
-    hpatch_BOOL (*writedFinish)(struct INewStreamListener* listener);
-} INewStreamListener;
+    hpatch_BOOL (*writedFinish)(struct hpatch_INewStreamListener* listener);
+} hpatch_INewStreamListener;
 
-typedef struct TSameFileIndexPair{
+typedef struct hpatch_TSameFilePair{
     size_t  newIndex;
     size_t  oldIndex;
-} TSameFileIndexPair;
+} hpatch_TSameFilePair;
 
 //对外模拟成一个输出流;
 //利用samePairList、newRefList等生成新文件和copy文件
-typedef struct TNewStream{
+typedef struct hpatch_TNewStream{
     const hpatch_TStreamOutput* stream;
     hpatch_BOOL             isFinish;
 //private:
     size_t                  _pathCount;
     const size_t*           _newRefList;
     size_t                  _newRefCount;
-    const TSameFileIndexPair* _samePairList;
+    const hpatch_TSameFilePair* _samePairList;
     size_t                  _samePairCount;
     hpatch_TStreamOutput    _stream;
     
@@ -65,15 +65,15 @@ typedef struct TNewStream{
     hpatch_StreamPos_t      _curWriteToPos;
     hpatch_StreamPos_t      _curWriteToPosEnd;
     const hpatch_TStreamOutput* _curNewFile;
-    INewStreamListener*     _listener;
-} TNewStream;
+    hpatch_INewStreamListener*  _listener;
+} hpatch_TNewStream;
 
 hpatch_inline static
-void        TNewStream_init(TNewStream* self) { memset(self,0,sizeof(*self)); }
-hpatch_BOOL TNewStream_open(TNewStream* self,INewStreamListener* listener,
-                            hpatch_StreamPos_t newRefDataSize,size_t newPathCount,
-                            const size_t* newRefList,size_t newRefCount,
-                            const TSameFileIndexPair* samePairList,size_t samePairCount);
-hpatch_BOOL TNewStream_close(TNewStream* self);
+void        hpatch_TNewStream_init(hpatch_TNewStream* self) { memset(self,0,sizeof(*self)); }
+hpatch_BOOL hpatch_TNewStream_open(hpatch_TNewStream* self,hpatch_INewStreamListener* listener,
+                                   hpatch_StreamPos_t newRefDataSize,size_t newPathCount,
+                                   const size_t* newRefList,size_t newRefCount,
+                                   const hpatch_TSameFilePair* samePairList,size_t samePairCount);
+hpatch_BOOL hpatch_TNewStream_close(hpatch_TNewStream* self);
 
 #endif

@@ -178,13 +178,13 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
 
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
-               TPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener);
+               TDirPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener);
 
 
 #if (_IS_NEED_MAIN)
 #   if (_IS_USE_WIN32_UTF8_WAPI)
 int wmain(int argc,wchar_t* argv_w[]){
-    char* argv_utf8[kPathMaxSize*2/sizeof(char*)];
+    char* argv_utf8[hpatch_kPathMaxSize*2/sizeof(char*)];
     if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))
         return HPATCH_OPTIONS_ERROR;
     SetDefaultStringLocale();
@@ -201,7 +201,7 @@ hpatch_inline static const char* findEnd(const char* str,char c){
     const char* result=strchr(str,c);
     return (result!=0)?result:(str+strlen(str));
 }
-static hpatch_BOOL _toChecksumSet(const char* psets,TPatchChecksumSet* checksumSet){
+static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checksumSet){
     while (hpatch_TRUE) {
         const char* pend=findEnd(psets,'-');
         size_t len=(size_t)(pend-psets);
@@ -257,7 +257,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      patchCacheSize=0;
     size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir patch
-    TPatchChecksumSet checksumSet={0,hpatch_FALSE,hpatch_TRUE,hpatch_TRUE,hpatch_FALSE}; //DEFAULT
+    TDirPatchChecksumSet checksumSet={0,hpatch_FALSE,hpatch_TRUE,hpatch_TRUE,hpatch_FALSE}; //DEFAULT
     #define kMax_arg_values_size 3
     const char* arg_values[kMax_arg_values_size]={0};
     int         arg_values_size=0;
@@ -355,14 +355,14 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         const char* outNewPath  =arg_values[2];
         TDirDiffInfo dirDiffInfo;
         hpatch_BOOL  isOutDir;
-        hpatch_BOOL  isSamePath=getIsSamePath(oldPath,outNewPath);
-        _return_check(!getIsSamePath(oldPath,diffFileName),
+        hpatch_BOOL  isSamePath=hpatch_getIsSamePath(oldPath,outNewPath);
+        _return_check(!hpatch_getIsSamePath(oldPath,diffFileName),
                       HPATCH_PATHTYPE_ERROR,"oldPath diffFile same path");
-        _return_check(!getIsSamePath(outNewPath,diffFileName),
+        _return_check(!hpatch_getIsSamePath(outNewPath,diffFileName),
                       HPATCH_PATHTYPE_ERROR,"outNewPath diffFile same path");
         if (!isForceOverwrite){
-            TPathType   outNewPathType;
-            _return_check(getPathStat(outNewPath,&outNewPathType,0),
+            hpatch_TPathType   outNewPathType;
+            _return_check(hpatch_getPathStat(outNewPath,&outNewPathType,0),
                           HPATCH_PATHTYPE_ERROR,"get outNewPath type");
             _return_check(outNewPathType==kPathType_notExist,
                           HPATCH_PATHTYPE_ERROR,"outNewPath already exists, not overwrite");
@@ -383,14 +383,14 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             }
         }else if (!isOutDir){ // isSamePath==true and out to file
             int result;
-            char newTempName[kPathMaxSize];
+            char newTempName[hpatch_kPathMaxSize];
             if (dirDiffInfo.isDirDiff)
                 _return_check(!dirDiffInfo.oldPathIsDir,
                               HPATCH_PATHTYPE_ERROR,"can not use file overwrite oldDirectory");
             // 1. patch to newTempName
             // 2. if patch ok    then  { delelte oldPath; rename newTempName to oldPath; }
             //    if patch error then  { delelte newTempName; }
-            _return_check(getTempPathName(outNewPath,newTempName,newTempName+kPathMaxSize),
+            _return_check(hpatch_getTempPathName(outNewPath,newTempName,newTempName+hpatch_kPathMaxSize),
                           HPATCH_TEMPPATH_ERROR,"getTempPathName(outNewPath)");
             printf("NOTE: outNewPath temp file will be rename to oldPath name after patch!\n");
             if (dirDiffInfo.isDirDiff){
@@ -400,34 +400,34 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 result=hpatch(oldPath,diffFileName,newTempName,isOriginal,isLoadOldAll,patchCacheSize);
             }
             if (result==HPATCH_SUCCESS){
-                _return_check(removeFile(oldPath),
+                _return_check(hpatch_removeFile(oldPath),
                               HPATCH_DELETEPATH_ERROR,"removeFile(oldPath)");
-                _return_check(renamePath(newTempName,oldPath),
+                _return_check(hpatch_renamePath(newTempName,oldPath),
                               HPATCH_RENAMEPATH_ERROR,"renamePath(temp,oldPath)");
                 printf("outNewPath temp file renamed to oldPath name!\n");
             }else{//patch error
-                if (!removeFile(newTempName)){
+                if (!hpatch_removeFile(newTempName)){
                     printf("WARNING: can't remove temp file \"");
-                    printPath_utf8(newTempName); printf("\"\n");
+                    hpatch_printPath_utf8(newTempName); printf("\"\n");
                 }
             }
             return result;
         }else{ // isDirDiff==true isSamePath==true and out to dir
             int result;
-            char newTempDir[kPathMaxSize];
+            char newTempDir[hpatch_kPathMaxSize];
             assert(dirDiffInfo.isDirDiff);
             _return_check(dirDiffInfo.oldPathIsDir,
                           HPATCH_PATHTYPE_ERROR,"can not use directory overwrite oldFile");
-            _return_check(getTempPathName(outNewPath,newTempDir,newTempDir+kPathMaxSize),
+            _return_check(hpatch_getTempPathName(outNewPath,newTempDir,newTempDir+hpatch_kPathMaxSize),
                           HPATCH_TEMPPATH_ERROR,"getTempPathName(outNewPath)");
             printf("NOTE: all in outNewPath temp directory will be move to oldDirectory after patch!\n");
             result=hpatch_dir(oldPath,diffFileName,newTempDir,isLoadOldAll,patchCacheSize,
                               kMaxOpenFileNumber,&checksumSet,&tempDirPatchListener);
             if (result==HPATCH_SUCCESS){
                 printf("all in outNewPath temp directory moved to oldDirectory!\n");
-            }else if(!isPathNotExist(newTempDir)){
+            }else if(!_isPathNotExist(newTempDir)){
                 printf("WARNING: not remove temp directory \"");
-                printPath_utf8(newTempDir); printf("\"\n");
+                hpatch_printPath_utf8(newTempDir); printf("\"\n");
             }
             return result;
         }
@@ -567,24 +567,24 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
     hpatch_TDecompress*  decompressPlugin=0;
-    TFileStreamOutput    newData;
-    TFileStreamInput     diffData;
-    TFileStreamInput     oldData;
+    hpatch_TFileStreamOutput    newData;
+    hpatch_TFileStreamInput     diffData;
+    hpatch_TFileStreamInput     oldData;
     hpatch_TStreamInput* poldData=&oldData.base;
     TByte*               temp_cache=0;
     size_t               temp_cache_size;
     hpatch_StreamPos_t   savedNewSize=0;
     hpatch_BOOL          patch_result;
-    TFileStreamInput_init(&oldData);
-    TFileStreamInput_init(&diffData);
-    TFileStreamOutput_init(&newData);
+    hpatch_TFileStreamInput_init(&oldData);
+    hpatch_TFileStreamInput_init(&diffData);
+    hpatch_TFileStreamOutput_init(&newData);
     {//open
-        printf(    "old : \""); printPath_utf8(oldFileName);
-        printf("\"\ndiff: \""); printPath_utf8(diffFileName);
-        printf("\"\nout : \""); printPath_utf8(outNewFileName);
+        printf(    "old : \""); hpatch_printPath_utf8(oldFileName);
+        printf("\"\ndiff: \""); hpatch_printPath_utf8(diffFileName);
+        printf("\"\nout : \""); hpatch_printPath_utf8(outNewFileName);
         printf("\"\n");
-        check(TFileStreamInput_open(&oldData,oldFileName),HPATCH_OPENREAD_ERROR,"open oldFile for read");
-        check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
+        check(hpatch_TFileStreamInput_open(&oldData,oldFileName),HPATCH_OPENREAD_ERROR,"open oldFile for read");
+        check(hpatch_TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
     }
 
 #if (_IS_NEED_ORIGINAL)
@@ -597,7 +597,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
               HPATCH_FILEREAD_ERROR,"read diffFile");
         kNewDataSizeSavedSize=readSavedSize(buf,kNewDataSizeSavedSize,&savedNewSize);
         check(kNewDataSizeSavedSize>0,HPATCH_FILEDATA_ERROR,"read diffFile savedNewSize");
-        TFileStreamInput_setOffset(&diffData,kNewDataSizeSavedSize);
+        hpatch_TFileStreamInput_setOffset(&diffData,kNewDataSizeSavedSize);
     }else
 #endif
     {
@@ -618,7 +618,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         }
         savedNewSize=diffInfo.newDataSize;
     }
-    check(TFileStreamOutput_open(&newData, outNewFileName,savedNewSize),
+    check(hpatch_TFileStreamOutput_open(&newData, outNewFileName,savedNewSize),
           HPATCH_OPENWRITE_ERROR,"open out newFile for write");
     printf("oldDataSize : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
@@ -649,9 +649,9 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     
 clear:
     _isInClear=hpatch_TRUE;
-    check(TFileStreamOutput_close(&newData),HPATCH_FILECLOSE_ERROR,"out newFile close");
-    check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
-    check(TFileStreamInput_close(&oldData),HPATCH_FILECLOSE_ERROR,"oldFile close");
+    check(hpatch_TFileStreamOutput_close(&newData),HPATCH_FILECLOSE_ERROR,"out newFile close");
+    check(hpatch_TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
+    check(hpatch_TFileStreamInput_close(&oldData),HPATCH_FILECLOSE_ERROR,"oldFile close");
     _free_mem(temp_cache);
     printf("\nhpatchz time: %.3f s\n",(clock_s()-time0));
     return result;
@@ -660,11 +660,11 @@ clear:
 
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
-               TPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener){
+               TDirPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
-    TFileStreamInput     diffData;
+    hpatch_TFileStreamInput     diffData;
     TDirPatcher          dirPatcher;
     const TDirDiffInfo*  dirDiffInfo=0;
     TByte*               p_temp_mem=0;
@@ -672,15 +672,15 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     size_t               temp_cache_size;
     const hpatch_TStreamInput*  oldStream=0;
     const hpatch_TStreamOutput* newStream=0;
-    TFileStreamInput_init(&diffData);
+    hpatch_TFileStreamInput_init(&diffData);
     TDirPatcher_init(&dirPatcher);
     assert(0!=strcmp(oldPath,outNewPath));
     {//dir diff info
         hpatch_BOOL  rt;
-        TPathType    oldType;
-        check(getPathTypeByName(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"get oldPath type");
+        hpatch_TPathType    oldType;
+        check(hpatch_getPathTypeByName(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"get oldPath type");
         check((oldType!=kPathType_notExist),HPATCH_PATHTYPE_ERROR,"oldPath not exist");
-        check(TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
+        check(hpatch_TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
         rt=TDirPatcher_open(&dirPatcher,&diffData.base,&dirDiffInfo);
         if((!rt)||(!dirDiffInfo->isDirDiff)){
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
@@ -692,13 +692,13 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             check(kPathType_file==oldType,HPATCH_PATHTYPE_ERROR,"input old path need file");
         }
         printf(        dirDiffInfo->oldPathIsDir?"old  dir: \"":"old file: \"");
-        printPath_utf8(oldPath);
-        if (dirDiffInfo->oldPathIsDir&&(!getIsDirName(oldPath))) printf("%c",kPatch_dirSeparator);
+        hpatch_printPath_utf8(oldPath);
+        if (dirDiffInfo->oldPathIsDir&&(!hpatch_getIsDirName(oldPath))) printf("%c",kPatch_dirSeparator);
         printf(                                             "\"\ndiffFile: \"");
-        printPath_utf8(diffFileName);
+        hpatch_printPath_utf8(diffFileName);
         printf(dirDiffInfo->newPathIsDir?"\"\nout  dir: \"":"\"\nout file: \"");
-        printPath_utf8(outNewPath);
-        if (dirDiffInfo->newPathIsDir&&(!getIsDirName(outNewPath))) printf("%c",kPatch_dirSeparator);
+        hpatch_printPath_utf8(outNewPath);
+        if (dirDiffInfo->newPathIsDir&&(!hpatch_getIsDirName(outNewPath))) printf("%c",kPatch_dirSeparator);
         printf("\"\n");
     }
     {//decompressPlugin
@@ -785,7 +785,7 @@ clear:
     check(TDirPatcher_closeNewDirStream(&dirPatcher),DIRPATCH_CLOSE_NEWPATH_ERROR,"newPath close");
     check(TDirPatcher_closeOldRefStream(&dirPatcher),DIRPATCH_CLOSE_OLDPATH_ERROR,"oldPath close");
     TDirPatcher_close(&dirPatcher);
-    check(TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
+    check(hpatch_TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
     _free_mem(p_temp_mem);
     printf("\nhpatchz dir patch time: %.3f s\n",(clock_s()-time0));
     return result;
