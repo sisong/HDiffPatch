@@ -650,7 +650,8 @@ static hpatch_BOOL _writedFinish(struct hpatch_INewStreamListener* listener){
                               self->_pChecksumMem+checksumByteSize*4,&self->_sameFileChecksumHandle))
             self->isCopyDataChecksumError=hpatch_TRUE;
     }
-    check((!self->isNewRefDataChecksumError)&&(!self->isCopyDataChecksumError));
+    check(!self->isNewRefDataChecksumError);
+    check(!self->isCopyDataChecksumError);
 clear:
     return result;
 }

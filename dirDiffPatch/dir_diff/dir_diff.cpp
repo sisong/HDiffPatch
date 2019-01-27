@@ -45,17 +45,18 @@
 #include "../dir_patch/res_handle_limit.h"
 using namespace hdiff_private;
 
-static const char* kDirDiffVersionType="HDIFF19";
+static const char* kDirDiffVersionType= "HDIFF19";
+
+static std::string  cmp_hash_type    =  "fadler64";
+#define cmp_hash_value_t                uint64_t
+#define cmp_hash_begin(ph)              { (*(ph))=ADLER_INITIAL; }
+#define cmp_hash_append(ph,pvalues,n)   { (*(ph))=fast_adler64_append(*(ph),pvalues,n); }
+#define cmp_hash_end(ph)                {}
+#define cmp_hash_combine(ph,rightHash,rightLen) { (*(ph))=fast_adler64_by_combine(*(ph),rightHash,rightLen); }
 
 #define kFileIOBufSize      (1024*64)
 #define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define checkv(value)     check(value,"check "#value" error!")
-
-#define hash_value_t                uint64_t
-#define hash_begin(ph)              { (*(ph))=ADLER_INITIAL; }
-#define hash_append(ph,pvalues,n)   { (*(ph))=fast_adler64_append(*(ph),pvalues,n); }
-#define hash_end(ph)                {}
-
 
 void assignDirTag(std::string& dir_utf8){
     if (dir_utf8.empty()||(dir_utf8[dir_utf8.size()-1]!=kPatch_dirSeparator))
@@ -187,11 +188,11 @@ void getDirAllPathList(const std::string& dirPath,std::vector<std::string>& out_
     _getDirSubFileList(dirName,out_list,filter);
 }
 
-static hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* out_fileSize){
+static cmp_hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* out_fileSize){
     CFileStreamInput f(fileName);
     TAutoMem  mem(kFileIOBufSize);
-    hash_value_t result;
-    hash_begin(&result);
+    cmp_hash_value_t result;
+    cmp_hash_begin(&result);
     *out_fileSize=f.base.streamSize;
     for (hpatch_StreamPos_t pos=0; pos<f.base.streamSize;) {
         size_t readLen=kFileIOBufSize;
@@ -199,11 +200,19 @@ static hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* 
             readLen=(size_t)(f.base.streamSize-pos);
         check(f.base.read(&f.base,pos,mem.data(),mem.data()+readLen),
               "read file \""+fileName+"\" error!");
-        hash_append(&result,mem.data(),readLen);
+        cmp_hash_append(&result,mem.data(),readLen);
         pos+=readLen;
     }
-    hash_end(&result);
+    cmp_hash_end(&result);
     return result;
+}
+
+static hpatch_StreamPos_t getFileSize(const std::string& fileName){
+    hpatch_TPathType   type;
+    hpatch_StreamPos_t fileSize;
+    checkv(hpatch_getPathStat(fileName.c_str(),&type,&fileSize));
+    checkv(type==kPathType_file);
+    return fileSize;
 }
 
 static bool fileData_isSame(const std::string& file_x,const std::string& file_y,
@@ -324,21 +333,36 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
                        std::vector<hpatch_StreamPos_t>& out_oldSizeList,
                        std::vector<hpatch_StreamPos_t>& out_newSizeList,
                        std::vector<hpatch_TSameFilePair>& out_dataSamePairList,
-                       std::vector<size_t>& out_oldRefList,std::vector<size_t>& out_newRefList){
-    typedef std::multimap<hash_value_t,size_t> TMap;
+                       std::vector<size_t>& out_oldRefList,std::vector<size_t>& out_newRefList,
+                       bool isNeedOutHashs,
+                       std::vector<cmp_hash_value_t>& out_oldHashList,
+                       std::vector<cmp_hash_value_t>& out_newHashList){
+    typedef std::multimap<cmp_hash_value_t,size_t> TMap;
     TMap hashMap;
     std::set<size_t> oldRefSet;
+    const bool isFileSizeAsHash =(!isNeedOutHashs) && ((oldList.size()*newList.size())<=16);
     out_oldSizeList.assign(oldList.size(),0);
     out_newSizeList.assign(newList.size(),0);
-    for (size_t i=0; i<oldList.size(); ++i) {
-        const std::string& fileName=oldList[i];
+    if (isNeedOutHashs){
+        out_oldHashList.assign(oldList.size(),0);
+        out_newHashList.assign(newList.size(),0);
+    }
+    for (size_t oldi=0; oldi<oldList.size(); ++oldi) {
+        const std::string& fileName=oldList[oldi];
         if (isDirName(fileName)) continue;
         hpatch_StreamPos_t fileSize=0;
-        hash_value_t hash=getFileHash(fileName,&fileSize);
-        out_oldSizeList[i]=fileSize;
+        cmp_hash_value_t hash;
+        if (isFileSizeAsHash){
+            fileSize=getFileSize(fileName);
+            hash=fileSize;
+        }else{
+            hash=getFileHash(fileName,&fileSize);
+        }
+        out_oldSizeList[oldi]=fileSize;
+        if (isNeedOutHashs) out_oldHashList[oldi]=hash;
         if (fileSize==0) continue;
-        hashMap.insert(TMap::value_type(hash,i));
-        oldRefSet.insert(i);
+        hashMap.insert(TMap::value_type(hash,oldi));
+        oldRefSet.insert(oldi);
     }
     out_dataSamePairList.clear();
     out_newRefList.clear();
@@ -347,8 +371,15 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
         const std::string& fileName=newList[newi];
         if (isDirName(fileName)) continue;
         hpatch_StreamPos_t fileSize=0;
-        hash_value_t hash=getFileHash(fileName,&fileSize);
+        cmp_hash_value_t hash;
+        if (isFileSizeAsHash){
+            fileSize=getFileSize(fileName);
+            hash=fileSize;
+        }else{
+            hash=getFileHash(fileName,&fileSize);
+        }
         out_newSizeList[newi]=fileSize;
+        if (isNeedOutHashs) out_newHashList[newi]=hash;
         if (fileSize==0) continue;
         
         bool isFoundSame=false;
@@ -423,12 +454,13 @@ struct CFileResHandleLimit{
 };
 
 struct CChecksum{
-    inline explicit CChecksum(hpatch_TChecksum* checksumPlugin)
-    :_checksumPlugin(checksumPlugin),_handle(0) {
+    inline explicit CChecksum(hpatch_TChecksum* checksumPlugin,bool isCanUseCombine)
+    :_checksumPlugin(checksumPlugin),_handle(0),_isCanUseCombine(isCanUseCombine) {
         if (checksumPlugin){
             _handle=checksumPlugin->open(checksumPlugin);
             checkv(_handle!=0);
             checksumPlugin->begin(_handle);
+            if (_isCanUseCombine) cmp_hash_begin(&_combineHash);
         } }
     inline ~CChecksum(){
         if (_handle) _checksumPlugin->close(_checksumPlugin,_handle); }
@@ -452,9 +484,25 @@ struct CChecksum{
         if (_handle){
             checksum.resize(_checksumPlugin->checksumByteSize());
             _checksumPlugin->end(_handle,checksum.data(),checksum.data()+checksum.size());
-        } }
+        }
+        if (_isCanUseCombine){
+            cmp_hash_end(&_combineHash);
+            assert(sizeof(cmp_hash_value_t)==_checksumPlugin->checksumByteSize());
+            checksum.resize(sizeof(cmp_hash_value_t));
+            cmp_hash_value_t hash=_combineHash;
+            for (size_t i=0;i<sizeof(cmp_hash_value_t);++i){
+                checksum[i]=(TByte)hash;
+                hash>>=8;
+            }
+        }
+    }
+    inline void combine(cmp_hash_value_t rightHash,uint64_t rightLen){
+        cmp_hash_combine(&_combineHash,rightHash,rightLen);
+    }
     hpatch_TChecksum*       _checksumPlugin;
     hpatch_checksumHandle   _handle;
+    const bool              _isCanUseCombine;
+    cmp_hash_value_t        _combineHash;
     std::vector<TByte>      checksum;
 };
 
@@ -522,8 +570,14 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     std::vector<hpatch_TSameFilePair> dataSamePairList;     //new map to same old
     std::vector<size_t> oldRefIList;
     std::vector<size_t> newRefIList;
+    
+    const bool isCachedHashs=(checksumPlugin!=0)&&(checksumPlugin->checksumType()==cmp_hash_type);
+    if (isCachedHashs) checkv(sizeof(cmp_hash_value_t)==checksumPlugin->checksumByteSize());
+    std::vector<cmp_hash_value_t> oldHashList;
+    std::vector<cmp_hash_value_t> newHashList;
     getRefList(oldPath,newPath,oldList,newList,
-               oldSizeList,newSizeList,dataSamePairList,oldRefIList,newRefIList);
+               oldSizeList,newSizeList,dataSamePairList,oldRefIList,newRefIList,
+               isCachedHashs,oldHashList,newHashList);
     std::vector<hpatch_StreamPos_t> newRefSizeList;
     std::vector<hpatch_IResHandle>  resList;
     {
@@ -557,18 +611,43 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     
     //checksum
     const size_t checksumByteSize=(checksumPlugin==0)?0:checksumPlugin->checksumByteSize();
-    CChecksum oldRefChecksum(checksumPlugin);
-    CChecksum newRefChecksum(checksumPlugin);
-    CChecksum sameFileChecksum(checksumPlugin);
-    oldRefChecksum.append(oldRefStream.stream);
+    //oldRefChecksum
+    CChecksum oldRefChecksum(checksumPlugin,isCachedHashs);
+    if (isCachedHashs){
+        for (size_t i=0; i<oldRefIList.size(); ++i) {
+            size_t fi=oldRefIList[i];
+            oldRefChecksum.combine(oldHashList[fi],oldSizeList[fi]);
+        }
+    }else{
+        oldRefChecksum.append(oldRefStream.stream);
+    }
     oldRefChecksum.appendEnd();
-    newRefChecksum.append(newRefStream.stream);
+    //newRefChecksum
+    CChecksum newRefChecksum(checksumPlugin,isCachedHashs);
+    if (isCachedHashs){
+        for (size_t i=0; i<newRefIList.size(); ++i) {
+            size_t fi=newRefIList[i];
+            newRefChecksum.combine(newHashList[fi],newSizeList[fi]);
+        }
+    }else{
+        newRefChecksum.append(newRefStream.stream);
+    }
     newRefChecksum.appendEnd();
+    //sameFileChecksum
+    CChecksum sameFileChecksum(checksumPlugin,isCachedHashs);
     hpatch_StreamPos_t sameFileSize=0;
     for (size_t i=0; i<dataSamePairList.size(); ++i) {
-        CFileStreamInput file(newList[dataSamePairList[i].newIndex]);
-        sameFileChecksum.append(&file.base);
-        sameFileSize+=file.base.streamSize;
+        size_t newi=dataSamePairList[i].newIndex;
+        if (isCachedHashs){
+            hpatch_StreamPos_t fileSize=newSizeList[newi];
+            sameFileChecksum.combine(newHashList[newi],fileSize);
+            sameFileSize+=fileSize;
+        }else{
+            CFileStreamInput file(newList[newi]);
+            assert(file.base.streamSize==newSizeList[newi]);
+            sameFileChecksum.append(&file.base);
+            sameFileSize+=file.base.streamSize;
+        }
     }
     sameFileChecksum.appendEnd();
     
@@ -624,7 +703,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         pushBack(out_data,sameFileChecksum.checksum);
     }
     //checksum(dirdiff)
-    CChecksum diffChecksum(checksumPlugin);
+    CChecksum diffChecksum(checksumPlugin,false);
     TPlaceholder diffChecksumPlaceholder(out_data.size(),out_data.size()+checksumByteSize);
     if (checksumByteSize>0){
         diffChecksum.append(out_data);
@@ -956,7 +1035,7 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
     }
     if (diffInfo.checksumByteSize>0){// update dirdiff checksum
         const size_t checksumByteSize=diffInfo.checksumByteSize;
-        CChecksum    diffChecksum(checksumPlugin);
+        CChecksum    diffChecksum(checksumPlugin,false);
         TPlaceholder diffChecksumPlaceholder(head.compressSizeBeginPos-checksumByteSize,
                                              head.compressSizeBeginPos);
         assert(out_diff->read_writed!=0);
