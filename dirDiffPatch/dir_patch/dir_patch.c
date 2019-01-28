@@ -685,11 +685,6 @@ hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,IDirPatchListener* 
         self->_newDirStreamListener.closeNewFile=_closeNewFile;
         self->_newDirStreamListener.writedNewRefData=_writedNewRefData;
         self->_newDirStreamListener.writedFinish=_writedFinish;
-        check(hpatch_TNewStream_open(&self->_newDirStream,&self->_newDirStreamListener,
-                              self->dirDiffInfo.hdiffInfo.newDataSize,self->dirDiffHead.newPathCount,
-                              self->newRefList,refCount,
-                              self->dataSamePairList,self->dirDiffHead.sameFilePairCount));
-        *out_newDirStream=self->_newDirStream.stream;
     }
     //checksum newRefData begin
     if (self->_checksumSet.isCheck_newRefData){
@@ -710,6 +705,11 @@ hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,IDirPatchListener* 
         self->_sameFileCopyListener.listenerImport=self;
         self->_sameFileCopyListener.copyedData=_sameFile_copyedData;
     }
+    check(hpatch_TNewStream_open(&self->_newDirStream,&self->_newDirStreamListener,
+                                 self->dirDiffInfo.hdiffInfo.newDataSize,self->dirDiffHead.newPathCount,
+                                 self->newRefList,refCount,
+                                 self->dataSamePairList,self->dirDiffHead.sameFilePairCount));
+    *out_newDirStream=self->_newDirStream.stream;
 clear:
     return result;
 }

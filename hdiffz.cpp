@@ -200,7 +200,7 @@ typedef enum THDiffResult {
     HDIFF_DIFF_ERROR,
     HDIFF_PATCH_ERROR,
     HDIFF_RESAVE_FILEREAD_ERROR,
-    HDIFF_RESAVE_HDIFFINFO_ERROR,
+    HDIFF_RESAVE_DIFFINFO_ERROR,
     HDIFF_RESAVE_COMPRESSTYPE_ERROR,
     HDIFF_RESAVE_ERROR,
     HDIFF_RESAVE_CHECKSUMTYPE_ERROR,
@@ -330,6 +330,24 @@ static hpatch_BOOL _getoptChecksum(hpatch_TChecksum** out_checksumPlugin,
         return _findChecksum(out_checksumPlugin,checksumType);
 }
 #endif
+
+static
+hpatch_BOOL getCompressedDiffInfoByFile(const char* diffFileName,hpatch_compressedDiffInfo *out_info){
+    hpatch_BOOL          result=hpatch_TRUE;
+    hpatch_TFileStreamInput     diffData;
+    hpatch_TFileStreamInput_init(&diffData);
+    
+    if (!hpatch_TFileStreamInput_open(&diffData,diffFileName)) return hpatch_FALSE;
+    result=getCompressedDiffInfo(out_info,&diffData.base);
+    if (!hpatch_TFileStreamInput_close(&diffData)) return hpatch_FALSE;
+    return result;
+}
+static hpatch_inline
+hpatch_BOOL getIsCompressedDiffFile(const char* diffFileName){
+    hpatch_compressedDiffInfo diffInfo;
+    if (!getCompressedDiffInfoByFile(diffFileName,&diffInfo)) return hpatch_FALSE;
+    return hpatch_TRUE;
+}
 
 
 #define _return_check(value,exitCode,errorInfo){ \
@@ -549,7 +567,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             hpatch_TPathType   outDiffFileType;
             _return_check(hpatch_getPathStat(outDiffFileName,&outDiffFileType,0),
                           HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
-            _return_check(outDiffFileType==kPathType_notExist,
+            _return_check((outDiffFileType==kPathType_notExist)||(!isDiff),
                           HDIFF_PATHTYPE_ERROR,"diff outDiffFile already exists, not overwrite");
         }
         hpatch_TPathType oldType;
@@ -597,6 +615,13 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #endif
         const char* diffFileName   =arg_values[0];
         const char* outDiffFileName=arg_values[1];
+        hpatch_BOOL isDiffFile=getIsCompressedDiffFile(diffFileName);
+#if (_IS_NEED_DIR_DIFF_PATCH)
+        isDiffFile=isDiffFile || getIsDirDiffFile(diffFileName);
+#endif
+        _return_check(isDiffFile,HDIFF_RESAVE_DIFFINFO_ERROR,"can't resave, input file is not diffFile");
+        _return_check(getIsDirDiffFile(diffFileName)||getIsCompressedDiffFile(diffFileName),
+                      HDIFF_RESAVE_DIFFINFO_ERROR,"can't resave, input file is not diffFile");
         if (!isForceOverwrite){
             hpatch_TPathType   outDiffFileType;
             _return_check(hpatch_getPathStat(outDiffFileName,&outDiffFileType,0),
@@ -899,7 +924,7 @@ static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
 #endif
         if (!getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
             check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile");
-            check(hpatch_FALSE,HDIFF_RESAVE_HDIFFINFO_ERROR,"is hdiff file? get diff info");
+            check(hpatch_FALSE,HDIFF_RESAVE_DIFFINFO_ERROR,"is hdiff file? get diff info");
         }
         if (strlen(diffInfo.compressType)>0){
 #ifdef  _CompressPlugin_zlib
@@ -1003,8 +1028,12 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 
 struct DirDiffListener:public IDirDiffListener{
     virtual bool isNeedFilter(const std::string& path){
-#if (defined(__APPLE__))
         if (pathNameIs(path,".DS_Store")) return true;
+#ifdef _WIN32
+        if (pathNameIs(path,"Thumbs.db")) return true;
+        if (pathNameIs(path,"ehthumbs.db")) return true;
+        if (pathNameIs(path,"ehthumbs_vista.db")) return true;
+        if (pathNameIs(path,"Desktop.ini")) return true;
 #endif
         return false;
     }
@@ -1045,7 +1074,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
     std::string fnameInfo=std::string("")
         +(oldIsDir?"oldDir : \"":"oldFile: \"")+oldPatch+"\"\n"
         +(newIsDir?"newDir : \"":"newFile: \"")+newPatch+"\"\n"
-        +(isDiff?  "outDiff: \"":"   test: \"")+outDiffFileName+"\"\n";
+        +(isDiff?  "outDiff: \"":"  test : \"")+outDiffFileName+"\"\n";
     hpatch_printPath_utf8(fnameInfo.c_str());
     
     if (isDiff) {

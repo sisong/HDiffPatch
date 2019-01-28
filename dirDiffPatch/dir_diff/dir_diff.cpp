@@ -80,8 +80,13 @@ static void formatDirTagForSave(std::string& path_utf8){
 bool IDirPathFilter::pathIsEndWith(const std::string& pathName,const char* testEndTag){
     size_t nameSize=pathName.size();
     size_t testSize=strlen(testEndTag);
+    const char* pathEndTag=pathName.c_str()+(nameSize-testSize);
     if (nameSize<testSize) return false;
-    return 0==memcmp(pathName.c_str()+(nameSize-testSize),testEndTag,testSize);
+#ifdef _WIN32
+    return 0==_strnicmp(pathEndTag,testEndTag,testSize); //strncasecmp
+#else
+    return 0==memcmp(pathEndTag,testEndTag,testSize);
+#endif
 }
 bool IDirPathFilter::pathNameIs(const std::string& pathName_utf8,const char* testPathName){ //without dir path
     if (!pathIsEndWith(pathName_utf8,testPathName)) return false;
