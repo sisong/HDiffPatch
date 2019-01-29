@@ -145,6 +145,15 @@ struct THash_fadler64{
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 
+struct THash_fadler128{
+    typedef adler128_t TValue;
+    inline static const char* name() { return "fadler128"; }
+    TValue _hv;
+    inline void hash_begin() { _hv=fast_adler128_start(0,0); }
+    inline void hash(const TByte* pdata,const TByte* pdata_end)
+                    { _hv=fast_adler128_append(_hv,pdata,(pdata_end-pdata)); }
+    inline void hash_end(TValue* hv) { *hv=_hv; }
+};
 
 const uint64_t kMaxMapNodeSize=80000000ull; //run test memory ctrl
 const size_t   kRandTestMaxSize=1024*1024*1024;//test rand data size
@@ -266,8 +275,10 @@ int main() {
     test<THash_fadler32>(data.data(),data.data()+data.size());
     test<THash_adler64h>(data.data(),data.data()+data.size());
     test<THash_fadler64>(data.data(),data.data()+data.size());
+    test<THash_fadler128>(data.data(),data.data()+data.size());
     test<THash_md5_32>(data.data(),data.data()+data.size());
     test<THash_md5_64>(data.data(),data.data()+data.size());
     test<THash_md5_128>(data.data(),data.data()+data.size());
     return 0;
 }
+

@@ -68,13 +68,13 @@ extern "C" {
 #define ADLER_INITIAL 1 //must 0 or 1
 #endif
 
-#define  __private_fast_adler_roll(SUM,ADLER,SUMADLER,_c_t,_table,_tb_t, \
+#define  __private_fast_adler_roll(SUM,ADLER,return_SUMADLER,_c_t,_table,_tb_t, \
                                    adler,blockSize,out_data,in_data){ \
     _tb_t  out_v = _table[(unsigned char)(out_data)];  \
     _c_t   sum   = (_c_t)SUM(adler);                   \
     _c_t   radler= (_c_t)ADLER(adler) + _table[(unsigned char)(in_data)] -out_v;  \
     sum  = sum + radler - ADLER_INITIAL-((_c_t)blockSize)*out_v; \
-    return SUMADLER(sum,radler); \
+    return_SUMADLER(sum,radler); \
 }
 
 #define  adler32_start(pdata,n) adler32_append(ADLER_INITIAL,pdata,n)
@@ -92,7 +92,7 @@ uint32_t fast_adler32_append(uint32_t adler,const adler_data_t* pdata,size_t n);
                         extern const uint16_t* _private_fast_adler32_table;
 #   define __private_fast32_SUM(xadler)             ((xadler)>>16)
 #   define __private_fast32_ADLER(xadler)           (xadler)
-#   define __private_fast32_SUMADLER(xsum,xadler)   (((xadler)&(((uint32_t)1<<16)-1)) | ((xsum)<<16))
+#   define __private_fast32_SUMADLER(xsum,xadler)   return (((xadler)&(((uint32_t)1<<16)-1)) | ((xsum)<<16))
 __adler_inline static
 uint32_t fast_adler32_roll(uint32_t adler,size_t blockSize,adler_data_t out_data,adler_data_t in_data)
     __private_fast_adler_roll(__private_fast32_SUM,__private_fast32_ADLER,__private_fast32_SUMADLER,
@@ -102,16 +102,34 @@ uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t
 #define  fast_adler64_start(pdata,n) fast_adler64_append(ADLER_INITIAL,pdata,n)
 uint64_t fast_adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n);
                         extern const uint32_t* _private_fast_adler64_table;
-#   define __private_fast64_SUM(xadler)            ((xadler)>>32)
-#   define __private_fast64_ADLER(xadler)          (xadler)
-#   define __private_fast64_SUMADLER(xsum,xadler)  ((uint32_t)(xadler) | ((uint64_t)(xsum)<<32))
+#   define __private_fast64_SUM(xadler)             ((xadler)>>32)
+#   define __private_fast64_ADLER(xadler)           (xadler)
+#   define __private_fast64_SUMADLER(xsum,xadler)   return ((uint32_t)(xadler) | ((uint64_t)(xsum)<<32))
 __adler_inline static
 uint64_t fast_adler64_roll(uint64_t adler,uint64_t blockSize,adler_data_t out_data,adler_data_t in_data)
     __private_fast_adler_roll(__private_fast64_SUM,__private_fast64_ADLER,__private_fast64_SUMADLER,
                               uint32_t, _private_fast_adler64_table,uint32_t, adler,blockSize,out_data,in_data)
 uint64_t fast_adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right);
 
-    
+typedef struct adler128_t{
+    uint64_t adler;
+    uint64_t sum;
+} adler128_t;
+static const adler128_t ADLER128_INITIAL = {ADLER_INITIAL,0};
+
+#define    fast_adler128_start(pdata,n) fast_adler128_append(ADLER128_INITIAL,pdata,n)
+adler128_t fast_adler128_append(adler128_t adler,const adler_data_t* pdata,size_t n);
+                        extern const uint64_t* _private_fast_adler128_table;
+#   define __private_fast128_SUM(xadler)            (xadler.sum)
+#   define __private_fast128_ADLER(xadler)          (xadler.adler)
+#   define __private_fast128_SUMADLER(xsum,xadler)  adler128_t _rt ={xadler,xsum}; return _rt
+__adler_inline static
+adler128_t fast_adler128_roll(adler128_t adler,uint64_t blockSize,adler_data_t out_data,adler_data_t in_data)
+    __private_fast_adler_roll(__private_fast128_SUM,__private_fast128_ADLER,__private_fast128_SUMADLER,
+                              uint64_t, _private_fast_adler128_table,uint64_t, adler,blockSize,out_data,in_data)
+adler128_t fast_adler128_by_combine(adler128_t adler_left,adler128_t adler_right,uint64_t len_right);
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -225,7 +225,7 @@ _case8:        \
     goto _case8; \
 }
 
-#define _fast_adler_append(SUM,ADLER,SUMADLER,_c_t,_table, _adler,pdata,n){ \
+#define _fast_adler_append(SUM,ADLER,return_SUMADLER,_c_t,_table, _adler,pdata,n){ \
     _c_t sum  =(_c_t)SUM(_adler);   \
     _c_t adler=(_c_t)ADLER(_adler); \
 _case8:  \
@@ -238,7 +238,7 @@ _case8:  \
         case  3: { fast_adler_add1(_table,adler,sum,*pdata++); } \
         case  2: { fast_adler_add1(_table,adler,sum,*pdata++); } \
         case  1: { fast_adler_add1(_table,adler,sum,*pdata++); } \
-        case  0: { return SUMADLER(sum,adler); } \
+        case  0: { return_SUMADLER(sum,adler); } \
         default:{ /* continue */} \
     }   \
     do{ \
@@ -287,7 +287,7 @@ _case8:  \
     return adler | (sum<<half_bit);   \
 }
 
-#define  _fast_adler_by_combine(SUM,ADLER,SUMADLER,_c_t, \
+#define  _fast_adler_by_combine(SUM,ADLER,return_SUMADLER,_c_t, \
                                 adler_left,adler_right,len_right){ \
     _c_t rem  = (_c_t)len_right;         \
     _c_t sum  = rem * (_c_t)ADLER(adler_left); \
@@ -296,7 +296,7 @@ _case8:  \
               - ADLER_INITIAL;   \
     sum += (_c_t)SUM(adler_left)+(_c_t)SUM(adler_right) \
            - rem*ADLER_INITIAL;  \
-    return SUMADLER(sum,adler);  \
+    return_SUMADLER(sum,adler);  \
 }
 
 
@@ -338,3 +338,9 @@ uint64_t fast_adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64
     _fast_adler_by_combine(__private_fast64_SUM,__private_fast64_ADLER,__private_fast64_SUMADLER,
                            uint32_t, adler_left,adler_right,len_right)
 
+adler128_t fast_adler128_append(adler128_t _adler,const adler_data_t* pdata,size_t n)
+    _fast_adler_append(__private_fast128_SUM,__private_fast128_ADLER,__private_fast128_SUMADLER,
+                       uint64_t, _private_fast_adler128_table, _adler,pdata,n)
+adler128_t fast_adler128_by_combine(adler128_t adler_left,adler128_t adler_right,uint64_t len_right)
+    _fast_adler_by_combine(__private_fast128_SUM,__private_fast128_ADLER,__private_fast128_SUMADLER,
+                           uint64_t, adler_left,adler_right,len_right)
