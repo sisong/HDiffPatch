@@ -45,47 +45,78 @@
 #   define _adler64_BASE                0xFFFFFFFBull
 #   define _fast_adler64_BASE           ((uint64_t)1<<32)
 
-static const uint32_t __fast_adler_table[256]=/*create by _gen_fast_adler_table*/{
-    0xbf9edfcc,0xe71099c9,0xd67b67b2,0x8e33ad74,0xcab96776,0x98d54df3,0x3a522660,0xd93ba681,
-    0x922cd076,0x0434c3bb,0x41d89626,0x0f8b0527,0x5d8e40bc,0x2d8342f8,0x0ff88f81,0xdf6ec295,
-    0x79a1a333,0x8a602ebc,0xde7a3679,0xb52ae8ec,0xecb3f589,0x4004dfa1,0xbb2e5547,0x07473800,
-    0xfc2b0169,0x8b9ce25b,0xcfe52186,0xbbe4786d,0xbf0b546c,0xd46fdd11,0xe7a88a18,0x64ed578b,
-    0x958f8a17,0x3847b674,0x8bce9767,0x161ed88f,0x28ce3d46,0x395267d9,0x24771b78,0xce32aade,
-    0x9d054cba,0x379a0d69,0x84b6bf76,0x6ee806e4,0x00a4675d,0x7f8b6971,0xc101d352,0xf1f78394,
-    0x67a41f30,0xd1bc81f9,0xc8c31a03,0x8edacdfe,0xb97d904e,0x8b679198,0x90656f59,0x7381959a,
-    0xa46bddc6,0x749aab74,0xe48d655d,0xaf19252e,0xa44982e3,0xd9563c6a,0xb2ecb406,0x47c270ba,
-    0xa6c67350,0x7060c467,0x40088e0c,0x6cb0a483,0x377bb8e8,0xb7480fd9,0xdf0411dd,0xb2866151,
-    0x1a124a77,0x49cd70fb,0xb57435c8,0xe9d6c177,0x5a5463c2,0x24fe320a,0x039837c6,0x2a2da939,
-    0xdc178313,0x2d5ffda5,0x0cad7f10,0x350aa19f,0xe1634abd,0x435d50df,0xc8ac72b4,0x5043566d,
-    0xb1a82ab8,0xf0af7fa4,0x8ce648e5,0x29742544,0x25c17d69,0x85a9b097,0x2b6b074a,0x1dc724ae,
-    0x25573426,0xf2eded58,0xb4141d03,0xde755706,0xa4978cb8,0x6c0ad071,0x042782f7,0xea3d0b55,
-    0xf06315f8,0x76e182a0,0x5ace1199,0xb0062216,0x4ff0e8fa,0x8c2627ed,0x93cd3f12,0x8983f31a,
-    0x2f30129f,0x70e0afc7,0x97802de1,0xe4b928ef,0x1381adee,0x0279cd1b,0x94e91b47,0xd0d16b41,
-    0x1495c2ac,0x89b4542e,0xd693eef6,0xb3bfdbac,0x717cb1d7,0xfcd75c40,0xea6dd303,0x11abdbeb,
-    0x666fcc43,0x0252ab2d,0x9538517e,0xd0d3df1e,0xd33b9f3b,0x3b6e78f9,0x30558eb3,0xc264c108,
-    0x82b85d6f,0xf09f81e1,0x2b84c0b8,0x893a0808,0x8dab3e93,0xb20e5e46,0xb2ccf3c3,0xa3856f7f,
-    0xab7fdc0a,0x3607204a,0x977ebb5a,0x6f8cdfe9,0x389a4862,0x9360e584,0x58cceb12,0x4391b9ee,
-    0xf53cba75,0xac930368,0x864790b5,0x73490171,0x3c4dbd13,0x24f87189,0xded8ceea,0xe10299be,
-    0x7583eecd,0x6beba44e,0xbafda0ab,0xf8b14048,0xde86b90d,0x242b1611,0xe6680c5a,0x9306681f,
-    0xfe1572d1,0x96ecc407,0xbf8eb719,0xdeb7ba8c,0x2057fa31,0x8d57c8d0,0x74bf821c,0xf913c6de,
-    0x5f74d512,0xb08a95d5,0x8310286e,0xa65b65a8,0x3d76ddbb,0x9d6f47dd,0x3f2886a4,0x78945620,
-    0x1e52434a,0xdf3dbd14,0xeb43a9be,0xbe2f6975,0xd69bdc25,0x65126eb6,0x55485dcb,0xa10f2a31,
-    0x1023abec,0xcfe827f7,0x6268b539,0x465ca65c,0xd92c6b06,0x7b77c93b,0x126aed81,0x84a8c4b9,
-    0x8f9a6e31,0xef8965a7,0xd491b2a9,0x15a3b105,0xe9bb3886,0x41eefa4f,0x7099a0fa,0x934c91f9,
-    0x22074c8e,0xb13688d9,0x137a69f7,0x6cdf4a38,0x42392f7c,0x3f0cf232,0x88dbeec7,0xb865136a,
-    0x6860dfb0,0x1591bb4f,0x7f1ec2e5,0xf77a6a41,0xb9ff1899,0x649e5781,0xc9fb2bc2,0x274d4789,
-    0x9cb45863,0x353992f0,0x53aee797,0xc3f00258,0xe8afd500,0x74cb3772,0xa3c2c169,0x26cacacf,
-    0xc6a619cd,0x41d96cd7,0x96230945,0xd7fa1a08,0x88643416,0x9673eed5,0xa4a21dc1,0x7bebba07,
-    0xdd96be2c,0xc3e0479a,0x60db52ea,0xede0b66f,0x7150d241,0x4e978ebc,0xbf668b79,0x7a053a88,
-    0xd9044944,0x517342c7,0xa73d5da8,0xdcdf50ea,0xc26b1a4a,0x911e03ac,0xc7ec2250,0xf8c5b8c2 };
-
+static const uint64_t __fast_adler_table[256]=/*create by _gen_fast_adler_table*/{
+    0xe9834671b5e6a199ull,0x0914fc228c715a7full,0x9d31fb3962abb5afull,0xa3d3c03569f00344ull,
+    0x399a5b7264db3b1cull,0x0c036c4f959bb01eull,0x4dc75b77344fbc39ull,0x0ab026b325be7198ull,
+    0xe6a1281ebab2d5e6ull,0x53346d230eb13df7ull,0xb363ede943437647ull,0xdea89be55783a9ebull,
+    0x7b58e5534a2e1c06ull,0xc1fafc95d3979639ull,0xb0db4075b5ec388cull,0x4cde0617c573fb3dull,
+    0xd77edb524b86ee95ull,0x6527c8e8100140c5ull,0x3bb6faa98b8e01cbull,0xd11925ac9f77583eull,
+    0x59380e038ae986f0ull,0xad9eb6013a9b560bull,0x36b3f8940f16648eull,0x14a50768fe25d3b7ull,
+    0x06cd0894aaed25fdull,0x5833a3c9667abac1ull,0xd9674e5e92bfd5cfull,0xa36fa10b00b7f263ull,
+    0xcb11edb612338782ull,0xd10e177fca15bc13ull,0x762153c14c60b16cull,0x6f8d3213059207f3ull,
+    0xdba6f8b4ef298d69ull,0x409f815015056856ull,0xf15a0a043b7609d6ull,0x8ad571be53b2fcc9ull,
+    0xe127ab04a40dcc34ull,0xfe33ae6bdd1a7d81ull,0x45791ae110e26f52ull,0xc52818409208538cull,
+    0xa7b050a1444fee94ull,0xaa159ddd0e053633ull,0x70e88e7ac3c99a7bull,0x5627f1ae40f5c699ull,
+    0x90550ccc7c216685ull,0x22ca3af35b565b88ull,0x856d11ad3f5c8372ull,0x70e5fc79d749378cull,
+    0x5fbea93e0ad88005ull,0xb2108f9f9119cf5eull,0xd01b096bd069b0e6ull,0x9d2e92ef3bbbef86ull,
+    0xd853a1a88b0b3b0bull,0x314507667773f1f2ull,0x935a1c0796cefd47ull,0x4d75b877b6f5245aull,
+    0xf291709dc4e0ae38ull,0xeaf6717b5d4a7395ull,0x14ab729d353013a2ull,0x8d2f277620560099ull,
+    0x4832d5cd7ce6ccb9ull,0x0cac0dd3d4519fa3ull,0x0360ed98008ba27dull,0x12f6b6ad6fb2f7c0ull,
+    0x82441585694823ddull,0x09aa5ce12317f193ull,0x4a06eddb92dffce9ull,0x9561318180095313ull,
+    0x2dd5ab173a4b5d4bull,0xd4297df4b4ad20beull,0x61036b5e881cb3c5ull,0x5ca6be400d271952ull,
+    0xd1a392881c13ed9aull,0x76bd0c5785d5c7ffull,0x8ee9e2bc900595daull,0x77b940bfadeaeb12ull,
+    0x1e1a09de6589001cull,0x3bd372be4c31dc7full,0x37279e1b86af13ebull,0xb9e4d0d09329fcc0ull,
+    0x00800dd5d0d7f7b6ull,0xd9b49a97a9cd017full,0x107a9974c6b9318cull,0x1e030a540e3d65c5ull,
+    0x298db8ca71a2ae9aull,0x7c7e43c4dd7e2ea6ull,0x5f35be6141d5b0d5ull,0x33b43e0cbc4a4198ull,
+    0xd2cfb061a0e21f24ull,0x8c91798460963539ull,0x08f07c80c86fc710ull,0x1287cd98044d34fbull,
+    0xa0aeab0bbebea104ull,0xd75dc20eb775e218ull,0x88cab942c79211cbull,0x69a032d119caa6e3ull,
+    0x3658c36c3d9db18bull,0xaa2bd1e88deb277cull,0xebd02f0ca6ea28e4ull,0x0d6e86659de0ccd9ull,
+    0x68189e89ca028b95ull,0xf4c654ee5b18e944ull,0x26d7a9ea03824598ull,0xc6b26613bbb5de59ull,
+    0x5abd6d3388152a10ull,0x33a9fe838fb51b5cull,0x4cc280948b82720eull,0x5442aac86687f674ull,
+    0x99f94f7d1369f26full,0xe3b5bb2549dd656eull,0xceab6332e9d7524aull,0x5e730186a8d417d5ull,
+    0x38cda2e23ff82ff0ull,0xb1eb6f6f9da9e9f2ull,0xc3fe12ade2643584ull,0x18054b2e6a6621ceull,
+    0x55c725b1880c75bbull,0x04747a86d6e226a9ull,0xde31e4b63ba442afull,0x90be6f0656b265b8ull,
+    0xe6004b58d491b721ull,0xb13531527e737445ull,0xd9ae2437689bee09ull,0x761828fc1e4160bcull,
+    0xdae6bc729e290dc5ull,0x5198300db64afb06ull,0x0800732342d6d3f1ull,0xa1606c218cf682e4ull,
+    0x1838e333280f674eull,0xf32f3622c8b9929full,0x6faa5847b2a5e48bull,0x9bc9239301e76beaull,
+    0x6af6da13021eaf55ull,0xb41a06eb9c2568f1ull,0x2d2b1e3bf2355c05ull,0x23392705f4be24f2ull,
+    0x2fa3b21fdfb99b28ull,0x4c63f66993a13011ull,0x461b744d68e5f030ull,0x6b2c411820684fffull,
+    0xfec175cf5e25963aull,0xb2b9843c5ab1cd22ull,0xd093bb54d4dd0d58ull,0xc2d82a015f47006eull,
+    0xb8bda6068a424df4ull,0xc2da2f437df54d84ull,0x420ba10e8cfe1791ull,0x79bb721e68d9f0daull,
+    0x19503b244e702ff8ull,0x580545e65e50ca27ull,0x9e87d8215f4982dbull,0x932033429b61963dull,
+    0x5d0dad04736a072eull,0x99a6b1bf9450b7abull,0xa1ea44d7ad94fa9aull,0xd8a3f135f31c000bull,
+    0xa5d03bd92fe1da41ull,0x8f9e79ca39ddfb4bull,0x6584ff87614bde5cull,0x792d069e7b4a784bull,
+    0x778b05310f6d0f8dull,0xb5e5dbc7ea76bbb7ull,0x2218383ba0377ffaull,0x9f2f7c072313b362ull,
+    0x9d1685de8a0964cfull,0x84682b60bcce4d80ull,0x81d3ec4549ae98deull,0x20e39c141f8119f9ull,
+    0xfa621384bce8e620ull,0x55b71475a3fa41ddull,0x6e9edf35257df71full,0x189fd107e19ec182ull,
+    0xaad8659b07716f2dull,0x0f3ac47780f8039cull,0xc7742a5a925db153ull,0x809b118230253df4ull,
+    0xd82d45081d351f76ull,0x65701b3e7eabc10aull,0xbca8d9efa9708035ull,0x163061807a1e2829ull,
+    0x8c6275a12ad461e8ull,0xfb2bc26167e58ce9ull,0x7b8556c19061dadeull,0x7e2bf8d6fb047568ull,
+    0x66863c313613fa7cull,0x1564597faca39945ull,0xb58e9c23d4ad6bbfull,0xeba2bfdc1563e12dull,
+    0xdfeed88c67234d07ull,0xce23a19b5a995781ull,0x0ea1fb79123c03cfull,0x67e694c0befec0bfull,
+    0xee5d2bbedcb6ef2aull,0x8a5c162274a3ff1aull,0xd7f55f1f338fa292ull,0xdf2b314f6aa8c581ull,
+    0x6767ff9557aa37bbull,0xbf3a8e66b9ada0c2ull,0x354522f82cdf9a5cull,0x44b1e3f9ff6ee3aaull,
+    0xf5571375ca4067bcull,0x93dd20c8d9382754ull,0xc8cc026c489d6ba0ull,0xd8afbb930cf35324ull,
+    0xf6b1e4d4c3cdbaafull,0x6a8db0a2af31b927ull,0xcd93545ebd2bfdd4ull,0xe988dc92a3076071ull,
+    0x3d835895a5a99432ull,0x3e6db869fcb9f96dull,0x9324623048594b04ull,0x17aee587ded33cadull,
+    0x9a4f7e29b3cf7654ull,0xb6e38f02a2db00a4ull,0x9a7f4482033c93b9ull,0xdbaf95093bad1701ull,
+    0x25c5a2eae9fafbc4ull,0x778f84c6b2a945f0ull,0x220b78ed985ba402ull,0xa856b484ef3f2728ull,
+    0x02ed74be46e39db2ull,0x4bba27d36b9a61cfull,0x3be8c7cef4403efdull,0xaa45492dda915d43ull,
+    0xf26cd77c5e31fb24ull,0xdd194a89fc88f48eull,0x3a5eb8dbb47c0dceull,0x6d1828851df3e8c9ull,
+    0xc47572193ec6ac80ull,0xd0f0c6fa90b43371ull,0x42746c648581fb76ull,0xd0b052bbd93f2866ull,
+    0x20194469aa76e6aeull,0x0d4bff2c846cd9a0ull,0x58101dfee696b5f4ull,0xb09bb5eb0f6797ecull,
+    0x179613f4316af61eull,0xf25438934a674e5dull,0x566e87958450c6bfull,0xe09e404ca452bcf5ull,
+    0x10d604d7d5acf7d9ull,0x5f1ee02d80e62ec4ull,0x094272f2b03a3adcull,0x7c53663013c68fe6ull,
+    0xdfc16f8c66e87e96ull,0x513669ffcc854cbcull,0x7b6e2e4729891f10ull,0x366d835f1e25842eull,
+    0xb59420af3feb2f8aull,0xc880ce98aab484c7ull,0xf27daa46241716e1ull,0x167b40b03178b385ull,
+    0xfa1ba16937e78784ull,0x21e6ec6ca0b50cf4ull,0xe984c351976999a1ull,0x84d3c2fbb222e66dull };
 /*
 #include <set>
-//gen table better than CRC32Table:{0,0x77073096,..,0x2D02EF8D}
-static bool __gen_fast_adler_table(unsigned int rand_seed,bool isPrint){
+//gen table better than CRC32Table:{0,0x77073096,..,0x2D02EF8D} or CRC64Table
+static bool _gen_fast_adler_table(unsigned int rand_seed,bool isPrint=true){
     std::set<uint32_t> check_set;
     if (isPrint) printf("{\n");
-    for (int y=32-1; y>=0; --y) {
+    for (int y=64-1; y>=0; --y) {
         if (isPrint) printf("    ");
         for (int x=8-1; x>=0; --x) {
             uint32_t v=0;
@@ -99,8 +130,14 @@ static bool __gen_fast_adler_table(unsigned int rand_seed,bool isPrint){
                 if (check_set.find(v>>16)!=check_set.end()) return false;
                 check_set.insert(v>>16);
             }
-            if (isPrint) printf("0x%08x",v);
-            if (x>0) { if (isPrint) printf(","); }
+            if (isPrint){
+                if (x%2==1){
+                    printf("0x%08x",v);
+                }else{
+                    printf("%08xull",v);
+                    if (x>0) printf(",");
+                }
+            }
         }
         if (isPrint) printf((y>0)?",\n":" };\n\n");
     }
@@ -108,17 +145,19 @@ static bool __gen_fast_adler_table(unsigned int rand_seed,bool isPrint){
 }
 static bool _gen_fast_adler_table(){
     bool result=false;
-    for (unsigned int i=0; i<100;++i) {
-        if (!__gen_fast_adler_table(i,false)) continue;
+    for (unsigned int i=0; i<1000000000;++i) {
+        if (!_gen_fast_adler_table(i,false)) continue;
         printf("rand_seed: %u\n",i);
-        result=__gen_fast_adler_table(i,true);
+        result=_gen_fast_adler_table(i,true);
     }
+    assert(result);
     return result;
 }
-static bool _null=__gen_fast_adler_table(41,true);
+static bool _null=_gen_fast_adler_table(10735);
 */
-const uint16_t* _private_fast_adler32_table =(const uint16_t*)__fast_adler_table;
-const uint32_t* _private_fast_adler64_table =(const uint32_t*)__fast_adler_table;
+const uint16_t* _private_fast_adler32_table =(const uint16_t*)&__fast_adler_table[0];
+const uint32_t* _private_fast_adler64_table =(const uint32_t*)&__fast_adler_table[0];
+const uint64_t* _private_fast_adler128_table =(const uint64_t*)&__fast_adler_table[0];
 
 #define fast_adler_add1(_table, adler,sum,byteData){ \
     (adler) += _table[(unsigned char)(byteData)];    \
