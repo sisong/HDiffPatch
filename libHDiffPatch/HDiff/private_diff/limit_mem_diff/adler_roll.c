@@ -225,9 +225,9 @@ _case8:        \
     goto _case8; \
 }
 
-#define _fast_adler_append(uint_t,half_bit,BASE,mod,_table, _adler,pdata,n){ \
-    size_t sum  =(size_t)((_adler)>>half_bit);                \
-    size_t adler=(size_t)((_adler)&(((uint_t)1<<half_bit)-1));\
+#define _fast_adler_append(SUM,ADLER,SUMADLER,_c_t,_table, _adler,pdata,n){ \
+    _c_t sum  =(_c_t)SUM(_adler);   \
+    _c_t adler=(_c_t)ADLER(_adler); \
 _case8:  \
     switch(n){ \
         case  8: { fast_adler_add1(_table,adler,sum,*pdata++); } \
@@ -238,7 +238,7 @@ _case8:  \
         case  3: { fast_adler_add1(_table,adler,sum,*pdata++); } \
         case  2: { fast_adler_add1(_table,adler,sum,*pdata++); } \
         case  1: { fast_adler_add1(_table,adler,sum,*pdata++); } \
-        case  0: { return mod((uint_t)adler,BASE) | (((uint_t)sum)<<half_bit); } \
+        case  0: { return SUMADLER(sum,adler); } \
         default:{ /* continue */} \
     }   \
     do{ \
@@ -287,6 +287,19 @@ _case8:  \
     return adler | (sum<<half_bit);   \
 }
 
+#define  _fast_adler_by_combine(SUM,ADLER,SUMADLER,_c_t, \
+                                adler_left,adler_right,len_right){ \
+    _c_t rem  = (_c_t)len_right;         \
+    _c_t sum  = rem * (_c_t)ADLER(adler_left); \
+    _c_t adler= (_c_t)ADLER(adler_left)  \
+              + (_c_t)ADLER(adler_right) \
+              - ADLER_INITIAL;   \
+    sum += (_c_t)SUM(adler_left)+(_c_t)SUM(adler_right) \
+           - rem*ADLER_INITIAL;  \
+    return SUMADLER(sum,adler);  \
+}
+
+
 //limit: if all result in uint32_t
 //blockSize*255 <= 2^32-1
 // => max(blockSize)=(2^32-1)/255   ( =16843009 =(1<<24)+65793 )
@@ -295,36 +308,33 @@ static const uint64_t adler64_roll_kBestBlockSize=((uint64_t)(~(uint64_t)0))/MAX
 
 uint32_t adler32_append(uint32_t adler,const adler_data_t* pdata,size_t n)
     _adler_append(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border1, adler,pdata,n)
-uint32_t fast_adler32_append(uint32_t _adler,const adler_data_t* pdata,size_t n)
-    _fast_adler_append(uint32_t,16,_fast_adler32_BASE,_fast_adler_mod,
-                       _private_fast_adler64_table, _adler,pdata,n)
-
 uint32_t adler32_roll(uint32_t adler,size_t blockSize,adler_data_t out_data,adler_data_t in_data)
     _adler_roll(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border2,
                 adler_roll_kBestBlockSize, adler,blockSize, out_data,in_data)
-
 uint32_t adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
     _adler_by_combine(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border2,_adler_border3,
                       adler_left,adler_right,len_right)
-uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
-    _adler_by_combine(uint32_t,16,_fast_adler32_BASE,_fast_adler_mod,_fast_adler_border2,
-                      _fast_adler_border3, adler_left,adler_right,len_right)
 
 uint64_t adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n)
     _adler_append(uint64_t,32,_adler64_BASE,_adler_mod,_adler_border1, adler,pdata,n)
-uint64_t fast_adler64_append(uint64_t _adler,const adler_data_t* pdata,size_t n)
-    _fast_adler_append(uint64_t,32,_fast_adler64_BASE,_fast_adler_mod,
-                       _private_fast_adler64_table, _adler,pdata,n)
-
 uint64_t adler64_roll(uint64_t adler,uint64_t blockSize,adler_data_t out_data,adler_data_t in_data)
     _adler_roll(uint64_t,32,_adler64_BASE,_adler_mod,_adler_border2,
                 adler64_roll_kBestBlockSize,adler,blockSize, out_data,in_data)
-
 uint64_t adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right)
     _adler_by_combine(uint64_t,32,_adler64_BASE,_adler_mod,_adler_border2,_adler_border3,
                       adler_left,adler_right,len_right)
-uint64_t fast_adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right)
-    _adler_by_combine(uint64_t,32,_fast_adler64_BASE,_fast_adler_mod,_fast_adler_border2,
-                      _fast_adler_border3, adler_left,adler_right,len_right)
 
+uint32_t fast_adler32_append(uint32_t _adler,const adler_data_t* pdata,size_t n)
+    _fast_adler_append(__private_fast32_SUM,__private_fast32_ADLER,__private_fast32_SUMADLER,
+                       uint32_t,_private_fast_adler32_table, _adler,pdata,n)
+uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
+    _fast_adler_by_combine(__private_fast32_SUM,__private_fast32_ADLER,__private_fast32_SUMADLER,
+                           uint32_t, adler_left,adler_right,len_right)
+
+uint64_t fast_adler64_append(uint64_t _adler,const adler_data_t* pdata,size_t n)
+    _fast_adler_append(__private_fast64_SUM,__private_fast64_ADLER,__private_fast64_SUMADLER,
+                       size_t, _private_fast_adler64_table, _adler,pdata,n)
+uint64_t fast_adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right)
+    _fast_adler_by_combine(__private_fast64_SUM,__private_fast64_ADLER,__private_fast64_SUMADLER,
+                           uint32_t, adler_left,adler_right,len_right)
 
