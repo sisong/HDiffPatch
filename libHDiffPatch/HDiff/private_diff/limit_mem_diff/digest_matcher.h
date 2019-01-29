@@ -47,7 +47,10 @@ static inline adler_hash_t adler_to_hash(const uint64_t x){ return x; }
 //#define adler_roll      fast_adler128_roll
 //typedef uint64_t        adler_hash_t;
 //static inline adler_hash_t adler_to_hash(const adler128_t& x){ return x.adler^x.sum; }
-    
+//static inline bool operator !=(const adler128_t& x,const adler128_t& y){
+//    return (x.adler!=y.adler)||(x.sum!=y.sum);}
+//static inline bool operator <(const adler128_t& x,const adler128_t& y){
+//    if (x.adler!=y.adler) return (x.adler<y.adler); else return (x.sum<y.sum); }
 //typedef uint32_t        adler_uint_t;
 //#define adler_start     fast_adler32_start
 //#define adler_roll      fast_adler32_roll

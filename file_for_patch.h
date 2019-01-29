@@ -221,7 +221,6 @@ typedef FILE* hpatch_FileHandle;
 
 typedef struct hpatch_TFileStreamInput{
     hpatch_TStreamInput base;
-    const void*         _null_write;
     hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset;

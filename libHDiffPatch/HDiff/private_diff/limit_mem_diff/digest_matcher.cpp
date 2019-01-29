@@ -39,16 +39,6 @@ static  const size_t kMinBackupReadSize=256;
 static  const size_t kMatchBlockSize_min=4;
 static  const size_t kMaxMatchRange=1024*64;
 static  const size_t kMaxLinkIndexFindSize=64;
-    
-    static inline bool operator !=(const adler128_t& x,const adler128_t& y){
-        return (x.adler!=y.adler) || (x.sum!=y.sum);
-    }
-    static inline bool operator <(const adler128_t& x,const adler128_t& y){
-        if (x.adler!=y.adler)
-            return (x.adler<y.adler);
-        else
-            return (x.sum<y.sum);
-    }
 
 
 #define readStream(stream,pos,dst,n) { \

@@ -122,7 +122,7 @@ adler128_t fast_adler128_append(adler128_t adler,const adler_data_t* pdata,size_
                         extern const uint64_t* _private_fast_adler128_table;
 #   define __private_fast128_SUM(xadler)            (xadler.sum)
 #   define __private_fast128_ADLER(xadler)          (xadler.adler)
-#   define __private_fast128_SUMADLER(xsum,xadler)  adler128_t _rt ={xadler,xsum}; return _rt
+#   define __private_fast128_SUMADLER(xsum,xadler)  { adler128_t _rt ={xadler,xsum}; return _rt; }
 __adler_inline static
 adler128_t fast_adler128_roll(adler128_t adler,uint64_t blockSize,adler_data_t out_data,adler_data_t in_data)
     __private_fast_adler_roll(__private_fast128_SUM,__private_fast128_ADLER,__private_fast128_SUMADLER,

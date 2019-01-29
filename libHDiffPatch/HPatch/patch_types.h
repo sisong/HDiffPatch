@@ -84,6 +84,7 @@ typedef int hpatch_BOOL;
         //read() must read (out_data_end-out_data), otherwise error return hpatch_FALSE
         hpatch_BOOL            (*read)(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                                        unsigned char* out_data,unsigned char* out_data_end);
+        void*        _private_reserved;
     } hpatch_TStreamInput;
     
     typedef struct hpatch_TStreamOutput{
