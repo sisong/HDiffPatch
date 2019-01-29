@@ -39,6 +39,17 @@ static  const size_t kMinBackupReadSize=256;
 static  const size_t kMatchBlockSize_min=4;
 static  const size_t kMaxMatchRange=1024*64;
 static  const size_t kMaxLinkIndexFindSize=64;
+    
+    static inline bool operator !=(const adler128_t& x,const adler128_t& y){
+        return (x.adler!=y.adler) || (x.sum!=y.sum);
+    }
+    static inline bool operator <(const adler128_t& x,const adler128_t& y){
+        if (x.adler!=y.adler)
+            return (x.adler<y.adler);
+        else
+            return (x.sum<y.sum);
+    }
+
 
 #define readStream(stream,pos,dst,n) { \
     if (((n)>0)&&(!(stream)->read(stream,pos,dst,dst+(n)))) \
@@ -206,7 +217,7 @@ void TDigestMatcher::getDigests(){
         hpatch_StreamPos_t readPos=blockIndexToPos(i,m_kMatchBlockSize,m_oldData->streamSize);
         streamCache.resetPos(0,readPos,m_kMatchBlockSize);
         adler_uint_t adler=adler_start(streamCache.data(),m_kMatchBlockSize);
-        m_filter.insert(adler);
+        m_filter.insert(adler_to_hash(adler));
         m_blocks[i]=adler;
         if (m_isUseLargeSorted)
             m_sorted_larger[i]=i;
@@ -582,7 +593,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
     TCover  lastCover={0,0,0};
     while (true) {
         adler_uint_t digest=newStream.rollDigest();
-        if (!filter.is_hit(digest))
+        if (!filter.is_hit(adler_to_hash(digest)))
             { if (newStream.roll()) continue; else break; }//finish
         typename TDigest_comp::TDigest digest_value(digest);
         std::pair<const TIndex*,const TIndex*>
