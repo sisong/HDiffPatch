@@ -77,24 +77,6 @@ static void formatDirTagForSave(std::string& path_utf8){
     }
 }
 
-bool IDirPathFilter::pathIsEndWith(const std::string& pathName,const char* testEndTag){
-    size_t nameSize=pathName.size();
-    size_t testSize=strlen(testEndTag);
-    const char* pathEndTag=pathName.c_str()+(nameSize-testSize);
-    if (nameSize<testSize) return false;
-#ifdef _WIN32
-    return 0==_strnicmp(pathEndTag,testEndTag,testSize); //strncasecmp
-#else
-    return 0==memcmp(pathEndTag,testEndTag,testSize);
-#endif
-}
-bool IDirPathFilter::pathNameIs(const std::string& pathName_utf8,const char* testPathName){ //without dir path
-    if (!pathIsEndWith(pathName_utf8,testPathName)) return false;
-    size_t nameSize=pathName_utf8.size();
-    size_t testSize=strlen(testPathName);
-    return (nameSize==testSize) || (pathName_utf8[nameSize-testSize-1]==kPatch_dirSeparator);
-}
-
 struct CFileStreamInput:public hpatch_TFileStreamInput{
     inline CFileStreamInput(){ hpatch_TFileStreamInput_init(this); }
     inline void open(const std::string& fileName){
@@ -144,8 +126,8 @@ struct CDir{
     hdiff_TDirHandle handle;
 };
 
-
-void _getDirSubFileList(const std::string& dirPath,std::vector<std::string>& out_list,IDirPathFilter* filter){
+void _getDirSubFileList(const std::string& dirPath,std::vector<std::string>& out_list,
+                        IDirPathIgnore* filter,size_t rootPathNameLen,bool pathIsInOld){
     assert(!isDirName(dirPath));
     std::vector<std::string> subDirs;
     {//serach cur dir
@@ -162,15 +144,14 @@ void _getDirSubFileList(const std::string& dirPath,std::vector<std::string>& out
             assert(!isDirName(subName));
             switch (type) {
                 case kPathType_dir:{
-                    if (!filter->isNeedFilter(subName)){
-                        subDirs.push_back(subName); //no '/'
-                        
-                        assignDirTag(subName);
+                    assignDirTag(subName);
+                    if (!filter->isNeedIgnore(subName,rootPathNameLen,pathIsInOld)){
+                        subDirs.push_back(subName.substr(0,subName.size()-1)); //no '/'
                         out_list.push_back(subName); //add dir
                     }
                 } break;
                 case kPathType_file:{
-                    if (!filter->isNeedFilter(subName))
+                    if (!filter->isNeedIgnore(subName,rootPathNameLen,pathIsInOld))
                         out_list.push_back(subName); //add file
                 } break;
                 default:{
@@ -182,15 +163,16 @@ void _getDirSubFileList(const std::string& dirPath,std::vector<std::string>& out
     
     for (size_t i=0; i<subDirs.size(); ++i) {
         assert(!isDirName(subDirs[i]));
-        _getDirSubFileList(subDirs[i],out_list,filter);
+        _getDirSubFileList(subDirs[i],out_list,filter,rootPathNameLen,pathIsInOld);
     }
 }
 
-void getDirAllPathList(const std::string& dirPath,std::vector<std::string>& out_list,IDirPathFilter* filter){
+void getDirAllPathList(const std::string& dirPath,std::vector<std::string>& out_list,
+                       IDirPathIgnore* filter,bool pathIsInOld){
     assert(isDirName(dirPath));
     out_list.push_back(dirPath);
     const std::string dirName(dirPath.c_str(),dirPath.c_str()+dirPath.size()-1); //without '/'
-    _getDirSubFileList(dirName,out_list,filter);
+    _getDirSubFileList(dirName,out_list,filter,dirName.size(),pathIsInOld);
 }
 
 static cmp_hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* out_fileSize){
@@ -556,13 +538,13 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     const bool newIsDir=isDirName(newPath);
     {
         if (oldIsDir){
-            getDirAllPathList(oldPath,oldList,listener);
+            getDirAllPathList(oldPath,oldList,listener,true);
             sortDirPathList(oldList);
         }else{
             oldList.push_back(oldPath);
         }
         if (newIsDir){
-            getDirAllPathList(newPath,newList,listener);
+            getDirAllPathList(newPath,newList,listener,false);
             sortDirPathList(newList);
         }else{
             newList.push_back(newPath);
@@ -922,13 +904,13 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
     std::vector<std::string> newList;
     {
         if (isDirName(oldPath)){
-            getDirAllPathList(oldPath,oldList,listener);
+            getDirAllPathList(oldPath,oldList,listener,true);
             sortDirPathList(oldList);
         }else{
             oldList.push_back(oldPath);
         }
         if (isDirName(newPath)){
-            getDirAllPathList(newPath,newList,listener);
+            getDirAllPathList(newPath,newList,listener,false);
             sortDirPathList(newList);
         }else{
             newList.push_back(newPath);

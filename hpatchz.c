@@ -203,7 +203,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
 #if (_IS_NEED_MAIN)
 #   if (_IS_USE_WIN32_UTF8_WAPI)
 int wmain(int argc,wchar_t* argv_w[]){
-    char* argv_utf8[hpatch_kPathMaxSize*2/sizeof(char*)];
+    char* argv_utf8[hpatch_kPathMaxSize*3/sizeof(char*)];
     if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))
         return HPATCH_OPTIONS_ERROR;
     SetDefaultStringLocale();

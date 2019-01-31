@@ -34,11 +34,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <algorithm>  //find search
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HPatch/patch.h"
 #include "_clock_for_demo.h"
 #include "_atosize.h"
 #include "file_for_patch.h"
+#include "libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dirDiffPatch/dir_diff/dir_diff.h"
@@ -172,7 +174,20 @@ static void printUsage(){
            "      limit Number of open files at same time when stream directory diff;\n"
            "      maxOpenFileNumber>=8, DEFAULT 48, the best limit value by different\n"
            "        operating system.\n"
-           "  -D  force run Directory Diff, DEFAULT need oldPath or newPath is directory.\n"
+           "  -i|ignorePath[|ignorePath|...]\n"
+           "      set Ignore path list when Directory Diff; ignore path list such as:\n"
+           "        |.DS_Store|desktop.ini|*thumbs*.db|.git*|.svn/|cache_*/00*11/*.tmp\n"
+           "      | means separator between names; (if char | in name, need write |:)\n"
+           "      * means can match any chars in name; (if char * in name, need write *:);\n"
+           "      / at the end of name means must match directory;\n"
+           "  -i-old|ignorePath[|ignorePath|...]\n"
+           "      set Ignore path list in oldPath when Directory Diff;\n"
+           "      if oldFile can be changed, need add it in old ignore list;\n"
+           "  -i-new|ignorePath[|ignorePath|...]\n"
+           "      set Ignore path list in newPath when Directory Diff;\n"
+           "      in general, new ignore list should is empty;\n"
+           "  -D  force run Directory diff between two files; DEFAULT (no -D) run \n"
+           "      directory diff need oldPath or newPath is directory.\n"
 #endif //_IS_NEED_DIR_DIFF_PATCH
            "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
            "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
@@ -221,7 +236,9 @@ int hdiff_dir(const char* oldPath,const char* newPath,const char* outDiffFileNam
               hpatch_BOOL oldIsDir, hpatch_BOOL newIsdir,
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TDecompress* decompressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
+              hpatch_TDecompress* decompressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber,
+              const std::vector<std::string>& ignorePathList,const std::vector<std::string>& ignoreOldPathList,
+              const std::vector<std::string>& ignoreNewPathList);
 #endif
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
           hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
@@ -234,8 +251,9 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 #if (_IS_NEED_MAIN)
 #   if (_IS_USE_WIN32_UTF8_WAPI)
 int wmain(int argc,wchar_t* argv_w[]){
-    char* argv_utf8[hpatch_kPathMaxSize*2/sizeof(char*)];
-    if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))
+    hdiff_private::TAutoMem  _mem(hpatch_kPathMaxSize*4);
+    char** argv_utf8=(char**)_mem.data();
+    if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,_mem.size()))
         return HDIFF_OPTIONS_ERROR;
     SetDefaultStringLocale();
     return hdiff_cmd_line(argc,(const char**)argv_utf8);
@@ -329,7 +347,68 @@ static hpatch_BOOL _getoptChecksum(hpatch_TChecksum** out_checksumPlugin,
     else
         return _findChecksum(out_checksumPlugin,checksumType);
 }
+
+
+
+static void formatIgnorePathName(std::string& path_utf8){
+    for (size_t i=0;i<path_utf8.size();++i) {
+        char c=path_utf8[i];
+        if ((c=='\\')||(c=='/'))
+            path_utf8[i]=kPatch_dirSeparator;
+#ifdef _WIN32
+        else if (isascii(c))
+            path_utf8[i]=(char)tolower(c);
 #endif
+    }
+}
+
+#ifdef _WIN32
+    static const char kIgnoreMagicChar = '?';
+#else
+    static const char kIgnoreMagicChar = ':';
+#endif
+static void _formatIgnorePathSet(std::string& path_utf8){
+    formatIgnorePathName(path_utf8);
+    size_t insert=0;
+    size_t i=0;
+    while (i<path_utf8.size()) {
+        char c=path_utf8[i];
+        if (c=='*'){
+            if ((i+1<path_utf8.size())&&(path_utf8[i+1]==':')){ // *: as *
+                path_utf8[insert++]=c; i+=2; //skip *:
+            }else{
+                path_utf8[insert++]=kIgnoreMagicChar; ++i; //skip *
+            }
+        }else{
+            path_utf8[insert++]=c; ++i;  //skip c
+        }
+    }
+    path_utf8.resize(insert);
+}
+
+static hpatch_BOOL _getIgnorePathSetList(std::vector<std::string>& out_pathList,const char* plist){
+    std::string cur;
+    while (true) {
+        char c=*plist;
+        if ((c=='|')&&(plist[1]==':')){ // |: as |
+            cur.push_back(c); plist+=2; //skip |:
+        }else if ((c=='*')&&(plist[1]==':')){ // *: as *:
+            cur.push_back(c); cur.push_back(':'); plist+=2; //skip *:
+        }else if ((c=='\0')||((c=='|')&&(plist[1]!=':'))){
+            if (cur.empty()) return hpatch_FALSE;// can't empty
+            if (cur.find("**")!=std::string::npos) hpatch_FALSE;// can't **
+            _formatIgnorePathSet(cur);
+            out_pathList.push_back(cur);
+            if (c=='\0') return hpatch_TRUE;
+            cur.clear();  ++plist; //skip |
+        }else if (c==kIgnoreMagicChar){
+            return hpatch_FALSE; //error path char
+        }else{
+            cur.push_back(c); ++plist; //skip c
+        }
+    }
+}
+#endif //_IS_NEED_DIR_DIFF_PATCH
 
 static
 hpatch_BOOL getCompressedDiffInfoByFile(const char* diffFileName,hpatch_compressedDiffInfo *out_info){
@@ -380,6 +459,9 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     size_t                  kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir diff
     hpatch_BOOL             isSetChecksum=_kNULL_VALUE;
     hpatch_TChecksum*       checksumPlugin=0;
+    std::vector<std::string>    ignorePathList;
+    std::vector<std::string>    ignoreOldPathList;
+    std::vector<std::string>    ignoreNewPathList;
 #endif
     std::vector<const char *> arg_values;
     for (int i=1; i<argc; ++i) {
@@ -492,6 +574,23 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 const char* pnum=op+3;
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
             } break;
+            case 'i':{
+                if (op[2]=='|'){ //-i|
+                    const char* plist=op+3;
+                    _options_check(_getIgnorePathSetList(ignorePathList,plist),"-i|?");
+                }else if (op[2]=='-'){
+                    const char* plist=op+7;
+                    if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='|')){
+                        _options_check(_getIgnorePathSetList(ignoreOldPathList,plist),"-i-old|?");
+                    }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='|')){
+                        _options_check(_getIgnorePathSetList(ignoreNewPathList,plist),"-i-new|?");
+                    }else{
+                        _options_check(hpatch_FALSE,"-i-?");
+                    }
+                }else{
+                    _options_check(hpatch_FALSE,"-i?");
+                }
+            } break;
             case 'D':{
                 _options_check((isForceRunDirDiff==_kNULL_VALUE)&&(op[2]=='\0'),"-D");
                 isForceRunDirDiff=hpatch_TRUE; //force run DirDiff
@@ -597,7 +696,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             return hdiff_dir(oldPath,newPath,outDiffFileName, (kPathType_dir==oldType),
                              (kPathType_dir==newType), isDiff,isLoadAll,matchValue,isPatchCheck,
                              streamCompressPlugin,compressPlugin,decompressPlugin,
-                             checksumPlugin,kMaxOpenFileNumber);
+                             checksumPlugin,kMaxOpenFileNumber,
+                             ignorePathList,ignoreOldPathList,ignoreNewPathList);
         }else
 #endif
         {
@@ -1027,19 +1127,96 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 #if (_IS_NEED_DIR_DIFF_PATCH)
 
 struct DirDiffListener:public IDirDiffListener{
-    virtual bool isNeedFilter(const std::string& path){
-        if (pathNameIs(path,".DS_Store")) return true;
-#ifdef _WIN32
-        if (pathNameIs(path,"Thumbs.db")) return true;
-        if (pathNameIs(path,"ehthumbs.db")) return true;
-        if (pathNameIs(path,"ehthumbs_vista.db")) return true;
-        if (pathNameIs(path,"Desktop.ini")) return true;
-#endif
+    DirDiffListener(const std::vector<std::string>& ignorePathList,
+                    const std::vector<std::string>& ignoreOldPathList,
+                    const std::vector<std::string>& ignoreNewPathList,bool isPrintIgnore=true)
+    :_ignorePathList(ignorePathList),_ignoreOldPathList(ignoreOldPathList),
+    _ignoreNewPathList(ignoreNewPathList),_isPrintIgnore(isPrintIgnore),_ignoreCount(0){ }
+    const std::vector<std::string>& _ignorePathList;
+    const std::vector<std::string>& _ignoreOldPathList;
+    const std::vector<std::string>& _ignoreNewPathList;
+    const bool                      _isPrintIgnore;
+    size_t                          _ignoreCount;
+    
+    static bool _match(const char* beginS,const char* endS,
+                       const std::vector<const char*>& matchs,size_t mi,
+                       const char* ignoreBegin,const char* ignoreEnd){
+         //O(n*n) !
+        const char* match   =matchs[mi];
+        const char* matchEnd=matchs[mi+1];
+        const char* curS=beginS;
+        while (curS<endS){
+            const char* found=std::search(curS,endS,match,matchEnd);
+            if (found==endS) return false;
+            bool isMatched=true;
+            //check front
+            if (beginS<found){
+                if (mi>0){ //[front match]*[cur match]
+                    for (const char* it=beginS;it<found; ++it) {
+                        if ((*it)==kPatch_dirSeparator) { isMatched=false; break; }
+                    }
+                }else{ // ?[first match]
+                    if ((match==ignoreBegin)&&(match[0]!=kPatch_dirSeparator)&&(found[-1]!=kPatch_dirSeparator))
+                        isMatched=false;
+                }
+            }
+            const char* foundEnd=found+(matchEnd-match);
+            //check back
+            if (isMatched && (mi+2>=matchs.size()) && (foundEnd<endS)){ //[last match]
+                if ((matchEnd==ignoreEnd)&&(matchEnd[-1]!=kPatch_dirSeparator)&&(foundEnd[0]!=kPatch_dirSeparator))
+                    isMatched=false;
+            }
+            if (isMatched && (mi+2<matchs.size())
+                && (!_match(foundEnd,endS,matchs,mi+2,ignoreBegin,ignoreEnd)))
+                isMatched=false;
+            if (isMatched) return true;
+            curS=found+1;//continue
+        }
         return false;
+    }
+    static bool isMatchIgnore(const std::string& subPath,const std::string& ignore){
+        assert(!ignore.empty());
+        std::vector<const char*> matchs;
+        const char* beginI=ignore.c_str();
+        const char* endI=beginI+ignore.size();
+        const char* curI=beginI;
+        while (curI<endI) {
+            const char* clip=std::find(curI,endI,kIgnoreMagicChar);
+            if (curI<clip){
+                matchs.push_back(curI);
+                matchs.push_back(clip);
+            }
+            curI=clip+1;
+        }
+        if (matchs.empty()) return true; // WARNING : match any path
+        const char* beginS=subPath.c_str();
+        const char* endS=beginS+subPath.size();
+        return _match(beginS,endS,matchs,0,beginI,endI);
+    }
+    static bool isMatchIgnoreList(const std::string& subPath,const std::vector<std::string>& ignoreList){
+        for (size_t i=0; i<ignoreList.size(); ++i) {
+            if (isMatchIgnore(subPath,ignoreList[i])) return true;
+        }
+        return false;
+    }
+    
+    virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen,bool pathIsInOld){
+        std::string subPath(path.begin()+rootPathNameLen,path.end());
+        formatIgnorePathName(subPath);
+        bool result=isMatchIgnoreList(subPath,_ignorePathList) ||
+                    isMatchIgnoreList(subPath,pathIsInOld?_ignoreOldPathList:_ignoreNewPathList);
+        if (result) ++_ignoreCount;
+        if (result&&_isPrintIgnore){ //printf
+            printf("  ignore %s file : \"",pathIsInOld?"old":"new");
+            hpatch_printPath_utf8(path.c_str());  printf("\"\n");
+        }
+        return result;
     }
     virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,
                              hpatch_StreamPos_t sameFileSize,size_t refOldFileCount,size_t refNewFileCount,
                              hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){
+        if ((_ignoreCount>0)&&_isPrintIgnore)
+            printf("\n");
         printf("DirDiff old path count: %"PRIu64"\n",(hpatch_StreamPos_t)oldPathCount);
         printf("        new path count: %"PRIu64" (fileCount:%"PRIu64")\n",
                (hpatch_StreamPos_t)newPathCount,(hpatch_StreamPos_t)(sameFilePairCount+refNewFileCount));
@@ -1065,7 +1242,9 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
               hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
               hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TDecompress* decompressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
+              hpatch_TDecompress* decompressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber,
+              const std::vector<std::string>& ignorePathList,const std::vector<std::string>& ignoreOldPathList,
+              const std::vector<std::string>& ignoreNewPathList){
     double time0=clock_s();
     std::string oldPatch(_oldPath);
     std::string newPatch(_newPath);
@@ -1090,6 +1269,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         printf("hdiffz run DirDiff with%s compress plugin: \"%s\"\n",(isLoadAll?"":" stream"),compressType);
         printf("hdiffz run DirDiff with checksum plugin: \"%s\"\n",checksumType);
     }
+    printf("\n");
 
     int  result=HDIFF_SUCCESS;
     bool _isInClear=false;
@@ -1102,7 +1282,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
             check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),
                   HDIFF_OPENWRITE_ERROR,"open out diffFile");
             hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
-            DirDiffListener listener;
+            DirDiffListener listener(ignorePathList,ignoreOldPathList,ignoreNewPathList);
             dir_diff(&listener,oldPatch,newPatch,&diffData_out.base,isLoadAll!=0,matchValue,
                      streamCompressPlugin,compressPlugin,checksumPlugin,kMaxOpenFileNumber);
             diffData_out.base.streamSize=diffData_out.out_length;
@@ -1119,7 +1299,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         printf("\nload dir diffFile for test by DirPatch check:\n");
         check(hpatch_TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
         printf("diffDataSize : %"PRIu64"\n",diffData_in.base.streamSize);
-        DirDiffListener listener;
+        DirDiffListener listener(ignorePathList,ignoreOldPathList,ignoreNewPathList,false);
         check(check_dirdiff(&listener,oldPatch,newPatch,&diffData_in.base,decompressPlugin,checksumPlugin,
                             kMaxOpenFileNumber), DIRDIFF_PATCH_ERROR,"DirPatch check diff data");
         printf("  DirPatch check diff data ok!\n");

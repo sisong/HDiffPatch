@@ -205,7 +205,7 @@ hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPatchSucc
 //        move all files and dir in newTempDir to oldDir;
 //        delete newTempDir; }
 //    if patch error then  {
-//        delelte all in newTempName;//not check
+//        delelte all in newTempDir;//not check
 //        delete newTempDir; }
 static IHPatchDirListener tempDirPatchListener={{&tempDirPatchListener,_makeNewDir,_tempDir_copySameFile,
                                                    _openNewFile,_closeNewFile},

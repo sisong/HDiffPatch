@@ -60,7 +60,7 @@ extern "C" {
 
 typedef unsigned char TByte;
 #define hpatch_kFileIOBestMaxSize  (1<<20)
-#define hpatch_kPathMaxSize  512
+#define hpatch_kPathMaxSize  (1024*2)
 
 #define kMaxOpenFileNumber_limit_min          3
 #define kMaxOpenFileNumber_default_min        8 //must >= limit_min
