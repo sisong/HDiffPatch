@@ -33,17 +33,22 @@
 namespace hdiff_private{
 
     struct TAutoMem{
-        inline explicit TAutoMem(size_t size)
-        :_data(0),_size(size){
-            if (_size>0){
-                _data=(unsigned char*)malloc(_size);
-                if (!_data) throw std::runtime_error("TAutoMem::TAutoMem() malloc() error!");
-            }
-        }
-        inline ~TAutoMem(){ if (_data) free(_data); }
+        inline explicit TAutoMem(size_t size) :_data(0),_size(0){ realloc(size); }
+        inline ~TAutoMem(){ clear(); }
         inline unsigned char* data(){ return _data; }
         inline unsigned char* data_end(){ return _data+_size; }
         inline size_t size()const{ return _size; }
+        inline void clear(){ if (_data) { free(_data); _data=0; } _size=0; }
+        inline void realloc(size_t newSize){
+            if (newSize!=size()){
+                clear();
+                if (newSize>0){
+                    _data=(unsigned char*)malloc(_size);
+                    if (!_data) throw std::runtime_error("TAutoMem::TAutoMem() malloc() error!");
+                    _size=newSize;
+                }
+            }
+        }
     private:
         unsigned char*  _data;
         size_t          _size;

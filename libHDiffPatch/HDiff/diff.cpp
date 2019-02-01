@@ -46,6 +46,18 @@ static const char* kHDiffVersionType="HDIFF13";
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
 
+size_t hdiff_compress_mem(const hdiff_TCompress* compressPlugin,
+                          unsigned char* out_code,unsigned char* out_code_end,
+                          const unsigned char* data,const unsigned char* data_end){
+    hdiff_TStreamOutput  codeStream;
+    hdiff_TStreamInput   dataStream;
+    mem_as_hStreamOutput(&codeStream,out_code,out_code_end);
+    mem_as_hStreamInput(&dataStream,data,data_end);
+    hpatch_StreamPos_t codeLen=compressPlugin->compress(compressPlugin,&codeStream,&dataStream);
+    if (codeLen!=(size_t)codeLen) return 0; //error
+    return (size_t)codeLen;
+}
+
 namespace{
     
     typedef unsigned char TByte;
@@ -418,18 +430,17 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
         out_code.clear();
         if (!compressPlugin) return;
         if (data.empty()) return;
-        size_t maxCodeSize=compressPlugin->maxCompressedSize(compressPlugin,data.size());
-        if (maxCodeSize<=0) return;
-        out_code.resize(maxCodeSize);
+        hpatch_StreamPos_t maxCodeSize=compressPlugin->maxCompressedSize(data.size());
+        if ((maxCodeSize<=data.size())||(maxCodeSize!=(size_t)maxCodeSize)) return; //error
+        out_code.resize((size_t)maxCodeSize);
         const TByte* data0=&data[0];
         TByte* out_code0=&out_code[0];
-        size_t codeSize=compressPlugin->compress(compressPlugin,
-                                                 out_code0,out_code0+out_code.size(),
-                                                 data0,data0+data.size());
+        size_t codeSize=hdiff_compress_mem(compressPlugin,out_code0,out_code0+out_code.size(),
+                                           data0,data0+data.size());
         if ((codeSize>0)&&(codeSize<data.size()))
             out_code.resize(codeSize); //ok
         else
-            out_code.clear();
+            out_code.clear();//error or cancel
     }
     inline static void pushCompressCode(std::vector<TByte>& out_diff,
                                         const std::vector<TByte>& compress_code,
@@ -565,19 +576,18 @@ bool check_diff(const TByte* newData,const TByte* newData_end,
     return (0==memcmp(updateNew0,newData,updateNewData.size()));
 }
 
-void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
-                            const unsigned char* oldData,const unsigned char* oldData_end,
-                            std::vector<unsigned char>& out_diff,
-                            const hdiff_TCompress* compressPlugin,
-                            int kMinSingleMatchScore){
+void create_compressed_diff(const TByte* newData,const TByte* newData_end,
+                            const TByte* oldData,const TByte* oldData_end,
+                            std::vector<TByte>& out_diff,
+                            const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore){
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 
-bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
-                           const unsigned char* oldData,const unsigned char* oldData_end,
-                           const unsigned char* diff,const unsigned char* diff_end,
+bool check_compressed_diff(const TByte* newData,const TByte* newData_end,
+                           const TByte* oldData,const TByte* oldData_end,
+                           const TByte* diff,const TByte* diff_end,
                            hpatch_TDecompress* decompressPlugin){
     TAutoMem updateNewData(newData_end-newData);
     TByte* updateNew0=updateNewData.data();
@@ -602,7 +612,7 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
             write=_write_check;
         }
         static hpatch_BOOL _write_check(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
-                                        const unsigned char* data,const unsigned char* data_end){
+                                        const TByte* data,const TByte* data_end){
             _TCheckOutNewDataStream* self=(_TCheckOutNewDataStream*)stream->streamImport;
             _test(self->writedLen==writeToPos);
             self->writedLen+=(size_t)(data_end-data);
@@ -640,8 +650,7 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
 void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* newData_end,
                                              const TByte* oldData,const TByte* oldData_end,
                                              std::vector<TByte>& out_diff,
-                                             const hdiff_TCompress* compressPlugin,
-                                             int kMinSingleMatchScore,
+                                             const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore,
                                              const TSuffixString* sstring){
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,sstring);
@@ -676,7 +685,7 @@ static void getCovers_stream(const hpatch_TStreamInput*  newData,
 static void stream_serialize(const hpatch_TStreamInput*  newData,
                              hpatch_StreamPos_t          oldDataSize,
                              const hpatch_TStreamOutput* out_diff,
-                             hdiff_TStreamCompress* compressPlugin,
+                             hdiff_TCompress* compressPlugin,
                              const TCovers& covers){
     
     std::vector<TByte> rle_ctrlBuf;
@@ -727,8 +736,7 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
 void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
                                    const hpatch_TStreamOutput* out_diff,
-                                   hdiff_TStreamCompress* compressPlugin,
-                                   size_t kMatchBlockSize){
+                                   hdiff_TCompress* compressPlugin,size_t kMatchBlockSize){
     const bool isSkipSameRange=(compressPlugin!=0);
     TCovers covers(oldData->streamSize,newData->streamSize);
     getCovers_stream(newData,oldData,kMatchBlockSize,isSkipSameRange,covers);
@@ -739,7 +747,7 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
 void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
                             hpatch_TDecompress*         decompressPlugin,
                             const hpatch_TStreamOutput* out_diff,
-                            hdiff_TStreamCompress*      compressPlugin){
+                            hdiff_TCompress*      compressPlugin){
     _THDiffzHead              head;
     hpatch_compressedDiffInfo diffInfo;
     assert(in_diff!=0);

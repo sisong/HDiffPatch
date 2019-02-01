@@ -59,15 +59,14 @@ struct IDirDiffListener:public IDirPathIgnore{
 
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
-              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
+              hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
 
 bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
                    const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
                    hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
 
 void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decompressPlugin,
-                    const hpatch_TStreamOutput* out_diff,hdiff_TStreamCompress* compressPlugin,
+                    const hpatch_TStreamOutput* out_diff,hdiff_TCompress* compressPlugin,
                     hpatch_TChecksum* checksumPlugin);
 #endif
 #endif //hdiff_dir_diff_h

@@ -284,13 +284,13 @@ void TDiffStream::_pushStream(const hpatch_TStreamInput* stream){
 }
 
 void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
-                             const hdiff_TStreamCompress* compressPlugin,
+                             const hdiff_TCompress* compressPlugin,
                              const TPlaceholder& update_compress_sizePos){
     if ((compressPlugin)&&(stream->streamSize>0)){
         hpatch_StreamPos_t kLimitOutCodeSize=stream->streamSize-1;
         TCompressedStream  out_stream(out_diff,writePos,kLimitOutCodeSize,stream);
         hpatch_StreamPos_t compressed_size=
-                                compressPlugin->compress_stream(compressPlugin,&out_stream,stream);
+                                compressPlugin->compress(compressPlugin,&out_stream,stream);
         if (out_stream.is_overLimit()||(compressed_size==0)||(compressed_size>kLimitOutCodeSize)){
             compressed_size=0;//NOTICE: compress is canceled
             _pushStream(stream);

@@ -61,36 +61,29 @@ const long kRandTestCount=20000;
 
 #ifdef  _CompressPlugin_no
     hdiff_TCompress* compressPlugin=0;
-    hdiff_TStreamCompress* compressStreamPlugin=0;
     hpatch_TDecompress* decompressPlugin=0;
 #endif
 #ifdef  _CompressPlugin_zlib
     hdiff_TCompress* compressPlugin=&zlibCompressPlugin;
-    hdiff_TStreamCompress* compressStreamPlugin=&zlibStreamCompressPlugin;
     hpatch_TDecompress* decompressPlugin=&zlibDecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_bz2
     hdiff_TCompress* compressPlugin=&bz2CompressPlugin;
-    hdiff_TStreamCompress* compressStreamPlugin=&bz2StreamCompressPlugin;
     hpatch_TDecompress* decompressPlugin=&bz2DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lzma
     hdiff_TCompress* compressPlugin=&lzmaCompressPlugin;
-    hdiff_TStreamCompress* compressStreamPlugin=&lzmaStreamCompressPlugin;
     hpatch_TDecompress* decompressPlugin=&lzmaDecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lz4
-    hdiff_TStreamCompress* compressStreamPlugin=&lz4StreamCompressPlugin;
     hdiff_TCompress* compressPlugin=&lz4CompressPlugin;
     hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lz4hc
-    hdiff_TStreamCompress* compressStreamPlugin=&lz4hcStreamCompressPlugin;
     hdiff_TCompress* compressPlugin=&lz4hcCompressPlugin;
     hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_zstd
-    hdiff_TStreamCompress* compressStreamPlugin=&zstdStreamCompressPlugin;
     hdiff_TCompress* compressPlugin=&zstdCompressPlugin;
     hpatch_TDecompress* decompressPlugin=&zstdDecompressPlugin;
 #endif
@@ -213,7 +206,7 @@ long test(const TByte* newData,const TByte* newData_end,
         mem_as_hStreamInput(&newStream,newData,newData_end);
         mem_as_hStreamInput(&oldStream,oldData,oldData_end);
 
-        create_compressed_diff_stream(&newStream,&oldStream,&out_diffStream,compressStreamPlugin,1<<4);
+        create_compressed_diff_stream(&newStream,&oldStream,&out_diffStream,compressPlugin,1<<4);
         
         struct hpatch_TStreamInput in_diffStream;
         mem_as_hStreamInput(&in_diffStream,diffData.data(),diffData.data()+diffData.size());

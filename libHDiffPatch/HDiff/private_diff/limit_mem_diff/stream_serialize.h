@@ -29,7 +29,7 @@
 #define stream_serialize_h
 #include "covers.h"
 #include "../pack_uint.h" //for packUInt_fixSize
-struct hdiff_TStreamCompress;
+struct hdiff_TCompress;
 namespace hdiff_private{
 
 struct TCompressedStream:public hpatch_TStreamOutput{
@@ -97,9 +97,9 @@ struct TDiffStream{
     void packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue);
     
     void pushStream(const hpatch_TStreamInput*   stream,
-                    const hdiff_TStreamCompress* compressPlugin,
+                    const hdiff_TCompress*       compressPlugin,
                     const TPlaceholder&          update_compress_sizePos);
-    void pushStream(const hpatch_TStreamInput*   stream){
+    void pushStream(const hpatch_TStreamInput* stream){
                             TPlaceholder nullPos(0,0); pushStream(stream,0,nullPos); }
     hpatch_StreamPos_t getWritedPos()const{ return writePos; }
 private:

@@ -493,7 +493,7 @@ struct CChecksum{
     std::vector<TByte>      checksum;
 };
 
-static void _outType(std::vector<TByte>& out_data,hdiff_TStreamCompress* compressPlugin,
+static void _outType(std::vector<TByte>& out_data,hdiff_TCompress* compressPlugin,
                      hpatch_TChecksum* checksumPlugin){
     //type version
     pushCStr(out_data,kDirDiffVersionType);
@@ -523,8 +523,7 @@ static void _outType(std::vector<TByte>& out_data,hdiff_TStreamCompress* compres
 
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
-              hdiff_TStreamCompress* streamCompressPlugin,hdiff_TCompress* compressPlugin,
-              hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
+              hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
     assert(listener!=0);
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     if ((checksumPlugin)&&(!isLoadAll)){
@@ -652,8 +651,8 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     pushSamePairList(headData,dataSamePairList);
     std::vector<TByte> headCode;
     if (compressPlugin){
-        headCode.resize(compressPlugin->maxCompressedSize(compressPlugin,headData.size()));
-        size_t codeSize=compressPlugin->compress(compressPlugin,headCode.data(),headCode.data()+headCode.size(),
+        headCode.resize((size_t)compressPlugin->maxCompressedSize(headData.size()));
+        size_t codeSize=hdiff_compress_mem(compressPlugin,headCode.data(),headCode.data()+headCode.size(),
                                                  headData.data(),headData.data()+headData.size());
         if ((0<codeSize)&&(codeSize<headData.size()))
             headCode.resize(codeSize);//compress ok
@@ -663,7 +662,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     
     //serialize  dir diff data
     std::vector<TByte> out_data;
-    _outType(out_data,streamCompressPlugin,checksumPlugin);
+    _outType(out_data,compressPlugin,checksumPlugin);
     //head info
     packUInt(out_data,oldIsDir?1:0);
     packUInt(out_data,newIsDir?1:0);
@@ -737,7 +736,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         check(oldRefStream.stream->read(oldRefStream.stream,0,oldData,
                                         oldData+oldRefStream.stream->streamSize),"read old file error!");
         resLimit.close(); //close files
-        std::vector<unsigned char> out_diff;
+        std::vector<TByte> out_diff;
         create_compressed_diff(newData,newData+newRefStream.stream->streamSize,
                                oldData,oldData+oldRefStream.stream->streamSize,
                                out_diff,compressPlugin,(int)matchValue);
@@ -746,7 +745,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     }else{
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
         create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                      streamCompressPlugin,matchValue);
+                                      compressPlugin,matchValue);
         diffDataSize=ofStream.outSize;
         if (checksumByteSize>0){
             assert(outDiffStream->read_writed!=0);
@@ -954,7 +953,7 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
 
 
 void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decompressPlugin,
-                    const hpatch_TStreamOutput* out_diff,hdiff_TStreamCompress* compressPlugin,
+                    const hpatch_TStreamOutput* out_diff,hdiff_TCompress* compressPlugin,
                     hpatch_TChecksum* checksumPlugin){
     _TDirDiffHead       head;
     TDirDiffInfo        diffInfo;
