@@ -25,7 +25,6 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "stream_serialize.h"
-#include <stdlib.h> //malloc free
 #include <string.h> //memcpy
 #include <stdexcept> //std::runtime_error
 #include "../../diff.h" //for stream type
@@ -63,18 +62,16 @@ hpatch_BOOL TCompressedStream::_write_code(const hpatch_TStreamOutput* stream,hp
 
 
 TCoversStream::TCoversStream(const TCovers& _covers,hpatch_StreamPos_t cover_buf_size)
-:covers(_covers),_code_buf(0),curCodePos(0),curCodePos_end(0),
+:covers(_covers),curCodePos(0),curCodePos_end(0),
 readedCoverCount(0),lastOldEnd(0),lastNewEnd(0),_readFromPos_back(0){
     assert(kCodeBufSize>=hpatch_kMaxPackedUIntBytes*3);
-    _code_buf=(unsigned char*)malloc(kCodeBufSize);
-    checki(_code_buf!=0,"TCoversStream::TCoversStream() malloc() error!");
+    _code_mem.realloc(kCodeBufSize);
     this->streamImport=this;
     this->streamSize=cover_buf_size;
     this->read=_read;
 }
 
 TCoversStream::~TCoversStream(){
-    if (_code_buf) free(_code_buf);
 }
 
 #define __private_packCover(_TUInt,packWithTag,pack,dst,dst_end,cover,lastOldEnd,lastNewEnd){ \
@@ -106,14 +103,14 @@ hpatch_BOOL TCoversStream::_read(const hpatch_TStreamInput* stream,hpatch_Stream
         if (curLen>0){
             size_t readLen=(out_data_end-out_data);
             if (readLen>curLen) readLen=curLen;
-            const unsigned char* pcode=&self->_code_buf[self->curCodePos];
+            const unsigned char* pcode=self->_code_mem.data()+self->curCodePos;
             memcpy(out_data,pcode,readLen);
             out_data+=readLen;
             self->curCodePos+=readLen;
         }else{
             size_t cur_index=self->readedCoverCount;
             if (cur_index>=n) return hpatch_FALSE; //error
-            unsigned char* pcode_cur=&self->_code_buf[0];
+            unsigned char* pcode_cur=self->_code_mem.data();
             unsigned char* pcode_end=pcode_cur+kCodeBufSize;
             for (;((size_t)(pcode_end-pcode_cur)>=hpatch_kMaxPackedUIntBytes*3)
                  &&(cur_index<n);++cur_index) {
@@ -126,7 +123,7 @@ hpatch_BOOL TCoversStream::_read(const hpatch_TStreamInput* stream,hpatch_Stream
             }
             self->readedCoverCount=cur_index;
             self->curCodePos=0;
-            self->curCodePos_end=pcode_cur-&self->_code_buf[0];
+            self->curCodePos_end=pcode_cur-self->_code_mem.data();
         }
     }
     return hpatch_TRUE;
@@ -230,13 +227,11 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 
 
 TDiffStream::TDiffStream(const hpatch_TStreamOutput* _out_diff)
-:out_diff(_out_diff),writePos(0),_temp_buf(0){
-    _temp_buf=(unsigned char*)malloc(kBufSize);
-    checki(_temp_buf!=0,"TDiffStream::TDiffStream() malloc() error!");
+:out_diff(_out_diff),writePos(0){
+    _temp_mem.realloc(kBufSize);
 }
 
 TDiffStream::~TDiffStream(){
-    if (_temp_buf) free(_temp_buf);
 }
     
 void TDiffStream::pushBack(const unsigned char* src,size_t n){
@@ -270,7 +265,7 @@ void TDiffStream::packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uVa
 }
 
 void TDiffStream::_pushStream(const hpatch_TStreamInput* stream){
-    unsigned char* buf=&_temp_buf[0];
+    unsigned char* buf=_temp_mem.data();
     hpatch_StreamPos_t sumReadedLen=0;
     while (sumReadedLen<stream->streamSize) {
         size_t readLen=kBufSize;

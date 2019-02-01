@@ -29,6 +29,7 @@
 #define stream_serialize_h
 #include "covers.h"
 #include "../pack_uint.h" //for packUInt_fixSize
+#include "../mem_buf.h"
 struct hdiff_TCompress;
 namespace hdiff_private{
 
@@ -54,7 +55,7 @@ struct TCoversStream:public hpatch_TStreamInput{
     static hpatch_StreamPos_t getDataSize(const TCovers& covers);
 private:
     const TCovers&              covers;
-    unsigned char*              _code_buf;
+    TAutoMem                    _code_mem;
     size_t                      curCodePos;
     size_t                      curCodePos_end;
     size_t                      readedCoverCount;
@@ -106,7 +107,7 @@ private:
     const hpatch_TStreamOutput*  out_diff;
     hpatch_StreamPos_t     writePos;
     enum{ kBufSize=1024*64 };
-    unsigned char*         _temp_buf;
+    TAutoMem               _temp_mem;
     
     void _packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize);
     

@@ -94,9 +94,6 @@
 #include "checksum_plugin_demo.h"
 #endif
 
-#define _free_mem(p) { if (p) { free(p); p=0; } }
-
-
 static void printUsage(){
     printf("usage: hpatchz [options] oldPath diffFile outNewPath\n"
            "memory options:\n"
@@ -580,6 +577,8 @@ static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const cha
     return (0!=*out_checksumPlugin);
 }
 #endif
+
+#define _free_mem(p) { if (p) { free(p); p=0; } }
 
 static void* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
                               hpatch_StreamPos_t oldDataSize,size_t* out_memCacheSize){

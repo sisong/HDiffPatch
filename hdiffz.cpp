@@ -757,7 +757,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 }
 
 #define _check_readFile(value) { if (!(value)) { hpatch_TFileStreamInput_close(&file); return hpatch_FALSE; } }
-#define _free_file_mem(p) { if (p) { free(p); p=0; } }
 static hpatch_BOOL readFileAll(hdiff_private::TAutoMem& out_mem,const char* fileName){
     size_t              dataSize;
     hpatch_TFileStreamInput    file;

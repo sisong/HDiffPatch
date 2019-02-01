@@ -653,7 +653,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     if (compressPlugin){
         headCode.resize((size_t)compressPlugin->maxCompressedSize(headData.size()));
         size_t codeSize=hdiff_compress_mem(compressPlugin,headCode.data(),headCode.data()+headCode.size(),
-                                                 headData.data(),headData.data()+headData.size());
+                                           headData.data(),headData.data()+headData.size());
         if ((0<codeSize)&&(codeSize<headData.size()))
             headCode.resize(codeSize);//compress ok
         else

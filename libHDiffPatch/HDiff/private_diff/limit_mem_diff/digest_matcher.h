@@ -33,6 +33,7 @@
 #include "bloom_filter.h"
 #include "covers.h"
 #include "adler_roll.h"
+#include "../mem_buf.h"
 
 namespace hdiff_private{
 
@@ -71,7 +72,7 @@ private:
     std::vector<size_t>         m_sorted_larger;
     bool                        m_isUseLargeSorted;
     bool                        m_kIsSkipSameRange;
-    unsigned char*              m_buf;
+    TAutoMem                    m_mem;
     size_t                      m_newCacheSize;
     size_t                      m_oldCacheSize;
     size_t                      m_oldMinCacheSize;

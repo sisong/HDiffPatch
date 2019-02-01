@@ -30,6 +30,7 @@
 #define compress_detect_h
 #include <stddef.h> //for size_t
 #include "../../HPatch/patch_types.h" //for hpatch_uint32_t
+#include "mem_buf.h"
 namespace hdiff_private{
 
 template<class _UInt>
@@ -68,6 +69,7 @@ private:
         hpatch_uint32_t sum2char[256*256];//用相邻字符转换几率来近似估计数据的可压缩性.
         unsigned char cache[1];//实际大小为kCacheSize,超出该距离的旧数据会被清除.
     };
+    TAutoMem        m_mem;
     TCharConvTable* m_table;
     int             m_lastChar;
     int             m_lastPopChar;

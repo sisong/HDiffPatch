@@ -28,7 +28,6 @@
 
 #include "diff.h"
 #include <string.h> //strlen memcmp
-#include <stdlib.h> //malloc free
 #include <stdio.h>  //fprintf
 #include <algorithm> //std::max
 #include <vector>

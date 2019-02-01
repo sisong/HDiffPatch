@@ -26,7 +26,6 @@
  */
 
 #include "digest_matcher.h"
-#include <stdlib.h> //malloc free
 #include <stdexcept>  //std::runtime_error
 #include <algorithm>  //std::sort,std::equal_range
 #include "../compress_detect.h" //_getUIntCost
@@ -130,11 +129,10 @@ static size_t posToBlockIndex(hpatch_StreamPos_t pos,size_t kMatchBlockSize,size
 
 
 TDigestMatcher::~TDigestMatcher(){
-    if (m_buf) free(m_buf);
 }
     
 TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize,bool kIsSkipSameRange)
-:m_oldData(oldData),m_isUseLargeSorted(true),m_kIsSkipSameRange(kIsSkipSameRange),m_buf(0),
+:m_oldData(oldData),m_isUseLargeSorted(true),m_kIsSkipSameRange(kIsSkipSameRange),
 m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_kMatchBlockSize(0){
     if (kMatchBlockSize>(oldData->streamSize+1)/2)
         kMatchBlockSize=(size_t)((oldData->streamSize+1)/2);
@@ -159,8 +157,7 @@ m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_
     m_oldCacheSize=upperCount(m_kMatchBlockSize+m_backupCacheSize,kBestReadSize)*kBestReadSize;
     m_oldMinCacheSize=upperCount(m_kMatchBlockSize+m_backupCacheSize,kMinReadSize)*kMinReadSize;
     assert(m_oldMinCacheSize<=m_oldCacheSize);
-    m_buf=(unsigned char*)malloc(m_newCacheSize+m_oldCacheSize);
-    if (!m_buf) throw std::runtime_error("TDigestMatcher::TDigestMatcher() malloc() error!");
+    m_mem.realloc(m_newCacheSize+m_oldCacheSize);
     getDigests();
 }
 
@@ -202,7 +199,7 @@ void TDigestMatcher::getDigests(){
     
     const size_t blockCount=m_blocks.size();
     m_filter.init(blockCount);
-    TStreamCache streamCache(m_oldData,&m_buf[0],m_newCacheSize+m_oldCacheSize);
+    TStreamCache streamCache(m_oldData,m_mem.data(),m_newCacheSize+m_oldCacheSize);
     for (size_t i=0; i<blockCount; ++i) {
         hpatch_StreamPos_t readPos=blockIndexToPos(i,m_kMatchBlockSize,m_oldData->streamSize);
         streamCache.resetPos(0,readPos,m_kMatchBlockSize);
@@ -617,8 +614,8 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
 void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,TCovers* out_covers){
     if (m_blocks.empty()) return;
     if (newData->streamSize<m_kMatchBlockSize) return;
-    TNewStreamCache newStream(newData,&m_buf[0],m_newCacheSize,m_backupCacheSize,m_kMatchBlockSize);
-    TOldStreamCache oldStream(m_oldData,&m_buf[m_newCacheSize],m_oldMinCacheSize,
+    TNewStreamCache newStream(newData,m_mem.data(),m_newCacheSize,m_backupCacheSize,m_kMatchBlockSize);
+    TOldStreamCache oldStream(m_oldData,m_mem.data()+m_newCacheSize,m_oldMinCacheSize,
                               m_oldCacheSize,m_backupCacheSize,m_kMatchBlockSize);
     if (m_isUseLargeSorted)
         tm_search_cover(&m_blocks[0],m_blocks.size(),&m_sorted_larger[0],&m_sorted_larger[0]+m_blocks.size(),
