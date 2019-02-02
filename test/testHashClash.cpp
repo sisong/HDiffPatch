@@ -158,7 +158,7 @@ struct THash_fadler128{
 const uint64_t kMaxMapNodeSize=80000000ull; //run test memory ctrl
 const size_t   kRandTestMaxSize=1024*1024*1024;//test rand data size
 const size_t   kMaxHashDataSize=256;
-const size_t   kMaxClash=1000000; //fast end
+const size_t   kMaxClash=100000; //fast end
 const uint64_t kRandTestLoop=100000000ull;//run test max time ctrl
 
 template <class THash>

@@ -90,13 +90,14 @@
 #if (_IS_NEED_DEFAULT_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
 #   define _ChecksumPlugin_crc32    // =  32 bit effective  //need zlib
-#   define _ChecksumPlugin_fadler64 // ~  63 bit effective
+#   define _ChecksumPlugin_fadler64 // ?  63 bit effective
 #endif
 #if (_IS_NEED_ALL_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
 #   define _ChecksumPlugin_adler32  // ~  29 bit effective
-#   define _ChecksumPlugin_adler64  // ~  36 bit effective
+#   define _ChecksumPlugin_adler64  // ?  36 bit effective
 #   define _ChecksumPlugin_fadler32 // ~  32 bit effective
+#   define _ChecksumPlugin_fadler128// ? 126 bit effective
 #   define _ChecksumPlugin_md5      // ? 128 bit effective
 #endif
 
@@ -148,12 +149,20 @@ static void printUsage(){
 #ifdef _ChecksumPlugin_fadler64
            "used fadler64;\n"
 #else
+#   ifdef _ChecksumPlugin_crc32
+           "used crc32;\n"
+#   else
            "no checksum;\n"
+#   endif
 #endif
            "      support checksum type:\n"
            "        -no                         no checksum\n"
 #ifdef _ChecksumPlugin_crc32
+#   ifdef _ChecksumPlugin_fadler64
            "        -crc32\n"
+#   else
+           "        -crc32                      DEFAULT\n"
+#   endif
 #endif
 #ifdef _ChecksumPlugin_adler32
            "        -adler32\n"
@@ -166,6 +175,9 @@ static void printUsage(){
 #endif
 #ifdef _ChecksumPlugin_fadler64
            "        -fadler64                   DEFAULT\n"
+#endif
+#ifdef _ChecksumPlugin_fadler128
+           "        -fadler128\n"
 #endif
 #ifdef _ChecksumPlugin_md5
            "        -md5\n"
@@ -293,6 +305,9 @@ static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const cha
 #endif
 #ifdef _ChecksumPlugin_fadler64
     _trySetChecksum(out_checksumPlugin,checksumType,&fadler64ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_fadler128
+    _trySetChecksum(out_checksumPlugin,checksumType,&fadler128ChecksumPlugin);
 #endif
 #ifdef _ChecksumPlugin_md5
     _trySetChecksum(out_checksumPlugin,checksumType,&md5ChecksumPlugin);
@@ -682,8 +697,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* newPath        =arg_values[1];
         const char* outDiffFileName=arg_values[2];
         
-        _return_check(!hpatch_getIsSamePath(oldPath,outDiffFileName),HDIFF_PATHTYPE_ERROR,"oldPath outDiffFile same path");
-        _return_check(!hpatch_getIsSamePath(newPath,outDiffFileName),HDIFF_PATHTYPE_ERROR,"newPath outDiffFile same path");
+        _return_check(!hpatch_getIsSamePath(oldPath,outDiffFileName),
+                      HDIFF_PATHTYPE_ERROR,"oldPath outDiffFile same path");
+        _return_check(!hpatch_getIsSamePath(newPath,outDiffFileName),
+                      HDIFF_PATHTYPE_ERROR,"newPath outDiffFile same path");
         if (!isForceOverwrite){
             hpatch_TPathType   outDiffFileType;
             _return_check(hpatch_getPathStat(outDiffFileName,&outDiffFileType,0),
@@ -705,6 +722,13 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 checksumPlugin=&fadler64ChecksumPlugin; //DEFAULT
                 isSetChecksum=hpatch_TRUE;
             }
+#else
+#   ifdef _ChecksumPlugin_crc32
+            if (isSetChecksum==hpatch_FALSE){
+                checksumPlugin=&crc32ChecksumPlugin; //DEFAULT
+                isSetChecksum=hpatch_TRUE;
+            }
+#   endif
 #endif
             _options_check(!isOriginal,"-o unsupport dir diff");
         }else

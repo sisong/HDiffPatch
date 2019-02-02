@@ -33,6 +33,7 @@
 //  adler64ChecksumPlugin
 //  fadler32ChecksumPlugin
 //  fadler64ChecksumPlugin
+//  fadler128ChecksumPlugin
 //  md5ChecksumPlugin
 
 #include "libHDiffPatch/HPatch/checksum_plugin.h"
@@ -43,10 +44,10 @@
 #endif
 
 #define __out_checksum4__(out_code,i0,v,shr) {    \
-    out_code[i0  ]=(unsigned char)((v)>>(shr));   \
-    out_code[i0+1]=(unsigned char)((v)>>(shr+8)); \
-    out_code[i0+2]=(unsigned char)((v)>>(shr+16));\
-    out_code[i0+3]=(unsigned char)((v)>>(shr+24));\
+    (out_code)[i0  ]=(unsigned char)((v)>>(shr));   \
+    (out_code)[i0+1]=(unsigned char)((v)>>(shr+8)); \
+    (out_code)[i0+2]=(unsigned char)((v)>>(shr+16));\
+    (out_code)[i0+3]=(unsigned char)((v)>>(shr+24));\
 }
 #define __out_checksum4(out_code,v)     __out_checksum4__(out_code,0,v,0)
 #define __out_checksum8(out_code,v)  {  __out_checksum4__(out_code,0,v,0); \
@@ -258,6 +259,42 @@ static void _fadler64_end(hpatch_checksumHandle handle,
 static hpatch_TChecksum fadler64ChecksumPlugin={ _fadler64_checksumType,_fadler64_checksumByteSize,_fadler64_open,
                                                  _fadler64_close,_fadler64_begin,_fadler64_append,_fadler64_end};
 #endif//_ChecksumPlugin_fadler64
+
+
+#ifdef  _ChecksumPlugin_fadler128
+#include "libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
+static const char* _fadler128_checksumType(void){
+    static const char* type="fadler128";
+    return type;
+}
+static size_t _fadler128_checksumByteSize(void){
+    return sizeof(adler128_t);
+}
+static hpatch_checksumHandle _fadler128_open(hpatch_TChecksum* plugin){
+    return malloc(sizeof(adler128_t));
+}
+static void _fadler128_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
+    if (handle) free(handle);
+}
+static void  _fadler128_begin(hpatch_checksumHandle handle){
+    adler128_t* pv=(adler128_t*)handle;
+    *pv=fast_adler128_start(0,0);
+}
+static void _fadler128_append(hpatch_checksumHandle handle,
+                             const unsigned char* part_data,const unsigned char* part_data_end){
+    adler128_t* pv=(adler128_t*)handle;
+    *pv=fast_adler128_append(*pv,part_data,part_data_end-part_data);
+}
+static void _fadler128_end(hpatch_checksumHandle handle,
+                          unsigned char* checksum,unsigned char* checksum_end){
+    const adler128_t* pv=(const adler128_t*)handle;
+    assert(16==checksum_end-checksum);
+    __out_checksum8(checksum,pv->adler);
+    __out_checksum8(checksum+8,pv->sum);
+}
+static hpatch_TChecksum fadler128ChecksumPlugin={ _fadler128_checksumType,_fadler128_checksumByteSize,
+                            _fadler128_open,_fadler128_close,_fadler128_begin,_fadler128_append,_fadler128_end};
+#endif//_ChecksumPlugin_fadler128
 
 
 #ifdef  _ChecksumPlugin_md5
