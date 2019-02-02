@@ -45,18 +45,6 @@ static const char* kHDiffVersionType="HDIFF13";
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
 
-size_t hdiff_compress_mem(const hdiff_TCompress* compressPlugin,
-                          unsigned char* out_code,unsigned char* out_code_end,
-                          const unsigned char* data,const unsigned char* data_end){
-    hdiff_TStreamOutput  codeStream;
-    hdiff_TStreamInput   dataStream;
-    mem_as_hStreamOutput(&codeStream,out_code,out_code_end);
-    mem_as_hStreamInput(&dataStream,data,data_end);
-    hpatch_StreamPos_t codeLen=compressPlugin->compress(compressPlugin,&codeStream,&dataStream);
-    if (codeLen!=(size_t)codeLen) return 0; //error
-    return (size_t)codeLen;
-}
-
 namespace{
     
     typedef unsigned char TByte;

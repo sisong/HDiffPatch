@@ -311,8 +311,8 @@
         LzmaDec_Init(&self->decEnv);
         return self;
     }
-    hpatch_BOOL _lzma_close(struct hpatch_TDecompress* decompressPlugin,
-                            hpatch_decompressHandle decompressHandle){
+    static hpatch_BOOL _lzma_close(struct hpatch_TDecompress* decompressPlugin,
+                                   hpatch_decompressHandle decompressHandle){
         _lzma_TDecompress* self=(_lzma_TDecompress*)decompressHandle;
         ISzAlloc alloc={__lzma_dec_Alloc,__lzma_dec_Free};
         if (!self) return hpatch_TRUE;

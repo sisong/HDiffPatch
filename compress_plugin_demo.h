@@ -108,6 +108,7 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
     } _zlib_TCompress;
 
     static _zlib_TCompress*  _zlib_compress_open_by(const hdiff_TCompress* compressPlugin,
+                                                    int compressLevel,int compressMemLevel,
                                                     const hpatch_TStreamOutput* out_code,
                                                     unsigned char* _mem_buf,size_t _mem_buf_size){
         const TCompressPlugin_zlib* plugin=(const TCompressPlugin_zlib*)compressPlugin;
@@ -132,8 +133,8 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
             --self->c_stream.avail_out;
         }
 
-        if (Z_OK!=deflateInit2(&self->c_stream,plugin->compress_level,Z_DEFLATED,
-                               plugin->windowBits,plugin->mem_level,Z_DEFAULT_STRATEGY))
+        if (Z_OK!=deflateInit2(&self->c_stream,compressLevel,Z_DEFLATED,
+                               plugin->windowBits,compressMemLevel,Z_DEFAULT_STRATEGY))
             return 0;
         return self;
     }
@@ -147,7 +148,7 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
         memset(self,0,sizeof(_zlib_TCompress));
         return result;
     }
-    static int _zlib_compress_part(const hdiff_TCompress* compressPlugin, _zlib_TCompress* self,
+    static int _zlib_compress_part(_zlib_TCompress* self,
                                    const unsigned char* part_data,const unsigned char* part_data_end,
                                    int is_data_end,hpatch_StreamPos_t* curWritedPos,int* outStream_isCanceled){
         int                 result=1; //true
@@ -192,6 +193,7 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
     static hpatch_StreamPos_t _zlib_compress(const hdiff_TCompress* compressPlugin,
                                              const hdiff_TStreamOutput* out_code,
                                              const hdiff_TStreamInput*  in_data){
+        const TCompressPlugin_zlib* plugin=(const TCompressPlugin_zlib*)compressPlugin;
         hpatch_StreamPos_t result=0; //writedPos
         hpatch_StreamPos_t readFromPos=0;
         const char*        errAt="";
@@ -201,8 +203,8 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
         _zlib_TCompress*   self=0;
         _temp_buf=(unsigned char*)malloc(sizeof(_zlib_TCompress)+kCompressBufSize*2);
         if (!_temp_buf) _compress_error_return("memory alloc");
-        self=_zlib_compress_open_by(compressPlugin,out_code,
-                                    _temp_buf,sizeof(_zlib_TCompress)+kCompressBufSize);
+        self=_zlib_compress_open_by(compressPlugin,plugin->compress_level,plugin->mem_level,
+                                    out_code,_temp_buf,sizeof(_zlib_TCompress)+kCompressBufSize);
         data_buf=_temp_buf+sizeof(_zlib_TCompress)+kCompressBufSize;
         if (!self) _compress_error_return("deflateInit2()");
         while (readFromPos<in_data->streamSize) {
@@ -212,7 +214,7 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
             if (!in_data->read(in_data,readFromPos,data_buf,data_buf+readLen))
                 _compress_error_return("in_data->read()");
             readFromPos+=readLen;
-            if (!_zlib_compress_part(compressPlugin,self,data_buf,data_buf+readLen,
+            if (!_zlib_compress_part(self,data_buf,data_buf+readLen,
                                      (readFromPos==in_data->streamSize),&result,&outStream_isCanceled))
                 _compress_error_return("_zlib_compress_part()");
         }
