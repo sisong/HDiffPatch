@@ -36,6 +36,9 @@
 //  zstdCompressPlugin
 
 #include "libHDiffPatch/HDiff/diff_types.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define kCompressBufSize (1024*32)
 #ifndef _IsNeedIncludeDefaultCompressHead
@@ -72,25 +75,30 @@
     } \
     writePos+=len;  }
 
-static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize){
-    hpatch_StreamPos_t result=dataSize+(dataSize>>3)+1024*2;
-    assert(result>dataSize);
-    return result;
-}
-
 #define _def_fun_compressType(_fun_name,cstr)   \
 static const char*  _fun_name(void){            \
     static const char* kCompressType=cstr;      \
     return kCompressType;                       \
 }
 
-//todo *_compress_level(*_dictSize...) 可以单独控制，而不再是全局变量;
+hpatch_inline
+static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize){
+    hpatch_StreamPos_t result=dataSize+(dataSize>>3)+1024*2;
+    assert(result>dataSize);
+    return result;
+}
 
 #ifdef  _CompressPlugin_zlib
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
 #endif
-    static int zlib_compress_level=9; //1..9
+    struct TCompressPlugin_zlib{
+        hdiff_TCompress base;
+        int             compress_level; //0..9
+        int             mem_level;
+        signed char     windowBits;
+        hpatch_BOOL     isNeedSaveWindowBits;
+    };
     typedef struct _zlib_TCompress{
         hpatch_StreamPos_t curWritePos;
         const hpatch_TStreamOutput* out_code;
@@ -101,12 +109,9 @@ static const char*  _fun_name(void){            \
 
     static _zlib_TCompress*  _zlib_compress_open_by(const hdiff_TCompress* compressPlugin,
                                                     const hpatch_TStreamOutput* out_code,
-                                                    int  isNeedSaveWindowBits,
-                                                    int  compress_level,
-                                                    int  mem_level,
                                                     unsigned char* _mem_buf,size_t _mem_buf_size){
+        const TCompressPlugin_zlib* plugin=(const TCompressPlugin_zlib*)compressPlugin;
         _zlib_TCompress* self=0;
-        const signed char  kWindowBits=isNeedSaveWindowBits?(16+MAX_WBITS):(-MAX_WBITS);
         
         self=(_zlib_TCompress*)_hpatch_align_upper(_mem_buf,sizeof(hpatch_StreamPos_t));
         assert((_mem_buf+_mem_buf_size)>((unsigned char*)self+sizeof(_zlib_TCompress)));
@@ -121,14 +126,14 @@ static const char*  _fun_name(void){            \
         
         self->c_stream.next_out = (Bytef*)_mem_buf;
         self->c_stream.avail_out = (uInt)_mem_buf_size;
-        if (isNeedSaveWindowBits){//save kWindowBits
-            self->c_stream.next_out[0]=kWindowBits;
+        if (plugin->isNeedSaveWindowBits){//save kWindowBits
+            self->c_stream.next_out[0]=plugin->windowBits;
             ++self->c_stream.next_out;
             --self->c_stream.avail_out;
         }
 
-        if (Z_OK!=deflateInit2(&self->c_stream,compress_level,Z_DEFLATED,
-                               kWindowBits,mem_level,Z_DEFAULT_STRATEGY))
+        if (Z_OK!=deflateInit2(&self->c_stream,plugin->compress_level,Z_DEFLATED,
+                               plugin->windowBits,plugin->mem_level,Z_DEFAULT_STRATEGY))
             return 0;
         return self;
     }
@@ -196,7 +201,7 @@ static const char*  _fun_name(void){            \
         _zlib_TCompress*   self=0;
         _temp_buf=(unsigned char*)malloc(sizeof(_zlib_TCompress)+kCompressBufSize*2);
         if (!_temp_buf) _compress_error_return("memory alloc");
-        self=_zlib_compress_open_by(compressPlugin,out_code,1,zlib_compress_level,MAX_MEM_LEVEL,
+        self=_zlib_compress_open_by(compressPlugin,out_code,
                                     _temp_buf,sizeof(_zlib_TCompress)+kCompressBufSize);
         data_buf=_temp_buf+sizeof(_zlib_TCompress)+kCompressBufSize;
         if (!self) _compress_error_return("deflateInit2()");
@@ -208,7 +213,7 @@ static const char*  _fun_name(void){            \
                 _compress_error_return("in_data->read()");
             readFromPos+=readLen;
             if (!_zlib_compress_part(compressPlugin,self,data_buf,data_buf+readLen,
-                                            (readFromPos==in_data->streamSize),&result,&outStream_isCanceled))
+                                     (readFromPos==in_data->streamSize),&result,&outStream_isCanceled))
                 _compress_error_return("_zlib_compress_part()");
         }
     clear:
@@ -218,18 +223,23 @@ static const char*  _fun_name(void){            \
         if (_temp_buf) free(_temp_buf);
         return result;
     }
-    _def_fun_compressType(_zlib_compressType,"zlib")
-    static hdiff_TCompress zlibCompressPlugin={_zlib_compressType,_default_maxCompressedSize,_zlib_compress};
+    _def_fun_compressType(_zlib_compressType,"zlib");
+    static const TCompressPlugin_zlib zlibCompressPlugin={
+        {_zlib_compressType,_default_maxCompressedSize,_zlib_compress}, 9,MAX_MEM_LEVEL,16+MAX_WBITS,hpatch_TRUE};
 #endif//_CompressPlugin_zlib
     
 #ifdef  _CompressPlugin_bz2
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "bzlib.h" // http://www.bzip.org/
 #endif
-    static int bz2_compress_level=9; //1..9
+    struct TCompressPlugin_bz2{
+        hdiff_TCompress base;
+        int             compress_level; //0..9
+    };
     static hpatch_StreamPos_t _bz2_compress(const hdiff_TCompress* compressPlugin,
                                             const hdiff_TStreamOutput* out_code,
                                             const hdiff_TStreamInput*  in_data){
+        const TCompressPlugin_bz2* plugin=(const TCompressPlugin_bz2*)compressPlugin;
         hpatch_StreamPos_t result=0;
         const char*        errAt="";
         unsigned char*     _temp_buf=0;
@@ -247,7 +257,7 @@ static const char*  _fun_name(void){            \
         data_buf=_temp_buf+kCompressBufSize;
         s.next_out = (char*)code_buf;
         s.avail_out = kCompressBufSize;
-        if (BZ_OK!=BZ2_bzCompressInit(&s, bz2_compress_level, 0, 0))
+        if (BZ_OK!=BZ2_bzCompressInit(&s,plugin->compress_level, 0, 0))
             _compress_error_return("BZ2_bzCompressInit()");
         while (1) {
             if ((s.avail_out<kCompressBufSize)|is_stream_end){
@@ -290,16 +300,20 @@ static const char*  _fun_name(void){            \
         if (_temp_buf) free(_temp_buf);
         return result;
     }
-    _def_fun_compressType(_bz2_compressType,"bz2")
-    static hdiff_TCompress bz2CompressPlugin={_bz2_compressType,_default_maxCompressedSize,_bz2_compress};
+    _def_fun_compressType(_bz2_compressType,"bz2");
+    static const TCompressPlugin_bz2 bz2CompressPlugin={
+        {_bz2_compressType,_default_maxCompressedSize,_bz2_compress}, 9};
 #endif//_CompressPlugin_bz2
     
 #ifdef  _CompressPlugin_lzma
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "LzmaEnc.h" // "lzma/C/LzmaEnc.h" http://www.7-zip.org/sdk.html
 #endif
-    static int lzma_compress_level=7;//0..9
-    static UInt32 lzma_dictSize=1<<22;  //patch decompress need 4*lzma_dictSize memroy
+    struct TCompressPlugin_lzma{
+        hdiff_TCompress base;
+        int             compress_level; //0..9
+        UInt32          dict_size;      //patch decompress need 4*lzma_dictSize memroy
+    };
     static void * __lzma_enc_Alloc(ISzAllocPtr p, size_t size){
         return malloc(size);
     }
@@ -350,6 +364,7 @@ static const char*  _fun_name(void){            \
     static hpatch_StreamPos_t _lzma_compress(const hdiff_TCompress* compressPlugin,
                                              const hdiff_TStreamOutput* out_code,
                                              const hdiff_TStreamInput*  in_data){
+        const TCompressPlugin_lzma* plugin=(const TCompressPlugin_lzma*)compressPlugin;
         ISzAlloc alloc={__lzma_enc_Alloc,__lzma_enc_Free};
         struct __lzma_SeqOutStream_t outStream={{__lzma_SeqOutStream_Write},out_code,0,0};
         struct __lzma_SeqInStream_t  inStream={{__lzma_SeqInStream_Read},in_data,0};
@@ -364,13 +379,13 @@ static const char*  _fun_name(void){            \
         unsigned char      properties_buf[LZMA_PROPS_SIZE+1];
         SizeT              properties_size=LZMA_PROPS_SIZE;
         SRes               ret;
-        hpatch_uint32_t    dictSize=lzma_dictSize;
+        hpatch_uint32_t    dictSize=plugin->dict_size;
         if (!s) s=LzmaEnc_Create(&alloc);
         if (!s) _compress_error_return("LzmaEnc_Create()");
         while ((dictSize >= in_data->streamSize*3)&&(dictSize>=1024*8))
             dictSize>>=1;
         LzmaEncProps_Init(&props);
-        props.level=lzma_compress_level;
+        props.level=plugin->compress_level;
         props.dictSize=dictSize;
         LzmaEncProps_Normalize(&props);
         if (SZ_OK!=LzmaEnc_SetProps(s,&props)) _compress_error_return("LzmaEnc_SetProps()");
@@ -405,8 +420,9 @@ static const char*  _fun_name(void){            \
         _check_compress_result(result,outStream.isCanceled,"_lzma_compress()",errAt);
         return result;
     }
-    _def_fun_compressType(_lzma_compressType,"lzma")
-    static hdiff_TCompress lzmaCompressPlugin={_lzma_compressType,_default_maxCompressedSize,_lzma_compress};
+    _def_fun_compressType(_lzma_compressType,"lzma");
+    static const TCompressPlugin_lzma lzmaCompressPlugin={
+        {_lzma_compressType,_default_maxCompressedSize,_lzma_compress}, 7,(1<<22) };
 #endif//_CompressPlugin_lzma
 
 #if (defined(_CompressPlugin_lz4) || defined(_CompressPlugin_lz4hc))
@@ -414,7 +430,14 @@ static const char*  _fun_name(void){            \
 #   include "lz4.h"   // "lz4/lib/lz4.h" https://github.com/lz4/lz4
 #   include "lz4hc.h"
 #endif
-    static int lz4hc_compress_level=11; //3..12
+    struct TCompressPlugin_lz4{
+        hdiff_TCompress base;
+        int             compress_level; //1..50 default 50
+    };
+    struct TCompressPlugin_lz4hc{
+        hdiff_TCompress base;
+        int             compress_level; //3..12
+    };
 
     #define _lz4_write_len4(out_code,isCanceled,writePos,len) { \
         unsigned char _temp_buf4[4];  \
@@ -427,6 +450,8 @@ static const char*  _fun_name(void){            \
     static hpatch_StreamPos_t _lz4_compress(const hdiff_TCompress* compressPlugin,
                                             const hdiff_TStreamOutput* out_code,
                                             const hdiff_TStreamInput*  in_data){
+        const TCompressPlugin_lz4* plugin=(const TCompressPlugin_lz4*)compressPlugin;
+        const int kLZ4DefaultAcceleration=50-(plugin->compress_level-1);
         hpatch_StreamPos_t  result=0;
         const char*         errAt="";
         unsigned char*      _temp_buf=0;
@@ -434,7 +459,6 @@ static const char*  _fun_name(void){            \
         LZ4_stream_t*       s=0;
         hpatch_StreamPos_t  readFromPos=0;
         int                 outStream_isCanceled=0;
-        const int           kLZ4DefaultAcceleration=1;
         int  kLz4CompressBufSize =1024*510; //patch decompress need 4*2*0.5MB memroy
         int  code_buf_size;
         if ((size_t)kLz4CompressBufSize>in_data->streamSize)
@@ -485,6 +509,7 @@ static const char*  _fun_name(void){            \
     static hpatch_StreamPos_t _lz4hc_compress(const hdiff_TCompress* compressPlugin,
                                               const hdiff_TStreamOutput* out_code,
                                               const hdiff_TStreamInput*  in_data){
+        const TCompressPlugin_lz4hc* plugin=(const TCompressPlugin_lz4hc*)compressPlugin;
         hpatch_StreamPos_t  result=0;
         const char*         errAt="";
         unsigned char*      _temp_buf=0;
@@ -506,7 +531,7 @@ static const char*  _fun_name(void){            \
         
         s=LZ4_createStreamHC();
         if (!s) _compress_error_return("LZ4_createStreamHC()");
-        LZ4_resetStreamHC(s,lz4hc_compress_level);
+        LZ4_resetStreamHC(s,plugin->compress_level);
         //out kLz4CompressBufSize
         _lz4_write_len4(out_code,outStream_isCanceled,result,kLz4CompressBufSize);
         
@@ -540,9 +565,11 @@ static const char*  _fun_name(void){            \
         return result;
     }
 
-    _def_fun_compressType(_lz4_compressType,"lz4")
-    static hdiff_TCompress lz4CompressPlugin   ={_lz4_compressType,_default_maxCompressedSize,_lz4_compress};
-    static hdiff_TCompress lz4hcCompressPlugin ={_lz4_compressType,_default_maxCompressedSize,_lz4hc_compress};
+    _def_fun_compressType(_lz4_compressType,"lz4");
+    static TCompressPlugin_lz4 lz4CompressPlugin={
+        {_lz4_compressType,_default_maxCompressedSize,_lz4_compress}, 50};
+    static TCompressPlugin_lz4hc lz4hcCompressPlugin ={
+        {_lz4_compressType,_default_maxCompressedSize,_lz4hc_compress}, 11};
 #endif//_CompressPlugin_lz4 or _CompressPlugin_lz4hc
 
 
@@ -550,10 +577,14 @@ static const char*  _fun_name(void){            \
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/facebook/zstd
 #endif
-    static int zstd_compress_level=20; //0..22
+    struct TCompressPlugin_zstd{
+        hdiff_TCompress base;
+        int             compress_level; //0..22
+    };
     static hpatch_StreamPos_t _zstd_compress(const hdiff_TCompress* compressPlugin,
                                              const hdiff_TStreamOutput* out_code,
                                              const hdiff_TStreamInput*  in_data){
+        const TCompressPlugin_zstd* plugin=(const TCompressPlugin_zstd*)compressPlugin;
         hpatch_StreamPos_t  result=0;
         const char*         errAt="";
         unsigned char*      _temp_buf=0;
@@ -577,7 +608,7 @@ static const char*  _fun_name(void){            \
         
         if (!s) s=ZSTD_createCStream();
         if (!s) _compress_error_return("ZSTD_createCStream()");
-        ret=ZSTD_initCStream(s,zstd_compress_level);
+        ret=ZSTD_initCStream(s,plugin->compress_level);
         if (ZSTD_isError(ret)) _compress_error_return("ZSTD_initCStream()");
         
         while (readFromPos<in_data->streamSize) {
@@ -616,8 +647,12 @@ static const char*  _fun_name(void){            \
         if (_temp_buf) free(_temp_buf);
         return result;
     }
-    _def_fun_compressType(_zstd_compressType,"zstd")
-    static hdiff_TCompress zstdCompressPlugin={_zstd_compressType,_default_maxCompressedSize,_zstd_compress};
+    _def_fun_compressType(_zstd_compressType,"zstd");
+    static TCompressPlugin_zstd zstdCompressPlugin={
+        {_zstd_compressType,_default_maxCompressedSize,_zstd_compress}, 20};
 #endif//_CompressPlugin_zstd
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -185,7 +185,7 @@
         unsigned char   dec_buf[kDecompressBufSize];
     } _bz2_TDecompress;
     static hpatch_BOOL _bz2_is_can_open(const char* compressType){
-        return (0==strcmp(compressType,"bz2"));
+        return (0==strcmp(compressType,"bz2"))||(0==strcmp(compressType,"bzip2"));
     }
     static hpatch_decompressHandle  _bz2_open(struct hpatch_TDecompress* decompressPlugin,
                                                hpatch_StreamPos_t dataSize,

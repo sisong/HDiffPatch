@@ -60,31 +60,31 @@ const long kRandTestCount=20000;
 
 
 #ifdef  _CompressPlugin_no
-    hdiff_TCompress* compressPlugin=0;
+    const hdiff_TCompress* compressPlugin=0;
     hpatch_TDecompress* decompressPlugin=0;
 #endif
 #ifdef  _CompressPlugin_zlib
-    hdiff_TCompress* compressPlugin=&zlibCompressPlugin;
+    const hdiff_TCompress* compressPlugin=&zlibCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&zlibDecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_bz2
-    hdiff_TCompress* compressPlugin=&bz2CompressPlugin;
+    const hdiff_TCompress* compressPlugin=&bz2CompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&bz2DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lzma
-    hdiff_TCompress* compressPlugin=&lzmaCompressPlugin;
+    const hdiff_TCompress* compressPlugin=&lzmaCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&lzmaDecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lz4
-    hdiff_TCompress* compressPlugin=&lz4CompressPlugin;
+    const hdiff_TCompress* compressPlugin=&lz4CompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lz4hc
-    hdiff_TCompress* compressPlugin=&lz4hcCompressPlugin;
+    const hdiff_TCompress* compressPlugin=&lz4hcCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_zstd
-    hdiff_TCompress* compressPlugin=&zstdCompressPlugin;
+    const hdiff_TCompress* compressPlugin=&zstdCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&zstdDecompressPlugin;
 #endif
 

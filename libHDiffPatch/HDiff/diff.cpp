@@ -684,7 +684,7 @@ static void getCovers_stream(const hpatch_TStreamInput*  newData,
 static void stream_serialize(const hpatch_TStreamInput*  newData,
                              hpatch_StreamPos_t          oldDataSize,
                              const hpatch_TStreamOutput* out_diff,
-                             hdiff_TCompress* compressPlugin,
+                             const hdiff_TCompress* compressPlugin,
                              const TCovers& covers){
     
     std::vector<TByte> rle_ctrlBuf;
@@ -735,7 +735,7 @@ static void stream_serialize(const hpatch_TStreamInput*  newData,
 void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
                                    const hpatch_TStreamOutput* out_diff,
-                                   hdiff_TCompress* compressPlugin,size_t kMatchBlockSize){
+                                   const hdiff_TCompress* compressPlugin,size_t kMatchBlockSize){
     const bool isSkipSameRange=(compressPlugin!=0);
     TCovers covers(oldData->streamSize,newData->streamSize);
     getCovers_stream(newData,oldData,kMatchBlockSize,isSkipSameRange,covers);
@@ -746,7 +746,7 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
 void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
                             hpatch_TDecompress*         decompressPlugin,
                             const hpatch_TStreamOutput* out_diff,
-                            hdiff_TCompress*      compressPlugin){
+                            const hdiff_TCompress*      compressPlugin){
     _THDiffzHead              head;
     hpatch_compressedDiffInfo diffInfo;
     assert(in_diff!=0);

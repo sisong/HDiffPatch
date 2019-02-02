@@ -493,7 +493,7 @@ struct CChecksum{
     std::vector<TByte>      checksum;
 };
 
-static void _outType(std::vector<TByte>& out_data,hdiff_TCompress* compressPlugin,
+static void _outType(std::vector<TByte>& out_data,const hdiff_TCompress* compressPlugin,
                      hpatch_TChecksum* checksumPlugin){
     //type version
     pushCStr(out_data,kDirDiffVersionType);
@@ -523,7 +523,7 @@ static void _outType(std::vector<TByte>& out_data,hdiff_TCompress* compressPlugi
 
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
-              hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
+              const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
     assert(listener!=0);
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     if ((checksumPlugin)&&(!isLoadAll)){
@@ -951,9 +951,8 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
 }
 #undef _test
 
-
 void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decompressPlugin,
-                    const hpatch_TStreamOutput* out_diff,hdiff_TCompress* compressPlugin,
+                    const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                     hpatch_TChecksum* checksumPlugin){
     _TDirDiffHead       head;
     TDirDiffInfo        diffInfo;
