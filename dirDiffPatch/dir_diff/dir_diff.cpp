@@ -667,11 +667,13 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     packUInt(out_data,oldIsDir?1:0);
     packUInt(out_data,newIsDir?1:0);
     packUInt(out_data,oldList.size());          clearVector(oldList);
-    packUInt(out_data,newList.size());          clearVector(newList);
     packUInt(out_data,oldPathSumSize);
+    packUInt(out_data,newList.size());          clearVector(newList);
     packUInt(out_data,newPathSumSize);
     packUInt(out_data,oldRefIList.size());      clearVector(oldRefIList);
+    packUInt(out_data,oldRefStream.stream->streamSize); //same as hdiffz::oldDataSize
     packUInt(out_data,newRefIList.size());      clearVector(newRefIList);
+    packUInt(out_data,newRefStream.stream->streamSize); //same as hdiffz::newDataSize
     packUInt(out_data,dataSamePairList.size()); clearVector(dataSamePairList);
     packUInt(out_data,sameFileSize);
     std::vector<TByte> privateExternData;//now empty
@@ -681,6 +683,9 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     std::vector<TByte> externData;
     listener->externData(externData);
     packUInt(out_data,externData.size());
+    //headData size
+    packUInt(out_data,headData.size());
+    packUInt(out_data,headCode.size());
     //other checksum info
     packUInt(out_data,checksumByteSize);
     if (checksumByteSize>0){
@@ -695,17 +700,10 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
         diffChecksum.append(out_data);
         out_data.insert(out_data.end(),checksumByteSize,0);//placeholder
     }
-    //headData size
-    packUInt(out_data,headData.size());
-    packUInt(out_data,headCode.size());
-    if (checksumByteSize>0){
-        diffChecksum.append(out_data.data()+diffChecksumPlaceholder.pos_end,
-                            out_data.data()+out_data.size());
-    }
 
     //begin write
     hpatch_StreamPos_t writeToPos=0;
-    #define _pushv(v) { if ((checksumByteSize>0)&&(writeToPos>diffChecksumPlaceholder.pos_end))\
+    #define _pushv(v) { if ((checksumByteSize>0)&&(writeToPos>=diffChecksumPlaceholder.pos_end))\
                             diffChecksum.append(v); \
                         check(outDiffStream->write(outDiffStream,writeToPos,v.data(),v.data()+v.size()), \
                             "write diff data " #v " error!"); \
@@ -951,6 +949,44 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
 }
 #undef _test
 
+
+#define _check(value) { if (!(value)) { fprintf(stderr,"dirOldDataChecksum check "#value" error!\n"); \
+                            result= hpatch_FALSE; goto clear; } }
+hpatch_BOOL check_dirOldDataChecksum(const char* oldPatch,hpatch_TStreamInput* diffData,
+                                     hpatch_TDecompress *decompressPlugin,hpatch_TChecksum *checksumPlugin){
+    hpatch_BOOL  result=hpatch_TRUE;
+    hpatch_BOOL         isAppendContinue=hpatch_FALSE;
+    hpatch_StreamPos_t  readPos=0;
+    const char*         savedCompressType=0;
+    TDirOldDataChecksum oldCheck;
+    TDirOldDataChecksum_init(&oldCheck);
+    while (hpatch_TRUE) {
+        TByte buf[1024];
+        size_t dataLen=sizeof(buf);
+        if (readPos+dataLen>diffData->streamSize)
+            dataLen=(size_t)(diffData->streamSize-readPos);
+        if (dataLen>0){
+            _check(diffData->read(diffData,readPos,buf,buf+dataLen));
+        }
+        readPos+=dataLen;
+        _check(TDirOldDataChecksum_append(&oldCheck,buf,buf+dataLen,&isAppendContinue));
+        if (!isAppendContinue)
+            break;
+        else
+            _check(dataLen>0);
+    }
+    _check(0==strcmp((checksumPlugin?checksumPlugin->checksumType():""),
+                     TDirOldDataChecksum_getChecksumType(&oldCheck)));
+    savedCompressType=TDirOldDataChecksum_getCompressType(&oldCheck);
+    _check(((decompressPlugin==0)&&(strlen(savedCompressType)==0))||
+           decompressPlugin->is_can_open(savedCompressType));
+    _check(TDirOldDataChecksum_checksum(&oldCheck,decompressPlugin,checksumPlugin,oldPatch));
+clear:
+    if (!TDirOldDataChecksum_close(&oldCheck)) result=hpatch_FALSE;
+    return result;
+}
+#undef _check
+
 void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decompressPlugin,
                     const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                     hpatch_TChecksum* checksumPlugin){
@@ -977,6 +1013,8 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
                   "resave_dirdiff() decompressPlugin cannot open compressed data error!");
         }
     }
+    const size_t checksumByteSize=diffInfo.checksumByteSize;
+    TPlaceholder diffChecksumPlaceholder(0,0);
     hpatch_StreamPos_t writeToPos=0;
     {//save head
         TDiffStream outDiff(out_diff);
@@ -992,7 +1030,17 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
         //headDataSize
         outDiff.packUInt(head.headDataSize);
         TPlaceholder compress_headData_sizePos=
-        outDiff.packUInt_pos(compressPlugin?head.headDataSize:0);//headDataCompressedSize
+            outDiff.packUInt_pos(compressPlugin?head.headDataSize:0);//headDataCompressedSize
+        {//resave checksum
+            outDiff.packUInt(checksumByteSize);
+            if (checksumByteSize>0){
+                diffChecksumPlaceholder.pos=outDiff.getWritedPos()+checksumByteSize*3;
+                diffChecksumPlaceholder.pos_end=diffChecksumPlaceholder.pos+checksumByteSize;
+                TStreamClip clip(in_diff,diffInfo.checksumOffset,
+                                 diffInfo.checksumOffset+checksumByteSize*4);
+                outDiff.pushStream(&clip);
+            }
+        }
         {//resave headData
             bool isCompressed=(head.headDataCompressedSize>0);
             hpatch_StreamPos_t bufSize=isCompressed?head.headDataCompressedSize:head.headDataSize;
@@ -1018,11 +1066,8 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
         resave_compressed_diff(&clip,decompressPlugin,&ofStream,compressPlugin);
         writeToPos+=ofStream.outSize;
     }
-    if (diffInfo.checksumByteSize>0){// update dirdiff checksum
-        const size_t checksumByteSize=diffInfo.checksumByteSize;
+    if (checksumByteSize>0){// update dirdiff checksum
         CChecksum    diffChecksum(checksumPlugin,false);
-        TPlaceholder diffChecksumPlaceholder(head.compressSizeBeginPos-checksumByteSize,
-                                             head.compressSizeBeginPos);
         assert(out_diff->read_writed!=0);
         diffChecksum.append((const hpatch_TStreamInput*)out_diff,0,diffChecksumPlaceholder.pos);
         diffChecksum.append((const hpatch_TStreamInput*)out_diff,diffChecksumPlaceholder.pos_end,writeToPos);

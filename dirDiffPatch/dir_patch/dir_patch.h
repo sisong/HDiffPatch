@@ -73,19 +73,18 @@ hpatch_BOOL getIsDirDiffFile(const char* diffFileName){
     return dirDiffInfo.isDirDiff;
 }
     
-    
-    
+
     typedef struct _TDirDiffHead {
         size_t              oldPathCount;
-        size_t              newPathCount;
         size_t              oldPathSumSize;
+        size_t              newPathCount;
         size_t              newPathSumSize;
         size_t              oldRefFileCount;
         size_t              newRefFileCount;
         size_t              sameFilePairCount;
         hpatch_StreamPos_t  sameFileSize;
         hpatch_StreamPos_t  typesEndPos;
-        hpatch_StreamPos_t  privateExternDataOffset;
+        hpatch_StreamPos_t  privateExternDataOffset; //headDataEndPos
         hpatch_StreamPos_t  privateExternDataSize;
         hpatch_StreamPos_t  compressSizeBeginPos;
         hpatch_StreamPos_t  headDataOffset;
@@ -164,13 +163,12 @@ typedef struct TDirPatcher{
 hpatch_inline
 static void TDirPatcher_init(TDirPatcher* self)  { memset(self,0,sizeof(*self)); }
 hpatch_BOOL TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* dirDiffData,
-                             const TDirDiffInfo**  out_dirDiffInfo);
+                             const TDirDiffInfo** out_dirDiffInfo);
 //if checksumSet->isCheck_dirDiffData then result&=checksum(dirDiffData);
 hpatch_BOOL TDirPatcher_checksum(TDirPatcher* self,const TDirPatchChecksumSet* checksumSet);
 hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin,
                                     const char* oldPath_utf8,const char* newPath_utf8);
-    
-    
+
 hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,size_t kMaxOpenFileNumber,
                                            const hpatch_TStreamInput** out_oldRefStream);
 hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,IDirPatchListener* listener,
@@ -183,6 +181,7 @@ hpatch_BOOL TDirPatcher_closeOldRefStream(TDirPatcher* self);//for TDirPatcher_o
 hpatch_BOOL TDirPatcher_closeNewDirStream(TDirPatcher* self);//for TDirPatcher_openNewDirAsStream
 hpatch_BOOL TDirPatcher_close(TDirPatcher* self);
 
+//after loadDirData
 const char* TDirPatcher_getOldPathByIndex(TDirPatcher* self,size_t oldPathIndex);
 const char* TDirPatcher_getOldRefPathByRefIndex(TDirPatcher* self,size_t oldRefIndex);
 const char* TDirPatcher_getOldPathByNewPath(TDirPatcher* self,const char* newPath);
@@ -195,6 +194,32 @@ const char* TDirPatcher_getOldPathBySameIndex(TDirPatcher* self,size_t sameIndex
 const char* TDirPatcher_getNewPathBySameIndex(TDirPatcher* self,size_t sameIndex);
 size_t      TDirPatcher_oldSameRefCount(TDirPatcher* self,size_t sameIndex);
 void        TDirPatcher_decOldSameRefCount(TDirPatcher* self,size_t sameIndex);
+
+
+//can checksum oldRefFiles+oldCopyFiles by part of dirDiffData;
+typedef struct TDirOldDataChecksum{
+//private:
+    TDirPatcher         _dirPatcher;
+    unsigned char*      _partDiffData;
+    unsigned char*      _partDiffData_cur;
+    unsigned char*      _partDiffData_end;
+    hpatch_TStreamInput _diffStream;
+    hpatch_BOOL         _isOpened;
+    hpatch_BOOL         _isAppendStoped;
+} TDirOldDataChecksum;
+hpatch_inline
+static void TDirOldDataChecksum_init(TDirOldDataChecksum* self)  { memset(self,0,sizeof(*self)); }
+//if dirDiffData_part==dirDiffData_part_end means dirDiffData finished
+hpatch_BOOL TDirOldDataChecksum_append(TDirOldDataChecksum* self,unsigned char* dirDiffData_part,
+                                       unsigned char* dirDiffData_part_end,hpatch_BOOL* out_isAppendContinue);
+const char* TDirOldDataChecksum_getChecksumType(const TDirOldDataChecksum* self);
+const char* TDirOldDataChecksum_getCompressType(const TDirOldDataChecksum* self);
+
+//open read the needed old files,check file sum size,and checksum file data
+hpatch_BOOL TDirOldDataChecksum_checksum(TDirOldDataChecksum* self,hpatch_TDecompress* decompressPlugin,
+                                         hpatch_TChecksum* checksumPlugin,const char* oldPath_utf8);
+
+hpatch_BOOL TDirOldDataChecksum_close(TDirOldDataChecksum* self);
     
 #ifdef __cplusplus
 }

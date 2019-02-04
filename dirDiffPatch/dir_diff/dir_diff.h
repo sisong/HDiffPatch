@@ -64,6 +64,9 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
 bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
                    const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
                    hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
+//as api demo
+hpatch_BOOL check_dirOldDataChecksum(const char* oldPatch,hpatch_TStreamInput* diffData,
+                                     hpatch_TDecompress *decompressPlugin,hpatch_TChecksum *checksumPlugin);
 
 void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decompressPlugin,
                     const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,

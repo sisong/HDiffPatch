@@ -881,9 +881,9 @@ static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* o
     std::string erri=std::string()+errorInfo+" ERROR!\n"; \
     if (!(value)){ hpatch_printStdErrPath_utf8(erri.c_str()); _check_on_error(errorType); } }
 
-static int hdiff_m(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-                   hpatch_BOOL isDiff,size_t matchScore,hpatch_BOOL isPatchCheck,hpatch_BOOL isOriginal,
-                   const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin){
+static int hdiff_mem(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+                     hpatch_BOOL isDiff,size_t matchScore,hpatch_BOOL isPatchCheck,hpatch_BOOL isOriginal,
+                     const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin){
     double diff_time0=clock_s();
     int    result=HDIFF_SUCCESS;
     int    _isInClear=hpatch_FALSE;
@@ -950,9 +950,9 @@ clear:
     return result;
 }
 
-static int hdiff_s(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-                   hpatch_BOOL isDiff,size_t matchBlockSize,hpatch_BOOL isPatchCheck,
-                   const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin){
+static int hdiff_stream(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+                        hpatch_BOOL isDiff,size_t matchBlockSize,hpatch_BOOL isPatchCheck,
+                        const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin){
     double diff_time0=clock_s();
     int result=HDIFF_SUCCESS;
     int _isInClear=hpatch_FALSE;
@@ -1022,19 +1022,19 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
     
     int exitCode;
     if (isLoadAll){
-        exitCode=hdiff_m(oldFileName,newFileName,outDiffFileName,
-                         isDiff,matchValue,isPatchCheck,isOriginal,compressPlugin,decompressPlugin);
+        exitCode=hdiff_mem(oldFileName,newFileName,outDiffFileName,
+                           isDiff,matchValue,isPatchCheck,isOriginal,compressPlugin,decompressPlugin);
     }else{
-        exitCode=hdiff_s(oldFileName,newFileName,outDiffFileName,
-                         isDiff,matchValue,isPatchCheck,compressPlugin,decompressPlugin);
+        exitCode=hdiff_stream(oldFileName,newFileName,outDiffFileName,
+                              isDiff,matchValue,isPatchCheck,compressPlugin,decompressPlugin);
     }
     if (isDiff && isPatchCheck)
         printf("\nall   time: %.3f s\n",(clock_s()-time0));
     return exitCode;
 }
 
-static int hdiff_r(const char* diffFileName,const char* outDiffFileName,
-                   const hdiff_TCompress* compressPlugin){
+static int _hdiff_resave(const char* diffFileName,const char* outDiffFileName,
+                         const hdiff_TCompress* compressPlugin){
     int result=HDIFF_SUCCESS;
     hpatch_BOOL  _isInClear=hpatch_FALSE;
     hpatch_BOOL  isDirDiff=false;
@@ -1158,7 +1158,7 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                                      +"out_diff: \""+outDiffFileName+"\"\n";
     hpatch_printPath_utf8(fnameInfo.c_str());
     
-    int exitCode=hdiff_r(diffFileName,outDiffFileName,compressPlugin);
+    int exitCode=_hdiff_resave(diffFileName,outDiffFileName,compressPlugin);
     double time1=clock_s();
     printf("\nhdiffz resave diffFile time: %.3f s\n",(time1-time0));
     return exitCode;
@@ -1336,6 +1336,8 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         printf("\nload dir diffFile for test by DirPatch check:\n");
         check(hpatch_TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
         printf("diffDataSize : %"PRIu64"\n",diffData_in.base.streamSize);
+        //check(check_dirOldDataChecksum(oldPatch.c_str(),&diffData_in.base,decompressPlugin,checksumPlugin),
+        //      DIRDIFF_PATCH_ERROR,"part diff data check_dirOldDataChecksum");
         DirDiffListener listener(ignorePathList,ignoreOldPathList,ignoreNewPathList,false);
         check(check_dirdiff(&listener,oldPatch,newPatch,&diffData_in.base,decompressPlugin,checksumPlugin,
                             kMaxOpenFileNumber), DIRDIFF_PATCH_ERROR,"DirPatch check diff data");
