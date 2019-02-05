@@ -46,7 +46,6 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
-			<Add option="-D_7ZIP_ST" />
 			<Add directory="../../../lzma/C/" />
 		</Compiler>
 		<Unit filename="../../../bzip2/blocksort.c">

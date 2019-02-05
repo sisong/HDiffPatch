@@ -46,7 +46,6 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
-			<Add option="-D_7ZIP_ST" />
 			<Add directory="../../../lzma/C/" />
 		</Compiler>
 		<Unit filename="../../../bzip2/blocksort.c">
@@ -71,13 +70,37 @@
 		<Unit filename="../../../bzip2/randtable.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../lzma/C/Alloc.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../lzma/C/LzFind.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/LzFindMt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Lzma2Dec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Lzma2DecMt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Lzma2Enc.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/LzmaDec.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/LzmaEnc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/MtCoder.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/MtDec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/ThreadsP.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/adler32.c">

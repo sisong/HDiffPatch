@@ -89,7 +89,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_7ZIP_ST;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -103,7 +103,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_7ZIP_ST;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -116,7 +116,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_7ZIP_ST;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -138,7 +138,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_7ZIP_ST;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -166,9 +166,17 @@
     <ClCompile Include="..\..\..\bzip2\decompress.c" />
     <ClCompile Include="..\..\..\bzip2\huffman.c" />
     <ClCompile Include="..\..\..\bzip2\randtable.c" />
+    <ClCompile Include="..\..\..\lzma\C\Alloc.c" />
     <ClCompile Include="..\..\..\lzma\C\LzFind.c" />
+    <ClCompile Include="..\..\..\lzma\C\LzFindMt.c" />
+    <ClCompile Include="..\..\..\lzma\C\Lzma2Dec.c" />
+    <ClCompile Include="..\..\..\lzma\C\Lzma2DecMt.c" />
+    <ClCompile Include="..\..\..\lzma\C\Lzma2Enc.c" />
     <ClCompile Include="..\..\..\lzma\C\LzmaDec.c" />
     <ClCompile Include="..\..\..\lzma\C\LzmaEnc.c" />
+    <ClCompile Include="..\..\..\lzma\C\MtCoder.c" />
+    <ClCompile Include="..\..\..\lzma\C\MtDec.c" />
+    <ClCompile Include="..\..\..\lzma\C\Threads.c" />
     <ClCompile Include="..\..\..\zlib\adler32.c" />
     <ClCompile Include="..\..\..\zlib\compress.c" />
     <ClCompile Include="..\..\..\zlib\crc32.c" />
