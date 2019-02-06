@@ -31,6 +31,7 @@
 //  zlibCompressPlugin
 //  bz2CompressPlugin
 //  lzmaCompressPlugin
+//  lzma2CompressPlugin
 //  lz4CompressPlugin
 //  lz4hcCompressPlugin
 //  zstdCompressPlugin
@@ -81,11 +82,15 @@ static const char*  _fun_name(void){            \
     return kCompressType;                       \
 }
 
-hpatch_inline
-static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize){
+hpatch_inline static
+hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize){
     hpatch_StreamPos_t result=dataSize+(dataSize>>3)+1024*2;
     assert(result>dataSize);
     return result;
+}
+hpatch_inline static
+int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
+    return 1;
 }
 
 #ifdef  _CompressPlugin_zlib
@@ -227,7 +232,8 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
     }
     _def_fun_compressType(_zlib_compressType,"zlib");
     static const TCompressPlugin_zlib zlibCompressPlugin={
-        {_zlib_compressType,_default_maxCompressedSize,_zlib_compress}, 9,MAX_MEM_LEVEL,16+MAX_WBITS,hpatch_TRUE};
+        {_zlib_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_zlib_compress},
+            9,MAX_MEM_LEVEL,16+MAX_WBITS,hpatch_TRUE};
 #endif//_CompressPlugin_zlib
     
 #ifdef  _CompressPlugin_bz2
@@ -304,25 +310,25 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
     }
     _def_fun_compressType(_bz2_compressType,"bz2");
     static const TCompressPlugin_bz2 bz2CompressPlugin={
-        {_bz2_compressType,_default_maxCompressedSize,_bz2_compress}, 9};
+        {_bz2_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_bz2_compress}, 9};
 #endif//_CompressPlugin_bz2
     
-#ifdef  _CompressPlugin_lzma
+#if (defined _CompressPlugin_lzma)||(defined _CompressPlugin_lzma2)
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "LzmaEnc.h" // "lzma/C/LzmaEnc.h" http://www.7-zip.org/sdk.html
+//      https://github.com/sisong/lzma/tree/pthread support multi-thread compile in macos or linux
+#   ifdef _CompressPlugin_lzma2
+#       include "Lzma2Enc.h"
+#   endif
 #endif
-    struct TCompressPlugin_lzma{
-        hdiff_TCompress base;
-        int             compress_level; //0..9
-        UInt32          dict_size;      //patch decompress need 4*lzma_dictSize memroy
-    };
     static void * __lzma_enc_Alloc(ISzAllocPtr p, size_t size){
         return malloc(size);
     }
     static void __lzma_enc_Free(ISzAllocPtr p, void *address){
         free(address);
     }
-
+    static ISzAlloc __lzma_enc_alloc={__lzma_enc_Alloc,__lzma_enc_Free};
+    
     struct __lzma_SeqOutStream_t{
         ISeqOutStream               base;
         const hdiff_TStreamOutput*  out_code;
@@ -362,12 +368,26 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
         *size=readLen;
         return SZ_OK;
     }
-
+#endif
+    
+#ifdef  _CompressPlugin_lzma
+    struct TCompressPlugin_lzma{
+        hdiff_TCompress base;
+        int             compress_level; //0..9
+        UInt32          dict_size;      //patch decompress need 4*lzma_dictSize memroy
+        int             thread_num;     //1..2
+    };
+    static int _lzma_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
+        TCompressPlugin_lzma* plugin=(TCompressPlugin_lzma*)compressPlugin;
+        assert(threadNum>=1);
+        if (threadNum>2) threadNum=2;
+        plugin->thread_num=threadNum;
+        return threadNum;
+    }
     static hpatch_StreamPos_t _lzma_compress(const hdiff_TCompress* compressPlugin,
                                              const hdiff_TStreamOutput* out_code,
                                              const hdiff_TStreamInput*  in_data){
         const TCompressPlugin_lzma* plugin=(const TCompressPlugin_lzma*)compressPlugin;
-        ISzAlloc alloc={__lzma_enc_Alloc,__lzma_enc_Free};
         struct __lzma_SeqOutStream_t outStream={{__lzma_SeqOutStream_Write},out_code,0,0};
         struct __lzma_SeqInStream_t  inStream={{__lzma_SeqInStream_Read},in_data,0};
         hpatch_StreamPos_t result=0;
@@ -382,17 +402,18 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
         SizeT              properties_size=LZMA_PROPS_SIZE;
         SRes               ret;
         hpatch_uint32_t    dictSize=plugin->dict_size;
-        if (!s) s=LzmaEnc_Create(&alloc);
+        if (!s) s=LzmaEnc_Create(&__lzma_enc_alloc);
         if (!s) _compress_error_return("LzmaEnc_Create()");
-        while ((dictSize >= in_data->streamSize*3)&&(dictSize>=1024*8))
-            dictSize>>=1;
         LzmaEncProps_Init(&props);
         props.level=plugin->compress_level;
         props.dictSize=dictSize;
+        props.reduceSize=in_data->streamSize;
+        props.numThreads=plugin->thread_num;
         LzmaEncProps_Normalize(&props);
         if (SZ_OK!=LzmaEnc_SetProps(s,&props)) _compress_error_return("LzmaEnc_SetProps()");
 #       if (IS_NOTICE_compress_canceled)
-            printf("  (used one lzma dictSize: %"PRIu64")\n",(hpatch_StreamPos_t)props.dictSize);
+        printf("  (used one lzma dictSize: %"PRIu64"  (input data: %"PRIu64"))\n",
+               (hpatch_StreamPos_t)props.dictSize,in_data->streamSize);
 #       endif
         
         //save properties_size+properties
@@ -404,7 +425,7 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
         if (1+properties_size!=__lzma_SeqOutStream_Write(&outStream.base,properties_buf,1+properties_size))
             _compress_error_return("out_code->write()");
         
-        ret=LzmaEnc_Encode(s,&outStream.base,&inStream.base,0,&alloc,&alloc);
+        ret=LzmaEnc_Encode(s,&outStream.base,&inStream.base,0,&__lzma_enc_alloc,&__lzma_enc_alloc);
         if (SZ_OK==ret){
             result=outStream.writeToPos;
         }else{//fail
@@ -417,16 +438,94 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
         }
     clear:
 #if (!IS_REUSE_compress_handle)
-        if (s) LzmaEnc_Destroy(s,&alloc,&alloc);
+        if (s) LzmaEnc_Destroy(s,&__lzma_enc_alloc,&__lzma_enc_alloc);
 #endif
         _check_compress_result(result,outStream.isCanceled,"_lzma_compress()",errAt);
         return result;
     }
     _def_fun_compressType(_lzma_compressType,"lzma");
     static const TCompressPlugin_lzma lzmaCompressPlugin={
-        {_lzma_compressType,_default_maxCompressedSize,_lzma_compress}, 7,(1<<22) };
+        {_lzma_compressType,_default_maxCompressedSize,_lzma_setThreadNumber,_lzma_compress}, 7,(1<<22),1 };
 #endif//_CompressPlugin_lzma
+    
+#ifdef  _CompressPlugin_lzma2
+#   include "MtCoder.h" // // "lzma/C/MtCoder.h"   for MTCODER__THREADS_MAX
+    struct TCompressPlugin_lzma2{
+        hdiff_TCompress base;
+        int             compress_level; //0..9
+        UInt32          dict_size;      //patch decompress need 4*lzma_dictSize memroy
+        int             thread_num;     //1..(64?)
+    };
+    static int _lzma2_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
+        TCompressPlugin_lzma2* plugin=(TCompressPlugin_lzma2*)compressPlugin;
+        assert(threadNum>=1);
+        if (threadNum>MTCODER__THREADS_MAX) threadNum=MTCODER__THREADS_MAX;
+        plugin->thread_num=threadNum;
+        return threadNum;
+    }
+    static hpatch_StreamPos_t _lzma2_compress(const hdiff_TCompress* compressPlugin,
+                                              const hdiff_TStreamOutput* out_code,
+                                              const hdiff_TStreamInput*  in_data){
+        const TCompressPlugin_lzma2* plugin=(const TCompressPlugin_lzma2*)compressPlugin;
+        struct __lzma_SeqOutStream_t outStream={{__lzma_SeqOutStream_Write},out_code,0,0};
+        struct __lzma_SeqInStream_t  inStream={{__lzma_SeqInStream_Read},in_data,0};
+        hpatch_StreamPos_t result=0;
+        const char*        errAt="";
+#if (IS_REUSE_compress_handle)
+        static CLzma2EncHandle  s=0;
+#else
+        CLzma2EncHandle         s=0;
+#endif
+        CLzma2EncProps     props;
+        Byte               properties_size=0;
+        SRes               ret;
+        hpatch_uint32_t    dictSize=plugin->dict_size;
+        if (!s) s=Lzma2Enc_Create(&__lzma_enc_alloc,&__lzma_enc_alloc);
+        if (!s) _compress_error_return("LzmaEnc_Create()");
+        Lzma2EncProps_Init(&props);
+        props.lzmaProps.level=plugin->compress_level;
+        props.lzmaProps.dictSize=dictSize;
+        props.lzmaProps.reduceSize=in_data->streamSize;
+        props.blockSize=LZMA2_ENC_PROPS__BLOCK_SIZE__AUTO;
+        props.numTotalThreads=plugin->thread_num;
+        Lzma2EncProps_Normalize(&props);
+        if (SZ_OK!=Lzma2Enc_SetProps(s,&props)) _compress_error_return("Lzma2Enc_SetProps()");
+#       if (IS_NOTICE_compress_canceled)
+        printf("  (used one lzma2 dictSize: %"PRIu64"  (input data: %"PRIu64"))\n",
+               (hpatch_StreamPos_t)props.lzmaProps.dictSize,in_data->streamSize);
+#       endif
+        
+        //save properties_size+properties
+        assert(LZMA_PROPS_SIZE<256);
+        properties_size=Lzma2Enc_WriteProperties(s);
+        
+        if (1!=__lzma_SeqOutStream_Write(&outStream.base,&properties_size,1))
+            _compress_error_return("out_code->write()");
+        
+        ret=Lzma2Enc_Encode2(s,&outStream.base,0,0,&inStream.base,0,0,0);
+        if (SZ_OK==ret){
+            result=outStream.writeToPos;
+        }else{//fail
+            if (ret==SZ_ERROR_READ)
+                _compress_error_return("in_data->read()");
+            else if (ret==SZ_ERROR_WRITE)
+                _compress_error_return("out_code->write()");
+            else
+                _compress_error_return("Lzma2Enc_Encode2()");
+        }
+    clear:
+#if (!IS_REUSE_compress_handle)
+        if (s) Lzma2Enc_Destroy(s);
+#endif
+        _check_compress_result(result,outStream.isCanceled,"_lzma2_compress()",errAt);
+        return result;
+    }
+    _def_fun_compressType(_lzma2_compressType,"lzma2");
+    static const TCompressPlugin_lzma2 lzma2CompressPlugin={
+        {_lzma2_compressType,_default_maxCompressedSize,_lzma2_setThreadNumber,_lzma2_compress}, 7,(1<<22) };
+#endif//_CompressPlugin_lzma2
 
+    
 #if (defined(_CompressPlugin_lz4) || defined(_CompressPlugin_lz4hc))
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "lz4.h"   // "lz4/lib/lz4.h" https://github.com/lz4/lz4
@@ -569,9 +668,9 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
 
     _def_fun_compressType(_lz4_compressType,"lz4");
     static TCompressPlugin_lz4 lz4CompressPlugin={
-        {_lz4_compressType,_default_maxCompressedSize,_lz4_compress}, 50};
+        {_lz4_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_lz4_compress}, 50};
     static TCompressPlugin_lz4hc lz4hcCompressPlugin ={
-        {_lz4_compressType,_default_maxCompressedSize,_lz4hc_compress}, 11};
+        {_lz4_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_lz4hc_compress}, 11};
 #endif//_CompressPlugin_lz4 or _CompressPlugin_lz4hc
 
 
@@ -651,7 +750,7 @@ static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize
     }
     _def_fun_compressType(_zstd_compressType,"zstd");
     static TCompressPlugin_zstd zstdCompressPlugin={
-        {_zstd_compressType,_default_maxCompressedSize,_zstd_compress}, 20};
+        {_zstd_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_zstd_compress}, 20};
 #endif//_CompressPlugin_zstd
 
 #ifdef __cplusplus

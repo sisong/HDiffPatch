@@ -47,6 +47,10 @@
 #include "dirDiffPatch/dir_patch/dir_patch.h"
 #endif
 
+#ifndef _IS_USED_MULTITHREAD
+#   define _IS_USED_MULTITHREAD 1
+#endif
+
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
 #endif
@@ -66,6 +70,7 @@
 #   define _CompressPlugin_zlib  // memroy requires less
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma  // better compresser
+#   define _CompressPlugin_lzma2 // muti-thread compresser
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
@@ -119,6 +124,10 @@ static void printUsage(){
            "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;\n"
            "      matchBlockSize>=4, DEFAULT 64, recommended 16,32,48,1k,64k,1m etc...\n"
            "special options:\n"
+#if (_IS_USED_MULTITHREAD)
+           "  -p-parallelThreadNumber\n"
+           "    if parallelThreadNumber>1 then start multi-thread Parallel mode; requires more memory!\n"
+#endif
            "  -c-compressType[-compressLevel]\n"
            "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"
            "      for resave diffFile,recompress diffFile to outDiffFile by new set;\n"
@@ -132,6 +141,10 @@ static void printUsage(){
 #endif
 #ifdef _CompressPlugin_lzma
            "        -lzma[-{0..9}[-dictSize]]   DEFAULT level 7\n"
+           "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m\n"
+#endif
+#ifdef _CompressPlugin_lzma2
+           "        -lzma2[-{0..9}[-dictSize]]   DEFAULT level 7\n"
            "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m\n"
 #endif
 #ifdef _CompressPlugin_lz4
@@ -427,11 +440,11 @@ static bool _tryGetCompressSet(hpatch_TDecompress** out_decompressPlugin,hpatch_
 #define _options_check(value,errorInfo){ \
     if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n\n"); printUsage(); return HDIFF_OPTIONS_ERROR; } }
 
-static int _checkSetCompress(const hdiff_TCompress** out_compressPlugin,
+static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
                              hpatch_TDecompress** out_decompressPlugin,
                              const char* ptype,const char* ptypeEnd){
     size_t      compressLevel=0;
-#ifdef _CompressPlugin_lzma
+#if (defined _CompressPlugin_lzma)||(defined _CompressPlugin_lzma2)
     size_t      dictSize=0;
 #endif
 #ifdef _CompressPlugin_zlib
@@ -459,6 +472,16 @@ static int _checkSetCompress(const hdiff_TCompress** out_compressPlugin,
         _lzmaCompressPlugin.compress_level=(int)compressLevel;
         _lzmaCompressPlugin.dict_size=(int)dictSize;
         *out_compressPlugin=&_lzmaCompressPlugin.base; }
+#endif
+#ifdef _CompressPlugin_lzma2
+    _options_check(_tryGetCompressSet(out_decompressPlugin,&lzma2DecompressPlugin,
+                                      ptype,ptypeEnd,"lzma2",0,&compressLevel,0,9,7, &dictSize,1<<12,
+                                      (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),1<<22),"-c-lzma2-?");
+    if (*out_decompressPlugin==&lzma2DecompressPlugin) {
+        static TCompressPlugin_lzma2 _lzma2CompressPlugin=lzma2CompressPlugin;
+        _lzma2CompressPlugin.compress_level=(int)compressLevel;
+        _lzma2CompressPlugin.dict_size=(int)dictSize;
+        *out_compressPlugin=&_lzma2CompressPlugin.base; }
 #endif
 #ifdef _CompressPlugin_lz4
     _options_check(_tryGetCompressSet(out_decompressPlugin,&lz4DecompressPlugin,
@@ -515,6 +538,10 @@ hpatch_BOOL getIsCompressedDiffFile(const char* diffFileName){
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
 #define _kNULL_SIZE     ((size_t)(-1))
 
+#define _THREAD_NUMBER_NULL     0
+#define _THREAD_NUMBER_MIN      1
+#define _THREAD_NUMBER_MAX      (1<<8)
+
 int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=_kNULL_VALUE;
     hpatch_BOOL isLoadAll=_kNULL_VALUE;
@@ -524,7 +551,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     size_t      matchValue=0;
-    const hdiff_TCompress*  compressPlugin=0;
+    size_t      threadNum = _THREAD_NUMBER_NULL;
+    hdiff_TCompress*        compressPlugin=0;
     hpatch_TDecompress*     decompressPlugin=0;
 #if (_IS_NEED_DIR_DIFF_PATCH)
     hpatch_BOOL             isForceRunDirDiff=_kNULL_VALUE;
@@ -591,6 +619,14 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 _options_check((isDiff==_kNULL_VALUE)&&(op[2]=='\0'),"-d");
                 isDiff=hpatch_TRUE; //diff only
             } break;
+#if (_IS_USED_MULTITHREAD)
+            case 'p':{
+                _options_check((threadNum==_THREAD_NUMBER_NULL)&&((op[2]=='-')),"-p-?");
+                const char* pnum=op+3;
+                _options_check(a_to_size(pnum,strlen(pnum),&threadNum),"-p-?");
+                _options_check(threadNum>=_THREAD_NUMBER_MIN,"-p-?");
+            } break;
+#endif
             case 'c':{
                 _options_check((compressPlugin==0)&&(op[2]=='-'),"-c");
                 const char* ptype=op+3;
@@ -658,6 +694,13 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
 #endif
+    if (threadNum==_THREAD_NUMBER_NULL)
+        threadNum=_THREAD_NUMBER_MIN;
+    else if (threadNum>_THREAD_NUMBER_MAX)
+        threadNum=_THREAD_NUMBER_MAX;
+    if (compressPlugin!=0){
+        compressPlugin->setParallelThreadNumber(compressPlugin,(int)threadNum);
+    }
     
     _options_check((arg_values.size()==2)||(arg_values.size()==3),"count");
     if (arg_values.size()==3){
@@ -1078,6 +1121,10 @@ static int _hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 #ifdef  _CompressPlugin_lzma
             if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(diffInfo.compressType))
                 decompressPlugin=&lzmaDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_lzma2
+            if ((!decompressPlugin)&&lzma2DecompressPlugin.is_can_open(diffInfo.compressType))
+                decompressPlugin=&lzma2DecompressPlugin;
 #endif
 #if (defined(_CompressPlugin_lz4) || (defined(_CompressPlugin_lz4hc)))
             if ((!decompressPlugin)&&lz4DecompressPlugin.is_can_open(diffInfo.compressType))

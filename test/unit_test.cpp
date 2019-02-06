@@ -49,6 +49,7 @@ const long kRandTestCount=20000;
 //#define _CompressPlugin_zlib
 //#define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
+//#define _CompressPlugin_lzma2
 //#define _CompressPlugin_lz4
 //#define _CompressPlugin_lz4hc
 //#define _CompressPlugin_zstd
@@ -74,6 +75,10 @@ const long kRandTestCount=20000;
 #ifdef  _CompressPlugin_lzma
     const hdiff_TCompress* compressPlugin=&lzmaCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&lzmaDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_lzma2
+    const hdiff_TCompress* compressPlugin=&lzma2CompressPlugin.base;
+    hpatch_TDecompress* decompressPlugin=&lzma2DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lz4
     const hdiff_TCompress* compressPlugin=&lz4CompressPlugin.base;

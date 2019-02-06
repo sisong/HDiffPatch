@@ -60,6 +60,7 @@
 #   define _CompressPlugin_zlib
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma
+#   define _CompressPlugin_lzma2
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
@@ -522,6 +523,10 @@ static hpatch_BOOL getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo
 #ifdef  _CompressPlugin_lzma
         if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(diffInfo->compressType))
             decompressPlugin=&lzmaDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_lzma2
+        if ((!decompressPlugin)&&lzma2DecompressPlugin.is_can_open(diffInfo->compressType))
+            decompressPlugin=&lzma2DecompressPlugin;
 #endif
 #if (defined(_CompressPlugin_lz4) || (defined(_CompressPlugin_lz4hc)))
         if ((!decompressPlugin)&&lz4DecompressPlugin.is_can_open(diffInfo->compressType))
