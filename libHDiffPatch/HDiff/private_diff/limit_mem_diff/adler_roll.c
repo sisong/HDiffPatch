@@ -159,25 +159,37 @@ const uint16_t* _private_fast_adler32_table =(const uint16_t*)&__fast_adler_tabl
 const uint32_t* _private_fast_adler64_table =(const uint32_t*)&__fast_adler_table[0];
 const uint64_t* _private_fast_adler128_table =(const uint64_t*)&__fast_adler_table[0];
 
-#define fast_adler_add1(_table, adler,sum,byteData){ \
-    (adler) += _table[(unsigned char)(byteData)];    \
+#define fast_adler_add1(_table, adler,sum,pdata){ \
+    (adler) += _table[(unsigned char)(*pdata++)]; \
     (sum)   += (adler);    \
 }
 
-#define adler_add1(adler,sum,byteData){ \
-    (adler) += (byteData); \
+#define fast_adler_add2(_c_t,_table,adler,sum,pdata){ \
+    _c_t a0=_table[(unsigned char)*pdata++]; \
+    _c_t a1=_table[(unsigned char)*pdata++]; \
+    a0+=adler;      \
+    adler=a0+a1;    \
+    sum+=a0*2+a1;   \
+}
+
+#define adler_add1(adler,sum,pdata){ \
+    (adler) += *pdata++; \
     (sum)   += (adler);    \
 }
 
-#define _adler_add8(adler,sum,pdata){ \
-    adler_add1(adler,sum,pdata[0]); \
-    adler_add1(adler,sum,pdata[1]); \
-    adler_add1(adler,sum,pdata[2]); \
-    adler_add1(adler,sum,pdata[3]); \
-    adler_add1(adler,sum,pdata[4]); \
-    adler_add1(adler,sum,pdata[5]); \
-    adler_add1(adler,sum,pdata[6]); \
-    adler_add1(adler,sum,pdata[7]); \
+#define adler_add2(_c_t,adler,sum,pdata){ \
+    _c_t a0=*pdata++; \
+    _c_t a1=*pdata++; \
+    a0+=adler;      \
+    adler=a0+a1;    \
+    sum+=a0*2+a1;   \
+}
+
+#define _adler_add8(_c_t,adler,sum,pdata){  \
+    adler_add2(_c_t,adler,sum,pdata);    \
+    adler_add2(_c_t,adler,sum,pdata);    \
+    adler_add2(_c_t,adler,sum,pdata);    \
+    adler_add2(_c_t,adler,sum,pdata);    \
 }
 
 //limit: 255*n*(n+1)/2 + (n+1)(65521-1) <= 2^32-1
@@ -190,34 +202,32 @@ const uint64_t* _private_fast_adler128_table =(const uint64_t*)&__fast_adler_tab
     adler&=(((uint_t)1<<half_bit)-1);\
 _case8:        \
     switch(n){ \
-        case  8: { adler_add1(adler,sum,*pdata++); } \
-        case  7: { adler_add1(adler,sum,*pdata++); } \
-        case  6: { adler_add1(adler,sum,*pdata++); } \
-        case  5: { adler_add1(adler,sum,*pdata++); } \
-        case  4: { adler_add1(adler,sum,*pdata++); } \
-        case  3: { adler_add1(adler,sum,*pdata++); } \
-        case  2: { adler_add1(adler,sum,*pdata++); } \
-        case  1: { adler_add1(adler,sum,*pdata++); } \
-        case  0: {  sum  =mod(sum,BASE);             \
-                    border1(adler,BASE);             \
-                    return adler | (sum<<half_bit); }\
-        default: { /* continue */ }                  \
+        case  8: { adler_add1(adler,sum,pdata); } \
+        case  7: { adler_add1(adler,sum,pdata); } \
+        case  6: { adler_add1(adler,sum,pdata); } \
+        case  5: { adler_add1(adler,sum,pdata); } \
+        case  4: { adler_add1(adler,sum,pdata); } \
+        case  3: { adler_add1(adler,sum,pdata); } \
+        case  2: { adler_add1(adler,sum,pdata); } \
+        case  1: { adler_add1(adler,sum,pdata); } \
+        case  0: {  sum  =mod(sum,BASE);          \
+                    border1(adler,BASE);          \
+                    return adler | (sum<<half_bit); } \
+        default: { /* continue */ } \
     } \
     while(n>=kFNBest){  \
         size_t fn;      \
         n-=kFNBest;     \
         fn=(kFNBest>>3);\
         do{ \
-            _adler_add8(adler,sum,pdata);\
-            pdata+=8;   \
+            _adler_add8(uint_t,adler,sum,pdata);\
         }while(--fn);   \
         sum  =mod(sum,BASE);   \
         adler=mod(adler,BASE); \
     }       \
     if (n>8) {         \
         do{ \
-            _adler_add8(adler,sum,pdata);\
-            pdata+=8;   \
+            _adler_add8(uint_t,adler,sum,pdata);\
             n-=8;       \
         } while(n>=8);  \
         adler=mod(adler,BASE); \
@@ -225,32 +235,28 @@ _case8:        \
     goto _case8; \
 }
 
+
 #define _fast_adler_append(SUM,ADLER,return_SUMADLER,_c_t,_table, _adler,pdata,n){ \
     _c_t sum  =(_c_t)SUM(_adler);   \
     _c_t adler=(_c_t)ADLER(_adler); \
 _case8:  \
     switch(n){ \
-        case  8: { fast_adler_add1(_table,adler,sum,*pdata++); } \
-        case  7: { fast_adler_add1(_table,adler,sum,*pdata++); } \
-        case  6: { fast_adler_add1(_table,adler,sum,*pdata++); } \
-        case  5: { fast_adler_add1(_table,adler,sum,*pdata++); } \
-        case  4: { fast_adler_add1(_table,adler,sum,*pdata++); } \
-        case  3: { fast_adler_add1(_table,adler,sum,*pdata++); } \
-        case  2: { fast_adler_add1(_table,adler,sum,*pdata++); } \
-        case  1: { fast_adler_add1(_table,adler,sum,*pdata++); } \
-        case  0: { return_SUMADLER(sum,adler); } \
+        case  8: { fast_adler_add1(_table,adler,sum,pdata); } \
+        case  7: { fast_adler_add1(_table,adler,sum,pdata); } \
+        case  6: { fast_adler_add1(_table,adler,sum,pdata); } \
+        case  5: { fast_adler_add1(_table,adler,sum,pdata); } \
+        case  4: { fast_adler_add1(_table,adler,sum,pdata); } \
+        case  3: { fast_adler_add1(_table,adler,sum,pdata); } \
+        case  2: { fast_adler_add1(_table,adler,sum,pdata); } \
+        case  1: { fast_adler_add1(_table,adler,sum,pdata); } \
+        case  0: {  return_SUMADLER(sum,adler); }             \
         default:{ /* continue */} \
     }   \
     do{ \
-        fast_adler_add1(_table,adler,sum,pdata[0]); \
-        fast_adler_add1(_table,adler,sum,pdata[1]); \
-        fast_adler_add1(_table,adler,sum,pdata[2]); \
-        fast_adler_add1(_table,adler,sum,pdata[3]); \
-        fast_adler_add1(_table,adler,sum,pdata[4]); \
-        fast_adler_add1(_table,adler,sum,pdata[5]); \
-        fast_adler_add1(_table,adler,sum,pdata[6]); \
-        fast_adler_add1(_table,adler,sum,pdata[7]); \
-        pdata+=8;  \
+        fast_adler_add2(_c_t,_table,adler,sum,pdata); \
+        fast_adler_add2(_c_t,_table,adler,sum,pdata); \
+        fast_adler_add2(_c_t,_table,adler,sum,pdata); \
+        fast_adler_add2(_c_t,_table,adler,sum,pdata); \
         n-=8;      \
     } while(n>=8); \
     goto _case8;   \
