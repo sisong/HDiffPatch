@@ -126,7 +126,8 @@ static void printUsage(){
            "special options:\n"
 #if (_IS_USED_MULTITHREAD)
            "  -p-parallelThreadNumber\n"
-           "    if parallelThreadNumber>1 then start multi-thread Parallel mode; requires more memory!\n"
+           "    if parallelThreadNumber>1 then start multi-thread Parallel mode;\n"
+           "    DEFAULT 3; requires more memory!\n"
 #endif
            "  -c-compressType[-compressLevel]\n"
            "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"
@@ -135,17 +136,25 @@ static void printUsage(){
            "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
            "        -zlib[-{1..9}]              DEFAULT level 9\n"
+           "        -pzlib[-{1..9}]             DEFAULT level 9\n"
+           "            support run by multi-thread parallel; \n"
+           "            WARNING: code not compatible with -zlib code!\n"
 #endif
 #ifdef _CompressPlugin_bz2
            "        -bzip2[-{1..9}]             (or -bz2) DEFAULT level 9 \n"
+           "        -pbzip2[-{1..9}]            (or -pbz2) DEFAULT level 9 \n"
+           "            support run by multi-thread parallel;\n"
+           "            WARNING: code not compatible with -bzip2 code!\n"
 #endif
 #ifdef _CompressPlugin_lzma
            "        -lzma[-{0..9}[-dictSize]]   DEFAULT level 7\n"
            "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m\n"
 #endif
 #ifdef _CompressPlugin_lzma2
-           "        -lzma2[-{0..9}[-dictSize]]   DEFAULT level 7\n"
+           "        -lzma2[-{0..9}[-dictSize]]  DEFAULT level 7\n"
            "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m\n"
+           "            support run by multi-thread parallel;\n"
+           "            WARNING: code not compatible with -lzma code!\n"
 #endif
 #ifdef _CompressPlugin_lz4
            "        -lz4[-{1..50}]              DEFAULT level 50 (as lz4 acceleration 1)\n"
@@ -462,6 +471,16 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         static TCompressPlugin_bz2 _bz2CompressPlugin=bz2CompressPlugin;
         _bz2CompressPlugin.compress_level=(int)compressLevel;
         *out_compressPlugin=&_bz2CompressPlugin.base; }
+    //pbzip2
+    if (*out_decompressPlugin==0){
+        _options_check(_tryGetCompressSet(out_decompressPlugin,&bz2DecompressPlugin,
+                                          ptype,ptypeEnd,"pbzip2","pbz2",&compressLevel,1,9,9),"-c-pbzip2-?");
+        if (*out_decompressPlugin==&bz2DecompressPlugin) {
+            static TCompressPlugin_pbz2 _pbz2CompressPlugin=pbz2CompressPlugin;
+            _pbz2CompressPlugin.compress_level=(int)compressLevel;
+            *out_compressPlugin=&_pbz2CompressPlugin.base;
+        }
+    }
 #endif
 #ifdef _CompressPlugin_lzma
     _options_check(_tryGetCompressSet(out_decompressPlugin,&lzmaDecompressPlugin,
@@ -540,6 +559,7 @@ hpatch_BOOL getIsCompressedDiffFile(const char* diffFileName){
 
 #define _THREAD_NUMBER_NULL     0
 #define _THREAD_NUMBER_MIN      1
+#define _THREAD_NUMBER_DEFUALT  kDefualtCompressThreadNumber
 #define _THREAD_NUMBER_MAX      (1<<8)
 
 int hdiff_cmd_line(int argc, const char * argv[]){
@@ -695,7 +715,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
 #endif
     if (threadNum==_THREAD_NUMBER_NULL)
-        threadNum=_THREAD_NUMBER_MIN;
+        threadNum=_THREAD_NUMBER_DEFUALT;
     else if (threadNum>_THREAD_NUMBER_MAX)
         threadNum=_THREAD_NUMBER_MAX;
     if (compressPlugin!=0){

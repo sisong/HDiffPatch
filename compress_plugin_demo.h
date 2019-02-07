@@ -29,7 +29,9 @@
 #define HDiff_compress_plugin_demo_h
 //compress plugin demo:
 //  zlibCompressPlugin
+//  pzlibCompressPlugin
 //  bz2CompressPlugin
+//  pbz2CompressPlugin
 //  lzmaCompressPlugin
 //  lzma2CompressPlugin
 //  lz4CompressPlugin
@@ -37,9 +39,12 @@
 //  zstdCompressPlugin
 
 #include "libHDiffPatch/HDiff/diff_types.h"
+#include "compress_parallel.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
+    
+#define kDefualtCompressThreadNumber    3
 
 #define kCompressBufSize (1024*32)
 #ifndef _IsNeedIncludeDefaultCompressHead
@@ -303,7 +308,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         }
     clear:
         if (BZ_OK!=BZ2_bzCompressEnd(&s))
-            { result=kCompressFailResult; if (strlen(errAt)==0) errAt="BZ2_bzCompressEnd()"; }
+        { result=kCompressFailResult; if (strlen(errAt)==0) errAt="BZ2_bzCompressEnd()"; }
         _check_compress_result(result,outStream_isCanceled,"_bz2_compress()",errAt);
         if (_temp_buf) free(_temp_buf);
         return result;
@@ -311,8 +316,58 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     _def_fun_compressType(_bz2_compressType,"bz2");
     static const TCompressPlugin_bz2 bz2CompressPlugin={
         {_bz2_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_bz2_compress}, 9};
-#endif//_CompressPlugin_bz2
     
+    //pbz2
+    struct TCompressPlugin_pbz2{
+        hdiff_TCompress base;
+        int             compress_level; //0..9
+        int             thread_num; // 1..
+        hdiff_TParallelCompress pc;
+    };
+    static int _pbz2_setThreadNum(hdiff_TCompress* compressPlugin,int threadNum){
+        TCompressPlugin_pbz2* plugin=(TCompressPlugin_pbz2*)compressPlugin;
+        plugin->thread_num=threadNum;
+        return threadNum;
+    }
+    static hdiff_compressBlockHandle _pbz2_openBlockCompressor(hdiff_TParallelCompress* pc){
+        return pc;
+    }
+    static hpatch_BOOL _pbz2_closeBlockCompressor(hdiff_TParallelCompress* pc,
+                                                  hdiff_compressBlockHandle blockCompressor){
+        assert(blockCompressor==pc);
+        return hpatch_TRUE;
+    }
+    static size_t _pbz2_compressBlock(struct hdiff_TParallelCompress* pc,hdiff_compressBlockHandle blockCompressor,
+                                      size_t blockIndex,unsigned char* out_code,unsigned char* out_codeEnd,
+                                      const unsigned char* block_data,const unsigned char* block_dataEnd){
+        const TCompressPlugin_pbz2* plugin=(const TCompressPlugin_pbz2*)pc->import;
+        unsigned int codeLen=(unsigned int)(out_codeEnd-out_code);
+        if (BZ_OK!=BZ2_bzBuffToBuffCompress((char*)out_code,&codeLen,(char*)block_data,
+                                            (unsigned int)(block_dataEnd-block_data),
+                                            plugin->compress_level,0,0)) return 0; //error
+        return codeLen;
+    }
+    static hpatch_StreamPos_t _pbz2_compress(const hdiff_TCompress* compressPlugin,
+                                             const hdiff_TStreamOutput* out_code,
+                                             const hdiff_TStreamInput*  in_data){
+        TCompressPlugin_pbz2* plugin=(TCompressPlugin_pbz2*)compressPlugin;
+        const size_t blockSize=plugin->compress_level*100000;
+        if ((plugin->thread_num<=1)||(blockSize<in_data->streamSize*2)){ //same as "bz2"
+            return _bz2_compress(compressPlugin,out_code,in_data);
+        }else{
+            plugin->pc.import=plugin;
+            return parallel_compress_blocks(&plugin->pc,plugin->thread_num,blockSize,out_code,in_data);
+        }
+    }
+    
+    _def_fun_compressType(_pbz2_compressType,"pbz2");
+    static const TCompressPlugin_pbz2 pbz2CompressPlugin={
+        {_pbz2_compressType,_default_maxCompressedSize,_pbz2_setThreadNum,_pbz2_compress},
+        9,kDefualtCompressThreadNumber ,{0,_default_maxCompressedSize,_pbz2_openBlockCompressor,
+            _pbz2_closeBlockCompressor,_pbz2_compressBlock}};
+#endif//_CompressPlugin_bz2
+
+
 #if (defined _CompressPlugin_lzma)||(defined _CompressPlugin_lzma2)
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "LzmaEnc.h" // "lzma/C/LzmaEnc.h" http://www.7-zip.org/sdk.html
@@ -379,7 +434,6 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     };
     static int _lzma_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
         TCompressPlugin_lzma* plugin=(TCompressPlugin_lzma*)compressPlugin;
-        assert(threadNum>=1);
         if (threadNum>2) threadNum=2;
         plugin->thread_num=threadNum;
         return threadNum;
@@ -445,7 +499,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     }
     _def_fun_compressType(_lzma_compressType,"lzma");
     static const TCompressPlugin_lzma lzmaCompressPlugin={
-        {_lzma_compressType,_default_maxCompressedSize,_lzma_setThreadNumber,_lzma_compress}, 7,(1<<22),1 };
+        {_lzma_compressType,_default_maxCompressedSize,_lzma_setThreadNumber,_lzma_compress},
+        7,(1<<22),(kDefualtCompressThreadNumber>=2)?2:kDefualtCompressThreadNumber};
 #endif//_CompressPlugin_lzma
     
 #ifdef  _CompressPlugin_lzma2
@@ -458,7 +513,6 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     };
     static int _lzma2_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
         TCompressPlugin_lzma2* plugin=(TCompressPlugin_lzma2*)compressPlugin;
-        assert(threadNum>=1);
         if (threadNum>MTCODER__THREADS_MAX) threadNum=MTCODER__THREADS_MAX;
         plugin->thread_num=threadNum;
         return threadNum;
@@ -522,7 +576,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     }
     _def_fun_compressType(_lzma2_compressType,"lzma2");
     static const TCompressPlugin_lzma2 lzma2CompressPlugin={
-        {_lzma2_compressType,_default_maxCompressedSize,_lzma2_setThreadNumber,_lzma2_compress}, 7,(1<<22) };
+        {_lzma2_compressType,_default_maxCompressedSize,_lzma2_setThreadNumber,_lzma2_compress},
+        7,(1<<22),kDefualtCompressThreadNumber};
 #endif//_CompressPlugin_lzma2
 
     

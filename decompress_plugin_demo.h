@@ -58,9 +58,10 @@
         unsigned char*  dec_buf;
         size_t          dec_buf_size;
         z_stream        d_stream;
+        signed char     window_bits;
     } _zlib_TDecompress;
     static hpatch_BOOL _zlib_is_can_open(const char* compressType){
-        return (0==strcmp(compressType,"zlib"));
+        return (0==strcmp(compressType,"zlib"))||(0==strcmp(compressType,"pzlib"));
     }
 
     static _zlib_TDecompress*  _zlib_decompress_open_by(hpatch_TDecompress* decompressPlugin,
@@ -90,8 +91,9 @@
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
+        self->window_bits=kWindowBits;
         
-        ret = inflateInit2(&self->d_stream,kWindowBits);
+        ret = inflateInit2(&self->d_stream,self->window_bits);
         if (ret!=Z_OK) return 0;
         return self;
     }
@@ -126,6 +128,21 @@
         if (self) free(self);
         return result;
     }
+    static hpatch_BOOL _zlib_reset_for_next_node(_zlib_TDecompress* self){
+        //backup
+        Bytef*   next_out_back=self->d_stream.next_out;
+        Bytef*   next_in_back=self->d_stream.next_in;
+        unsigned int avail_out_back=self->d_stream.avail_out;
+        unsigned int avail_in_back=self->d_stream.avail_in;
+        if (Z_OK!=inflateEnd(&self->d_stream)) return hpatch_FALSE;
+        if (Z_OK!=inflateInit2(&self->d_stream,self->window_bits)) return hpatch_FALSE;
+        //restore
+        self->d_stream.next_out=next_out_back;
+        self->d_stream.next_in=next_in_back;
+        self->d_stream.avail_out=avail_out_back;
+        self->d_stream.avail_in=avail_in_back;
+        return hpatch_TRUE;
+    }
     static hpatch_BOOL _zlib_decompress_part(hpatch_decompressHandle decompressHandle,
                                              unsigned char* out_part_data,unsigned char* out_part_data_end){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
@@ -145,6 +162,7 @@
                                             self->dec_buf+readLen)) return hpatch_FALSE;//error;
                 self->d_stream.avail_in=(uInt)readLen;
                 self->code_begin+=readLen;
+                codeLen-=readLen;
             }
             
             avail_out_back=self->d_stream.avail_out;
@@ -154,8 +172,13 @@
                 if ((self->d_stream.avail_in==avail_in_back)&&(self->d_stream.avail_out==avail_out_back))
                     return hpatch_FALSE;//error;
             }else if (ret==Z_STREAM_END){
-                if (self->d_stream.avail_out!=0)
-                    return hpatch_FALSE;//error;
+                if (self->d_stream.avail_in+codeLen>0){ //next compress node!
+                    if (!_zlib_reset_for_next_node(self))
+                        return hpatch_FALSE;//error;
+                }else{//all end
+                    if (self->d_stream.avail_out!=0)
+                        return hpatch_FALSE;//error;
+                }
             }else{
                 return hpatch_FALSE;//error;
             }
@@ -186,7 +209,8 @@
         unsigned char   dec_buf[kDecompressBufSize];
     } _bz2_TDecompress;
     static hpatch_BOOL _bz2_is_can_open(const char* compressType){
-        return (0==strcmp(compressType,"bz2"))||(0==strcmp(compressType,"bzip2"));
+        return (0==strcmp(compressType,"bz2"))||(0==strcmp(compressType,"bzip2"))
+             ||(0==strcmp(compressType,"pbz2"))||(0==strcmp(compressType,"pbzip2"));
     }
     static hpatch_decompressHandle  _bz2_open(struct hpatch_TDecompress* decompressPlugin,
                                                hpatch_StreamPos_t dataSize,
@@ -214,6 +238,21 @@
         free(self);
         return result;
     }
+    static hpatch_BOOL _bz2_reset_for_next_node(_bz2_TDecompress* self){
+        //backup
+        char*   next_out_back=self->d_stream.next_out;
+        char*   next_in_back=self->d_stream.next_in;
+        unsigned int avail_out_back=self->d_stream.avail_out;
+        unsigned int avail_in_back=self->d_stream.avail_in;
+        if (BZ_OK!=BZ2_bzDecompressEnd(&self->d_stream)) return hpatch_FALSE;
+        if (BZ_OK!=BZ2_bzDecompressInit(&self->d_stream,0,0)) return hpatch_FALSE;
+        //restore
+        self->d_stream.next_out=next_out_back;
+        self->d_stream.next_in=next_in_back;
+        self->d_stream.avail_out=avail_out_back;
+        self->d_stream.avail_in=avail_in_back;
+        return hpatch_TRUE;
+    }
     static hpatch_BOOL _bz2_decompress_part(hpatch_decompressHandle decompressHandle,
                                             unsigned char* out_part_data,unsigned char* out_part_data_end){
         _bz2_TDecompress* self=(_bz2_TDecompress*)decompressHandle;
@@ -233,6 +272,7 @@
                                             self->dec_buf+readLen)) return hpatch_FALSE;//error;
                 self->d_stream.avail_in=(unsigned int)readLen;
                 self->code_begin+=readLen;
+                codeLen-=readLen;
             }
             
             avail_out_back=self->d_stream.avail_out;
@@ -242,8 +282,13 @@
                 if ((self->d_stream.avail_in==avail_in_back)&&(self->d_stream.avail_out==avail_out_back))
                     return hpatch_FALSE;//error;
             }else if (ret==BZ_STREAM_END){
-                if (self->d_stream.avail_out!=0)
-                    return hpatch_FALSE;//error;
+                if (self->d_stream.avail_in+codeLen>0){ //next compress node!
+                    if (!_bz2_reset_for_next_node(self))
+                        return hpatch_FALSE;//error;
+                }else{//all end
+                    if (self->d_stream.avail_out!=0)
+                        return hpatch_FALSE;//error;
+                }
             }else{
                 return hpatch_FALSE;//error;
             }
