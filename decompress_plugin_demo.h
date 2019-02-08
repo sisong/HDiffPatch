@@ -134,8 +134,10 @@
         Bytef*   next_in_back=self->d_stream.next_in;
         unsigned int avail_out_back=self->d_stream.avail_out;
         unsigned int avail_in_back=self->d_stream.avail_in;
-        if (Z_OK!=inflateEnd(&self->d_stream)) return hpatch_FALSE;
-        if (Z_OK!=inflateInit2(&self->d_stream,self->window_bits)) return hpatch_FALSE;
+        //reset
+        //if (Z_OK!=inflateEnd(&self->d_stream)) return hpatch_FALSE;
+        //if (Z_OK!=inflateInit2(&self->d_stream,self->window_bits)) return hpatch_FALSE;
+        if (Z_OK!=inflateReset(&self->d_stream)) return hpatch_FALSE;
         //restore
         self->d_stream.next_out=next_out_back;
         self->d_stream.next_in=next_in_back;
@@ -244,6 +246,7 @@
         char*   next_in_back=self->d_stream.next_in;
         unsigned int avail_out_back=self->d_stream.avail_out;
         unsigned int avail_in_back=self->d_stream.avail_in;
+        //reset
         if (BZ_OK!=BZ2_bzDecompressEnd(&self->d_stream)) return hpatch_FALSE;
         if (BZ_OK!=BZ2_bzDecompressInit(&self->d_stream,0,0)) return hpatch_FALSE;
         //restore

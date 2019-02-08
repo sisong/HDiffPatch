@@ -45,7 +45,7 @@ extern "C" {
 #endif
 
 #if (_IS_USED_MULTITHREAD)
-#   define kDefualtCompressThreadNumber     3
+#   define kDefualtCompressThreadNumber     4
 #else
 #   define kDefualtCompressThreadNumber     1
 #endif
@@ -142,12 +142,6 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         
         self->c_stream.next_out = (Bytef*)_mem_buf;
         self->c_stream.avail_out = (uInt)_mem_buf_size;
-        if (plugin->isNeedSaveWindowBits){//save kWindowBits
-            self->c_stream.next_out[0]=plugin->windowBits;
-            ++self->c_stream.next_out;
-            --self->c_stream.avail_out;
-        }
-
         if (Z_OK!=deflateInit2(&self->c_stream,compressLevel,Z_DEFLATED,
                                plugin->windowBits,compressMemLevel,Z_DEFAULT_STRATEGY))
             return 0;
@@ -222,6 +216,11 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
                                     out_code,_temp_buf,sizeof(_zlib_TCompress)+kCompressBufSize);
         data_buf=_temp_buf+sizeof(_zlib_TCompress)+kCompressBufSize;
         if (!self) _compress_error_return("deflateInit2()");
+        if (plugin->isNeedSaveWindowBits){
+            unsigned char* pchar=(unsigned char*)&plugin->windowBits;
+            if (!out_code->write(out_code,0,pchar,pchar+1)) _compress_error_return("out_code->write()");
+            ++result;
+        }
         while (readFromPos<in_data->streamSize) {
             size_t readLen=kCompressBufSize;
             if (readLen>(hpatch_StreamPos_t)(in_data->streamSize-readFromPos))
@@ -243,7 +242,87 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     _def_fun_compressType(_zlib_compressType,"zlib");
     static const TCompressPlugin_zlib zlibCompressPlugin={
         {_zlib_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_zlib_compress},
-            9,MAX_MEM_LEVEL,16+MAX_WBITS,hpatch_TRUE};
+            9,MAX_MEM_LEVEL,-MAX_WBITS,hpatch_TRUE};
+    
+#   if (_IS_USED_MULTITHREAD)
+    //pzlib
+    struct TCompressPlugin_pzlib{
+        TCompressPlugin_zlib base;
+        int                  thread_num; // 1..
+        hdiff_TParallelCompress pc;
+    };
+    static int _pzlib_setThreadNum(hdiff_TCompress* compressPlugin,int threadNum){
+        TCompressPlugin_pzlib* plugin=(TCompressPlugin_pzlib*)compressPlugin;
+        plugin->thread_num=threadNum;
+        return threadNum;
+    }
+    static hdiff_compressBlockHandle _pzlib_openBlockCompressor(hdiff_TParallelCompress* pc){
+        return pc;
+    }
+    static void _pzlib_closeBlockCompressor(hdiff_TParallelCompress* pc,
+                                            hdiff_compressBlockHandle blockCompressor){
+        assert(blockCompressor==pc);
+    }
+    static int _zlib_compress2(Bytef* dest,uLongf* destLen,const Bytef* source,uLong sourceLen,
+                               int level,int mem_level,int windowBits){
+        z_stream stream;
+        int err;
+        stream.next_in   = (z_const Bytef *)source;
+        stream.avail_in  = (uInt)sourceLen;
+        stream.next_out  = dest;
+        stream.avail_out = (uInt)*destLen;
+        stream.zalloc = 0;
+        stream.zfree  = 0;
+        stream.opaque = 0;
+        err = deflateInit2(&stream,level,Z_DEFLATED,windowBits,mem_level,Z_DEFAULT_STRATEGY);
+        if (err != Z_OK) return err;
+        err = deflate(&stream, Z_FINISH);
+        if (err != Z_STREAM_END){
+            deflateEnd(&stream);
+            return err == Z_OK ? Z_BUF_ERROR : err;
+        }
+        *destLen = stream.total_out;
+        err = deflateEnd(&stream);
+        return err;
+    }
+    static size_t _pzlib_compressBlock(struct hdiff_TParallelCompress* pc,hdiff_compressBlockHandle blockCompressor,
+                                       size_t blockIndex,unsigned char* out_code,unsigned char* out_codeEnd,
+                                       const unsigned char* block_data,const unsigned char* block_dataEnd){
+        const TCompressPlugin_pzlib* plugin=(const TCompressPlugin_pzlib*)pc->import;
+        hpatch_BOOL isAdding=(blockIndex==0)&&(plugin->base.isNeedSaveWindowBits);
+        if (isAdding){
+            if (out_code>=out_codeEnd) return 0;//error;
+            out_code[0]=plugin->base.windowBits;
+            ++out_code;
+        }
+        uLongf codeLen=(uLongf)(out_codeEnd-out_code);
+        if (Z_OK!=_zlib_compress2(out_code,&codeLen,block_data,(uLong)(block_dataEnd-block_data),
+                                  plugin->base.compress_level,plugin->base.mem_level,plugin->base.windowBits))
+            return 0; //error
+        return codeLen+(isAdding?1:0);
+    }
+    static hpatch_StreamPos_t _pzlib_compress(const hdiff_TCompress* compressPlugin,
+                                              const hdiff_TStreamOutput* out_code,
+                                              const hdiff_TStreamInput*  in_data){
+        TCompressPlugin_pzlib* plugin=(TCompressPlugin_pzlib*)compressPlugin;
+        const size_t blockSize=(plugin->base.compress_level>1)?
+                    1024*128*(plugin->base.compress_level-1):1024*128;
+        if ((plugin->thread_num<=1)||(plugin->base.compress_level==0)
+                ||(in_data->streamSize<blockSize*2)){ //same as "zlib"
+            return _zlib_compress(compressPlugin,out_code,in_data);
+        }else{
+            plugin->pc.import=plugin;
+            return parallel_compress_blocks(&plugin->pc,plugin->thread_num,blockSize,out_code,in_data);
+        }
+    }
+    
+    _def_fun_compressType(_pzlib_compressType,"pzlib");
+    static const TCompressPlugin_pzlib pzlibCompressPlugin={
+        { {_pzlib_compressType,_default_maxCompressedSize,_pzlib_setThreadNum,_pzlib_compress},
+            9,MAX_MEM_LEVEL,-MAX_WBITS,hpatch_TRUE},
+        kDefualtCompressThreadNumber ,{0,_default_maxCompressedSize,_pzlib_openBlockCompressor,
+            _pzlib_closeBlockCompressor,_pzlib_compressBlock} };
+#   endif // _IS_USED_MULTITHREAD
 #endif//_CompressPlugin_zlib
     
 #ifdef  _CompressPlugin_bz2
@@ -325,9 +404,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 #   if (_IS_USED_MULTITHREAD)
     //pbz2
     struct TCompressPlugin_pbz2{
-        hdiff_TCompress base;
-        int             compress_level; //0..9
-        int             thread_num; // 1..
+        TCompressPlugin_bz2     base;
+        int                     thread_num; // 1..
         hdiff_TParallelCompress pc;
     };
     static int _pbz2_setThreadNum(hdiff_TCompress* compressPlugin,int threadNum){
@@ -349,15 +427,16 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         unsigned int codeLen=(unsigned int)(out_codeEnd-out_code);
         if (BZ_OK!=BZ2_bzBuffToBuffCompress((char*)out_code,&codeLen,(char*)block_data,
                                             (unsigned int)(block_dataEnd-block_data),
-                                            plugin->compress_level,0,0)) return 0; //error
+                                            plugin->base.compress_level,0,0)) return 0; //error
         return codeLen;
     }
     static hpatch_StreamPos_t _pbz2_compress(const hdiff_TCompress* compressPlugin,
                                              const hdiff_TStreamOutput* out_code,
                                              const hdiff_TStreamInput*  in_data){
         TCompressPlugin_pbz2* plugin=(TCompressPlugin_pbz2*)compressPlugin;
-        const size_t blockSize=plugin->compress_level*100000;
-        if ((plugin->thread_num<=1)||(in_data->streamSize<blockSize*2)){ //same as "bz2"
+        const size_t blockSize=plugin->base.compress_level*100000;
+        if ((plugin->thread_num<=1)||(plugin->base.compress_level==0)
+                ||(in_data->streamSize<blockSize*2)){ //same as "bz2"
             return _bz2_compress(compressPlugin,out_code,in_data);
         }else{
             plugin->pc.import=plugin;
@@ -367,9 +446,9 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     
     _def_fun_compressType(_pbz2_compressType,"pbz2");
     static const TCompressPlugin_pbz2 pbz2CompressPlugin={
-        {_pbz2_compressType,_default_maxCompressedSize,_pbz2_setThreadNum,_pbz2_compress},
-        9,kDefualtCompressThreadNumber ,{0,_default_maxCompressedSize,_pbz2_openBlockCompressor,
-            _pbz2_closeBlockCompressor,_pbz2_compressBlock}};
+        { {_pbz2_compressType,_default_maxCompressedSize,_pbz2_setThreadNum,_pbz2_compress}, 9},
+        kDefualtCompressThreadNumber ,{0,_default_maxCompressedSize,_pbz2_openBlockCompressor,
+            _pbz2_closeBlockCompressor,_pbz2_compressBlock} };
 #   endif // _IS_USED_MULTITHREAD
 #endif//_CompressPlugin_bz2
 
