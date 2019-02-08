@@ -162,6 +162,7 @@
     <ClCompile Include="..\..\..\bzip2\decompress.c" />
     <ClCompile Include="..\..\..\bzip2\huffman.c" />
     <ClCompile Include="..\..\..\bzip2\randtable.c" />
+    <ClCompile Include="..\..\..\lzma\C\Lzma2Dec.c" />
     <ClCompile Include="..\..\..\lzma\C\LzmaDec.c" />
     <ClCompile Include="..\..\..\zlib\adler32.c" />
     <ClCompile Include="..\..\..\zlib\crc32.c" />

@@ -27,6 +27,7 @@
 #include "parallel_channel.h"
 
 #if (_IS_USED_MULTITHREAD)
+#include <assert.h>
 #include <deque>
 
 class _CChannel_import{

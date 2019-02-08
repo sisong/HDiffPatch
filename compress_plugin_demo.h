@@ -267,7 +267,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
                                int level,int mem_level,int windowBits){
         z_stream stream;
         int err;
-        stream.next_in   = (z_const Bytef *)source;
+        stream.next_in   = (Bytef *)source;
         stream.avail_in  = (uInt)sourceLen;
         stream.next_out  = dest;
         stream.avail_out = (uInt)*destLen;
@@ -551,7 +551,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         LzmaEncProps_Normalize(&props);
         if (SZ_OK!=LzmaEnc_SetProps(s,&props)) _compress_error_return("LzmaEnc_SetProps()");
 #       if (IS_NOTICE_compress_canceled)
-        printf("  (used one lzma dictSize: %"PRIu64"  (input data: %"PRIu64"))\n",
+        printf("  (used one lzma dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
                (hpatch_StreamPos_t)props.dictSize,in_data->streamSize);
 #       endif
         
@@ -630,7 +630,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         Lzma2EncProps_Normalize(&props);
         if (SZ_OK!=Lzma2Enc_SetProps(s,&props)) _compress_error_return("Lzma2Enc_SetProps()");
 #       if (IS_NOTICE_compress_canceled)
-        printf("  (used one lzma2 dictSize: %"PRIu64"  (input data: %"PRIu64"))\n",
+        printf("  (used one lzma2 dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
                (hpatch_StreamPos_t)props.lzmaProps.dictSize,in_data->streamSize);
 #       endif
         

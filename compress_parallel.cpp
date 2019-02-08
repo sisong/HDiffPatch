@@ -27,6 +27,7 @@
  */
 #include "compress_parallel.h"
 #if (_IS_USED_MULTITHREAD)
+#include <stdio.h>
 #include <exception>
 #include <vector>
 #include "libParallel/parallel_channel.h"
@@ -107,8 +108,8 @@ void _threadRunCallBack(int threadIndex,void* _workData){
                     ++wd.outBlockIndex;
                 }
                 //wake all
-                for (size_t i=0; i<wd.chanWaitCount; ++i)
-                    wd.chanForWaitWrite.send((TChanData)(1+i),true);
+                for (int i=0; i<wd.chanWaitCount; ++i)
+                    wd.chanForWaitWrite.send((TChanData)(1+(size_t)i),true);
                 wd.chanWaitCount=0;
                 //continue work or wait
                 if (isWrite)
@@ -133,7 +134,7 @@ hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
     assert(threadNum>0);
     if (threadNum<1) threadNum=1;
     hpatch_StreamPos_t blockCount=(in_data->streamSize+blockSize-1)/blockSize;
-    if (threadNum>blockCount) threadNum=(int)blockCount;
+    if ((hpatch_StreamPos_t)threadNum>blockCount) threadNum=(int)blockCount;
     try {
         TWorkData workData;
         workData.isInError=false;
@@ -148,7 +149,7 @@ hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
         workData.threadMemSize=blockSize + pc->maxCompressedSize(blockSize);
         workData.mem.realloc(workData.threadMemSize*threadNum);
         workData.blockCompressors.resize(threadNum);
-        for (size_t t=0; t<threadNum; ++t)
+        for (int t=0; t<threadNum; ++t)
             workData.blockCompressors[t].open(pc);
         
         thread_parallel(threadNum,_threadRunCallBack,&workData,hpatch_TRUE,0);

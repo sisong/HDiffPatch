@@ -38,18 +38,17 @@ struct CHLocker{
     inline ~CHLocker() { locker_delete(locker); }
 };
 
-#if (_IS_USED_PTHREAD)
+#if (_IS_USED_CPP11THREAD)
+#   include <thread>
+    struct CAutoLocker:public _TLockerBox_name {
+        inline CAutoLocker(HLocker _locker)
+            :_TLockerBox_name(*(std::mutex*)_locker){ }
+        inline ~CAutoLocker(){ }
+    };
+#else
     struct CAutoLocker:public TLockerBox {
         inline CAutoLocker(HLocker _locker){ locker=_locker; locker_enter(locker); }
         inline ~CAutoLocker(){ locker_leave(locker); }
-    };
-#endif
-#if (_IS_USED_CPP11THREAD)
-#   include <thread>
-    struct CAutoLocker:public std::unique_lock<std::mutex> {
-        inline CAutoLocker(HLocker _locker)
-            :std::unique_lock<std::mutex>(*(std::mutex*)_locker){ }
-        inline ~CAutoLocker(){ }
     };
 #endif
 

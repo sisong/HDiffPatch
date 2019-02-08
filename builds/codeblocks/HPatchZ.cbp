@@ -70,6 +70,9 @@
 		<Unit filename="../../../bzip2/randtable.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../lzma/C/Lzma2Dec.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../lzma/C/LzmaDec.c">
 			<Option compilerVar="CC" />
 		</Unit>

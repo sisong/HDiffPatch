@@ -188,6 +188,7 @@
     <ClCompile Include="..\..\..\zlib\trees.c" />
     <ClCompile Include="..\..\..\zlib\uncompr.c" />
     <ClCompile Include="..\..\..\zlib\zutil.c" />
+    <ClCompile Include="..\..\compress_parallel.cpp" />
     <ClCompile Include="..\..\dirDiffPatch\dir_diff\dir_diff.cpp" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\dir_patch.c" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\new_stream.c" />
@@ -205,6 +206,8 @@
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\limit_mem_diff\stream_serialize.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\suffix_string.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
+    <ClCompile Include="..\..\libParallel\parallel_channel.cpp" />
+    <ClCompile Include="..\..\libParallel\parallel_import.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\libHDiffPatch\HDiff\diff.h" />

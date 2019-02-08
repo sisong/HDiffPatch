@@ -798,13 +798,13 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     }
     {//info
         const _TDirDiffHead* head=&dirPatcher.dirDiffHead;
-        printf("DirPatch new path count: %"PRIu64" (fileCount:%"PRIu64")\n",(hpatch_StreamPos_t)head->newPathCount,
+        printf("DirPatch new path count: %" PRIu64 " (fileCount:%" PRIu64 ")\n",(hpatch_StreamPos_t)head->newPathCount,
                (hpatch_StreamPos_t)(head->sameFilePairCount+head->newRefFileCount));
-        printf("    copy from old count: %"PRIu64" (dataSize: %"PRIu64")\n",
+        printf("    copy from old count: %" PRIu64 " (dataSize: %" PRIu64 ")\n",
                (hpatch_StreamPos_t)head->sameFilePairCount,head->sameFileSize);
-        printf("     ref old file count: %"PRIu64"\n",(hpatch_StreamPos_t)head->oldRefFileCount);
-        printf("     ref new file count: %"PRIu64"\n",(hpatch_StreamPos_t)head->newRefFileCount);
-        printf("oldRefSize  : %"PRIu64"\ndiffDataSize: %"PRIu64"\nnewRefSize  : %"PRIu64" (all newSize: %"PRIu64")\n",
+        printf("     ref old file count: %" PRIu64 "\n",(hpatch_StreamPos_t)head->oldRefFileCount);
+        printf("     ref new file count: %" PRIu64 "\n",(hpatch_StreamPos_t)head->newRefFileCount);
+        printf("oldRefSize  : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewRefSize  : %" PRIu64 " (all newSize: %" PRIu64 ")\n",
                dirDiffInfo->hdiffInfo.oldDataSize,diffData.base.streamSize,dirDiffInfo->hdiffInfo.newDataSize,
                dirDiffInfo->hdiffInfo.newDataSize+head->sameFileSize);
     }

@@ -84,8 +84,8 @@ struct CFileStreamInput:public hpatch_TFileStreamInput{
         check(hpatch_TFileStreamInput_open(this,fileName.c_str()),"open file \""+fileName+"\" error!"); }
     inline CFileStreamInput(const std::string& fileName){
         hpatch_TFileStreamInput_init(this); open(fileName); }
-    inline ~CFileStreamInput(){
-        check(hpatch_TFileStreamInput_close(this),"close file error!"); }
+    inline void closeFile() { check(hpatch_TFileStreamInput_close(this),"close file error!"); }
+    inline ~CFileStreamInput(){ closeFile(); }
 };
 
 struct CRefStream:public hpatch_TRefStream{

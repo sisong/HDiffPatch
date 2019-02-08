@@ -975,7 +975,7 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
     hdiff_private::TAutoMem newMem(0);
     check(readFileAll(oldMem,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
     check(readFileAll(newMem,newFileName),HDIFF_OPENREAD_ERROR,"open newFile");
-    printf("oldDataSize : %"PRIu64"\nnewDataSize : %"PRIu64"\n",
+    printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            (hpatch_StreamPos_t)oldMem.size(),(hpatch_StreamPos_t)newMem.size());
     if (isDiff){
         std::vector<TByte> outDiffData;
@@ -995,7 +995,7 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
         }catch(const std::exception& e){
             check(false,HDIFF_DIFF_ERROR,"diff run an error: "+e.what());
         }
-        printf("diffDataSize: %"PRIu64"\n",(hpatch_StreamPos_t)outDiffData.size());
+        printf("diffDataSize: %" PRIu64 "\n",(hpatch_StreamPos_t)outDiffData.size());
         check(writeFileAll(outDiffData.data(),outDiffData.size(),outDiffFileName),
               HDIFF_OPENWRITE_ERROR,"open write diffFile");
         printf("  out diff file ok!\n");
@@ -1008,7 +1008,7 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
         printf("\nload diffFile for test by patch:\n");
         check(readFileAll(diffMem,outDiffFileName),
               HDIFF_OPENREAD_ERROR,"open diffFile for test");
-        printf("diffDataSize: %"PRIu64"\n",(hpatch_StreamPos_t)diffMem.size());
+        printf("diffDataSize: %" PRIu64 "\n",(hpatch_StreamPos_t)diffMem.size());
         
         bool diffrt;
 #if (_IS_NEED_ORIGINAL)
@@ -1051,7 +1051,7 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
     
     check(hpatch_TFileStreamInput_open(&oldData,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
     check(hpatch_TFileStreamInput_open(&newData,newFileName),HDIFF_OPENREAD_ERROR,"open newFile");
-    printf("oldDataSize : %"PRIu64"\nnewDataSize : %"PRIu64"\n",
+    printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            oldData.base.streamSize,newData.base.streamSize);
     if (isDiff){
         check(hpatch_TFileStreamOutput_open(&diffData,outDiffFileName,-1),
@@ -1065,7 +1065,7 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
             check(false,HDIFF_DIFF_ERROR,"stream diff run an error: "+e.what());
         }
         check(hpatch_TFileStreamOutput_close(&diffData),HDIFF_FILECLOSE_ERROR,"out diffFile close");
-        printf("diffDataSize: %"PRIu64"\n",diffData.base.streamSize);
+        printf("diffDataSize: %" PRIu64 "\n",diffData.base.streamSize);
         printf("  out diff file ok!\n");
         printf("diff  time: %.3f s\n",(clock_s()-diff_time0));
     }
@@ -1073,7 +1073,7 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
         double patch_time0=clock_s();
         printf("\nload diffFile for test by patch check:\n");
         check(hpatch_TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
-        printf("diffDataSize: %"PRIu64"\n",diffData_in.base.streamSize);
+        printf("diffDataSize: %" PRIu64 "\n",diffData_in.base.streamSize);
         check(check_compressed_diff_stream(&newData.base,&oldData.base,
                                            &diffData_in.base,decompressPlugin),
               HDIFF_PATCH_ERROR,"patch check diff data");
@@ -1210,7 +1210,7 @@ static int _hdiff_resave(const char* diffFileName,const char* outDiffFileName,
     check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),HDIFF_OPENWRITE_ERROR,
           "open out diffFile");
     hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
-    printf("inDiffSize : %"PRIu64"\n",diffData_in.base.streamSize);
+    printf("inDiffSize : %" PRIu64 "\n",diffData_in.base.streamSize);
     try{
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (isDirDiff){
@@ -1229,7 +1229,7 @@ static int _hdiff_resave(const char* diffFileName,const char* outDiffFileName,
     }catch(const std::exception& e){
         check(false,HDIFF_RESAVE_ERROR,"resave diff run an error: "+e.what());
     }
-    printf("outDiffSize: %"PRIu64"\n",diffData_out.base.streamSize);
+    printf("outDiffSize: %" PRIu64 "\n",diffData_out.base.streamSize);
     check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
     printf("  out diff file ok!\n");
 clear:
@@ -1346,22 +1346,22 @@ struct DirDiffListener:public IDirDiffListener{
                              hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){
         if ((_ignoreCount>0)&&_isPrintIgnore)
             printf("\n");
-        printf("DirDiff old path count: %"PRIu64"\n",(hpatch_StreamPos_t)oldPathCount);
-        printf("        new path count: %"PRIu64" (fileCount:%"PRIu64")\n",
+        printf("DirDiff old path count: %" PRIu64 "\n",(hpatch_StreamPos_t)oldPathCount);
+        printf("        new path count: %" PRIu64 " (fileCount:%" PRIu64 ")\n",
                (hpatch_StreamPos_t)newPathCount,(hpatch_StreamPos_t)(sameFilePairCount+refNewFileCount));
-        printf("       same file count: %"PRIu64" (dataSize: %"PRIu64")\n",
+        printf("       same file count: %" PRIu64 " (dataSize: %" PRIu64 ")\n",
                (hpatch_StreamPos_t)sameFilePairCount,sameFileSize);
-        printf("    ref old file count: %"PRIu64"\n",(hpatch_StreamPos_t)refOldFileCount);
-        printf("   diff new file count: %"PRIu64"\n",(hpatch_StreamPos_t)refNewFileCount);
+        printf("    ref old file count: %" PRIu64 "\n",(hpatch_StreamPos_t)refOldFileCount);
+        printf("   diff new file count: %" PRIu64 "\n",(hpatch_StreamPos_t)refNewFileCount);
         printf("\nrun hdiffz:\n");
-        printf("  oldRefSize  : %"PRIu64"\n",refOldFileSize);
-        printf("  newRefSize  : %"PRIu64" (all newSize: %"PRIu64")\n",refNewFileSize,refNewFileSize+sameFileSize);
+        printf("  oldRefSize  : %" PRIu64 "\n",refOldFileSize);
+        printf("  newRefSize  : %" PRIu64 " (all newSize: %" PRIu64 ")\n",refNewFileSize,refNewFileSize+sameFileSize);
     }
     
     double _runHDiffBegin_time0;
     virtual void runHDiffBegin(){ _runHDiffBegin_time0=clock_s(); }
     virtual void runHDiffEnd(hpatch_StreamPos_t diffDataSize){
-        printf("  diffDataSize: %"PRIu64"\n",diffDataSize);
+        printf("  diffDataSize: %" PRIu64 "\n",diffDataSize);
         printf("    diff  time: %.3f s\n",clock_s()-_runHDiffBegin_time0);
     }
 };
@@ -1414,7 +1414,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         }catch(const std::exception& e){
             check(false,DIRDIFF_DIFF_ERROR,"dir diff run an error: "+e.what());
         }
-        printf("\nDirDiff  size: %"PRIu64"\n",diffData_out.base.streamSize);
+        printf("\nDirDiff  size: %" PRIu64 "\n",diffData_out.base.streamSize);
         printf("DirDiff  time: %.3f s\n",(clock_s()-time0));
         check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
         printf("  out dir diffFile ok!\n");
@@ -1423,7 +1423,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         double patch_time0=clock_s();
         printf("\nload dir diffFile for test by DirPatch check:\n");
         check(hpatch_TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
-        printf("diffDataSize : %"PRIu64"\n",diffData_in.base.streamSize);
+        printf("diffDataSize : %" PRIu64 "\n",diffData_in.base.streamSize);
         //check(check_dirOldDataChecksum(oldPatch.c_str(),&diffData_in.base,decompressPlugin,checksumPlugin),
         //      DIRDIFF_PATCH_ERROR,"part diff data check_dirOldDataChecksum");
         DirDiffListener listener(ignorePathList,ignoreOldPathList,ignoreNewPathList,false);

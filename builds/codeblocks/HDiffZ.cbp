@@ -48,6 +48,9 @@
 			<Add option="-fexceptions" />
 			<Add directory="../../../lzma/C/" />
 		</Compiler>
+		<Linker>
+			<Add library="pthread" />
+		</Linker>
 		<Unit filename="../../../bzip2/blocksort.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -137,6 +140,8 @@
 		<Unit filename="../../../zlib/zutil.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../compress_parallel.cpp" />
+		<Unit filename="../../compress_parallel.h" />
 		<Unit filename="../../dirDiffPatch/dir_diff/dir_diff.cpp" />
 		<Unit filename="../../dirDiffPatch/dir_diff/dir_diff.h" />
 		<Unit filename="../../dirDiffPatch/dir_patch/dir_patch.c">
@@ -179,6 +184,10 @@
 		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../libParallel/parallel_channel.cpp" />
+		<Unit filename="../../libParallel/parallel_channel.h" />
+		<Unit filename="../../libParallel/parallel_import.cpp" />
+		<Unit filename="../../libParallel/parallel_import.h" />
 		<Extensions>
 			<envvars />
 			<code_completion />
