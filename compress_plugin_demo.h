@@ -43,8 +43,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
-#define kDefualtCompressThreadNumber    3
+
+#if (_IS_USED_MULTITHREAD)
+#   define kDefualtCompressThreadNumber     3
+#else
+#   define kDefualtCompressThreadNumber     1
+#endif
+
 
 #define kCompressBufSize (1024*32)
 #ifndef _IsNeedIncludeDefaultCompressHead
@@ -317,6 +322,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     static const TCompressPlugin_bz2 bz2CompressPlugin={
         {_bz2_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_bz2_compress}, 9};
     
+#   if (_IS_USED_MULTITHREAD)
     //pbz2
     struct TCompressPlugin_pbz2{
         hdiff_TCompress base;
@@ -332,10 +338,9 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     static hdiff_compressBlockHandle _pbz2_openBlockCompressor(hdiff_TParallelCompress* pc){
         return pc;
     }
-    static hpatch_BOOL _pbz2_closeBlockCompressor(hdiff_TParallelCompress* pc,
-                                                  hdiff_compressBlockHandle blockCompressor){
+    static void _pbz2_closeBlockCompressor(hdiff_TParallelCompress* pc,
+                                           hdiff_compressBlockHandle blockCompressor){
         assert(blockCompressor==pc);
-        return hpatch_TRUE;
     }
     static size_t _pbz2_compressBlock(struct hdiff_TParallelCompress* pc,hdiff_compressBlockHandle blockCompressor,
                                       size_t blockIndex,unsigned char* out_code,unsigned char* out_codeEnd,
@@ -352,7 +357,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
                                              const hdiff_TStreamInput*  in_data){
         TCompressPlugin_pbz2* plugin=(TCompressPlugin_pbz2*)compressPlugin;
         const size_t blockSize=plugin->compress_level*100000;
-        if ((plugin->thread_num<=1)||(blockSize<in_data->streamSize*2)){ //same as "bz2"
+        if ((plugin->thread_num<=1)||(in_data->streamSize<blockSize*2)){ //same as "bz2"
             return _bz2_compress(compressPlugin,out_code,in_data);
         }else{
             plugin->pc.import=plugin;
@@ -365,6 +370,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         {_pbz2_compressType,_default_maxCompressedSize,_pbz2_setThreadNum,_pbz2_compress},
         9,kDefualtCompressThreadNumber ,{0,_default_maxCompressedSize,_pbz2_openBlockCompressor,
             _pbz2_closeBlockCompressor,_pbz2_compressBlock}};
+#   endif // _IS_USED_MULTITHREAD
 #endif//_CompressPlugin_bz2
 
 

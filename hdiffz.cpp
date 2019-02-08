@@ -47,10 +47,6 @@
 #include "dirDiffPatch/dir_patch/dir_patch.h"
 #endif
 
-#ifndef _IS_USED_MULTITHREAD
-#   define _IS_USED_MULTITHREAD 1
-#endif
-
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
 #endif
@@ -136,15 +132,19 @@ static void printUsage(){
            "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
            "        -zlib[-{1..9}]              DEFAULT level 9\n"
+#   if (_IS_USED_MULTITHREAD)
            "        -pzlib[-{1..9}]             DEFAULT level 9\n"
            "            support run by multi-thread parallel; \n"
            "            WARNING: code not compatible with -zlib code!\n"
+#   endif
 #endif
 #ifdef _CompressPlugin_bz2
            "        -bzip2[-{1..9}]             (or -bz2) DEFAULT level 9 \n"
+#   if (_IS_USED_MULTITHREAD)
            "        -pbzip2[-{1..9}]            (or -pbz2) DEFAULT level 9 \n"
            "            support run by multi-thread parallel;\n"
            "            WARNING: code not compatible with -bzip2 code!\n"
+#   endif
 #endif
 #ifdef _CompressPlugin_lzma
            "        -lzma[-{0..9}[-dictSize]]   DEFAULT level 7\n"
@@ -153,7 +153,9 @@ static void printUsage(){
 #ifdef _CompressPlugin_lzma2
            "        -lzma2[-{0..9}[-dictSize]]  DEFAULT level 7\n"
            "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m\n"
+#   if (_IS_USED_MULTITHREAD)
            "            support run by multi-thread parallel;\n"
+#   endif
            "            WARNING: code not compatible with -lzma code!\n"
 #endif
 #ifdef _CompressPlugin_lz4
@@ -471,6 +473,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         static TCompressPlugin_bz2 _bz2CompressPlugin=bz2CompressPlugin;
         _bz2CompressPlugin.compress_level=(int)compressLevel;
         *out_compressPlugin=&_bz2CompressPlugin.base; }
+#   if (_IS_USED_MULTITHREAD)
     //pbzip2
     if (*out_decompressPlugin==0){
         _options_check(_tryGetCompressSet(out_decompressPlugin,&bz2DecompressPlugin,
@@ -481,6 +484,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
             *out_compressPlugin=&_pbz2CompressPlugin.base;
         }
     }
+#   endif // _IS_USED_MULTITHREAD
 #endif
 #ifdef _CompressPlugin_lzma
     _options_check(_tryGetCompressSet(out_decompressPlugin,&lzmaDecompressPlugin,
