@@ -29,6 +29,8 @@
 #ifndef HDiff_compress_parallel_h
 #define HDiff_compress_parallel_h
 #include "libHDiffPatch/HDiff/diff_types.h"
+#include "libParallel/parallel_import.h"
+#if (_IS_USED_MULTITHREAD)
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,7 +40,7 @@ extern "C" {
         void*                                    import;
         hpatch_StreamPos_t          (*maxCompressedSize)(hpatch_StreamPos_t dataSize);
         hdiff_compressBlockHandle (*openBlockCompressor)(struct hdiff_TParallelCompress* pc);
-        hpatch_BOOL              (*closeBlockCompressor)(struct hdiff_TParallelCompress* pc,
+        void                     (*closeBlockCompressor)(struct hdiff_TParallelCompress* pc,
                                                          hdiff_compressBlockHandle blockCompressor);
         //compressBlock() called multiple times by thread
         size_t  (*compressBlock)(struct hdiff_TParallelCompress* pc,hdiff_compressBlockHandle blockCompressor,
@@ -46,11 +48,12 @@ extern "C" {
                                  const unsigned char* block_data,const unsigned char* block_dataEnd);
     } hdiff_TParallelCompress;
     
-    hpatch_StreamPos_t parallel_compress_blocks(const hdiff_TParallelCompress* pc,
-                                                size_t threadNum,hpatch_StreamPos_t blockSize,
+    hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
+                                                int threadNum,size_t blockSize,
                                                 const hdiff_TStreamOutput* out_code,
                                                 const hdiff_TStreamInput*  in_data);
 #ifdef __cplusplus
 }
+#endif
 #endif
 #endif
