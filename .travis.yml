@@ -20,7 +20,9 @@ script:
 - git clone https://github.com/sisong/lzma.git ../lzma
 - make
 - make clean
+- cd ../lzma
 - git checkout -b pthread origin/pthread
+- cd ../HDiffPatch
 - make -f Makefile_mt
 - if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hdiffz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
 - if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
