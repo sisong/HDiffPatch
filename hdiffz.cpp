@@ -133,7 +133,7 @@ static void printUsage(){
 #ifdef _CompressPlugin_zlib
            "        -zlib[-{1..9}]              DEFAULT level 9\n"
 #   if (_IS_USED_MULTITHREAD)
-           "        -pzlib[-{1..9}]             DEFAULT level 9\n"
+           "        -pzlib[-{1..9}]             DEFAULT level 6\n"
            "            support run by multi-thread parallel, fast!\n"
            "            WARNING: code not compatible with it compressed by -zlib!\n"
            "              and code size may be larger than if it compressed by -zlib. \n"
@@ -142,7 +142,7 @@ static void printUsage(){
 #ifdef _CompressPlugin_bz2
            "        -bzip2[-{1..9}]             (or -bz2) DEFAULT level 9\n"
 #   if (_IS_USED_MULTITHREAD)
-           "        -pbzip2[-{1..9}]            (or -pbz2) DEFAULT level 9\n"
+           "        -pbzip2[-{1..9}]            (or -pbz2) DEFAULT level 8\n"
            "            support run by multi-thread parallel, fast!\n"
            "            WARNING: code not compatible with it compressed by -bzip2!\n"
            "               and code size may be larger than if it compressed by -bzip2.\n"
@@ -150,14 +150,14 @@ static void printUsage(){
 #endif
 #ifdef _CompressPlugin_lzma
            "        -lzma[-{0..9}[-dictSize]]   DEFAULT level 7\n"
-           "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m\n"
+           "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m\n"
 #   if (_IS_USED_MULTITHREAD)
            "            support run by 2-thread parallel.\n"
 #   endif
 #endif
 #ifdef _CompressPlugin_lzma2
            "        -lzma2[-{0..9}[-dictSize]]  DEFAULT level 7\n"
-           "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m\n"
+           "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m\n"
 #   if (_IS_USED_MULTITHREAD)
            "            support run by multi-thread parallel, fast!\n"
 #   endif
@@ -218,8 +218,8 @@ static void printUsage(){
            "  -i|ignorePath[|ignorePath|...]\n"
            "      set Ignore path list when Directory Diff; ignore path list such as:\n"
            "        |.DS_Store|desktop.ini|*thumbs*.db|.git*|.svn/|cache_*/00*11/*.tmp\n"
-           "      | means separator between names; (if char | in name, need write |:)\n"
-           "      * means can match any chars in name; (if char * in name, need write *:);\n"
+           "      | means separator between names; (if char | in name, need write |: )\n"
+           "      * means can match any chars in name; (if char * in name, need write *: );\n"
            "      / at the end of name means must match directory;\n"
            "  -i-old|ignorePath[|ignorePath|...]\n"
            "      set Ignore path list in oldPath when Directory Diff;\n"
@@ -474,7 +474,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     //pzlib
     if (*out_decompressPlugin==0){
         _options_check(_tryGetCompressSet(out_decompressPlugin,&zlibDecompressPlugin,
-                                          ptype,ptypeEnd,"pzlib",0,&compressLevel,1,9,9),"-c-pzlib-?");
+                                          ptype,ptypeEnd,"pzlib",0,&compressLevel,1,9,6),"-c-pzlib-?");
         if (*out_decompressPlugin==&zlibDecompressPlugin) {
             static TCompressPlugin_pzlib _pzlibCompressPlugin=pzlibCompressPlugin;
             _pzlibCompressPlugin.base.compress_level=(int)compressLevel;
@@ -494,7 +494,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     //pbzip2
     if (*out_decompressPlugin==0){
         _options_check(_tryGetCompressSet(out_decompressPlugin,&bz2DecompressPlugin,
-                                          ptype,ptypeEnd,"pbzip2","pbz2",&compressLevel,1,9,9),"-c-pbzip2-?");
+                                          ptype,ptypeEnd,"pbzip2","pbz2",&compressLevel,1,9,8),"-c-pbzip2-?");
         if (*out_decompressPlugin==&bz2DecompressPlugin) {
             static TCompressPlugin_pbz2 _pbz2CompressPlugin=pbz2CompressPlugin;
             _pbz2CompressPlugin.base.compress_level=(int)compressLevel;
@@ -506,7 +506,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
 #ifdef _CompressPlugin_lzma
     _options_check(_tryGetCompressSet(out_decompressPlugin,&lzmaDecompressPlugin,
                                       ptype,ptypeEnd,"lzma",0,&compressLevel,0,9,7, &dictSize,1<<12,
-                                      (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),1<<22),"-c-lzma-?");
+                                      (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),1<<23),"-c-lzma-?");
     if (*out_decompressPlugin==&lzmaDecompressPlugin) {
         static TCompressPlugin_lzma _lzmaCompressPlugin=lzmaCompressPlugin;
         _lzmaCompressPlugin.compress_level=(int)compressLevel;
@@ -516,7 +516,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
 #ifdef _CompressPlugin_lzma2
     _options_check(_tryGetCompressSet(out_decompressPlugin,&lzma2DecompressPlugin,
                                       ptype,ptypeEnd,"lzma2",0,&compressLevel,0,9,7, &dictSize,1<<12,
-                                      (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),1<<22),"-c-lzma2-?");
+                                      (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),1<<23),"-c-lzma2-?");
     if (*out_decompressPlugin==&lzma2DecompressPlugin) {
         static TCompressPlugin_lzma2 _lzma2CompressPlugin=lzma2CompressPlugin;
         _lzma2CompressPlugin.compress_level=(int)compressLevel;
@@ -850,8 +850,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         isDiffFile=isDiffFile || getIsDirDiffFile(diffFileName);
 #endif
         _return_check(isDiffFile,HDIFF_RESAVE_DIFFINFO_ERROR,"can't resave, input file is not diffFile");
-        _return_check(getIsDirDiffFile(diffFileName)||getIsCompressedDiffFile(diffFileName),
-                      HDIFF_RESAVE_DIFFINFO_ERROR,"can't resave, input file is not diffFile");
         if (!isForceOverwrite){
             hpatch_TPathType   outDiffFileType;
             _return_check(hpatch_getPathStat(outDiffFileName,&outDiffFileType,0),

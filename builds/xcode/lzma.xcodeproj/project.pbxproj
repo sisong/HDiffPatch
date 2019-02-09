@@ -19,9 +19,7 @@
 		D65A496422092987001638A6 /* ThreadsP.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A496022092987001638A6 /* ThreadsP.h */; };
 		D65A496522092987001638A6 /* ThreadsP.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A496122092987001638A6 /* ThreadsP.c */; };
 		D65A4967220929A7001638A6 /* Threads.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A4966220929A7001638A6 /* Threads.h */; };
-		D65A496E22092DD9001638A6 /* Lzma2DecMt.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A496822092DD9001638A6 /* Lzma2DecMt.c */; };
 		D65A496F22092DD9001638A6 /* Lzma2Dec.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A496922092DD9001638A6 /* Lzma2Dec.h */; };
-		D65A497022092DD9001638A6 /* Lzma2DecMt.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A496A22092DD9001638A6 /* Lzma2DecMt.h */; };
 		D65A497122092DD9001638A6 /* Lzma2Enc.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A496B22092DD9001638A6 /* Lzma2Enc.c */; };
 		D65A497222092DD9001638A6 /* Lzma2Enc.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A496C22092DD9001638A6 /* Lzma2Enc.h */; };
 		D65A497322092DD9001638A6 /* Lzma2Dec.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A496D22092DD9001638A6 /* Lzma2Dec.c */; };
@@ -49,9 +47,7 @@
 		D65A496022092987001638A6 /* ThreadsP.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ThreadsP.h; path = ../../../lzma/C/ThreadsP.h; sourceTree = "<group>"; };
 		D65A496122092987001638A6 /* ThreadsP.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ThreadsP.c; path = ../../../lzma/C/ThreadsP.c; sourceTree = "<group>"; };
 		D65A4966220929A7001638A6 /* Threads.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Threads.h; path = ../../../lzma/C/Threads.h; sourceTree = "<group>"; };
-		D65A496822092DD9001638A6 /* Lzma2DecMt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Lzma2DecMt.c; path = ../../../lzma/C/Lzma2DecMt.c; sourceTree = "<group>"; };
 		D65A496922092DD9001638A6 /* Lzma2Dec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lzma2Dec.h; path = ../../../lzma/C/Lzma2Dec.h; sourceTree = "<group>"; };
-		D65A496A22092DD9001638A6 /* Lzma2DecMt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lzma2DecMt.h; path = ../../../lzma/C/Lzma2DecMt.h; sourceTree = "<group>"; };
 		D65A496B22092DD9001638A6 /* Lzma2Enc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Lzma2Enc.c; path = ../../../lzma/C/Lzma2Enc.c; sourceTree = "<group>"; };
 		D65A496C22092DD9001638A6 /* Lzma2Enc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lzma2Enc.h; path = ../../../lzma/C/Lzma2Enc.h; sourceTree = "<group>"; };
 		D65A496D22092DD9001638A6 /* Lzma2Dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Lzma2Dec.c; path = ../../../lzma/C/Lzma2Dec.c; sourceTree = "<group>"; };
@@ -90,8 +86,6 @@
 				D65A497622092E06001638A6 /* MtDec.h */,
 				D65A496D22092DD9001638A6 /* Lzma2Dec.c */,
 				D65A496922092DD9001638A6 /* Lzma2Dec.h */,
-				D65A496822092DD9001638A6 /* Lzma2DecMt.c */,
-				D65A496A22092DD9001638A6 /* Lzma2DecMt.h */,
 				D65A496B22092DD9001638A6 /* Lzma2Enc.c */,
 				D65A496C22092DD9001638A6 /* Lzma2Enc.h */,
 				D65A497C2209B3E7001638A6 /* Alloc.c */,
@@ -137,7 +131,6 @@
 				D65A4959220926D5001638A6 /* LzHash.h in Headers */,
 				D65A497F2209B3E7001638A6 /* Alloc.h in Headers */,
 				D65A496F22092DD9001638A6 /* Lzma2Dec.h in Headers */,
-				D65A497022092DD9001638A6 /* Lzma2DecMt.h in Headers */,
 				D65A473B22092647001638A6 /* LzFind.h in Headers */,
 				D65A497922092E06001638A6 /* MtCoder.h in Headers */,
 				D65A497A22092E06001638A6 /* MtDec.h in Headers */,
@@ -207,7 +200,6 @@
 				D65A497122092DD9001638A6 /* Lzma2Enc.c in Sources */,
 				D65B8E012090C84400DBBEEE /* LzmaDec.c in Sources */,
 				D65B8E002090C84400DBBEEE /* LzFind.c in Sources */,
-				D65A496E22092DD9001638A6 /* Lzma2DecMt.c in Sources */,
 				D65B8E022090C84400DBBEEE /* LzmaEnc.c in Sources */,
 				D65A497322092DD9001638A6 /* Lzma2Dec.c in Sources */,
 				D65A497B22092E06001638A6 /* MtDec.c in Sources */,
