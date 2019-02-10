@@ -175,23 +175,28 @@ void getDirAllPathList(const std::string& dirPath,std::vector<std::string>& out_
     _getDirSubFileList(dirName,out_list,filter,dirName.size(),pathIsInOld);
 }
 
-static cmp_hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* out_fileSize){
-    CFileStreamInput f(fileName);
+
+static cmp_hash_value_t getStreamHash(const hpatch_TStreamInput* stream,const std::string& errorTag){
     TAutoMem  mem(kFileIOBufSize);
     cmp_hash_value_t result;
     cmp_hash_begin(&result);
-    *out_fileSize=f.base.streamSize;
-    for (hpatch_StreamPos_t pos=0; pos<f.base.streamSize;) {
+    for (hpatch_StreamPos_t pos=0; pos<stream->streamSize;) {
         size_t readLen=kFileIOBufSize;
-        if (pos+readLen>f.base.streamSize)
-            readLen=(size_t)(f.base.streamSize-pos);
-        check(f.base.read(&f.base,pos,mem.data(),mem.data()+readLen),
-              "read file \""+fileName+"\" error!");
+        if (pos+readLen>stream->streamSize)
+            readLen=(size_t)(stream->streamSize-pos);
+        check(stream->read(stream,pos,mem.data(),mem.data()+readLen),
+              "read \""+errorTag+"\" error!");
         cmp_hash_append(&result,mem.data(),readLen);
         pos+=readLen;
     }
     cmp_hash_end(&result);
     return result;
+}
+
+static cmp_hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos_t* out_fileSize){
+    CFileStreamInput f(fileName);
+    *out_fileSize=f.base.streamSize;
+    return getStreamHash(&f.base,fileName);
 }
 
 static hpatch_StreamPos_t getFileSize(const std::string& fileName){
@@ -343,7 +348,14 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
             fileSize=getFileSize(fileName);
             hash=fileSize;
         }else{
-            hash=getFileHash(fileName,&fileSize);
+            if ((fileName.empty())&&(oldList.size()==1)){ // isOldPathInputEmpty
+                hpatch_TStreamInput emptyStream;
+                mem_as_hStreamInput(&emptyStream,0,0);
+                hash=getStreamHash(&emptyStream,"isOldPathInputEmpty, as empty file");
+                fileSize=0;
+            }else{
+                hash=getFileHash(fileName,&fileSize);
+            }
         }
         out_oldSizeList[oldi]=fileSize;
         if (isNeedOutHashs) out_oldHashList[oldi]=hash;
@@ -926,8 +938,12 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
     const hpatch_TStreamOutput* newStream=0;
     {//dir diff info
         hpatch_TPathType    oldType;
-        _test(hpatch_getPathTypeByName(oldPath.c_str(),&oldType,0));
-        _test(oldType!=kPathType_notExist);
+        if (oldPath.empty()){ // isOldPathInputEmpty
+            oldType=kPathType_file; //as empty file
+        }else{
+            _test(hpatch_getPathTypeByName(oldPath.c_str(),&oldType,0));
+            _test(oldType!=kPathType_notExist);
+        }
         _test(TDirPatcher_open(&dirPatcher,testDiffData,&dirDiffInfo));
         _test(dirDiffInfo->isDirDiff);
         if (dirDiffInfo->oldPathIsDir){

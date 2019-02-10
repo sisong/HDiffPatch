@@ -98,6 +98,7 @@
 
 static void printUsage(){
     printf("usage: hpatchz [options] oldPath diffFile outNewPath\n"
+           "  ( if oldPath is empty input parameter \"\" )\n"
            "memory options:\n"
            "  -m  oldPath all loaded into Memory; fast;\n"
            "      requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.\n"
@@ -276,6 +277,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
+    hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
     size_t      patchCacheSize=0;
 #if (_IS_NEED_DIR_DIFF_PATCH)
     size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir patch
@@ -287,9 +289,19 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     int         i;
     for (i=1; i<argc; ++i) {
         const char* op=argv[i];
-        _options_check((op!=0)&&(strlen(op)>0),"?");
+        _options_check(op!=0,"?");
         if (op[0]!='-'){
+            hpatch_BOOL isEmpty=(strlen(op)==0);
             _options_check(arg_values_size<kMax_arg_values_size,"count");
+            if (isEmpty){
+                if (isOldPathInputEmpty==_kNULL_VALUE)
+                    isOldPathInputEmpty=hpatch_TRUE;
+                else
+                    _options_check(!isEmpty,"?"); //error return
+            }else{
+                if (isOldPathInputEmpty==_kNULL_VALUE)
+                    isOldPathInputEmpty=hpatch_FALSE;
+            }
             arg_values[arg_values_size]=op; //path: file or directory
             ++arg_values_size;
             continue;
@@ -375,6 +387,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         isLoadOldAll=hpatch_FALSE;
         patchCacheSize=kPatchCacheSize_default;
     }
+    if (isOldPathInputEmpty==_kNULL_VALUE)
+        isOldPathInputEmpty=hpatch_FALSE;
     
     {
         const char* oldPath     =arg_values[0];
@@ -640,8 +654,14 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         printf("\"\ndiff: \""); hpatch_printPath_utf8(diffFileName);
         printf("\"\nout : \""); hpatch_printPath_utf8(outNewFileName);
         printf("\"\n");
-        check(hpatch_TFileStreamInput_open(&oldData,oldFileName),HPATCH_OPENREAD_ERROR,"open oldFile for read");
-        check(hpatch_TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
+        if (0==strcmp(oldFileName,"")){ // isOldPathInputEmpty
+            mem_as_hStreamInput(&oldData.base,0,0);
+        }else{
+            check(hpatch_TFileStreamInput_open(&oldData,oldFileName),
+                  HPATCH_OPENREAD_ERROR,"open oldFile for read");
+        }
+        check(hpatch_TFileStreamInput_open(&diffData,diffFileName),
+              HPATCH_OPENREAD_ERROR,"open diffFile for read");
     }
 
 #if (_IS_NEED_ORIGINAL)
@@ -735,8 +755,13 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     {//dir diff info
         hpatch_BOOL  rt;
         hpatch_TPathType    oldType;
-        check(hpatch_getPathTypeByName(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"get oldPath type");
-        check((oldType!=kPathType_notExist),HPATCH_PATHTYPE_ERROR,"oldPath not exist");
+        if (0==strcmp(oldPath,"")){ // isOldPathInputEmpty
+            assert(!isLoadOldAll);
+            oldType=kPathType_file; //as empty file
+        }else{
+            check(hpatch_getPathTypeByName(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"get oldPath type");
+            check((oldType!=kPathType_notExist),HPATCH_PATHTYPE_ERROR,"oldPath not exist");
+        }
         check(hpatch_TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
         rt=TDirPatcher_open(&dirPatcher,&diffData.base,&dirDiffInfo);
         if((!rt)||(!dirDiffInfo->isDirDiff)){

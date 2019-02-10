@@ -109,6 +109,10 @@ static void printUsage(){
     printf("diff   usage: hdiffz [options]  oldPath newPath outDiffFile\n"
            "test   usage: hdiffz    -t      oldPath newPath testDiffFile\n"
            "resave usage: hdiffz [-c-[...]] diffFile outDiffFile\n"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+           "  input oldPath newPath can be file or directory(folder),\n"
+#endif
+           "  oldPath can empty input parameter \"\"\n"
            "memory options:\n"
            "  -m[-matchScore]\n"
            "      DEFAULT; all file load into Memory; best diffFileSize;\n"
@@ -591,6 +595,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
+    hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
     size_t      matchValue=0;
     size_t      threadNum = _THREAD_NUMBER_NULL;
     hdiff_TCompress*        compressPlugin=0;
@@ -607,8 +612,18 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     std::vector<const char *> arg_values;
     for (int i=1; i<argc; ++i) {
         const char* op=argv[i];
-        _options_check((op!=0)&&(strlen(op)>0),"?");
+        _options_check(op!=0,"?");
         if (op[0]!='-'){
+            hpatch_BOOL isEmpty=(strlen(op)==0);
+            if (isEmpty){
+                if (isOldPathInputEmpty==_kNULL_VALUE)
+                    isOldPathInputEmpty=hpatch_TRUE;
+                else
+                    _options_check(!isEmpty,"?"); //error return
+            }else{
+                if (isOldPathInputEmpty==_kNULL_VALUE)
+                    isOldPathInputEmpty=hpatch_FALSE;
+            }
             arg_values.push_back(op); //path:file or directory
             continue;
         }
@@ -743,6 +758,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         compressPlugin->setParallelThreadNumber(compressPlugin,(int)threadNum);
     }
     
+    if (isOldPathInputEmpty==_kNULL_VALUE)
+        isOldPathInputEmpty=hpatch_FALSE;
     _options_check((arg_values.size()==2)||(arg_values.size()==3),"count");
     if (arg_values.size()==3){
         if (isOriginal==_kNULL_VALUE)
@@ -794,9 +811,15 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         }
         hpatch_TPathType oldType;
         hpatch_TPathType newType;
-        _return_check(hpatch_getPathTypeByName(oldPath,&oldType,0),HDIFF_PATHTYPE_ERROR,"get oldPath type");
+        if (isOldPathInputEmpty){
+            oldType=kPathType_file;     //as empty file
+            isLoadAll=hpatch_FALSE;     //not need -m, set as -s
+            matchValue=hpatch_kStreamCacheSize; //not used
+        }else{
+            _return_check(hpatch_getPathTypeByName(oldPath,&oldType,0),HDIFF_PATHTYPE_ERROR,"get oldPath type");
+            _return_check((oldType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"oldPath not exist");
+        }
         _return_check(hpatch_getPathTypeByName(newPath,&newType,0),HDIFF_PATHTYPE_ERROR,"get newPath type");
-        _return_check((oldType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"oldPath not exist");
         _return_check((newType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"newPath not exist");
 #if (_IS_NEED_DIR_DIFF_PATCH)
         hpatch_BOOL isUseDirDiff=isForceRunDirDiff||(kPathType_dir==oldType)||(kPathType_dir==newType);
@@ -835,10 +858,12 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                          compressPlugin,decompressPlugin);
         }
     }else{ //resave
+        _options_check(!isOldPathInputEmpty,"can't resave, must input a diffFile");
         _options_check((isOriginal==_kNULL_VALUE),"-o unsupport run with resave mode");
         _options_check((isLoadAll==_kNULL_VALUE),"-m or -s unsupport run with resave mode");
         _options_check((isDiff==_kNULL_VALUE),"-d unsupport run with resave mode");
         _options_check((isPatchCheck==_kNULL_VALUE),"-t unsupport run with resave mode");
+        
 #if (_IS_NEED_DIR_DIFF_PATCH)
         _options_check((isForceRunDirDiff==_kNULL_VALUE),"-D unsupport run with resave mode");
         _options_check((checksumPlugin==0),"-C unsupport run with resave mode");
@@ -1047,7 +1072,11 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
     hpatch_TFileStreamOutput_init(&diffData);
     hpatch_TFileStreamInput_init(&diffData_in);
     
-    check(hpatch_TFileStreamInput_open(&oldData,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
+    if (0==strcmp(oldFileName,"")){ // isOldPathInputEmpty
+        mem_as_hStreamInput(&oldData.base,0,0);
+    }else{
+        check(hpatch_TFileStreamInput_open(&oldData,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
+    }
     check(hpatch_TFileStreamInput_open(&newData,newFileName),HDIFF_OPENREAD_ERROR,"open newFile");
     printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            oldData.base.streamSize,newData.base.streamSize);
