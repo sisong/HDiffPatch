@@ -94,6 +94,7 @@
 		D69EECDC220C49DE001EF085 /* parallel_import.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_import.h; sourceTree = "<group>"; };
 		D69EECDD220C49DE001EF085 /* parallel_import.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_import.cpp; sourceTree = "<group>"; };
 		D69EECDE220C49DE001EF085 /* parallel_channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_channel.h; sourceTree = "<group>"; };
+		D6B04412221158720015E8CA /* dir_patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_types.h; sourceTree = "<group>"; };
 		D6B240AE21E5C21300993A81 /* res_handle_limit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = res_handle_limit.c; sourceTree = "<group>"; };
 		D6B240AF21E5C21300993A81 /* res_handle_limit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = res_handle_limit.h; sourceTree = "<group>"; };
 		D6BF3A5C21E97A0A00833537 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
@@ -149,6 +150,7 @@
 		D67D3BD721CBCD5D0050632A /* dir_patch */ = {
 			isa = PBXGroup;
 			children = (
+				D6B04412221158720015E8CA /* dir_patch_types.h */,
 				D6B240AE21E5C21300993A81 /* res_handle_limit.c */,
 				D6B240AF21E5C21300993A81 /* res_handle_limit.h */,
 				D6241AE021DE47D200E2846A /* new_stream.c */,
@@ -410,7 +412,6 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
-				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -472,8 +473,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
-				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEPLOYMENT_POSTPROCESSING = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";

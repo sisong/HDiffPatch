@@ -1,5 +1,6 @@
-//  ref_stream.h
-//  dir patch
+// dir_patch_types.h
+// dir patch
+//
 /*
  The MIT License (MIT)
  Copyright (c) 2018-2019 HouSisong
@@ -25,35 +26,12 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef DirPatch_ref_stream_h
-#define DirPatch_ref_stream_h
-#include "dir_patch_types.h"
-#if (_IS_NEED_DIR_DIFF_PATCH)
-#ifdef __cplusplus
-extern "C" {
-#endif
-    
-//利用refList模拟成一个输入流;
-typedef struct hpatch_TRefStream{
-    const hpatch_TStreamInput*  stream;
-//private:
-    hpatch_TStreamInput         _stream;
-    
-    const hpatch_TStreamInput** _refList;
-    hpatch_StreamPos_t*         _rangeEndList;
-    size_t                      _rangeCount;//==refCount
-    size_t                      _curRangeIndex;
-    //mem
-    unsigned char*              _buf;
-} hpatch_TRefStream;
+#ifndef DirPatch_dir_patch_types_h
+#define DirPatch_dir_patch_types_h
+#include "../../libHDiffPatch/HPatch/patch_types.h"
 
-hpatch_inline static
-void        hpatch_TRefStream_init(hpatch_TRefStream* self) { memset(self,0,sizeof(*self)); }
-hpatch_BOOL hpatch_TRefStream_open(hpatch_TRefStream* self,const hpatch_TStreamInput** refList,size_t refCount);
-void        hpatch_TRefStream_close(hpatch_TRefStream* self);
+#ifndef _IS_NEED_DIR_DIFF_PATCH
+#   define _IS_NEED_DIR_DIFF_PATCH  1
+#endif
 
-#ifdef __cplusplus
-}
-#endif
-#endif
-#endif //DirPatch_ref_stream_h
+#endif //DirPatch_dir_patch_types_h

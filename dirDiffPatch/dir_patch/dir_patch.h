@@ -28,7 +28,7 @@
  */
 #ifndef DirPatch_dir_patch_h
 #define DirPatch_dir_patch_h
-#include "../../libHDiffPatch/HPatch/patch_types.h"
+#include "dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #include "ref_stream.h"
@@ -82,6 +82,8 @@ hpatch_BOOL getIsDirDiffFile(const char* diffFileName){
         size_t              oldRefFileCount;
         size_t              newRefFileCount;
         size_t              sameFilePairCount;
+        size_t              newExecuteCount;
+        size_t              privateReservedDataSize;
         hpatch_StreamPos_t  sameFileSize;
         hpatch_StreamPos_t  typesEndPos;
         hpatch_StreamPos_t  privateExternDataOffset; //headDataEndPos
@@ -122,6 +124,7 @@ typedef struct TDirPatcher{
     const char* const *         newUtf8PathList;
     const size_t*               oldRefList;
     const size_t*               newRefList;
+    const size_t*               newExecuteList;
     const hpatch_StreamPos_t*   newRefSizeList;
     const hpatch_TSameFilePair* dataSamePairList; //new map to old index
     hpatch_BOOL                 isDiffDataChecksumError;

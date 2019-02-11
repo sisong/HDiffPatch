@@ -37,7 +37,6 @@
 //  md5ChecksumPlugin
 
 #include "libHDiffPatch/HPatch/checksum_plugin.h"
-#if (_IS_NEED_DIR_DIFF_PATCH)
 
 #ifndef _IsNeedIncludeDefaultChecksumHead
 #   define _IsNeedIncludeDefaultChecksumHead 1
@@ -342,5 +341,4 @@ static hpatch_TChecksum md5ChecksumPlugin={ _md5_checksumType,_md5_checksumByteS
 #endif//_ChecksumPlugin_md5
 
 
-#endif
 #endif

@@ -187,6 +187,8 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_
         unpackToSize(&savedNewRefSize,headClip);
         unpackToSize(&out_head->sameFilePairCount,headClip);
         unpackUIntTo(&out_head->sameFileSize,headClip);
+        unpackToSize(&out_head->newExecuteCount,headClip);
+        unpackToSize(&out_head->privateReservedDataSize,headClip);
         unpackUIntTo(&out_head->privateExternDataSize,headClip);
         unpackUIntTo(&out_info->externDataSize,headClip);
         out_head->compressSizeBeginPos=_TStreamCacheClip_readPosOfSrcStream(headClip);
@@ -452,7 +454,7 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     }
     //mem
     memSize = (head->oldPathCount+head->newPathCount)*sizeof(const char*)
-            + (head->oldRefFileCount+head->newRefFileCount)*sizeof(size_t)
+            + (head->oldRefFileCount+head->newRefFileCount+head->newExecuteCount)*sizeof(size_t)
             + head->sameFilePairCount*sizeof(hpatch_TSameFilePair)
             + (head->newRefFileCount)*sizeof(hpatch_StreamPos_t)
             + hpatch_kPathMaxSize*2 + pathSumSize;
@@ -465,6 +467,7 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     self->newUtf8PathList=(const char**)curMem; curMem+=head->newPathCount*sizeof(const char*);
     self->oldRefList=(const size_t*)curMem; curMem+=head->oldRefFileCount*sizeof(size_t);
     self->newRefList=(const size_t*)curMem; curMem+=head->newRefFileCount*sizeof(size_t);
+    self->newExecuteList=(const size_t*)curMem; curMem+=head->newExecuteCount*sizeof(size_t);
     self->dataSamePairList=(const hpatch_TSameFilePair*)curMem;
         curMem+=head->sameFilePairCount*sizeof(hpatch_TSameFilePair);
     
@@ -497,7 +500,9 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     //read dataSamePairList
     check(readSamePairListTo(&headStream,(hpatch_TSameFilePair*)self->dataSamePairList,head->sameFilePairCount,
                              head->newPathCount,head->oldPathCount));
-    check(_TStreamCacheClip_isFinish(&headStream));
+    //read newExecuteList
+    check(readIncListTo(&headStream,(size_t*)self->newExecuteList,head->newExecuteCount,head->newPathCount));
+    check(_TStreamCacheClip_streamSize(&headStream)==self->dirDiffHead.privateReservedDataSize);
 clear:
     if (decompresser.decompressHandle){
         if (!decompressPlugin->close(decompressPlugin,decompresser.decompressHandle))

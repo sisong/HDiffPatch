@@ -45,10 +45,6 @@ extern "C" {
 #define _HDIFFPATCH_EXPAND_AND_QUOTE(str) _HDIFFPATCH_QUOTE(str)
 #define HDIFFPATCH_VERSION_STRING   _HDIFFPATCH_EXPAND_AND_QUOTE(_HDIFFPATCH_VERSION)
 
-#ifndef _IS_NEED_DIR_DIFF_PATCH
-#   define _IS_NEED_DIR_DIFF_PATCH 1
-#endif
-
 #ifdef _MSC_VER
 #   if (_MSC_VER >= 1300)
     typedef unsigned __int32    hpatch_uint32_t;

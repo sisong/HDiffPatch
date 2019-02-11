@@ -28,7 +28,7 @@
  */
 #ifndef DirPatch_dir_patch_private_h
 #define DirPatch_dir_patch_private_h
-#include "../../libHDiffPatch/HPatch/patch_types.h"
+#include "dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #ifdef __cplusplus
 extern "C" {

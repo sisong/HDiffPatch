@@ -568,6 +568,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     std::vector<hpatch_TSameFilePair> dataSamePairList;     //new map to same old
     std::vector<size_t> oldRefIList;
     std::vector<size_t> newRefIList;
+    std::vector<size_t> newExecuteList; //for linux etc
     
     const bool isCachedHashs=(checksumPlugin!=0)&&(checksumPlugin->checksumType()==cmp_hash_type);
     if (isCachedHashs) checkv(sizeof(cmp_hash_value_t)==checksumPlugin->checksumByteSize());
@@ -661,6 +662,9 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     pushIncList(headData,newRefIList);
     pushList(headData,newRefSizeList);
     pushSamePairList(headData,dataSamePairList);
+    pushIncList(headData,newExecuteList);
+    std::vector<TByte> privateReservedData;//now empty
+    headData.insert(headData.end(),privateReservedData.begin(),privateReservedData.end());
     std::vector<TByte> headCode;
     if (compressPlugin){
         headCode.resize((size_t)compressPlugin->maxCompressedSize(headData.size()));
@@ -688,6 +692,8 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     packUInt(out_data,newRefStream.stream->streamSize); //same as hdiffz::newDataSize
     packUInt(out_data,dataSamePairList.size()); clearVector(dataSamePairList);
     packUInt(out_data,sameFileSize);
+    packUInt(out_data,newExecuteList.size());   clearVector(newExecuteList);
+    packUInt(out_data,privateReservedData.size()); clearVector(privateReservedData);
     std::vector<TByte> privateExternData;//now empty
     //privateExtern size
     packUInt(out_data,privateExternData.size());

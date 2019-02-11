@@ -30,6 +30,7 @@
 #ifndef DirDiffPatch_file_for_dirDiff_h
 #define DirDiffPatch_file_for_dirDiff_h
 #include "../../file_for_patch.h"
+#include "../dir_patch/dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #ifdef _WIN32
 #else

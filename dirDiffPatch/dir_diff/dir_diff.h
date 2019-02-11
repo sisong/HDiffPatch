@@ -28,10 +28,11 @@
  */
 #ifndef hdiff_dir_diff_h
 #define hdiff_dir_diff_h
-#include "../../libHDiffPatch/HDiff/diff_types.h"
+#include "../dir_patch/dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include <string>
 #include <vector>
+#include "../../libHDiffPatch/HDiff/diff_types.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 
 void assignDirTag(std::string& dir);

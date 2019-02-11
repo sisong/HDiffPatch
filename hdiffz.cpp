@@ -42,6 +42,7 @@
 #include "file_for_patch.h"
 #include "libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
+#include "dirDiffPatch/dir_patch/dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dirDiffPatch/dir_diff/dir_diff.h"
 #include "dirDiffPatch/dir_patch/dir_patch.h"
