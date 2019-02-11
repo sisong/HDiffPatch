@@ -570,6 +570,11 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     std::vector<size_t> newRefIList;
     std::vector<size_t> newExecuteList; //for linux etc
     
+    for (size_t newi=0; newi<newList.size(); ++newi) {
+        if ((!isDirName(newList[newi]))&&(listener->isExecuteFile(newList[newi])))
+            newExecuteList.push_back(newi);
+    }
+    
     const bool isCachedHashs=(checksumPlugin!=0)&&(checksumPlugin->checksumType()==cmp_hash_type);
     if (isCachedHashs) checkv(sizeof(cmp_hash_value_t)==checksumPlugin->checksumByteSize());
     std::vector<cmp_hash_value_t> oldHashList;

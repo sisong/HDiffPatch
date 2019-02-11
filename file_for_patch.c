@@ -32,7 +32,7 @@
 #include <errno.h>    //errno
 
 hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_TPathType* out_type,
-                                           hpatch_StreamPos_t* out_fileSize){
+                                                  hpatch_StreamPos_t* out_fileSize,size_t* out_st_mode){
 #if (_IS_USE_WIN32_UTF8_WAPI)
     int            wsize;
     wchar_t        path_w[hpatch_kPathMaxSize];
@@ -69,10 +69,12 @@ hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_T
     }else if ((s.st_mode&S_IFMT)==S_IFREG){
         *out_type=kPathType_file;
         if (out_fileSize) *out_fileSize=s.st_size;
+        if (out_st_mode) *out_st_mode=s.st_mode;
         return hpatch_TRUE;
     }else if ((s.st_mode&S_IFMT)==S_IFDIR){
         *out_type=kPathType_dir;
         if (out_fileSize) *out_fileSize=0;
+        if (out_st_mode) *out_st_mode=s.st_mode;
         return hpatch_TRUE;
     }else{
         return hpatch_FALSE; //as error; unknow how to dispose
@@ -94,7 +96,7 @@ hpatch_BOOL hpatch_getTempPathName(const char* path_utf8,char* out_tempPath_utf8
         char adding[_AddingLen]={'0','0','0','.','t','m','p','\0'};
         adding[2]+=i%10;    adding[1]+=(i/10)%10;   adding[0]+=(i/100)%10;
         memcpy(out_tempPath_utf8,adding,sizeof(adding));
-        if (!_hpatch_getPathStat_noEndDirSeparator(out_tempPath_utf8,&tmpPathType,0)) return hpatch_FALSE;
+        if (!_hpatch_getPathStat_noEndDirSeparator(out_tempPath_utf8,&tmpPathType,0,0)) return hpatch_FALSE;
         if (tmpPathType==kPathType_notExist)
             return hpatch_TRUE; //ok
     }
@@ -161,7 +163,7 @@ hpatch_BOOL hpatch_removeDir(const char* dirName_utf8){
 hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8){
     hpatch_TPathType type;
     _path_noEndDirSeparator(path,dirName_utf8);
-    if (!_hpatch_getPathStat_noEndDirSeparator(path,&type,0)) return hpatch_FALSE; //error
+    if (!_hpatch_getPathStat_noEndDirSeparator(path,&type,0,0)) return hpatch_FALSE; //error
     switch (type) {
         case kPathType_dir :{ return hpatch_TRUE; } break; //exist
         case kPathType_file:{ return hpatch_FALSE; } break; //error, not overwite
@@ -185,6 +187,28 @@ hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8){
     return hpatch_FALSE;
 }
 
+hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName){
+#ifdef _WIN32
+    return hpatch_TRUE; // now, not need execute info
+#else
+    hpatch_TPathType type;
+    size_t           st_mode=0;
+    if (!_hpatch_getPathStat_noEndDirSeparator(fileName,&type,0,&st_mode)) return hpatch_FALSE;
+    return 0==chmod(fileName,(mode_t)st_mode|S_IXUSR|S_IXGRP|S_IXOTH);
+#endif
+}
+
+hpatch_BOOL hpatch_getIsExecuteFile(const char* fileName){
+#ifdef _WIN32
+    return hpatch_FALSE; // now, not need execute info
+#else
+    hpatch_TPathType type;
+    size_t           st_mode=0;
+    if (!_hpatch_getPathStat_noEndDirSeparator(fileName,&type,0,&st_mode)) return hpatch_FALSE;
+    if (type!=kPathType_file) return hpatch_FALSE;// now, not need execute info
+    return (((mode_t)st_mode&S_IXUSR)!=0);
+#endif
+}
 
 
 hpatch_inline static

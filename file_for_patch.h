@@ -180,16 +180,16 @@ int hpatch_printStdErrPath_utf8(const char* pathTxt_utf8){
     
     
 hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_TPathType* out_type,
-                                           hpatch_StreamPos_t* out_fileSize);
+                                                  hpatch_StreamPos_t* out_fileSize,size_t* out_st_mode);
     
 hpatch_inline static
 hpatch_BOOL hpatch_getPathStat(const char* path_utf8,hpatch_TPathType* out_type,
                         hpatch_StreamPos_t* out_fileSize){
     if (!hpatch_getIsDirName(path_utf8)){
-        return _hpatch_getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize);
+        return _hpatch_getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize,0);
     }else{//dir name
         _path_noEndDirSeparator(path,path_utf8);
-        return _hpatch_getPathStat_noEndDirSeparator(path,out_type,out_fileSize);
+        return _hpatch_getPathStat_noEndDirSeparator(path,out_type,out_fileSize,0);
     }
 }
 
@@ -201,7 +201,7 @@ hpatch_BOOL hpatch_getPathTypeByName(const char* path_utf8,hpatch_TPathType* out
         if (out_fileSize) *out_fileSize=0;
         return hpatch_TRUE;
     }else{
-        return _hpatch_getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize);
+        return _hpatch_getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize,0);
     }
 }
 
@@ -215,7 +215,8 @@ hpatch_BOOL hpatch_removeDir(const char* dirName_utf8);
 
 hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8);
    
-
+hpatch_BOOL hpatch_getIsExecuteFile(const char* fileName);
+hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName);
     
 typedef FILE* hpatch_FileHandle;
 

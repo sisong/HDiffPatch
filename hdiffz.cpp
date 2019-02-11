@@ -1369,6 +1369,15 @@ struct DirDiffListener:public IDirDiffListener{
         }
         return result;
     }
+    
+    virtual bool isExecuteFile(const std::string& fileName) {
+        bool result= 0!=hpatch_getIsExecuteFile(fileName.c_str());
+        if (result){
+            std::string info="saved an Execute tag from file:\""+fileName+"\"\n";
+            hpatch_printPath_utf8(info.c_str());
+        }
+        return result;
+    }
     virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,
                              hpatch_StreamPos_t sameFileSize,size_t refOldFileCount,size_t refNewFileCount,
                              hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){

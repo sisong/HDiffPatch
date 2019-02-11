@@ -60,9 +60,22 @@ hpatch_BOOL _closeNewFile(IDirPatchListener* listener,hpatch_TFileStreamOutput* 
 }
 //IHPatchDirListener
 hpatch_BOOL _dirPatchBegin(IHPatchDirListener* listener,TDirPatcher* dirPatcher){
+    listener->listenerImport=dirPatcher;
     return hpatch_TRUE;
 }
 hpatch_BOOL _dirPatchFinish(IHPatchDirListener* listener,hpatch_BOOL isPatchSuccess){
+    TDirPatcher* dirPatcher=(TDirPatcher*)listener->listenerImport;
+    {//ExecuteFile
+        size_t i;
+        size_t count=TDirPatcher_getNewExecuteFileCount(dirPatcher);
+        for (i=0; i<count; ++i) {
+            const char* executeFileName=TDirPatcher_getNewExecuteFileByIndex(dirPatcher,i);
+            if (!hpatch_setIsExecuteFile(executeFileName)){
+                printf("WARNING: can't set Execute tag to new file \"");
+                hpatch_printPath_utf8(executeFileName); printf("\"\n");
+            }
+        }
+    }
     return hpatch_TRUE;
 }
 
@@ -175,6 +188,18 @@ hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPatchSucc
                     fprintf(stderr,"can't move new file to oldDirectory \"");
                     hpatch_printStdErrPath_utf8(newPath); fprintf(stderr,"\"  ERROR!\n");
                     continue;
+                }
+            }
+        }
+        {//ExecuteFile
+            size_t i;
+            size_t count=TDirPatcher_getNewExecuteFileCount(dirPatcher);
+            for (i=0; i<count; ++i) {
+                const char* executeFileName_new=TDirPatcher_getNewExecuteFileByIndex(dirPatcher,i);
+                const char* executeFileName=TDirPatcher_getOldPathByNewPath(dirPatcher,executeFileName_new);
+                if (!hpatch_setIsExecuteFile(executeFileName)){
+                    printf("WARNING: can't set Execute tag to new file \"");
+                    hpatch_printPath_utf8(executeFileName); printf("\"\n");
                 }
             }
         }

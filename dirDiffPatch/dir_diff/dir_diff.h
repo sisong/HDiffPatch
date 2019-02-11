@@ -48,6 +48,7 @@ struct IDirPathIgnore{
 
 struct IDirDiffListener:public IDirPathIgnore{
     virtual ~IDirDiffListener(){}
+    virtual bool isExecuteFile(const std::string& fileName) { return false; }
     virtual void diffPathList(std::vector<std::string>& oldPathList,std::vector<std::string>& newPathList){}
     virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,
                              hpatch_StreamPos_t sameFileSize,size_t refOldFileCount,size_t refNewFileCount,

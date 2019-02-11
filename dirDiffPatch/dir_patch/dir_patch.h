@@ -180,6 +180,11 @@ hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_
                               const hpatch_TStreamInput* oldData,
                               unsigned char* temp_cache,unsigned char* temp_cache_end);
 
+static hpatch_inline
+size_t      TDirPatcher_getNewExecuteFileCount(const TDirPatcher* self) {
+                                               return self->dirDiffHead.newExecuteCount;  }
+const char* TDirPatcher_getNewExecuteFileByIndex(TDirPatcher* self,size_t newExecuteIndex);
+
 hpatch_BOOL TDirPatcher_closeOldRefStream(TDirPatcher* self);//for TDirPatcher_openOldRefAsStream
 hpatch_BOOL TDirPatcher_closeNewDirStream(TDirPatcher* self);//for TDirPatcher_openNewDirAsStream
 hpatch_BOOL TDirPatcher_close(TDirPatcher* self);

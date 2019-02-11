@@ -863,6 +863,11 @@ const char* TDirPatcher_getNewPathByIndex(TDirPatcher* self,size_t newPathIndex)
     return self->_newRootDir;
 }
 
+const char* TDirPatcher_getNewExecuteFileByIndex(TDirPatcher* self,size_t newExecuteIndex){
+    assert(newExecuteIndex<self->dirDiffHead.newExecuteCount);
+    return TDirPatcher_getNewPathByIndex(self,self->newExecuteList[newExecuteIndex]);
+}
+
 
 hpatch_BOOL TDirPatcher_initOldSameRefCount(TDirPatcher* self){
     size_t* counts;
