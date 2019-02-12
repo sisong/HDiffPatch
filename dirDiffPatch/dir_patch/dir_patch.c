@@ -605,13 +605,18 @@ hpatch_BOOL TDirPatcher_closeOldRefStream(TDirPatcher* self){
 }
 
 
-static hpatch_BOOL _makeNewDir(hpatch_INewStreamListener* listener,size_t newPathIndex){
+static hpatch_BOOL _makeNewDirOrEmptyFile(hpatch_INewStreamListener* listener,size_t newPathIndex){
     hpatch_BOOL  result=hpatch_TRUE;
     TDirPatcher* self=(TDirPatcher*)listener->listenerImport;
-    const char*  dirName=TDirPatcher_getNewPathByIndex(self,newPathIndex);
-    check(dirName!=0);
-    assert(hpatch_getIsDirName(dirName));
-    check(self->_listener->makeNewDir(self->_listener,dirName));
+    const char*  pathName=TDirPatcher_getNewPathByIndex(self,newPathIndex);
+    check(pathName!=0);
+    if (hpatch_getIsDirName(pathName)){ //
+        check(self->_listener->makeNewDir(self->_listener,pathName));
+    }else{ //empty file
+        check(self->_listener->openNewFile(self->_listener,self->_curNewFile,pathName,0));
+        check(!self->_curNewFile->fileError);
+        check(self->_listener->closeNewFile(self->_listener,self->_curNewFile));
+    }
 clear:
     return result;
 }
@@ -721,7 +726,7 @@ hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,IDirPatchListener* 
         hpatch_TFileStreamOutput_init(self->_curNewFile);
         
         self->_newDirStreamListener.listenerImport=self;
-        self->_newDirStreamListener.makeNewDir=_makeNewDir;
+        self->_newDirStreamListener.makeNewDirOrEmptyFile=_makeNewDirOrEmptyFile;
         self->_newDirStreamListener.copySameFile=_copySameFile;
         self->_newDirStreamListener.openNewFile=_openNewFile;
         self->_newDirStreamListener.closeNewFile=_closeNewFile;

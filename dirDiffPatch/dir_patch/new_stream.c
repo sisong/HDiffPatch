@@ -89,8 +89,8 @@ static hpatch_BOOL _file_append_ready(hpatch_TNewStream* self){
             check(self->_listener->copySameFile(self->_listener,pair->newIndex,pair->oldIndex));
             ++self->_curSamePairIndex;
             ++self->_curPathIndex;
-        }else{ //make dir
-            check(self->_listener->makeNewDir(self->_listener,self->_curPathIndex));
+        }else{ //make dir or empty file
+            check(self->_listener->makeNewDirOrEmptyFile(self->_listener,self->_curPathIndex));
             ++self->_curPathIndex;
         }
     }
