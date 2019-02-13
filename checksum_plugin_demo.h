@@ -298,7 +298,7 @@ static hpatch_TChecksum fadler128ChecksumPlugin={ _fadler128_checksumType,_fadle
 
 #ifdef  _ChecksumPlugin_md5
 #if (_IsNeedIncludeDefaultChecksumHead)
-#   include "md5.h" // https://sourceforge.net/projects/libmd5-rfc
+#   include "md5.h" // https://sourceforge.net/projects/libmd5-rfc  https://github.com/sisong/libmd5
 #endif
 static const char* _md5_checksumType(void){
     static const char* type="md5";
@@ -308,18 +308,18 @@ static size_t _md5_checksumByteSize(void){
     return 16;
 }
 static hpatch_checksumHandle _md5_open(hpatch_TChecksum* plugin){
-    return malloc(sizeof(md5_state_s));
+    return malloc(sizeof(md5_state_t));
 }
 static void _md5_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
     if (handle) free(handle);
 }
 static void  _md5_begin(hpatch_checksumHandle handle){
-    md5_state_s* ps=(md5_state_s*)handle;
+    md5_state_t* ps=(md5_state_t*)handle;
     md5_init(ps);
 }
 static void _md5_append(hpatch_checksumHandle handle,
                           const unsigned char* part_data,const unsigned char* part_data_end){
-    md5_state_s* ps=(md5_state_s*)handle;
+    md5_state_t* ps=(md5_state_t*)handle;
     while (part_data!=part_data_end) {
         size_t dataSize=(size_t)(part_data_end-part_data);
         int  len=(int)((~(unsigned int)0)>>1);
@@ -332,7 +332,7 @@ static void _md5_append(hpatch_checksumHandle handle,
 }
 static void _md5_end(hpatch_checksumHandle handle,
                        unsigned char* checksum,unsigned char* checksum_end){
-    md5_state_s* ps=(md5_state_s*)handle;
+    md5_state_t* ps=(md5_state_t*)handle;
     assert(16==checksum_end-checksum);
     md5_finish(ps,checksum);
 }

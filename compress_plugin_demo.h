@@ -327,7 +327,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     
 #ifdef  _CompressPlugin_bz2
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "bzlib.h" // http://www.bzip.org/
+#   include "bzlib.h" // http://www.bzip.org/  https://github.com/sisong/bzip2
 #endif
     struct TCompressPlugin_bz2{
         hdiff_TCompress base;
@@ -456,7 +456,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 #if (defined _CompressPlugin_lzma)||(defined _CompressPlugin_lzma2)
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "LzmaEnc.h" // "lzma/C/LzmaEnc.h" http://www.7-zip.org/sdk.html
-//      https://github.com/sisong/lzma/tree/pthread support multi-thread compile in macos or linux
+//    https://github.com/sisong/lzma/tree/pthread  support multi-thread compile in macos and linux
 #   ifdef _CompressPlugin_lzma2
 #       include "Lzma2Enc.h"
 #   endif

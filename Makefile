@@ -1,6 +1,7 @@
 # args
 LZMA     := 1
 DIR_DIFF := 1
+MD5      := 0
 MT       := 0
 
 
@@ -43,7 +44,6 @@ else
 endif
 
 
-
 DEF_FLAGS := \
     -O3 -DNDEBUG \
     -D_IS_NEED_ORIGINAL=1 \
@@ -51,15 +51,19 @@ DEF_FLAGS := \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \
     -D_CompressPlugin_zlib  \
     -D_CompressPlugin_bz2  \
-    \
     -D_IS_NEED_ALL_ChecksumPlugin=0 \
-    -D_IS_NEED_DEFAULT_ChecksumPlugin=0 \
-    -D_ChecksumPlugin_crc32 \
-    -D_ChecksumPlugin_fadler64
+    -D_IS_NEED_DEFAULT_ChecksumPlugin=0 
 ifeq ($(DIR_DIFF),0)
   DEF_FLAGS += -D_IS_NEED_DIR_DIFF_PATCH=0
 else
-  DEF_FLAGS += -D_IS_NEED_DIR_DIFF_PATCH=1
+  DEF_FLAGS += \
+    -D_IS_NEED_DIR_DIFF_PATCH=1 \
+    -D_ChecksumPlugin_crc32 \
+    -D_ChecksumPlugin_fadler64
+  ifeq ($(MD5),0)
+  else
+    DEF_FLAGS += -D_ChecksumPlugin_md5 -I'../libmd5'
+  endif
 endif
 ifeq ($(LZMA),0)
 else
@@ -91,13 +95,26 @@ CXXFLAGS += $(DEF_FLAGS)
 
 .PHONY: all install clean
 
-all: lzmaLib libhdiffpatch.a hdiffz hpatchz
+all: md5Lib lzmaLib libhdiffpatch.a hdiffz hpatchz
 
+ifeq ($(DIR_DIFF),0)
+  MD5_OBJ     :=
+  md5Lib      :
+else
+  ifeq ($(MD5),0)
+    MD5_OBJ     :=
+    md5Lib      :
+  else
+    MD5_OBJ     := 'md5.o'
+    md5Lib      : # https://sourceforge.net/projects/libmd5-rfc  https://github.com/sisong/libmd5
+	$(CC) -c $(CFLAGS) '../libmd5/md5.c'
+  endif
+endif
 
 ifeq ($(LZMA),0)
   LZMA_DEC_OBJ :=
   LZMA_OBJ     :=
-  lzmaLib:
+  lzmaLib      :
 else
   LZMA_DEC_OBJ := 'LzmaDec.o' 'Lzma2Dec.o' 
   LZMA_OBJ     := 'LzFind.o' 'LzmaEnc.o' 'Lzma2Enc.o' $(LZMA_DEC_OBJ)
@@ -117,16 +134,16 @@ libhdiffpatch.a: $(HDIFF_OBJ)
 	$(AR) rcs $@ $^
 
 hdiffz: 
-	$(CXX) hdiffz.cpp libhdiffpatch.a $(LZMA_OBJ) $(CXXFLAGS) $(DIFF_LINK) -o hdiffz
+	$(CXX) hdiffz.cpp libhdiffpatch.a $(MD5_OBJ) $(LZMA_OBJ) $(CXXFLAGS) $(DIFF_LINK) -o hdiffz
 hpatchz: 
-	$(CC) hpatchz.c $(HPATCH_OBJ) $(LZMA_DEC_OBJ) $(CFLAGS) $(PATCH_LINK) -o hpatchz
+	$(CC) hpatchz.c $(HPATCH_OBJ) $(MD5_OBJ) $(LZMA_DEC_OBJ) $(CFLAGS) $(PATCH_LINK) -o hpatchz
 
 RM := rm -f
 INSTALL_X := install -m 0755
 INSTALL_BIN := $(DESTDIR)/usr/local/bin
 
 clean:
-	$(RM) libhdiffpatch.a hdiffz hpatchz $(HDIFF_OBJ) $(LZMA_OBJ)
+	$(RM) libhdiffpatch.a hdiffz hpatchz $(HDIFF_OBJ) $(MD5_OBJ) $(LZMA_OBJ)
 
 install: all
 	$(INSTALL_X) hdiffz $(INSTALL_BIN)/hdiffz

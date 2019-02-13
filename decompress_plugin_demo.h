@@ -200,7 +200,7 @@
     
 #ifdef  _CompressPlugin_bz2
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "bzlib.h" // http://www.bzip.org/
+#   include "bzlib.h" // http://www.bzip.org/  https://github.com/sisong/bzip2
 #endif
     typedef struct _bz2_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
@@ -305,7 +305,7 @@
 
 #if (defined _CompressPlugin_lzma) || (defined _CompressPlugin_lzma2)
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "LzmaDec.h" // "lzma/C/LzmaDec.h" http://www.7-zip.org/sdk.html
+#   include "LzmaDec.h" // "lzma/C/LzmaDec.h" http://www.7-zip.org/sdk.html  https://github.com/sisong/lzma
 #   ifdef _CompressPlugin_lzma2
 #       include "Lzma2Dec.h"
 #   endif
