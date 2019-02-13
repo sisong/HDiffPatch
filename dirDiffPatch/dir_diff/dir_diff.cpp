@@ -415,18 +415,30 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
 }
 
 struct CFileResHandleLimit{
-    inline CFileResHandleLimit(){ hpatch_TResHandleLimit_init(&limit); }
+    inline CFileResHandleLimit(size_t _limitMaxOpenCount,size_t resCount)
+    :limitMaxOpenCount(_limitMaxOpenCount),curInsert(0){
+        hpatch_TResHandleLimit_init(&limit);
+        resList.resize(resCount);
+        memset(resList.data(),0,sizeof(hpatch_IResHandle)*resCount);
+        fileList.resize(resCount);
+        for(size_t i=0;i<resCount;++i)
+            hpatch_TFileStreamInput_init(&fileList[i]);
+    }
     inline ~CFileResHandleLimit() { close(); }
-    void open(size_t limitMaxOpenCount,std::vector<hpatch_IResHandle>& _resList){
-        assert(fileList.empty());
-        fileList.resize(_resList.size());
-        memset(fileList.data(),0,sizeof(CFile)*_resList.size());
-        for (size_t i=0;i<_resList.size();++i){
-            fileList[i].fileName=(const char*)_resList[i].resImport;
-            _resList[i].resImport=&fileList[i];
-        }
-        check(hpatch_TResHandleLimit_open(&limit,limitMaxOpenCount,_resList.data(),
-                                   _resList.size()),"TResHandleLimit_open error!");
+    void addRes(const std::string& fileName,hpatch_StreamPos_t fileSize){
+        assert(curInsert<resList.size());
+        fileList[curInsert].fileName=fileName;
+        hpatch_IResHandle* res=&resList[curInsert];
+        res->open=CFileResHandleLimit::openRes;
+        res->close=CFileResHandleLimit::closeRes;
+        res->resImport=&fileList[curInsert];
+        res->resStreamSize=fileSize;
+        ++curInsert;
+    }
+    void open(){
+        assert(curInsert==resList.size());
+        check(hpatch_TResHandleLimit_open(&limit,limitMaxOpenCount,resList.data(),
+                                          resList.size()),"TResHandleLimit_open error!");
     }
     void close(){
         check(hpatch_TResHandleLimit_close(&limit),"TResHandleLimit_close error!");
@@ -435,8 +447,11 @@ struct CFileResHandleLimit{
     struct CFile:public hpatch_TFileStreamInput{
         std::string  fileName;
     };
-    hpatch_TResHandleLimit     limit;
-    std::vector<CFile>  fileList;
+    hpatch_TResHandleLimit          limit;
+    std::vector<CFile>              fileList;
+    std::vector<hpatch_IResHandle>  resList;
+    size_t                          limitMaxOpenCount;
+    size_t                          curInsert;
     static hpatch_BOOL openRes(struct hpatch_IResHandle* res,hpatch_TStreamInput** out_stream){
         CFile* self=(CFile*)res->resImport;
         assert(self->m_file==0);
@@ -583,31 +598,20 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
                oldSizeList,newSizeList,dataSamePairList,oldRefIList,newRefIList,
                isCachedHashs,oldHashList,newHashList);
     std::vector<hpatch_StreamPos_t> newRefSizeList;
-    std::vector<hpatch_IResHandle>  resList;
+    CFileResHandleLimit resLimit(kMaxOpenFileNumber,oldRefIList.size()+newRefIList.size());
     {
-        resList.resize(oldRefIList.size()+newRefIList.size());
-        hpatch_IResHandle* res=resList.data();
-        newRefSizeList.resize(newRefIList.size());
         for (size_t i=0; i<oldRefIList.size(); ++i) {
             size_t fi=oldRefIList[i];
-            res->open=CFileResHandleLimit::openRes;
-            res->close=CFileResHandleLimit::closeRes;
-            res->resImport=(void*)oldList[fi].c_str();
-            res->resStreamSize=oldSizeList[fi];
-            ++res;
+            resLimit.addRes(oldList[fi],oldSizeList[fi]);
         }
+        newRefSizeList.resize(newRefIList.size());
         for (size_t i=0; i<newRefIList.size(); ++i) {
             size_t fi=newRefIList[i];
-            res->open=CFileResHandleLimit::openRes;
-            res->close=CFileResHandleLimit::closeRes;
-            res->resImport=(void*)newList[fi].c_str();
-            res->resStreamSize=newSizeList[fi];
-            ++res;
             newRefSizeList[i]=newSizeList[fi];
+            resLimit.addRes(newList[fi],newSizeList[fi]);
         }
     }
-    CFileResHandleLimit resLimit;
-    resLimit.open(kMaxOpenFileNumber,resList);
+    resLimit.open();
     CRefStream oldRefStream;
     CRefStream newRefStream;
     oldRefStream.open(resLimit.limit.streamList,oldRefIList.size());
