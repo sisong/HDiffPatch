@@ -107,13 +107,16 @@
 #endif
 
 static void printUsage(){
-    printf("diff   usage: hdiffz [options]  oldPath newPath outDiffFile\n"
-           "test   usage: hdiffz    -t      oldPath newPath testDiffFile\n"
-           "resave usage: hdiffz [-c-[...]] diffFile outDiffFile\n"
+    printf("diff    usage: hdiffz [options] oldPath newPath outDiffFile\n"
+           "test    usage: hdiffz    -t     oldPath newPath testDiffFile\n"
+           "resave  usage: hdiffz [-c-...]  diffFile outDiffFile\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-           "  input oldPath newPath can be file or directory(folder),\n"
+           "manifest  out: hdiffz [-i|...] [-C-checksumType] inputPath -M|outManifestTxtFile\n"
+           "manifest diff: hdiffz [options] -M-old|oldManifestFile -M-new|newManifestFile\n"
+           "                      oldPath newPath outDiffFile\n"
+           "  oldPath newPath inputPath can be file or directory(folder),\n"
 #endif
-           "  oldPath can empty input parameter \"\"\n"
+           "  oldPath can empty, and input parameter \"\"\n"
            "memory options:\n"
            "  -m[-matchScore]\n"
            "      DEFAULT; all file load into Memory; best diffFileSize;\n"
@@ -232,6 +235,15 @@ static void printUsage(){
            "  -i-new|ignorePath[|ignorePath|...]\n"
            "      set Ignore path list in newPath when Directory Diff;\n"
            "      in general, new ignore list should is empty;\n"
+           "  -M|outManifestTxtFile\n"
+           "      create a Manifest file for inputPath; it is a text file, saved infos of\n"
+           "      all files and directoriy list in inputPath; this file while be used in \n"
+           "      manifest diff, support re-checksum data by manifest diff;\n"
+           "      can be used to protect historical versions be modified!\n"
+           "  -M-old|oldManifestFile\n"
+           "      oldManifestFile is created from oldPath;\n"
+           "  -M-new|newManifestFile\n"
+           "      newManifestFile is created from newPath;\n"
            "  -D  force run Directory diff between two files; DEFAULT (no -D) run \n"
            "      directory diff need oldPath or newPath is directory.\n"
 #endif //_IS_NEED_DIR_DIFF_PATCH
@@ -273,6 +285,7 @@ typedef enum THDiffResult {
     
     DIRDIFF_DIFF_ERROR=101,
     DIRDIFF_PATCH_ERROR,
+    MANIFEST_CREATE_ERROR,
 } THDiffResult;
 
 int hdiff_cmd_line(int argc,const char * argv[]);
@@ -285,6 +298,8 @@ int hdiff_dir(const char* oldPath,const char* newPath,const char* outDiffFileNam
               hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber,
               const std::vector<std::string>& ignorePathList,const std::vector<std::string>& ignoreOldPathList,
               const std::vector<std::string>& ignoreNewPathList);
+int create_manifest(const char* inputPath,const char* outManifestFileName,
+                    hpatch_TChecksum* checksumPlugin,const std::vector<std::string>& ignorePathList);
 #endif
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,hpatch_BOOL isDiff,
           hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,hpatch_BOOL isOriginal,
@@ -606,6 +621,9 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     size_t                  kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir diff
     hpatch_BOOL             isSetChecksum=_kNULL_VALUE;
     hpatch_TChecksum*       checksumPlugin=0;
+    std::string             manifestOut;
+    std::string             manifestOld;
+    std::string             manifestNew;
     std::vector<std::string>    ignorePathList;
     std::vector<std::string>    ignoreOldPathList;
     std::vector<std::string>    ignoreNewPathList;
@@ -721,6 +739,26 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                     _options_check(hpatch_FALSE,"-i?");
                 }
             } break;
+            case 'M':{
+                if (op[2]=='|'){ //-M|
+                    const char* plist=op+3;
+                    _options_check(manifestOut.empty()&&manifestOld.empty()&&manifestNew.empty(),"-M|");
+                    manifestOut=plist;
+                }else if (op[2]=='-'){
+                    const char* plist=op+7;
+                    if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='|')){
+                        _options_check(manifestOut.empty()&&manifestOld.empty(),"-M-old|");
+                        manifestOld=plist;
+                    }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='|')){
+                        _options_check(manifestOut.empty()&&manifestNew.empty(),"-M-new|");
+                        manifestNew=plist;
+                    }else{
+                        _options_check(hpatch_FALSE,"-M-?");
+                    }
+                }else{
+                    _options_check(hpatch_FALSE,"-M?");
+                }
+            } break;
             case 'D':{
                 _options_check((isForceRunDirDiff==_kNULL_VALUE)&&(op[2]=='\0'),"-D");
                 isForceRunDirDiff=hpatch_TRUE; //force run DirDiff
@@ -761,8 +799,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     
     if (isOldPathInputEmpty==_kNULL_VALUE)
         isOldPathInputEmpty=hpatch_FALSE;
-    _options_check((arg_values.size()==2)||(arg_values.size()==3),"count");
-    if (arg_values.size()==3){
+    _options_check((arg_values.size()==1)||(arg_values.size()==2)||(arg_values.size()==3),"count");
+    if (arg_values.size()==3){ //diff
         if (isOriginal==_kNULL_VALUE)
             isOriginal=hpatch_FALSE;
         if (isOriginal){
@@ -858,7 +896,39 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             return hdiff(oldPath,newPath,outDiffFileName,isDiff,isLoadAll,matchValue,isPatchCheck,isOriginal,
                          compressPlugin,decompressPlugin);
         }
-    }else{ //resave
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    }else if (!manifestOut.empty()){ //() //create manifest
+        _options_check(arg_values.size()==1,"create manifest file used one inputPath");
+        _options_check(ignoreOldPathList.empty(),"-i-old unsupport run with create manifest file mode");
+        _options_check(ignoreNewPathList.empty(),"-i-new unsupport run with create manifest file mode");
+        if (isSetChecksum==_kNULL_VALUE)
+            isSetChecksum=hpatch_FALSE;
+#ifdef _ChecksumPlugin_fadler64
+        if (isSetChecksum==hpatch_FALSE){
+            checksumPlugin=&fadler64ChecksumPlugin; //DEFAULT
+            isSetChecksum=hpatch_TRUE;
+        }
+#else
+#   ifdef _ChecksumPlugin_crc32
+        if (isSetChecksum==hpatch_FALSE){
+            checksumPlugin=&crc32ChecksumPlugin; //DEFAULT
+            isSetChecksum=hpatch_TRUE;
+        }
+#   endif
+#endif
+
+        if (checksumPlugin==0) { printf("WARNING: create manifest file not set chercksum!\n"); }
+        const char* inputPath =arg_values[0];
+        if (!isForceOverwrite){
+            hpatch_TPathType   outFileType;
+            _return_check(hpatch_getPathStat(manifestOut.c_str(),&outFileType,0),
+                          HDIFF_PATHTYPE_ERROR,"get outManifestFile type");
+            _return_check(outFileType==kPathType_notExist,
+                          HDIFF_PATHTYPE_ERROR,"create outManifestFile already exists, not overwrite");
+        }
+        return create_manifest(inputPath,manifestOut.c_str(),checksumPlugin,ignorePathList);
+#endif
+    }else{// (arg_values.size()==2)  //resave
         _options_check(!isOldPathInputEmpty,"can't resave, must input a diffFile");
         _options_check((isOriginal==_kNULL_VALUE),"-o unsupport run with resave mode");
         _options_check((isLoadAll==_kNULL_VALUE),"-m or -s unsupport run with resave mode");
@@ -1474,6 +1544,53 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
 clear:
     _isInClear=true;
     check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"check diffFile close");
+    return result;
+}
+
+int create_manifest(const char* _inputPath,const char* outManifestFileName,
+                    hpatch_TChecksum* checksumPlugin,const std::vector<std::string>& ignorePathList){
+    double time0=clock_s();
+    int  result=HDIFF_SUCCESS;
+    bool _isInClear=false;
+    std::string inputPath(_inputPath);
+    {
+        hpatch_TPathType inputType;
+        check(hpatch_getPathTypeByName(_inputPath,&inputType,0),HDIFF_PATHTYPE_ERROR,"get inputPath type");
+        check((inputType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"inputPath not exist");
+        hpatch_BOOL inputIsDir=(inputType==kPathType_dir);
+        if (inputIsDir) assignDirTag(inputPath);
+        std::string fnameInfo=std::string("")
+            +(inputIsDir? "inputDir   : \"":"inputFile:   \"")+inputPath+"\"\n"
+                        + "outManifest: \""+outManifestFileName+"\"\n";
+        hpatch_printPath_utf8(fnameInfo.c_str());
+    }
+    {
+        const char* checksumType="";
+        if (checksumPlugin) checksumType=checksumPlugin->checksumType();
+        printf("hdiffz run create Manifest with checksum plugin: \"%s\"\n",checksumType);
+        printf("\n");
+    }
+    
+    hpatch_TFileStreamOutput manifestData_out;
+    hpatch_TFileStreamOutput_init(&manifestData_out);
+        try {
+            std::vector<std::string> emptyPathList;
+            check(hpatch_TFileStreamOutput_open(&manifestData_out,outManifestFileName,-1),
+                  HDIFF_OPENWRITE_ERROR,"open out manifestFile");
+            //hpatch_TFileStreamOutput_setRandomOut(&manifestData_out,hpatch_TRUE);
+            DirDiffListener listener(ignorePathList,emptyPathList,emptyPathList);
+            save_manifest(&listener,inputPath,&manifestData_out.base,checksumPlugin);
+            manifestData_out.base.streamSize=manifestData_out.out_length;
+        }catch(const std::exception& e){
+            check(false,MANIFEST_CREATE_ERROR,"create manifest run an error: "+e.what());
+        }
+        printf("\nManifestFile size: %" PRIu64 "\n",manifestData_out.base.streamSize);
+        printf("create manifest time: %.3f s\n",(clock_s()-time0));
+        check(hpatch_TFileStreamOutput_close(&manifestData_out),HDIFF_FILECLOSE_ERROR,"check manifestFile close");
+        printf("  out manifestFile ok!\n");
+clear:
+    _isInClear=true;
+    check(hpatch_TFileStreamOutput_close(&manifestData_out),HDIFF_FILECLOSE_ERROR,"check manifestFile close");
     return result;
 }
 #endif //_IS_NEED_DIR_DIFF_PATCH

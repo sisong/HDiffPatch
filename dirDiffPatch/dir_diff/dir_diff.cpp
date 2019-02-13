@@ -789,6 +789,61 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     #undef _pushv
 }
 
+void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
+                   const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin){
+    assert(listener!=0);
+    std::vector<std::string> pathList;
+    const bool inputIsDir=isDirName(inputPath);
+    {
+        if (inputIsDir){
+            getDirAllPathList(inputPath,pathList,listener,false);
+            sortDirPathList(pathList);
+        }else{
+            pathList.push_back(inputPath);
+        }
+        //listener->diffPathList(pathList,0);
+    }
+    
+    std::vector<TByte> out_data;
+    {//head
+        pushCStr(out_data,"HDiff_Manifest_Version:1.0\n");
+        pushCStr(out_data, "Checksum_Type:");
+        if (checksumPlugin)
+            pushCStr(out_data,checksumPlugin->checksumType());
+        pushCStr(out_data, "\n\n");
+    }
+    //path list
+    for (size_t i=0; i<pathList.size(); ++i) {
+        const std::string& pathName=pathList[i];
+        if (isDirName(pathName)){
+            pushCStr(out_data, "Dir:");
+        }else{
+            pushCStr(out_data, "File:");
+            if (checksumPlugin){//checksum
+                CChecksum fileChecksum(checksumPlugin,false);
+                CFileStreamInput file(pathName);
+                fileChecksum.append(&file.base);
+                fileChecksum.appendEnd();
+                //to hex
+                const std::vector<TByte>& datas=fileChecksum.checksum;
+                std::string hexs(datas.size()*2,' ');
+                static const char _i2h[]="0123456789abcdef";
+                for (size_t h=0; h<datas.size(); ++h) {
+                    TByte d=datas[datas.size()-1-h];
+                    hexs[h*2+0]=_i2h[d>>4];
+                    hexs[h*2+1]=_i2h[d&0xF];
+                }
+                pushCStr(out_data, hexs.c_str());
+                pushCStr(out_data, ":");
+            }
+        }
+        pushCStr(out_data, pathName.c_str()+inputPath.size());
+        pushCStr(out_data, "\n");
+    }
+    check(outManifest->write(outManifest,0,out_data.data(),out_data.data()+out_data.size()),
+          "write manifest data error!");
+}
+
 
 #define _test(value) { if (!(value)) { fprintf(stderr,"DirPatch check "#value" error!\n");  return hpatch_FALSE; } }
 

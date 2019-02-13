@@ -73,5 +73,9 @@ hpatch_BOOL check_dirOldDataChecksum(const char* oldPatch,hpatch_TStreamInput* d
 void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decompressPlugin,
                     const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                     hpatch_TChecksum* checksumPlugin);
+
+void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
+                   const hpatch_TStreamOutput*  outManifest,hpatch_TChecksum* checksumPlugin);
+
 #endif
 #endif //hdiff_dir_diff_h
