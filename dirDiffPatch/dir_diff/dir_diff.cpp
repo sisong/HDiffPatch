@@ -551,6 +551,30 @@ static void _outType(std::vector<TByte>& out_data,const hdiff_TCompress* compres
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
+    TManifest oldManifest;
+    TManifest newManifest;
+    oldManifest.rootPath=oldPath;
+    newManifest.rootPath=newPath;
+    if (isDirName(oldManifest.rootPath)){
+        getDirAllPathList(oldManifest.rootPath,oldManifest.pathList,listener,true);
+        sortDirPathList(oldManifest.pathList);
+    }else{
+        oldManifest.pathList.push_back(oldManifest.rootPath);
+    }
+    if (isDirName(newManifest.rootPath)){
+        getDirAllPathList(newManifest.rootPath,newManifest.pathList,listener,false);
+        sortDirPathList(newManifest.pathList);
+    }else{
+        newManifest.pathList.push_back(newManifest.rootPath);
+    }
+    manifest_diff(listener,oldManifest,newManifest,outDiffStream,isLoadAll,matchValue,
+                  compressPlugin,checksumPlugin,kMaxOpenFileNumber);
+}
+
+void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
+                   const TManifest& newManifest,const hpatch_TStreamOutput* outDiffStream,
+                   bool isLoadAll,size_t matchValue,const hdiff_TCompress* compressPlugin,
+                   hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
     assert(listener!=0);
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     if ((checksumPlugin)&&(!isLoadAll)){
@@ -558,25 +582,11 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
               "for update checksum, outDiffStream->read_writed can't null error!");
     }
     kMaxOpenFileNumber-=1; // for outDiffStream
-    std::vector<std::string> oldList;
-    std::vector<std::string> newList;
-    const bool oldIsDir=isDirName(oldPath);
-    const bool newIsDir=isDirName(newPath);
-    {
-        if (oldIsDir){
-            getDirAllPathList(oldPath,oldList,listener,true);
-            sortDirPathList(oldList);
-        }else{
-            oldList.push_back(oldPath);
-        }
-        if (newIsDir){
-            getDirAllPathList(newPath,newList,listener,false);
-            sortDirPathList(newList);
-        }else{
-            newList.push_back(newPath);
-        }
-        listener->diffPathList(oldList,newList);
-    }
+    const std::vector<std::string>& oldList=oldManifest.pathList;
+    const std::vector<std::string>& newList=newManifest.pathList;
+    listener->diffPathList(oldList,newList);
+    const bool oldIsDir=isDirName(oldManifest.rootPath);
+    const bool newIsDir=isDirName(newManifest.rootPath);
     
     std::vector<hpatch_StreamPos_t> oldSizeList;
     std::vector<hpatch_StreamPos_t> newSizeList;
@@ -594,7 +604,7 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     if (isCachedHashs) checkv(sizeof(cmp_hash_value_t)==checksumPlugin->checksumByteSize());
     std::vector<cmp_hash_value_t> oldHashList;
     std::vector<cmp_hash_value_t> newHashList;
-    getRefList(oldPath,newPath,oldList,newList,
+    getRefList(oldManifest.rootPath,newManifest.rootPath,oldList,newList,
                oldSizeList,newSizeList,dataSamePairList,oldRefIList,newRefIList,
                isCachedHashs,oldHashList,newHashList);
     std::vector<hpatch_StreamPos_t> newRefSizeList;
@@ -665,8 +675,8 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
 
     //serialize headData
     std::vector<TByte> headData;
-    size_t oldPathSumSize=pushNameList(headData,oldPath,oldList,listener);
-    size_t newPathSumSize=pushNameList(headData,newPath,newList,listener);
+    size_t oldPathSumSize=pushNameList(headData,oldManifest.rootPath,oldList,listener);
+    size_t newPathSumSize=pushNameList(headData,newManifest.rootPath,newList,listener);
     pushIncList(headData,oldRefIList);
     pushIncList(headData,newRefIList);
     pushList(headData,newRefSizeList);
@@ -691,9 +701,9 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     //head info
     packUInt(out_data,oldIsDir?1:0);
     packUInt(out_data,newIsDir?1:0);
-    packUInt(out_data,oldList.size());          clearVector(oldList);
+    packUInt(out_data,oldList.size());
     packUInt(out_data,oldPathSumSize);
-    packUInt(out_data,newList.size());          clearVector(newList);
+    packUInt(out_data,newList.size());
     packUInt(out_data,newPathSumSize);
     packUInt(out_data,oldRefIList.size());      clearVector(oldRefIList);
     packUInt(out_data,oldRefStream.stream->streamSize); //same as hdiffz::oldDataSize
@@ -796,14 +806,11 @@ void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
     assert(listener!=0);
     std::vector<std::string> pathList;
     const bool inputIsDir=isDirName(inputPath);
-    {
-        if (inputIsDir){
-            getDirAllPathList(inputPath,pathList,listener,false);
-            sortDirPathList(pathList);
-        }else{
-            pathList.push_back(inputPath);
-        }
-        //listener->diffPathList(pathList,0);
+    if (inputIsDir){
+        getDirAllPathList(inputPath,pathList,listener,false);
+        sortDirPathList(pathList);
+    }else{
+        pathList.push_back(inputPath);
     }
     
     std::vector<TByte> out_data;
@@ -1107,27 +1114,36 @@ struct CDirPatcher:public TDirPatcher{
 bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
                    const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
                    hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
+    TManifest oldManifest;
+    TManifest newManifest;
+    oldManifest.rootPath=oldPath;
+    newManifest.rootPath=newPath;
+    if (isDirName(oldManifest.rootPath)){
+        getDirAllPathList(oldManifest.rootPath,oldManifest.pathList,listener,true);
+        sortDirPathList(oldManifest.pathList);
+    }else{
+        oldManifest.pathList.push_back(oldManifest.rootPath);
+    }
+    if (isDirName(newManifest.rootPath)){
+        getDirAllPathList(newManifest.rootPath,newManifest.pathList,listener,false);
+        sortDirPathList(newManifest.pathList);
+    }else{
+        newManifest.pathList.push_back(newManifest.rootPath);
+    }
+    return check_manifestdiff(listener,oldManifest,newManifest,testDiffData,
+                              decompressPlugin,checksumPlugin,kMaxOpenFileNumber);
+}
+
+bool check_manifestdiff(IDirDiffListener* listener,const TManifest& oldManifest,const TManifest& newManifest,
+                        const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
+                        hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
     bool     result=true;
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
-    std::vector<std::string> oldList;
-    std::vector<std::string> newList;
-    {
-        if (isDirName(oldPath)){
-            getDirAllPathList(oldPath,oldList,listener,true);
-            sortDirPathList(oldList);
-        }else{
-            oldList.push_back(oldPath);
-        }
-        if (isDirName(newPath)){
-            getDirAllPathList(newPath,newList,listener,false);
-            sortDirPathList(newList);
-        }else{
-            newList.push_back(newPath);
-        }
-        listener->diffPathList(oldList,newList);
-    }
+    const std::vector<std::string>& oldList=oldManifest.pathList;
+    const std::vector<std::string>& newList=newManifest.pathList;
+    listener->diffPathList(oldList,newList);
     
-    CDirPatchListener    patchListener(newPath,oldList,newList);
+    CDirPatchListener    patchListener(newManifest.rootPath,oldList,newList);
     CDirPatcher          dirPatcher;
     const TDirDiffInfo*  dirDiffInfo=0;
     TDirPatchChecksumSet    checksumSet={checksumPlugin,hpatch_TRUE,hpatch_TRUE,hpatch_TRUE,hpatch_TRUE};
@@ -1138,10 +1154,10 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
     const hpatch_TStreamOutput* newStream=0;
     {//dir diff info
         hpatch_TPathType    oldType;
-        if (oldPath.empty()){ // isOldPathInputEmpty
+        if (oldManifest.rootPath.empty()){ // isOldPathInputEmpty
             oldType=kPathType_file; //as empty file
         }else{
-            _test(hpatch_getPathStat(oldPath.c_str(),&oldType,0));
+            _test(hpatch_getPathStat(oldManifest.rootPath.c_str(),&oldType,0));
             _test(oldType!=kPathType_notExist);
         }
         _test(TDirPatcher_open(&dirPatcher,testDiffData,&dirDiffInfo));
@@ -1154,7 +1170,8 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
     }
     if (checksumPlugin)
         _test(TDirPatcher_checksum(&dirPatcher,&checksumSet));
-    _test(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin,oldPath.c_str(),newPath.c_str()));
+    _test(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin,
+                                  oldManifest.rootPath.c_str(),newManifest.rootPath.c_str()));
     _test(TDirPatcher_openOldRefAsStream(&dirPatcher,kMaxOpenFileNumber,&oldStream));
     _test(TDirPatcher_openNewDirAsStream(&dirPatcher,&patchListener,&newStream));
     _test(TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size));

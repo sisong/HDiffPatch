@@ -1443,7 +1443,7 @@ struct DirDiffListener:public IDirDiffListener{
     virtual bool isExecuteFile(const std::string& fileName) {
         bool result= 0!=hpatch_getIsExecuteFile(fileName.c_str());
         if (result){
-            std::string info="saved an Execute tag from file:\""+fileName+"\"\n";
+            std::string info="  get new file Execute tag:\""+fileName+"\"\n";
             hpatch_printPath_utf8(info.c_str());
         }
         return result;
