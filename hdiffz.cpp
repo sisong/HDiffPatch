@@ -855,10 +855,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             isLoadAll=hpatch_FALSE;     //not need -m, set as -s
             matchValue=hpatch_kStreamCacheSize; //not used
         }else{
-            _return_check(hpatch_getPathTypeByName(oldPath,&oldType,0),HDIFF_PATHTYPE_ERROR,"get oldPath type");
+            _return_check(hpatch_getPathStat(oldPath,&oldType,0),HDIFF_PATHTYPE_ERROR,"get oldPath type");
             _return_check((oldType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"oldPath not exist");
         }
-        _return_check(hpatch_getPathTypeByName(newPath,&newType,0),HDIFF_PATHTYPE_ERROR,"get newPath type");
+        _return_check(hpatch_getPathStat(newPath,&newType,0),HDIFF_PATHTYPE_ERROR,"get newPath type");
         _return_check((newType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"newPath not exist");
 #if (_IS_NEED_DIR_DIFF_PATCH)
         hpatch_BOOL isUseDirDiff=isForceRunDirDiff||(kPathType_dir==oldType)||(kPathType_dir==newType);
@@ -917,7 +917,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #   endif
 #endif
 
-        if (checksumPlugin==0) { printf("WARNING: create manifest file not set chercksum!\n"); }
+        if (checksumPlugin==0) { printf("WARNING: create manifest file not set chercksum!\n\n"); }
         const char* inputPath =arg_values[0];
         if (!isForceOverwrite){
             hpatch_TPathType   outFileType;
@@ -1555,7 +1555,7 @@ int create_manifest(const char* _inputPath,const char* outManifestFileName,
     std::string inputPath(_inputPath);
     {
         hpatch_TPathType inputType;
-        check(hpatch_getPathTypeByName(_inputPath,&inputType,0),HDIFF_PATHTYPE_ERROR,"get inputPath type");
+        check(hpatch_getPathStat(_inputPath,&inputType,0),HDIFF_PATHTYPE_ERROR,"get inputPath type");
         check((inputType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"inputPath not exist");
         hpatch_BOOL inputIsDir=(inputType==kPathType_dir);
         if (inputIsDir) assignDirTag(inputPath);

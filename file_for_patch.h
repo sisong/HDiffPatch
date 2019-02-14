@@ -32,13 +32,15 @@
 #include <stdio.h>  //fprintf
 #include <stdlib.h> // malloc free
 #include <locale.h> // setlocale
-#ifdef _MSC_VER
+#include "dirDiffPatch/dir_patch/dir_patch_types.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+#  ifdef _MSC_VER
 #   include <direct.h> // *mkdir *rmdir
-#else
+#  else
 #   include <unistd.h> // rmdir
+#  endif
 #endif
 
-#include "libHDiffPatch/HPatch/patch_types.h"
 
 #ifndef _IS_USE_WIN32_UTF8_WAPI
 #   if (defined(_WIN32) && defined(_MSC_VER))
@@ -61,12 +63,6 @@ extern "C" {
 typedef unsigned char TByte;
 #define hpatch_kFileIOBestMaxSize  (1<<20)
 #define hpatch_kPathMaxSize  (1024*2)
-
-#define kMaxOpenFileNumber_limit_min          3
-#define kMaxOpenFileNumber_default_min        8 //must >= limit_min
-#define kMaxOpenFileNumber_default_diff      48
-#define kMaxOpenFileNumber_default_patch     24
-
     
 #ifdef _WIN32
     static const char kPatch_dirSeparator = '\\';
@@ -193,31 +189,18 @@ hpatch_BOOL hpatch_getPathStat(const char* path_utf8,hpatch_TPathType* out_type,
     }
 }
 
-hpatch_inline static
-hpatch_BOOL hpatch_getPathTypeByName(const char* path_utf8,hpatch_TPathType* out_type,hpatch_StreamPos_t* out_fileSize){
-    assert(out_type!=0);
-    if (hpatch_getIsDirName(path_utf8)){
-        *out_type=kPathType_dir;
-        if (out_fileSize) *out_fileSize=0;
-        return hpatch_TRUE;
-    }else{
-        return _hpatch_getPathStat_noEndDirSeparator(path_utf8,out_type,out_fileSize,0);
-    }
-}
-
 hpatch_BOOL hpatch_getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end);
-
 hpatch_BOOL hpatch_renamePath(const char* oldPath_utf8,const char* newPath_utf8);
-hpatch_BOOL hpatch_moveFile(const char* oldPath_utf8,const char* newPath_utf8);
-
 hpatch_BOOL hpatch_removeFile(const char* fileName_utf8);
+#if (_IS_NEED_DIR_DIFF_PATCH)
 hpatch_BOOL hpatch_removeDir(const char* dirName_utf8);
-
+hpatch_BOOL hpatch_moveFile(const char* oldPath_utf8,const char* newPath_utf8);
 hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8);
-   
+
 hpatch_BOOL hpatch_getIsExecuteFile(const char* fileName);
 hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName);
-    
+#endif
+
 typedef FILE* hpatch_FileHandle;
 
 typedef struct hpatch_TFileStreamInput{

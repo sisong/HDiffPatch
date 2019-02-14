@@ -570,7 +570,7 @@ hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,size_t kMaxOpenFile
             hpatch_StreamPos_t fileSize;
             const char* oldRefFileName=TDirPatcher_getOldRefPathByRefIndex(self,i);
             check(oldRefFileName!=0);
-            check(hpatch_getPathTypeByName(oldRefFileName,&oldPathType,&fileSize));
+            check(hpatch_getPathStat(oldRefFileName,&oldPathType,&fileSize));
             check(oldPathType==kPathType_file);
             self->_resList[i].resImport=self;
             self->_resList[i].resStreamSize=fileSize;

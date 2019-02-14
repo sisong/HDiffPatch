@@ -789,6 +789,8 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     #undef _pushv
 }
 
+static std::string kChecksumTypeTag="Checksum_Type:";
+static std::string kPathTag="Path:";
 void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
                    const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin){
     assert(listener!=0);
@@ -807,7 +809,7 @@ void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
     std::vector<TByte> out_data;
     {//head
         pushCStr(out_data,"HDiff_Manifest_Version:1.0\n");
-        pushCStr(out_data, "Checksum_Type:");
+        pushCStr(out_data,kChecksumTypeTag.c_str());
         if (checksumPlugin)
             pushCStr(out_data,checksumPlugin->checksumType());
         pushCStr(out_data, "\n\n");
@@ -815,27 +817,24 @@ void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
     //path list
     for (size_t i=0; i<pathList.size(); ++i) {
         const std::string& pathName=pathList[i];
-        if (isDirName(pathName)){
-            pushCStr(out_data, "Dir:");
-        }else{
-            pushCStr(out_data, "File:");
-            if (checksumPlugin){//checksum
-                CChecksum fileChecksum(checksumPlugin,false);
-                CFileStreamInput file(pathName);
-                fileChecksum.append(&file.base);
-                fileChecksum.appendEnd();
-                //to hex
-                const std::vector<TByte>& datas=fileChecksum.checksum;
-                std::string hexs(datas.size()*2,' ');
-                static const char _i2h[]="0123456789abcdef";
-                for (size_t h=0; h<datas.size(); ++h) {
-                    TByte d=datas[datas.size()-1-h];
-                    hexs[h*2+0]=_i2h[d>>4];
-                    hexs[h*2+1]=_i2h[d&0xF];
-                }
-                pushCStr(out_data, hexs.c_str());
-                pushCStr(out_data, ":");
+        pushCStr(out_data, "Path:");
+        if ((!isDirName(pathName))&&(checksumPlugin!=0)){//checksum file
+            CChecksum fileChecksum(checksumPlugin,false);
+            CFileStreamInput file(pathName);
+            fileChecksum.append(&file.base);
+            fileChecksum.appendEnd();
+            //to hex
+            const std::vector<TByte>& datas=fileChecksum.checksum;
+            checkv(datas.size()==checksumPlugin->checksumByteSize());
+            std::string hexs(datas.size()*2,' ');
+            static const char _i2h[]="0123456789abcdef";
+            for (size_t h=0; h<datas.size(); ++h) {
+                TByte d=datas[h];
+                hexs[h*2+0]=_i2h[d&0xF];
+                hexs[h*2+1]=_i2h[d>>4];
             }
+            pushCStr(out_data, hexs.c_str());
+            pushCStr(out_data, ":");
         }
         pushCStr(out_data, pathName.c_str()+inputPath.size());
         pushCStr(out_data, "\n");
@@ -843,6 +842,137 @@ void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
     check(outManifest->write(outManifest,0,out_data.data(),out_data.data()+out_data.size()),
           "write manifest data error!");
 }
+
+void load_manifestFile(TManifestSaved& out_manifest,const std::string& rootPath,
+                   const char* manifestFile){
+    CFileStreamInput mf(manifestFile);
+    load_manifest(out_manifest,rootPath,&mf.base);
+}
+
+
+    static void _pushPathBack(std::vector<std::string>& pathList,const std::string& rootPath,
+                      const char* begin,const char* end){
+        pathList.push_back(std::string());
+        std::string& path=pathList.back();
+        path.append(rootPath);
+        path.append(begin,end);
+    }
+    static TByte _hex2b(char c){
+        switch (c) {
+            case '0': case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8': case '9': {
+                return c-'0';
+            } break;
+            case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': {
+                return c-('a'-10);
+            } break;
+            case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': {
+                return c-('A'-10);
+            } break;
+            default:
+                check(false,"input char not hex,can't convert to Byte error!");
+        }
+    }
+    static void _pushChecksumBack(std::vector<std::vector<TByte> >& checksumList,
+                                  const char* begin,const char* end){
+        checksumList.push_back(std::vector<TByte>());
+        std::vector<TByte>& data=checksumList.back();
+        size_t hexSize=end-begin;
+        checkv((hexSize&1)==0);
+        data.resize(hexSize>>1);
+        for (size_t i=0;i<hexSize;i+=2){
+            data[i>>1]=_hex2b(begin[i]) | (_hex2b(begin[i+1])<<4);
+        }
+    }
+void load_manifest(TManifestSaved& out_manifest,const std::string& rootPath,
+                   const hpatch_TStreamInput* manifestStream){
+    out_manifest.pathList.clear();
+    out_manifest.checksumList.clear();
+    out_manifest.checksumType.clear();
+    out_manifest.rootPath=rootPath;
+    //rootPath type
+    hpatch_TPathType rootPathType;
+    checkv(hpatch_getPathStat(rootPath.c_str(),&rootPathType,0));
+    checkv(rootPathType!=kPathType_notExist);
+    if (rootPathType==kPathType_dir)
+        assignDirTag(out_manifest.rootPath);
+    //read file
+    TAutoMem buf(manifestStream->streamSize);
+    checkv(manifestStream->read(manifestStream,0,buf.data(),buf.data_end()));
+    const char* cur=(const char*)buf.data();
+    const char* const end=(const char*)buf.data_end();
+    //get checksumType
+    const char* pos=std::search(cur,end,kChecksumTypeTag.begin(),kChecksumTypeTag.end());
+    const char * posEnd;
+    bool isHaveChecksum=false;
+    if (pos!=end){
+        pos+=kChecksumTypeTag.size();
+        posEnd=std::find(pos,end,'\n');
+        cur=posEnd;
+        //while ((pos<posEnd)&&isspace(pos[0])) ++pos;
+        //while ((pos<posEnd)&&isspace(posEnd[-1])) --posEnd;
+        if (posEnd[-1]==10) --posEnd;
+        isHaveChecksum=pos<posEnd;
+        out_manifest.checksumType.append(pos,posEnd);
+    }
+    //pathList
+    static const std::string kPosPathTag="\n"+kPathTag;
+    while (true) {
+        pos=std::search(cur,end,kChecksumTypeTag.begin(),kChecksumTypeTag.end());
+        if (out_manifest.pathList.empty()){//rootPath
+            check(pos!=end,"not found root path in manifest error!");
+        }else{
+            if (pos==end) break; //ok finish
+        }
+        pos+=kPosPathTag.size();
+        posEnd=std::find(pos,end,'\n');
+        cur=posEnd;
+        if (posEnd[-1]==10) --posEnd;
+        const char* checksumEnd=pos;
+        const char* pathBegin=pos;
+        if (out_manifest.pathList.empty()){//rootPath
+            if (isHaveChecksum&&(rootPathType==kPathType_file)){
+                checkv(posEnd[-1]==':');
+                checksumEnd=posEnd-1;
+                checkv(pos<checksumEnd);
+                pathBegin=posEnd;
+            }
+            checkv(pathBegin==posEnd);
+        }else{
+            bool pathIsDir=(posEnd[-1]==kPatch_dirSeparator_saved);
+            if (isHaveChecksum&&(!pathIsDir)){
+                checksumEnd=std::find(pos,posEnd,':');
+                checkv(checksumEnd!=posEnd);
+                checkv(pos<checksumEnd);
+                pathBegin=checksumEnd+1;
+            }
+            checkv(pathBegin<posEnd);
+        }
+        _pushPathBack(out_manifest.pathList,out_manifest.rootPath,pos,checksumEnd);
+        _pushChecksumBack(out_manifest.checksumList,pathBegin,posEnd);
+    }
+}
+void checksum_manifest(const TManifestSaved& manifest,hpatch_TChecksum* checksumPlugin){
+    if (checksumPlugin==0) return;
+    
+    for (size_t i=0; i<manifest.pathList.size(); ++i) {
+        const std::string& pathName=manifest.pathList[i];
+        hpatch_TPathType pathType;
+        check(hpatch_getPathStat(pathName.c_str(),&pathType,0),"checksum_manifest find: "+pathName);
+        if (isDirName(pathName)){
+            check(pathType==kPathType_dir,"checksum_manifest dir: "+pathName);
+        }else{
+            check(pathType==kPathType_file,"checksum_manifest file: "+pathName);
+            const std::vector<TByte>& datas=manifest.checksumList[i];
+            CChecksum fileChecksum(checksumPlugin,false);
+            CFileStreamInput file(pathName);
+            fileChecksum.append(&file.base);
+            fileChecksum.appendEnd();
+            check(datas!=fileChecksum.checksum,"checksum_manifest checksum: "+pathName);
+        }
+    }
+}
+
 
 
 #define _test(value) { if (!(value)) { fprintf(stderr,"DirPatch check "#value" error!\n");  return hpatch_FALSE; } }
@@ -1011,7 +1141,7 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
         if (oldPath.empty()){ // isOldPathInputEmpty
             oldType=kPathType_file; //as empty file
         }else{
-            _test(hpatch_getPathTypeByName(oldPath.c_str(),&oldType,0));
+            _test(hpatch_getPathStat(oldPath.c_str(),&oldType,0));
             _test(oldType!=kPathType_notExist);
         }
         _test(TDirPatcher_open(&dirPatcher,testDiffData,&dirDiffInfo));

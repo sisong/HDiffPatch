@@ -124,10 +124,6 @@ hpatch_BOOL hpatch_renamePath(const char* oldPath_utf8,const char* newPath_utf8)
     }
 }
 
-hpatch_BOOL hpatch_moveFile(const char* oldPath_utf8,const char* newPath_utf8){
-    return hpatch_renamePath(oldPath_utf8,newPath_utf8);
-}
-
 hpatch_BOOL hpatch_removeFile(const char* fileName_utf8){
     _path_noEndDirSeparator(fileName,fileName_utf8);{
 #if (_IS_USE_WIN32_UTF8_WAPI)
@@ -141,6 +137,8 @@ hpatch_BOOL hpatch_removeFile(const char* fileName_utf8){
 #endif
     }
 }
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
 
 hpatch_BOOL hpatch_removeDir(const char* dirName_utf8){
     _path_noEndDirSeparator(dirName,dirName_utf8);{
@@ -158,6 +156,10 @@ hpatch_BOOL hpatch_removeDir(const char* dirName_utf8){
 #   endif
 #endif
     }
+}
+
+hpatch_BOOL hpatch_moveFile(const char* oldPath_utf8,const char* newPath_utf8){
+    return hpatch_renamePath(oldPath_utf8,newPath_utf8);
 }
 
 hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8){
@@ -210,6 +212,7 @@ hpatch_BOOL hpatch_getIsExecuteFile(const char* fileName){
 #endif
 }
 
+#endif //_IS_NEED_DIR_DIFF_PATCH
 
 hpatch_inline static
 hpatch_BOOL _import_fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_pos){

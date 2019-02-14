@@ -62,10 +62,22 @@ struct IDirDiffListener:public IDirPathIgnore{
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
-
 bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
                    const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
                    hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
+
+struct TManifest{
+    std::string                 rootPath;
+    std::vector<std::string>    pathList;
+};
+void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
+                   const TManifest& newManifest,const hpatch_TStreamOutput* outDiffStream,
+                   bool isLoadAll,size_t matchValue,const hdiff_TCompress* compressPlugin,
+                   hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
+bool check_manifestdiff(IDirDiffListener* listener,const TManifest& oldManifest,const TManifest& newManifest,
+                        const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
+                        hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
+
 //as api demo
 hpatch_BOOL check_dirOldDataChecksum(const char* oldPatch,hpatch_TStreamInput* diffData,
                                      hpatch_TDecompress *decompressPlugin,hpatch_TChecksum *checksumPlugin);
@@ -74,8 +86,20 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
                     const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                     hpatch_TChecksum* checksumPlugin);
 
+
 void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
-                   const hpatch_TStreamOutput*  outManifest,hpatch_TChecksum* checksumPlugin);
+                   const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin);
+
+struct TManifestSaved:public TManifest{
+    std::string                                 checksumType;
+    std::vector<std::vector<unsigned char> >    checksumList;
+};
+
+void load_manifestFile(TManifestSaved& out_manifest,const std::string& rootPath,
+                       const char* manifestFile);
+void load_manifest(TManifestSaved& out_manifest,const std::string& rootPath,
+                   const hpatch_TStreamInput* manifestStream);
+void checksum_manifest(const TManifestSaved& manifest,hpatch_TChecksum* checksumPlugin);
 
 #endif
 #endif //hdiff_dir_diff_h

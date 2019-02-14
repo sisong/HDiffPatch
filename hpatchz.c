@@ -760,7 +760,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             assert(!isLoadOldAll);
             oldType=kPathType_file; //as empty file
         }else{
-            check(hpatch_getPathTypeByName(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"get oldPath type");
+            check(hpatch_getPathStat(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"get oldPath type");
             check((oldType!=kPathType_notExist),HPATCH_PATHTYPE_ERROR,"oldPath not exist");
         }
         check(hpatch_TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
