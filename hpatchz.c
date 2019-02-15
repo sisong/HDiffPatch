@@ -575,8 +575,9 @@ static void _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,const char* ch
     if (0==strcmp(checksumType,testChecksumPlugin->checksumType()))
         *out_checksumPlugin=testChecksumPlugin;
 }
-static hpatch_BOOL _findChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType){
-    assert(0==*out_checksumPlugin);
+static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType){
+    *out_checksumPlugin=0;
+    if (strlen(checksumType)==0) return hpatch_TRUE;
 #ifdef _ChecksumPlugin_crc32
     _trySetChecksum(out_checksumPlugin,checksumType,&crc32ChecksumPlugin);
 #endif
@@ -808,7 +809,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
                 memset(checksumSet,0,sizeof(*checksumSet));
                 printf("  NOTE: no checksum saved in diffFile,can not do checksum\n");
             }else{
-                if (!_findChecksum(&checksumSet->checksumPlugin,dirDiffInfo->checksumType)){
+                if (!findChecksum(&checksumSet->checksumPlugin,dirDiffInfo->checksumType)){
                     fprintf(stderr,"not found checksumType \"%s\" ERROR!\n",dirDiffInfo->checksumType);
                     check_on_error(DIRPATCH_CHECKSUMTYPE_ERROR);
                 }

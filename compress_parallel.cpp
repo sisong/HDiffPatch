@@ -146,7 +146,7 @@ hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
         workData.outBlockIndex=0;
         workData.in_data=in_data;
         workData.inDataPos=0;
-        workData.threadMemSize=blockSize + pc->maxCompressedSize(blockSize);
+        workData.threadMemSize=(size_t)(blockSize + pc->maxCompressedSize(blockSize));
         workData.mem.realloc(workData.threadMemSize*threadNum);
         workData.blockCompressors.resize(threadNum);
         for (int t=0; t<threadNum; ++t)

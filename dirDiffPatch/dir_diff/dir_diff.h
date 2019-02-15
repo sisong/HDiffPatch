@@ -78,9 +78,11 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
 bool check_manifestdiff(IDirDiffListener* listener,const TManifest& oldManifest,const TManifest& newManifest,
                         const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
                         hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
+void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
+                   const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin);
 
 //as api demo
-hpatch_BOOL check_dirOldDataChecksum(const char* oldPatch,hpatch_TStreamInput* diffData,
+hpatch_BOOL check_dirOldDataChecksum(const char* oldPath,hpatch_TStreamInput* diffData,
                                      hpatch_TDecompress *decompressPlugin,hpatch_TChecksum *checksumPlugin);
 
 void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decompressPlugin,
@@ -88,16 +90,13 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
                     hpatch_TChecksum* checksumPlugin);
 
 
-void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
-                   const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin);
-
 struct TManifestSaved:public TManifest{
     std::string                                 checksumType;
     std::vector<std::vector<unsigned char> >    checksumList;
 };
 
 void load_manifestFile(TManifestSaved& out_manifest,const std::string& rootPath,
-                       const char* manifestFile);
+                       const std::string& manifestFile);
 void load_manifest(TManifestSaved& out_manifest,const std::string& rootPath,
                    const hpatch_TStreamInput* manifestStream);
 void checksum_manifest(const TManifestSaved& manifest,hpatch_TChecksum* checksumPlugin);

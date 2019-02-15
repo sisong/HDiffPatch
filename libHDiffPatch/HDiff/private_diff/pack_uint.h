@@ -32,6 +32,7 @@
 #include <vector>
 #include "../../HPatch/patch_types.h" //hpatch_packUIntWithTag
 #include <stdexcept>  //std::runtime_error
+#include <string>
 namespace hdiff_private{
 
 template<class _UInt>
@@ -61,7 +62,10 @@ inline static void pushCStr(std::vector<unsigned char>& out_buf,const char* cstr
     const unsigned char* data=(const unsigned char*)cstr;
     pushBack(out_buf,data,data+strlen(cstr));
 }
-
+inline static void pushString(std::vector<unsigned char>& out_buf,const std::string& str){
+    const unsigned char* data=(const unsigned char*)str.c_str();
+    pushBack(out_buf,data,data+str.size());
+}
     
 struct TPlaceholder{
     hpatch_StreamPos_t pos;

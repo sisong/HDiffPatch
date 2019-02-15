@@ -56,7 +56,11 @@ static std::string _i2a(int ivalue){
     const int kMaxNumCharSize =32;
     std::string result;
     result.resize(kMaxNumCharSize);
+#ifdef _MSC_VER
+    int len=sprintf_s(&result[0],kMaxNumCharSize,"%d",ivalue);
+#else
     int len=sprintf(&result[0],"%d",ivalue);
+#endif
     result.resize(len);
     return result;
 }

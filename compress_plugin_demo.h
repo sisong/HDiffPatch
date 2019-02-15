@@ -285,9 +285,10 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         err = deflateEnd(&stream);
         return err;
     }
-    static size_t _pzlib_compressBlock(struct hdiff_TParallelCompress* pc,hdiff_compressBlockHandle blockCompressor,
-                                       size_t blockIndex,unsigned char* out_code,unsigned char* out_codeEnd,
-                                       const unsigned char* block_data,const unsigned char* block_dataEnd){
+    static
+    size_t _pzlib_compressBlock(hdiff_TParallelCompress* pc,hdiff_compressBlockHandle blockCompressor,
+                                hpatch_StreamPos_t blockIndex,unsigned char* out_code,unsigned char* out_codeEnd,
+                                const unsigned char* block_data,const unsigned char* block_dataEnd){
         const TCompressPlugin_pzlib* plugin=(const TCompressPlugin_pzlib*)pc->import;
         hpatch_BOOL isAdding=(blockIndex==0)&&(plugin->base.isNeedSaveWindowBits);
         if (isAdding){
@@ -420,9 +421,10 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
                                            hdiff_compressBlockHandle blockCompressor){
         assert(blockCompressor==pc);
     }
-    static size_t _pbz2_compressBlock(struct hdiff_TParallelCompress* pc,hdiff_compressBlockHandle blockCompressor,
-                                      size_t blockIndex,unsigned char* out_code,unsigned char* out_codeEnd,
-                                      const unsigned char* block_data,const unsigned char* block_dataEnd){
+    static
+    size_t _pbz2_compressBlock(hdiff_TParallelCompress* pc,hdiff_compressBlockHandle blockCompressor,
+                               hpatch_StreamPos_t blockIndex,unsigned char* out_code,unsigned char* out_codeEnd,
+                               const unsigned char* block_data,const unsigned char* block_dataEnd){
         const TCompressPlugin_pbz2* plugin=(const TCompressPlugin_pbz2*)pc->import;
         unsigned int codeLen=(unsigned int)(out_codeEnd-out_code);
         if (BZ_OK!=BZ2_bzBuffToBuffCompress((char*)out_code,&codeLen,(char*)block_data,
