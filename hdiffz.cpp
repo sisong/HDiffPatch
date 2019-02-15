@@ -111,8 +111,8 @@ static void printUsage(){
            "test    usage: hdiffz    -t     oldPath newPath testDiffFile\n"
            "resave  usage: hdiffz [-c-...]  diffFile outDiffFile\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-           "get  manifest: hdiffz [-i|...] [-C-checksumType] inputPath -M|outManifestTxtFile\n"
-           "manifest diff: hdiffz [options] -M-old|oldManifestFile -M-new|newManifestFile\n"
+           "get  manifest: hdiffz [-i$...] [-C-checksumType] inputPath -M$outManifestTxtFile\n"
+           "manifest diff: hdiffz [options] -M-old$oldManifestFile -M-new$newManifestFile\n"
            "                      oldPath newPath outDiffFile\n"
            "  oldPath newPath inputPath can be file or directory(folder),\n"
 #endif
@@ -122,16 +122,16 @@ static void printUsage(){
            "      DEFAULT; all file load into Memory; best diffFileSize;\n"
            "      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1)\n"
            "        bytes of memory;\n"
-           "      matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc...\n"
+           "      matchScore>=0, DEFAULT -m-6, recommended bin: 0--4 text: 4--9 etc...\n"
            "  -s[-matchBlockSize]\n"
            "      all file load as Stream; fast;\n"
            "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;\n"
-           "      matchBlockSize>=4, DEFAULT 64, recommended 16,32,48,1k,64k,1m etc...\n"
+           "      matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...\n"
            "special options:\n"
 #if (_IS_USED_MULTITHREAD)
            "  -p-parallelThreadNumber\n"
            "    if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
-           "    DEFAULT 4; requires more and more memory!\n"
+           "    DEFAULT -p-4; requires more and more memory!\n"
 #endif
            "  -c-compressType[-compressLevel]\n"
            "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"
@@ -139,110 +139,110 @@ static void printUsage(){
            "      support compress type & level:\n"
            "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
-           "        -zlib[-{1..9}]              DEFAULT level 9\n"
+           "        -c-zlib[-{1..9}]                DEFAULT level 9\n"
 #   if (_IS_USED_MULTITHREAD)
-           "        -pzlib[-{1..9}]             DEFAULT level 6\n"
+           "        -c-pzlib[-{1..9}]               DEFAULT level 6\n"
            "            support run by multi-thread parallel, fast!\n"
-           "            WARNING: code not compatible with it compressed by -zlib!\n"
-           "              and code size may be larger than if it compressed by -zlib. \n"
+           "            WARNING: code not compatible with it compressed by -c-zlib!\n"
+           "              and code size may be larger than if it compressed by -c-zlib. \n"
 #   endif
 #endif
 #ifdef _CompressPlugin_bz2
-           "        -bzip2[-{1..9}]             (or -bz2) DEFAULT level 9\n"
+           "        -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9\n"
 #   if (_IS_USED_MULTITHREAD)
-           "        -pbzip2[-{1..9}]            (or -pbz2) DEFAULT level 8\n"
+           "        -c-pbzip2[-{1..9}]              (or -pbz2) DEFAULT level 8\n"
            "            support run by multi-thread parallel, fast!\n"
-           "            WARNING: code not compatible with it compressed by -bzip2!\n"
-           "               and code size may be larger than if it compressed by -bzip2.\n"
+           "            WARNING: code not compatible with it compressed by -c-bzip2!\n"
+           "               and code size may be larger than if it compressed by -c-bzip2.\n"
 #   endif
 #endif
 #ifdef _CompressPlugin_lzma
-           "        -lzma[-{0..9}[-dictSize]]   DEFAULT level 7\n"
+           "        -c-lzma[-{0..9}[-dictSize]]     DEFAULT level 7\n"
            "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m\n"
 #   if (_IS_USED_MULTITHREAD)
            "            support run by 2-thread parallel.\n"
 #   endif
 #endif
 #ifdef _CompressPlugin_lzma2
-           "        -lzma2[-{0..9}[-dictSize]]  DEFAULT level 7\n"
+           "        -c-lzma2[-{0..9}[-dictSize]]    DEFAULT level 7\n"
            "            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m\n"
 #   if (_IS_USED_MULTITHREAD)
            "            support run by multi-thread parallel, fast!\n"
 #   endif
-           "            WARNING: code not compatible with it compressed by -lzma!\n"
+           "            WARNING: code not compatible with it compressed by -c-lzma!\n"
 #endif
 #ifdef _CompressPlugin_lz4
-           "        -lz4[-{1..50}]              DEFAULT level 50 (as lz4 acceleration 1)\n"
+           "        -c-lz4[-{1..50}]                DEFAULT level 50 (as lz4 acceleration 1)\n"
 #endif
 #ifdef _CompressPlugin_lz4hc
-           "        -lz4hc[-{3..12}]            DEFAULT level 11\n"
+           "        -c-lz4hc[-{3..12}]              DEFAULT level 11\n"
 #endif
 #ifdef _CompressPlugin_zstd
-           "        -zstd[-{0..22}]             DEFAULT level 20\n"
+           "        -c-zstd[-{0..22}]               DEFAULT level 20\n"
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumType\n"
            "      set outDiffFile Checksum type for dir diff, DEFAULT "
 #ifdef _ChecksumPlugin_fadler64
-           "used fadler64;\n"
+           "used -C-fadler64;\n"
 #else
 #   ifdef _ChecksumPlugin_crc32
-           "used crc32;\n"
+           "used -C-crc32;\n"
 #   else
            "no checksum;\n"
 #   endif
 #endif
            "      support checksum type:\n"
-           "        -no                         no checksum\n"
+           "        -C-no                   no checksum\n"
 #ifdef _ChecksumPlugin_crc32
 #   ifdef _ChecksumPlugin_fadler64
-           "        -crc32\n"
+           "        -C-crc32\n"
 #   else
-           "        -crc32                      DEFAULT\n"
+           "        -C-crc32                DEFAULT\n"
 #   endif
 #endif
 #ifdef _ChecksumPlugin_adler32
-           "        -adler32\n"
+           "        -C-adler32\n"
 #endif
 #ifdef _ChecksumPlugin_adler64
-           "        -adler64\n"
+           "        -C-adler64\n"
 #endif
 #ifdef _ChecksumPlugin_fadler32
-           "        -fadler32\n"
+           "        -C-fadler32\n"
 #endif
 #ifdef _ChecksumPlugin_fadler64
-           "        -fadler64                   DEFAULT\n"
+           "        -C-fadler64             DEFAULT\n"
 #endif
 #ifdef _ChecksumPlugin_fadler128
-           "        -fadler128\n"
+           "        -C-fadler128\n"
 #endif
 #ifdef _ChecksumPlugin_md5
-           "        -md5\n"
+           "        -C-md5\n"
 #endif
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory diff;\n"
-           "      maxOpenFileNumber>=8, DEFAULT 48, the best limit value by different\n"
+           "      maxOpenFileNumber>=8, DEFAULT -n-48, the best limit value by different\n"
            "        operating system.\n"
-           "  -i|ignorePath[|ignorePath|...]\n"
+           "  -i$ignorePath[$ignorePath$...]\n"
            "      set Ignore path list when Directory Diff; ignore path list such as:\n"
-           "        |.DS_Store|desktop.ini|*thumbs*.db|.git*|.svn/|cache_*/00*11/*.tmp\n"
-           "      | means separator between names; (if char | in name, need write |: )\n"
+           "        $.DS_Store$desktop.ini$*thumbs*.db$.git*$.svn/$cache_*/00*11/*.tmp\n"
+           "      $ means separator between names; (if char $ in name, need write $: )\n"
            "      * means can match any chars in name; (if char * in name, need write *: );\n"
            "      / at the end of name means must match directory;\n"
-           "  -i-old|ignorePath[|ignorePath|...]\n"
+           "  -i-old$ignorePath[$ignorePath$...]\n"
            "      set Ignore path list in oldPath when Directory Diff;\n"
            "      if oldFile can be changed, need add it in old ignore list;\n"
-           "  -i-new|ignorePath[|ignorePath|...]\n"
+           "  -i-new$ignorePath[$ignorePath$...]\n"
            "      set Ignore path list in newPath when Directory Diff;\n"
            "      in general, new ignore list should is empty;\n"
-           "  -M|outManifestTxtFile\n"
+           "  -M$outManifestTxtFile\n"
            "      create a Manifest file for inputPath; it is a text file, saved infos of\n"
            "      all files and directoriy list in inputPath; this file while be used in \n"
            "      manifest diff, support re-checksum data by manifest diff;\n"
            "      can be used to protect historical versions be modified!\n"
-           "  -M-old|oldManifestFile\n"
+           "  -M-old$oldManifestFile\n"
            "      oldManifestFile is created from oldPath;\n"
-           "  -M-new|newManifestFile\n"
+           "  -M-new$newManifestFile\n"
            "      newManifestFile is created from newPath;\n"
            "  -D  force run Directory diff between two files; DEFAULT (no -D) run \n"
            "      directory diff need oldPath or newPath is directory.\n"
@@ -449,17 +449,17 @@ static hpatch_BOOL _getIgnorePathSetList(std::vector<std::string>& out_pathList,
     std::string cur;
     while (true) {
         char c=*plist;
-        if ((c=='|')&&(plist[1]==':')){ // |: as |
-            cur.push_back(c); plist+=2; //skip |:
+        if ((c=='$')&&(plist[1]==':')){ // $: as $
+            cur.push_back(c); plist+=2; //skip $:
         }else if ((c=='*')&&(plist[1]==':')){ // *: as *:
             cur.push_back(c); cur.push_back(':'); plist+=2; //skip *:
-        }else if ((c=='\0')||((c=='|')&&(plist[1]!=':'))){
+        }else if ((c=='\0')||((c=='$')&&(plist[1]!=':'))){
             if (cur.empty()) return hpatch_FALSE;// can't empty
             if (std::string::npos!=cur.find("**")) return hpatch_FALSE;// can't **
             _formatIgnorePathSet(cur);
             out_pathList.push_back(cur);
             if (c=='\0') return hpatch_TRUE;
-            cur.clear();  ++plist; //skip |
+            cur.clear();  ++plist; //skip $
         }else if (c==kIgnoreMagicChar){
             return hpatch_FALSE; //error path char
         }else{
@@ -757,15 +757,15 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
             } break;
             case 'i':{
-                if (op[2]=='|'){ //-i|
+                if (op[2]=='$'){ //-i$
                     const char* plist=op+3;
-                    _options_check(_getIgnorePathSetList(ignorePathList,plist),"-i|?");
+                    _options_check(_getIgnorePathSetList(ignorePathList,plist),"-i$?");
                 }else if (op[2]=='-'){
                     const char* plist=op+7;
-                    if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='|')){
-                        _options_check(_getIgnorePathSetList(ignoreOldPathList,plist),"-i-old|?");
-                    }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='|')){
-                        _options_check(_getIgnorePathSetList(ignoreNewPathList,plist),"-i-new|?");
+                    if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='$')){
+                        _options_check(_getIgnorePathSetList(ignoreOldPathList,plist),"-i-old$?");
+                    }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='$')){
+                        _options_check(_getIgnorePathSetList(ignoreNewPathList,plist),"-i-new$?");
                     }else{
                         _options_check(hpatch_FALSE,"-i-?");
                     }
@@ -774,17 +774,17 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 }
             } break;
             case 'M':{
-                if (op[2]=='|'){ //-M|
+                if (op[2]=='$'){ //-M$
                     const char* plist=op+3;
-                    _options_check(manifestOut.empty()&&manifestOld.empty()&&manifestNew.empty(),"-M|");
+                    _options_check(manifestOut.empty()&&manifestOld.empty()&&manifestNew.empty(),"-M$");
                     manifestOut=plist;
                 }else if (op[2]=='-'){
                     const char* plist=op+7;
-                    if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='|')){
-                        _options_check(manifestOut.empty()&&manifestOld.empty(),"-M-old|");
+                    if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='$')){
+                        _options_check(manifestOut.empty()&&manifestOld.empty(),"-M-old$");
                         manifestOld=plist;
-                    }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='|')){
-                        _options_check(manifestOut.empty()&&manifestNew.empty(),"-M-new|");
+                    }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='$')){
+                        _options_check(manifestOut.empty()&&manifestNew.empty(),"-M-new$");
                         manifestNew=plist;
                     }else{
                         _options_check(hpatch_FALSE,"-M-?");
