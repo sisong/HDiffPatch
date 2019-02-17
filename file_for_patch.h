@@ -196,10 +196,9 @@ hpatch_BOOL hpatch_removeFile(const char* fileName_utf8);
 hpatch_BOOL hpatch_removeDir(const char* dirName_utf8);
 hpatch_BOOL hpatch_moveFile(const char* oldPath_utf8,const char* newPath_utf8);
 hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8);
-
+#endif
 hpatch_BOOL hpatch_getIsExecuteFile(const char* fileName);
 hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName);
-#endif
 
 typedef FILE* hpatch_FileHandle;
 
@@ -216,7 +215,7 @@ static void hpatch_TFileStreamInput_init(hpatch_TFileStreamInput* self){
     memset(self,0,sizeof(hpatch_TFileStreamInput));
 }
 hpatch_BOOL hpatch_TFileStreamInput_open(hpatch_TFileStreamInput* self,const char* fileName_utf8);
-void hpatch_TFileStreamInput_setOffset(hpatch_TFileStreamInput* self,size_t offset);
+hpatch_BOOL hpatch_TFileStreamInput_setOffset(hpatch_TFileStreamInput* self,hpatch_StreamPos_t offset);
 hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self);
 
 typedef struct hpatch_TFileStreamOutput{ //is hpatch_TFileStreamInput !

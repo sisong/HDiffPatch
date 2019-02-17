@@ -189,16 +189,7 @@ hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8){
     return hpatch_FALSE;
 }
 
-hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName){
-#ifdef _WIN32
-    return hpatch_TRUE; // now, not need execute info
-#else
-    hpatch_TPathType type;
-    size_t           st_mode=0;
-    if (!_hpatch_getPathStat_noEndDirSeparator(fileName,&type,0,&st_mode)) return hpatch_FALSE;
-    return 0==chmod(fileName,(mode_t)st_mode|S_IXUSR|S_IXGRP|S_IXOTH);
-#endif
-}
+#endif //_IS_NEED_DIR_DIFF_PATCH
 
 hpatch_BOOL hpatch_getIsExecuteFile(const char* fileName){
 #ifdef _WIN32
@@ -212,7 +203,17 @@ hpatch_BOOL hpatch_getIsExecuteFile(const char* fileName){
 #endif
 }
 
-#endif //_IS_NEED_DIR_DIFF_PATCH
+hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName){
+#ifdef _WIN32
+    return hpatch_TRUE; // now, not need execute info
+#else
+    hpatch_TPathType type;
+    size_t           st_mode=0;
+    if (!_hpatch_getPathStat_noEndDirSeparator(fileName,&type,0,&st_mode)) return hpatch_FALSE;
+    return 0==chmod(fileName,(mode_t)st_mode|S_IXUSR|S_IXGRP|S_IXOTH);
+#endif
+}
+
 
 hpatch_inline static
 hpatch_BOOL _import_fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_pos){
@@ -373,11 +374,12 @@ hpatch_BOOL hpatch_TFileStreamInput_open(hpatch_TFileStreamInput* self,const cha
     return hpatch_TRUE;
 }
 
-void hpatch_TFileStreamInput_setOffset(hpatch_TFileStreamInput* self,size_t offset){
-    assert(self->m_offset==0);
-    assert(self->base.streamSize>=offset);
-    self->m_offset=offset;
+hpatch_BOOL hpatch_TFileStreamInput_setOffset(hpatch_TFileStreamInput* self,hpatch_StreamPos_t offset){
+    if (self->base.streamSize<offset)
+        return hpatch_FALSE;
+    self->m_offset+=offset;
     self->base.streamSize-=offset;
+    return hpatch_TRUE;
 }
 
 hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self){

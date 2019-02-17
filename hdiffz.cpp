@@ -249,9 +249,9 @@ static void printUsage(){
 #endif //_IS_NEED_DIR_DIFF_PATCH
            "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
            "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
-           "  -f  Force overwrite, ignore diffFile already exists;\n"
+           "  -f  Force overwrite, ignore write path already exists;\n"
            "      DEFAULT (no -f) not overwrite and then return error;\n"
-           "      if used -f and outNewPath is exist directory, will always return error.\n"
+           "      if used -f and write path is exist directory, will always return error.\n"
 #if (_IS_NEED_ORIGINAL)
            "  -o  DEPRECATED; Original diff, unsupport run with -s -c -C -D;\n"
            "      compatible with \"diff_demo.cpp\",\n"
@@ -607,25 +607,6 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     return HDIFF_SUCCESS;
 }
 
-static
-hpatch_BOOL getCompressedDiffInfoByFile(const char* diffFileName,hpatch_compressedDiffInfo *out_info){
-    hpatch_BOOL          result=hpatch_TRUE;
-    hpatch_TFileStreamInput     diffData;
-    hpatch_TFileStreamInput_init(&diffData);
-    
-    if (!hpatch_TFileStreamInput_open(&diffData,diffFileName)) return hpatch_FALSE;
-    result=getCompressedDiffInfo(out_info,&diffData.base);
-    if (!hpatch_TFileStreamInput_close(&diffData)) return hpatch_FALSE;
-    return result;
-}
-static hpatch_inline
-hpatch_BOOL getIsCompressedDiffFile(const char* diffFileName){
-    hpatch_compressedDiffInfo diffInfo;
-    if (!getCompressedDiffInfoByFile(diffFileName,&diffInfo)) return hpatch_FALSE;
-    return hpatch_TRUE;
-}
-
-
 #define _return_check(value,exitCode,errorInfo){ \
     if (!(value)) { fprintf(stderr,errorInfo " ERROR!\n"); return exitCode; } }
 
@@ -833,7 +814,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     
     if (isOldPathInputEmpty==_kNULL_VALUE)
         isOldPathInputEmpty=hpatch_FALSE;
-    _options_check((arg_values.size()==1)||(arg_values.size()==2)||(arg_values.size()==3),"count");
+    _options_check((arg_values.size()==1)||(arg_values.size()==2)||(arg_values.size()==3),"input count");
     if (arg_values.size()==3){ //diff
         if (isOriginal==_kNULL_VALUE)
             isOriginal=hpatch_FALSE;

@@ -98,32 +98,34 @@
 #endif
 
 static void printUsage(){
-    printf("usage: hpatchz [options] oldPath diffFile outNewPath\n"
+    printf("patch usage: hpatchz [options] oldPath diffFile outNewPath\n"
+           "create  SFX: hpatchz diffFile -X$outSelfExtractArchive\n"
+           "run     SFX: selfExtractArchive [options] oldPath -X outNewPath\n"
            "  ( if oldPath is empty input parameter \"\" )\n"
            "memory options:\n"
-           "  -m  oldPath all loaded into Memory; fast;\n"
+           "  -m  oldPath all loaded into Memory;\n"
            "      requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.\n"
            "  -s[-cacheSize] \n"
-           "      DEFAULT; oldPath loaded as Stream;\n"
+           "      DEFAULT -s-64m; oldPath loaded as Stream;\n"
            "      requires (cacheSize+ 4*decompress stream size)+O(1) bytes of memory;\n"
-           "      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 64m.\n"
+           "      cacheSize can like 262144 or 256k or 512m or 2g etc....\n"
            "special options:\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumSets\n"
-           "      set Checksum data for directory patch, DEFAULT -new-copy;\n"
+           "      set Checksum data for directory patch, DEFAULT -C-new-copy;\n"
            "      checksumSets support (can choose multiple):\n"
-           "        -diff      checksum diffFile;\n"
-           "        -old       checksum old reference files;\n"
-           "        -new       checksum new reference files edited from old reference files;\n"
-           "        -copy      checksum new files copy from old same files;\n"
-           "        -no        no checksum\n"
-           "        -all       same as: -diff-old-new-copy\n"
+           "        -C-diff         checksum diffFile;\n"
+           "        -C-old          checksum old reference files;\n"
+           "        -C-new          checksum new files edited from old reference files;\n"
+           "        -C-copy         checksum new files copy from old same files;\n"
+           "        -C-no           no checksum;\n"
+           "        -C-all          same as: -C-diff-old-new-copy;\n"
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory patch;\n"
-           "      maxOpenFileNumber>=8, DEFAULT 24, the best limit value by different\n"
+           "      maxOpenFileNumber>=8, DEFAULT -n-24, the best limit value by different\n"
            "        operating system.\n"
 #endif
-           "  -f  Force overwrite, ignore outNewPath already exists;\n"
+           "  -f  Force overwrite, ignore write path already exists;\n"
            "      DEFAULT (no -f) not overwrite and then return error;\n"
            "      support oldPath outNewPath same path!(patch to tempPath and overwrite old)\n"
            "      if used -f and outNewPath is exist file:\n"
@@ -189,17 +191,26 @@ typedef enum THPatchResult {
     DIRPATCH_CLOSE_NEWPATH_ERROR,
     DIRPATCH_PATCHBEGIN_ERROR,
     DIRPATCH_PATCHFINISH_ERROR,
+    
+    HPATCH_CREATE_SFX_DIFFFILETYPE_ERROR=201,
+    HPATCH_CREATE_SFX_SFXTYPE_ERROR,
+    HPATCH_CREATE_SFX_EXECUTETAG_ERROR,
+    HPATCH_RUN_SFX_NOTSFX_ERROR,
+    HPATCH_RUN_SFX_DIFFOFFSERT_ERROR,
 } THPatchResult;
 
 int hpatch_cmd_line(int argc, const char * argv[]);
 
-int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
-           hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
+int hpatch(const char* oldFileName,const char* diffFileName,hpatch_StreamPos_t diffDataOffert,
+           const char* outNewFileName,hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize);
 #if (_IS_NEED_DIR_DIFF_PATCH)
-int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
-               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
-               TDirPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener);
+int hpatch_dir(const char* oldPath,const char* diffFileName,hpatch_StreamPos_t diffDataOffert,
+               const char* outNewPath,hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
+               size_t kMaxOpenFileNumber,TDirPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener);
 #endif
+
+int createSfx(const char* selfExecuteFileName,const char* diffFileName,const char* out_sfxFileName);
+hpatch_BOOL getDiffDataOffertInSfx(const char* diffFileName,hpatch_StreamPos_t* out_diffDataOffert);
 
 #if (_IS_NEED_MAIN)
 #   if (_IS_USE_WIN32_UTF8_WAPI)
@@ -279,6 +290,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
+    hpatch_BOOL isSFX=_kNULL_VALUE;
+    const char* out_SFX=0;
     size_t      patchCacheSize=0;
 #if (_IS_NEED_DIR_DIFF_PATCH)
     size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir patch
@@ -293,7 +306,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         _options_check(op!=0,"?");
         if (op[0]!='-'){
             hpatch_BOOL isEmpty=(strlen(op)==0);
-            _options_check(arg_values_size<kMax_arg_values_size,"count");
+            _options_check(arg_values_size<kMax_arg_values_size,"input count");
             if (isEmpty){
                 if (isOldPathInputEmpty==_kNULL_VALUE)
                     isOldPathInputEmpty=hpatch_TRUE;
@@ -321,6 +334,15 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                     _options_check(kmg_to_size(pnum,strlen(pnum),&patchCacheSize),"-s-?");
                 }else{
                     patchCacheSize=kPatchCacheSize_default;
+                }
+            } break;
+            case 'X':{
+                _options_check((isSFX==_kNULL_VALUE)&&((op[2]=='$')||(op[2]=='\0')),"-X");
+                isSFX=hpatch_TRUE;
+                if (op[2]=='$'){
+                    const char* pnum=op+3;
+                    out_SFX=pnum;
+                    _options_check(strlen(out_SFX)>0,"-X$?");
                 }
             } break;
             case 'f':{
@@ -371,7 +393,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         printf("HDiffPatch::hpatchz v" HDIFFPATCH_VERSION_STRING "\n\n");
         if (isOutputHelp)
             printUsage();
-        if (arg_values_size==0)
+        if ((arg_values_size==0)&&(!isSFX))
             return 0; //ok
     }
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -381,7 +403,6 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
 #endif
 
-    _options_check(arg_values_size==kMax_arg_values_size,"count");
     if (isOriginal==_kNULL_VALUE)
         isOriginal=hpatch_FALSE;
     if (isLoadOldAll==_kNULL_VALUE){
@@ -391,15 +412,48 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     if (isOldPathInputEmpty==_kNULL_VALUE)
         isOldPathInputEmpty=hpatch_FALSE;
     
-    {
+    if ((isSFX)&&(out_SFX!=0)){ //create SFX
+        _options_check(arg_values_size==1,"-X$ input count");
+        {
+            const char* diffFileName        =arg_values[0];
+            const char* selfExecuteFileName =argv[0];
+            if (!isForceOverwrite){
+                hpatch_TPathType   outPathType;
+                _return_check(hpatch_getPathStat(out_SFX,&outPathType,0),
+                              HPATCH_PATHTYPE_ERROR,"get outSelfExtractArchive type");
+                _return_check(outPathType==kPathType_notExist,
+                              HPATCH_PATHTYPE_ERROR,"outSelfExtractArchive already exists, not overwrite");
+            }
+            return createSfx(selfExecuteFileName,diffFileName,out_SFX);
+        }
+    }else if (isSFX){//patch as SFX mode
+        _options_check(arg_values_size==2,"-X input count");
+    }else{//patch default mode
+        _options_check(arg_values_size==3,"input count");
+    }
+    {//patch
         const char* oldPath     =arg_values[0];
-        const char* diffFileName=arg_values[1];
-        const char* outNewPath  =arg_values[2];
+        const char* diffFileName=0;
+        const char* outNewPath  =0;
 #if (_IS_NEED_DIR_DIFF_PATCH)
         TDirDiffInfo dirDiffInfo;
         hpatch_BOOL  isOutDir;
 #endif
-        hpatch_BOOL  isSamePath=hpatch_getIsSamePath(oldPath,outNewPath);
+        hpatch_BOOL  isSamePath;
+        hpatch_StreamPos_t diffDataOffert=0;
+        if (isSFX){
+            printf("run as SFX mode!\n");
+            diffFileName=argv[0];//selfExecuteFileName
+            _return_check(getDiffDataOffertInSfx(diffFileName,&diffDataOffert),
+                          HPATCH_RUN_SFX_NOTSFX_ERROR,"not found diff data in selfExecuteFile");
+            outNewPath  =arg_values[1];
+            //continue
+        }else{
+            diffFileName=arg_values[1];
+            outNewPath  =arg_values[2];
+        }
+        
+        isSamePath=hpatch_getIsSamePath(oldPath,outNewPath);
         _return_check(!hpatch_getIsSamePath(oldPath,diffFileName),
                       HPATCH_PATHTYPE_ERROR,"oldPath diffFile same path");
         _return_check(!hpatch_getIsSamePath(outNewPath,diffFileName),
@@ -414,7 +468,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         if (isSamePath)
             _return_check(isForceOverwrite,HPATCH_PATHTYPE_ERROR,"oldPath outNewPath same path");
 #if (_IS_NEED_DIR_DIFF_PATCH)
-        _return_check(getDirDiffInfoByFile(diffFileName,&dirDiffInfo),
+        _return_check(getDirDiffInfoByFile(diffFileName,&dirDiffInfo,diffDataOffert),
                       HPATCH_OPENREAD_ERROR,"input diffFile open read");
         if (dirDiffInfo.isDirDiff)
             _options_check(!isOriginal,"-o unsupport dir patch");
@@ -423,12 +477,13 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         if (!isSamePath){ // out new file or new dir
 #if (_IS_NEED_DIR_DIFF_PATCH)
             if (dirDiffInfo.isDirDiff){
-                return hpatch_dir(oldPath,diffFileName,outNewPath,isLoadOldAll,patchCacheSize,
+                return hpatch_dir(oldPath,diffFileName,diffDataOffert,outNewPath,isLoadOldAll,patchCacheSize,
                                   kMaxOpenFileNumber,&checksumSet,&defaultPatchDirlistener);
             }else
 #endif
             {
-                return hpatch(oldPath,diffFileName,outNewPath,isOriginal,isLoadOldAll,patchCacheSize);
+                return hpatch(oldPath,diffFileName,diffDataOffert,outNewPath,
+                              isOriginal,isLoadOldAll,patchCacheSize);
             }
         }else
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -450,12 +505,13 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             printf("NOTE: outNewPath temp file will be rename to oldPath name after patch!\n");
 #if (_IS_NEED_DIR_DIFF_PATCH)
             if (dirDiffInfo.isDirDiff){
-                result=hpatch_dir(oldPath,diffFileName,newTempName,isLoadOldAll,patchCacheSize,
+                result=hpatch_dir(oldPath,diffFileName,diffDataOffert,newTempName,isLoadOldAll,patchCacheSize,
                                   kMaxOpenFileNumber,&checksumSet,&defaultPatchDirlistener);
             }else
 #endif
             {
-                result=hpatch(oldPath,diffFileName,newTempName,isOriginal,isLoadOldAll,patchCacheSize);
+                result=hpatch(oldPath,diffFileName,diffDataOffert,newTempName,
+                              isOriginal,isLoadOldAll,patchCacheSize);
             }
             if (result==HPATCH_SUCCESS){
                 _return_check(hpatch_removeFile(oldPath),
@@ -481,7 +537,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             _return_check(hpatch_getTempPathName(outNewPath,newTempDir,newTempDir+hpatch_kPathMaxSize),
                           HPATCH_TEMPPATH_ERROR,"getTempPathName(outNewPath)");
             printf("NOTE: all in outNewPath temp directory will be move to oldDirectory after patch!\n");
-            result=hpatch_dir(oldPath,diffFileName,newTempDir,isLoadOldAll,patchCacheSize,
+            result=hpatch_dir(oldPath,diffFileName,diffDataOffert,newTempDir,isLoadOldAll,patchCacheSize,
                               kMaxOpenFileNumber,&checksumSet,&tempDirPatchListener);
             if (result==HPATCH_SUCCESS){
                 printf("all in outNewPath temp directory moved to oldDirectory!\n");
@@ -634,8 +690,8 @@ static void* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
 }
 
 
-int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
-           hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
+int hpatch(const char* oldFileName,const char* diffFileName,hpatch_StreamPos_t diffDataOffert,
+           const char* outNewFileName,hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
@@ -664,6 +720,10 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         }
         check(hpatch_TFileStreamInput_open(&diffData,diffFileName),
               HPATCH_OPENREAD_ERROR,"open diffFile for read");
+        if (diffDataOffert>0){ //run sfx
+            check(hpatch_TFileStreamInput_setOffset(&diffData,diffDataOffert),
+                  HPATCH_RUN_SFX_DIFFOFFSERT_ERROR,"readed sfx diffFile offset");
+        }
     }
 
 #if (_IS_NEED_ORIGINAL)
@@ -676,7 +736,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
               HPATCH_FILEREAD_ERROR,"read diffFile");
         kNewDataSizeSavedSize=readSavedSize(buf,kNewDataSizeSavedSize,&savedNewSize);
         check(kNewDataSizeSavedSize>0,HPATCH_FILEDATA_ERROR,"read diffFile savedNewSize");
-        hpatch_TFileStreamInput_setOffset(&diffData,kNewDataSizeSavedSize);
+        check(hpatch_TFileStreamInput_setOffset(&diffData,kNewDataSizeSavedSize),
+              HPATCH_FILEDATA_ERROR,"readed diffFile savedNewSize");
     }else
 #endif
     {
@@ -737,9 +798,9 @@ clear:
 }
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
-int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
-               hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
-               TDirPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener){
+int hpatch_dir(const char* oldPath,const char* diffFileName,hpatch_StreamPos_t diffDataOffert,
+               const char* outNewPath,hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
+               size_t kMaxOpenFileNumber,TDirPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
@@ -765,6 +826,10 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             check((oldType!=kPathType_notExist),HPATCH_PATHTYPE_ERROR,"oldPath not exist");
         }
         check(hpatch_TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
+        if (diffDataOffert>0){ //run sfx
+            check(hpatch_TFileStreamInput_setOffset(&diffData,diffDataOffert),
+                  HPATCH_RUN_SFX_DIFFOFFSERT_ERROR,"readed sfx diffFile offset");
+        }
         rt=TDirPatcher_open(&dirPatcher,&diffData.base,&dirDiffInfo);
         if((!rt)||(!dirDiffInfo->isDirDiff)){
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
@@ -875,3 +940,188 @@ clear:
     return result;
 }
 #endif
+
+
+//{fd6c3a9d-1498-4a5d-a9d5-7303a82fd08e-ffffffffffffffff}
+#define _sfx_guid_size 16
+static TByte _sfx_guid_pos[_sfx_guid_size+sizeof(hpatch_StreamPos_t)]={
+    0xfd,0x6c,0x3a,0x9d,
+    0x14,0x98,
+    0x4a,0x5d,
+    0xa9,0xd5,
+    0x73,0x03,0xa8,0x2f,0xd0,0x8e,
+    0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
+
+static TByte* _search(TByte* src,TByte* src_end,const TByte* sub,const TByte* sub_end){
+    size_t sub_len=(size_t)(sub_end-sub);
+    TByte* s_end=src_end-sub_len;
+    TByte  c0;
+    if (sub_len==0) return src;
+    if ((size_t)(src_end-src)<sub_len)  return src_end;
+    c0=*sub;
+    for (;src<s_end;++src) {
+        if (c0!=*src){
+            continue;
+        }else{
+            hpatch_BOOL is_eq=hpatch_TRUE;
+            size_t i;
+            for (i=1; i<sub_len;++i) {
+                if (sub[i]!=src[i]){
+                    is_eq=hpatch_FALSE;
+                    break;
+                }
+            }
+            if (!is_eq)
+                continue;
+            else
+                return src;
+        }
+    }
+    return src_end;
+}
+
+#define kFileIOBufSize      (1024*64)
+static int createSfx_notCheckDiffFile_byStream(const hpatch_TStreamInput*  selfExecute,
+                                               const hpatch_TStreamInput*  diffData,
+                                               const hpatch_TStreamOutput* out_sfxData){
+    int     result=HPATCH_SUCCESS;
+    int     _isInClear=hpatch_FALSE;
+    TByte*  buf=0;
+    TByte*  pmem=0;
+    hpatch_StreamPos_t  writePos=0;
+    hpatch_BOOL         isFoundGuid=hpatch_FALSE;
+    const hpatch_StreamPos_t  diffDataOffert=selfExecute->streamSize;
+    {//mem
+        pmem=(TByte*)malloc(sizeof(_sfx_guid_pos)+kFileIOBufSize);
+        check(pmem!=0,HPATCH_MEM_ERROR,"createSfx() malloc");
+        memset(pmem,0,sizeof(_sfx_guid_pos));
+        buf=pmem+sizeof(_sfx_guid_pos); // [ sizeof(_sfx_guid_pos) | kFileIOBufSize ]
+    }
+    {//copy exe ,find guid pos and write diffDataOffset
+        const hpatch_StreamPos_t dataSize=selfExecute->streamSize;
+        hpatch_StreamPos_t readPos=0;
+        while (readPos < dataSize) {
+            TByte* wbuf=0;
+            const TByte* wbuf_end=0;
+            TByte* rbuf_end=0;
+            size_t readLen=kFileIOBufSize;
+            if (readLen+readPos > dataSize)
+                readLen=(size_t)(dataSize - readPos);
+            rbuf_end=buf+readLen;
+            check(selfExecute->read(selfExecute,readPos,buf,rbuf_end),
+                  HPATCH_FILEREAD_ERROR,"createSfx() read selfExecute");
+            wbuf=(readPos!=0)?pmem:buf;
+            if (!isFoundGuid){ //find in [wbuf..rbuf_end)
+                TByte*  pos=_search(wbuf,rbuf_end,_sfx_guid_pos,_sfx_guid_pos+sizeof(_sfx_guid_pos));
+                if (pos!=rbuf_end){
+                    size_t i;
+                    isFoundGuid=hpatch_TRUE;
+                    for (i=0; i<sizeof(hpatch_StreamPos_t); ++i){
+                        pos[_sfx_guid_size+i]=(TByte)(diffDataOffert>>(8*i));
+                    }
+                }
+            }
+            wbuf_end=(readPos+readLen<dataSize)?(rbuf_end-sizeof(_sfx_guid_pos)):rbuf_end;
+            check(out_sfxData->write(out_sfxData,writePos,wbuf,wbuf_end),
+                  HPATCH_FILEWRITE_ERROR,"createSfx() write sfxData");
+            memcpy(pmem,buf+readLen-sizeof(_sfx_guid_pos),sizeof(_sfx_guid_pos));
+            readPos+=readLen;
+            writePos+=(size_t)(wbuf_end-wbuf);
+        }
+    }
+    assert(writePos==diffDataOffert);
+    check(isFoundGuid,HPATCH_CREATE_SFX_SFXTYPE_ERROR,"createSfx() selfExecute type");
+    {//copy diffData
+        const hpatch_StreamPos_t dataSize=diffData->streamSize;
+        hpatch_StreamPos_t readPos=0;
+        while (readPos < dataSize) {
+            size_t readLen=kFileIOBufSize;
+            if (readLen+readPos > dataSize)
+                readLen=(size_t)(dataSize - readPos);
+            check(diffData->read(diffData,readPos,buf,buf+readLen),
+                  HPATCH_FILEREAD_ERROR,"createSfx() read diffData");
+            check(out_sfxData->write(out_sfxData,writePos,buf,buf+readLen),
+                  HPATCH_FILEWRITE_ERROR,"createSfx() write sfxData");
+            readPos+=readLen;
+            writePos+=readLen;
+        }
+    }
+clear:
+    _isInClear=hpatch_TRUE;
+    _free_mem(pmem);
+    return result;
+}
+
+int createSfx_notCheckDiffFile(const char* selfExecuteFileName,const char* diffFileName,
+                               const char* out_sfxFileName){
+    int     result=HPATCH_SUCCESS;
+    int     _isInClear=hpatch_FALSE;
+    hpatch_TFileStreamInput  exeData;
+    hpatch_TFileStreamInput  diffData;
+    hpatch_TFileStreamOutput out_sfxData;
+    hpatch_TFileStreamInput_init(&exeData);
+    hpatch_TFileStreamInput_init(&diffData);
+    hpatch_TFileStreamOutput_init(&out_sfxData);
+    printf(    "selfExecute: \""); hpatch_printPath_utf8(selfExecuteFileName);
+    printf("\"\ndiffFile   : \""); hpatch_printPath_utf8(diffFileName);
+    printf("\"\nout sfxFile: \""); hpatch_printPath_utf8(out_sfxFileName);
+    printf("\"\n\n");
+    {//open
+        hpatch_StreamPos_t sfxFileLength=0;
+        check(hpatch_TFileStreamInput_open(&exeData,selfExecuteFileName),
+              HPATCH_OPENREAD_ERROR,"createSfx() open selfExecuteFile read");
+        sfxFileLength+=exeData.base.streamSize;
+        check(hpatch_TFileStreamInput_open(&diffData,diffFileName),
+              HPATCH_OPENREAD_ERROR,"createSfx() open diffFileName read");
+        sfxFileLength+=diffData.base.streamSize;
+        check(hpatch_TFileStreamOutput_open(&out_sfxData,out_sfxFileName,sfxFileLength),
+              HPATCH_OPENWRITE_ERROR,"createSfx() open sfxFile write");
+    }
+    result=createSfx_notCheckDiffFile_byStream(&exeData.base,&diffData.base,&out_sfxData.base);
+    assert(out_sfxData.base.streamSize==out_sfxData.out_length);
+    check(hpatch_TFileStreamOutput_close(&out_sfxData),HPATCH_FILECLOSE_ERROR,"createSfx() out sfxFile close");
+    printf("sfxFileSize: %" PRIu64 "\n",out_sfxData.base.streamSize);
+    if ((result==HPATCH_SUCCESS)&&(hpatch_getIsExecuteFile(selfExecuteFileName))){
+        check(hpatch_setIsExecuteFile(out_sfxFileName),
+              HPATCH_CREATE_SFX_EXECUTETAG_ERROR,"createSfx() set sfxFile Execute tag");
+    }
+    printf("out sfxFile ok!\n");
+clear:
+    _isInClear=hpatch_TRUE;
+    check(hpatch_TFileStreamOutput_close(&out_sfxData),HPATCH_FILECLOSE_ERROR,"createSfx() out sfxFile close");
+    check(hpatch_TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"createSfx() diffFile close");
+    check(hpatch_TFileStreamInput_close(&exeData),HPATCH_FILECLOSE_ERROR,"createSfx() selfExecuteFile close");
+    return result;
+}
+
+int createSfx(const char* selfExecuteFileName,const char* diffFileName,const char* out_sfxFileName){
+    int     result=HPATCH_SUCCESS;
+    int     _isInClear=hpatch_FALSE;
+    {//check diffFile type
+        hpatch_BOOL isDiffFile=hpatch_FALSE;
+#if (_IS_NEED_DIR_DIFF_PATCH)
+        if (!isDiffFile)
+            isDiffFile=getIsDirDiffFile(diffFileName);
+#endif
+        if (!isDiffFile)
+            isDiffFile=getIsCompressedDiffFile(diffFileName);
+        check(isDiffFile,HPATCH_CREATE_SFX_DIFFFILETYPE_ERROR,
+              "createSfx() input diffFile is unsupported type");
+    }
+    result=createSfx_notCheckDiffFile(selfExecuteFileName,diffFileName,out_sfxFileName);
+clear:
+    _isInClear=hpatch_TRUE;
+    return result;
+}
+
+hpatch_BOOL getDiffDataOffertInSfx(const char* diffFileName,hpatch_StreamPos_t* out_diffDataOffert){
+    hpatch_StreamPos_t v=0;
+    size_t i;
+    for (i=0; i<sizeof(hpatch_StreamPos_t); ++i){
+        v|=((hpatch_StreamPos_t)_sfx_guid_pos[_sfx_guid_size+i])<<(8*i);
+    }
+    if (v==(hpatch_StreamPos_t)(-1)) return hpatch_FALSE;
+    assert(v>sizeof(_sfx_guid_pos));
+    *out_diffDataOffert=v;
+    return hpatch_TRUE;
+}

@@ -132,15 +132,28 @@ static void formatDirTagForLoad(char* utf8_path,char* utf8_pathEnd){
     }
 }
 
-hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info){
+hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info,
+                                 hpatch_StreamPos_t diffDataOffert){
     hpatch_BOOL          result=hpatch_TRUE;
     hpatch_TFileStreamInput     diffData;
     hpatch_TFileStreamInput_init(&diffData);
     
     check(hpatch_TFileStreamInput_open(&diffData,diffFileName));
+    check(hpatch_TFileStreamInput_setOffset(&diffData,diffDataOffert));
     result=getDirDiffInfo(&diffData.base,out_info);
     check(hpatch_TFileStreamInput_close(&diffData));
 clear:
+    return result;
+}
+
+hpatch_BOOL getCompressedDiffInfoByFile(const char* diffFileName,hpatch_compressedDiffInfo *out_info){
+    hpatch_BOOL          result=hpatch_TRUE;
+    hpatch_TFileStreamInput     diffData;
+    hpatch_TFileStreamInput_init(&diffData);
+    
+    if (!hpatch_TFileStreamInput_open(&diffData,diffFileName)) return hpatch_FALSE;
+    result=getCompressedDiffInfo(out_info,&diffData.base);
+    if (!hpatch_TFileStreamInput_close(&diffData)) return hpatch_FALSE;
     return result;
 }
 
