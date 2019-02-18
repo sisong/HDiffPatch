@@ -1014,8 +1014,8 @@ static int createSfx_notCheckDiffFile_byStream(const hpatch_TStreamInput*  selfE
             if (!isFoundGuid){ //find in [wbuf..rbuf_end)
                 TByte*  pos=_search(wbuf,rbuf_end,_sfx_guid_pos,_sfx_guid_pos+sizeof(_sfx_guid_pos));
                 if (pos!=rbuf_end){
-                    size_t i;
                     isFoundGuid=hpatch_TRUE;
+                    size_t i;
                     for (i=0; i<sizeof(hpatch_StreamPos_t); ++i){
                         pos[_sfx_guid_size+i]=(TByte)(diffDataOffert>>(8*i));
                     }

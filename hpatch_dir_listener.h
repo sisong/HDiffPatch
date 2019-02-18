@@ -44,26 +44,26 @@ typedef struct IHPatchDirListener {
 
 
 //IDirPatchListener
-hpatch_BOOL _makeNewDir(IDirPatchListener* listener,const char* newDir){
+static hpatch_BOOL _makeNewDir(IDirPatchListener* listener,const char* newDir){
     return hpatch_makeNewDir(newDir);
 }
-hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,
-                          const char* newFileName,hpatch_ICopyDataListener* copyListener){
+static hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,
+                                 const char* newFileName,hpatch_ICopyDataListener* copyListener){
     return TDirPatcher_copyFile(oldFileName,newFileName,copyListener);
 }
-hpatch_BOOL _openNewFile(IDirPatchListener* listener,hpatch_TFileStreamOutput*  out_curNewFile,
-                         const char* newFileName,hpatch_StreamPos_t newFileSize){
+static hpatch_BOOL _openNewFile(IDirPatchListener* listener,hpatch_TFileStreamOutput*  out_curNewFile,
+                                const char* newFileName,hpatch_StreamPos_t newFileSize){
     return hpatch_TFileStreamOutput_open(out_curNewFile,newFileName,newFileSize);
 }
-hpatch_BOOL _closeNewFile(IDirPatchListener* listener,hpatch_TFileStreamOutput* curNewFile){
+static hpatch_BOOL _closeNewFile(IDirPatchListener* listener,hpatch_TFileStreamOutput* curNewFile){
     return hpatch_TFileStreamOutput_close(curNewFile);
 }
 //IHPatchDirListener
-hpatch_BOOL _dirPatchBegin(IHPatchDirListener* listener,TDirPatcher* dirPatcher){
+static hpatch_BOOL _dirPatchBegin(IHPatchDirListener* listener,TDirPatcher* dirPatcher){
     listener->listenerImport=dirPatcher;
     return hpatch_TRUE;
 }
-hpatch_BOOL _dirPatchFinish(IHPatchDirListener* listener,hpatch_BOOL isPatchSuccess){
+static hpatch_BOOL _dirPatchFinish(IHPatchDirListener* listener,hpatch_BOOL isPatchSuccess){
     TDirPatcher* dirPatcher=(TDirPatcher*)listener->listenerImport;
     {//ExecuteFile
         size_t i;
@@ -85,15 +85,15 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
     
 
 //IDirPatchListener
-hpatch_BOOL _tempDir_copySameFile(IDirPatchListener* listener,const char* oldFileName,
-                                  const char* newFileName,hpatch_ICopyDataListener* copyListener){
+static hpatch_BOOL _tempDir_copySameFile(IDirPatchListener* listener,const char* oldFileName,
+                                         const char* newFileName,hpatch_ICopyDataListener* copyListener){
     //checksum same file
     //not copy now
     if (copyListener==0) return hpatch_TRUE;
     return TDirPatcher_readFile(oldFileName,copyListener);
 }
 //IHPatchDirListener
-hpatch_BOOL _tempDirPatchBegin(IHPatchDirListener* self,TDirPatcher* dirPatcher){
+static hpatch_BOOL _tempDirPatchBegin(IHPatchDirListener* self,TDirPatcher* dirPatcher){
     self->listenerImport=dirPatcher;
     assert(dirPatcher->dirDiffInfo.oldPathIsDir&&dirPatcher->dirDiffInfo.newPathIsDir);
     return hpatch_TRUE;
@@ -113,7 +113,7 @@ hpatch_BOOL _tempDirPatchBegin(IHPatchDirListener* self,TDirPatcher* dirPatcher)
         else
             return hpatch_removeFile(pathName);
     }
-hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPatchSuccess){
+static hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPatchSuccess){
     hpatch_BOOL  result=hpatch_TRUE;
     TDirPatcher* dirPatcher=(TDirPatcher*)self->listenerImport;
     size_t       i;
