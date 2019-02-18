@@ -81,7 +81,7 @@ special options:
       manifest diff, support re-checksum data by manifest diff;
       can be used to protect historical versions be modified!
   -M-old#oldManifestFile
-      oldManifestFile is created from oldPath;
+      oldManifestFile is created from oldPath; if no oldPath not need -M-old;
   -M-new#newManifestFile
       newManifestFile is created from newPath;
   -D  force run Directory diff between two files; DEFAULT (no -D) run 

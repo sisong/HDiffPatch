@@ -241,7 +241,7 @@ static void printUsage(){
            "      manifest diff, support re-checksum data by manifest diff;\n"
            "      can be used to protect historical versions be modified!\n"
            "  -M-old#oldManifestFile\n"
-           "      oldManifestFile is created from oldPath;\n"
+           "      oldManifestFile is created from oldPath; if no oldPath not need -M-old;\n"
            "  -M-new#newManifestFile\n"
            "      newManifestFile is created from newPath;\n"
            "  -D  force run Directory diff between two files; DEFAULT (no -D) run \n"
@@ -849,7 +849,12 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         
         if ((!manifestOld.empty())||(!manifestNew.empty())){
             isForceRunDirDiff=hpatch_TRUE;
-            _options_check(manifestOut.empty()&&(!manifestOld.empty())&&(!manifestNew.empty()),"-M?");
+            _options_check(manifestOut.empty()&&(!manifestNew.empty()),"-M?");
+            if (isOldPathInputEmpty){
+                _options_check(manifestOld.empty(),"-M?");
+            }else{
+                _options_check(!manifestOld.empty(),"-M?");
+            }
             _options_check(ignorePathList.empty()&&ignoreOldPathList.empty()
                            &&ignoreNewPathList.empty(),"-M can't run with -g");
         }
@@ -1509,7 +1514,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         +(isDiff?  "outDiff: \"":"  test : \"")+outDiffFileName+"\"\n";
     hpatch_printPath_utf8(fnameInfo.c_str());
     
-    bool isManifest= (!oldManifestFileName.empty());
+    bool isManifest= (!newManifestFileName.empty());
     if (isDiff) {
         const char* checksumType="";
         const char* compressType="";
@@ -1533,7 +1538,8 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
     if (isManifest){
         double check_time0=clock_s();
         try {
-            check_manifest(oldManifest,oldPath,oldManifestFileName);
+            if (!oldPath.empty())// isOldPathInputEmpty
+                check_manifest(oldManifest,oldPath,oldManifestFileName);
             check_manifest(newManifest,newPath,newManifestFileName);
         }catch(const std::exception& e){
             check(false,MANIFEST_TEST_ERROR,"check by manifest found an error: "+e.what());
