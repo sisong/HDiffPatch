@@ -99,7 +99,7 @@
 
 static void printUsage(){
     printf("patch usage: hpatchz [options] oldPath diffFile outNewPath\n"
-           "create  SFX: hpatchz diffFile -X$outSelfExtractArchive\n"
+           "create  SFX: hpatchz diffFile -X#outSelfExtractArchive\n"
            "run     SFX: selfExtractArchive [options] oldPath -X outNewPath\n"
            "  ( if oldPath is empty input parameter \"\" )\n"
            "memory options:\n"
@@ -337,12 +337,12 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 }
             } break;
             case 'X':{
-                _options_check((isSFX==_kNULL_VALUE)&&((op[2]=='$')||(op[2]=='\0')),"-X");
+                _options_check((isSFX==_kNULL_VALUE)&&((op[2]=='#')||(op[2]=='\0')),"-X");
                 isSFX=hpatch_TRUE;
-                if (op[2]=='$'){
+                if (op[2]=='#'){
                     const char* pnum=op+3;
                     out_SFX=pnum;
-                    _options_check(strlen(out_SFX)>0,"-X$?");
+                    _options_check(strlen(out_SFX)>0,"-X#?");
                 }
             } break;
             case 'f':{
@@ -413,7 +413,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         isOldPathInputEmpty=hpatch_FALSE;
     
     if ((isSFX)&&(out_SFX!=0)){ //create SFX
-        _options_check(arg_values_size==1,"-X$ input count");
+        _options_check(arg_values_size==1,"-X# input count");
         {
             const char* diffFileName        =arg_values[0];
             const char* selfExecuteFileName =argv[0];

@@ -111,8 +111,8 @@ static void printUsage(){
            "test    usage: hdiffz    -t     oldPath newPath testDiffFile\n"
            "resave  usage: hdiffz [-c-...]  diffFile outDiffFile\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-           "get  manifest: hdiffz [-i$...] [-C-checksumType] inputPath -M$outManifestTxtFile\n"
-           "manifest diff: hdiffz [options] -M-old$oldManifestFile -M-new$newManifestFile\n"
+           "get  manifest: hdiffz [-i#...] [-C-checksumType] inputPath -M#outManifestTxtFile\n"
+           "manifest diff: hdiffz [options] -M-old#oldManifestFile -M-new#newManifestFile\n"
            "                      oldPath newPath outDiffFile\n"
            "  oldPath newPath inputPath can be file or directory(folder),\n"
 #endif
@@ -223,26 +223,26 @@ static void printUsage(){
            "      limit Number of open files at same time when stream directory diff;\n"
            "      maxOpenFileNumber>=8, DEFAULT -n-48, the best limit value by different\n"
            "        operating system.\n"
-           "  -i$ignorePath[$ignorePath$...]\n"
+           "  -i#ignorePath[#ignorePath#...]\n"
            "      set Ignore path list when Directory Diff; ignore path list such as:\n"
-           "        $.DS_Store$desktop.ini$*thumbs*.db$.git*$.svn/$cache_*/00*11/*.tmp\n"
-           "      $ means separator between names; (if char $ in name, need write $: )\n"
+           "        #.DS_Store#desktop.ini#*thumbs*.db#.git*#.svn/#cache_*/00*11/*.tmp\n"
+           "      # means separator between names; (if char # in name, need write #: )\n"
            "      * means can match any chars in name; (if char * in name, need write *: );\n"
            "      / at the end of name means must match directory;\n"
-           "  -i-old$ignorePath[$ignorePath$...]\n"
+           "  -i-old#ignorePath[#ignorePath#...]\n"
            "      set Ignore path list in oldPath when Directory Diff;\n"
            "      if oldFile can be changed, need add it in old ignore list;\n"
-           "  -i-new$ignorePath[$ignorePath$...]\n"
+           "  -i-new#ignorePath[#ignorePath#...]\n"
            "      set Ignore path list in newPath when Directory Diff;\n"
            "      in general, new ignore list should is empty;\n"
-           "  -M$outManifestTxtFile\n"
+           "  -M#outManifestTxtFile\n"
            "      create a Manifest file for inputPath; it is a text file, saved infos of\n"
            "      all files and directoriy list in inputPath; this file while be used in \n"
            "      manifest diff, support re-checksum data by manifest diff;\n"
            "      can be used to protect historical versions be modified!\n"
-           "  -M-old$oldManifestFile\n"
+           "  -M-old#oldManifestFile\n"
            "      oldManifestFile is created from oldPath;\n"
-           "  -M-new$newManifestFile\n"
+           "  -M-new#newManifestFile\n"
            "      newManifestFile is created from newPath;\n"
            "  -D  force run Directory diff between two files; DEFAULT (no -D) run \n"
            "      directory diff need oldPath or newPath is directory.\n"
@@ -449,17 +449,17 @@ static hpatch_BOOL _getIgnorePathSetList(std::vector<std::string>& out_pathList,
     std::string cur;
     while (true) {
         char c=*plist;
-        if ((c=='$')&&(plist[1]==':')){ // $: as $
-            cur.push_back(c); plist+=2; //skip $:
+        if ((c=='#')&&(plist[1]==':')){ // #: as #
+            cur.push_back(c); plist+=2; //skip #:
         }else if ((c=='*')&&(plist[1]==':')){ // *: as *:
             cur.push_back(c); cur.push_back(':'); plist+=2; //skip *:
-        }else if ((c=='\0')||((c=='$')&&(plist[1]!=':'))){
+        }else if ((c=='\0')||((c=='#')&&(plist[1]!=':'))){
             if (cur.empty()) return hpatch_FALSE;// can't empty
             if (std::string::npos!=cur.find("**")) return hpatch_FALSE;// can't **
             _formatIgnorePathSet(cur);
             out_pathList.push_back(cur);
             if (c=='\0') return hpatch_TRUE;
-            cur.clear();  ++plist; //skip $
+            cur.clear();  ++plist; //skip #
         }else if (c==kIgnoreMagicChar){
             return hpatch_FALSE; //error path char
         }else{
@@ -738,15 +738,15 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
             } break;
             case 'i':{
-                if (op[2]=='$'){ //-i$
+                if (op[2]=='#'){ //-i#
                     const char* plist=op+3;
-                    _options_check(_getIgnorePathSetList(ignorePathList,plist),"-i$?");
+                    _options_check(_getIgnorePathSetList(ignorePathList,plist),"-i#?");
                 }else if (op[2]=='-'){
                     const char* plist=op+7;
-                    if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='$')){
-                        _options_check(_getIgnorePathSetList(ignoreOldPathList,plist),"-i-old$?");
-                    }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='$')){
-                        _options_check(_getIgnorePathSetList(ignoreNewPathList,plist),"-i-new$?");
+                    if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='#')){
+                        _options_check(_getIgnorePathSetList(ignoreOldPathList,plist),"-i-old#?");
+                    }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='#')){
+                        _options_check(_getIgnorePathSetList(ignoreNewPathList,plist),"-i-new#?");
                     }else{
                         _options_check(hpatch_FALSE,"-i-?");
                     }
@@ -755,17 +755,17 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 }
             } break;
             case 'M':{
-                if (op[2]=='$'){ //-M$
+                if (op[2]=='#'){ //-M#
                     const char* plist=op+3;
-                    _options_check(manifestOut.empty()&&manifestOld.empty()&&manifestNew.empty(),"-M$");
+                    _options_check(manifestOut.empty()&&manifestOld.empty()&&manifestNew.empty(),"-M#");
                     manifestOut=plist;
                 }else if (op[2]=='-'){
                     const char* plist=op+7;
-                    if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='$')){
-                        _options_check(manifestOut.empty()&&manifestOld.empty(),"-M-old$");
+                    if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='#')){
+                        _options_check(manifestOut.empty()&&manifestOld.empty(),"-M-old#");
                         manifestOld=plist;
-                    }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='$')){
-                        _options_check(manifestOut.empty()&&manifestNew.empty(),"-M-new$");
+                    }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='#')){
+                        _options_check(manifestOut.empty()&&manifestNew.empty(),"-M-new#");
                         manifestNew=plist;
                     }else{
                         _options_check(hpatch_FALSE,"-M-?");
