@@ -389,6 +389,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         isOutputVersion=hpatch_FALSE;
     if (isForceOverwrite==_kNULL_VALUE)
         isForceOverwrite=hpatch_FALSE;
+    if (isSFX==_kNULL_VALUE)
+        isSFX=hpatch_FALSE;
     if (isOutputHelp||isOutputVersion){
         printf("HDiffPatch::hpatchz v" HDIFFPATCH_VERSION_STRING "\n\n");
         if (isOutputHelp)
