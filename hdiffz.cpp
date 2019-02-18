@@ -111,7 +111,7 @@ static void printUsage(){
            "test    usage: hdiffz    -t     oldPath newPath testDiffFile\n"
            "resave  usage: hdiffz [-c-...]  diffFile outDiffFile\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-           "get  manifest: hdiffz [-i#...] [-C-checksumType] inputPath -M#outManifestTxtFile\n"
+           "get  manifest: hdiffz [-g#...] [-C-checksumType] inputPath -M#outManifestTxtFile\n"
            "manifest diff: hdiffz [options] -M-old#oldManifestFile -M-new#newManifestFile\n"
            "                      oldPath newPath outDiffFile\n"
            "  oldPath newPath inputPath can be file or directory(folder),\n"
@@ -223,17 +223,17 @@ static void printUsage(){
            "      limit Number of open files at same time when stream directory diff;\n"
            "      maxOpenFileNumber>=8, DEFAULT -n-48, the best limit value by different\n"
            "        operating system.\n"
-           "  -i#ignorePath[#ignorePath#...]\n"
-           "      set Ignore path list when Directory Diff; ignore path list such as:\n"
+           "  -g#ignorePath[#ignorePath#...]\n"
+           "      set iGnore path list when Directory Diff; ignore path list such as:\n"
            "        #.DS_Store#desktop.ini#*thumbs*.db#.git*#.svn/#cache_*/00*11/*.tmp\n"
            "      # means separator between names; (if char # in name, need write #: )\n"
            "      * means can match any chars in name; (if char * in name, need write *: );\n"
            "      / at the end of name means must match directory;\n"
-           "  -i-old#ignorePath[#ignorePath#...]\n"
-           "      set Ignore path list in oldPath when Directory Diff;\n"
+           "  -g-old#ignorePath[#ignorePath#...]\n"
+           "      set iGnore path list in oldPath when Directory Diff;\n"
            "      if oldFile can be changed, need add it in old ignore list;\n"
-           "  -i-new#ignorePath[#ignorePath#...]\n"
-           "      set Ignore path list in newPath when Directory Diff;\n"
+           "  -g-new#ignorePath[#ignorePath#...]\n"
+           "      set iGnore path list in newPath when Directory Diff;\n"
            "      in general, new ignore list should is empty;\n"
            "  -M#outManifestTxtFile\n"
            "      create a Manifest file for inputPath; it is a text file, saved infos of\n"
@@ -737,21 +737,21 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 const char* pnum=op+3;
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
             } break;
-            case 'i':{
-                if (op[2]=='#'){ //-i#
+            case 'g':{
+                if (op[2]=='#'){ //-g#
                     const char* plist=op+3;
-                    _options_check(_getIgnorePathSetList(ignorePathList,plist),"-i#?");
+                    _options_check(_getIgnorePathSetList(ignorePathList,plist),"-g#?");
                 }else if (op[2]=='-'){
                     const char* plist=op+7;
                     if ((op[3]=='o')&&(op[4]=='l')&&(op[5]=='d')&&(op[6]=='#')){
-                        _options_check(_getIgnorePathSetList(ignoreOldPathList,plist),"-i-old#?");
+                        _options_check(_getIgnorePathSetList(ignoreOldPathList,plist),"-g-old#?");
                     }else if ((op[3]=='n')&&(op[4]=='e')&&(op[5]=='w')&&(op[6]=='#')){
-                        _options_check(_getIgnorePathSetList(ignoreNewPathList,plist),"-i-new#?");
+                        _options_check(_getIgnorePathSetList(ignoreNewPathList,plist),"-g-new#?");
                     }else{
-                        _options_check(hpatch_FALSE,"-i-?");
+                        _options_check(hpatch_FALSE,"-g-?");
                     }
                 }else{
-                    _options_check(hpatch_FALSE,"-i?");
+                    _options_check(hpatch_FALSE,"-g?");
                 }
             } break;
             case 'M':{
@@ -851,7 +851,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             isForceRunDirDiff=hpatch_TRUE;
             _options_check(manifestOut.empty()&&(!manifestOld.empty())&&(!manifestNew.empty()),"-M?");
             _options_check(ignorePathList.empty()&&ignoreOldPathList.empty()
-                           &&ignoreNewPathList.empty(),"-M can't run with -i");
+                           &&ignoreNewPathList.empty(),"-M can't run with -g");
         }
 #endif
 
@@ -921,8 +921,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #if (_IS_NEED_DIR_DIFF_PATCH)
     }else if (!manifestOut.empty()){ //() //create manifest
         _options_check(arg_values.size()==1,"create manifest file used one inputPath");
-        _options_check(ignoreOldPathList.empty(),"-i-old unsupport run with create manifest file mode");
-        _options_check(ignoreNewPathList.empty(),"-i-new unsupport run with create manifest file mode");
+        _options_check(ignoreOldPathList.empty(),"-g-old unsupport run with create manifest file mode");
+        _options_check(ignoreNewPathList.empty(),"-g-new unsupport run with create manifest file mode");
         if (isSetChecksum==_kNULL_VALUE)
             isSetChecksum=hpatch_FALSE;
 #ifdef _ChecksumPlugin_fadler64
