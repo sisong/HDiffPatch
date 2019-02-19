@@ -103,6 +103,7 @@ special options:
 patch usage: **hpatchz** [options] **oldPath diffFile outNewPath**   
 create  SFX: **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractArchive**   
 run     SFX: **selfExtractArchive** [options] **oldPath -X outNewPath**   
+extract SFX: **selfExtractArchive**    (same as: selfExtractArchive "" -X "./")
 ```
   ( if oldPath is empty input parameter "" )
 memory options:

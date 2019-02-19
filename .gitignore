@@ -3,6 +3,7 @@ xcuserdata
 Debug
 Release
 Release_x86
+ReleaseSFX
 *.suo
 *.dcu
 *.~*
