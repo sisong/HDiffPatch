@@ -611,7 +611,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     if (!(value)) { fprintf(stderr,errorInfo " ERROR!\n"); return exitCode; } }
 
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
-#define _kNULL_SIZE     ((size_t)(-1))
+#define _kNULL_SIZE     (~(size_t)0)
 
 #define _THREAD_NUMBER_NULL     0
 #define _THREAD_NUMBER_MIN      1
@@ -1187,7 +1187,7 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
     printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            oldData.base.streamSize,newData.base.streamSize);
     if (isDiff){
-        check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),
+        check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,~(hpatch_StreamPos_t)0),
               HDIFF_OPENWRITE_ERROR,"open out diffFile");
         hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
         try{
@@ -1328,7 +1328,7 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
     }
 #endif
     
-    check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),HDIFF_OPENWRITE_ERROR,
+    check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,~(hpatch_StreamPos_t)0),HDIFF_OPENWRITE_ERROR,
           "open out diffFile");
     hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
     printf("inDiffSize : %" PRIu64 "\n",diffData_in.base.streamSize);
@@ -1551,7 +1551,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
     if (isDiff){
         double diff_time0=clock_s();
         try {
-            check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,-1),
+            check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,~(hpatch_StreamPos_t)0),
                   HDIFF_OPENWRITE_ERROR,"open out diffFile");
             hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
             DirDiffListener listener(ignorePathList,ignoreOldPathList,ignoreNewPathList);
@@ -1640,7 +1640,7 @@ int create_manifest(const char* _inputPath,const char* outManifestFileName,
     {//create
         try {
             std::vector<std::string> emptyPathList;
-            check(hpatch_TFileStreamOutput_open(&manifestData_out,outManifestFileName,-1),
+            check(hpatch_TFileStreamOutput_open(&manifestData_out,outManifestFileName,~(hpatch_StreamPos_t)0),
                   HDIFF_OPENWRITE_ERROR,"open out manifestFile");
             //hpatch_TFileStreamOutput_setRandomOut(&manifestData_out,hpatch_TRUE);
             DirDiffListener listener(ignorePathList,emptyPathList,emptyPathList);

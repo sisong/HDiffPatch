@@ -304,7 +304,7 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
 #define kPatchCacheSize_bestmax  ((size_t)1<<30)
 
 #define _kNULL_VALUE    (-1)
-#define _kNULL_SIZE     ((size_t)(-1))
+#define _kNULL_SIZE     (~(size_t)0)
 
 int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOriginal=_kNULL_VALUE;
@@ -494,7 +494,11 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         const char* diffFileName=0;
         const char* outNewPath  =0;
 #if (_IS_NEED_SFX)
-        const char  kSFX_curDefaultPath[3]={'.',kPatch_dirSeparator,'\0'};
+#   ifdef _WIN32
+        const char* kSFX_curDefaultPath=".\\";
+#   else
+        const char* kSFX_curDefaultPath="./";
+#   endif
         const char* kSFX_emptyPath="";
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -1198,7 +1202,7 @@ hpatch_BOOL getDiffDataOffertInSfx(hpatch_StreamPos_t* out_diffDataOffert){
     for (i=0; i<sizeof(hpatch_uint32_t); ++i){
         diffOff|=((hpatch_uint32_t)_sfx_guid_node[_sfx_guid_size+i])<<(8*i);
     }
-    if (diffOff==(hpatch_uint32_t)(-1)) return hpatch_FALSE;
+    if (diffOff==(~(hpatch_uint32_t)0)) return hpatch_FALSE;
     assert(diffOff>_sfx_guid_node_size);
     *out_diffDataOffert=diffOff;
     return hpatch_TRUE;

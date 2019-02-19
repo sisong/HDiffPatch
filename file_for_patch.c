@@ -431,8 +431,8 @@ hpatch_BOOL hpatch_TFileStreamOutput_open(hpatch_TFileStreamOutput* self,const c
     
     self->base.streamImport=self;
     self->base.streamSize=max_file_length;
-    self->base.write=_TFileStreamOutput_write_file;
     self->base.read_writed=_hpatch_TFileStreamOutput_read_file;
+    self->base.write=_TFileStreamOutput_write_file;
     self->m_fpos=0;
     self->m_offset=0;
     self->fileError=hpatch_FALSE;

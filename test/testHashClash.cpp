@@ -179,7 +179,7 @@ void test(const TByte* data,const TByte* data_end){
     double clashBases[clip_count]={0};
     size_t i=0;
     while (i<kRandTestLoop) {
-        uint64_t    clashMin=(uint64_t)-1;
+        uint64_t    clashMin=-(uint64_t)1;
         for (size_t m=0;m<clip_count;++m){
             if (clashs[m]<clashMin) clashMin=clashs[m];
         }
@@ -259,7 +259,7 @@ int main() {
     printf("48bit hash best\tclash rate: %.4e (1/%llu) \n",
            1.0/(((uint64_t)1)<<48),(((uint64_t)1)<<48));
     printf("64bit hash best\tclash rate: %.4e (1/%llu%llu) \n",
-           bestCR_64bit,(((uint64_t)-1))/10,(((uint64_t)-1))%10+1);
+           bestCR_64bit,(((uint64_t)(-(uint64_t)1)))/10,(((uint64_t)(-(uint64_t)1)))%10+1);
     printf("128bithash best\tclash rate: %.4e (1/%.4e) \n\n",
            bestCR_128bit,1/bestCR_128bit);
     

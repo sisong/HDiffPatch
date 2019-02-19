@@ -596,6 +596,7 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
         :newData(_newData),writedLen(0),buf(_buf),bufSize(_bufSize){
             streamImport=this;
             streamSize=newData->streamSize;
+            read_writed=0;
             write=_write_check;
         }
         static hpatch_BOOL _write_check(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,

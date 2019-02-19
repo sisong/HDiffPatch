@@ -103,6 +103,7 @@ struct TOffsetStreamOutput:public hpatch_TStreamOutput{
         assert(offset<=base->streamSize);
         this->streamImport=this;
         this->streamSize=base->streamSize-offset;
+        this->read_writed=0;
         this->write=_write;
     }
     const hpatch_TStreamOutput* _base;
@@ -306,7 +307,7 @@ struct _TCmp_byHit {
         bool  isEqPath=(0==strcmp(newPath,oldName.c_str()+oldRootPathSize));
         size_t hitCount=oldHitList[index];
         
-        const size_t kMaxValue=(size_t)(-1);
+        const size_t kMaxValue=~(size_t)0;
         if (hitCount==0){
             if (isEqPath) return kMaxValue;
             else return kMaxValue-1;
@@ -383,7 +384,7 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
         if (fileSize==0) continue;
         
         bool isFoundSame=false;
-        size_t oldIndex=(size_t)(-1);
+        size_t oldIndex=~(size_t)0;
         std::pair<TMap::const_iterator,TMap::const_iterator> range=hashMap.equal_range(hash);
         std::vector<size_t> oldHashIndexs;
         for (;range.first!=range.second;++range.first)
@@ -1089,9 +1090,10 @@ struct CDirPatchListener:public IDirPatchListener{
                 newData=&newFile.base;
                 streamSize=newData->streamSize;
             }else{
-                streamSize=(hpatch_StreamPos_t)(-1);
+                streamSize=~(hpatch_StreamPos_t)0;
             }
             streamImport=this;
+            read_writed=0;
             write=_write_check;
         }
         ~_TCheckOutNewDataStream(){  hpatch_TFileStreamInput_close(&newFile); }

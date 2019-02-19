@@ -143,6 +143,7 @@ hpatch_BOOL hpatch_TNewStream_open(hpatch_TNewStream* self,hpatch_INewStreamList
     
     self->_stream.streamImport=self;
     self->_stream.streamSize=newRefDataSize;
+    self->_stream.read_writed=0;
     self->_stream.write=_TNewStream_write;
     self->stream=&self->_stream;
     

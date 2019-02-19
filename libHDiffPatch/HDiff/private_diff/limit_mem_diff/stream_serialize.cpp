@@ -40,6 +40,7 @@ TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,
 in_stream(_in_stream),_writeToPos_back(0),_is_overLimit(false){
     this->streamImport=this;
     this->streamSize=0;
+    this->read_writed=0;
     this->write=_write_code;
 }
 

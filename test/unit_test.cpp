@@ -176,7 +176,8 @@ long attackPacth(TInt newSize,const TByte* oldData,const TByte* oldData_end,
 struct TVectorStreamOutput:public hpatch_TStreamOutput{
     explicit TVectorStreamOutput(std::vector<TByte>& _dst):dst(_dst){
         this->streamImport=this;
-        this->streamSize=-1;
+        this->streamSize=~(hpatch_StreamPos_t)0;
+        this->read_writed=0;
         this->write=_write;
     }
     static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,
