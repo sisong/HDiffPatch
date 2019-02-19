@@ -48,6 +48,9 @@
 #ifndef _IS_NEED_ORIGINAL
 #   define  _IS_NEED_ORIGINAL 1
 #endif
+#ifndef _IS_NEED_SFX
+#   define _IS_NEED_SFX 1
+#endif
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1
@@ -97,6 +100,7 @@
 #include "checksum_plugin_demo.h"
 #endif
 
+#if (_IS_NEED_SFX)
 #if ((defined _WIN32)&&(defined _IS_NEED_MAIN)&&(defined _WIN32_SFX))
 #   if (_IS_USE_WIN32_UTF8_WAPI)
 #       pragma comment(linker,"/subsystem:\"windows\" /entry:\"wmainCRTStartup\"")
@@ -104,13 +108,21 @@
 #       pragma comment(linker,"/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
 #   endif
 #endif
+#endif
 
 
 static void printUsage(){
     printf("patch usage: hpatchz [options] oldPath diffFile outNewPath\n"
+#if (_IS_NEED_SFX)
            "create  SFX: hpatchz [-X-exe#selfExecuteFile] diffFile -X#outSelfExtractArchive\n"
            "run     SFX: selfExtractArchive [[options] oldPath -X outNewPath]\n"
-           "extract SFX: selfExtractArchive     (same as: selfExtractArchive \"\" -X \"./\")\n"
+           "extract SFX: selfExtractArchive      (same as: selfExtractArchive -f \"\" -X "
+#   ifdef _WIN32
+           "\".\\\")\n"
+#   else
+           "\"./\")\n"
+#   endif
+#endif
            "  ( if oldPath is empty input parameter \"\" )\n"
            "memory options:\n"
            "  -m  oldPath all loaded into Memory;\n"
@@ -218,9 +230,10 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,hpatch_StreamPos_t d
                const char* outNewPath,hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
                size_t kMaxOpenFileNumber,TDirPatchChecksumSet* checksumSet,IHPatchDirListener* hlistener);
 #endif
-
+#if (_IS_NEED_SFX)
 int createSfx(const char* selfExecuteFileName,const char* diffFileName,const char* out_sfxFileName);
 hpatch_BOOL getDiffDataOffertInSfx(hpatch_StreamPos_t* out_diffDataOffert);
+#endif
 
 #if (_IS_NEED_MAIN)
 #   if (_IS_USE_WIN32_UTF8_WAPI)
@@ -300,10 +313,11 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
+#if (_IS_NEED_SFX)
     hpatch_BOOL isRunSFX=_kNULL_VALUE;
-    hpatch_StreamPos_t diffDataOffert=0;
     const char* out_SFX=0;
     const char* selfExecuteFile=0;
+#endif
     size_t      patchCacheSize=0;
 #if (_IS_NEED_DIR_DIFF_PATCH)
     size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir patch
@@ -348,6 +362,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                     patchCacheSize=kPatchCacheSize_default;
                 }
             } break;
+#if (_IS_NEED_SFX)
             case 'X':{
                 if (op[2]=='#'){
                     const char* pnum=op+3;
@@ -367,6 +382,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                     isRunSFX=hpatch_TRUE;
                 }
             } break;
+#endif
             case 'f':{
                 _options_check((isForceOverwrite==_kNULL_VALUE)&&(op[2]=='\0'),"-f");
                 isForceOverwrite=hpatch_TRUE;
@@ -411,19 +427,26 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         isOutputVersion=hpatch_FALSE;
     if (isForceOverwrite==_kNULL_VALUE)
         isForceOverwrite=hpatch_FALSE;
+#if (_IS_NEED_SFX)
     if (isRunSFX==_kNULL_VALUE)
         isRunSFX=hpatch_FALSE;
     if (arg_values_size==0){
-        if (getDiffDataOffertInSfx(&diffDataOffert)){//autoExtractSFX
+        hpatch_StreamPos_t _diffDataOffert=0;
+        if (getDiffDataOffertInSfx(&_diffDataOffert)){//autoExtractSFX
             isForceOverwrite=hpatch_TRUE;
             isRunSFX=hpatch_TRUE;
         }
     }
+#endif
     if (isOutputHelp||isOutputVersion){
         printf("HDiffPatch::hpatchz v" HDIFFPATCH_VERSION_STRING "\n\n");
         if (isOutputHelp)
             printUsage();
-        if ((arg_values_size==0)&&(!isRunSFX))
+#if (_IS_NEED_SFX)
+        if ((arg_values_size==0)&&(!isRunSFX)&&(out_SFX==0)&&(selfExecuteFile==0))
+#else
+        if (arg_values_size==0)
+#endif
             return 0; //ok
     }
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -442,6 +465,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     if (isOldPathInputEmpty==_kNULL_VALUE)
         isOldPathInputEmpty=hpatch_FALSE;
     
+#if (_IS_NEED_SFX)
     if ((out_SFX!=0)||(selfExecuteFile!=0)){ //create SFX
         _options_check(out_SFX!=0,"-X#?");
         _options_check(!isRunSFX, "-X");
@@ -460,27 +484,32 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         }
     }else if (isRunSFX){//patch run as SFX mode
         _options_check((arg_values_size==2)||(arg_values_size==0),"-X input count");
-    }else{//patch default mode
+    }else
+#endif
+    {//patch default mode
         _options_check(arg_values_size==3,"input count");
     }
     {//patch
         const char* oldPath     =0;
         const char* diffFileName=0;
         const char* outNewPath  =0;
+#if (_IS_NEED_SFX)
         const char  kSFX_curDefaultPath[3]={'.',kPatch_dirSeparator,'\0'};
         const char* kSFX_emptyPath="";
+#endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
         TDirDiffInfo dirDiffInfo;
         hpatch_BOOL  isOutDir;
 #endif
         hpatch_BOOL  isSamePath;
         hpatch_StreamPos_t diffDataOffert=0;
+#if (_IS_NEED_SFX)
         if (isRunSFX){
             printf("run as SFX mode!\n");
             _return_check(getDiffDataOffertInSfx(&diffDataOffert),
                           HPATCH_RUN_SFX_NOTSFX_ERROR,"not found diff data in selfExecuteFile");
             diffFileName=argv[0];//selfExecuteFileName
-            if (arg_values_size==0){
+            if (arg_values_size==0){//autoExtractSFX
                 oldPath     =kSFX_emptyPath;
                 outNewPath  =kSFX_curDefaultPath;
             }else{
@@ -488,14 +517,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 outNewPath  =arg_values[1];
             }
             //continue
-        }else if (arg_values_size==0){
-            _return_check(getDiffDataOffertInSfx(&diffDataOffert),
-                          HPATCH_RUN_SFX_NOTSFX_ERROR,"not found diff data in selfExecuteFile");
-            oldPath     =arg_values[0];
-            diffFileName=argv[0];//selfExecuteFileName
-            outNewPath  =arg_values[1];
-            //continue
-        }else{
+        }else
+#endif
+        {
             oldPath     =arg_values[0];
             diffFileName=arg_values[1];
             outNewPath  =arg_values[2];
@@ -989,7 +1013,7 @@ clear:
 }
 #endif
 
-
+#if (_IS_NEED_SFX)
 #define _sfx_guid_size      16
 #define _sfx_guid_node_size (_sfx_guid_size+sizeof(hpatch_uint32_t)+sizeof(hpatch_uint32_t))
 //_sfx_guid_node:{fd6c3a9d-1498-4a5d-a9d5-7303a82fd08e-ffffffff-ffffffff}
@@ -1179,3 +1203,5 @@ hpatch_BOOL getDiffDataOffertInSfx(hpatch_StreamPos_t* out_diffDataOffert){
     *out_diffDataOffert=diffOff;
     return hpatch_TRUE;
 }
+
+#endif // _IS_NEED_SFX
