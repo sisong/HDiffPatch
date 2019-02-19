@@ -210,7 +210,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,hpatch_StreamPos_t d
 #endif
 
 int createSfx(const char* selfExecuteFileName,const char* diffFileName,const char* out_sfxFileName);
-hpatch_BOOL getDiffDataOffertInSfx(const char* diffFileName,hpatch_StreamPos_t* out_diffDataOffert);
+hpatch_BOOL getDiffDataOffertInSfx(hpatch_StreamPos_t* out_diffDataOffert);
 
 #if (_IS_NEED_MAIN)
 #   if (_IS_USE_WIN32_UTF8_WAPI)
@@ -455,9 +455,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         hpatch_StreamPos_t diffDataOffert=0;
         if (isSFX){
             printf("run as SFX mode!\n");
-            diffFileName=argv[0];//selfExecuteFileName
-            _return_check(getDiffDataOffertInSfx(diffFileName,&diffDataOffert),
+            _return_check(getDiffDataOffertInSfx(&diffDataOffert),
                           HPATCH_RUN_SFX_NOTSFX_ERROR,"not found diff data in selfExecuteFile");
+            diffFileName=argv[0];//selfExecuteFileName
             outNewPath  =arg_values[1];
             //continue
         }else{
@@ -954,25 +954,26 @@ clear:
 #endif
 
 
-//{fd6c3a9d-1498-4a5d-a9d5-7303a82fd08e-ffffffff}
-#define _sfx_guid_size 16
-#define _sfx_guid_pos_size (_sfx_guid_size+sizeof(hpatch_uint32_t))
-TByte _sfx_guid_pos[_sfx_guid_pos_size]={
+#define _sfx_guid_size      16
+#define _sfx_guid_node_size (_sfx_guid_size+sizeof(hpatch_uint32_t)+sizeof(hpatch_uint32_t))
+//_sfx_guid_node:{fd6c3a9d-1498-4a5d-a9d5-7303a82fd08e-ffffffff-ffffffff}
+TByte _sfx_guid_node[_sfx_guid_node_size]={
     0xfd,0x6c,0x3a,0x9d,
     0x14,0x98,
     0x4a,0x5d,
     0xa9,0xd5,
     0x73,0x03,0xa8,0x2f,0xd0,0x8e,
-    0xff,0xff,0xff,0xff};
+    0xff,0xff,0xff,0xff,  // saved diffDataOffert , selfExecute fileSize < 4GB
+    0xff,0xff,0xff,0xff}; // reserved
 
 static TByte* _search(TByte* src,TByte* src_end,const TByte* sub,const TByte* sub_end){
     size_t sub_len=(size_t)(sub_end-sub);
-    TByte* s_end=src_end-sub_len;
+    TByte* search_last=src_end-sub_len;
     TByte  c0;
     if (sub_len==0) return src;
     if ((size_t)(src_end-src)<sub_len)  return src_end;
     c0=*sub;
-    for (;src<s_end;++src) {
+    for (;src<=search_last;++src) {
         if (c0!=*src){
             continue;
         }else{
@@ -1005,15 +1006,16 @@ static int createSfx_notCheckDiffFile_byStream(const hpatch_TStreamInput*  selfE
     hpatch_BOOL         isFoundGuid=hpatch_FALSE;
     const hpatch_StreamPos_t  diffDataOffert=selfExecute->streamSize;
     {//mem
-        pmem=(TByte*)malloc(_sfx_guid_pos_size+kFileIOBufSize);
+        pmem=(TByte*)malloc(_sfx_guid_node_size+kFileIOBufSize);
         check(pmem!=0,HPATCH_MEM_ERROR,"createSfx() malloc");
-        memset(pmem,0,_sfx_guid_pos_size);
-        buf=pmem+_sfx_guid_pos_size; // [ _sfx_guid_pos_size | kFileIOBufSize ]
+        memset(pmem,0,_sfx_guid_node_size);
+        buf=pmem+_sfx_guid_node_size; // [ _sfx_guid_node_size | kFileIOBufSize ]
     }
     {//copy exe ,find guid pos and write diffDataOffset
         const hpatch_uint32_t dataSize=(hpatch_uint32_t)(selfExecute->streamSize);
         hpatch_StreamPos_t readPos=0;
-        assert(dataSize==selfExecute->streamSize);
+        check(dataSize==selfExecute->streamSize,
+              HPATCH_CREATE_SFX_SFXTYPE_ERROR,"createSfx() selfExecute fileSize");
         while (readPos < dataSize) {
             TByte* wbuf=0;
             const TByte* wbuf_end=0;
@@ -1026,19 +1028,20 @@ static int createSfx_notCheckDiffFile_byStream(const hpatch_TStreamInput*  selfE
                   HPATCH_FILEREAD_ERROR,"createSfx() read selfExecute");
             wbuf=(readPos!=0)?pmem:buf;
             if (!isFoundGuid){ //find in [wbuf..rbuf_end)
-                TByte*  pos=_search(wbuf,rbuf_end,_sfx_guid_pos,_sfx_guid_pos+_sfx_guid_pos_size);
+                TByte*  pos=_search(wbuf,rbuf_end,_sfx_guid_node,_sfx_guid_node+_sfx_guid_node_size);
                 if (pos!=rbuf_end){
                     size_t i;
                     isFoundGuid=hpatch_TRUE;
                     for (i=0; i<sizeof(hpatch_uint32_t); ++i){
+                        assert(pos[_sfx_guid_size+i]==0xff);
                         pos[_sfx_guid_size+i]=(TByte)(diffDataOffert>>(8*i));
                     }
                 }
             }
-            wbuf_end=(readPos+readLen<dataSize)?(rbuf_end-_sfx_guid_pos_size):rbuf_end;
+            wbuf_end=(readPos+readLen<dataSize)?(rbuf_end-_sfx_guid_node_size):rbuf_end;
             check(out_sfxData->write(out_sfxData,writePos,wbuf,wbuf_end),
                   HPATCH_FILEWRITE_ERROR,"createSfx() write sfxData");
-            memcpy(pmem,rbuf_end-_sfx_guid_pos_size,_sfx_guid_pos_size);
+            memcpy(pmem,rbuf_end-_sfx_guid_node_size,_sfx_guid_node_size);
             readPos+=readLen;
             writePos+=(size_t)(wbuf_end-wbuf);
         }
@@ -1129,14 +1132,14 @@ clear:
     return result;
 }
 
-hpatch_BOOL getDiffDataOffertInSfx(const char* diffFileName,hpatch_StreamPos_t* out_diffDataOffert){
-    hpatch_uint32_t v=0;
+hpatch_BOOL getDiffDataOffertInSfx(hpatch_StreamPos_t* out_diffDataOffert){
+    hpatch_uint32_t diffOff=0;
     size_t i;
     for (i=0; i<sizeof(hpatch_uint32_t); ++i){
-        v|=((hpatch_uint32_t)_sfx_guid_pos[_sfx_guid_size+i])<<(8*i);
+        diffOff|=((hpatch_uint32_t)_sfx_guid_node[_sfx_guid_size+i])<<(8*i);
     }
-    if (v==(hpatch_uint32_t)(-1)) return hpatch_FALSE;
-    assert(v>_sfx_guid_pos_size);
-    *out_diffDataOffert=v;
+    if (diffOff==(hpatch_uint32_t)(-1)) return hpatch_FALSE;
+    assert(diffOff>_sfx_guid_node_size);
+    *out_diffDataOffert=diffOff;
     return hpatch_TRUE;
 }
