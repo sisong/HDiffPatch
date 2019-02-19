@@ -101,7 +101,7 @@ special options:
    
 ## patch command line usage:   
 patch usage: **hpatchz** [options] **oldPath diffFile outNewPath**   
-create  SFX: **hpatchz diffFile -X#outSelfExtractArchive**   
+create  SFX: **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractArchive**   
 run     SFX: **selfExtractArchive** [options] **oldPath -X outNewPath**   
 ```
   ( if oldPath is empty input parameter "" )
