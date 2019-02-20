@@ -21,6 +21,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
+					<Add option="-fomit-frame-pointer" />
 					<Add option="-O3" />
 				</Compiler>
 				<Linker>
@@ -34,6 +35,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-march=i386" />
+					<Add option="-fomit-frame-pointer" />
 					<Add option="-O3" />
 					<Add option="-m32" />
 				</Compiler>
@@ -46,6 +48,7 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-D_FILE_OFFSET_BITS=64" />
 			<Add directory="../../../lzma/C/" />
 		</Compiler>
 		<Unit filename="../../../bzip2/blocksort.c">

@@ -45,7 +45,7 @@ endif
 
 
 DEF_FLAGS := \
-    -O3 -DNDEBUG \
+    -O3 -DNDEBUG -D_FILE_OFFSET_BITS=64 \
     -D_IS_NEED_ORIGINAL=1 \
     -D_IS_NEED_ALL_CompressPlugin=0 \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \

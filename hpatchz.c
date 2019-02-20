@@ -100,16 +100,6 @@
 #include "checksum_plugin_demo.h"
 #endif
 
-#if (_IS_NEED_SFX)
-#if ((defined _WIN32)&&(defined _IS_NEED_MAIN)&&(defined _WIN32_SFX))
-#   if (_IS_USE_WIN32_UTF8_WAPI)
-#       pragma comment(linker,"/subsystem:\"windows\" /entry:\"wmainCRTStartup\"")
-#   else
-#       pragma comment(linker,"/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
-#   endif
-#endif
-#endif
-
 
 static void printUsage(){
     printf("patch usage: hpatchz [options] oldPath diffFile outNewPath\n"
