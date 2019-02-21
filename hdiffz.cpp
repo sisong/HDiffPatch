@@ -182,15 +182,16 @@ static void printUsage(){
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumType\n"
-           "      set outDiffFile Checksum type for dir diff, DEFAULT "
+           "      set outDiffFile Checksum type for directory diff, DEFAULT "
 #ifdef _ChecksumPlugin_fadler64
-           "used -C-fadler64;\n"
+           "-C-fadler64;\n"
 #else
 #   ifdef _ChecksumPlugin_crc32
-           "used -C-crc32;\n"
+           "-C-crc32;\n"
 #   else
            "no checksum;\n"
 #   endif
+           "      (if need checksum for diff between two files, add -D)\n"
 #endif
            "      support checksum type:\n"
            "        -C-no                   no checksum\n"

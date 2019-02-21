@@ -5,7 +5,7 @@
 a C\C++ library and command-line tools for binary data Diff & Patch; fast and create small delta/differential; support large files and directory(folder) and limit memory requires both diff & patch.    
    
 ( update Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )   
-( NOTE: This library does not deal with file metadata, such as file last wirte time, executable permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
+( NOTE: This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
    
 ---
 ## diff command line usage:   
@@ -54,7 +54,8 @@ special options:
             support run by multi-thread parallel, fast!
             WARNING: code not compatible with it compressed by -c-lzma!
   -C-checksumType
-      set outDiffFile Checksum type for dir diff, DEFAULT used -C-fadler64;
+      set outDiffFile Checksum type for directory diff, DEFAULT -C-fadler64;
+      (if need checksum for diff between two files, add -D)
       support checksum type:
         -C-no                   no checksum
         -C-crc32
