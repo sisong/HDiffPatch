@@ -33,7 +33,7 @@
 
 hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_TPathType* out_type,
                                                   hpatch_StreamPos_t* out_fileSize,size_t* out_st_mode){
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
     int            wsize;
     wchar_t        path_w[hpatch_kPathMaxSize];
     struct _stat64 s;
@@ -48,7 +48,7 @@ hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_T
     int          rt;
     assert(out_type!=0);
     memset(&s,0,sizeof(s));
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
     wsize=_utf8FileName_to_w(path_utf8,path_w,hpatch_kPathMaxSize);
     if (wsize<=0) return hpatch_FALSE;
     rt = _wstat64(path_w,&s);
@@ -108,7 +108,7 @@ hpatch_BOOL hpatch_getTempPathName(const char* path_utf8,char* out_tempPath_utf8
 hpatch_BOOL hpatch_renamePath(const char* oldPath_utf8,const char* newPath_utf8){
     _path_noEndDirSeparator(oldPath,oldPath_utf8); {
         _path_noEndDirSeparator(newPath,newPath_utf8); {
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
             int     wsize;
             wchar_t oldPath_w[hpatch_kPathMaxSize];
             wchar_t newPath_w[hpatch_kPathMaxSize];
@@ -126,7 +126,7 @@ hpatch_BOOL hpatch_renamePath(const char* oldPath_utf8,const char* newPath_utf8)
 
 hpatch_BOOL hpatch_removeFile(const char* fileName_utf8){
     _path_noEndDirSeparator(fileName,fileName_utf8);{
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
         int     wsize;
         wchar_t path_w[hpatch_kPathMaxSize];
         wsize=_utf8FileName_to_w(fileName,path_w,hpatch_kPathMaxSize);
@@ -142,7 +142,7 @@ hpatch_BOOL hpatch_removeFile(const char* fileName_utf8){
 
 hpatch_BOOL hpatch_removeDir(const char* dirName_utf8){
     _path_noEndDirSeparator(dirName,dirName_utf8);{
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
         int     wsize;
         wchar_t path_w[hpatch_kPathMaxSize];
         wsize=_utf8FileName_to_w(dirName,path_w,hpatch_kPathMaxSize);
@@ -170,7 +170,7 @@ hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8){
         case kPathType_dir :{ return hpatch_TRUE; } break; //exist
         case kPathType_file:{ return hpatch_FALSE; } break; //error, not overwite
         case kPathType_notExist:{
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
             int     wsize;
             wchar_t path_w[hpatch_kPathMaxSize];
             wsize=_utf8FileName_to_w(path,path_w,hpatch_kPathMaxSize);
@@ -276,7 +276,7 @@ hpatch_BOOL _import_fileFlush(hpatch_FileHandle writedFile){
     return (0==fflush(writedFile));
 }
 
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
 #   define _kFileReadMode  L"rb"
 #   define _kFileWriteMode L"wb+"
 #else
@@ -284,7 +284,7 @@ hpatch_BOOL _import_fileFlush(hpatch_FileHandle writedFile){
 #   define _kFileWriteMode "wb+"
 #endif
 
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
 static hpatch_FileHandle _import_fileOpenByMode(const char* fileName_utf8,const wchar_t* mode_w){
     wchar_t fileName_w[hpatch_kPathMaxSize];
     int wsize=_utf8FileName_to_w(fileName_utf8,fileName_w,hpatch_kPathMaxSize);

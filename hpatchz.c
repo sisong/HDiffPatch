@@ -226,7 +226,7 @@ hpatch_BOOL getDiffDataOffertInSfx(hpatch_StreamPos_t* out_diffDataOffert);
 #endif
 
 #if (_IS_NEED_MAIN)
-#   if (_IS_USE_WIN32_UTF8_WAPI)
+#   if (_IS_USED_WIN32_UTF8_WAPI)
 int wmain(int argc,wchar_t* argv_w[]){
     char* argv_utf8[hpatch_kPathMaxSize*3/sizeof(char*)];
     if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))

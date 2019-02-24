@@ -312,7 +312,7 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 
 
 #if (_IS_NEED_MAIN)
-#   if (_IS_USE_WIN32_UTF8_WAPI)
+#   if (_IS_USED_WIN32_UTF8_WAPI)
 int wmain(int argc,wchar_t* argv_w[]){
     hdiff_private::TAutoMem  _mem(hpatch_kPathMaxSize*4);
     char** argv_utf8=(char**)_mem.data();

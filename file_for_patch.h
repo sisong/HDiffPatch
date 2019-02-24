@@ -42,12 +42,12 @@
 #endif
 
 
-#ifndef _IS_USE_WIN32_UTF8_WAPI
+#ifndef _IS_USED_WIN32_UTF8_WAPI
 #   if (defined(_WIN32) && defined(_MSC_VER))
-#       define _IS_USE_WIN32_UTF8_WAPI 1 // used utf8 string + wchar_t API
+#       define _IS_USED_WIN32_UTF8_WAPI 1 // used utf8 string + wchar_t API
 #   endif
 #endif
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
 #   define _hpatch_kMultiBytePage CP_UTF8
 #elif defined(_WIN32)
 #   define _hpatch_kMultiBytePage CP_ACP
@@ -119,7 +119,7 @@ static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCo
 }
 #endif
 
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
 hpatch_inline static
 void SetDefaultStringLocale(){ //for some locale Path character encoding view
     setlocale(LC_CTYPE,"");
@@ -141,7 +141,7 @@ hpatch_BOOL hpatch_getIsSamePath(const char* xPath_utf8,const char* yPath_utf8){
 
 hpatch_inline static
 int hpatch_printPath_utf8(const char* pathTxt_utf8){
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
     wchar_t pathTxt_w[hpatch_kPathMaxSize];
     int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,hpatch_kPathMaxSize);
     if (wsize>0)
@@ -155,7 +155,7 @@ int hpatch_printPath_utf8(const char* pathTxt_utf8){
 
 hpatch_inline static
 int hpatch_printStdErrPath_utf8(const char* pathTxt_utf8){
-#if (_IS_USE_WIN32_UTF8_WAPI)
+#if (_IS_USED_WIN32_UTF8_WAPI)
     wchar_t pathTxt_w[hpatch_kPathMaxSize];
     int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,hpatch_kPathMaxSize);
     if (wsize>0)
