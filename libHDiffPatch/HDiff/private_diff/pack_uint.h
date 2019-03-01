@@ -32,6 +32,7 @@
 #include <vector>
 #include "../../HPatch/patch_types.h" //hpatch_packUIntWithTag
 #include <stdexcept>  //std::runtime_error
+#include <string>
 namespace hdiff_private{
 
 template<class _UInt>
@@ -50,12 +51,44 @@ inline static void packUInt(std::vector<unsigned char>& out_code,_UInt uValue){
 }
 
     
-inline static void pushBack(std::vector<unsigned char>& out_buf,const unsigned char* data,const unsigned char* data_end){
+inline static void pushBack(std::vector<unsigned char>& out_buf,
+                            const unsigned char* data,const unsigned char* data_end){
     out_buf.insert(out_buf.end(),data,data_end);
 }
 inline static void pushBack(std::vector<unsigned char>& out_buf,const std::vector<unsigned char>& data){
     out_buf.insert(out_buf.end(),data.begin(),data.end());
 }
+inline static void pushCStr(std::vector<unsigned char>& out_buf,const char* cstr){
+    const unsigned char* data=(const unsigned char*)cstr;
+    pushBack(out_buf,data,data+strlen(cstr));
+}
+inline static void pushString(std::vector<unsigned char>& out_buf,const std::string& str){
+    const unsigned char* data=(const unsigned char*)str.c_str();
+    pushBack(out_buf,data,data+str.size());
+}
     
+struct TPlaceholder{
+    hpatch_StreamPos_t pos;
+    hpatch_StreamPos_t pos_end;
+    inline TPlaceholder(hpatch_StreamPos_t _pos,hpatch_StreamPos_t _pos_end)
+    :pos(_pos),pos_end(_pos_end){ assert(_pos<=_pos_end); }
+    inline hpatch_StreamPos_t size()const{ return pos_end-pos; }
+};
+
+hpatch_inline static
+void packUInt_fixSize(unsigned char* out_code,unsigned char* out_code_fixEnd,
+                      hpatch_StreamPos_t uValue){
+    if (out_code>=out_code_fixEnd)
+        throw std::runtime_error("packUInt_fixSize() out_code size error!");
+    --out_code_fixEnd;
+    *out_code_fixEnd=uValue&((1<<7)-1); uValue>>=7;
+    while (out_code<out_code_fixEnd) {
+        --out_code_fixEnd;
+        *out_code_fixEnd=(uValue&((1<<7)-1)) | (1<<7);  uValue>>=7;
+    }
+    if (uValue!=0)
+        throw std::runtime_error("packUInt_fixSize() out_code too small error!");
+}
+
 }//namespace hdiff_private
 #endif //__PACK_UINT_H_

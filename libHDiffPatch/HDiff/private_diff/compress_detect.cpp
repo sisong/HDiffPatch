@@ -28,7 +28,6 @@
 
 #include "compress_detect.h"
 #include <string.h> //memset
-#include <stdlib.h> //malloc free
 #include <stdexcept> //std::runtime_error
 namespace hdiff_private{
 
@@ -78,14 +77,11 @@ static const size_t kCacheSize=(1<<19);
 TCompressDetect::TCompressDetect()
 :m_table(0),m_lastChar(-1),
 m_lastPopChar(-1),m_cacheBegin(0),m_cacheEnd(0){
-    m_table=(TCharConvTable*)malloc(sizeof(TCharConvTable)+kCacheSize);
-    if (!m_table)
-        throw std::runtime_error("TCompressDetect::TCompressDetect() malloc() error!");
+    m_mem.realloc(sizeof(TCharConvTable)+kCacheSize);
+    m_table=(TCharConvTable*)m_mem.data();
     memset(m_table,0,sizeof(TCharConvTable));
 }
 TCompressDetect::~TCompressDetect(){
-    free(m_table);
-    m_table=0;
 }
 
 void TCompressDetect::_add_rle(const unsigned char* d,size_t n){

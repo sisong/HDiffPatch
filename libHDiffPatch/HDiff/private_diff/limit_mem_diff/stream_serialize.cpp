@@ -25,13 +25,12 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "stream_serialize.h"
-#include <stdlib.h> //malloc free
 #include <string.h> //memcpy
 #include <stdexcept> //std::runtime_error
 #include "../../diff.h" //for stream type
 
-#define check(value) { \
-    if (!(value)) { throw std::runtime_error(#value" error!"); } }
+#define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
+#define check(value) checki(value,"check "#value" error!")
 
 namespace hdiff_private{
 TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,
@@ -39,46 +38,41 @@ TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,
                                      const hpatch_TStreamInput*   _in_stream)
 :out_code(_out_code),out_pos(_writePos),out_posLimitEnd(_writePos+_kLimitOutCodeSize),
 in_stream(_in_stream),_writeToPos_back(0),_is_overLimit(false){
-    this->streamHandle=this;
+    this->streamImport=this;
     this->streamSize=0;
+    this->read_writed=0;
     this->write=_write_code;
 }
 
-long TCompressedStream::_write_code(hpatch_TStreamOutputHandle streamHandle,
-                                    const hpatch_StreamPos_t writeToPos,
-                                    const unsigned char* data,const unsigned char* data_end){
+hpatch_BOOL TCompressedStream::_write_code(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                           const unsigned char* data,const unsigned char* data_end){
     assert(data<data_end);
-    TCompressedStream* self=(TCompressedStream*)streamHandle;
-    if (self->_writeToPos_back!=writeToPos)
-        throw std::runtime_error("TCompressedStream::write() writeToPos error!");
+    TCompressedStream* self=(TCompressedStream*)stream->streamImport;
+    checki(self->_writeToPos_back==writeToPos,"TCompressedStream::write() writeToPos error!");
     size_t dataLen=(size_t)(data_end-data);
     self->_writeToPos_back=writeToPos+dataLen;
     
     if ((self->_is_overLimit)||(self->out_pos+dataLen>self->out_posLimitEnd)){
         self->_is_overLimit=true;
     }else{
-        if ((long)dataLen!=self->out_code->write(self->out_code->streamHandle,self->out_pos,
-                                                 data,data_end)) return -1;
+        if (!self->out_code->write(self->out_code,self->out_pos,data,data_end)) return hpatch_FALSE;
         self->out_pos+=dataLen;
     }
-    return (long)dataLen;
+    return hpatch_TRUE;
 }
 
 
 TCoversStream::TCoversStream(const TCovers& _covers,hpatch_StreamPos_t cover_buf_size)
-:covers(_covers),_code_buf(0),curCodePos(0),curCodePos_end(0),
+:covers(_covers),curCodePos(0),curCodePos_end(0),
 readedCoverCount(0),lastOldEnd(0),lastNewEnd(0),_readFromPos_back(0){
     assert(kCodeBufSize>=hpatch_kMaxPackedUIntBytes*3);
-    _code_buf=(unsigned char*)malloc(kCodeBufSize);
-    if (!_code_buf)
-        throw std::runtime_error("TCoversStream::TCoversStream() malloc() error!");
-    this->streamHandle=this;
+    _code_mem.realloc(kCodeBufSize);
+    this->streamImport=this;
     this->streamSize=cover_buf_size;
     this->read=_read;
 }
 
 TCoversStream::~TCoversStream(){
-    if (_code_buf) free(_code_buf);
 }
 
 #define __private_packCover(_TUInt,packWithTag,pack,dst,dst_end,cover,lastOldEnd,lastNewEnd){ \
@@ -90,10 +84,9 @@ TCoversStream::~TCoversStream(){
     pack(dst,dst_end,(_TUInt)cover.length); \
 }
 
-long TCoversStream::_read(hpatch_TStreamInputHandle streamHandle,
-                          const hpatch_StreamPos_t readFromPos,
-                          unsigned char* out_data,unsigned char* out_data_end){
-    TCoversStream* self=(TCoversStream*)streamHandle;
+hpatch_BOOL TCoversStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                 unsigned char* out_data,unsigned char* out_data_end){
+    TCoversStream* self=(TCoversStream*)stream->streamImport;
     if (readFromPos==0){
         self->curCodePos=0;
         self->curCodePos_end=0;
@@ -101,27 +94,24 @@ long TCoversStream::_read(hpatch_TStreamInputHandle streamHandle,
         self->lastNewEnd=0;
         self->readedCoverCount=0;
     }else{
-        if (self->_readFromPos_back!=readFromPos)
-            throw std::runtime_error("TCoversStream::read() readFromPos error!");
+        checki(self->_readFromPos_back==readFromPos,"TCoversStream::read() readFromPos error!");
     }
     self->_readFromPos_back=readFromPos+(size_t)(out_data_end-out_data);
     
     size_t n=self->covers.coverCount();
-    size_t sumReadedLen=0;
     while (out_data<out_data_end) {
         size_t curLen=self->curCodePos_end-self->curCodePos;
         if (curLen>0){
             size_t readLen=(out_data_end-out_data);
             if (readLen>curLen) readLen=curLen;
-            const unsigned char* pcode=&self->_code_buf[self->curCodePos];
+            const unsigned char* pcode=self->_code_mem.data()+self->curCodePos;
             memcpy(out_data,pcode,readLen);
-            sumReadedLen+=readLen;
             out_data+=readLen;
             self->curCodePos+=readLen;
         }else{
             size_t cur_index=self->readedCoverCount;
-            if (cur_index>=n) return -1; //error
-            unsigned char* pcode_cur=&self->_code_buf[0];
+            if (cur_index>=n) return hpatch_FALSE; //error
+            unsigned char* pcode_cur=self->_code_mem.data();
             unsigned char* pcode_end=pcode_cur+kCodeBufSize;
             for (;((size_t)(pcode_end-pcode_cur)>=hpatch_kMaxPackedUIntBytes*3)
                  &&(cur_index<n);++cur_index) {
@@ -134,10 +124,10 @@ long TCoversStream::_read(hpatch_TStreamInputHandle streamHandle,
             }
             self->readedCoverCount=cur_index;
             self->curCodePos=0;
-            self->curCodePos_end=pcode_cur-&self->_code_buf[0];
+            self->curCodePos_end=pcode_cur-self->_code_mem.data();
         }
     }
-    return (long)sumReadedLen;
+    return hpatch_TRUE;
 };
 
 
@@ -172,42 +162,38 @@ TNewDataDiffStream::TNewDataDiffStream(const TCovers& _covers,const hpatch_TStre
                                        hpatch_StreamPos_t newDataDiff_size)
 :covers(_covers),newData(_newData),curNewPos(0),curNewPos_end(0),
 lastNewEnd(0),readedCoverCount(0),_readFromPos_back(0){
-    this->streamHandle=this;
+    this->streamImport=this;
     this->streamSize=newDataDiff_size;
     this->read=_read;
 }
 
-long TNewDataDiffStream::_read(hpatch_TStreamInputHandle streamHandle,
-                               const hpatch_StreamPos_t readFromPos,
-                               unsigned char* out_data,unsigned char* out_data_end){
-    TNewDataDiffStream* self=(TNewDataDiffStream*)streamHandle;
+hpatch_BOOL TNewDataDiffStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                      unsigned char* out_data,unsigned char* out_data_end){
+    TNewDataDiffStream* self=(TNewDataDiffStream*)stream->streamImport;
     if (readFromPos==0){
         self->curNewPos=0;
         self->curNewPos_end=0;
         self->lastNewEnd=0;
         self->readedCoverCount=0;
     }else{
-        if (self->_readFromPos_back!=readFromPos)
-            throw std::runtime_error("TNewDataDiffStream::read() readFromPos error!");
+        checki(self->_readFromPos_back==readFromPos,"TNewDataDiffStream::read() readFromPos error!");
     }
     self->_readFromPos_back=readFromPos+(size_t)(out_data_end-out_data);
     
     size_t n=self->covers.coverCount();
-    size_t sumReadedLen=0;
     while (out_data<out_data_end) {
         hpatch_StreamPos_t curLen=self->curNewPos_end-self->curNewPos;
         if (curLen>0){
             size_t readLen=(out_data_end-out_data);
             if (readLen>curLen) readLen=(size_t)curLen;
-            if ((long)readLen!=self->newData->read(self->newData->streamHandle,self->curNewPos,
-                                                   out_data,out_data+readLen)) return -1;
-            sumReadedLen+=readLen;
+            if (!self->newData->read(self->newData,self->curNewPos,
+                                     out_data,out_data+readLen)) return hpatch_FALSE;
             out_data+=readLen;
             self->curNewPos+=readLen;
         }else{
             TCover curCover;
             if (self->readedCoverCount==n){
-                if (self->lastNewEnd>=self->newData->streamSize) return -1; //error;
+                if (self->lastNewEnd>=self->newData->streamSize) return hpatch_FALSE; //error;
                 curCover.newPos=self->newData->streamSize;
                 curCover.length=0;
                 curCover.oldPos=0;
@@ -221,7 +207,7 @@ long TNewDataDiffStream::_read(hpatch_TStreamInputHandle streamHandle,
             self->lastNewEnd=curCover.newPos+curCover.length;
         }
     }
-    return (long)sumReadedLen;
+    return hpatch_TRUE;
 };
 
 hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_StreamPos_t newDataSize){
@@ -242,19 +228,17 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 
 
 TDiffStream::TDiffStream(const hpatch_TStreamOutput* _out_diff)
-:out_diff(_out_diff),writePos(0),_temp_buf(0){
-    _temp_buf=(unsigned char*)malloc(kBufSize);
-    if (!_temp_buf) throw std::runtime_error("TDiffStream::TDiffStream() malloc() error!");
+:out_diff(_out_diff),writePos(0){
+    _temp_mem.realloc(kBufSize);
 }
 
 TDiffStream::~TDiffStream(){
-    if (_temp_buf) free(_temp_buf);
 }
     
 void TDiffStream::pushBack(const unsigned char* src,size_t n){
     if (n==0) return;
-    if ((long)n!=out_diff->write(out_diff->streamHandle,writePos,src,src+n))
-        throw std::runtime_error("TDiffStream::pushBack() write stream error!");
+    checki(out_diff->write(out_diff,writePos,src,src+n),
+           "TDiffStream::pushBack() write stream error!");
     writePos+=n;
 }
 
@@ -268,16 +252,9 @@ void TDiffStream::packUInt(hpatch_StreamPos_t uValue){
 
 void TDiffStream::_packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize){
     check(limitOutSize<=hpatch_kMaxPackedUIntBytes);
-    unsigned char  _codeBuf[hpatch_kMaxPackedUIntBytes*2];
-    unsigned char* codeBegin=_codeBuf+hpatch_kMaxPackedUIntBytes;
-    unsigned char* codeEnd=codeBegin;
-    check(hpatch_packUInt(&codeEnd,codeBegin+hpatch_kMaxPackedUIntBytes,uValue));
-    check((size_t)(codeEnd-codeBegin)<=limitOutSize);
-    while ((size_t)(codeEnd-codeBegin)<limitOutSize) {
-        --codeBegin;
-        codeBegin[0]=(1<<7);
-    }
-    pushBack(codeBegin,(size_t)(codeEnd-codeBegin));
+    unsigned char  _codeBuf[hpatch_kMaxPackedUIntBytes];
+    packUInt_fixSize(_codeBuf,_codeBuf+limitOutSize,uValue);
+    pushBack(_codeBuf,limitOutSize);
 }
 
 void TDiffStream::packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue){
@@ -289,27 +266,27 @@ void TDiffStream::packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uVa
 }
 
 void TDiffStream::_pushStream(const hpatch_TStreamInput* stream){
-    unsigned char* buf=&_temp_buf[0];
+    unsigned char* buf=_temp_mem.data();
     hpatch_StreamPos_t sumReadedLen=0;
     while (sumReadedLen<stream->streamSize) {
         size_t readLen=kBufSize;
         if (readLen+sumReadedLen>stream->streamSize)
             readLen=(size_t)(stream->streamSize-sumReadedLen);
-        if ((long)readLen!=stream->read(stream->streamHandle,sumReadedLen,buf,buf+readLen))
-            throw std::runtime_error("TDiffStream::_pushStream() stream->read() error!");
+        checki(stream->read(stream,sumReadedLen,buf,buf+readLen),
+               "TDiffStream::_pushStream() stream->read() error!");
         this->pushBack(buf,readLen);
         sumReadedLen+=readLen;
     }
 }
 
 void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
-                             const hdiff_TStreamCompress* compressPlugin,
+                             const hdiff_TCompress* compressPlugin,
                              const TPlaceholder& update_compress_sizePos){
     if ((compressPlugin)&&(stream->streamSize>0)){
         hpatch_StreamPos_t kLimitOutCodeSize=stream->streamSize-1;
         TCompressedStream  out_stream(out_diff,writePos,kLimitOutCodeSize,stream);
         hpatch_StreamPos_t compressed_size=
-                                compressPlugin->compress_stream(compressPlugin,&out_stream,stream);
+                                compressPlugin->compress(compressPlugin,&out_stream,stream);
         if (out_stream.is_overLimit()||(compressed_size==0)||(compressed_size>kLimitOutCodeSize)){
             compressed_size=0;//NOTICE: compress is canceled
             _pushStream(stream);
@@ -329,7 +306,9 @@ TStreamClip::TStreamClip(const hpatch_TStreamInput* stream,
 _decompressPlugin(decompressPlugin),_read_uncompress_pos(0),_decompressHandle(0){
     assert(clipBeginPos<=clipEndPos);
     assert(clipEndPos<=stream->streamSize);
-    this->streamHandle=this;
+    if ((uncompressSize==0)&&(decompressPlugin==0))
+        uncompressSize=clipEndPos-clipBeginPos;
+    this->streamImport=this;
     this->streamSize=uncompressSize;
     this->read=_clip_read;
     
@@ -346,7 +325,7 @@ void TStreamClip::closeDecompressHandle(){
     hpatch_decompressHandle handle=_decompressHandle;
     _decompressHandle=0;
     if (handle)
-        _decompressPlugin->close(_decompressPlugin,handle);
+        check(_decompressPlugin->close(_decompressPlugin,handle));
 }
 void TStreamClip::openDecompressHandle(){
     assert(_decompressHandle==0);
@@ -355,19 +334,19 @@ void TStreamClip::openDecompressHandle(){
     check(_decompressHandle!=0);
 }
 
-long TStreamClip::_clip_read(hpatch_TStreamInputHandle streamHandle,
-                             const hpatch_StreamPos_t readFromPos,
-                             unsigned char* out_data,unsigned char* out_data_end){
-    TStreamClip* self=(TStreamClip*)streamHandle;
+hpatch_BOOL TStreamClip::_clip_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                    unsigned char* out_data,unsigned char* out_data_end){
+    TStreamClip* self=(TStreamClip*)stream->streamImport;
     assert(out_data<out_data_end);
     if (readFromPos!=self->_read_uncompress_pos){
-        if (readFromPos==0){//reset
+        if (self->_decompressPlugin){
+            check(readFromPos==0); //not support random read compressed cdata
+            //reset
             self->closeDecompressHandle();
-            if (self->_decompressPlugin)
-                self->openDecompressHandle();
+            self->openDecompressHandle();
             self->_read_uncompress_pos=0;
         }else{
-            assert(false); //not support
+            self->_read_uncompress_pos=readFromPos;
         }
     }
     size_t readLen=out_data_end-out_data;
@@ -375,11 +354,9 @@ long TStreamClip::_clip_read(hpatch_TStreamInputHandle streamHandle,
     self->_read_uncompress_pos+=readLen;
     
     if (self->_decompressPlugin){
-        return self->_decompressPlugin->decompress_part(self->_decompressPlugin,
-                                                        self->_decompressHandle,out_data,out_data_end);
+        return self->_decompressPlugin->decompress_part(self->_decompressHandle,out_data,out_data_end);
     }else{
-        return self->_src->read(self->_src->streamHandle,
-                                self->_src_begin+readFromPos,out_data,out_data_end);
+        return self->_src->read(self->_src,self->_src_begin+readFromPos,out_data,out_data_end);
     }
 }
     

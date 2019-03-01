@@ -21,6 +21,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
+					<Add option="-fomit-frame-pointer" />
 					<Add option="-O3" />
 				</Compiler>
 				<Linker>
@@ -34,6 +35,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-march=i386" />
+					<Add option="-fomit-frame-pointer" />
 					<Add option="-O3" />
 					<Add option="-m32" />
 				</Compiler>
@@ -46,7 +48,7 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
-			<Add option="-D_7ZIP_ST" />
+			<Add option="-D_FILE_OFFSET_BITS=64" />
 			<Add directory="../../../lzma/C/" />
 		</Compiler>
 		<Unit filename="../../../bzip2/blocksort.c">
@@ -69,6 +71,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../bzip2/randtable.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Lzma2Dec.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/LzmaDec.c">
@@ -96,9 +101,32 @@
 		<Unit filename="../../../zlib/zutil.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/dir_patch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/dir_patch.h" />
+		<Unit filename="../../dirDiffPatch/dir_patch/new_stream.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/new_stream.h" />
+		<Unit filename="../../dirDiffPatch/dir_patch/ref_stream.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/ref_stream.h" />
+		<Unit filename="../../dirDiffPatch/dir_patch/res_handle_limit.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/res_handle_limit.h" />
+		<Unit filename="../../file_for_patch.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../hpatchz.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h" />
 		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
 			<Option compilerVar="CC" />
 		</Unit>

@@ -1,59 +1,149 @@
 **HDiffPatch**
 ================
-[![release](https://img.shields.io/badge/release-v2.5.3-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![release](https://img.shields.io/badge/release-v3.0.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases)  [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE)  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
-a C\C++ library and command-line tools for binary data Diff & Patch.   
-( Jar or Zip file diff & patch? update Android Apk? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )
-
+a C\C++ library and command-line tools for binary data Diff & Patch; fast and create small delta/differential; support large files and directory(folder) and limit memory requires both diff & patch.    
+   
+( update Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )   
+( NOTE: This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
+   
 ---
-## command line usage:
-**hdiffz** [-m[-matchScore]|-s[-matchBlockSize]] [-c-compressType[-compressLevel]] [-d] [-o] **oldFile newFile outDiffFile**   
-**hdiffz** [-c-compressType[-compressLevel]] **diffFile outDiffFile**   
-**hdiffz** -t **oldFile newFile testDiffFile**   
+## diff command line usage:   
+diff    usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
+test    usage: **hdiffz**    -t     **oldPath newPath testDiffFile**   
+resave  usage: **hdiffz** [-c-...]  **diffFile outDiffFile**   
+get  manifest: **hdiffz** [-g#...] [-C-checksumType] **inputPath -M#outManifestTxtFile**   
+manifest diff: **hdiffz** [options] **-M-old#oldManifestFile -M-new#newManifestFile oldPath newPath outDiffFile**   
 ```
+  oldPath newPath inputPath can be file or directory(folder),
+  oldPath can empty, and input parameter ""
 memory options:
-  -m-matchScore
-      all file load into Memory, with matchScore; DEFAULT; best diffFileSize; 
-      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1) bytes of memory;
-      matchScore>=0, DEFAULT 6, recommended bin: 0--4 text: 4--9 etc...
-  -s-matchBlockSize
-      all file load as Stream, with matchBlockSize; fast;
-      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;
-      matchBlockSize>=2, DEFAULT 64, recommended 32,48,1k,64k,1m etc...
+  -m[-matchScore]
+      DEFAULT; all file load into Memory; best diffFileSize;
+      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1)
+        bytes of memory;
+      matchScore>=0, DEFAULT -m-6, recommended bin: 0--4 text: 4--9 etc...
+  -s[-matchBlockSize]
+      all file load as Stream; fast;
+      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;
+      matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
 special options:
-  -c-compressType-compressLevel 
+  -p-parallelThreadNumber
+    if parallelThreadNumber>1 then open multi-thread Parallel mode;
+    DEFAULT -p-4; requires more and more memory!
+  -c-compressType[-compressLevel]
       set outDiffFile Compress type & level, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
       support compress type & level:
-        (reference: https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
-        -zlib[-{1..9}]              DEFAULT level 9
-        -bzip2[-{1..9}]             DEFAULT level 9
-        -lzma[-{0..9}[-dictSize]]   DEFAULT level 7
-            dictSize(==decompress stream size) can like 4096 or 4k or 4m or 128m etc..., DEFAULT 4m
-  -v  output Version info.
+       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
+        -c-zlib[-{1..9}]                DEFAULT level 9
+        -c-pzlib[-{1..9}]               DEFAULT level 6
+            support run by multi-thread parallel, fast!
+            WARNING: code not compatible with it compressed by -c-zlib!
+              and code size may be larger than if it compressed by -c-zlib. 
+        -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9
+        -c-pbzip2[-{1..9}]              (or -pbz2) DEFAULT level 8
+            support run by multi-thread parallel, fast!
+            WARNING: code not compatible with it compressed by -c-bzip2!
+               and code size may be larger than if it compressed by -c-bzip2.
+        -c-lzma[-{0..9}[-dictSize]]     DEFAULT level 7
+            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m
+            support run by 2-thread parallel.
+        -c-lzma2[-{0..9}[-dictSize]]    DEFAULT level 7
+            dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m
+            support run by multi-thread parallel, fast!
+            WARNING: code not compatible with it compressed by -c-lzma!
+  -C-checksumType
+      set outDiffFile Checksum type for directory diff, DEFAULT -C-fadler64;
+      (if need checksum for diff between two files, add -D)
+      support checksum type:
+        -C-no                   no checksum
+        -C-crc32
+        -C-fadler64             DEFAULT
+  -n-maxOpenFileNumber
+      limit Number of open files at same time when stream directory diff;
+      maxOpenFileNumber>=8, DEFAULT -n-48, the best limit value by different
+        operating system.
+  -g#ignorePath[#ignorePath#...]
+      set iGnore path list when Directory Diff; ignore path list such as:
+        #.DS_Store#desktop.ini#*thumbs*.db#.git*#.svn/#cache_*/00*11/*.tmp
+      # means separator between names; (if char # in name, need write #: )
+      * means can match any chars in name; (if char * in name, need write *: );
+      / at the end of name means must match directory;
+  -g-old#ignorePath[#ignorePath#...]
+      set iGnore path list in oldPath when Directory Diff;
+      if oldFile can be changed, need add it in old ignore list;
+  -g-new#ignorePath[#ignorePath#...]
+      set iGnore path list in newPath when Directory Diff;
+      in general, new ignore list should is empty;
+  -M#outManifestTxtFile
+      create a Manifest file for inputPath; it is a text file, saved infos of
+      all files and directoriy list in inputPath; this file while be used in 
+      manifest diff, support re-checksum data by manifest diff;
+      can be used to protect historical versions be modified!
+  -M-old#oldManifestFile
+      oldManifestFile is created from oldPath; if no oldPath not need -M-old;
+  -M-new#newManifestFile
+      newManifestFile is created from newPath;
+  -D  force run Directory diff between two files; DEFAULT (no -D) run 
+      directory diff need oldPath or newPath is directory.
   -d  Diff only, do't run patch check, DEFAULT run patch check.
-  -t  Test only, run patch check, patch(oldFile,testDiffFile)==newFile ?
-  -o  Original diff, unsupport run with -s or -c; DEPRECATED;
+  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? 
+  -f  Force overwrite, ignore write path already exists;
+      DEFAULT (no -f) not overwrite and then return error;
+      if used -f and write path is exist directory, will always return error.
+  -o  DEPRECATED; Original diff, unsupport run with -s -c -C -D;
       compatible with "diff_demo.cpp",
       diffFile must patch by "patch_demo.c" or "hpatchz -o ..."
+  -h or -?
+      output Help info (this usage).
+  -v  output Version info.
 ```
    
-**hpatchz**  [-m|-s[-cacheSize]] [-o]  **oldFile diffFile outNewFile**
+## patch command line usage:   
+patch usage: **hpatchz** [options] **oldPath diffFile outNewPath**   
+create  SFX: **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractArchive**   
+run     SFX: **selfExtractArchive** [options] **oldPath -X outNewPath**   
+extract SFX: **selfExtractArchive**    (same as: selfExtractArchive -f "" -X "./")
 ```
+  ( if oldPath is empty input parameter "" )
 memory options:
-  -m  oldFile all loaded into Memory; fast;
-      requires (oldFileSize + 4 * decompress stream size) + O(1) bytes of memory
-  -s-cacheSize 
-      oldFile loaded as Stream, with cacheSize; DEFAULT;
-      requires (cacheSize + 4 * decompress stream size) + O(1) bytes of memory;
-      cacheSize can like 262144 or 256k or 512m or 2g etc..., DEFAULT 128m
+  -m  oldPath all loaded into Memory;
+      requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.
+  -s[-cacheSize] 
+      DEFAULT -s-64m; oldPath loaded as Stream;
+      requires (cacheSize+ 4*decompress stream size)+O(1) bytes of memory;
+      cacheSize can like 262144 or 256k or 512m or 2g etc....
 special options:
-  -v  output Version info.
-  -o  Original patch; DEPRECATED; compatible with "patch_demo.c",
+  -C-checksumSets
+      set Checksum data for directory patch, DEFAULT -C-new-copy;
+      checksumSets support (can choose multiple):
+        -C-diff         checksum diffFile;
+        -C-old          checksum old reference files;
+        -C-new          checksum new files edited from old reference files;
+        -C-copy         checksum new files copy from old same files;
+        -C-no           no checksum;
+        -C-all          same as: -C-diff-old-new-copy;
+  -n-maxOpenFileNumber
+      limit Number of open files at same time when stream directory patch;
+      maxOpenFileNumber>=8, DEFAULT -n-24, the best limit value by different
+        operating system.
+  -f  Force overwrite, ignore write path already exists;
+      DEFAULT (no -f) not overwrite and then return error;
+      support oldPath outNewPath same path!(patch to tempPath and overwrite old)
+      if used -f and outNewPath is exist file:
+        if patch output file, will overwrite;
+        if patch output directory, will always return error;
+      if used -f and outNewPath is exist directory:
+        if patch output file, will always return error;
+        if patch output directory, will overwrite, but not delete
+          needless existing files in directory.
+  -o  DEPRECATED; Original patch; compatible with "patch_demo.c",
       diffFile must created by "diff_demo.cpp" or "hdiffz -o ..."
+  -h or -?
+      output Help info (this usage).
+  -v  output Version info.
 ```
-( NOTE: This library does not deal with file metadata, such as file last wirte time, executable permissions, link file, etc...   
-   To this library, a file is just as a stream of bytes. )   
    
 ---
 ## library API usage:
@@ -78,6 +168,9 @@ special options:
    **create_compressed_diff_stream()** requires O(oldSize\*16/kMatchBlockSize+kMatchBlockSize\*5) bytes of memory.
 
 ---
+*  **dir_diff()** & **dir patch APIs** read source code;   
+   
+---
 ### HDiffPatch vs BsDiff4.3:
 system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
    (purge file cache before every test)
@@ -100,7 +193,7 @@ eclipse-java-juno-SR2-macosx
   -cocoa-x86_64 <--x86_32         178595840 156054144  151542885   1595465   1587747  1561773  1567700
 gcc-src-4.8.0 <--4.7.0            552775680  86438193   64532384  11759496   8433260  7288783  9445004
 -------------------------------------------------------------------------------------------------------
-Average Compression                 100.00%    31.76%     28.47%     6.64%     5.58%    5.01%    5.86%
+Average Compression                 100.00%    31.76%     28.47%     6.63%     5.58%    5.01%    5.86%
 =======================================================================================================
 
 =======================================================================================================

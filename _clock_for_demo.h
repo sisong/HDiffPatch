@@ -39,6 +39,9 @@
         struct timeval t={0,0};
         int ret=gettimeofday(&t,0);
         assert(ret==0);
-        return t.tv_sec + t.tv_usec/1000000.0;
+        if (ret==0)
+            return t.tv_sec + t.tv_usec/1000000.0;
+        else
+            return 0;
     }
 #endif

@@ -29,7 +29,6 @@
 #include <vector>
 #include "../../../HPatch/patch_types.h"
 namespace hdiff_private{
-typedef hpatch_uint32_t uint32_t;
 typedef hpatch_TCover   TCover;
 
 class TCovers{
@@ -39,9 +38,9 @@ public:
     
     inline void addCover(const TCover& cover){
         if (m_is32) {
-            m_covers_limit.push_back((uint32_t)cover.oldPos);
-            m_covers_limit.push_back((uint32_t)cover.newPos);
-            m_covers_limit.push_back((uint32_t)cover.length);
+            m_covers_limit.push_back((hpatch_uint32_t)cover.oldPos);
+            m_covers_limit.push_back((hpatch_uint32_t)cover.newPos);
+            m_covers_limit.push_back((hpatch_uint32_t)cover.length);
         }else{
             m_covers_larger.push_back(cover);
         }
@@ -62,9 +61,9 @@ public:
         }
     }
 private:
-    std::vector<uint32_t>   m_covers_limit;
-    std::vector<TCover>     m_covers_larger;
-    const  bool             m_is32;
+    std::vector<hpatch_uint32_t>    m_covers_limit;
+    std::vector<TCover>             m_covers_larger;
+    const  bool                     m_is32;
 };
 
 }//namespace hdiff_private

@@ -7,11 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D6241AD321DC6C0F00E2846A /* LzmaDec.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AD221DC6C0F00E2846A /* LzmaDec.c */; };
+		D6241AE521DE47EC00E2846A /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AE321DE47EC00E2846A /* new_stream.c */; };
 		D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */ = {isa = PBXBuildFile; fileRef = D64B4BEE2077AAAA0039C38B /* hpatchz.c */; };
 		D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BF82077B9090039C38B /* libz.tbd */; };
 		D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFA2077B91A0039C38B /* libbz2.tbd */; };
-		D64B4BFF2077B9240039C38B /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFE2077B9240039C38B /* liblzma.a */; };
+		D67D3BF421D3C5870050632A /* ref_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BF121D3C5870050632A /* ref_stream.c */; };
+		D67D3BF521D3C5870050632A /* dir_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BF221D3C5870050632A /* dir_patch.c */; };
+		D69EECD5220A8F2B001EF085 /* Lzma2Dec.c in Sources */ = {isa = PBXBuildFile; fileRef = D69EECD4220A8F2B001EF085 /* Lzma2Dec.c */; };
+		D6BAF70321F2F61B00C30C0A /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BAF70121F2F61B00C30C0A /* adler_roll.c */; };
 		D6BD9BCE17578601004886DE /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BCA17578601004886DE /* patch.c */; };
+		D6BF3A5721E8CDC300833537 /* res_handle_limit.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5621E8CDC300833537 /* res_handle_limit.c */; };
+		D6BF3A5921E95F4200833537 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5821E95F4200833537 /* file_for_patch.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -27,6 +34,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D6241AD221DC6C0F00E2846A /* LzmaDec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzmaDec.c; path = ../../../lzma/C/LzmaDec.c; sourceTree = "<group>"; };
+		D6241AE321DE47EC00E2846A /* new_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_stream.c; sourceTree = "<group>"; };
+		D6241AE421DE47EC00E2846A /* new_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_stream.h; sourceTree = "<group>"; };
 		D639ACD9208334A800811BB3 /* _atosize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _atosize.h; path = ../../_atosize.h; sourceTree = "<group>"; };
 		D64B4BEE2077AAAA0039C38B /* hpatchz.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hpatchz.c; path = ../../hpatchz.c; sourceTree = "<group>"; };
 		D64B4BF02077AB290039C38B /* patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_types.h; sourceTree = "<group>"; };
@@ -38,7 +48,22 @@
 		D64B4BFA2077B91A0039C38B /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		D64B4BFE2077B9240039C38B /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6553CB3165FA1A9009D4C44 /* hpatchz */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hpatchz; sourceTree = BUILT_PRODUCTS_DIR; };
+		D67D3BF021D3C5870050632A /* dir_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch.h; sourceTree = "<group>"; };
+		D67D3BF121D3C5870050632A /* ref_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ref_stream.c; sourceTree = "<group>"; };
+		D67D3BF221D3C5870050632A /* dir_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dir_patch.c; sourceTree = "<group>"; };
+		D67D3BF321D3C5870050632A /* ref_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ref_stream.h; sourceTree = "<group>"; };
+		D67D3BF621D48DCB0050632A /* patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch_private.h; sourceTree = "<group>"; };
+		D69EECD4220A8F2B001EF085 /* Lzma2Dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Lzma2Dec.c; path = ../../../lzma/C/Lzma2Dec.c; sourceTree = "<group>"; };
+		D6BAF6F221F2E08000C30C0A /* checksum_plugin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = checksum_plugin.h; sourceTree = "<group>"; };
+		D6BAF6F521F2E34600C30C0A /* checksum_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checksum_plugin_demo.h; path = ../../checksum_plugin_demo.h; sourceTree = "<group>"; };
+		D6BAF70121F2F61B00C30C0A /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
+		D6BAF70221F2F61B00C30C0A /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = adler_roll.h; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h; sourceTree = "<group>"; };
+		D6BAF70721F7F53600C30C0A /* hpatch_dir_listener.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hpatch_dir_listener.h; path = ../../hpatch_dir_listener.h; sourceTree = "<group>"; };
 		D6BD9BCA17578601004886DE /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = patch.c; sourceTree = "<group>"; };
+		D6BF3A5521E8CDC300833537 /* res_handle_limit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = res_handle_limit.h; sourceTree = "<group>"; };
+		D6BF3A5621E8CDC300833537 /* res_handle_limit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = res_handle_limit.c; sourceTree = "<group>"; };
+		D6BF3A5821E95F4200833537 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
+		D6BF3A6221EDD5A900833537 /* dir_patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_private.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,7 +71,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D64B4BFF2077B9240039C38B /* liblzma.a in Frameworks */,
 				D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */,
 				D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */,
 			);
@@ -55,6 +79,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D6241AD021DC6B6900E2846A /* lzma */ = {
+			isa = PBXGroup;
+			children = (
+				D69EECD4220A8F2B001EF085 /* Lzma2Dec.c */,
+				D6241AD221DC6C0F00E2846A /* LzmaDec.c */,
+			);
+			name = lzma;
+			sourceTree = "<group>";
+		};
 		D64B4BF72077B9090039C38B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -68,12 +101,18 @@
 		D6553CAA165FA1A9009D4C44 = {
 			isa = PBXGroup;
 			children = (
+				D6BAF70021F2F60500C30C0A /* adler_roll */,
+				D67D3BEF21D3C5870050632A /* dir_patch */,
+				D6BD9BC917578601004886DE /* HPatch */,
+				D6241AD021DC6B6900E2846A /* lzma */,
 				D64B4BF32077AB550039C38B /* decompress_plugin_demo.h */,
+				D6BAF6F521F2E34600C30C0A /* checksum_plugin_demo.h */,
 				D64B4BF22077AB550039C38B /* _clock_for_demo.h */,
 				D639ACD9208334A800811BB3 /* _atosize.h */,
+				D6BF3A5821E95F4200833537 /* file_for_patch.c */,
 				D64B4BF42077AB550039C38B /* file_for_patch.h */,
+				D6BAF70721F7F53600C30C0A /* hpatch_dir_listener.h */,
 				D64B4BEE2077AAAA0039C38B /* hpatchz.c */,
-				D6BD9BC917578601004886DE /* HPatch */,
 				D6553CB4165FA1A9009D4C44 /* Products */,
 				D64B4BF72077B9090039C38B /* Frameworks */,
 			);
@@ -87,9 +126,37 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		D67D3BEF21D3C5870050632A /* dir_patch */ = {
+			isa = PBXGroup;
+			children = (
+				D6BF3A5621E8CDC300833537 /* res_handle_limit.c */,
+				D6BF3A5521E8CDC300833537 /* res_handle_limit.h */,
+				D6241AE321DE47EC00E2846A /* new_stream.c */,
+				D6241AE421DE47EC00E2846A /* new_stream.h */,
+				D67D3BF121D3C5870050632A /* ref_stream.c */,
+				D67D3BF321D3C5870050632A /* ref_stream.h */,
+				D6BF3A6221EDD5A900833537 /* dir_patch_private.h */,
+				D67D3BF021D3C5870050632A /* dir_patch.h */,
+				D67D3BF221D3C5870050632A /* dir_patch.c */,
+			);
+			name = dir_patch;
+			path = ../../dirDiffPatch/dir_patch;
+			sourceTree = "<group>";
+		};
+		D6BAF70021F2F60500C30C0A /* adler_roll */ = {
+			isa = PBXGroup;
+			children = (
+				D6BAF70121F2F61B00C30C0A /* adler_roll.c */,
+				D6BAF70221F2F61B00C30C0A /* adler_roll.h */,
+			);
+			name = adler_roll;
+			sourceTree = "<group>";
+		};
 		D6BD9BC917578601004886DE /* HPatch */ = {
 			isa = PBXGroup;
 			children = (
+				D6BAF6F221F2E08000C30C0A /* checksum_plugin.h */,
+				D67D3BF621D48DCB0050632A /* patch_private.h */,
 				D64B4BF02077AB290039C38B /* patch_types.h */,
 				D64B4BF12077AB2A0039C38B /* patch.h */,
 				D6BD9BCA17578601004886DE /* patch.c */,
@@ -149,7 +216,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D6241AD321DC6C0F00E2846A /* LzmaDec.c in Sources */,
+				D69EECD5220A8F2B001EF085 /* Lzma2Dec.c in Sources */,
 				D6BD9BCE17578601004886DE /* patch.c in Sources */,
+				D67D3BF421D3C5870050632A /* ref_stream.c in Sources */,
+				D67D3BF521D3C5870050632A /* dir_patch.c in Sources */,
+				D6BF3A5721E8CDC300833537 /* res_handle_limit.c in Sources */,
+				D6241AE521DE47EC00E2846A /* new_stream.c in Sources */,
+				D6BF3A5921E95F4200833537 /* file_for_patch.c in Sources */,
+				D6BAF70321F2F61B00C30C0A /* adler_roll.c in Sources */,
 				D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -180,7 +255,6 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
@@ -205,7 +279,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				VALID_ARCHS = x86_64;
@@ -235,12 +309,15 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEPLOYMENT_POSTPROCESSING = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = fast;
+				GCC_PREPROCESSOR_DEFINITIONS = NDEBUG;
 				GCC_STRICT_ALIASING = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -253,7 +330,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				SDKROOT = macosx;
 				VALID_ARCHS = x86_64;
 			};

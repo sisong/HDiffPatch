@@ -28,7 +28,9 @@
 #ifndef stream_serialize_h
 #define stream_serialize_h
 #include "covers.h"
-struct hdiff_TStreamCompress;
+#include "../pack_uint.h" //for packUInt_fixSize
+#include "../mem_buf.h"
+struct hdiff_TCompress;
 namespace hdiff_private{
 
 struct TCompressedStream:public hpatch_TStreamOutput{
@@ -43,9 +45,8 @@ private:
     const hpatch_TStreamInput*   in_stream;
     hpatch_StreamPos_t           _writeToPos_back;
     bool                         _is_overLimit;
-    static long _write_code(hpatch_TStreamOutputHandle streamHandle,
-                            const hpatch_StreamPos_t writeToPos,
-                            const unsigned char* data,const unsigned char* data_end);
+    static hpatch_BOOL _write_code(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                   const unsigned char* data,const unsigned char* data_end);
 };
 
 struct TCoversStream:public hpatch_TStreamInput{
@@ -54,7 +55,7 @@ struct TCoversStream:public hpatch_TStreamInput{
     static hpatch_StreamPos_t getDataSize(const TCovers& covers);
 private:
     const TCovers&              covers;
-    unsigned char*              _code_buf;
+    TAutoMem                    _code_mem;
     size_t                      curCodePos;
     size_t                      curCodePos_end;
     size_t                      readedCoverCount;
@@ -63,9 +64,8 @@ private:
     hpatch_StreamPos_t          _readFromPos_back;
     enum { kCodeBufSize = 1024*64 };
     
-    static long _read(hpatch_TStreamInputHandle streamHandle,
-                      const hpatch_StreamPos_t readFromPos,
-                      unsigned char* out_data,unsigned char* out_data_end);
+    static hpatch_BOOL _read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                             unsigned char* out_data,unsigned char* out_data_end);
 };
 
 struct TNewDataDiffStream:public hpatch_TStreamInput{
@@ -80,16 +80,8 @@ private:
     hpatch_StreamPos_t          lastNewEnd;
     size_t                      readedCoverCount;
     hpatch_StreamPos_t          _readFromPos_back;
-    static long _read(hpatch_TStreamInputHandle streamHandle,
-                      const hpatch_StreamPos_t readFromPos,
-                      unsigned char* out_data,unsigned char* out_data_end);
-};
-
-struct TPlaceholder{
-    hpatch_StreamPos_t pos;
-    hpatch_StreamPos_t pos_end;
-    inline TPlaceholder(hpatch_StreamPos_t _pos,hpatch_StreamPos_t _pos_end)
-        :pos(_pos),pos_end(_pos_end){ }
+    static hpatch_BOOL _read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                             unsigned char* out_data,unsigned char* out_data_end);
 };
 
 struct TDiffStream{
@@ -106,13 +98,16 @@ struct TDiffStream{
     void packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue);
     
     void pushStream(const hpatch_TStreamInput*   stream,
-                    const hdiff_TStreamCompress* compressPlugin,
+                    const hdiff_TCompress*       compressPlugin,
                     const TPlaceholder&          update_compress_sizePos);
+    void pushStream(const hpatch_TStreamInput* stream){
+                            TPlaceholder nullPos(0,0); pushStream(stream,0,nullPos); }
+    hpatch_StreamPos_t getWritedPos()const{ return writePos; }
 private:
     const hpatch_TStreamOutput*  out_diff;
     hpatch_StreamPos_t     writePos;
-    enum{ kBufSize=1024*128 };
-    unsigned char*         _temp_buf;
+    enum{ kBufSize=1024*64 };
+    TAutoMem               _temp_mem;
     
     void _packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize);
     
@@ -125,7 +120,7 @@ class TStreamClip:public hpatch_TStreamInput{
 public:
     explicit TStreamClip(const hpatch_TStreamInput* stream,
                          hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos,
-                         hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressSize);
+                         hpatch_TDecompress* decompressPlugin=0,hpatch_StreamPos_t uncompressSize=0);
     ~TStreamClip();
 private:
     const hpatch_TStreamInput*  _src;
@@ -136,9 +131,8 @@ private:
     hpatch_decompressHandle     _decompressHandle;
     void closeDecompressHandle();
     void openDecompressHandle();
-    static long _clip_read(hpatch_TStreamInputHandle streamHandle,
-                           const hpatch_StreamPos_t readFromPos,
-                           unsigned char* out_data,unsigned char* out_data_end);
+    static hpatch_BOOL _clip_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                  unsigned char* out_data,unsigned char* out_data_end);
 };
 
 }//namespace hdiff_private

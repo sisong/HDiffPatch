@@ -29,6 +29,7 @@
 #include "bytes_rle.h"
 #include <assert.h>
 #include "pack_uint.h"
+#include "../../HPatch/patch_private.h"
 namespace hdiff_private{
 
 namespace {

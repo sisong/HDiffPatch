@@ -51,13 +51,17 @@ void readFile(std::vector<TByte>& data,const char* fileName){
     size_t needRead=(size_t)file_length;
     if ((file_length<0)||((std::streamsize)needRead!=(std::streamsize)file_length)) {
         file.close();
+        std::cout<<"open read file \""<<fileName<<"\" ERROR!\n";
         exit(1);
     }
     data.resize(needRead);
     file.read((char*)data.data(), needRead);
     std::streamsize readed=file.gcount();
     file.close();
-    if ((std::streamsize)needRead!=readed)  exit(1);
+    if ((std::streamsize)needRead!=readed){
+        std::cout<<"read file \""<<fileName<<"\" ERROR!\n";
+        exit(1);
+    }
 }
 
 void writeFile(const std::vector<TByte>& data,const char* fileName){
@@ -65,6 +69,9 @@ void writeFile(const std::vector<TByte>& data,const char* fileName){
     file.write((const char*)data.data(), data.size());
     file.close();
 }
+
+#define IS_NOTICE_compress_canceled 0 //for test, close compress fail notice
+#define IS_REUSE_compress_handle    1 //for test, must in single thread
 
 //===== select compress plugin =====
 #define _CompressPlugin_no

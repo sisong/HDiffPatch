@@ -12,6 +12,8 @@ Global
 		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
+		ReleaseSFX|x64 = ReleaseSFX|x64
+		ReleaseSFX|x86 = ReleaseSFX|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{63934A83-25F5-4161-B19D-DFBAB1C257F1}.Debug|x64.ActiveCfg = Debug|x64
@@ -22,6 +24,10 @@ Global
 		{63934A83-25F5-4161-B19D-DFBAB1C257F1}.Release|x64.Build.0 = Release|x64
 		{63934A83-25F5-4161-B19D-DFBAB1C257F1}.Release|x86.ActiveCfg = Release|Win32
 		{63934A83-25F5-4161-B19D-DFBAB1C257F1}.Release|x86.Build.0 = Release|Win32
+		{63934A83-25F5-4161-B19D-DFBAB1C257F1}.ReleaseSFX|x64.ActiveCfg = Release|x64
+		{63934A83-25F5-4161-B19D-DFBAB1C257F1}.ReleaseSFX|x64.Build.0 = Release|x64
+		{63934A83-25F5-4161-B19D-DFBAB1C257F1}.ReleaseSFX|x86.ActiveCfg = Release|Win32
+		{63934A83-25F5-4161-B19D-DFBAB1C257F1}.ReleaseSFX|x86.Build.0 = Release|Win32
 		{F912761C-2C5B-4EB9-8666-C2320A9AF407}.Debug|x64.ActiveCfg = Debug|x64
 		{F912761C-2C5B-4EB9-8666-C2320A9AF407}.Debug|x64.Build.0 = Debug|x64
 		{F912761C-2C5B-4EB9-8666-C2320A9AF407}.Debug|x86.ActiveCfg = Debug|Win32
@@ -30,6 +36,10 @@ Global
 		{F912761C-2C5B-4EB9-8666-C2320A9AF407}.Release|x64.Build.0 = Release|x64
 		{F912761C-2C5B-4EB9-8666-C2320A9AF407}.Release|x86.ActiveCfg = Release|Win32
 		{F912761C-2C5B-4EB9-8666-C2320A9AF407}.Release|x86.Build.0 = Release|Win32
+		{F912761C-2C5B-4EB9-8666-C2320A9AF407}.ReleaseSFX|x64.ActiveCfg = ReleaseSFX|x64
+		{F912761C-2C5B-4EB9-8666-C2320A9AF407}.ReleaseSFX|x64.Build.0 = ReleaseSFX|x64
+		{F912761C-2C5B-4EB9-8666-C2320A9AF407}.ReleaseSFX|x86.ActiveCfg = ReleaseSFX|Win32
+		{F912761C-2C5B-4EB9-8666-C2320A9AF407}.ReleaseSFX|x86.Build.0 = ReleaseSFX|Win32
 		{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}.Debug|x64.ActiveCfg = Debug|x64
 		{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}.Debug|x64.Build.0 = Debug|x64
 		{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}.Debug|x86.ActiveCfg = Debug|Win32
@@ -38,6 +48,10 @@ Global
 		{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}.Release|x64.Build.0 = Release|x64
 		{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}.Release|x86.ActiveCfg = Release|Win32
 		{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}.Release|x86.Build.0 = Release|Win32
+		{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}.ReleaseSFX|x64.ActiveCfg = Release|x64
+		{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}.ReleaseSFX|x64.Build.0 = Release|x64
+		{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}.ReleaseSFX|x86.ActiveCfg = Release|Win32
+		{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}.ReleaseSFX|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

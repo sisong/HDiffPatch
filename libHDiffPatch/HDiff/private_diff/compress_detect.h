@@ -30,8 +30,8 @@
 #define compress_detect_h
 #include <stddef.h> //for size_t
 #include "../../HPatch/patch_types.h" //for hpatch_uint32_t
+#include "mem_buf.h"
 namespace hdiff_private{
-typedef hpatch_uint32_t uint32_t;
 
 template<class _UInt>
 static unsigned int _getUIntCost(_UInt v){
@@ -64,16 +64,17 @@ public:
     size_t cost(const unsigned char* d,size_t n,const unsigned char* sub=0)const;
 private:
     struct TCharConvTable{
-        uint32_t sum;
-        uint32_t sum1char[256];
-        uint32_t sum2char[256*256];//用相邻字符转换几率来近似估计数据的可压缩性.
+        hpatch_uint32_t sum;
+        hpatch_uint32_t sum1char[256];
+        hpatch_uint32_t sum2char[256*256];//用相邻字符转换几率来近似估计数据的可压缩性.
         unsigned char cache[1];//实际大小为kCacheSize,超出该距离的旧数据会被清除.
     };
+    TAutoMem        m_mem;
     TCharConvTable* m_table;
     int             m_lastChar;
     int             m_lastPopChar;
-    uint32_t        m_cacheBegin;
-    uint32_t        m_cacheEnd;
+    hpatch_uint32_t m_cacheBegin;
+    hpatch_uint32_t m_cacheEnd;
     void _add_rle(const unsigned char* d,size_t n);
     size_t _cost_rle(const unsigned char* d,size_t n)const;
 };

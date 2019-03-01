@@ -2,6 +2,8 @@
 xcuserdata
 Debug
 Release
+Release_x86
+ReleaseSFX
 *.suo
 *.dcu
 *.~*
@@ -10,10 +12,7 @@ Release
 *.filters
 *.xccheckout
 *.xcscmblueprint
+*.xcscheme
 *.o
 *.a
 *.exe
-diff_demo
-patch_demo
-unit_test
-Release_x86

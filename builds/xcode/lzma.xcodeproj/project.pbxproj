@@ -7,12 +7,56 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D65A473922092647001638A6 /* 7zTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A448322092645001638A6 /* 7zTypes.h */; };
+		D65A473A22092647001638A6 /* LzmaDec.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A448422092645001638A6 /* LzmaDec.h */; };
+		D65A473B22092647001638A6 /* LzFind.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A448522092645001638A6 /* LzFind.h */; };
+		D65A495722092648001638A6 /* LzmaEnc.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A473822092647001638A6 /* LzmaEnc.h */; };
+		D65A4959220926D5001638A6 /* LzHash.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A4958220926D5001638A6 /* LzHash.h */; };
+		D65A495B22092713001638A6 /* Precomp.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A495A22092713001638A6 /* Precomp.h */; };
+		D65A495D2209272B001638A6 /* Compiler.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A495C2209272B001638A6 /* Compiler.h */; };
+		D65A496222092987001638A6 /* LzFindMt.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A495E22092987001638A6 /* LzFindMt.h */; };
+		D65A496322092987001638A6 /* LzFindMt.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A495F22092987001638A6 /* LzFindMt.c */; };
+		D65A496422092987001638A6 /* ThreadsP.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A496022092987001638A6 /* ThreadsP.h */; };
+		D65A496522092987001638A6 /* ThreadsP.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A496122092987001638A6 /* ThreadsP.c */; };
+		D65A4967220929A7001638A6 /* Threads.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A4966220929A7001638A6 /* Threads.h */; };
+		D65A496F22092DD9001638A6 /* Lzma2Dec.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A496922092DD9001638A6 /* Lzma2Dec.h */; };
+		D65A497122092DD9001638A6 /* Lzma2Enc.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A496B22092DD9001638A6 /* Lzma2Enc.c */; };
+		D65A497222092DD9001638A6 /* Lzma2Enc.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A496C22092DD9001638A6 /* Lzma2Enc.h */; };
+		D65A497322092DD9001638A6 /* Lzma2Dec.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A496D22092DD9001638A6 /* Lzma2Dec.c */; };
+		D65A497822092E06001638A6 /* MtCoder.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A497422092E05001638A6 /* MtCoder.c */; };
+		D65A497922092E06001638A6 /* MtCoder.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A497522092E05001638A6 /* MtCoder.h */; };
+		D65A497A22092E06001638A6 /* MtDec.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A497622092E06001638A6 /* MtDec.h */; };
+		D65A497B22092E06001638A6 /* MtDec.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A497722092E06001638A6 /* MtDec.c */; };
+		D65A497E2209B3E7001638A6 /* Alloc.c in Sources */ = {isa = PBXBuildFile; fileRef = D65A497C2209B3E7001638A6 /* Alloc.c */; };
+		D65A497F2209B3E7001638A6 /* Alloc.h in Headers */ = {isa = PBXBuildFile; fileRef = D65A497D2209B3E7001638A6 /* Alloc.h */; };
 		D65B8E002090C84400DBBEEE /* LzFind.c in Sources */ = {isa = PBXBuildFile; fileRef = D65B8DFD2090C84300DBBEEE /* LzFind.c */; };
 		D65B8E012090C84400DBBEEE /* LzmaDec.c in Sources */ = {isa = PBXBuildFile; fileRef = D65B8DFE2090C84300DBBEEE /* LzmaDec.c */; };
 		D65B8E022090C84400DBBEEE /* LzmaEnc.c in Sources */ = {isa = PBXBuildFile; fileRef = D65B8DFF2090C84300DBBEEE /* LzmaEnc.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		D65A448322092645001638A6 /* 7zTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = 7zTypes.h; path = ../../../lzma/C/7zTypes.h; sourceTree = "<group>"; };
+		D65A448422092645001638A6 /* LzmaDec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LzmaDec.h; path = ../../../lzma/C/LzmaDec.h; sourceTree = "<group>"; };
+		D65A448522092645001638A6 /* LzFind.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LzFind.h; path = ../../../lzma/C/LzFind.h; sourceTree = "<group>"; };
+		D65A473822092647001638A6 /* LzmaEnc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LzmaEnc.h; path = ../../../lzma/C/LzmaEnc.h; sourceTree = "<group>"; };
+		D65A4958220926D5001638A6 /* LzHash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LzHash.h; path = ../../../lzma/C/LzHash.h; sourceTree = "<group>"; };
+		D65A495A22092713001638A6 /* Precomp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Precomp.h; path = ../../../lzma/C/Precomp.h; sourceTree = "<group>"; };
+		D65A495C2209272B001638A6 /* Compiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Compiler.h; path = ../../../lzma/C/Compiler.h; sourceTree = "<group>"; };
+		D65A495E22092987001638A6 /* LzFindMt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LzFindMt.h; path = ../../../lzma/C/LzFindMt.h; sourceTree = "<group>"; };
+		D65A495F22092987001638A6 /* LzFindMt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzFindMt.c; path = ../../../lzma/C/LzFindMt.c; sourceTree = "<group>"; };
+		D65A496022092987001638A6 /* ThreadsP.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ThreadsP.h; path = ../../../lzma/C/ThreadsP.h; sourceTree = "<group>"; };
+		D65A496122092987001638A6 /* ThreadsP.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ThreadsP.c; path = ../../../lzma/C/ThreadsP.c; sourceTree = "<group>"; };
+		D65A4966220929A7001638A6 /* Threads.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Threads.h; path = ../../../lzma/C/Threads.h; sourceTree = "<group>"; };
+		D65A496922092DD9001638A6 /* Lzma2Dec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lzma2Dec.h; path = ../../../lzma/C/Lzma2Dec.h; sourceTree = "<group>"; };
+		D65A496B22092DD9001638A6 /* Lzma2Enc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Lzma2Enc.c; path = ../../../lzma/C/Lzma2Enc.c; sourceTree = "<group>"; };
+		D65A496C22092DD9001638A6 /* Lzma2Enc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Lzma2Enc.h; path = ../../../lzma/C/Lzma2Enc.h; sourceTree = "<group>"; };
+		D65A496D22092DD9001638A6 /* Lzma2Dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Lzma2Dec.c; path = ../../../lzma/C/Lzma2Dec.c; sourceTree = "<group>"; };
+		D65A497422092E05001638A6 /* MtCoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = MtCoder.c; path = ../../../lzma/C/MtCoder.c; sourceTree = "<group>"; };
+		D65A497522092E05001638A6 /* MtCoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MtCoder.h; path = ../../../lzma/C/MtCoder.h; sourceTree = "<group>"; };
+		D65A497622092E06001638A6 /* MtDec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MtDec.h; path = ../../../lzma/C/MtDec.h; sourceTree = "<group>"; };
+		D65A497722092E06001638A6 /* MtDec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = MtDec.c; path = ../../../lzma/C/MtDec.c; sourceTree = "<group>"; };
+		D65A497C2209B3E7001638A6 /* Alloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Alloc.c; path = ../../../lzma/C/Alloc.c; sourceTree = "<group>"; };
+		D65A497D2209B3E7001638A6 /* Alloc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Alloc.h; path = ../../../lzma/C/Alloc.h; sourceTree = "<group>"; };
 		D65B8DFD2090C84300DBBEEE /* LzFind.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzFind.c; path = ../../../lzma/C/LzFind.c; sourceTree = "<group>"; };
 		D65B8DFE2090C84300DBBEEE /* LzmaDec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzmaDec.c; path = ../../../lzma/C/LzmaDec.c; sourceTree = "<group>"; };
 		D65B8DFF2090C84300DBBEEE /* LzmaEnc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzmaEnc.c; path = ../../../lzma/C/LzmaEnc.c; sourceTree = "<group>"; };
@@ -33,8 +77,30 @@
 		D690ABC51F208EA80089DC57 = {
 			isa = PBXGroup;
 			children = (
+				D65A496122092987001638A6 /* ThreadsP.c */,
+				D65A496022092987001638A6 /* ThreadsP.h */,
+				D65A4966220929A7001638A6 /* Threads.h */,
+				D65A497422092E05001638A6 /* MtCoder.c */,
+				D65A497522092E05001638A6 /* MtCoder.h */,
+				D65A497722092E06001638A6 /* MtDec.c */,
+				D65A497622092E06001638A6 /* MtDec.h */,
+				D65A496D22092DD9001638A6 /* Lzma2Dec.c */,
+				D65A496922092DD9001638A6 /* Lzma2Dec.h */,
+				D65A496B22092DD9001638A6 /* Lzma2Enc.c */,
+				D65A496C22092DD9001638A6 /* Lzma2Enc.h */,
+				D65A497C2209B3E7001638A6 /* Alloc.c */,
+				D65A497D2209B3E7001638A6 /* Alloc.h */,
+				D65A495C2209272B001638A6 /* Compiler.h */,
+				D65A495A22092713001638A6 /* Precomp.h */,
+				D65A4958220926D5001638A6 /* LzHash.h */,
+				D65A448322092645001638A6 /* 7zTypes.h */,
+				D65A448522092645001638A6 /* LzFind.h */,
 				D65B8DFD2090C84300DBBEEE /* LzFind.c */,
+				D65A495F22092987001638A6 /* LzFindMt.c */,
+				D65A495E22092987001638A6 /* LzFindMt.h */,
+				D65A448422092645001638A6 /* LzmaDec.h */,
 				D65B8DFE2090C84300DBBEEE /* LzmaDec.c */,
+				D65A473822092647001638A6 /* LzmaEnc.h */,
 				D65B8DFF2090C84300DBBEEE /* LzmaEnc.c */,
 				D690ABCF1F208EA80089DC57 /* Products */,
 			);
@@ -55,6 +121,21 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D65A4967220929A7001638A6 /* Threads.h in Headers */,
+				D65A496222092987001638A6 /* LzFindMt.h in Headers */,
+				D65A473922092647001638A6 /* 7zTypes.h in Headers */,
+				D65A495722092648001638A6 /* LzmaEnc.h in Headers */,
+				D65A495D2209272B001638A6 /* Compiler.h in Headers */,
+				D65A473A22092647001638A6 /* LzmaDec.h in Headers */,
+				D65A495B22092713001638A6 /* Precomp.h in Headers */,
+				D65A4959220926D5001638A6 /* LzHash.h in Headers */,
+				D65A497F2209B3E7001638A6 /* Alloc.h in Headers */,
+				D65A496F22092DD9001638A6 /* Lzma2Dec.h in Headers */,
+				D65A473B22092647001638A6 /* LzFind.h in Headers */,
+				D65A497922092E06001638A6 /* MtCoder.h in Headers */,
+				D65A497A22092E06001638A6 /* MtDec.h in Headers */,
+				D65A497222092DD9001638A6 /* Lzma2Enc.h in Headers */,
+				D65A496422092987001638A6 /* ThreadsP.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -115,9 +196,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D65A497822092E06001638A6 /* MtCoder.c in Sources */,
+				D65A497122092DD9001638A6 /* Lzma2Enc.c in Sources */,
 				D65B8E012090C84400DBBEEE /* LzmaDec.c in Sources */,
 				D65B8E002090C84400DBBEEE /* LzFind.c in Sources */,
 				D65B8E022090C84400DBBEEE /* LzmaEnc.c in Sources */,
+				D65A497322092DD9001638A6 /* Lzma2Dec.c in Sources */,
+				D65A497B22092E06001638A6 /* MtDec.c in Sources */,
+				D65A496522092987001638A6 /* ThreadsP.c in Sources */,
+				D65A497E2209B3E7001638A6 /* Alloc.c in Sources */,
+				D65A496322092987001638A6 /* LzFindMt.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -166,7 +254,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
-					_7ZIP_ST,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -218,7 +305,8 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_PREPROCESSOR_DEFINITIONS = _7ZIP_ST;
+				GCC_OPTIMIZATION_LEVEL = fast;
+				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
