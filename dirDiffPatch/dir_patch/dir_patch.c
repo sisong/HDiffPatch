@@ -133,13 +133,17 @@ static void formatDirTagForLoad(char* utf8_path,char* utf8_pathEnd){
 }
 
 hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info,
-                                 hpatch_StreamPos_t diffDataOffert){
+                                 hpatch_StreamPos_t diffDataOffert,hpatch_StreamPos_t diffDataSize){
     hpatch_BOOL          result=hpatch_TRUE;
     hpatch_TFileStreamInput     diffData;
     hpatch_TFileStreamInput_init(&diffData);
     
     check(hpatch_TFileStreamInput_open(&diffData,diffFileName));
-    check(hpatch_TFileStreamInput_setOffset(&diffData,diffDataOffert));
+    if (diffDataOffert>0){
+        check(hpatch_TFileStreamInput_setOffset(&diffData,diffDataOffert));
+        check(diffData.base.streamSize>=diffDataSize);
+        diffData.base.streamSize=diffDataSize;
+    }
     result=getDirDiffInfo(&diffData.base,out_info);
     check(hpatch_TFileStreamInput_close(&diffData));
 clear:
