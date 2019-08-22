@@ -7,11 +7,11 @@ MT       := 0
 
 HPATCH_OBJ := \
     libHDiffPatch/HPatch/patch.o \
-    file_for_patch.o
+    file_for_patch.o \
+    dirDiffPatch/dir_patch/dir_patch.o
 ifeq ($(DIR_DIFF),0)
 else
   HPATCH_OBJ += \
-    dirDiffPatch/dir_patch/dir_patch.o \
     dirDiffPatch/dir_patch/res_handle_limit.o \
     dirDiffPatch/dir_patch/ref_stream.o \
     dirDiffPatch/dir_patch/new_stream.o \
