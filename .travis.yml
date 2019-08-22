@@ -20,6 +20,8 @@ script:
 - make LZMA=0
 - make clean
 - git clone https://github.com/sisong/lzma.git ../lzma
+- make DIR_DIFF=0
+- make clean
 - make
 - make clean
 - cd ../lzma

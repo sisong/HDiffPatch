@@ -36,9 +36,8 @@
 #include "_atosize.h"
 #include "file_for_patch.h"
 
-#include "dirDiffPatch/dir_patch/dir_patch_types.h"
-#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dirDiffPatch/dir_patch/dir_patch.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "hpatch_dir_listener.h"
 #endif
 

@@ -29,6 +29,20 @@
 #ifndef DirPatch_dir_patch_h
 #define DirPatch_dir_patch_h
 #include "dir_patch_types.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+    hpatch_BOOL getCompressedDiffInfoByFile(const char* diffFileName,hpatch_compressedDiffInfo *out_info);
+    static hpatch_inline
+    hpatch_BOOL getIsCompressedDiffFile(const char* diffFileName){
+        hpatch_compressedDiffInfo diffInfo;
+        if (!getCompressedDiffInfoByFile(diffFileName,&diffInfo)) return hpatch_FALSE;
+        return hpatch_TRUE;
+    }
+#ifdef __cplusplus
+}
+#endif
+
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #include "ref_stream.h"
@@ -73,15 +87,6 @@ hpatch_BOOL getIsDirDiffFile(const char* diffFileName){
     if (!getDirDiffInfoByFile(diffFileName,&dirDiffInfo,0,0)) return hpatch_FALSE;
     return dirDiffInfo.isDirDiff;
 }
-    
-hpatch_BOOL getCompressedDiffInfoByFile(const char* diffFileName,hpatch_compressedDiffInfo *out_info);
-static hpatch_inline
-hpatch_BOOL getIsCompressedDiffFile(const char* diffFileName){
-    hpatch_compressedDiffInfo diffInfo;
-    if (!getCompressedDiffInfoByFile(diffFileName,&diffInfo)) return hpatch_FALSE;
-    return hpatch_TRUE;
-}
-    
 
     typedef struct _TDirDiffHead {
         size_t              oldPathCount;
