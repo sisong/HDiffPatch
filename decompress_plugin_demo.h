@@ -148,7 +148,7 @@
     static hpatch_BOOL _zlib_decompress_part(hpatch_decompressHandle decompressHandle,
                                              unsigned char* out_part_data,unsigned char* out_part_data_end){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
-        assert(out_part_data!=out_part_data_end);
+        assert(out_part_data<=out_part_data_end);
         
         self->d_stream.next_out = out_part_data;
         self->d_stream.avail_out =(uInt)(out_part_data_end-out_part_data);
@@ -259,7 +259,7 @@
     static hpatch_BOOL _bz2_decompress_part(hpatch_decompressHandle decompressHandle,
                                             unsigned char* out_part_data,unsigned char* out_part_data_end){
         _bz2_TDecompress* self=(_bz2_TDecompress*)decompressHandle;
-        assert(out_part_data!=out_part_data_end);
+        assert(out_part_data<=out_part_data_end);
         
         self->d_stream.next_out =(char*)out_part_data;
         self->d_stream.avail_out =(unsigned int)(out_part_data_end-out_part_data);
@@ -379,7 +379,7 @@ static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
                                              unsigned char* out_part_data,unsigned char* out_part_data_end){
         _lzma_TDecompress* self=(_lzma_TDecompress*)decompressHandle;
         unsigned char* out_cur=out_part_data;
-        assert(out_part_data!=out_part_data_end);
+        assert(out_part_data<=out_part_data_end);
         while (out_cur<out_part_data_end){
             size_t copyLen=(self->decEnv.dicPos-self->decCopyPos);
             if (copyLen>0){
@@ -481,7 +481,7 @@ static hpatch_BOOL _lzma2_decompress_part(hpatch_decompressHandle decompressHand
                                           unsigned char* out_part_data,unsigned char* out_part_data_end){
     _lzma2_TDecompress* self=(_lzma2_TDecompress*)decompressHandle;
     unsigned char* out_cur=out_part_data;
-    assert(out_part_data!=out_part_data_end);
+    assert(out_part_data<=out_part_data_end);
     while (out_cur<out_part_data_end){
         size_t copyLen=(self->decEnv.decoder.dicPos-self->decCopyPos);
         if (copyLen>0){
@@ -568,7 +568,7 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         assert(code_begin<code_end);
         {//read kLz4CompressBufSize
             _lz4_read_len4(kLz4CompressBufSize,codeStream,code_begin,code_end);
-            if ((kLz4CompressBufSize<=0)||(kLz4CompressBufSize>=kMaxLz4CompressBufSize)) return 0;
+            if ((kLz4CompressBufSize<0)||(kLz4CompressBufSize>=kMaxLz4CompressBufSize)) return 0;
             code_buf_size=LZ4_compressBound(kLz4CompressBufSize);
         }
         self=(_lz4_TDecompress*)malloc(sizeof(_lz4_TDecompress)+kLz4CompressBufSize+code_buf_size);
