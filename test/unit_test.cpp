@@ -93,6 +93,31 @@ const long kRandTestCount=20000;
     hpatch_TDecompress* decompressPlugin=&zstdDecompressPlugin;
 #endif
 
+int testCompress(const char* str,const char* error_tag){
+    assert(  ((compressPlugin==0)&&(decompressPlugin==0))
+           ||((compressPlugin!=0)&&(decompressPlugin!=0)));
+    if (compressPlugin==0) return 0;
+    assert(decompressPlugin->is_can_open(compressPlugin->compressType()));
+    
+    const TByte* data=(const TByte*)str;
+    const size_t dataSize=strlen(str);
+    std::vector<TByte> code(compressPlugin->maxCompressedSize(dataSize));
+    size_t codeSize=hdiff_compress_mem(compressPlugin,code.data(),code.data()+code.size(),
+                                       data,data+dataSize);
+    if (codeSize>code.size()) {
+        printf("\n testCompress compress error!!! tag:%s\n",error_tag); return 1; }
+    code.resize(codeSize);
+    
+    std::vector<TByte> undata(dataSize);
+    if (!hpatch_deccompress_mem(decompressPlugin,code.data(),code.data()+code.size(),
+                                undata.data(),undata.data()+undata.size()))  {
+        printf("\n testCompress decompress error!!! tag:%s\n",error_tag); return 1; }
+    if (0!=memcmp(str,undata.data(),undata.size()))  {
+        printf("\n testCompress decompress data error!!! tag:%s\n",error_tag); return 1; }
+    return 0;
+}
+    
+
 static bool _patch_mem_stream(TByte* newData,TByte* newData_end,
                               const TByte* oldData,const TByte* oldData_end,
                               const TByte* diff,const TByte* diff_end){
@@ -293,6 +318,12 @@ void setRandData(std::vector<TByte>& data){
 int main(int argc, const char * argv[]){
     clock_t time1=clock();
     long errorCount=0;
+    errorCount+=testCompress("","c1");
+    errorCount+=testCompress("1","c2");
+    errorCount+=testCompress("12","c3");
+    errorCount+=testCompress("123","c4");
+    errorCount+=testCompress("123456789876543212345677654321234567765432","c5");
+    
     errorCount+=test("", "", "1");
     errorCount+=test("", "1", "2");
     errorCount+=test("1", "", "3");
