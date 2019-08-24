@@ -132,14 +132,16 @@ typedef int hpatch_BOOL;
                                        const unsigned char* code,const unsigned char* code_end,
                                        unsigned char* out_data,unsigned char* out_data_end){
         hpatch_decompressHandle dec=0;
+        hpatch_BOOL result,colose_rt;
         hpatch_TStreamInput  codeStream;
         mem_as_hStreamInput(&codeStream,code,code_end);
         dec=decompressPlugin->open(decompressPlugin,(out_data_end-out_data),
                                    &codeStream,0,codeStream.streamSize);
         if (dec==0) return hpatch_FALSE;
-        if (!decompressPlugin->decompress_part(dec,out_data,out_data_end))
-            return hpatch_FALSE;
-        return decompressPlugin->close(decompressPlugin,dec);
+        result=decompressPlugin->decompress_part(dec,out_data,out_data_end);
+        colose_rt=decompressPlugin->close(decompressPlugin,dec);
+        assert(colose_rt);
+        return result;
     }
     
     
