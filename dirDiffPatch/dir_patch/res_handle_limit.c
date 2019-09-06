@@ -121,7 +121,7 @@ hpatch_BOOL hpatch_TResHandleLimit_open(hpatch_TResHandleLimit* self,size_t limi
     return hpatch_TRUE;
 }
 
-hpatch_BOOL hpatch_TResHandleLimit_close(hpatch_TResHandleLimit* self){
+hpatch_BOOL hpatch_TResHandleLimit_closeFileHandles(hpatch_TResHandleLimit* self){
     size_t count=self->streamCount;
     hpatch_BOOL result=hpatch_TRUE;
     size_t i;
@@ -130,8 +130,16 @@ hpatch_BOOL hpatch_TResHandleLimit_close(hpatch_TResHandleLimit* self){
         if (stream){
             hpatch_IResHandle* res=&self->_resList[i];
             if (!res->close(res,stream)) result=hpatch_FALSE;
+            self->_in_streamList[i]=0;
+            --self->_curOpenCount;
         }
     }
+    assert(self->_curOpenCount==0);
+    return result;
+}
+
+hpatch_BOOL hpatch_TResHandleLimit_close(hpatch_TResHandleLimit* self){
+    hpatch_BOOL result=hpatch_TResHandleLimit_closeFileHandles(self);
     self->streamList=0;
     self->streamCount=0;
     if (self->_buf){

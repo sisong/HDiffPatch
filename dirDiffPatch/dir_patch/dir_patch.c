@@ -606,15 +606,23 @@ clear:
     return result;
 }
 
+
+
+static hpatch_BOOL _TDirPatcher_closeOldFileHandles(TDirPatcher* self){
+    return hpatch_TResHandleLimit_closeFileHandles(&self->_resLimit);
+}
+
 hpatch_BOOL TDirPatcher_closeOldRefStream(TDirPatcher* self){
-    hpatch_BOOL result=hpatch_TRUE;
+    hpatch_BOOL result=_TDirPatcher_closeOldFileHandles(self);
+    if (!hpatch_TResHandleLimit_close(&self->_resLimit))
+        result=hpatch_FALSE;
     hpatch_TRefStream_close(&self->_oldRefStream);
-    result=hpatch_TResHandleLimit_close(&self->_resLimit);
+    self->_resList=0;
+    self->_oldFileList=0;
+    
     self->_oldRootDir=0;
     self->_oldRootDir_end=0;
     self->_oldRootDir_bufEnd=0;
-    self->_resList=0;
-    self->_oldFileList=0;
     if (self->_pOldRefMem){
         free(self->_pOldRefMem);
         self->_pOldRefMem=0;
@@ -779,8 +787,21 @@ clear:
     return result;
 }
 
+
+static hpatch_BOOL _TDirPatcher_closeNewFileHandles(TDirPatcher* self){
+    hpatch_BOOL result=hpatch_TNewStream_closeFileHandles(&self->_newDirStream);
+    if (self->_curNewFile){
+        if (!hpatch_TFileStreamOutput_close(self->_curNewFile))
+            result=hpatch_FALSE;
+        hpatch_TFileStreamOutput_init(self->_curNewFile);
+    }
+    return result;
+}
+
 hpatch_BOOL TDirPatcher_closeNewDirStream(TDirPatcher* self){
-    hpatch_BOOL result=hpatch_TNewStream_close(&self->_newDirStream);
+    hpatch_BOOL result=_TDirPatcher_closeNewFileHandles(self);
+    if (!hpatch_TNewStream_close(&self->_newDirStream))
+        result=hpatch_FALSE;
     self->_newRootDir=0;
     self->_newRootDir_end=0;
     self->_newRootDir_bufEnd=0;
@@ -824,13 +845,16 @@ hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_
                           self->dirDiffHead.hdiffDataOffset+self->dirDiffHead.hdiffDataSize);
     check(patch_decompress_with_cache(out_newData,oldData,&hdiffData.base,
                                       self->_decompressPlugin,temp_cache,temp_cache_end));
+    check(_TDirPatcher_closeNewFileHandles(self));
+    check(_TDirPatcher_closeOldFileHandles(self));
 clear:
     return result;
 }
 
 hpatch_BOOL TDirPatcher_close(TDirPatcher* self){
     hpatch_BOOL result=TDirPatcher_closeNewDirStream(self);
-    result=TDirPatcher_closeOldRefStream(self) & result;
+    if (!TDirPatcher_closeOldRefStream(self))
+        result=hpatch_FALSE;
     TDirPatcher_finishOldSameRefCount(self);
     if (self->_pChecksumMem){
         hpatch_TChecksum*   checksumPlugin=self->_checksumSet.checksumPlugin;
@@ -875,8 +899,7 @@ const char* TDirPatcher_getOldRefPathByRefIndex(TDirPatcher* self,size_t oldRefI
 
 
 const char* TDirPatcher_getNewPathRoot(TDirPatcher* self){
-    if (!addingPath(self->_newRootDir_end,self->_newRootDir_bufEnd,
-                    "")) return 0; //error
+    if (!addingPath(self->_newRootDir_end,self->_newRootDir_bufEnd,"")) return 0; //error
     return self->_newRootDir;
 }
 const char* TDirPatcher_getNewPathByIndex(TDirPatcher* self,size_t newPathIndex){

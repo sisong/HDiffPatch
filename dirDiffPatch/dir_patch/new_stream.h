@@ -75,6 +75,7 @@ hpatch_BOOL hpatch_TNewStream_open(hpatch_TNewStream* self,hpatch_INewStreamList
                                    hpatch_StreamPos_t newRefDataSize,size_t newPathCount,
                                    const size_t* newRefList,size_t newRefCount,
                                    const hpatch_TSameFilePair* samePairList,size_t samePairCount);
+hpatch_BOOL hpatch_TNewStream_closeFileHandles(hpatch_TNewStream* self);
 hpatch_BOOL hpatch_TNewStream_close(hpatch_TNewStream* self);
 
 #endif
