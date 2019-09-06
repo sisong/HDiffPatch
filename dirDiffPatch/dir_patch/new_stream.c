@@ -31,7 +31,8 @@
 #include <stdlib.h>
 #include <stdio.h> //printf
 
-hpatch_BOOL hpatch_TNewStream_close(hpatch_TNewStream* self){
+
+hpatch_BOOL hpatch_TNewStream_closeFileHandles(hpatch_TNewStream* self){
     hpatch_BOOL result=hpatch_TRUE;
     const hpatch_TStreamOutput* curNewFile=self->_curNewFile;
     if (curNewFile){
@@ -39,6 +40,10 @@ hpatch_BOOL hpatch_TNewStream_close(hpatch_TNewStream* self){
         result=self->_listener->closeNewFile(self->_listener,curNewFile);
     }
     return result;
+}
+
+hpatch_BOOL hpatch_TNewStream_close(hpatch_TNewStream* self){
+    return hpatch_TNewStream_closeFileHandles(self);
 }
 
 static hpatch_BOOL _file_entry_end(hpatch_TNewStream* self);

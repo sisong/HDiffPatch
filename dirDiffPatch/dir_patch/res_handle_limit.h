@@ -66,8 +66,9 @@ hpatch_inline static
 void        hpatch_TResHandleLimit_init(hpatch_TResHandleLimit* self) { memset(self,0,sizeof(*self)); }
 hpatch_BOOL hpatch_TResHandleLimit_open(hpatch_TResHandleLimit* self,size_t limitMaxOpenCount,
                                         hpatch_IResHandle* resList,size_t resCount);
+hpatch_BOOL hpatch_TResHandleLimit_closeFileHandles(hpatch_TResHandleLimit* self);
 hpatch_BOOL hpatch_TResHandleLimit_close(hpatch_TResHandleLimit* self);
-
+    
 #ifdef __cplusplus
 }
 #endif
