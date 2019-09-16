@@ -85,14 +85,13 @@ hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_T
 hpatch_BOOL hpatch_getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end){
     //use tmpnam()?
 #define _AddingLen 8
-    static int _i0=0; ++_i0;
     size_t i;
     size_t len=strlen(path_utf8);
     if ((len>0)&&(path_utf8[len-1]==kPatch_dirSeparator)) --len; //without '/'
     if (len+(4+_AddingLen)>(size_t)(out_tempPath_end-out_tempPath_utf8)) return hpatch_FALSE;
     memcpy(out_tempPath_utf8,path_utf8,len);
     out_tempPath_utf8+=len;
-    for (i=_i0; i<1000; ++i) {
+    for (i=1; i<1000; ++i) {
         hpatch_TPathType tmpPathType;
         char adding[_AddingLen]={'0','0','0','.','t','m','p','\0'};
         adding[2]+=i%10;    adding[1]+=(i/10)%10;   adding[0]+=(i/100)%10;
