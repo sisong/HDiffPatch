@@ -1461,7 +1461,7 @@ static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
         else
             cache_buf_end=(TByte*)_hpatch_align_lower(cache_buf_end,kAccessPageSize);
     }
-    oldPos=_hpatch_align_lower(oldPos,kAccessPageSize);
+    oldPos=_hpatch_align_type_lower(hpatch_StreamPos_t,oldPos,kAccessPageSize);
     if (oldPos<kMinSpaceLen) oldPos=0;
     
     _arrayCovers_sort_by_old(arrayCovers);
@@ -1510,7 +1510,7 @@ static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
                 //  [oldPos     oldPosEnd]
                 //                        [ioldPos      ioldPosEnd]
                     if ((i==cur_i)&&(ioldPos-oldPosEnd>=kMinSpaceLen))
-                        oldPosEnd=_hpatch_align_lower(ioldPos,kAccessPageSize);
+                        oldPosEnd=_hpatch_align_type_lower(hpatch_StreamPos_t,ioldPos,kAccessPageSize);
                     break;
                 }
             }else{//当前覆盖线已经落后于当前数据,下一个覆盖线;
