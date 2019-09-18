@@ -38,7 +38,7 @@ extern "C" {
 
 #define HDIFFPATCH_VERSION_MAJOR    3
 #define HDIFFPATCH_VERSION_MINOR    0
-#define HDIFFPATCH_VERSION_RELEASE  5
+#define HDIFFPATCH_VERSION_RELEASE  6
 
 #define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
 #define _HDIFFPATCH_QUOTE(str) #str
@@ -68,7 +68,9 @@ typedef int hpatch_BOOL;
 #define     hpatch_FALSE    0
 #define     hpatch_TRUE     ((hpatch_BOOL)(!hpatch_FALSE))
 
-#define _hpatch_align_lower(p,align2pow) (((size_t)(p)) & (~(size_t)((align2pow)-1)))
+    
+#define _hpatch_align_type_lower(uint_type,p,align2pow) (((uint_type)(p)) & (~(uint_type)((align2pow)-1)))
+#define _hpatch_align_lower(p,align2pow) _hpatch_align_type_lower(size_t,p,align2pow)
 #define _hpatch_align_upper(p,align2pow) _hpatch_align_lower(((size_t)(p))+((align2pow)-1),align2pow)
     
     typedef void* hpatch_TStreamInputHandle;
