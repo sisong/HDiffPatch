@@ -7,14 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D65892E32330D26F003BB2F4 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = D65892E22330D26F003BB2F4 /* md5.c */; };
-		D658930C2331D34B003BB2F4 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D658930B2331D34B003BB2F4 /* liblzma.a */; };
-		D658930E2331D34B003BB2F4 /* libzlib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D658930D2331D34B003BB2F4 /* libzlib.a */; };
-		D65C6A612330A4A300A3C89C /* sync_server_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D65C6A602330A4A300A3C89C /* sync_server_main.cpp */; };
-		D65C6A642330A4C700A3C89C /* sync_server.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D65C6A622330A4C700A3C89C /* sync_server.cpp */; };
-		D65C6A682330B6B200A3C89C /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D65C6A672330B6B200A3C89C /* file_for_patch.c */; };
-		D65C6A6A2330C19E00A3C89C /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D65C6A692330C19D00A3C89C /* adler_roll.c */; };
-		D65C6A6C2330CAF700A3C89C /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D65C6A6B2330CAF700A3C89C /* patch.c */; };
+		D658931B23327334003BB2F4 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931A23327334003BB2F4 /* md5.c */; };
+		D658931D2332737F003BB2F4 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931C2332737F003BB2F4 /* file_for_patch.c */; };
+		D658931F2332739D003BB2F4 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931E2332739D003BB2F4 /* adler_roll.c */; };
+		D6589321233273BF003BB2F4 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6589320233273BF003BB2F4 /* patch.c */; };
+		D658932B23327412003BB2F4 /* sync_server.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D658932323327412003BB2F4 /* sync_server.cpp */; };
+		D658932C23327412003BB2F4 /* sync_server_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D658932423327412003BB2F4 /* sync_server_main.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -30,18 +28,15 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		D65892E22330D26F003BB2F4 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../libmd5/md5.c; sourceTree = "<group>"; };
-		D65892E72330E9CC003BB2F4 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
-		D65892EA2330EF61003BB2F4 /* sync_client_type.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sync_client_type.h; sourceTree = "<group>"; };
-		D658930B2331D34B003BB2F4 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		D658930D2331D34B003BB2F4 /* libzlib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlib.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		D658931A23327334003BB2F4 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
+		D658931C2332737F003BB2F4 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
+		D658931E2332739D003BB2F4 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
+		D6589320233273BF003BB2F4 /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch.c; path = ../../libHDiffPatch/HPatch/patch.c; sourceTree = "<group>"; };
+		D658932323327412003BB2F4 /* sync_server.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_server.cpp; sourceTree = "<group>"; };
+		D658932423327412003BB2F4 /* sync_server_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_server_main.cpp; sourceTree = "<group>"; };
+		D658932523327412003BB2F4 /* sync_server.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sync_server.h; sourceTree = "<group>"; };
+		D658933023327439003BB2F4 /* sync_client_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sync_client_type.h; sourceTree = "<group>"; };
 		D65C6A512330A3C700A3C89C /* sync_server */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sync_server; sourceTree = BUILT_PRODUCTS_DIR; };
-		D65C6A602330A4A300A3C89C /* sync_server_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_server_main.cpp; sourceTree = "<group>"; };
-		D65C6A622330A4C700A3C89C /* sync_server.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sync_server.cpp; sourceTree = "<group>"; };
-		D65C6A632330A4C700A3C89C /* sync_server.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sync_server.h; sourceTree = "<group>"; };
-		D65C6A672330B6B200A3C89C /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../ApkDiffPatch/HDiffPatch/file_for_patch.c; sourceTree = "<group>"; };
-		D65C6A692330C19D00A3C89C /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../ApkDiffPatch/HDiffPatch/libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
-		D65C6A6B2330CAF700A3C89C /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch.c; path = ../../ApkDiffPatch/HDiffPatch/libHDiffPatch/HPatch/patch.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,8 +44,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D658930C2331D34B003BB2F4 /* liblzma.a in Frameworks */,
-				D658930E2331D34B003BB2F4 /* libzlib.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,7 +53,7 @@
 		D65892E12330D1DB003BB2F4 /* libmd5 */ = {
 			isa = PBXGroup;
 			children = (
-				D65892E22330D26F003BB2F4 /* md5.c */,
+				D658931A23327334003BB2F4 /* md5.c */,
 			);
 			name = libmd5;
 			sourceTree = "<group>";
@@ -68,29 +61,37 @@
 		D65892E42330D4B9003BB2F4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D658930B2331D34B003BB2F4 /* liblzma.a */,
-				D658930D2331D34B003BB2F4 /* libzlib.a */,
-				D65892E72330E9CC003BB2F4 /* libbz2.tbd */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		D65892E92330EF36003BB2F4 /* sync_client */ = {
+		D658932223327412003BB2F4 /* sync_server */ = {
 			isa = PBXGroup;
 			children = (
-				D65892EA2330EF61003BB2F4 /* sync_client_type.h */,
+				D658932323327412003BB2F4 /* sync_server.cpp */,
+				D658932423327412003BB2F4 /* sync_server_main.cpp */,
+				D658932523327412003BB2F4 /* sync_server.h */,
+			);
+			name = sync_server;
+			path = ../../libSyncUpdate/sync_server;
+			sourceTree = "<group>";
+		};
+		D658932F23327439003BB2F4 /* sync_client */ = {
+			isa = PBXGroup;
+			children = (
+				D658933023327439003BB2F4 /* sync_client_type.h */,
 			);
 			name = sync_client;
-			path = ../../src/sync_client;
+			path = ../../libSyncUpdate/sync_client;
 			sourceTree = "<group>";
 		};
 		D65C6A482330A3C700A3C89C = {
 			isa = PBXGroup;
 			children = (
+				D658932223327412003BB2F4 /* sync_server */,
+				D658932F23327439003BB2F4 /* sync_client */,
 				D65892E12330D1DB003BB2F4 /* libmd5 */,
 				D65C6A662330B69700A3C89C /* HDiffPatch */,
-				D65892E92330EF36003BB2F4 /* sync_client */,
-				D65C6A5F2330A4A300A3C89C /* sync_server */,
 				D65C6A522330A3C700A3C89C /* Products */,
 				D65892E42330D4B9003BB2F4 /* Frameworks */,
 			);
@@ -104,23 +105,12 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		D65C6A5F2330A4A300A3C89C /* sync_server */ = {
-			isa = PBXGroup;
-			children = (
-				D65C6A602330A4A300A3C89C /* sync_server_main.cpp */,
-				D65C6A632330A4C700A3C89C /* sync_server.h */,
-				D65C6A622330A4C700A3C89C /* sync_server.cpp */,
-			);
-			name = sync_server;
-			path = ../../src/sync_server;
-			sourceTree = "<group>";
-		};
 		D65C6A662330B69700A3C89C /* HDiffPatch */ = {
 			isa = PBXGroup;
 			children = (
-				D65C6A6B2330CAF700A3C89C /* patch.c */,
-				D65C6A692330C19D00A3C89C /* adler_roll.c */,
-				D65C6A672330B6B200A3C89C /* file_for_patch.c */,
+				D6589320233273BF003BB2F4 /* patch.c */,
+				D658931E2332739D003BB2F4 /* adler_roll.c */,
+				D658931C2332737F003BB2F4 /* file_for_patch.c */,
 			);
 			name = HDiffPatch;
 			sourceTree = "<group>";
@@ -181,12 +171,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D65892E32330D26F003BB2F4 /* md5.c in Sources */,
-				D65C6A682330B6B200A3C89C /* file_for_patch.c in Sources */,
-				D65C6A6A2330C19E00A3C89C /* adler_roll.c in Sources */,
-				D65C6A612330A4A300A3C89C /* sync_server_main.cpp in Sources */,
-				D65C6A6C2330CAF700A3C89C /* patch.c in Sources */,
-				D65C6A642330A4C700A3C89C /* sync_server.cpp in Sources */,
+				D658932C23327412003BB2F4 /* sync_server_main.cpp in Sources */,
+				D6589321233273BF003BB2F4 /* patch.c in Sources */,
+				D658931B23327334003BB2F4 /* md5.c in Sources */,
+				D658932B23327412003BB2F4 /* sync_server.cpp in Sources */,
+				D658931F2332739D003BB2F4 /* adler_roll.c in Sources */,
+				D658931D2332737F003BB2F4 /* file_for_patch.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

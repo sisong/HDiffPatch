@@ -9,6 +9,13 @@
    </FileRef>
    <Group
       location = "container:"
+      name = "sync_update">
+      <FileRef
+         location = "group:sync_server.xcodeproj">
+      </FileRef>
+   </Group>
+   <Group
+      location = "container:"
       name = "test">
       <FileRef
          location = "group:testHashClash.xcodeproj">
