@@ -86,14 +86,6 @@ hpatch_BOOL hpatch_getIsDirName(const char* path_utf8){
         memcpy(dst_path,src_path,len); \
         dst_path[len]='\0';  } /* safe */
 
-#ifndef PRIu64
-#   ifdef _MSC_VER
-#       define PRIu64 "I64u"
-#   else
-#       define PRIu64 "llu"
-#   endif
-#endif
-
 
 #ifdef _WIN32
 static int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){

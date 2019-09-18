@@ -67,7 +67,15 @@ typedef hpatch_uint64_t  hpatch_StreamPos_t;
 typedef int hpatch_BOOL;
 #define     hpatch_FALSE    0
 #define     hpatch_TRUE     ((hpatch_BOOL)(!hpatch_FALSE))
-
+   
+//PRIu64 for printf type hpatch_StreamPos_t
+#ifndef PRIu64
+#   ifdef _MSC_VER
+#       define PRIu64 "I64u"
+#   else
+#       define PRIu64 "llu"
+#   endif
+#endif
     
 #define _hpatch_align_type_lower(uint_type,p,align2pow) (((uint_type)(p)) & (~(uint_type)((align2pow)-1)))
 #define _hpatch_align_lower(p,align2pow) _hpatch_align_type_lower(size_t,p,align2pow)

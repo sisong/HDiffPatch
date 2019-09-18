@@ -98,9 +98,9 @@
 			isa = PBXGroup;
 			children = (
 				D65893422332765B003BB2F4 /* sync_client_type.h */,
-				D65893432332765B003BB2F4 /* sync_client_main.cpp */,
 				D65893442332765B003BB2F4 /* sync_client.h */,
 				D65893452332765B003BB2F4 /* sync_client.cpp */,
+				D65893432332765B003BB2F4 /* sync_client_main.cpp */,
 			);
 			name = sync_client;
 			path = ../../libSyncUpdate/sync_client;

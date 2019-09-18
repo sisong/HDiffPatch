@@ -6,20 +6,15 @@
 #include <iostream>
 #include "sync_server.h"
 #include "../../_clock_for_demo.h"
+#include "../../_atosize.h"
 
-#define  IS_NOTICE_compress_canceled 0
 #define  _CompressPlugin_zlib
-#include "zlib.h"
-#define  _IsNeedIncludeDefaultCompressHead 0
 #define  _CompressPlugin_lzma
-#include "../../../lzma/C/LzmaEnc.h"
+#define  IS_NOTICE_compress_canceled 0
 #include "../../compress_plugin_demo.h"
 
-#define  _IsNeedIncludeDefaultChecksumHead 0
 #define  _ChecksumPlugin_md5
-#include "../../../libmd5/md5.h"
 #include "../../checksum_plugin_demo.h"
-#include "../../_atosize.h"
 
 int main(int argc, const char * argv[]) {
     double time0=clock_s();

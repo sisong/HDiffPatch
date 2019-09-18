@@ -76,9 +76,9 @@
 		D658932223327412003BB2F4 /* sync_server */ = {
 			isa = PBXGroup;
 			children = (
+				D658932523327412003BB2F4 /* sync_server.h */,
 				D658932323327412003BB2F4 /* sync_server.cpp */,
 				D658932423327412003BB2F4 /* sync_server_main.cpp */,
-				D658932523327412003BB2F4 /* sync_server.h */,
 			);
 			name = sync_server;
 			path = ../../libSyncUpdate/sync_server;
@@ -306,6 +306,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					../../../lzma/C/,
+					../../../libmd5,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -314,6 +318,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					../../../lzma/C/,
+					../../../libmd5,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
