@@ -13,6 +13,9 @@
       <FileRef
          location = "group:sync_server.xcodeproj">
       </FileRef>
+      <FileRef
+         location = "group:sync_client.xcodeproj">
+      </FileRef>
    </Group>
    <Group
       location = "container:"

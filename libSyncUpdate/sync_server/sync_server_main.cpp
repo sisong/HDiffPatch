@@ -5,21 +5,21 @@
 
 #include <iostream>
 #include "sync_server.h"
-#include "../../ApkDiffPatch/HDiffPatch/_clock_for_demo.h"
+#include "../../_clock_for_demo.h"
 
 #define  IS_NOTICE_compress_canceled 0
 #define  _CompressPlugin_zlib
 #include "zlib.h"
 #define  _IsNeedIncludeDefaultCompressHead 0
 #define  _CompressPlugin_lzma
-#include "../../ApkDiffPatch/lzma/C/LzmaEnc.h"
-#include "../../ApkDiffPatch/HDiffPatch/compress_plugin_demo.h"
+#include "../../../lzma/C/LzmaEnc.h"
+#include "../../compress_plugin_demo.h"
 
 #define  _IsNeedIncludeDefaultChecksumHead 0
 #define  _ChecksumPlugin_md5
-#include "../../libmd5/md5.h"
-#include "../../ApkDiffPatch/HDiffPatch/checksum_plugin_demo.h"
-#include "../../ApkDiffPatch/HDiffPatch/_atosize.h"
+#include "../../../libmd5/md5.h"
+#include "../../checksum_plugin_demo.h"
+#include "../../_atosize.h"
 
 int main(int argc, const char * argv[]) {
     double time0=clock_s();

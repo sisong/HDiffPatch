@@ -6,8 +6,8 @@
 #ifndef sync_server_h
 #define sync_server_h
 #include "../sync_client/sync_client_type.h"
-#include "../../ApkDiffPatch/HDiffPatch/libHDiffPatch/HPatch/checksum_plugin.h"
-#include "../../ApkDiffPatch/HDiffPatch/libHDiffPatch/HDiff/diff_types.h"
+#include "../../libHDiffPatch/HPatch/checksum_plugin.h"
+#include "../../libHDiffPatch/HDiff/diff_types.h"
 
 static const uint32_t kMatchBlockSize_default = (1<<10);
 

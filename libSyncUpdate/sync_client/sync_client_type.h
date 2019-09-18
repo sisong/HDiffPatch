@@ -5,7 +5,7 @@
 //  Copyright © 2019 sisong. All rights reserved.
 #ifndef sync_client_type_h
 #define sync_client_type_h
-#include "../../ApkDiffPatch/HDiffPatch/libHDiffPatch/HPatch/patch_types.h"
+#include "../../libHDiffPatch/HPatch/patch_types.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

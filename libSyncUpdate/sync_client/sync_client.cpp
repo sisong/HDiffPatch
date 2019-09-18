@@ -6,8 +6,8 @@
 
 #include "sync_client.h"
 #include <map>
-#include "../../ApkDiffPatch/HDiffPatch/file_for_patch.h"
-#include "../../ApkDiffPatch/HDiffPatch/libHDiffPatch/HDiff/private_diff/mem_buf.h"
+#include "../../file_for_patch.h"
+#include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
 #define check(v,errorCode) \
     do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \

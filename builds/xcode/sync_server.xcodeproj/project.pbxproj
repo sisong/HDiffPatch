@@ -13,6 +13,8 @@
 		D6589321233273BF003BB2F4 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6589320233273BF003BB2F4 /* patch.c */; };
 		D658932B23327412003BB2F4 /* sync_server.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D658932323327412003BB2F4 /* sync_server.cpp */; };
 		D658932C23327412003BB2F4 /* sync_server_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D658932423327412003BB2F4 /* sync_server_main.cpp */; };
+		D65893372332757F003BB2F4 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D65893362332757F003BB2F4 /* libz.tbd */; };
+		D658933923327585003BB2F4 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D658933823327585003BB2F4 /* liblzma.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -36,6 +38,8 @@
 		D658932423327412003BB2F4 /* sync_server_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_server_main.cpp; sourceTree = "<group>"; };
 		D658932523327412003BB2F4 /* sync_server.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sync_server.h; sourceTree = "<group>"; };
 		D658933023327439003BB2F4 /* sync_client_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sync_client_type.h; sourceTree = "<group>"; };
+		D65893362332757F003BB2F4 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		D658933823327585003BB2F4 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D65C6A512330A3C700A3C89C /* sync_server */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sync_server; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -44,6 +48,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D658933923327585003BB2F4 /* liblzma.a in Frameworks */,
+				D65893372332757F003BB2F4 /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -61,6 +67,8 @@
 		D65892E42330D4B9003BB2F4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D658933823327585003BB2F4 /* liblzma.a */,
+				D65893362332757F003BB2F4 /* libz.tbd */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -216,7 +224,6 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
-				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -275,8 +282,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
-				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEPLOYMENT_POSTPROCESSING = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;

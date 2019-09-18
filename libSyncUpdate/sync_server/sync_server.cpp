@@ -8,9 +8,9 @@
 #include <vector>
 #include <string>
 #include <map>
-#include "../../ApkDiffPatch/HDiffPatch/file_for_patch.h"
-#include "../../ApkDiffPatch/HDiffPatch/libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
-#include "../../ApkDiffPatch/HDiffPatch/libHDiffPatch/HDiff/private_diff/mem_buf.h"
+#include "../../file_for_patch.h"
+#include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
+#include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
 static const uint32_t kMinMatchBlockSize=32;
 
