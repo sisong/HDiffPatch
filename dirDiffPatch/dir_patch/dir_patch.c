@@ -200,9 +200,9 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_
         unpackToSize(&out_head->newPathCount,headClip);
         unpackToSize(&out_head->newPathSumSize,headClip);
         unpackToSize(&out_head->oldRefFileCount,headClip);
-        unpackToSize(&savedOldRefSize,headClip);
+        unpackUIntTo(&savedOldRefSize,headClip);
         unpackToSize(&out_head->newRefFileCount,headClip);
-        unpackToSize(&savedNewRefSize,headClip);
+        unpackUIntTo(&savedNewRefSize,headClip);
         unpackToSize(&out_head->sameFilePairCount,headClip);
         unpackUIntTo(&out_head->sameFileSize,headClip);
         unpackToSize(&out_head->newExecuteCount,headClip);
