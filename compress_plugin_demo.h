@@ -591,7 +591,9 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 #endif//_CompressPlugin_lzma
     
 #ifdef  _CompressPlugin_lzma2
+#if (_IsNeedIncludeDefaultCompressHead)
 #   include "MtCoder.h" // // "lzma/C/MtCoder.h"   for MTCODER__THREADS_MAX
+#endif
     struct TCompressPlugin_lzma2{
         hdiff_TCompress base;
         int             compress_level; //0..9
