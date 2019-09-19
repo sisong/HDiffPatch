@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D63B988D2333B5D1003D38A5 /* sync_client.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D63B988B2333B5D0003D38A5 /* sync_client.cpp */; };
 		D658931B23327334003BB2F4 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931A23327334003BB2F4 /* md5.c */; };
 		D658931D2332737F003BB2F4 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931C2332737F003BB2F4 /* file_for_patch.c */; };
 		D658931F2332739D003BB2F4 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931E2332739D003BB2F4 /* adler_roll.c */; };
@@ -30,6 +31,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D63B988B2333B5D0003D38A5 /* sync_client.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_client.cpp; sourceTree = "<group>"; };
+		D63B988C2333B5D0003D38A5 /* sync_client.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sync_client.h; sourceTree = "<group>"; };
 		D658931A23327334003BB2F4 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
 		D658931C2332737F003BB2F4 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
 		D658931E2332739D003BB2F4 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
@@ -87,6 +90,8 @@
 		D658932F23327439003BB2F4 /* sync_client */ = {
 			isa = PBXGroup;
 			children = (
+				D63B988B2333B5D0003D38A5 /* sync_client.cpp */,
+				D63B988C2333B5D0003D38A5 /* sync_client.h */,
 				D658933023327439003BB2F4 /* sync_client_type.h */,
 			);
 			name = sync_client;
@@ -181,6 +186,7 @@
 			files = (
 				D658932C23327412003BB2F4 /* sync_server_main.cpp in Sources */,
 				D6589321233273BF003BB2F4 /* patch.c in Sources */,
+				D63B988D2333B5D1003D38A5 /* sync_client.cpp in Sources */,
 				D658931B23327334003BB2F4 /* md5.c in Sources */,
 				D658932B23327412003BB2F4 /* sync_server.cpp in Sources */,
 				D658931F2332739D003BB2F4 /* adler_roll.c in Sources */,
@@ -241,6 +247,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					../../../lzma/C/,
+					../../../libmd5,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -295,6 +305,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					../../../lzma/C/,
+					../../../libmd5,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -306,10 +320,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = (
-					../../../lzma/C/,
-					../../../libmd5,
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -318,10 +328,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = (
-					../../../lzma/C/,
-					../../../libmd5,
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

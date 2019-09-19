@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D63B988A2333B574003D38A5 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = D63B98892333B574003D38A5 /* md5.c */; };
 		D658933B23327613003BB2F4 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D658933A23327613003BB2F4 /* file_for_patch.c */; };
 		D658934023327643003BB2F4 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D658933C23327642003BB2F4 /* adler_roll.c */; };
 		D65893462332765B003BB2F4 /* sync_client_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D65893432332765B003BB2F4 /* sync_client_main.cpp */; };
@@ -28,6 +29,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D63B98892333B574003D38A5 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
 		D65892F82331D169003BB2F4 /* sync_client */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sync_client; sourceTree = BUILT_PRODUCTS_DIR; };
 		D658933A23327613003BB2F4 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
 		D658933C23327642003BB2F4 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
@@ -55,10 +57,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D63B98882333B54C003D38A5 /* libmd5 */ = {
+			isa = PBXGroup;
+			children = (
+				D63B98892333B574003D38A5 /* md5.c */,
+			);
+			name = libmd5;
+			sourceTree = "<group>";
+		};
 		D65892EF2331D169003BB2F4 = {
 			isa = PBXGroup;
 			children = (
 				D65893412332765B003BB2F4 /* sync_client */,
+				D63B98882333B54C003D38A5 /* libmd5 */,
 				D65893142331D73E003BB2F4 /* HDiffPatch */,
 				D65892F92331D169003BB2F4 /* Products */,
 				D658930F2331D35D003BB2F4 /* Frameworks */,
@@ -163,6 +174,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D658933B23327613003BB2F4 /* file_for_patch.c in Sources */,
+				D63B988A2333B574003D38A5 /* md5.c in Sources */,
 				D658934023327643003BB2F4 /* adler_roll.c in Sources */,
 				D65893462332765B003BB2F4 /* sync_client_main.cpp in Sources */,
 				D65893472332765B003BB2F4 /* sync_client.cpp in Sources */,
@@ -222,6 +234,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					../../../lzma/C/,
+					../../../libmd5,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -276,6 +292,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					../../../lzma/C/,
+					../../../libmd5,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;

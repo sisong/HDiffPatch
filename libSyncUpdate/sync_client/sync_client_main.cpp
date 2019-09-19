@@ -3,10 +3,8 @@
 //
 //  Created by housisong on 2019-09-18.
 //  Copyright © 2019 sisong. All rights reserved.
-#include <iostream>
+#include "sync_client.h"
 
 int main(int argc, const char * argv[]) {
-    // insert code here...
-    std::cout << "Hello, World!\n";
-    return 0;
+    return sync_patch_by_file(argv[1],argv[2],argv[3],0);
 }

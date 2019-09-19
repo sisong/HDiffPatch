@@ -14,6 +14,7 @@ typedef enum TSyncClient_resultType{
     kSyncClient_ok,
     kSyncClient_infoFileOpenError,
     kSyncClient_infoFileCloseError,
+    kSyncClient_TODO_Error,
 } TNewDataSyncInfo_resultType;
 
 int  TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo);
@@ -24,9 +25,13 @@ typedef struct ISyncPatchListener{
     
 } ISyncPatchListener;
 
-int sync_patch(const hpatch_TStreamInput*  oldStream,
-               const hpatch_TStreamOutput* out_newStream,
-               const TNewDataSyncInfo* newInfo,ISyncPatchListener* listener);
+int sync_patch(const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newSyncInfoStream,
+               const hpatch_TStreamOutput* out_newStream,ISyncPatchListener* listener);
+
+int sync_patch_by_info(const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
+                       const hpatch_TStreamOutput* out_newStream,ISyncPatchListener* listener);
+int sync_patch_by_file(const char* oldPath,const char* newSyncInfoPath,
+                       const char* out_newPath,ISyncPatchListener* listener);
 
 #ifdef __cplusplus
 }

@@ -21,7 +21,7 @@ extern "C" {
 typedef struct TNewDataSyncInfo{
     const char*             compressType;
     const char*             strongChecksumType;
-    unsigned char           kStrongChecksumByteSize;
+    uint32_t                kStrongChecksumByteSize;
     uint32_t                kMatchBlockSize;
     uint32_t                samePairCount;
     hpatch_StreamPos_t      newDataSize;
