@@ -10,21 +10,18 @@
 extern "C" {
 #endif
     
-    typedef enum TRoolHashType{
-        kRollHash_fadler32=0,
-        kRollHash_fadler64
-    } TRoolHashType;
     typedef struct TSameNewDataPair{
         uint32_t  curIndex;
         uint32_t  sameIndex; // sameIndex < curIndex;
     } TSameNewDataPair;
     
+    #define kPartStrongChecksumByteSize       8
+    #define kInsureStrongChecksumBlockSize  128
+    
 typedef struct TNewDataSyncInfo{
     const char*             compressType;
     const char*             strongChecksumType;
     unsigned char           kStrongChecksumByteSize;
-    unsigned char           kStrongChecksumsSavedByteSize; // kStrongChecksumsSavedByteSize<=kStrongChecksumByteSize
-    TRoolHashType           kRollHashType;
     uint32_t                kMatchBlockSize;
     uint32_t                samePairCount;
     hpatch_StreamPos_t      newDataSize;
@@ -33,8 +30,9 @@ typedef struct TNewDataSyncInfo{
     unsigned char*          info_strongChecksum; //this info data's strongChecksum
     TSameNewDataPair*       samePairList;
     uint32_t*               compressedSizes;
-    void*                   rollHashs; // uint32_t* or uint64_t*
-    unsigned char*          strongChecksums;
+    uint32_t*               rollHashs;
+    unsigned char*          partStrongChecksums;
+    unsigned char*          insureStrongChecksums;
     
     void*                   _import;
 } TNewDataSyncInfo;
@@ -49,7 +47,26 @@ hpatch_inline static hpatch_StreamPos_t
 hpatch_inline static hpatch_StreamPos_t
     TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self) {
         return getBlockCount(self->newDataSize,self->kMatchBlockSize); }
+hpatch_inline static hpatch_StreamPos_t
+    TNewDataSyncInfo_insureBlockCount(const TNewDataSyncInfo* self) {
+        return getBlockCount(TNewDataSyncInfo_blockCount(self),kInsureStrongChecksumBlockSize); }
 
+static void toPartChecksum(unsigned char* out_partChecksum,
+                           const unsigned char* checksum,size_t checksumByteSize){
+    assert((checksumByteSize>kPartStrongChecksumByteSize)
+           &&(checksumByteSize%kPartStrongChecksumByteSize==0));
+    assert(sizeof(hpatch_uint64_t)==kPartStrongChecksumByteSize);
+    const unsigned char* checksum_end=checksum+checksumByteSize;
+    hpatch_uint64_t v; memcpy(&v,checksum,kPartStrongChecksumByteSize);
+    checksum+=kPartStrongChecksumByteSize;
+    while (checksum!=checksum_end) {
+        hpatch_uint64_t c; memcpy(&c,checksum,kPartStrongChecksumByteSize);
+        checksum+=kPartStrongChecksumByteSize;
+        v^=c;
+    }
+    memcpy(out_partChecksum,&v,kPartStrongChecksumByteSize);
+}
+    
 #ifdef __cplusplus
 }
 #endif
