@@ -26,13 +26,12 @@ typedef struct TNewDataSyncInfo{
     uint32_t                samePairCount;
     hpatch_StreamPos_t      newDataSize;
     hpatch_StreamPos_t      newSyncDataSize;
-    unsigned char*          newData_strongChecksum;
     unsigned char*          info_strongChecksum; //this info data's strongChecksum
     TSameNewDataPair*       samePairList;
     uint32_t*               compressedSizes;
     uint32_t*               rollHashs;
     unsigned char*          partStrongChecksums;
-    unsigned char*          insureStrongChecksums;
+    unsigned char*          newDataInsureStrongChecksums;
     
     void*                   _import;
 } TNewDataSyncInfo;
@@ -51,8 +50,9 @@ hpatch_inline static hpatch_StreamPos_t
     TNewDataSyncInfo_insureBlockCount(const TNewDataSyncInfo* self) {
         return getBlockCount(TNewDataSyncInfo_blockCount(self),kInsureStrongChecksumBlockSize); }
 
-static void toPartChecksum(unsigned char* out_partChecksum,
-                           const unsigned char* checksum,size_t checksumByteSize){
+hpatch_inline static void
+    toPartChecksum(unsigned char* out_partChecksum,
+                   const unsigned char* checksum,size_t checksumByteSize){
     assert((checksumByteSize>kPartStrongChecksumByteSize)
            &&(checksumByteSize%kPartStrongChecksumByteSize==0));
     assert(sizeof(hpatch_uint64_t)==kPartStrongChecksumByteSize);

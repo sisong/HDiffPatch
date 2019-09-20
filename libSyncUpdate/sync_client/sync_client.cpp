@@ -33,19 +33,19 @@ void TNewDataSyncInfo_close(TNewDataSyncInfo* self){
     TNewDataSyncInfo_init(self);
 }
 
-int TNewDataSyncInfo_openByFile(TNewDataSyncInfo* self,const char* newSyncInfoPath){
+int TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoPath){
     hpatch_TFileStreamInput  newSyncInfo;
     hpatch_TFileStreamInput_init(&newSyncInfo);
     int rt;
     int result=kSyncClient_ok;
     int _inClear=0;
-    check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoPath), kSyncClient_infoFileOpenError);
+    check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoPath), kSyncClient_newSyncInfoOpenError);
 
     rt=TNewDataSyncInfo_open(self,&newSyncInfo.base);
     check(rt==kSyncClient_ok,rt);
 clear:
     _inClear=1;
-    check(hpatch_TFileStreamInput_close(&newSyncInfo), kSyncClient_infoFileCloseError);
+    check(hpatch_TFileStreamInput_close(&newSyncInfo), kSyncClient_newSyncInfoCloseError);
     return result;
 }
 
@@ -215,12 +215,12 @@ int sync_patch_by_info(const hpatch_TStreamInput* oldStream,const TNewDataSyncIn
     //todo: select checksum run
     
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
-    hpatch_TChecksum*      strongChecksumPlugin=&md5ChecksumPlugin;
+    hpatch_TChecksum* strongChecksumPlugin=&md5ChecksumPlugin;
     
     TAutoMem _mem(kBlockCount*sizeof(hpatch_StreamPos_t));
-    hpatch_StreamPos_t* newDataPos=(hpatch_StreamPos_t*)_mem.data();
+    hpatch_StreamPos_t* newDataPoss=(hpatch_StreamPos_t*)_mem.data();
     
-    matchAllNewData(oldStream,newDataPos,strongChecksumPlugin,newSyncInfo);
+    matchAllNewData(oldStream,newDataPoss,strongChecksumPlugin,newSyncInfo);
     //[0,newSyncDataSize)  need from listener
     //[newSyncDataSize,newSyncDataSize+oldDataSize) need copy from oldStream
     
@@ -244,26 +244,26 @@ clear:
 
 int sync_patch_by_file(const char* oldPath,const char* newSyncInfoPath,
                        const char* out_newPath,ISyncPatchListener* listener){
-    //todo: error type
     int result=kSyncClient_ok;
     int _inClear=0;
+    TNewDataSyncInfo         newSyncInfo;
     hpatch_TFileStreamInput  oldData;
-    hpatch_TFileStreamInput  newSyncInfo;
     hpatch_TFileStreamOutput out_newData;
     
+    TNewDataSyncInfo_init(&newSyncInfo);
     hpatch_TFileStreamInput_init(&oldData);
-    hpatch_TFileStreamInput_init(&newSyncInfo);
     hpatch_TFileStreamOutput_init(&out_newData);
-    check(hpatch_TFileStreamInput_open(&oldData,oldPath),kSyncClient_TODO_Error);
-    check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoPath),kSyncClient_TODO_Error);
+    result=TNewDataSyncInfo_open_by_file(&newSyncInfo,newSyncInfoPath);
+    check(result==kSyncClient_ok,result);
+    check(hpatch_TFileStreamInput_open(&oldData,oldPath),kSyncClient_oldFileOpenError);
     check(hpatch_TFileStreamOutput_open(&out_newData,out_newPath,(hpatch_StreamPos_t)(-1)),
-          kSyncClient_TODO_Error);
+          kSyncClient_newFileCreateError);
     
-    result=sync_patch(&oldData.base,&newSyncInfo.base,&out_newData.base,listener);
+    result=sync_patch_by_info(&oldData.base,&newSyncInfo,&out_newData.base,listener);
 clear:
     _inClear=1;
-    check(hpatch_TFileStreamOutput_close(&out_newData),kSyncClient_TODO_Error);
-    check(hpatch_TFileStreamInput_close(&newSyncInfo),kSyncClient_TODO_Error);
-    check(hpatch_TFileStreamInput_close(&oldData),kSyncClient_TODO_Error);
+    check(hpatch_TFileStreamOutput_close(&out_newData),kSyncClient_newFileCloseError);
+    check(hpatch_TFileStreamInput_close(&oldData),kSyncClient_oldFileCloseError);
+    TNewDataSyncInfo_close(&newSyncInfo);
     return result;
 }
