@@ -139,11 +139,10 @@ struct TOldDataCache {
     }
 };
 
+static const hpatch_StreamPos_t kBlockType_needSync =~(hpatch_StreamPos_t)0;
 
-static const hpatch_StreamPos_t kNullPos =~(hpatch_StreamPos_t)0;
-
-static int matchAllNewData(const hpatch_TStreamInput* oldStream,hpatch_StreamPos_t* out_newDataPoss,
-                           hpatch_TChecksum* strongChecksumPlugin,const TNewDataSyncInfo* newSyncInfo){
+void matchNewDataInOld(const hpatch_TStreamInput* oldStream,hpatch_StreamPos_t* out_newDataPoss,
+                       hpatch_TChecksum* strongChecksumPlugin,const TNewDataSyncInfo* newSyncInfo){
     uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
 
@@ -151,7 +150,7 @@ static int matchAllNewData(const hpatch_TStreamInput* oldStream,hpatch_StreamPos
     uint32_t* sorted_newIndexs=(uint32_t*)_mem.data();
     TBloomFilter<uint32_t> filter; filter.init(kBlockCount);
     for (uint32_t i=0; i<kBlockCount; ++i){
-        out_newDataPoss[i]=kNullPos;
+        out_newDataPoss[i]=kBlockType_needSync;
         sorted_newIndexs[i]=i;
         filter.insert(newSyncInfo->rollHashs[i]);
     }
@@ -174,7 +173,7 @@ static int matchAllNewData(const hpatch_TStreamInput* oldStream,hpatch_StreamPos
             const TByte* oldPartStrongChecksum=0;
             do {
                 uint32_t newBlockIndex=*range.first;
-                if (out_newDataPoss[newBlockIndex]==kNullPos){
+                if (out_newDataPoss[newBlockIndex]==kBlockType_needSync){
                     if (oldPartStrongChecksum==0)
                         oldPartStrongChecksum=oldData.calcPartStrongChecksum();
                     const TByte* newPairStrongChecksum = newSyncInfo->partStrongChecksums
@@ -191,7 +190,7 @@ static int matchAllNewData(const hpatch_TStreamInput* oldStream,hpatch_StreamPos
     _mem.clear();
     
     //try match last newBlock data
-    if ((kBlockCount>0)&&(out_newDataPoss[kBlockCount-1]==kNullPos)){
+    if ((kBlockCount>0)&&(out_newDataPoss[kBlockCount-1]==kBlockType_needSync)){
         size_t lastNewNodeSize=(size_t)(newSyncInfo->newDataSize%kMatchBlockSize);
         if ((lastNewNodeSize>0)&&(oldStream->streamSize>=lastNewNodeSize)){
             uint32_t newBlockIndex=kBlockCount-1;
@@ -207,24 +206,73 @@ static int matchAllNewData(const hpatch_TStreamInput* oldStream,hpatch_StreamPos
     
     uint32_t lostCount=kBlockCount-_matchCount;
     printf("\nlost: %d / %d =%.4f\n",lostCount,kBlockCount,(double)lostCount/kBlockCount);
-    return kSyncClient_ok;
 }
 
 int sync_patch_by_info(const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
                        const hpatch_TStreamOutput* out_newStream,ISyncPatchListener* listener){
     //todo: select checksum run
-    
+
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
+    uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
     hpatch_TChecksum* strongChecksumPlugin=&md5ChecksumPlugin;
+    hpatch_TDecompress* decompressPlugin=0;
+    TByte* dataBuf=0;
+    int result=kSyncClient_ok;
+    int _inClear=0;
+    //match in oldData
+    hpatch_StreamPos_t* newDataPoss=(hpatch_StreamPos_t*)malloc(kBlockCount*sizeof(hpatch_StreamPos_t));
+    check(newDataPoss!=0,kSyncClient_memError);
+    try{
+        matchNewDataInOld(oldStream,newDataPoss,strongChecksumPlugin,newSyncInfo);
+    }catch(...){
+        result=kSyncClient_matchNewDataInOldError;
+    }
+    check(result==kSyncClient_ok,result);
     
-    TAutoMem _mem(kBlockCount*sizeof(hpatch_StreamPos_t));
-    hpatch_StreamPos_t* newDataPoss=(hpatch_StreamPos_t*)_mem.data();
+    {//send msg: all need sync block
+        hpatch_StreamPos_t posInNewSyncData=0;
+        for (uint32_t i=0; i<kBlockCount; ++i) {
+            uint32_t syncDataSize=TNewDataSyncInfo_syncDataSize(newSyncInfo,i);
+            if (newDataPoss[i]==kBlockType_needSync)
+                listener->needSyncMsg(listener,posInNewSyncData,syncDataSize);
+            posInNewSyncData+=syncDataSize;
+        }
+    }
     
-    matchAllNewData(oldStream,newDataPoss,strongChecksumPlugin,newSyncInfo);
-    //[0,newSyncDataSize)  need from listener
-    //[newSyncDataSize,newSyncDataSize+oldDataSize) need copy from oldStream
+    {//write newData
+        hpatch_StreamPos_t posInNewSyncData=0;
+        hpatch_StreamPos_t outNewDataPos=0;
+        
+        dataBuf=(TByte*)malloc(kMatchBlockSize*2);
+        check(dataBuf!=0,kSyncClient_memError);
+        for (uint32_t i=0; i<kBlockCount; ++i) {
+            uint32_t syncDataSize=TNewDataSyncInfo_syncDataSize(newSyncInfo,i);
+            uint32_t newDataSize=TNewDataSyncInfo_newDataSize(newSyncInfo,i);
+            if (newDataPoss[i]==kBlockType_needSync){ //sync
+                TByte* buf=decompressPlugin?(dataBuf+kMatchBlockSize):dataBuf;
+                check(listener->readSyncData(listener,dataBuf,posInNewSyncData,syncDataSize),
+                      kSyncClient_readSyncDataError);
+                if (decompressPlugin){
+                    check(hpatch_deccompress_mem(decompressPlugin,buf,buf+syncDataSize,
+                                                 dataBuf,dataBuf+newDataSize),kSyncClient_decompressError);
+                }
+            }else{//copy from old
+                check(oldStream->read(oldStream,newDataPoss[i],dataBuf,dataBuf+newDataSize),
+                      kSyncClient_readOldDataError);
+            }
+            //write
+            check(out_newStream->write(out_newStream,outNewDataPos,dataBuf,dataBuf+newDataSize),
+                  kSyncClient_writeNewDataError);
+            outNewDataPos+=newDataSize;
+            posInNewSyncData+=syncDataSize;
+        }
+    }
     
-    return kSyncClient_ok;
+clear:
+    _inClear=1;
+    if (dataBuf) free(dataBuf);
+    if (newDataPoss) free(newDataPoss);
+    return result;
 }
 
 int sync_patch(const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newSyncInfoStream,
@@ -258,6 +306,7 @@ int sync_patch_by_file(const char* oldPath,const char* newSyncInfoPath,
     check(hpatch_TFileStreamInput_open(&oldData,oldPath),kSyncClient_oldFileOpenError);
     check(hpatch_TFileStreamOutput_open(&out_newData,out_newPath,(hpatch_StreamPos_t)(-1)),
           kSyncClient_newFileCreateError);
+    hpatch_TFileStreamOutput_setRandomOut(&out_newData,hpatch_TRUE);
     
     result=sync_patch_by_info(&oldData.base,&newSyncInfo,&out_newData.base,listener);
 clear:

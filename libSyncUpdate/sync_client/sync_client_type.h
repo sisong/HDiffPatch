@@ -36,23 +36,36 @@ typedef struct TNewDataSyncInfo{
     void*                   _import;
 } TNewDataSyncInfo;
 
-hpatch_inline static
-void TNewDataSyncInfo_init(TNewDataSyncInfo* self) { memset(self,0,sizeof(*self)); }
-
+hpatch_inline static void
+TNewDataSyncInfo_init(TNewDataSyncInfo* self) { memset(self,0,sizeof(*self)); }
 
 hpatch_inline static hpatch_StreamPos_t
-    getBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
+getBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
         return (newDataSize+(kMatchBlockSize-1))/kMatchBlockSize; }
+
 hpatch_inline static hpatch_StreamPos_t
-    TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self) {
+TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self) {
         return getBlockCount(self->newDataSize,self->kMatchBlockSize); }
 hpatch_inline static hpatch_StreamPos_t
-    TNewDataSyncInfo_insureBlockCount(const TNewDataSyncInfo* self) {
+TNewDataSyncInfo_insureBlockCount(const TNewDataSyncInfo* self) {
         return getBlockCount(TNewDataSyncInfo_blockCount(self),kInsureStrongChecksumBlockSize); }
+hpatch_inline static uint32_t
+TNewDataSyncInfo_newDataSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
+    if (blockIndex+1<TNewDataSyncInfo_insureBlockCount(self))
+        return self->kMatchBlockSize;
+    else
+        return (uint32_t)(self->newSyncDataSize%self->kMatchBlockSize);
+}
+hpatch_inline static uint32_t
+TNewDataSyncInfo_syncDataSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
+    if (self->compressedSizes) return self->compressedSizes[blockIndex];
+    return TNewDataSyncInfo_newDataSize(self,blockIndex);
+}
 
+    
 hpatch_inline static void
-    toPartChecksum(unsigned char* out_partChecksum,
-                   const unsigned char* checksum,size_t checksumByteSize){
+toPartChecksum(unsigned char* out_partChecksum,
+               const unsigned char* checksum,size_t checksumByteSize){
     assert((checksumByteSize>kPartStrongChecksumByteSize)
            &&(checksumByteSize%kPartStrongChecksumByteSize==0));
     assert(sizeof(hpatch_uint64_t)==kPartStrongChecksumByteSize);

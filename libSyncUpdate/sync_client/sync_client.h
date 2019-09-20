@@ -12,12 +12,18 @@ extern "C" {
     
 typedef enum TSyncClient_resultType{
     kSyncClient_ok,
+    kSyncClient_memError,
     kSyncClient_newSyncInfoOpenError,
     kSyncClient_newSyncInfoCloseError,
     kSyncClient_oldFileOpenError,
     kSyncClient_oldFileCloseError,
     kSyncClient_newFileCreateError,
     kSyncClient_newFileCloseError,
+    kSyncClient_matchNewDataInOldError,
+    kSyncClient_readSyncDataError,
+    kSyncClient_decompressError,
+    kSyncClient_readOldDataError,
+    kSyncClient_writeNewDataError,
     
 } TNewDataSyncInfo_resultType;
 
@@ -26,7 +32,10 @@ int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInf
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
 
 typedef struct ISyncPatchListener{
-    
+    void      (*needSyncMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
+    void (*addedNeedSyncMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
+    bool     (*readSyncData)(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,
+                             hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
 } ISyncPatchListener;
 
 int sync_patch(const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newSyncInfoStream,
