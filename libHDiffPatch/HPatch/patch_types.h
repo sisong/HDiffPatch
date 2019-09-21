@@ -137,23 +137,9 @@ typedef int hpatch_BOOL;
     void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
                               unsigned char* mem,unsigned char* mem_end);
     
-    static hpatch_inline
     hpatch_BOOL hpatch_deccompress_mem(hpatch_TDecompress* decompressPlugin,
                                        const unsigned char* code,const unsigned char* code_end,
-                                       unsigned char* out_data,unsigned char* out_data_end){
-        hpatch_decompressHandle dec=0;
-        hpatch_BOOL result,colose_rt;
-        hpatch_TStreamInput  codeStream;
-        mem_as_hStreamInput(&codeStream,code,code_end);
-        dec=decompressPlugin->open(decompressPlugin,(out_data_end-out_data),
-                                   &codeStream,0,codeStream.streamSize);
-        if (dec==0) return hpatch_FALSE;
-        result=decompressPlugin->decompress_part(dec,out_data,out_data_end);
-        colose_rt=decompressPlugin->close(decompressPlugin,dec);
-        assert(colose_rt);
-        return result;
-    }
-    
+                                       unsigned char* out_data,unsigned char* out_data_end);
     
     typedef struct TStreamInputClip{
         hpatch_TStreamInput         base;

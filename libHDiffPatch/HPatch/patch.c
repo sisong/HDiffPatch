@@ -70,14 +70,28 @@ void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
             return _hpatch_FALSE;
         }
     }
-    typedef hpatch_BOOL (*_read_mem_stream_t)(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
-                                              unsigned char* out_data,unsigned char* out_data_end);
 void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
                           unsigned char* mem,unsigned char* mem_end){
     out_stream->streamImport=mem;
     out_stream->streamSize=mem_end-mem;
-    out_stream->read_writed=(_read_mem_stream_t)_read_mem_stream;
+    *(void**)(&out_stream->read_writed)=(void*)_read_mem_stream;
     out_stream->write=_write_mem_stream;
+}
+
+hpatch_BOOL hpatch_deccompress_mem(hpatch_TDecompress* decompressPlugin,
+                                   const unsigned char* code,const unsigned char* code_end,
+                                   unsigned char* out_data,unsigned char* out_data_end){
+    hpatch_decompressHandle dec=0;
+    hpatch_BOOL result,colose_rt;
+    hpatch_TStreamInput  codeStream;
+    mem_as_hStreamInput(&codeStream,code,code_end);
+    dec=decompressPlugin->open(decompressPlugin,(out_data_end-out_data),
+                               &codeStream,0,codeStream.streamSize);
+    if (dec==0) return hpatch_FALSE;
+    result=decompressPlugin->decompress_part(dec,out_data,out_data_end);
+    colose_rt=decompressPlugin->close(decompressPlugin,dec);
+    assert(colose_rt);
+    return result;
 }
 
 static hpatch_BOOL _TStreamInputClip_read(const hpatch_TStreamInput* stream,

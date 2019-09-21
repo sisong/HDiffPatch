@@ -16,13 +16,13 @@ extern "C" {
     } TSameNewDataPair;
     
     #define kPartStrongChecksumByteSize       8
-    #define kInsureStrongChecksumBlockSize  128
     
 typedef struct TNewDataSyncInfo{
     const char*             compressType;
     const char*             strongChecksumType;
     uint32_t                kStrongChecksumByteSize;
     uint32_t                kMatchBlockSize;
+    uint32_t                kInsureStrongChecksumBlockSize;
     uint32_t                samePairCount;
     hpatch_StreamPos_t      newDataSize;
     hpatch_StreamPos_t      newSyncDataSize;
@@ -48,7 +48,7 @@ TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self) {
         return getBlockCount(self->newDataSize,self->kMatchBlockSize); }
 hpatch_inline static hpatch_StreamPos_t
 TNewDataSyncInfo_insureBlockCount(const TNewDataSyncInfo* self) {
-        return getBlockCount(TNewDataSyncInfo_blockCount(self),kInsureStrongChecksumBlockSize); }
+        return getBlockCount(TNewDataSyncInfo_blockCount(self),self->kInsureStrongChecksumBlockSize); }
 hpatch_inline static uint32_t
 TNewDataSyncInfo_newDataSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
     if (blockIndex+1<TNewDataSyncInfo_insureBlockCount(self))

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		D63B988A2333B574003D38A5 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = D63B98892333B574003D38A5 /* md5.c */; };
+		D63B988F233607A7003D38A5 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D63B988E233607A6003D38A5 /* patch.c */; };
 		D658933B23327613003BB2F4 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D658933A23327613003BB2F4 /* file_for_patch.c */; };
 		D658934023327643003BB2F4 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D658933C23327642003BB2F4 /* adler_roll.c */; };
 		D65893462332765B003BB2F4 /* sync_client_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D65893432332765B003BB2F4 /* sync_client_main.cpp */; };
@@ -30,6 +31,7 @@
 
 /* Begin PBXFileReference section */
 		D63B98892333B574003D38A5 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
+		D63B988E233607A6003D38A5 /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch.c; path = ../../libHDiffPatch/HPatch/patch.c; sourceTree = "<group>"; };
 		D65892F82331D169003BB2F4 /* sync_client */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sync_client; sourceTree = BUILT_PRODUCTS_DIR; };
 		D658933A23327613003BB2F4 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
 		D658933C23327642003BB2F4 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
@@ -96,6 +98,7 @@
 		D65893142331D73E003BB2F4 /* HDiffPatch */ = {
 			isa = PBXGroup;
 			children = (
+				D63B988E233607A6003D38A5 /* patch.c */,
 				D658933C23327642003BB2F4 /* adler_roll.c */,
 				D658933E23327643003BB2F4 /* adler_roll.h */,
 				D658933D23327643003BB2F4 /* bloom_filter.h */,
@@ -173,6 +176,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D63B988F233607A7003D38A5 /* patch.c in Sources */,
 				D658933B23327613003BB2F4 /* file_for_patch.c in Sources */,
 				D63B988A2333B574003D38A5 /* md5.c in Sources */,
 				D658934023327643003BB2F4 /* adler_roll.c in Sources */,

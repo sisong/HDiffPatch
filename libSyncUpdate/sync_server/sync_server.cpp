@@ -13,18 +13,19 @@
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
 static const uint32_t kMinMatchBlockSize=32;
+static const uint32_t kInsureStrongChecksumBlockSize=128;
 
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
 
-static void writeData(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
-                      const TByte* buf,size_t byteSize){
+static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
+                       const TByte* buf,size_t byteSize){
     check(out_stream->write(out_stream,outPos,buf,buf+byteSize));
     outPos+=byteSize;
 }
-inline static void writeData(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
-                             const std::vector<TByte> buf){
-    writeData(out_stream,outPos,buf.data(),buf.size());
+inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
+                              const std::vector<TByte> buf){
+    writeStream(out_stream,outPos,buf.data(),buf.size());
 }
 
 inline static void writeData(std::vector<TByte>& out_buf,const TByte* buf,size_t byteSize){
@@ -95,6 +96,7 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
         writeString(buf,self->strongChecksumType);
         packUInt(buf,self->kStrongChecksumByteSize);
         packUInt(buf,self->kMatchBlockSize);
+        packUInt(buf,self->kInsureStrongChecksumBlockSize);
         packUInt(buf,self->samePairCount);
         packUInt(buf,self->newDataSize);
         packUInt(buf,self->newSyncDataSize);
@@ -170,9 +172,9 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
     }
     //out
     hpatch_StreamPos_t outPos=0;
-    writeData(out_stream,outPos,head);
-    writeData(out_stream,outPos,self->info_strongChecksum,self->kStrongChecksumByteSize);
-    writeData(out_stream,outPos,buf);
+    writeStream(out_stream,outPos,head);
+    writeStream(out_stream,outPos,self->info_strongChecksum,self->kStrongChecksumByteSize);
+    writeStream(out_stream,outPos,buf);
     return true;
 }
 
@@ -249,10 +251,11 @@ private:
 static void create_sync_data(const hpatch_TStreamInput*  newData,
                              CNewDataSyncInfo&           out_newSyncInfo,
                              const hpatch_TStreamOutput* out_newSyncData,
-                             hpatch_TChecksum*      strongChecksumPlugin,
                              const hdiff_TCompress* compressPlugin,
+                             hpatch_TChecksum*      strongChecksumPlugin,
                              uint32_t kMatchBlockSize){
     assert(kMatchBlockSize>=kMinMatchBlockSize);
+    if (compressPlugin) check(out_newSyncData!=0);
     
     const uint32_t kBlockCount=out_newSyncInfo.blockCount();
     const uint32_t kInsureBlockCount=out_newSyncInfo.insureBlockCount();
@@ -325,10 +328,12 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
         }
         //save data
         if (compressedSize>0){
-            writeData(out_newSyncData,curOutPos, cmbuf.data(),compressedSize);
+            if (out_newSyncData)
+                writeStream(out_newSyncData,curOutPos, cmbuf.data(),compressedSize);
             out_newSyncInfo.newSyncDataSize+=compressedSize;
         }else{
-            writeData(out_newSyncData,curOutPos, buf.data(),dataLen);
+            if (out_newSyncData)
+                writeStream(out_newSyncData,curOutPos, buf.data(),dataLen);
             out_newSyncInfo.newSyncDataSize+=dataLen;
         }
     }
@@ -346,13 +351,13 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_newSyncInfo,
                       const hpatch_TStreamOutput* out_newSyncData,
-                      hpatch_TChecksum*      strongChecksumPlugin,
                       const hdiff_TCompress* compressPlugin,
+                      hpatch_TChecksum*      strongChecksumPlugin,
                       uint32_t kMatchBlockSize){
     CNewDataSyncInfo newSyncInfo(strongChecksumPlugin,compressPlugin,
                                  newData->streamSize,kMatchBlockSize);
     create_sync_data(newData,newSyncInfo,out_newSyncData,
-                     strongChecksumPlugin,compressPlugin,kMatchBlockSize);
+                     compressPlugin,strongChecksumPlugin,kMatchBlockSize);
     check(TNewDataSyncInfo_saveTo(&newSyncInfo,out_newSyncInfo,
                                   strongChecksumPlugin,compressPlugin));
     //DEBUG
@@ -361,7 +366,7 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
         hpatch_TFileStreamInput_init(&oldData);
         check(hpatch_TFileStreamInput_open(&oldData,
                                            "/Users/Shared/test/testApk/3DHJD_4.46.tar"));
-        check(0==sync_patch_by_info(&oldData.base,&newSyncInfo,0,0));
+        check(0==sync_patch(0,&newSyncInfo,&oldData.base,0));
         hpatch_TFileStreamInput_close(&oldData);
     }
 }
@@ -369,8 +374,8 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
 void create_sync_data(const char* newDataPath,
                       const char* out_newSyncInfoPath,
                       const char* out_newSyncDataPath,
-                      hpatch_TChecksum*      strongChecksumPlugin,
                       const hdiff_TCompress* compressPlugin,
+                      hpatch_TChecksum*      strongChecksumPlugin,
                       uint32_t kMatchBlockSize){
     hpatch_TFileStreamInput  newData;
     hpatch_TFileStreamOutput out_newSyncInfo;
@@ -384,8 +389,22 @@ void create_sync_data(const char* newDataPath,
     check(hpatch_TFileStreamOutput_open(&out_newSyncData,out_newSyncDataPath,(hpatch_StreamPos_t)(-1)));
     
     create_sync_data(&newData.base,&out_newSyncInfo.base,&out_newSyncData.base,
-                     strongChecksumPlugin,compressPlugin,kMatchBlockSize);
+                     compressPlugin,strongChecksumPlugin,kMatchBlockSize);
     check(hpatch_TFileStreamOutput_close(&out_newSyncData));
     check(hpatch_TFileStreamOutput_close(&out_newSyncInfo));
     check(hpatch_TFileStreamInput_close(&newData));
+}
+
+void create_sync_data(const char* newDataPath,
+                      const char* out_newSyncInfoPath,
+                      hpatch_TChecksum*      strongChecksumPlugin,
+                      uint32_t kMatchBlockSize){
+    create_sync_data(newDataPath,out_newSyncInfoPath,0,0,strongChecksumPlugin,kMatchBlockSize);
+}
+
+void create_sync_data(const hpatch_TStreamInput*  newData,
+                      const hpatch_TStreamOutput* out_newSyncInfo, //newSyncData same as newData
+                      hpatch_TChecksum*      strongChecksumPlugin,
+                      uint32_t kMatchBlockSize){
+    create_sync_data(newData,out_newSyncInfo,0,0,strongChecksumPlugin,kMatchBlockSize);
 }

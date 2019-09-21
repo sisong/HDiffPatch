@@ -24,6 +24,7 @@ typedef enum TSyncClient_resultType{
     kSyncClient_decompressError,
     kSyncClient_readOldDataError,
     kSyncClient_writeNewDataError,
+    kSyncClient_strongChecksumOpenError,
     
 } TNewDataSyncInfo_resultType;
 
@@ -32,19 +33,19 @@ int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInf
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
 
 typedef struct ISyncPatchListener{
-    void      (*needSyncMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
-    void (*addedNeedSyncMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
-    bool     (*readSyncData)(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,
-                             hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
+    void   (*needSyncMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
+    void (*needReSyncMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
+    bool  (*readSyncData)(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,
+                          hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
 } ISyncPatchListener;
 
-int sync_patch(const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newSyncInfoStream,
-               const hpatch_TStreamOutput* out_newStream,ISyncPatchListener* listener);
+int sync_patch_by_file(const char* out_newPath,
+                       const char* newSyncInfoPath,
+                       const char* oldPath, ISyncPatchListener* listener);
 
-int sync_patch_by_info(const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
-                       const hpatch_TStreamOutput* out_newStream,ISyncPatchListener* listener);
-int sync_patch_by_file(const char* oldPath,const char* newSyncInfoPath,
-                       const char* out_newPath,ISyncPatchListener* listener);
+int sync_patch(const hpatch_TStreamOutput* out_newStream,
+               const TNewDataSyncInfo*     newSyncInfo,
+               const hpatch_TStreamInput*  oldStream, ISyncPatchListener* listener);
 
 #ifdef __cplusplus
 }
