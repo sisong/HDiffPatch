@@ -161,7 +161,7 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
         strongChecksumPlugin->begin(checksumInfo);
         strongChecksumPlugin->append(checksumInfo,head.data(),head.data()+head.size());
         strongChecksumPlugin->append(checksumInfo,buf.data(),buf.data()+buf.size());
-        std::vector<TByte> checksumBuf(strongChecksumPlugin->checksumByteSize());
+        std::vector<TByte> checksumBuf(self->kStrongChecksumByteSize);
         strongChecksumPlugin->end(checksumInfo,checksumBuf.data(),checksumBuf.data()+checksumBuf.size());
         toPartChecksum(self->info_partChecksum,checksumBuf.data(),checksumBuf.size());
     }
@@ -246,7 +246,7 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
     std::vector<TByte> cmbuf(compressPlugin?compressPlugin->maxCompressedSize(kMatchBlockSize):0);
     const size_t checksumByteSize=strongChecksumPlugin->checksumByteSize();
     check((checksumByteSize==(uint32_t)checksumByteSize)
-          &&(checksumByteSize>kPartStrongChecksumByteSize)
+          &&(checksumByteSize>=kPartStrongChecksumByteSize)
           &&(checksumByteSize%kPartStrongChecksumByteSize==0));
     std::vector<TByte> checksumBlockData_buf(checksumByteSize);
     hpatch_checksumHandle checksumBlockData=strongChecksumPlugin->open(strongChecksumPlugin);

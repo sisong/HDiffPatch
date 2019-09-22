@@ -15,6 +15,7 @@
 		D65893472332765B003BB2F4 /* sync_client.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D65893452332765B003BB2F4 /* sync_client.cpp */; };
 		D6589349233276AD003BB2F4 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D6589348233276AD003BB2F4 /* liblzma.a */; };
 		D658934B233276B6003BB2F4 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D658934A233276B6003BB2F4 /* libz.tbd */; };
+		D699A29523372152003CB3DC /* match_in_old.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A29423372152003CB3DC /* match_in_old.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -44,6 +45,8 @@
 		D65893452332765B003BB2F4 /* sync_client.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_client.cpp; sourceTree = "<group>"; };
 		D6589348233276AD003BB2F4 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D658934A233276B6003BB2F4 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		D699A29323372152003CB3DC /* match_in_old.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = match_in_old.h; sourceTree = "<group>"; };
+		D699A29423372152003CB3DC /* match_in_old.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_in_old.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,6 +118,8 @@
 				D65893442332765B003BB2F4 /* sync_client.h */,
 				D65893452332765B003BB2F4 /* sync_client.cpp */,
 				D65893432332765B003BB2F4 /* sync_client_main.cpp */,
+				D699A29423372152003CB3DC /* match_in_old.cpp */,
+				D699A29323372152003CB3DC /* match_in_old.h */,
 			);
 			name = sync_client;
 			path = ../../libSyncUpdate/sync_client;
@@ -182,6 +187,7 @@
 				D658934023327643003BB2F4 /* adler_roll.c in Sources */,
 				D65893462332765B003BB2F4 /* sync_client_main.cpp in Sources */,
 				D65893472332765B003BB2F4 /* sync_client.cpp in Sources */,
+				D699A29523372152003CB3DC /* match_in_old.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

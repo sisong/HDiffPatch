@@ -16,6 +16,7 @@
 		D658932C23327412003BB2F4 /* sync_server_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D658932423327412003BB2F4 /* sync_server_main.cpp */; };
 		D65893372332757F003BB2F4 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D65893362332757F003BB2F4 /* libz.tbd */; };
 		D658933923327585003BB2F4 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D658933823327585003BB2F4 /* liblzma.a */; };
+		D699A298233723FB003CB3DC /* match_in_old.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A297233723FB003CB3DC /* match_in_old.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -44,6 +45,8 @@
 		D65893362332757F003BB2F4 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		D658933823327585003BB2F4 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D65C6A512330A3C700A3C89C /* sync_server */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sync_server; sourceTree = BUILT_PRODUCTS_DIR; };
+		D699A296233723FB003CB3DC /* match_in_old.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = match_in_old.h; sourceTree = "<group>"; };
+		D699A297233723FB003CB3DC /* match_in_old.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_in_old.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +96,8 @@
 				D63B988B2333B5D0003D38A5 /* sync_client.cpp */,
 				D63B988C2333B5D0003D38A5 /* sync_client.h */,
 				D658933023327439003BB2F4 /* sync_client_type.h */,
+				D699A297233723FB003CB3DC /* match_in_old.cpp */,
+				D699A296233723FB003CB3DC /* match_in_old.h */,
 			);
 			name = sync_client;
 			path = ../../libSyncUpdate/sync_client;
@@ -186,6 +191,7 @@
 			files = (
 				D658932C23327412003BB2F4 /* sync_server_main.cpp in Sources */,
 				D6589321233273BF003BB2F4 /* patch.c in Sources */,
+				D699A298233723FB003CB3DC /* match_in_old.cpp in Sources */,
 				D63B988D2333B5D1003D38A5 /* sync_client.cpp in Sources */,
 				D658931B23327334003BB2F4 /* md5.c in Sources */,
 				D658932B23327412003BB2F4 /* sync_server.cpp in Sources */,
