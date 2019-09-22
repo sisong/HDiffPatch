@@ -17,21 +17,24 @@ extern "C" {
     
     #define kPartStrongChecksumByteSize       8
     
+    typedef uint64_t roll_uint_t;
+    #define roll_hash_start  fast_adler64_start
+    #define roll_hash_roll   fast_adler64_roll
+    
+    
 typedef struct TNewDataSyncInfo{
     const char*             compressType;
     const char*             strongChecksumType;
     uint32_t                kStrongChecksumByteSize;
     uint32_t                kMatchBlockSize;
-    uint32_t                kInsureStrongChecksumBlockSize;
     uint32_t                samePairCount;
     hpatch_StreamPos_t      newDataSize;
     hpatch_StreamPos_t      newSyncDataSize;
-    unsigned char*          info_strongChecksum; //this info data's strongChecksum
+    unsigned char*          info_partChecksum; //this info data's strongChecksum
     TSameNewDataPair*       samePairList;
     uint32_t*               compressedSizes;
-    uint32_t*               rollHashs;
-    unsigned char*          partStrongChecksums;
-    unsigned char*          newDataInsureStrongChecksums;
+    roll_uint_t*            rollHashs;
+    unsigned char*          partChecksums;
     
     void*                   _import;
 } TNewDataSyncInfo;
@@ -39,34 +42,32 @@ typedef struct TNewDataSyncInfo{
 hpatch_inline static void
 TNewDataSyncInfo_init(TNewDataSyncInfo* self) { memset(self,0,sizeof(*self)); }
 
-hpatch_inline static hpatch_StreamPos_t
-getBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
-        return (newDataSize+(kMatchBlockSize-1))/kMatchBlockSize; }
+hpatch_inline static
+hpatch_StreamPos_t getBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
+                                    return (newDataSize+(kMatchBlockSize-1))/kMatchBlockSize; }
 
-hpatch_inline static hpatch_StreamPos_t
-TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self) {
-        return getBlockCount(self->newDataSize,self->kMatchBlockSize); }
-hpatch_inline static hpatch_StreamPos_t
-TNewDataSyncInfo_insureBlockCount(const TNewDataSyncInfo* self) {
-        return getBlockCount(TNewDataSyncInfo_blockCount(self),self->kInsureStrongChecksumBlockSize); }
-hpatch_inline static uint32_t
-TNewDataSyncInfo_newDataSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
-    if (blockIndex+1<TNewDataSyncInfo_insureBlockCount(self))
+hpatch_inline static
+hpatch_StreamPos_t TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self) {
+                                    return getBlockCount(self->newDataSize,self->kMatchBlockSize); }
+    
+hpatch_inline static
+uint32_t TNewDataSyncInfo_newDataBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
+    if (blockIndex+1<=TNewDataSyncInfo_blockCount(self))
         return self->kMatchBlockSize;
     else
         return (uint32_t)(self->newSyncDataSize%self->kMatchBlockSize);
 }
-hpatch_inline static uint32_t
-TNewDataSyncInfo_syncDataSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
-    if (self->compressedSizes) return self->compressedSizes[blockIndex];
-    return TNewDataSyncInfo_newDataSize(self,blockIndex);
+hpatch_inline static
+uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
+        if (self->compressedSizes) return self->compressedSizes[blockIndex];
+        else return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);
 }
 
-    
-hpatch_inline static void
-toPartChecksum(unsigned char* out_partChecksum,
-               const unsigned char* checksum,size_t checksumByteSize){
-    assert((checksumByteSize>kPartStrongChecksumByteSize)
+
+hpatch_inline static
+void toPartChecksum(unsigned char* out_partChecksum,
+                    const unsigned char* checksum,size_t checksumByteSize){
+    assert((checksumByteSize>=kPartStrongChecksumByteSize)
            &&(checksumByteSize%kPartStrongChecksumByteSize==0));
     assert(sizeof(hpatch_uint64_t)==kPartStrongChecksumByteSize);
     const unsigned char* checksum_end=checksum+checksumByteSize;

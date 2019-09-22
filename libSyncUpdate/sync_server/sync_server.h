@@ -9,7 +9,7 @@
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 
-static const uint32_t kMatchBlockSize_default = (1<<10);
+static const uint32_t kMatchBlockSize_default = (1<<10)*2;
 
 //create sync data
 //  all clients need download newSyncInfo, and dowload part of newData which is not found in client's oldData;

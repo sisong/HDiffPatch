@@ -13,7 +13,6 @@
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
 static const uint32_t kMinMatchBlockSize=32;
-static const uint32_t kInsureStrongChecksumBlockSize=128;
 
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
@@ -96,7 +95,6 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
         writeString(buf,self->strongChecksumType);
         packUInt(buf,self->kStrongChecksumByteSize);
         packUInt(buf,self->kMatchBlockSize);
-        packUInt(buf,self->kInsureStrongChecksumBlockSize);
         packUInt(buf,self->samePairCount);
         packUInt(buf,self->newDataSize);
         packUInt(buf,self->newSyncDataSize);
@@ -155,25 +153,22 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
         for (size_t i=0; i<kBlockCount; ++i){
             if ((curPair<self->samePairCount)
                 &&(i==self->samePairList[curPair].curIndex)){ ++curPair; continue; }
-            writeData(buf,self->partStrongChecksums+i*(size_t)kPartStrongChecksumByteSize,
+            writeData(buf,self->partChecksums+i*(size_t)kPartStrongChecksumByteSize,
                       kPartStrongChecksumByteSize);
         }
-    }
-    {//newDataInsureStrongChecksums
-        const uint32_t kInsureBlockCount=(uint32_t)TNewDataSyncInfo_insureBlockCount(self);
-        writeData(buf,self->newDataInsureStrongChecksums,kInsureBlockCount*(size_t)self->kStrongChecksumByteSize);
     }
     {//checksum
         strongChecksumPlugin->begin(checksumInfo);
         strongChecksumPlugin->append(checksumInfo,head.data(),head.data()+head.size());
         strongChecksumPlugin->append(checksumInfo,buf.data(),buf.data()+buf.size());
-        strongChecksumPlugin->end(checksumInfo,self->info_strongChecksum,
-                                  self->info_strongChecksum+self->kStrongChecksumByteSize);
+        std::vector<TByte> checksumBuf(strongChecksumPlugin->checksumByteSize());
+        strongChecksumPlugin->end(checksumInfo,checksumBuf.data(),checksumBuf.data()+checksumBuf.size());
+        toPartChecksum(self->info_partChecksum,checksumBuf.data(),checksumBuf.size());
     }
     //out
     hpatch_StreamPos_t outPos=0;
     writeStream(out_stream,outPos,head);
-    writeStream(out_stream,outPos,self->info_strongChecksum,self->kStrongChecksumByteSize);
+    writeStream(out_stream,outPos,self->info_partChecksum,kPartStrongChecksumByteSize);
     writeStream(out_stream,outPos,buf);
     return true;
 }
@@ -182,11 +177,7 @@ class CNewDataSyncInfo :public TNewDataSyncInfo{
 public:
     inline uint32_t blockCount()const{
         hpatch_StreamPos_t result=TNewDataSyncInfo_blockCount(this);
-        check(result==(uint32_t)result);
-        return (uint32_t)result; }
-    inline uint32_t insureBlockCount()const{
-        hpatch_StreamPos_t result=TNewDataSyncInfo_insureBlockCount(this);
-        check(result==(uint32_t)result);
+        check((result*kPartStrongChecksumByteSize>>32)==0);
         return (uint32_t)result; }
     inline CNewDataSyncInfo(hpatch_TChecksum*      strongChecksumPlugin,
                             const hdiff_TCompress* compressPlugin,
@@ -197,8 +188,8 @@ public:
         this->_strongChecksumType.assign(strongChecksumPlugin->checksumType());
         this->strongChecksumType=this->_strongChecksumType.c_str();
         this->kStrongChecksumByteSize=(uint32_t)strongChecksumPlugin->checksumByteSize();
-        this->newDataSize=newDataSize;
         this->kMatchBlockSize=kMatchBlockSize;
+        this->newDataSize=newDataSize;
         
         const uint32_t kBlockCount=this->blockCount();
         this->samePairCount=0;
@@ -207,12 +198,10 @@ public:
         this->_rollHashs.resize(kBlockCount);
         this->rollHashs=this->_rollHashs.data();
         
-        this->_info_strongChecksum.resize(this->kStrongChecksumByteSize,0);
-        this->info_strongChecksum=this->_info_strongChecksum.data();
+        this->_info_partChecksum.resize(kPartStrongChecksumByteSize,0);
+        this->info_partChecksum=this->_info_partChecksum.data();
         this->_partStrongChecksums.resize(kBlockCount*(size_t)kPartStrongChecksumByteSize);
-        this->partStrongChecksums=this->_partStrongChecksums.data();
-        this->_newDataInsureStrongChecksums.resize(this->insureBlockCount()*(size_t)this->kStrongChecksumByteSize);
-        this->newDataInsureStrongChecksums=this->_newDataInsureStrongChecksums.data();
+        this->partChecksums=this->_partStrongChecksums.data();
         if (compressPlugin){
             this->_compressedSizes.resize(kBlockCount);
             this->compressedSizes=this->_compressedSizes.data();
@@ -220,15 +209,10 @@ public:
     }
     ~CNewDataSyncInfo(){}
     
-    void setPartStrongChecksums(size_t index,const TByte* checksum,size_t checksumByteSize){
+    void setStrongChecksums(size_t index,const TByte* checksum,size_t checksumByteSize){
         assert(checksumByteSize==this->kStrongChecksumByteSize);
-        toPartChecksum(this->partStrongChecksums+index*(size_t)kPartStrongChecksumByteSize,
+        toPartChecksum(this->partChecksums+index*(size_t)kPartStrongChecksumByteSize,
                        checksum,checksumByteSize);
-    }
-    void setNewDataInsureStrongChecksums(size_t insureIndex,const TByte* checksum,size_t checksumByteSize){
-        assert(checksumByteSize==this->kStrongChecksumByteSize);
-        memcpy(this->newDataInsureStrongChecksums+insureIndex*(size_t)checksumByteSize,
-               checksum,checksumByteSize);
     }
     void insetSamePair(uint32_t curIndex,uint32_t sameIndex){
         TSameNewDataPair& samePair=this->samePairList[this->samePairCount];
@@ -237,14 +221,14 @@ public:
         ++this->samePairCount;
     }
 private:
-    std::string             _compressType;
-    std::string             _strongChecksumType;
-    std::vector<TByte>      _info_strongChecksum;
+    std::string                 _compressType;
+    std::string                 _strongChecksumType;
+    std::vector<TByte>          _info_partChecksum;
     std::vector<TSameNewDataPair> _samePairList;
-    std::vector<uint32_t>   _compressedSizes;
-    std::vector<uint32_t>   _rollHashs;
-    std::vector<TByte>      _partStrongChecksums;
-    std::vector<TByte>      _newDataInsureStrongChecksums;
+    std::vector<uint32_t>       _compressedSizes;
+    std::vector<roll_uint_t>    _rollHashs;
+    std::vector<TByte>          _partStrongChecksums;
+    std::vector<TByte>          _newDataInsureStrongChecksums;
 };
 
 
@@ -258,7 +242,6 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
     if (compressPlugin) check(out_newSyncData!=0);
     
     const uint32_t kBlockCount=out_newSyncInfo.blockCount();
-    const uint32_t kInsureBlockCount=out_newSyncInfo.insureBlockCount();
     std::vector<TByte> buf(kMatchBlockSize);
     std::vector<TByte> cmbuf(compressPlugin?compressPlugin->maxCompressedSize(kMatchBlockSize):0);
     const size_t checksumByteSize=strongChecksumPlugin->checksumByteSize();
@@ -277,7 +260,6 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
     std::map<std::vector<TByte>,uint32_t>  cs_map;
     hpatch_StreamPos_t curReadPos=0;
     hpatch_StreamPos_t curOutPos=0;
-    uint32_t curInsureBlockCount=0;
     strongChecksumPlugin->begin(checksumNewData);
     for (uint32_t i=0; i<kBlockCount; ++i,curReadPos+=kMatchBlockSize) {
         //read data
@@ -285,24 +267,13 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
         if (i==kBlockCount-1) dataLen=newData->streamSize-curReadPos;
         check(newData->read(newData,curReadPos,buf.data(),buf.data()+dataLen));
         //rool hash
-        out_newSyncInfo.rollHashs[i]=fast_adler32_start(buf.data(),dataLen);
+        out_newSyncInfo.rollHashs[i]=roll_hash_start(buf.data(),dataLen);
         //strong hash
         strongChecksumPlugin->begin(checksumBlockData);
         strongChecksumPlugin->append(checksumBlockData,buf.data(),buf.data()+dataLen);
         strongChecksumPlugin->end(checksumBlockData,checksumBlockData_buf.data(),
                                   checksumBlockData_buf.data()+checksumByteSize);
-        out_newSyncInfo.setPartStrongChecksums(i,checksumBlockData_buf.data(),checksumByteSize);
-        //insureStrongChecksum
-        strongChecksumPlugin->append(checksumNewData,buf.data(),buf.data()+dataLen);
-        if ((i+1)%kInsureStrongChecksumBlockSize==0){
-            strongChecksumPlugin->end(checksumNewData,checksumNewData_buf.data(),
-                                      checksumNewData_buf.data()+checksumByteSize);
-            out_newSyncInfo.setNewDataInsureStrongChecksums(curInsureBlockCount,
-                                                            checksumNewData_buf.data(),checksumByteSize);
-            ++curInsureBlockCount;
-            if (curInsureBlockCount<kInsureBlockCount)
-                strongChecksumPlugin->begin(checksumNewData);
-        }
+        out_newSyncInfo.setStrongChecksums(i,checksumBlockData_buf.data(),checksumByteSize);
         {//same newData
             const std::vector<TByte>& key=checksumBlockData_buf;
             std::map<std::vector<TByte>,uint32_t>::const_iterator it=cs_map.find(key);
@@ -337,14 +308,6 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
             out_newSyncInfo.newSyncDataSize+=dataLen;
         }
     }
-    if (curInsureBlockCount<kInsureBlockCount){
-        strongChecksumPlugin->end(checksumNewData,checksumNewData_buf.data(),
-                                  checksumNewData_buf.data()+checksumByteSize);
-        out_newSyncInfo.setNewDataInsureStrongChecksums(curInsureBlockCount,
-                                                        checksumNewData_buf.data(),checksumByteSize);
-        ++curInsureBlockCount;
-    }
-    assert(curInsureBlockCount==kInsureBlockCount);
 }
 
 #include "../sync_client/sync_client.h"

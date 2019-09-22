@@ -25,6 +25,7 @@ typedef enum TSyncClient_resultType{
     kSyncClient_readOldDataError,
     kSyncClient_writeNewDataError,
     kSyncClient_strongChecksumOpenError,
+    kSyncClient_checksumSyncDataError,
     
 } TNewDataSyncInfo_resultType;
 
@@ -33,8 +34,8 @@ int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInf
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
 
 typedef struct ISyncPatchListener{
-    void   (*needSyncMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
-    void (*needReSyncMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
+    void   (*needSyncMsg)(ISyncPatchListener* listener,uint32_t needSyncCount,  // needSyncMsg can nil
+                          hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
     bool  (*readSyncData)(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,
                           hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
 } ISyncPatchListener;
