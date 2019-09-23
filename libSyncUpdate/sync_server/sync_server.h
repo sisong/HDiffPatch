@@ -17,6 +17,7 @@ static const uint32_t kMatchBlockSize_default = (1<<10)*4;
 //  newSyncInfo will be loaded into memory when client sync_patch;
 //  newSyncInfo's size becomes smaller when kMatchBlockSize increases,
 //    but the part of newData's size that need download becomes larger;
+//  note: you can compress part newData when downloading data by yourself;
 void create_sync_data(const char* newDataPath,
                       const char* out_newSyncInfoPath,
                       hpatch_TChecksum*      strongChecksumPlugin,
@@ -28,7 +29,7 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
                       uint32_t kMatchBlockSize=kMatchBlockSize_default);
 
 // out_newSyncData: out compressed newData by compressPlugin
-//  client download part of newData from out_newSyncData
+//   client download compressed part of newData from out_newSyncData;
 void create_sync_data(const char* newDataPath,
                       const char* out_newSyncInfoPath,
                       const char* out_newSyncDataPath,

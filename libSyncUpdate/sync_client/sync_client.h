@@ -29,11 +29,12 @@ typedef enum TSyncClient_resultType{
     
 } TNewDataSyncInfo_resultType;
 
-int  TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo);
 int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoPath);
+int  TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo);
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
 
 typedef struct ISyncPatchListener{
+    void*         import;
     void   (*needSyncMsg)(ISyncPatchListener* listener,uint32_t needSyncCount,  // needSyncMsg can nil
                           hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
     bool  (*readSyncData)(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,

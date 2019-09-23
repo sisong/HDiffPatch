@@ -30,8 +30,8 @@ inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_Str
 inline static void writeData(std::vector<TByte>& out_buf,const TByte* buf,size_t byteSize){
     out_buf.insert(out_buf.end(),buf,buf+byteSize);
 }
-inline static void writeString(std::vector<TByte>& out_buf,const char* str){
-    writeData(out_buf,(const TByte*)str,strlen(str)+1); //with '\0'
+inline static void writeCStr(std::vector<TByte>& out_buf,const char* str){
+    writeData(out_buf,(const TByte*)str,strlen(str));
 }
 
 static void writeUInt(std::vector<TByte>& out_buf,
@@ -80,8 +80,11 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
                                     const hpatch_TStreamOutput* out_stream,
                                     hpatch_TChecksum*      strongChecksumPlugin,
                                     const hdiff_TCompress* compressPlugin){
-    const char* kSyncUpdateTag = "SyncUpdate19";
-    check(0==strcmp(compressPlugin?compressPlugin->compressType():"",self->compressType));
+    const char* kSyncUpdateTypeVersion = "SyncUpdate19";
+    if (compressPlugin){
+        check(0==strcmp(compressPlugin->compressType(),self->compressType));
+    }else{
+        check(self->compressType==0); }
     check(0==strcmp(strongChecksumPlugin->checksumType(),self->strongChecksumType));
     hpatch_checksumHandle checksumInfo=strongChecksumPlugin->open(strongChecksumPlugin);
     check(checksumInfo!=0);
@@ -90,9 +93,14 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
     std::vector<TByte> head;
     {//head
         std::vector<TByte>& buf=head;
-        writeString(buf,kSyncUpdateTag);
-        writeString(buf,self->compressType);
-        writeString(buf,self->strongChecksumType);
+        writeCStr(buf,kSyncUpdateTypeVersion);
+        buf.push_back('&');
+        if (self->compressType)
+            writeCStr(buf,self->compressType);
+        buf.push_back('&');
+        writeCStr(buf,self->strongChecksumType);
+        buf.push_back('\0');//c string end tag
+        
         packUInt(buf,self->kStrongChecksumByteSize);
         packUInt(buf,self->kMatchBlockSize);
         packUInt(buf,self->samePairCount);
@@ -189,8 +197,10 @@ public:
                             const hdiff_TCompress* compressPlugin,
                             hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
         TNewDataSyncInfo_init(this);
-        this->_compressType.assign(compressPlugin?compressPlugin->compressType():"");
-        this->compressType=this->_compressType.c_str();
+        if (compressPlugin){
+            this->_compressType.assign(compressPlugin->compressType());
+            this->compressType=this->_compressType.c_str();
+        }
         this->_strongChecksumType.assign(strongChecksumPlugin->checksumType());
         this->strongChecksumType=this->_strongChecksumType.c_str();
         this->kStrongChecksumByteSize=(uint32_t)strongChecksumPlugin->checksumByteSize();
@@ -319,7 +329,6 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
     }
 }
 
-#include "../sync_client/sync_client.h"
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_newSyncInfo,
                       const hpatch_TStreamOutput* out_newSyncData,
@@ -332,15 +341,6 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
                      compressPlugin,strongChecksumPlugin,kMatchBlockSize);
     check(TNewDataSyncInfo_saveTo(&newSyncInfo,out_newSyncInfo,
                                   strongChecksumPlugin,compressPlugin));
-    //DEBUG
-    {
-        hpatch_TFileStreamInput  oldData;
-        hpatch_TFileStreamInput_init(&oldData);
-        check(hpatch_TFileStreamInput_open(&oldData,
-                                           "/Users/Shared/test/testApk/3DHJD_4.46.tar"));
-        check(0==sync_patch(0,&newSyncInfo,&oldData.base,0));
-        hpatch_TFileStreamInput_close(&oldData);
-    }
 }
 
 void create_sync_data(const char* newDataPath,

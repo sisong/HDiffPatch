@@ -42,44 +42,72 @@ clear:
     return result;
 }
 
-int sync_patch(const hpatch_TStreamOutput* out_newStream,
-               const TNewDataSyncInfo*     newSyncInfo,
-               const hpatch_TStreamInput*  oldStream, ISyncPatchListener* listener){
-    //todo: select checksum\decompressPlugin
-    //assert(listener!=0);
-
-    const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
-    const uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
-    hpatch_TChecksum* strongChecksumPlugin=&md5ChecksumPlugin;
-    hpatch_checksumHandle checksumSync=0;
-    hpatch_TDecompress* decompressPlugin=0;
-    TByte* dataBuf=0;
-    uint32_t needSyncCount=0;
-    hpatch_StreamPos_t needSyncSize=0;
+static int writeToNew(const hpatch_TStreamOutput* out_newStream,const TNewDataSyncInfo* newSyncInfo,
+                      const hpatch_StreamPos_t* newDataPoss,const hpatch_TStreamInput* oldStream,
+                      hpatch_TDecompress* decompressPlugin,hpatch_TChecksum* strongChecksumPlugin,
+                      ISyncPatchListener *listener) {
     int result=kSyncClient_ok;
     int _inClear=0;
-    //match in oldData
-    hpatch_StreamPos_t* newDataPoss=(hpatch_StreamPos_t*)malloc(kBlockCount*sizeof(hpatch_StreamPos_t));
-    check(newDataPoss!=0,kSyncClient_memError);
+    const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
+    const uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
+    TByte*             dataBuf=0;
+    TByte*             checksumSync_buf=0;
+    hpatch_checksumHandle checksumSync=0;
+    hpatch_StreamPos_t posInNewSyncData=0;
+    hpatch_StreamPos_t outNewDataPos=0;
+    
+    size_t _memSize=kMatchBlockSize*(decompressPlugin?2:1)+newSyncInfo->kStrongChecksumByteSize;
+    dataBuf=(TByte*)malloc(_memSize);
+    check(dataBuf!=0,kSyncClient_memError);
+    checksumSync_buf=dataBuf+_memSize-newSyncInfo->kStrongChecksumByteSize;
     checksumSync=strongChecksumPlugin->open(strongChecksumPlugin);
     check(checksumSync!=0,kSyncClient_strongChecksumOpenError);
-    try{
-        matchNewDataInOld(newDataPoss,&needSyncCount,&needSyncSize,
-                          newSyncInfo,oldStream,strongChecksumPlugin);
-        printf("syncCount: %d (/%d=%.3f)  syncSize: %" PRIu64 "\n",
-               needSyncCount,kBlockCount,(double)needSyncCount/kBlockCount,needSyncSize);
-        hpatch_StreamPos_t downloadSize=newSyncInfo->newSyncInfoSize+needSyncSize;
-        printf("downloadSize: %" PRIu64 "+%" PRIu64 "= %" PRIu64 " (/%" PRIu64 "=%.3f)",
-               newSyncInfo->newSyncInfoSize,needSyncSize,downloadSize,
-               newSyncInfo->newSyncDataSize,(double)downloadSize/newSyncInfo->newSyncDataSize);
-        printf(" (/%" PRIu64 "=%.3f)\n",
-               newSyncInfo->newDataSize,(double)downloadSize/newSyncInfo->newDataSize);
-    }catch(...){
-        result=kSyncClient_matchNewDataInOldError;
+    for (uint32_t i=0; i<kBlockCount; ++i) {
+        uint32_t syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+        uint32_t newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
+        if (newDataPoss[i]==kBlockType_needSync){ //sync
+            TByte* buf=decompressPlugin?(dataBuf+kMatchBlockSize):dataBuf;
+            if ((out_newStream)||(listener)){
+                check(listener->readSyncData(listener,dataBuf,posInNewSyncData,syncSize),
+                      kSyncClient_readSyncDataError);
+                if (decompressPlugin){
+                    check(hpatch_deccompress_mem(decompressPlugin,buf,buf+syncSize,
+                                                 dataBuf,dataBuf+newDataSize),kSyncClient_decompressError);
+                }
+                //checksum
+                strongChecksumPlugin->begin(checksumSync);
+                strongChecksumPlugin->append(checksumSync,dataBuf,dataBuf+newDataSize);
+                strongChecksumPlugin->end(checksumSync,checksumSync_buf,
+                                          checksumSync_buf+newSyncInfo->kStrongChecksumByteSize);
+                toPartChecksum(checksumSync_buf,checksumSync_buf,newSyncInfo->kStrongChecksumByteSize);
+                check(0==memcmp(checksumSync_buf,
+                                newSyncInfo->partChecksums+i*(size_t)kPartStrongChecksumByteSize,
+                                kPartStrongChecksumByteSize),kSyncClient_checksumSyncDataError);
+            }
+        }else{//copy from old
+            check(oldStream->read(oldStream,newDataPoss[i],dataBuf,dataBuf+newDataSize),
+                  kSyncClient_readOldDataError);
+        }
+        if (out_newStream){//write
+            check(out_newStream->write(out_newStream,outNewDataPos,dataBuf,
+                                       dataBuf+newDataSize), kSyncClient_writeNewDataError);
+        }
+        outNewDataPos+=newDataSize;
+        posInNewSyncData+=syncSize;
     }
-    check(result==kSyncClient_ok,result);
-    
-    if ((listener)&&(listener->needSyncMsg)){//send msg: all need sync block
+    assert(outNewDataPos==newSyncInfo->newDataSize);
+    assert(posInNewSyncData==newSyncInfo->newSyncDataSize);
+clear:
+    _inClear=1;
+    if (checksumSync) strongChecksumPlugin->close(strongChecksumPlugin,checksumSync);
+    if (dataBuf) free(dataBuf);
+    return result;
+}
+
+static void sendSyncMsg(ISyncPatchListener* listener,hpatch_StreamPos_t* newDataPoss,
+                        const TNewDataSyncInfo* newSyncInfo,uint32_t needSyncCount) {
+    if ((listener)&&(listener->needSyncMsg)){
+        const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
         hpatch_StreamPos_t posInNewSyncData=0;
         for (uint32_t i=0; i<kBlockCount; ++i) {
             uint32_t syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
@@ -88,57 +116,55 @@ int sync_patch(const hpatch_TStreamOutput* out_newStream,
             posInNewSyncData+=syncSize;
         }
     }
-    
-    {//write newData
-        hpatch_StreamPos_t posInNewSyncData=0;
-        hpatch_StreamPos_t outNewDataPos=0;
-        TByte*             checksumSync_buf=0;
-        
-        size_t _memSize=kMatchBlockSize*(decompressPlugin?2:1)+newSyncInfo->kStrongChecksumByteSize;
-        dataBuf=(TByte*)malloc(_memSize);
-        check(dataBuf!=0,kSyncClient_memError);
-        checksumSync_buf=dataBuf+_memSize-newSyncInfo->kStrongChecksumByteSize;
-        for (uint32_t i=0; i<kBlockCount; ++i) {
-            uint32_t syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
-            uint32_t newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
-            if (newDataPoss[i]==kBlockType_needSync){ //sync
-                TByte* buf=decompressPlugin?(dataBuf+kMatchBlockSize):dataBuf;
-                if ((out_newStream)||(listener)){
-                    check(listener->readSyncData(listener,dataBuf,posInNewSyncData,syncSize),
-                          kSyncClient_readSyncDataError);
-                    if (decompressPlugin){
-                        check(hpatch_deccompress_mem(decompressPlugin,buf,buf+syncSize,
-                                                     dataBuf,dataBuf+newDataSize),kSyncClient_decompressError);
-                    }
-                    //checksum
-                    strongChecksumPlugin->begin(checksumSync);
-                    strongChecksumPlugin->append(checksumSync,dataBuf,dataBuf+newDataSize);
-                    strongChecksumPlugin->end(checksumSync,checksumSync_buf,
-                                              checksumSync_buf+newSyncInfo->kStrongChecksumByteSize);
-                    toPartChecksum(checksumSync_buf,checksumSync_buf,newSyncInfo->kStrongChecksumByteSize);
-                    check(0==memcmp(checksumSync_buf,
-                                    newSyncInfo->partChecksums+i*(size_t)kPartStrongChecksumByteSize,
-                                    kPartStrongChecksumByteSize),kSyncClient_checksumSyncDataError);
-                }
-            }else{//copy from old
-                check(oldStream->read(oldStream,newDataPoss[i],dataBuf,dataBuf+newDataSize),
-                      kSyncClient_readOldDataError);
-            }
-            if (out_newStream){//write
-                check(out_newStream->write(out_newStream,outNewDataPos,dataBuf,
-                                           dataBuf+newDataSize), kSyncClient_writeNewDataError);
-            }
-            outNewDataPos+=newDataSize;
-            posInNewSyncData+=syncSize;
-        }
-        assert(outNewDataPos==newSyncInfo->newDataSize);
-        assert(posInNewSyncData==newSyncInfo->newSyncDataSize);
-    }
+}
 
+static void printMatchResult(const TNewDataSyncInfo* newSyncInfo,
+                             uint32_t needSyncCount,hpatch_StreamPos_t needSyncSize) {
+    const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
+    printf("syncCount: %d (/%d=%.3f)  syncSize: %" PRIu64 "\n",
+           needSyncCount,kBlockCount,(double)needSyncCount/kBlockCount,needSyncSize);
+    hpatch_StreamPos_t downloadSize=newSyncInfo->newSyncInfoSize+needSyncSize;
+    printf("downloadSize: %" PRIu64 "+%" PRIu64 "= %" PRIu64 " (/%" PRIu64 "=%.3f)",
+           newSyncInfo->newSyncInfoSize,needSyncSize,downloadSize,
+           newSyncInfo->newSyncDataSize,(double)downloadSize/newSyncInfo->newSyncDataSize);
+    printf(" (/%" PRIu64 "=%.3f)\n",
+           newSyncInfo->newDataSize,(double)downloadSize/newSyncInfo->newDataSize);
+}
+
+int sync_patch(const hpatch_TStreamOutput* out_newStream,
+               const TNewDataSyncInfo*     newSyncInfo,
+               const hpatch_TStreamInput*  oldStream, ISyncPatchListener* listener){
+    //todo: select checksum\decompressPlugin
+    //assert(listener!=0);
+
+    const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
+    hpatch_TChecksum* strongChecksumPlugin=&md5ChecksumPlugin;
+    hpatch_TDecompress* decompressPlugin=0;
+    uint32_t needSyncCount=0;
+    hpatch_StreamPos_t needSyncSize=0;
+    int result=kSyncClient_ok;
+    int _inClear=0;
+    
+    //match in oldData
+    hpatch_StreamPos_t* newDataPoss=(hpatch_StreamPos_t*)malloc(kBlockCount*sizeof(hpatch_StreamPos_t));
+    check(newDataPoss!=0,kSyncClient_memError);
+    try{
+        matchNewDataInOld(newDataPoss,&needSyncCount,&needSyncSize,
+                          newSyncInfo,oldStream,strongChecksumPlugin);
+        printMatchResult(newSyncInfo,needSyncCount, needSyncSize);
+    }catch(...){
+        result=kSyncClient_matchNewDataInOldError;
+    }
+    check(result==kSyncClient_ok,result);
+    
+    //send msg: all need sync block
+    sendSyncMsg(listener,newDataPoss,newSyncInfo,needSyncCount);
+    
+    result=writeToNew(out_newStream,newSyncInfo,newDataPoss,oldStream,
+                      decompressPlugin,strongChecksumPlugin,listener);
+    check(result==kSyncClient_ok,result);
 clear:
     _inClear=1;
-    if (checksumSync) strongChecksumPlugin->close(strongChecksumPlugin,checksumSync);
-    if (dataBuf) free(dataBuf);
     if (newDataPoss) free(newDataPoss);
     return result;
 }
