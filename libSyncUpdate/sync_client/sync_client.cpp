@@ -55,6 +55,7 @@ int sync_patch(const hpatch_TStreamOutput* out_newStream,
     hpatch_TDecompress* decompressPlugin=0;
     TByte* dataBuf=0;
     uint32_t needSyncCount=0;
+    hpatch_StreamPos_t needSyncSize=0;
     int result=kSyncClient_ok;
     int _inClear=0;
     //match in oldData
@@ -63,8 +64,16 @@ int sync_patch(const hpatch_TStreamOutput* out_newStream,
     checksumSync=strongChecksumPlugin->open(strongChecksumPlugin);
     check(checksumSync!=0,kSyncClient_strongChecksumOpenError);
     try{
-        matchNewDataInOld(newDataPoss,&needSyncCount,newSyncInfo,oldStream,strongChecksumPlugin);
-        printf("needSyncCount: %d / %d =%.4f\n",needSyncCount,kBlockCount,(double)needSyncCount/kBlockCount);
+        matchNewDataInOld(newDataPoss,&needSyncCount,&needSyncSize,
+                          newSyncInfo,oldStream,strongChecksumPlugin);
+        printf("syncCount: %d (/%d=%.3f)  syncSize: %" PRIu64 "\n",
+               needSyncCount,kBlockCount,(double)needSyncCount/kBlockCount,needSyncSize);
+        hpatch_StreamPos_t downloadSize=newSyncInfo->newSyncInfoSize+needSyncSize;
+        printf("downloadSize: %" PRIu64 "+%" PRIu64 "= %" PRIu64 " (/%" PRIu64 "=%.3f)",
+               newSyncInfo->newSyncInfoSize,needSyncSize,downloadSize,
+               newSyncInfo->newSyncDataSize,(double)downloadSize/newSyncInfo->newSyncDataSize);
+        printf(" (/%" PRIu64 "=%.3f)\n",
+               newSyncInfo->newDataSize,(double)downloadSize/newSyncInfo->newDataSize);
     }catch(...){
         result=kSyncClient_matchNewDataInOldError;
     }

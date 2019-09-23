@@ -102,8 +102,8 @@ struct TOldDataCache {
 
 //cpp code used stdexcept
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
-                       const TNewDataSyncInfo* newSyncInfo,const hpatch_TStreamInput* oldStream,
-                       hpatch_TChecksum* strongChecksumPlugin){
+                       hpatch_StreamPos_t* out_needSyncSize,const TNewDataSyncInfo* newSyncInfo,
+                       const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin){
     uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
 
@@ -123,6 +123,7 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
     TOldDataCache oldData(oldStream,kMatchBlockSize,strongChecksumPlugin);
     TDigest_comp dcomp(newSyncInfo->rollHashs);
     uint32_t matchedCount=0;
+    hpatch_StreamPos_t matchedSyncSize=0;
     for (;!oldData.isEnd();oldData.roll()) {
         roll_uint_t digest=oldData.hashValue();
         if (!filter.is_hit(digest)) continue;
@@ -141,7 +142,8 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
                                                     + newBlockIndex*(size_t)kPartStrongChecksumByteSize;
                     if (0==memcmp(oldPartStrongChecksum,newPairStrongChecksum,kPartStrongChecksumByteSize)){
                         out_newDataPoss[newBlockIndex]=oldData.curOldPos();
-                        matchedCount++;
+                        ++matchedCount;
+                        matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,newBlockIndex);
                     }
                 }
                 ++range.first;
@@ -161,9 +163,11 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
             if (0==memcmp(oldPartStrongChecksum,newPairStrongChecksum,kPartStrongChecksumByteSize)){
                 out_newDataPoss[newBlockIndex]=oldStream->streamSize-lastNewNodeSize;
                 ++matchedCount;
+                matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,newBlockIndex);
             }
         }
     }
     *out_needSyncCount=kBlockCount-matchedCount;
+    *out_needSyncSize=newSyncInfo->newSyncDataSize-matchedSyncSize;
 }
 

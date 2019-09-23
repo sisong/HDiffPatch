@@ -12,7 +12,7 @@ static const hpatch_StreamPos_t kBlockType_needSync =~(hpatch_StreamPos_t)0;
 
 //used stdexcept
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
-                       const TNewDataSyncInfo* newSyncInfo,const hpatch_TStreamInput* oldStream,
-                       hpatch_TChecksum* strongChecksumPlugin);
+                       hpatch_StreamPos_t* out_needSyncSize,const TNewDataSyncInfo* newSyncInfo,
+                       const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin);
 
 #endif // match_in_old_h

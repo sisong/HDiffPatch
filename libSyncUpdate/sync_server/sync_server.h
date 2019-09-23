@@ -9,7 +9,7 @@
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 
-static const uint32_t kMatchBlockSize_default = (1<<10)*2;
+static const uint32_t kMatchBlockSize_default = (1<<10)*4;
 
 //create sync data
 //  all clients need download newSyncInfo, and dowload part of newData which is not found in client's oldData;
@@ -29,16 +29,16 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
 
 // out_newSyncData: out compressed newData by compressPlugin
 //  client download part of newData from out_newSyncData
-void create_sync_data(const hpatch_TStreamInput*  newData,
-                      const hpatch_TStreamOutput* out_newSyncInfo,
-                      const hpatch_TStreamOutput* out_newSyncData,
+void create_sync_data(const char* newDataPath,
+                      const char* out_newSyncInfoPath,
+                      const char* out_newSyncDataPath,
                       const hdiff_TCompress* compressPlugin,
                       hpatch_TChecksum*      strongChecksumPlugin,
                       uint32_t kMatchBlockSize=kMatchBlockSize_default);
 
-void create_sync_data(const char* newDataPath,
-                      const char* out_newSyncInfoPath,
-                      const char* out_newSyncDataPath,
+void create_sync_data(const hpatch_TStreamInput*  newData,
+                      const hpatch_TStreamOutput* out_newSyncInfo,
+                      const hpatch_TStreamOutput* out_newSyncData,
                       const hdiff_TCompress* compressPlugin,
                       hpatch_TChecksum*      strongChecksumPlugin,
                       uint32_t kMatchBlockSize=kMatchBlockSize_default);

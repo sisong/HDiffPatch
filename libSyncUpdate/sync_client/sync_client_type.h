@@ -30,6 +30,7 @@ typedef struct TNewDataSyncInfo{
     uint32_t                samePairCount;
     hpatch_StreamPos_t      newDataSize;
     hpatch_StreamPos_t      newSyncDataSize;
+    hpatch_StreamPos_t      newSyncInfoSize;
     unsigned char*          info_partChecksum; //this info data's strongChecksum
     TSameNewDataPair*       samePairList;
     uint32_t*               compressedSizes;
@@ -52,15 +53,19 @@ hpatch_StreamPos_t TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self) {
     
 hpatch_inline static
 uint32_t TNewDataSyncInfo_newDataBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
-    if (blockIndex+1<=TNewDataSyncInfo_blockCount(self))
+    if (blockIndex+1<TNewDataSyncInfo_blockCount(self))
         return self->kMatchBlockSize;
     else
-        return (uint32_t)(self->newSyncDataSize%self->kMatchBlockSize);
+        return (uint32_t)(self->newDataSize%self->kMatchBlockSize);
 }
 hpatch_inline static
 uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
-        if (self->compressedSizes) return self->compressedSizes[blockIndex];
-        else return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);
+    if (self->compressedSizes) {
+        uint32_t compressedSize=self->compressedSizes[blockIndex];
+        if (compressedSize>0)
+            return compressedSize;
+    }
+    return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);
 }
 
 

@@ -157,7 +157,13 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
                       kPartStrongChecksumByteSize);
         }
     }
-    {//checksum
+    {//newSyncInfoSize
+        //head +
+        self->newSyncInfoSize= head.size() + sizeof(self->newSyncDataSize)
+        + kPartStrongChecksumByteSize + buf.size();
+        writeUInt(head,self->newSyncInfoSize);
+    }
+    {//info_partChecksum
         strongChecksumPlugin->begin(checksumInfo);
         strongChecksumPlugin->append(checksumInfo,head.data(),head.data()+head.size());
         strongChecksumPlugin->append(checksumInfo,buf.data(),buf.data()+buf.size());
@@ -177,7 +183,7 @@ class CNewDataSyncInfo :public TNewDataSyncInfo{
 public:
     inline uint32_t blockCount()const{
         hpatch_StreamPos_t result=TNewDataSyncInfo_blockCount(this);
-        check((result*kPartStrongChecksumByteSize>>32)==0);
+        check(result==(uint32_t)result);
         return (uint32_t)result; }
     inline CNewDataSyncInfo(hpatch_TChecksum*      strongChecksumPlugin,
                             const hdiff_TCompress* compressPlugin,
@@ -200,7 +206,9 @@ public:
         
         this->_info_partChecksum.resize(kPartStrongChecksumByteSize,0);
         this->info_partChecksum=this->_info_partChecksum.data();
-        this->_partStrongChecksums.resize(kBlockCount*(size_t)kPartStrongChecksumByteSize);
+        hpatch_StreamPos_t _checksumsBufSize=kBlockCount*(hpatch_StreamPos_t)kPartStrongChecksumByteSize;
+        check(_checksumsBufSize==(size_t)_checksumsBufSize);
+        this->_partStrongChecksums.resize((size_t)_checksumsBufSize);
         this->partChecksums=this->_partStrongChecksums.data();
         if (compressPlugin){
             this->_compressedSizes.resize(kBlockCount);
@@ -292,7 +300,8 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
             compressedSize=hdiff_compress_mem(compressPlugin,cmbuf.data(),cmbuf.data()+cmbuf.size(),
                                               buf.data(),buf.data()+dataLen);
             check(compressedSize>0);
-            if (compressedSize+sizeof(uint32_t)>=dataLen) compressedSize=0; //not compressed
+            if (compressedSize+sizeof(uint32_t)>=dataLen)
+                compressedSize=0; //not compressed
             //save compressed size
             check(compressedSize==(uint32_t)compressedSize);
             out_newSyncInfo.compressedSizes[i]=(uint32_t)compressedSize;
