@@ -10,6 +10,8 @@
 extern "C" {
 #endif
 
+//downloadEmulation for patch test:
+//  when need to download part of newSyncData, emulation read it from local data;
 bool downloadEmulation_open_by_file(ISyncPatchListener* out_emulation,const char* newSyncDataPath);
 bool downloadEmulation_open(ISyncPatchListener* out_emulation,const hpatch_TStreamInput* newSyncData);
 bool downloadEmulation_close(ISyncPatchListener* emulation);

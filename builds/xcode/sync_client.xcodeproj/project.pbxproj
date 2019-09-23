@@ -16,6 +16,8 @@
 		D6589349233276AD003BB2F4 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D6589348233276AD003BB2F4 /* liblzma.a */; };
 		D658934B233276B6003BB2F4 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D658934A233276B6003BB2F4 /* libz.tbd */; };
 		D699A29523372152003CB3DC /* match_in_old.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A29423372152003CB3DC /* match_in_old.cpp */; };
+		D699A2AB2338AFD2003CB3DC /* download_emulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A2A92338AFD2003CB3DC /* download_emulation.cpp */; };
+		D699A2AD2338EABF003CB3DC /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D699A2AC2338EABF003CB3DC /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -47,6 +49,9 @@
 		D658934A233276B6003BB2F4 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		D699A29323372152003CB3DC /* match_in_old.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = match_in_old.h; sourceTree = "<group>"; };
 		D699A29423372152003CB3DC /* match_in_old.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_in_old.cpp; sourceTree = "<group>"; };
+		D699A2A92338AFD2003CB3DC /* download_emulation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = download_emulation.cpp; sourceTree = "<group>"; };
+		D699A2AA2338AFD2003CB3DC /* download_emulation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = download_emulation.h; sourceTree = "<group>"; };
+		D699A2AC2338EABF003CB3DC /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -54,6 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D699A2AD2338EABF003CB3DC /* libbz2.tbd in Frameworks */,
 				D658934B233276B6003BB2F4 /* libz.tbd in Frameworks */,
 				D6589349233276AD003BB2F4 /* liblzma.a in Frameworks */,
 			);
@@ -92,6 +98,7 @@
 		D658930F2331D35D003BB2F4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D699A2AC2338EABF003CB3DC /* libbz2.tbd */,
 				D658934A233276B6003BB2F4 /* libz.tbd */,
 				D6589348233276AD003BB2F4 /* liblzma.a */,
 			);
@@ -120,6 +127,8 @@
 				D65893432332765B003BB2F4 /* sync_client_main.cpp */,
 				D699A29423372152003CB3DC /* match_in_old.cpp */,
 				D699A29323372152003CB3DC /* match_in_old.h */,
+				D699A2A92338AFD2003CB3DC /* download_emulation.cpp */,
+				D699A2AA2338AFD2003CB3DC /* download_emulation.h */,
 			);
 			name = sync_client;
 			path = ../../libSyncUpdate/sync_client;
@@ -185,6 +194,7 @@
 				D658933B23327613003BB2F4 /* file_for_patch.c in Sources */,
 				D63B988A2333B574003D38A5 /* md5.c in Sources */,
 				D658934023327643003BB2F4 /* adler_roll.c in Sources */,
+				D699A2AB2338AFD2003CB3DC /* download_emulation.cpp in Sources */,
 				D65893462332765B003BB2F4 /* sync_client_main.cpp in Sources */,
 				D65893472332765B003BB2F4 /* sync_client.cpp in Sources */,
 				D699A29523372152003CB3DC /* match_in_old.cpp in Sources */,

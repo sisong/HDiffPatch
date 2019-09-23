@@ -9,6 +9,7 @@
 #include "../../_atosize.h"
 
 #define  _CompressPlugin_zlib
+#define  _CompressPlugin_bz2
 #define  _CompressPlugin_lzma
 #define  IS_NOTICE_compress_canceled 0
 #include "../../compress_plugin_demo.h"
@@ -20,9 +21,10 @@ int main(int argc, const char * argv[]) {
     double time0=clock_s();
     if (argc!=1+4) return -1;
     hpatch_TChecksum*      strongChecksumPlugin=&md5ChecksumPlugin;
-    const hdiff_TCompress* compressPlugin=0;
+    //const hdiff_TCompress* compressPlugin=0;
     //const hdiff_TCompress* compressPlugin=&zlibCompressPlugin.base;
-    //const hdiff_TCompress* compressPlugin=&lzmaCompressPlugin.base;
+    //const hdiff_TCompress* compressPlugin=&bz2CompressPlugin.base;
+    const hdiff_TCompress* compressPlugin=&lzmaCompressPlugin.base;
     
     size_t kMatchBlockSize=-1;
     if (!kmg_to_size(argv[4],strlen(argv[4]),&kMatchBlockSize)

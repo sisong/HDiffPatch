@@ -171,18 +171,18 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
         + kPartStrongChecksumByteSize + buf.size();
         writeUInt(head,self->newSyncInfoSize);
     }
-    {//info_partChecksum
+    {//infoPartChecksum
         strongChecksumPlugin->begin(checksumInfo);
         strongChecksumPlugin->append(checksumInfo,head.data(),head.data()+head.size());
         strongChecksumPlugin->append(checksumInfo,buf.data(),buf.data()+buf.size());
         std::vector<TByte> checksumBuf(self->kStrongChecksumByteSize);
         strongChecksumPlugin->end(checksumInfo,checksumBuf.data(),checksumBuf.data()+checksumBuf.size());
-        toPartChecksum(self->info_partChecksum,checksumBuf.data(),checksumBuf.size());
+        toPartChecksum(self->infoPartChecksum,checksumBuf.data(),checksumBuf.size());
     }
     //out
     hpatch_StreamPos_t outPos=0;
     writeStream(out_stream,outPos,head);
-    writeStream(out_stream,outPos,self->info_partChecksum,kPartStrongChecksumByteSize);
+    writeStream(out_stream,outPos,self->infoPartChecksum,kPartStrongChecksumByteSize);
     writeStream(out_stream,outPos,buf);
     return true;
 }
@@ -214,8 +214,8 @@ public:
         this->_rollHashs.resize(kBlockCount);
         this->rollHashs=this->_rollHashs.data();
         
-        this->_info_partChecksum.resize(kPartStrongChecksumByteSize,0);
-        this->info_partChecksum=this->_info_partChecksum.data();
+        this->_infoPartChecksum.resize(kPartStrongChecksumByteSize,0);
+        this->infoPartChecksum=this->_infoPartChecksum.data();
         hpatch_StreamPos_t _checksumsBufSize=kBlockCount*(hpatch_StreamPos_t)kPartStrongChecksumByteSize;
         check(_checksumsBufSize==(size_t)_checksumsBufSize);
         this->_partStrongChecksums.resize((size_t)_checksumsBufSize);
@@ -241,7 +241,7 @@ public:
 private:
     std::string                 _compressType;
     std::string                 _strongChecksumType;
-    std::vector<TByte>          _info_partChecksum;
+    std::vector<TByte>          _infoPartChecksum;
     std::vector<TSameNewDataPair> _samePairList;
     std::vector<uint32_t>       _compressedSizes;
     std::vector<roll_uint_t>    _rollHashs;

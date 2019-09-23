@@ -12,8 +12,8 @@ struct TDownloadEmulation {
     hpatch_TFileStreamInput    file;
 };
 
-static bool downloadEmulation_readSyncData(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,
-                                           hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize){
+static bool _readSyncData(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,
+                          hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize){
     TDownloadEmulation* self=(TDownloadEmulation*)listener->import;
     return hpatch_FALSE!=self->newSyncData->read(self->newSyncData,posInNewSyncData,
                                                  out_syncDataBuf,out_syncDataBuf+syncDataSize);
@@ -24,10 +24,11 @@ static void downloadEmulation_open_by(TDownloadEmulation* self,ISyncPatchListene
     memset(out_emulation,0,sizeof(*out_emulation));
     self->newSyncData=newSyncData;
     out_emulation->import=self;
-    out_emulation->readSyncData=downloadEmulation_readSyncData;
+    out_emulation->readSyncData=_readSyncData;
 }
 
 bool downloadEmulation_open(ISyncPatchListener* out_emulation,const hpatch_TStreamInput* newSyncData){
+    assert(out_emulation->import==0);
     TDownloadEmulation* self=(TDownloadEmulation*)malloc(sizeof(TDownloadEmulation));
     if (self==0) return false;
     memset(self,0,sizeof(*self));
@@ -36,6 +37,7 @@ bool downloadEmulation_open(ISyncPatchListener* out_emulation,const hpatch_TStre
 }
 
 bool downloadEmulation_open_by_file(ISyncPatchListener* out_emulation,const char* newSyncDataPath){
+    assert(out_emulation->import==0);
     TDownloadEmulation* self=(TDownloadEmulation*)malloc(sizeof(TDownloadEmulation));
     if (self==0) return false;
     memset(self,0,sizeof(*self));
