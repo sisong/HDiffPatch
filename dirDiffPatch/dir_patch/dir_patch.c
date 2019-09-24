@@ -283,20 +283,6 @@ hpatch_BOOL TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* dirDif
     return result;
 }
 
-static hpatch_BOOL _TStreamCacheClip_readDataTo(TStreamCacheClip* sclip,TByte* out_buf,TByte* bufEnd){
-    const size_t maxReadLen=sclip->cacheEnd;
-    while (out_buf<bufEnd) {
-        const TByte* pdata;
-        size_t readLen=bufEnd-out_buf;
-        if (readLen>maxReadLen) readLen=maxReadLen;
-        pdata=_TStreamCacheClip_readData(sclip,readLen);
-        if (pdata==0) return hpatch_FALSE;
-        memcpy(out_buf,pdata,readLen);
-        out_buf+=readLen;
-    }
-    return out_buf==bufEnd;
-}
-
 static hpatch_BOOL clipCStrsTo(const char* cstrs,const char* cstrsEnd,
                                const char** out_cstrList,size_t cstrCount){
     if (cstrs<cstrsEnd){

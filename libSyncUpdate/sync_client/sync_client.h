@@ -6,7 +6,6 @@
 #ifndef sync_client_h
 #define sync_client_h
 #include "sync_client_type.h"
-#include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -14,9 +13,12 @@ extern "C" {
 typedef enum TSyncClient_resultType{
     kSyncClient_ok,
     kSyncClient_memError,
+    kSyncClient_newSyncInfoTypeError,
     kSyncClient_noStrongChecksumPluginError,
     kSyncClient_strongChecksumByteSizeError,
     kSyncClient_noDecompressPluginError,
+    kSyncClient_newSyncInfoDataError,
+    kSyncClient_newSyncInfoChecksumError,
     kSyncClient_newSyncInfoOpenError,
     kSyncClient_newSyncInfoCloseError,
     kSyncClient_oldFileOpenError,
@@ -32,25 +34,29 @@ typedef enum TSyncClient_resultType{
     kSyncClient_checksumSyncDataError,
     
 } TNewDataSyncInfo_resultType;
+    
+
+    typedef struct ISyncPatchListener{
+        void*             import;
+         // isChecksumNewSyncInfo can nil, meen true
+        bool               (*isChecksumNewSyncInfo)(ISyncPatchListener* listener);
+        hpatch_TDecompress* (*findDecompressPlugin)(ISyncPatchListener* listener,const char* compressType);
+        hpatch_TChecksum*     (*findChecksumPlugin)(ISyncPatchListener* listener,const char* strongChecksumType);
+        void   (*needSyncMsg)(ISyncPatchListener* listener,uint32_t needSyncCount,  // needSyncMsg can nil
+                              hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
+        bool  (*readSyncData)(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,
+                              hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
+    } ISyncPatchListener;
 
 int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,
-                                   const char* newSyncInfoPath,bool isChecksumNewSyncInfo=true);
+                                   const char* newSyncInfoPath,ISyncPatchListener *listener);
 int  TNewDataSyncInfo_open(TNewDataSyncInfo* self,
-                           const hpatch_TStreamInput* newSyncInfo,bool isChecksumNewSyncInfo=true);
+                           const hpatch_TStreamInput* newSyncInfo,ISyncPatchListener *listener);
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
 
-typedef struct ISyncPatchListener{
-    void*             import;
-    hpatch_TDecompress* (*findDecompressPlugin)(ISyncPatchListener* listener,const char* compressType);
-    hpatch_TChecksum*     (*findChecksumPlugin)(ISyncPatchListener* listener,const char* strongChecksumType);
-    void   (*needSyncMsg)(ISyncPatchListener* listener,uint32_t needSyncCount,  // needSyncMsg can nil
-                          hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
-    bool  (*readSyncData)(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,
-                          hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
-} ISyncPatchListener;
 
 int sync_patch_by_file(const char* out_newPath, const char* newSyncInfoPath,
-                       const char* oldPath, ISyncPatchListener* listener,bool isChecksumNewSyncInfo=true);
+                       const char* oldPath, ISyncPatchListener* listener);
 
 int sync_patch(const hpatch_TStreamOutput* out_newStream,const TNewDataSyncInfo* newSyncInfo,
                const hpatch_TStreamInput*  oldStream, ISyncPatchListener* listener);

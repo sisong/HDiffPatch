@@ -461,6 +461,33 @@ hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,TUInt* r
 #define _TStreamCacheClip_unpackUIntTo(puint,sclip) \
     _TStreamCacheClip_unpackUIntWithTagTo(puint,sclip,0)
 
+hpatch_BOOL _TStreamCacheClip_readUInt(TStreamCacheClip* sclip,hpatch_StreamPos_t* result,size_t uintSize){
+    // assert(uintSize<=sizeof(hpatch_StreamPos_t));
+    const TByte* buf=_TStreamCacheClip_accessData(sclip,uintSize);
+    if (buf==0) return _hpatch_FALSE;
+    hpatch_StreamPos_t v=0;
+    for (size_t i=0; i<uintSize; ++i){
+        v|=((hpatch_StreamPos_t)buf[i])<<(i*8);
+    }
+    *result=v;
+    _TStreamCacheClip_skipData_noCheck(sclip,uintSize);
+    return hpatch_TRUE;
+}
+
+hpatch_BOOL _TStreamCacheClip_readDataTo(TStreamCacheClip* sclip,TByte* out_buf,TByte* bufEnd){
+    const size_t maxReadLen=sclip->cacheEnd;
+    while (out_buf<bufEnd) {
+        const TByte* pdata;
+        size_t readLen=bufEnd-out_buf;
+        if (readLen>maxReadLen) readLen=maxReadLen;
+        pdata=_TStreamCacheClip_readData(sclip,readLen);
+        if (pdata==0) return hpatch_FALSE;
+        memcpy(out_buf,pdata,readLen);
+        out_buf+=readLen;
+    }
+    return out_buf==bufEnd;
+}
+
 
 typedef struct _TBytesRle_load_stream{
     TUInt               memCopyLength;

@@ -95,10 +95,10 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
         std::vector<TByte>& buf=head;
         writeCStr(buf,kSyncUpdateTypeVersion);
         buf.push_back('&');
+        writeCStr(buf,self->strongChecksumType);
+        buf.push_back('&');
         if (self->compressType)
             writeCStr(buf,self->compressType);
-        buf.push_back('&');
-        writeCStr(buf,self->strongChecksumType);
         buf.push_back('\0');//c string end tag
         
         packUInt(buf,self->kStrongChecksumByteSize);
@@ -119,12 +119,15 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
             pre=sp.curIndex;
         }
     }
-    if (compressPlugin){ //compressedSizes
+    if (compressPlugin){ //savedSizes
         uint32_t curPair=0;
         for (size_t i=0; i<kBlockCount; ++i){
             if ((curPair<self->samePairCount)
                 &&(i==self->samePairList[curPair].curIndex)){ ++curPair; continue; }
-            packUInt(buf,self->compressedSizes[i]);
+            if (self->savedSizes[i]!=TNewDataSyncInfo_newDataBlockSize(self,i))
+                packUInt(buf,self->savedSizes[i]);
+            else
+                packUInt(buf,(uint32_t)0);
         }
     }
     
@@ -167,8 +170,8 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
     }
     {//newSyncInfoSize
         //head +
-        self->newSyncInfoSize= head.size() + sizeof(self->newSyncDataSize)
-        + kPartStrongChecksumByteSize + buf.size();
+        self->newSyncInfoSize= head.size() + sizeof(self->newSyncInfoSize)
+                            + kPartStrongChecksumByteSize + buf.size();
         writeUInt(head,self->newSyncInfoSize);
     }
     {//infoPartChecksum
@@ -221,8 +224,8 @@ public:
         this->_partStrongChecksums.resize((size_t)_checksumsBufSize);
         this->partChecksums=this->_partStrongChecksums.data();
         if (compressPlugin){
-            this->_compressedSizes.resize(kBlockCount);
-            this->compressedSizes=this->_compressedSizes.data();
+            this->_savedSizes.resize(kBlockCount);
+            this->savedSizes=this->_savedSizes.data();
         }
     }
     ~CNewDataSyncInfo(){}
@@ -243,7 +246,7 @@ private:
     std::string                 _strongChecksumType;
     std::vector<TByte>          _infoPartChecksum;
     std::vector<TSameNewDataPair> _samePairList;
-    std::vector<uint32_t>       _compressedSizes;
+    std::vector<uint32_t>       _savedSizes;
     std::vector<roll_uint_t>    _rollHashs;
     std::vector<TByte>          _partStrongChecksums;
     std::vector<TByte>          _newDataInsureStrongChecksums;
@@ -314,7 +317,10 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
                 compressedSize=0; //not compressed
             //save compressed size
             check(compressedSize==(uint32_t)compressedSize);
-            out_newSyncInfo.compressedSizes[i]=(uint32_t)compressedSize;
+            if (compressedSize!=0)
+                out_newSyncInfo.savedSizes[i]=(uint32_t)compressedSize;
+            else
+                out_newSyncInfo.savedSizes[i]=(uint32_t)dataLen;
         }
         //save data
         if (compressedSize>0){

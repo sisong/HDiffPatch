@@ -5,6 +5,7 @@
 //  Copyright © 2019 sisong. All rights reserved.
 #include "sync_client.h"
 #include "download_emulation.h"
+#include "../../_clock_for_demo.h"
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1
@@ -27,6 +28,10 @@
 #endif
 
 #include "../../checksum_plugin_demo.h"
+
+static bool isChecksumNewSyncInfo(ISyncPatchListener* listener){
+    return true;
+}
 
 static hpatch_TDecompress* findDecompressPlugin(ISyncPatchListener* listener,const char* compressType){
     if (compressType==0) return 0; //ok
@@ -68,10 +73,12 @@ static hpatch_TChecksum* findChecksumPlugin(ISyncPatchListener* listener,const c
 }
 
 int main(int argc, const char * argv[]) {
+    double time0=clock_s();
     if (argc!=1+4){
         printf("emulation sync_patch: out_newPath newSyncInfoPath oldPath test_newSyncDataPath\n");
         return -1;
     }
+    
     const char* out_newPath=argv[1];
     const char* newSyncInfoPath=argv[2];
     const char* oldPath=argv[3];
@@ -82,8 +89,11 @@ int main(int argc, const char * argv[]) {
         return kSyncClient_readSyncDataError;
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
+    emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
     
-    int result=sync_patch_by_file(out_newPath,newSyncInfoPath,oldPath,&emulation,true);
+    int result=sync_patch_by_file(out_newPath,newSyncInfoPath,oldPath,&emulation);
     downloadEmulation_close(&emulation);
+    double time1=clock_s();
+    printf("emulation sync_patch time: %.3f s\n\n",(time1-time0));
     return result;
 }

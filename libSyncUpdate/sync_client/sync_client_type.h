@@ -6,6 +6,7 @@
 #ifndef sync_client_type_h
 #define sync_client_type_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
+#include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,11 +34,13 @@ typedef struct TNewDataSyncInfo{
     hpatch_StreamPos_t      newSyncInfoSize;
     unsigned char*          infoPartChecksum; //this info data's strongChecksum
     TSameNewDataPair*       samePairList;
-    uint32_t*               compressedSizes;
+    uint32_t*               savedSizes;
     roll_uint_t*            rollHashs;
     unsigned char*          partChecksums;
     
     void*                   _import;
+    hpatch_TChecksum*       _strongChecksumPlugin;
+    hpatch_TDecompress*     _decompressPlugin;
 } TNewDataSyncInfo;
 
 hpatch_inline static void
@@ -60,12 +63,10 @@ uint32_t TNewDataSyncInfo_newDataBlockSize(const TNewDataSyncInfo* self,uint32_t
 }
 hpatch_inline static
 uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
-    if (self->compressedSizes) {
-        uint32_t compressedSize=self->compressedSizes[blockIndex];
-        if (compressedSize>0)
-            return compressedSize;
-    }
-    return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);
+    if (self->savedSizes)
+        return self->savedSizes[blockIndex];
+    else
+        return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);
 }
 
 
