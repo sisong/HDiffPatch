@@ -32,7 +32,6 @@ typedef enum TSyncClient_resultType{
     kSyncClient_writeNewDataError,
     kSyncClient_strongChecksumOpenError,
     kSyncClient_checksumSyncDataError,
-    
 } TNewDataSyncInfo_resultType;
     
 

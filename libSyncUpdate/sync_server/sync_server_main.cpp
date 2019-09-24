@@ -21,7 +21,6 @@
 #if (_IS_NEED_DEFAULT_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_zlib
-#   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma
 #endif
 
@@ -45,9 +44,6 @@ static void printUsage(){
            "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
            "        -c-zlib[-{1..9}]                DEFAULT level 9\n"
-#endif
-#ifdef _CompressPlugin_bz2
-           "        -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9\n"
 #endif
 #ifdef _CompressPlugin_lzma
            "        -c-lzma[-{0..9}[-dictSize]]     DEFAULT level 7\n"

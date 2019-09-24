@@ -13,7 +13,6 @@
 #if (_IS_NEED_DEFAULT_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_zlib
-#   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma
 #endif
 
@@ -29,20 +28,17 @@
 
 #include "../../checksum_plugin_demo.h"
 
+//ISyncPatchListener::isChecksumNewSyncInfo
 static bool isChecksumNewSyncInfo(ISyncPatchListener* listener){
     return true;
 }
-
+//ISyncPatchListener::findDecompressPlugin
 static hpatch_TDecompress* findDecompressPlugin(ISyncPatchListener* listener,const char* compressType){
     if (compressType==0) return 0; //ok
     hpatch_TDecompress* decompressPlugin=0;
 #ifdef  _CompressPlugin_zlib
     if ((!decompressPlugin)&&zlibDecompressPlugin.is_can_open(compressType))
         decompressPlugin=&zlibDecompressPlugin;
-#endif
-#ifdef  _CompressPlugin_bz2
-    if ((!decompressPlugin)&&bz2DecompressPlugin.is_can_open(compressType))
-        decompressPlugin=&bz2DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lzma
     if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(compressType))
@@ -56,6 +52,7 @@ static hpatch_TDecompress* findDecompressPlugin(ISyncPatchListener* listener,con
         return decompressPlugin; //ok
     }
 }
+//ISyncPatchListener::findChecksumPlugin
 static hpatch_TChecksum* findChecksumPlugin(ISyncPatchListener* listener,const char* strongChecksumType){
     if (strongChecksumType==0) return 0; //ok
     hpatch_TChecksum* strongChecksumPlugin=0;

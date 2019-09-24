@@ -15,7 +15,6 @@
 		D658932C23327412003BB2F4 /* sync_server_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D658932423327412003BB2F4 /* sync_server_main.cpp */; };
 		D65893372332757F003BB2F4 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D65893362332757F003BB2F4 /* libz.tbd */; };
 		D658933923327585003BB2F4 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D658933823327585003BB2F4 /* liblzma.a */; };
-		D699A2AF2338EF80003CB3DC /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D699A2AE2338EF80003CB3DC /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -49,7 +48,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D699A2AF2338EF80003CB3DC /* libbz2.tbd in Frameworks */,
 				D658933923327585003BB2F4 /* liblzma.a in Frameworks */,
 				D65893372332757F003BB2F4 /* libz.tbd in Frameworks */,
 			);
