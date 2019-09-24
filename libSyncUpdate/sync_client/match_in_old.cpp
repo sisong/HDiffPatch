@@ -151,22 +151,6 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
         }
     }
     _mem.clear();
-    
-    //try match last newBlock data
-    if ((kBlockCount>0)&&(out_newDataPoss[kBlockCount-1]==kBlockType_needSync)){
-        size_t lastNewNodeSize=(size_t)(newSyncInfo->newDataSize%kMatchBlockSize);
-        if ((lastNewNodeSize>0)&&(oldStream->streamSize>=lastNewNodeSize)){
-            uint32_t newBlockIndex=kBlockCount-1;
-            const TByte* oldPartStrongChecksum = oldData.calcLastPartStrongChecksum(lastNewNodeSize);
-            const TByte* newPairStrongChecksum = newSyncInfo->partChecksums
-                                                + newBlockIndex*(size_t)kPartStrongChecksumByteSize;
-            if (0==memcmp(oldPartStrongChecksum,newPairStrongChecksum,kPartStrongChecksumByteSize)){
-                out_newDataPoss[newBlockIndex]=oldStream->streamSize-lastNewNodeSize;
-                ++matchedCount;
-                matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,newBlockIndex);
-            }
-        }
-    }
     *out_needSyncCount=kBlockCount-matchedCount;
     *out_needSyncSize=newSyncInfo->newSyncDataSize-matchedSyncSize;
 }

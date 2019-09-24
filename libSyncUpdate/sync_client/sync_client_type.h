@@ -56,10 +56,11 @@ hpatch_StreamPos_t TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self) {
     
 hpatch_inline static
 uint32_t TNewDataSyncInfo_newDataBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
-    if (blockIndex+1<TNewDataSyncInfo_blockCount(self))
+    uint32_t blockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
+    if (blockIndex+1!=blockCount)
         return self->kMatchBlockSize;
     else
-        return (uint32_t)(self->newDataSize%self->kMatchBlockSize);
+        return (uint32_t)(self->newDataSize-self->kMatchBlockSize*blockIndex);
 }
 hpatch_inline static
 uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){

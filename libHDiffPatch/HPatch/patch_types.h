@@ -105,6 +105,8 @@ typedef int hpatch_BOOL;
     } hpatch_TStreamOutput;
     
 
+    #define kFileIOBufBetterSize        (1024*64)
+    
     #define hpatch_kMaxPluginTypeLength   259
     
     typedef struct hpatch_compressedDiffInfo{

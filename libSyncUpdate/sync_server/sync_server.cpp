@@ -121,7 +121,7 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
     }
     if (compressPlugin){ //savedSizes
         uint32_t curPair=0;
-        for (size_t i=0; i<kBlockCount; ++i){
+        for (uint32_t i=0; i<kBlockCount; ++i){
             if ((curPair<self->samePairCount)
                 &&(i==self->samePairList[curPair].curIndex)){ ++curPair; continue; }
             if (self->savedSizes[i]!=TNewDataSyncInfo_newDataBlockSize(self,i))
@@ -287,11 +287,13 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
         size_t dataLen=buf.size();
         if (i==kBlockCount-1) dataLen=newData->streamSize-curReadPos;
         check(newData->read(newData,curReadPos,buf.data(),buf.data()+dataLen));
+        if (dataLen<kMatchBlockSize)
+            memset(buf.data()+dataLen,0,kMatchBlockSize-dataLen);
         //rool hash
-        out_newSyncInfo.rollHashs[i]=roll_hash_start(buf.data(),dataLen);
+        out_newSyncInfo.rollHashs[i]=roll_hash_start(buf.data(),kMatchBlockSize);
         //strong hash
         strongChecksumPlugin->begin(checksumBlockData);
-        strongChecksumPlugin->append(checksumBlockData,buf.data(),buf.data()+dataLen);
+        strongChecksumPlugin->append(checksumBlockData,buf.data(),buf.data()+kMatchBlockSize);
         strongChecksumPlugin->end(checksumBlockData,checksumBlockData_buf.data(),
                                   checksumBlockData_buf.data()+checksumByteSize);
         out_newSyncInfo.setStrongChecksums(i,checksumBlockData_buf.data(),checksumByteSize);
@@ -317,7 +319,7 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
                 compressedSize=0; //not compressed
             //save compressed size
             check(compressedSize==(uint32_t)compressedSize);
-            if (compressedSize!=0)
+            if (compressedSize>0)
                 out_newSyncInfo.savedSizes[i]=(uint32_t)compressedSize;
             else
                 out_newSyncInfo.savedSizes[i]=(uint32_t)dataLen;

@@ -10,8 +10,6 @@
 #include "../../libHDiffPatch/HPatch/patch_private.h"
 #include "../../libHDiffPatch/HPatch/patch.h"
 
-#define hpatch_kFileIOBestSize (1<<16)
-
 #define check(v,errorCode) \
     do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
                     if (!_inClear) goto clear; } }while(0)
@@ -134,7 +132,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
         check(_clip_unpackUIntTo(&self->newSyncDataSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&uncompressDataSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&compressDataSize,&clip),kSyncClient_newSyncInfoDataError);
-        check(compressDataSize<uncompressDataSize, kSyncClient_newSyncInfoDataError);
+        check(compressDataSize<=uncompressDataSize, kSyncClient_newSyncInfoDataError);
         if (compressDataSize>0) check(decompressPlugin!=0, kSyncClient_newSyncInfoDataError);
         check(_TStreamCacheClip_readUInt(&clip,&self->newSyncInfoSize,sizeof(hpatch_StreamPos_t)),
               kSyncClient_newSyncInfoDataError);
