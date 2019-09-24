@@ -43,18 +43,6 @@ static hpatch_TDecompress* findDecompressPlugin(ISyncPatchListener* listener,con
     if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(compressType))
         decompressPlugin=&lzmaDecompressPlugin;
 #endif
-#ifdef  _CompressPlugin_lzma2
-    if ((!decompressPlugin)&&lzma2DecompressPlugin.is_can_open(compressType))
-        decompressPlugin=&lzma2DecompressPlugin;
-#endif
-#if (defined(_CompressPlugin_lz4) || (defined(_CompressPlugin_lz4hc)))
-    if ((!decompressPlugin)&&lz4DecompressPlugin.is_can_open(compressType))
-        decompressPlugin=&lz4DecompressPlugin;
-#endif
-#ifdef  _CompressPlugin_zstd
-    if ((!decompressPlugin)&&zstdDecompressPlugin.is_can_open(compressType))
-        decompressPlugin=&zstdDecompressPlugin;
-#endif
     if (decompressPlugin==0){
         printf("sync_patch can't decompress type: \"%s\"\n",compressType);
         return 0; //unsupport error

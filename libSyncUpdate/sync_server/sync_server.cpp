@@ -357,10 +357,14 @@ void create_sync_data(const char* newDataPath,
     hpatch_TFileStreamOutput_init(&out_newSyncInfo);
     hpatch_TFileStreamOutput_init(&out_newSyncData);
     check(hpatch_TFileStreamInput_open(&newData,newDataPath));
-    check(hpatch_TFileStreamOutput_open(&out_newSyncInfo,out_newSyncInfoPath,(hpatch_StreamPos_t)(-1)));
-    check(hpatch_TFileStreamOutput_open(&out_newSyncData,out_newSyncDataPath,(hpatch_StreamPos_t)(-1)));
+    check(hpatch_TFileStreamOutput_open(&out_newSyncInfo,out_newSyncInfoPath,
+                                        (hpatch_StreamPos_t)(-1)));
+    if (out_newSyncDataPath)
+        check(hpatch_TFileStreamOutput_open(&out_newSyncData,out_newSyncDataPath,
+                                            (hpatch_StreamPos_t)(-1)));
     
-    create_sync_data(&newData.base,&out_newSyncInfo.base,&out_newSyncData.base,
+    create_sync_data(&newData.base,&out_newSyncInfo.base,
+                     (out_newSyncDataPath)?&out_newSyncData.base:0,
                      compressPlugin,strongChecksumPlugin,kMatchBlockSize);
     check(hpatch_TFileStreamOutput_close(&out_newSyncData));
     check(hpatch_TFileStreamOutput_close(&out_newSyncInfo));
