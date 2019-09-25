@@ -33,8 +33,8 @@
 #include "../../libHDiffPatch/HPatch/patch_types.h"
 
 #define check(v,errorCode) \
-    do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
-                    if (!_inClear) goto clear; } }while(0)
+            do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
+                            if (!_inClear) goto clear; } }while(0)
 
 #define _clip_unpackUIntTo(puint,sclip) \
     _TStreamCacheClip_unpackUIntWithTag(sclip,puint,0)
@@ -339,18 +339,23 @@ static int writeToNew(const hpatch_TStreamOutput* out_newStream,const TNewDataSy
     int _inClear=0;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     const uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
+    const bool     isChecksumNewSyncData=(listener->isChecksumNewSyncData==0) ? true
+                                            : listener->isChecksumNewSyncData(listener);
     TByte*             dataBuf=0;
     TByte*             checksumSync_buf=0;
     hpatch_checksumHandle checksumSync=0;
     hpatch_StreamPos_t posInNewSyncData=0;
     hpatch_StreamPos_t outNewDataPos=0;
     
-    size_t _memSize=kMatchBlockSize*(decompressPlugin?2:1)+newSyncInfo->kStrongChecksumByteSize;
+    size_t _memSize=kMatchBlockSize*(decompressPlugin?2:1)
+                    +(isChecksumNewSyncData ? newSyncInfo->kStrongChecksumByteSize:0);
     dataBuf=(TByte*)malloc(_memSize);
     check(dataBuf!=0,kSyncClient_memError);
-    checksumSync_buf=dataBuf+_memSize-newSyncInfo->kStrongChecksumByteSize;
-    checksumSync=strongChecksumPlugin->open(strongChecksumPlugin);
-    check(checksumSync!=0,kSyncClient_strongChecksumOpenError);
+    if (isChecksumNewSyncData){
+        checksumSync_buf=dataBuf+_memSize-newSyncInfo->kStrongChecksumByteSize;
+        checksumSync=strongChecksumPlugin->open(strongChecksumPlugin);
+        check(checksumSync!=0,kSyncClient_strongChecksumOpenError);
+    }
     for (uint32_t i=0; i<kBlockCount; ++i) {
         uint32_t syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
         uint32_t newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
@@ -363,15 +368,18 @@ static int writeToNew(const hpatch_TStreamOutput* out_newStream,const TNewDataSy
                     check(hpatch_deccompress_mem(decompressPlugin,buf,buf+syncSize,
                                                  dataBuf,dataBuf+newDataSize),kSyncClient_decompressError);
                 }
-                //checksum
-                strongChecksumPlugin->begin(checksumSync);
-                strongChecksumPlugin->append(checksumSync,dataBuf,dataBuf+newDataSize);
-                strongChecksumPlugin->end(checksumSync,checksumSync_buf,
-                                          checksumSync_buf+newSyncInfo->kStrongChecksumByteSize);
-                toPartChecksum(checksumSync_buf,checksumSync_buf,newSyncInfo->kStrongChecksumByteSize);
-                check(0==memcmp(checksumSync_buf,
-                                newSyncInfo->partChecksums+i*(size_t)kPartStrongChecksumByteSize,
-                                kPartStrongChecksumByteSize),kSyncClient_checksumSyncDataError);
+                if (isChecksumNewSyncData){ //checksum
+                    if (newDataSize<kMatchBlockSize)//for backZeroLen
+                        memset(dataBuf+newDataSize,0,kMatchBlockSize-newDataSize);
+                    strongChecksumPlugin->begin(checksumSync);
+                    strongChecksumPlugin->append(checksumSync,dataBuf,dataBuf+kMatchBlockSize);
+                    strongChecksumPlugin->end(checksumSync,checksumSync_buf,
+                                              checksumSync_buf+newSyncInfo->kStrongChecksumByteSize);
+                    toPartChecksum(checksumSync_buf,checksumSync_buf,newSyncInfo->kStrongChecksumByteSize);
+                    check(0==memcmp(checksumSync_buf,
+                                    newSyncInfo->partChecksums+i*(size_t)kPartStrongChecksumByteSize,
+                                    kPartStrongChecksumByteSize),kSyncClient_checksumSyncDataError);
+                }
             }
         }else{//copy from old
             check(oldStream->read(oldStream,newDataPoss[i],dataBuf,dataBuf+newDataSize),

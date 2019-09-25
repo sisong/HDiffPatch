@@ -55,6 +55,9 @@
 static bool isChecksumNewSyncInfo(ISyncPatchListener* listener){
     return true;
 }
+static bool isChecksumNewSyncData(ISyncPatchListener* listener){
+    return true;
+}
 //ISyncPatchListener::findDecompressPlugin
 static hpatch_TDecompress* findDecompressPlugin(ISyncPatchListener* listener,const char* compressType){
     if (compressType==0) return 0; //ok
@@ -110,6 +113,7 @@ int main(int argc, const char * argv[]) {
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
+    emulation.isChecksumNewSyncData=isChecksumNewSyncData;
     
     int result=sync_patch_by_file(out_newPath,oldPath,newSyncInfoPath,&emulation);
     downloadEmulation_close(&emulation);

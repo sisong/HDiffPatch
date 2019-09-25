@@ -60,8 +60,9 @@ typedef enum TSyncClient_resultType{
 
     typedef struct ISyncPatchListener{
         void*             import;
-         // isChecksumNewSyncInfo can nil, meen true
+         // isChecksumNewSyncInfo/isChecksumNewSyncData can nil, meen true
         bool               (*isChecksumNewSyncInfo)(ISyncPatchListener* listener);
+        bool               (*isChecksumNewSyncData)(ISyncPatchListener* listener);
         hpatch_TDecompress* (*findDecompressPlugin)(ISyncPatchListener* listener,const char* compressType);
         hpatch_TChecksum*     (*findChecksumPlugin)(ISyncPatchListener* listener,const char* strongChecksumType);
         void   (*needSyncMsg)(ISyncPatchListener* listener,uint32_t needSyncCount,  // needSyncMsg can nil
