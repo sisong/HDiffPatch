@@ -40,12 +40,22 @@ struct TIndex_comp{
     inline explicit TIndex_comp(const roll_uint_t* _blocks):blocks(_blocks){ }
     struct TDigest{
         roll_uint_t value;
-        inline explicit TDigest(roll_uint_t _value):value(_value){}
+        uint32_t    index;
+        inline explicit TDigest(roll_uint_t _value,uint32_t _index)
+            :value(_value),index(_index){}
     };
     template<class TIndex> inline
-    bool operator()(const TIndex& x,const TDigest& y)const { return blocks[x]<y.value; }
+    bool operator()(const TIndex& x,const TDigest& y)const {
+        roll_uint_t hx=blocks[x];
+        if (hx!=y.value)
+            return hx<y.value;
+        else
+            return (x>=y.index); //for: assert(newBlockIndex<i);
+    }
     template<class TIndex> inline
-    bool operator()(const TDigest& x,const TIndex& y)const { return x.value<blocks[y]; }
+    bool operator()(const TDigest& x,const TIndex& y)const {
+        return x.value<blocks[y];
+    }
     template<class TIndex> inline
     bool operator()(const TIndex& x, const TIndex& y)const {//for sort
         roll_uint_t hx=blocks[x];
@@ -79,13 +89,12 @@ void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     const TByte* curChecksum=partChecksums;
     for (uint32_t i=0; i<kBlockCount; ++i,curChecksum+=kPartStrongChecksumByteSize){
         roll_uint_t digest=newSyncInfo->rollHashs[i];
-        typename TIndex_comp::TDigest digest_value(digest);
+        typename TIndex_comp::TDigest digest_value(digest,i);
         std::pair<const uint32_t*,const uint32_t*>
             range=std::equal_range(sorted_newIndexs,sorted_newIndexs+kBlockCount,digest_value,dcomp);
-        //assert(range.first!=range.second);
         for (;range.first!=range.second; ++range.first) {
             uint32_t newBlockIndex=*range.first;
-            if (newBlockIndex>=i) continue;
+            //assert(newBlockIndex<i); // not need: if (newBlockIndex>=i) continue;
             const TByte* newChecksum=partChecksums+newBlockIndex*(size_t)kPartStrongChecksumByteSize;
             if (0==memcmp(newChecksum,curChecksum,kPartStrongChecksumByteSize)){
                 samePairList[matchedCount].curIndex=i;

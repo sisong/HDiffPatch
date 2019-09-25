@@ -175,6 +175,7 @@ inline static size_t getBackZeroLen(hpatch_StreamPos_t newDataSize,uint32_t kMat
     return len;
 }
 
+
 //cpp code used stdexcept
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
                        hpatch_StreamPos_t* out_needSyncSize,const TNewDataSyncInfo* newSyncInfo,
@@ -185,14 +186,23 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
     TAutoMem _mem(kBlockCount*sizeof(uint32_t));
     uint32_t* sorted_newIndexs=(uint32_t*)_mem.data();
     TBloomFilter<roll_uint_t> filter; filter.init(kBlockCount);
+    uint32_t sortedBlockCount=0;
+    uint32_t curPair=0;
     for (uint32_t i=0; i<kBlockCount; ++i){
         out_newDataPoss[i]=kBlockType_needSync;
-        sorted_newIndexs[i]=i;
-        filter.insert(newSyncInfo->rollHashs[i]);
+        if ((curPair<newSyncInfo->samePairCount)
+            &&(i==newSyncInfo->samePairList[curPair].curIndex)){
+            ++curPair;
+        }else{
+            sorted_newIndexs[sortedBlockCount++]=i;
+            filter.insert(newSyncInfo->rollHashs[i]);
+        }
+
     }
+    assert(sortedBlockCount==kBlockCount-newSyncInfo->samePairCount);
     {
         TIndex_comp icomp(newSyncInfo->rollHashs);
-        std::sort(sorted_newIndexs,sorted_newIndexs+kBlockCount,icomp);
+        std::sort(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,icomp);
     }
 
     TOldDataCache oldData(oldStream,kMatchBlockSize,strongChecksumPlugin,
@@ -206,7 +216,7 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
         
         typename TIndex_comp::TDigest digest_value(digest);
         std::pair<const uint32_t*,const uint32_t*>
-            range=std::equal_range(sorted_newIndexs,sorted_newIndexs+kBlockCount,digest_value,dcomp);
+            range=std::equal_range(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,digest_value,dcomp);
         if (range.first!=range.second){
             const TByte* oldPartStrongChecksum=0;
             do {
@@ -224,6 +234,18 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
                 }
                 ++range.first;
             }while (range.first!=range.second);
+        }
+    }
+    for (uint32_t i=0; i<kBlockCount; ++i){
+        if ((curPair<newSyncInfo->samePairCount)
+            &&(i==newSyncInfo->samePairList[curPair].curIndex)){
+            hpatch_StreamPos_t samePos=out_newDataPoss[newSyncInfo->samePairList[curPair].sameIndex];
+            if (samePos!=kBlockType_needSync){
+                out_newDataPoss[i]=samePos;
+                ++matchedCount;
+                matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+            }
+            ++curPair;
         }
     }
     *out_needSyncCount=kBlockCount-matchedCount;
