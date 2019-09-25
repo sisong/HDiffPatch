@@ -30,12 +30,9 @@
 #include <stdexcept>
 #include <vector>
 #include <string>
-#include <map>
 #include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
-#include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
-
-static const uint32_t kMinMatchBlockSize=32;
+#include "match_in_new.h"
 
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
@@ -46,7 +43,7 @@ static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_
     outPos+=byteSize;
 }
 inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
-                              const std::vector<TByte> buf){
+                              const std::vector<TByte>& buf){
     writeStream(out_stream,outPos,buf.data(),buf.size());
 }
 
@@ -82,13 +79,6 @@ static void packUInt(std::vector<TByte>& out_buf,hpatch_StreamPos_t v){
     writeData(out_buf,buf,(curBuf-buf));
 }
 
-static bool isSameData(const hpatch_TStreamInput* stream,hpatch_StreamPos_t pos,
-                       const TByte* buf,size_t bufSize){
-    hdiff_private::TAutoMem data(bufSize);
-    check(stream->read(stream,pos,data.data(),data.data()+bufSize));
-    return 0==memcmp(data.data(),buf,bufSize);
-}
-
 class _TAutoClose_checksumHandle{
 public:
     inline _TAutoClose_checksumHandle(hpatch_TChecksum* cp,hpatch_checksumHandle ch)
@@ -98,6 +88,11 @@ private:
     hpatch_TChecksum*     _cp;
     hpatch_checksumHandle _ch;
 };
+
+inline static void _clear(std::vector<TByte>& buf){
+    std::vector<TByte> _temp;
+    _temp.swap(buf);
+}
 
 static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
                                     const hpatch_TStreamOutput* out_stream,
@@ -169,10 +164,27 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
         packUInt(head,buf.size());
         packUInt(head,cmbuf.size());
         if (cmbuf.size()>0){
-            buf.clear();
+            _clear(buf);
             buf.swap(cmbuf);
         }
     }
+    {//newSyncInfoSize
+        //head +
+        self->newSyncInfoSize = head.size() + sizeof(self->newSyncInfoSize) + buf.size();
+        self->newSyncInfoSize += (kBlockCount-self->samePairCount)
+                                *(hpatch_StreamPos_t)(sizeof(roll_uint_t)+kPartStrongChecksumByteSize);
+        self->newSyncInfoSize += kPartStrongChecksumByteSize;
+        writeUInt(head,self->newSyncInfoSize);
+    }
+
+    //out head buf
+    #define _outBuf(_buf)    if (!_buf.empty()){ \
+            strongChecksumPlugin->append(checksumInfo,_buf.data(),_buf.data()+_buf.size()); \
+            writeStream(out_stream,outPos,_buf);  _buf.clear(); }
+    hpatch_StreamPos_t outPos=0;
+    strongChecksumPlugin->begin(checksumInfo);
+    _outBuf(head); _clear(head);
+    _outBuf(buf);
     
     {//rollHashs
         uint32_t curPair=0;
@@ -180,6 +192,8 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
             if ((curPair<self->samePairCount)
                 &&(i==self->samePairList[curPair].curIndex)){ ++curPair; continue; }
             writeUInt(buf,self->rollHashs[i]);
+            if (buf.size()>=hpatch_kFileIOBufBetterSize)
+                _outBuf(buf);
         }
     }
     {//partStrongChecksums
@@ -189,27 +203,19 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
                 &&(i==self->samePairList[curPair].curIndex)){ ++curPair; continue; }
             writeData(buf,self->partChecksums+i*(size_t)kPartStrongChecksumByteSize,
                       kPartStrongChecksumByteSize);
+            if (buf.size()>=hpatch_kFileIOBufBetterSize)
+                _outBuf(buf);
         }
     }
-    {//newSyncInfoSize
-        //head +
-        self->newSyncInfoSize= head.size() + sizeof(self->newSyncInfoSize)
-                            + kPartStrongChecksumByteSize + buf.size();
-        writeUInt(head,self->newSyncInfoSize);
-    }
-    {//infoPartChecksum
-        strongChecksumPlugin->begin(checksumInfo);
-        strongChecksumPlugin->append(checksumInfo,head.data(),head.data()+head.size());
-        strongChecksumPlugin->append(checksumInfo,buf.data(),buf.data()+buf.size());
+    _outBuf(buf); _clear(buf);
+    
+    {// out infoPartChecksum
         std::vector<TByte> checksumBuf(self->kStrongChecksumByteSize);
         strongChecksumPlugin->end(checksumInfo,checksumBuf.data(),checksumBuf.data()+checksumBuf.size());
         toPartChecksum(self->infoPartChecksum,checksumBuf.data(),checksumBuf.size());
+        writeStream(out_stream,outPos,self->infoPartChecksum,kPartStrongChecksumByteSize);
+        assert(outPos==self->newSyncInfoSize);
     }
-    //out
-    hpatch_StreamPos_t outPos=0;
-    writeStream(out_stream,outPos,head);
-    writeStream(out_stream,outPos,self->infoPartChecksum,kPartStrongChecksumByteSize);
-    writeStream(out_stream,outPos,buf);
     return true;
 }
 
@@ -275,14 +281,13 @@ private:
     std::vector<TByte>          _newDataInsureStrongChecksums;
 };
 
-
 static void create_sync_data(const hpatch_TStreamInput*  newData,
                              CNewDataSyncInfo&           out_newSyncInfo,
                              const hpatch_TStreamOutput* out_newSyncData,
                              const hdiff_TCompress* compressPlugin,
                              hpatch_TChecksum*      strongChecksumPlugin,
                              uint32_t kMatchBlockSize){
-    assert(kMatchBlockSize>=kMinMatchBlockSize);
+    check(kMatchBlockSize>=kMatchBlockSize_min);
     if (compressPlugin) check(out_newSyncData!=0);
     
     const uint32_t kBlockCount=out_newSyncInfo.blockCount();
@@ -301,7 +306,6 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
     check(checksumNewData!=0);
     _TAutoClose_checksumHandle _autoClose_checksumNewData(strongChecksumPlugin,checksumNewData);
     
-    std::map<std::vector<TByte>,uint32_t>  cs_map;
     hpatch_StreamPos_t curReadPos=0;
     hpatch_StreamPos_t curOutPos=0;
     strongChecksumPlugin->begin(checksumNewData);
@@ -321,17 +325,6 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
         strongChecksumPlugin->end(checksumBlockData,checksumBlockData_buf.data(),
                                   checksumBlockData_buf.data()+checksumByteSize);
         out_newSyncInfo.setStrongChecksums(i,checksumBlockData_buf.data(),checksumByteSize);
-        {//same newData
-            const std::vector<TByte>& key=checksumBlockData_buf;
-            std::map<std::vector<TByte>,uint32_t>::const_iterator it=cs_map.find(key);
-            if (cs_map.end()==it){
-                cs_map[key]=i;
-            }else{//same
-                check(isSameData(newData,i*(hpatch_StreamPos_t)kMatchBlockSize,buf.data(),dataLen));
-                out_newSyncInfo.insetSamePair(i,it->second);
-                //printf("SamePair block(%d)==block(%d)\n",i,it->second);
-            }
-        }
         
         //compress
         size_t compressedSize=0;
@@ -359,6 +352,9 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
             out_newSyncInfo.newSyncDataSize+=dataLen;
         }
     }
+    _clear(cmbuf);
+    _clear(buf);
+    matchNewDataInNew(&out_newSyncInfo);
 }
 
 void create_sync_data(const hpatch_TStreamInput*  newData,

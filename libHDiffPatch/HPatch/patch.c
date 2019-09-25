@@ -463,14 +463,13 @@ hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,TUInt* r
 
 hpatch_BOOL _TStreamCacheClip_readUInt(TStreamCacheClip* sclip,hpatch_StreamPos_t* result,size_t uintSize){
     // assert(uintSize<=sizeof(hpatch_StreamPos_t));
-    const TByte* buf=_TStreamCacheClip_accessData(sclip,uintSize);
-    if (buf==0) return _hpatch_FALSE;
     hpatch_StreamPos_t v=0;
+    const TByte* buf=_TStreamCacheClip_readData(sclip,uintSize);
+    if (buf==0) return _hpatch_FALSE;
     for (size_t i=0; i<uintSize; ++i){
         v|=((hpatch_StreamPos_t)buf[i])<<(i*8);
     }
     *result=v;
-    _TStreamCacheClip_skipData_noCheck(sclip,uintSize);
     return hpatch_TRUE;
 }
 

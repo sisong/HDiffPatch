@@ -195,17 +195,6 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
         curMem+=strlen(tempType)+1;
         assert(curMem==(TByte*)self->_import + memSize);
     }
-    {//load infoPartChecksum
-        const hpatch_StreamPos_t infoChecksumPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
-        check(_TStreamCacheClip_readDataTo(&clip,self->infoPartChecksum,
-                                           self->infoPartChecksum+kPartStrongChecksumByteSize),
-              kSyncClient_newSyncInfoDataError);
-        if ((listener->isChecksumNewSyncInfo==0)||listener->isChecksumNewSyncInfo(listener)){
-            result=_checksumInfo(newSyncInfo,infoChecksumPos,
-                                 strongChecksumPlugin,self->infoPartChecksum);
-            check(result==kSyncClient_ok,result);
-        }
-    }
     {// compressed? buf
         #define _clear_decompresser(_decompresser) \
                     if (_decompresser.decompressHandle){   \
@@ -295,6 +284,17 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
                                                    curPartChecksum+kPartStrongChecksumByteSize),
                       kSyncClient_newSyncInfoDataError);
             }
+        }
+    }
+    {//load infoPartChecksum
+        const hpatch_StreamPos_t infoChecksumPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
+        check(_TStreamCacheClip_readDataTo(&clip,self->infoPartChecksum,
+                                           self->infoPartChecksum+kPartStrongChecksumByteSize),
+              kSyncClient_newSyncInfoDataError);
+        if ((listener->isChecksumNewSyncInfo==0)||listener->isChecksumNewSyncInfo(listener)){
+            result=_checksumInfo(newSyncInfo,infoChecksumPos,
+                                 strongChecksumPlugin,self->infoPartChecksum);
+            check(result==kSyncClient_ok,result);
         }
     }
     check(newSyncInfo->streamSize==_TStreamCacheClip_readPosOfSrcStream(&clip),

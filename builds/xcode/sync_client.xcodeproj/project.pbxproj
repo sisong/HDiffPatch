@@ -119,14 +119,14 @@
 		D65893412332765B003BB2F4 /* sync_client */ = {
 			isa = PBXGroup;
 			children = (
+				D65893432332765B003BB2F4 /* sync_client_main.cpp */,
 				D65893422332765B003BB2F4 /* sync_client_type.h */,
 				D65893442332765B003BB2F4 /* sync_client.h */,
 				D65893452332765B003BB2F4 /* sync_client.cpp */,
-				D65893432332765B003BB2F4 /* sync_client_main.cpp */,
-				D699A29423372152003CB3DC /* match_in_old.cpp */,
 				D699A29323372152003CB3DC /* match_in_old.h */,
-				D699A2A92338AFD2003CB3DC /* download_emulation.cpp */,
+				D699A29423372152003CB3DC /* match_in_old.cpp */,
 				D699A2AA2338AFD2003CB3DC /* download_emulation.h */,
+				D699A2A92338AFD2003CB3DC /* download_emulation.cpp */,
 			);
 			name = sync_client;
 			path = ../../libSyncUpdate/sync_client;

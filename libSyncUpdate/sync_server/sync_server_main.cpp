@@ -60,8 +60,7 @@ static void printUsage(){
     printf("sync_serever: [options] newDataPath out_newSyncInfoPath [out_newSyncDataPath]\n"
            "options:\n"
            "  -s-matchBlockSize\n"
-           "      matchBlockSize can like 4096 or 4k or 1m or 32m etc...\n"
-           "      DEFAULT 0, meen calc recommended value;\n"
+           "      matchBlockSize can like 4096 or 4k or 128k or 1m etc..., DEFAULT 2048\n"
            "  -c-compressType[-compressLevel]\n"
            "      set out_newSyncDataPath Compress type & level, DEFAULT uncompress;\n"
            "      support compress type & level:\n"
@@ -156,7 +155,7 @@ static bool _tryGetCompressSet(const char** isMatchedType,const char* ptype,cons
                     printUsage(); return SYNC_SERVER_OPTIONS_ERROR; } }while(0)
 
 #define _return_check(value,exitCode,fmt,errorInfo) do{ \
-    if (!(value)) { fprintf(stderr,fmt " ERROR!\n",errorInfo); return exitCode; } }while(0)
+    if (!(value)) { fprintf(stderr,fmt,errorInfo); return exitCode; } }while(0)
 
 static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
                              const char* ptype,const char* ptypeEnd){
@@ -227,6 +226,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
                 const char* pnum=op+3;
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMatchBlockSize),"-s-?");
                 _options_check(kMatchBlockSize==(uint32_t)kMatchBlockSize,"-s-?");
+                _options_check(kMatchBlockSize>=kMatchBlockSize_min,"-s-?");
             } break;
             case 'c':{
                 _options_check((compressPlugin==0)&&(op[2]=='-'),"-c");
@@ -247,7 +247,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     if (isForceOverwrite==_kNULL_VALUE)
         isForceOverwrite=hpatch_FALSE;
     if (kMatchBlockSize==_kNULL_SIZE)
-        kMatchBlockSize=0;
+        kMatchBlockSize=kMatchBlockSize_default;
     
     if (isOutputHelp){
         printUsage();
@@ -277,7 +277,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
                          compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize);
     } catch (const std::exception& e){
         _return_check(false,SYNC_SERVER_CREATE_SYNC_DATA_ERROR,
-                      "create_sync_data run error: %s",e.what());
+                      "create_sync_data run error: %s\n",e.what());
     }
     double time1=clock_s();
     printf("create_sync_data time: %.3f s\n\n",(time1-time0));

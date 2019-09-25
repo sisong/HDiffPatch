@@ -40,17 +40,7 @@ using namespace hdiff_private;
 typedef unsigned char TByte;
 
 struct TIndex_comp{
-    inline TIndex_comp(const roll_uint_t* _blocks) :blocks(_blocks){ }
-    template<class TIndex>
-    inline bool operator()(TIndex x,TIndex y)const{
-        return blocks[x]<blocks[y];
-    }
-    private:
-    const roll_uint_t* blocks;
-};
-
-struct TDigest_comp{
-    inline explicit TDigest_comp(const roll_uint_t* _blocks):blocks(_blocks){ }
+    inline explicit TIndex_comp(const roll_uint_t* _blocks):blocks(_blocks){ }
     struct TDigest{
         roll_uint_t value;
         inline explicit TDigest(roll_uint_t _value):value(_value){}
@@ -207,14 +197,14 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
 
     TOldDataCache oldData(oldStream,kMatchBlockSize,strongChecksumPlugin,
                           getBackZeroLen(newSyncInfo->newDataSize,kMatchBlockSize));
-    TDigest_comp dcomp(newSyncInfo->rollHashs);
+    TIndex_comp dcomp(newSyncInfo->rollHashs);
     uint32_t matchedCount=0;
     hpatch_StreamPos_t matchedSyncSize=0;
     for (;!oldData.isEnd();oldData.roll()) {
         roll_uint_t digest=oldData.hashValue();
         if (!filter.is_hit(digest)) continue;
         
-        typename TDigest_comp::TDigest digest_value(digest);
+        typename TIndex_comp::TDigest digest_value(digest);
         std::pair<const uint32_t*,const uint32_t*>
             range=std::equal_range(sorted_newIndexs,sorted_newIndexs+kBlockCount,digest_value,dcomp);
         if (range.first!=range.second){
@@ -236,7 +226,6 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
             }while (range.first!=range.second);
         }
     }
-    _mem.clear();
     *out_needSyncCount=kBlockCount-matchedCount;
     *out_needSyncSize=newSyncInfo->newSyncDataSize-matchedSyncSize;
 }
