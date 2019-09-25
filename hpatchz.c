@@ -1071,10 +1071,10 @@ static int createSfx_notCheckDiffFile_byStream(const hpatch_TStreamInput*  selfE
     const hpatch_StreamPos_t  diffDataOffert=selfExecute->streamSize;
     const hpatch_StreamPos_t  diffDataSize=diffData->streamSize;
     {//mem
-        pmem=(TByte*)malloc(_sfx_guid_node_size+kFileIOBufBetterSize);
+        pmem=(TByte*)malloc(_sfx_guid_node_size+hpatch_kFileIOBufBetterSize);
         check(pmem!=0,HPATCH_MEM_ERROR,"createSfx() malloc");
         memset(pmem,0,_sfx_guid_node_size);
-        buf=pmem+_sfx_guid_node_size; // [ _sfx_guid_node_size | kFileIOBufBetterSize ]
+        buf=pmem+_sfx_guid_node_size; // [ _sfx_guid_node_size | hpatch_kFileIOBufBetterSize ]
     }
     {//copy exe ,find guid pos and write diffDataOffset
         const hpatch_uint32_t dataSize=(hpatch_uint32_t)(selfExecute->streamSize);
@@ -1085,7 +1085,7 @@ static int createSfx_notCheckDiffFile_byStream(const hpatch_TStreamInput*  selfE
             TByte* wbuf=0;
             const TByte* wbuf_end=0;
             TByte* rbuf_end=0;
-            size_t readLen=kFileIOBufBetterSize;
+            size_t readLen=hpatch_kFileIOBufBetterSize;
             if (readLen+readPos > dataSize)
                 readLen=(size_t)(dataSize - readPos);
             rbuf_end=buf+readLen;
@@ -1123,7 +1123,7 @@ static int createSfx_notCheckDiffFile_byStream(const hpatch_TStreamInput*  selfE
         const hpatch_StreamPos_t dataSize=diffData->streamSize;
         hpatch_StreamPos_t readPos=0;
         while (readPos < dataSize) {
-            size_t readLen=kFileIOBufBetterSize;
+            size_t readLen=hpatch_kFileIOBufBetterSize;
             if (readLen+readPos > dataSize)
                 readLen=(size_t)(dataSize - readPos);
             check(diffData->read(diffData,readPos,buf,buf+readLen),

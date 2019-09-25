@@ -43,8 +43,10 @@ protected:
 struct TOldDataCache {
     TOldDataCache(const hpatch_TStreamInput* oldStream,uint32_t kMatchBlockSize,
                   hpatch_TChecksum* strongChecksumPlugin):m_checksumHandle(0){
-        //size_t cacheSize=kMatchBlockSize*2;
-        //cacheSize=(cacheSize>=kMinCacheBufSize)?cacheSize:kMinCacheBufSize;
+
+       // size_t cacheSize=(size_t)kMatchBlockSize*2;
+       // cacheSize=(cacheSize>=hpatch_kFileIOBufBetterSize)?cacheSize:hpatch_kFileIOBufBetterSize;
+        
         m_kMatchBlockSize=kMatchBlockSize;
         m_strongChecksumPlugin=strongChecksumPlugin;
         m_checksumHandle=strongChecksumPlugin->open(strongChecksumPlugin);

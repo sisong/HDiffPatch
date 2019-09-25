@@ -178,11 +178,11 @@ void getDirAllPathList(const std::string& dirPath,std::vector<std::string>& out_
 
 
 static cmp_hash_value_t getStreamHash(const hpatch_TStreamInput* stream,const std::string& errorTag){
-    TAutoMem  mem(kFileIOBufBetterSize);
+    TAutoMem  mem(hpatch_kFileIOBufBetterSize);
     cmp_hash_value_t result;
     cmp_hash_begin(&result);
     for (hpatch_StreamPos_t pos=0; pos<stream->streamSize;) {
-        size_t readLen=kFileIOBufBetterSize;
+        size_t readLen=hpatch_kFileIOBufBetterSize;
         if (pos+readLen>stream->streamSize)
             readLen=(size_t)(stream->streamSize-pos);
         check(stream->read(stream,pos,mem.data(),mem.data()+readLen),
@@ -214,9 +214,9 @@ static bool fileData_isSame(const std::string& file_x,const std::string& file_y,
     CFileStreamInput f_y(file_y);
     if (f_x.base.streamSize!=f_y.base.streamSize)
         return false;
-    TAutoMem  mem(kFileIOBufBetterSize*2);
+    TAutoMem  mem(hpatch_kFileIOBufBetterSize*2);
     for (hpatch_StreamPos_t pos=0; pos<f_x.base.streamSize;) {
-        size_t readLen=kFileIOBufBetterSize;
+        size_t readLen=hpatch_kFileIOBufBetterSize;
         if (pos+readLen>f_x.base.streamSize)
             readLen=(size_t)(f_x.base.streamSize-pos);
         check(f_x.base.read(&f_x.base,pos,mem.data(),mem.data()+readLen),
@@ -485,7 +485,7 @@ struct CChecksum{
     inline void append(const hpatch_TStreamInput* data){ append(data,0,data->streamSize); }
     void append(const hpatch_TStreamInput* data,hpatch_StreamPos_t begin,hpatch_StreamPos_t end){
         if (!_handle) return;
-        TAutoMem buf(kFileIOBufBetterSize);
+        TAutoMem buf(hpatch_kFileIOBufBetterSize);
         while (begin<end){
             size_t len=buf.size();
             if (len>(end-begin))
@@ -1031,7 +1031,7 @@ struct CDirPatchListener:public IDirPatchListener{
                                const std::vector<std::string>& oldList,
                                const std::vector<std::string>& newList)
     :_oldSet(oldList.begin(),oldList.end()),_newSet(newList.begin(),newList.end()),
-    _buf(kFileIOBufBetterSize){
+    _buf(hpatch_kFileIOBufBetterSize){
         _dirSet.insert(getParentDir(newRootDir));
         this->listenerImport=this;
         this->makeNewDir=_makeNewDir;
@@ -1190,7 +1190,7 @@ bool check_manifestdiff(IDirDiffListener* listener,const TManifest& oldManifest,
     CDirPatcher          dirPatcher;
     const TDirDiffInfo*  dirDiffInfo=0;
     TDirPatchChecksumSet    checksumSet={checksumPlugin,hpatch_TRUE,hpatch_TRUE,hpatch_TRUE,hpatch_TRUE};
-    TAutoMem             p_temp_mem(kFileIOBufBetterSize*4);
+    TAutoMem             p_temp_mem(hpatch_kFileIOBufBetterSize*4);
     TByte*               temp_cache=p_temp_mem.data();
     size_t               temp_cache_size=p_temp_mem.size();
     const hpatch_TStreamInput*  oldStream=0;

@@ -624,7 +624,7 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
         size_t                      bufSize;
     };
     
-    const size_t kACacheBufSize=kFileIOBufBetterSize;
+    const size_t kACacheBufSize=hpatch_kFileIOBufBetterSize;
     TAutoMem _cache(kACacheBufSize*8);
     _TCheckOutNewDataStream out_newData(newData,_cache.data(),kACacheBufSize);
     _test(patch_decompress_with_cache(&out_newData,oldData,compressed_diff,decompressPlugin,

@@ -8,7 +8,7 @@
 #include "match_in_old.h"
 #include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HPatch/patch_private.h"
-#include "../../libHDiffPatch/HPatch/patch.h"
+#include "../../libHDiffPatch/HPatch/patch_types.h"
 
 #define check(v,errorCode) \
     do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
@@ -52,7 +52,7 @@ static int _checksumInfo(const hpatch_TStreamInput* newSyncInfo,hpatch_StreamPos
     TByte*                checksum_buf=0;
     int result=kSyncClient_ok;
     int _inClear=0;
-    const size_t bufSize=hpatch_kFileIOBestSize;
+    const size_t bufSize=hpatch_kFileIOBufBetterSize;
     const size_t checksumByteSize=strongChecksumPlugin->checksumByteSize();
     TByte* temp_cache=(TByte*)malloc(bufSize+checksumByteSize);
     check(temp_cache!=0,kSyncClient_memError);
@@ -95,11 +95,11 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
     hpatch_StreamPos_t compressDataSize=0;
     TSameNewDataPair*  sameNewDataPairs=0;
     _TDecompressInputSteram decompresser;
-    TByte* temp_cache=(TByte*)malloc(hpatch_kFileIOBestSize);
+    TByte* temp_cache=(TByte*)malloc(hpatch_kFileIOBufBetterSize);
     check(temp_cache!=0,kSyncClient_memError);
     memset(&decompresser,0,sizeof(decompresser));
     _TStreamCacheClip_init(&clip,newSyncInfo,0,newSyncInfo->streamSize,
-                           temp_cache,hpatch_kFileIOBestSize);
+                           temp_cache,hpatch_kFileIOBufBetterSize);
     {//head
         const char* kTypeVersion="SyncUpdate19";
         {//type
@@ -193,7 +193,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
         TStreamCacheClip _cmCodeClip;
         TStreamCacheClip* codeClip=0;
         size_t tMemSize=self->samePairCount*(size_t)sizeof(TSameNewDataPair);
-        if (compressDataSize>0) tMemSize+=hpatch_kFileIOBestSize;
+        if (compressDataSize>0) tMemSize+=hpatch_kFileIOBufBetterSize;
         sameNewDataPairs=(TSameNewDataPair*)malloc(tMemSize);
         check(sameNewDataPairs!=0,kSyncClient_memError);
         if (compressDataSize>0){
@@ -202,7 +202,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
             hpatch_StreamPos_t curPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
             check(getStreamClip(codeClip,&decompresser,uncompressDataSize,compressDataSize,
                                 newSyncInfo,&curPos,decompressPlugin,
-                                cmbuf,hpatch_kFileIOBestSize),kSyncClient_decompressError);
+                                cmbuf,hpatch_kFileIOBufBetterSize),kSyncClient_decompressError);
         }else{
             codeClip=&clip;
         }
