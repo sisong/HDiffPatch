@@ -54,11 +54,11 @@ int  TNewDataSyncInfo_open(TNewDataSyncInfo* self,
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
 
 
-int sync_patch_by_file(const char* out_newPath, const char* newSyncInfoPath,
-                       const char* oldPath, ISyncPatchListener* listener);
+int sync_patch_by_file(const char* out_newPath,const char* oldPath,
+                       const char* newSyncInfoPath,ISyncPatchListener* listener);
 
-int sync_patch(const hpatch_TStreamOutput* out_newStream,const TNewDataSyncInfo* newSyncInfo,
-               const hpatch_TStreamInput*  oldStream, ISyncPatchListener* listener);
+int sync_patch(const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* oldStream,
+               const TNewDataSyncInfo* newSyncInfo,ISyncPatchListener* listener);
 
 #ifdef __cplusplus
 }

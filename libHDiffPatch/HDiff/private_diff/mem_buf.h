@@ -52,6 +52,12 @@ namespace hdiff_private{
                 }
             }
         }
+        inline void reduceSize(size_t reserveSize){
+            if (reserveSize<=size())
+                _data_end=_data+reserveSize;
+            else
+                throw std::runtime_error("TAutoMem::reduceSize() error!");
+        }
     private:
         unsigned char*  _data;
         unsigned char*  _data_end;

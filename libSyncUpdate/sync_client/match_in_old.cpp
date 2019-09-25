@@ -5,10 +5,14 @@
 //  Copyright © 2019 sisong. All rights reserved.
 
 #include "match_in_old.h"
+#include "string.h" //memmove
 #include <algorithm> //sort, equal_range
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/bloom_filter.h"
+
+#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
+#define checkv(value)     check(value,"check "#value" error!")
 
 using namespace hdiff_private;
 typedef unsigned char TByte;
@@ -42,29 +46,76 @@ protected:
 
 struct TOldDataCache {
     TOldDataCache(const hpatch_TStreamInput* oldStream,uint32_t kMatchBlockSize,
-                  hpatch_TChecksum* strongChecksumPlugin):m_checksumHandle(0){
-
-       // size_t cacheSize=(size_t)kMatchBlockSize*2;
-       // cacheSize=(cacheSize>=hpatch_kFileIOBufBetterSize)?cacheSize:hpatch_kFileIOBufBetterSize;
+                  hpatch_TChecksum* strongChecksumPlugin,size_t backZeroLen)
+    :m_oldStream(oldStream),m_readedPos(0),m_strongChecksum_buf(0),m_cur(0),m_checksumHandle(0),
+    m_kMatchBlockSize(kMatchBlockSize),m_backZeroLen(backZeroLen),
+    m_strongChecksumPlugin(strongChecksumPlugin){
+        size_t cacheSize=(size_t)kMatchBlockSize*2;
+        check((cacheSize>>1)==kMatchBlockSize,"TOldDataCache mem error!");
+        cacheSize=(cacheSize>=hpatch_kFileIOBufBetterSize)?cacheSize:hpatch_kFileIOBufBetterSize;
         
-        m_kMatchBlockSize=kMatchBlockSize;
-        m_strongChecksumPlugin=strongChecksumPlugin;
         m_checksumHandle=strongChecksumPlugin->open(strongChecksumPlugin);
-        m_strongChecksum_buf.realloc((size_t)strongChecksumPlugin->checksumByteSize());
-        m_cache.realloc(oldStream->streamSize);
-        oldStream->read(oldStream,0,m_cache.data(),m_cache.data_end());
-        if (oldStream->streamSize>=kMatchBlockSize){
-            m_cur=m_cache.data();
-            m_roolHash=roll_hash_start(m_cur,kMatchBlockSize);
-        }else{
-            m_cur=m_cache.data_end();
-        }
+        checkv(m_checksumHandle!=0);
+        m_checksumByteSize=(uint32_t)m_strongChecksumPlugin->checksumByteSize();
+        m_cache.realloc(cacheSize+m_checksumByteSize);
+        m_cache.reduceSize(cacheSize);
+        m_strongChecksum_buf=m_cache.data_end();
+        _initCache();
     }
     ~TOldDataCache(){
         if (m_checksumHandle)
             m_strongChecksumPlugin->close(m_strongChecksumPlugin,m_checksumHandle);
     }
-    inline bool isEnd()const{ return m_cur==m_cache.data_end(); }
+    void _initCache(){
+        if (m_oldStream->streamSize+m_backZeroLen<m_kMatchBlockSize){ m_cur=0; return; } //end
+        
+        size_t needLen=m_cache.size();
+        if (needLen>m_oldStream->streamSize+m_backZeroLen){
+            needLen=m_oldStream->streamSize+m_backZeroLen;
+            m_cache.reduceSize(needLen);
+        }
+        size_t readLen=needLen;
+        if (readLen>m_oldStream->streamSize)
+            readLen=m_oldStream->streamSize;
+        check(m_oldStream->read(m_oldStream,0,m_cache.data(),m_cache.data()+readLen),
+              "TOldDataCache read oldData error!");
+        if (readLen<needLen)
+            memset(m_cache.data()+readLen,0,needLen-readLen);
+        m_readedPos=0+needLen;
+        m_cur=m_cache.data();
+        m_roolHash=roll_hash_start(m_cur,m_kMatchBlockSize);
+        // [       oldDataSize     +   backZeroLen  ]
+        //       ^              ^
+        //cache: [     readedPos]
+        //         ^
+        //        cur
+    }
+    void _cache(){
+        if (m_readedPos >= m_oldStream->streamSize+m_backZeroLen){ m_cur=0; return; } //end
+        
+        size_t needLen=m_cur-m_cache.data();
+        if (m_readedPos+needLen>m_oldStream->streamSize+m_backZeroLen)
+            needLen=m_oldStream->streamSize+m_backZeroLen-m_readedPos;
+        memmove(m_cur-needLen,m_cur,m_cache.data_end()-m_cur);
+        if (m_readedPos<m_oldStream->streamSize){
+            size_t readLen=needLen;
+            if (m_readedPos+readLen>m_oldStream->streamSize)
+                readLen=m_oldStream->streamSize-m_readedPos;
+            TByte* buf=m_cache.data_end()-needLen;
+            check(m_oldStream->read(m_oldStream,m_readedPos,buf,buf+readLen),
+                  "TOldDataCache read oldData error!");
+            size_t zerolen=needLen-readLen;
+            if (zerolen>0)
+                memset(m_cache.data_end()-zerolen,0,zerolen);
+        }else{
+            memset(m_cache.data_end()-needLen,0,needLen);
+        }
+        m_readedPos+=needLen;
+        m_cur-=needLen;
+        roll();
+    }
+
+    inline bool isEnd()const{ return m_cur==0; }
     inline roll_uint_t hashValue()const{ return m_roolHash; }
     inline void roll(){
         const TByte* curIn=m_cur+m_kMatchBlockSize;
@@ -72,7 +123,7 @@ struct TOldDataCache {
             m_roolHash=roll_hash_roll(m_roolHash,m_kMatchBlockSize,*m_cur,*curIn);
             ++m_cur;
         }else{
-            m_cur=m_cache.data_end();
+            _cache();
         }
     }
     inline const TByte* calcPartStrongChecksum(){
@@ -84,23 +135,33 @@ struct TOldDataCache {
     inline hpatch_StreamPos_t curOldPos()const{
         return m_cur-m_cache.data();
     }
+    const hpatch_TStreamInput* m_oldStream;
+    hpatch_StreamPos_t      m_readedPos;
     TAutoMem                m_cache;
-    TAutoMem                m_strongChecksum_buf;
-    const TByte*            m_cur;
+    TByte*                  m_strongChecksum_buf;
+    TByte*                  m_cur;
     roll_uint_t             m_roolHash;
     uint32_t                m_kMatchBlockSize;
+    uint32_t                m_checksumByteSize;
+    size_t                  m_backZeroLen;
     hpatch_TChecksum*       m_strongChecksumPlugin;
     hpatch_checksumHandle   m_checksumHandle;
     
     inline const TByte* _calcPartStrongChecksum(const TByte* buf,size_t bufSize){
         m_strongChecksumPlugin->begin(m_checksumHandle);
         m_strongChecksumPlugin->append(m_checksumHandle,buf,buf+bufSize);
-        m_strongChecksumPlugin->end(m_checksumHandle,m_strongChecksum_buf.data(),
-                                    m_strongChecksum_buf.data_end());
-        toPartChecksum(m_strongChecksum_buf.data(),m_strongChecksum_buf.data(),m_strongChecksum_buf.size());
-        return m_strongChecksum_buf.data();
+        m_strongChecksumPlugin->end(m_checksumHandle,m_strongChecksum_buf,
+                                    m_strongChecksum_buf+m_checksumByteSize);
+        toPartChecksum(m_strongChecksum_buf,m_strongChecksum_buf,m_checksumByteSize);
+        return m_strongChecksum_buf;
     }
 };
+
+inline static size_t getBackZeroLen(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
+    size_t len=(size_t)(newDataSize % kMatchBlockSize);
+    if (len!=0) len=kMatchBlockSize-len;
+    return len;
+}
 
 //cpp code used stdexcept
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
@@ -122,7 +183,8 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
         std::sort(sorted_newIndexs,sorted_newIndexs+kBlockCount,icomp);
     }
 
-    TOldDataCache oldData(oldStream,kMatchBlockSize,strongChecksumPlugin);
+    TOldDataCache oldData(oldStream,kMatchBlockSize,strongChecksumPlugin,
+                          getBackZeroLen(newSyncInfo->newDataSize,kMatchBlockSize));
     TDigest_comp dcomp(newSyncInfo->rollHashs);
     uint32_t matchedCount=0;
     hpatch_StreamPos_t matchedSyncSize=0;

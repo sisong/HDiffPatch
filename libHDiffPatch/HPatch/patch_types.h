@@ -105,7 +105,7 @@ typedef int hpatch_BOOL;
     } hpatch_TStreamOutput;
     
 
-    #define hpatch_kFileIOBufBetterSize        (1024*64)
+    #define hpatch_kFileIOBufBetterSize  (1024*64)
     
     #define hpatch_kMaxPluginTypeLength   259
     

@@ -76,10 +76,10 @@ int main(int argc, const char * argv[]) {
         return -1;
     }
     
-    const char* out_newPath=argv[1];
+    const char* oldPath=argv[1];
     const char* newSyncInfoPath=argv[2];
-    const char* oldPath=argv[3];
-    const char* test_newSyncDataPath=argv[4]; //for test
+    const char* test_newSyncDataPath=argv[3]; //for test
+    const char* out_newPath=argv[4];
     ISyncPatchListener emulation;
     memset(&emulation,0,sizeof(emulation));
     if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataPath))
@@ -88,7 +88,7 @@ int main(int argc, const char * argv[]) {
     emulation.findDecompressPlugin=findDecompressPlugin;
     emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
     
-    int result=sync_patch_by_file(out_newPath,newSyncInfoPath,oldPath,&emulation);
+    int result=sync_patch_by_file(out_newPath,oldPath,newSyncInfoPath,&emulation);
     downloadEmulation_close(&emulation);
     double time1=clock_s();
     printf("emulation sync_patch time: %.3f s\n\n",(time1-time0));

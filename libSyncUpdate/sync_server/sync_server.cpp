@@ -287,8 +287,9 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
         size_t dataLen=buf.size();
         if (i==kBlockCount-1) dataLen=newData->streamSize-curReadPos;
         check(newData->read(newData,curReadPos,buf.data(),buf.data()+dataLen));
-        if (dataLen<kMatchBlockSize)
-            memset(buf.data()+dataLen,0,kMatchBlockSize-dataLen);
+        size_t backZeroLen=kMatchBlockSize-dataLen;
+        if (backZeroLen>0)
+            memset(buf.data()+dataLen,0,backZeroLen);
         //rool hash
         out_newSyncInfo.rollHashs[i]=roll_hash_start(buf.data(),kMatchBlockSize);
         //strong hash

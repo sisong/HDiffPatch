@@ -398,8 +398,8 @@ static void printMatchResult(const TNewDataSyncInfo* newSyncInfo,
            newSyncInfo->newDataSize,(double)downloadSize/newSyncInfo->newDataSize);
 }
 
-int sync_patch(const hpatch_TStreamOutput* out_newStream,const TNewDataSyncInfo* newSyncInfo,
-               const hpatch_TStreamInput*  oldStream, ISyncPatchListener* listener){
+int sync_patch(const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput*  oldStream,
+               const TNewDataSyncInfo* newSyncInfo,ISyncPatchListener* listener){
     assert(listener!=0);
     hpatch_TDecompress* decompressPlugin=0;
     hpatch_TChecksum*   strongChecksumPlugin=0;
@@ -456,8 +456,8 @@ clear:
     return result;
 }
 
-int sync_patch_by_file(const char* out_newPath,const char* newSyncInfoPath,
-                       const char* oldPath, ISyncPatchListener* listener){
+int sync_patch_by_file(const char* out_newPath,const char* oldPath,
+                       const char* newSyncInfoPath,ISyncPatchListener* listener){
     int result=kSyncClient_ok;
     int _inClear=0;
     TNewDataSyncInfo         newSyncInfo;
@@ -473,7 +473,7 @@ int sync_patch_by_file(const char* out_newPath,const char* newSyncInfoPath,
     check(hpatch_TFileStreamOutput_open(&out_newData,out_newPath,(hpatch_StreamPos_t)(-1)),
           kSyncClient_newFileCreateError);
     
-    result=sync_patch(&out_newData.base,&newSyncInfo,&oldData.base,listener);
+    result=sync_patch(&out_newData.base,&oldData.base,&newSyncInfo,listener);
 clear:
     _inClear=1;
     check(hpatch_TFileStreamOutput_close(&out_newData),kSyncClient_newFileCloseError);
