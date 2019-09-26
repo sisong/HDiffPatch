@@ -84,6 +84,7 @@ static void printUsage(){
 typedef enum TSyncServerResult {
     SYNC_SERVER_SUCCESS=0,
     SYNC_SERVER_OPTIONS_ERROR,
+    SYNC_SERVER_CANNOT_OVERWRITE_ERROR,
     SYNC_SERVER_CREATE_SYNC_DATA_ERROR,
 } TSyncServerResult;
 
@@ -256,14 +257,27 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     }
     
     _options_check((arg_values.size()==2)||(arg_values.size()==3),"input count");
-    const char* newDataPath    =arg_values[0];
-    const char* out_newSyncInfo=arg_values[1];
-    const char* out_newSyncData=0;
+    const char* newDataPath        =arg_values[0];
+    const char* out_newSyncInfoPath=arg_values[1];
+    const char* out_newSyncDataPath=0;
     if (arg_values.size()>=3)
-        out_newSyncData=arg_values[2];
-    
+        out_newSyncDataPath=arg_values[2];
     if (compressPlugin)
-        _options_check(out_newSyncData!=0,"used compress need out_newSyncData");
+        _options_check(out_newSyncDataPath!=0,"used compress need out_newSyncDataPath");
+
+    if (!isForceOverwrite){
+        hpatch_TPathType   outFileType;
+        _return_check(hpatch_getPathStat(out_newSyncInfoPath,&outFileType,0),
+                      SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"get %s type","out_newSyncInfoPath");
+        _return_check(outFileType==kPathType_notExist,
+                      SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"%s already exists, not overwrite","out_newSyncInfoPath");
+        if (out_newSyncDataPath){
+            _return_check(hpatch_getPathStat(out_newSyncDataPath,&outFileType,0),
+                          SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"get %s type","out_newSyncDataPath");
+            _return_check(outFileType==kPathType_notExist,
+                          SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"%s already exists, not overwrite","out_newSyncDataPath");
+        }
+    }
     
     hpatch_TChecksum* strongChecksumPlugin=&md5ChecksumPlugin;
     if (compressPlugin)
@@ -273,7 +287,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     
     double time0=clock_s();
     try {
-        create_sync_data(newDataPath,out_newSyncInfo,out_newSyncData,
+        create_sync_data(newDataPath,out_newSyncInfoPath,out_newSyncDataPath,
                          compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize);
     } catch (const std::exception& e){
         _return_check(false,SYNC_SERVER_CREATE_SYNC_DATA_ERROR,
