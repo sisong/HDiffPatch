@@ -28,7 +28,8 @@
  */
 #include "match_in_old.h"
 #include "string.h" //memmove
-#include <algorithm> //sort, equal_range
+#include <algorithm> //sort, equal_range lower_bound
+#include <math.h> //log2
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/bloom_filter.h"
@@ -175,6 +176,13 @@ inline static size_t getBackZeroLen(hpatch_StreamPos_t newDataSize,uint32_t kMat
     return len;
 }
 
+static int getBestTableBit(uint32_t blockCount){
+    const int kMinBit = 8;
+    const int kMaxBit = 23;
+    int bit=(int)(log2((1<<kMinBit)+1.0+blockCount));
+    if (bit>kMaxBit) bit=kMaxBit;
+    return bit;
+}
 
 //cpp code used stdexcept
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
@@ -182,32 +190,46 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
                        const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin){
     uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
+    TIndex_comp icomp(newSyncInfo->rollHashs);
 
-    TAutoMem _mem(kBlockCount*sizeof(uint32_t));
-    uint32_t* sorted_newIndexs=(uint32_t*)_mem.data();
+    TAutoMem _mem_sorted(kBlockCount*sizeof(uint32_t));
+    uint32_t* sorted_newIndexs=(uint32_t*)_mem_sorted.data();
     TBloomFilter<roll_uint_t> filter; filter.init(kBlockCount);
     uint32_t sortedBlockCount=0;
-    uint32_t curPair=0;
-    for (uint32_t i=0; i<kBlockCount; ++i){
-        out_newDataPoss[i]=kBlockType_needSync;
-        if ((curPair<newSyncInfo->samePairCount)
-            &&(i==newSyncInfo->samePairList[curPair].curIndex)){
-            ++curPair;
-        }else{
-            sorted_newIndexs[sortedBlockCount++]=i;
-            filter.insert(newSyncInfo->rollHashs[i]);
-        }
-
-    }
-    assert(sortedBlockCount==kBlockCount-newSyncInfo->samePairCount);
     {
-        TIndex_comp icomp(newSyncInfo->rollHashs);
+        uint32_t curPair=0;
+        for (uint32_t i=0; i<kBlockCount; ++i){
+            out_newDataPoss[i]=kBlockType_needSync;
+            if ((curPair<newSyncInfo->samePairCount)
+                &&(i==newSyncInfo->samePairList[curPair].curIndex)){
+                ++curPair;
+            }else{
+                sorted_newIndexs[sortedBlockCount++]=i;
+                filter.insert(newSyncInfo->rollHashs[i]);
+            }
+        }
+        assert(sortedBlockCount==kBlockCount-newSyncInfo->samePairCount);
+    }
+    
+    //optimize for std::equal_range
+    const int kTableBit =getBestTableBit(sortedBlockCount);
+    const int kTableHashShlBit=(sizeof(roll_uint_t)*8-kTableBit);
+    TAutoMem _mem_table(sizeof(uint32_t)*((1<<kTableBit)+1));
+    uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
+    {
         std::sort(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,icomp);
+        sorted_newIndexs_table[(1<<kTableBit)]=sortedBlockCount;
+        for (uint32_t i=0; i<(1<<kTableBit); ++i) {
+            roll_uint_t digest=((roll_uint_t)i)<<kTableHashShlBit;
+            typename TIndex_comp::TDigest digest_value(digest);
+            const uint32_t* begin=std::lower_bound(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,
+                                                   digest_value,icomp);
+            sorted_newIndexs_table[i]=(uint32_t)(begin-sorted_newIndexs);
+        }
     }
 
     TOldDataCache oldData(oldStream,kMatchBlockSize,strongChecksumPlugin,
                           getBackZeroLen(newSyncInfo->newDataSize,kMatchBlockSize));
-    TIndex_comp dcomp(newSyncInfo->rollHashs);
     uint32_t matchedCount=0;
     hpatch_StreamPos_t matchedSyncSize=0;
     for (;!oldData.isEnd();oldData.roll()) {
@@ -215,8 +237,10 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
         if (!filter.is_hit(digest)) continue;
         
         typename TIndex_comp::TDigest digest_value(digest);
+        const uint32_t* ti_pos=&sorted_newIndexs_table[digest>>kTableHashShlBit];
         std::pair<const uint32_t*,const uint32_t*>
-            range=std::equal_range(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,digest_value,dcomp);
+            //range=std::equal_range(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,digest_value,icomp);
+            range=std::equal_range(sorted_newIndexs+ti_pos[0],sorted_newIndexs+ti_pos[1],digest_value,icomp);
         if (range.first!=range.second){
             const TByte* oldPartStrongChecksum=0;
             do {
@@ -230,22 +254,26 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
                         out_newDataPoss[newBlockIndex]=oldData.curOldPos();
                         ++matchedCount;
                         matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,newBlockIndex);
+                        break;
                     }
                 }
                 ++range.first;
             }while (range.first!=range.second);
         }
     }
-    for (uint32_t i=0; i<kBlockCount; ++i){
-        if ((curPair<newSyncInfo->samePairCount)
-            &&(i==newSyncInfo->samePairList[curPair].curIndex)){
-            hpatch_StreamPos_t samePos=out_newDataPoss[newSyncInfo->samePairList[curPair].sameIndex];
-            if (samePos!=kBlockType_needSync){
-                out_newDataPoss[i]=samePos;
-                ++matchedCount;
-                matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+    { //samePair set same oldPos
+        uint32_t curPair=0;
+        for (uint32_t i=0; i<kBlockCount; ++i){
+            if ((curPair<newSyncInfo->samePairCount)
+                &&(i==newSyncInfo->samePairList[curPair].curIndex)){
+                hpatch_StreamPos_t sameOldPos=out_newDataPoss[newSyncInfo->samePairList[curPair].sameIndex];
+                if (sameOldPos!=kBlockType_needSync){
+                    out_newDataPoss[i]=sameOldPos;
+                    ++matchedCount;
+                    matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+                }
+                ++curPair;
             }
-            ++curPair;
         }
     }
     *out_needSyncCount=kBlockCount-matchedCount;
