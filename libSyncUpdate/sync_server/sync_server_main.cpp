@@ -84,6 +84,8 @@ static void printUsage(){
 typedef enum TSyncServerResult {
     SYNC_SERVER_SUCCESS=0,
     SYNC_SERVER_OPTIONS_ERROR,
+    SYNC_SERVER_NEWFILE_ERROR,
+    SYNC_SERVER_OUTFILE_ERROR,
     SYNC_SERVER_CANNOT_OVERWRITE_ERROR,
     SYNC_SERVER_CREATE_SYNC_DATA_ERROR,
 } TSyncServerResult;
@@ -195,6 +197,20 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     return SYNC_SERVER_SUCCESS;
 }
 
+static bool getFileSize(const char *path_utf8,hpatch_StreamPos_t* out_fileSize){
+    hpatch_TPathType out_type;
+    if (!hpatch_getPathStat(path_utf8,&out_type,out_fileSize)) return false;
+    return out_type==kPathType_file;
+}
+
+static bool printFileInfo(const char *path_utf8,const char *tag,hpatch_StreamPos_t* out_fileSize=0){
+    hpatch_StreamPos_t fileSize=0;
+    if (!getFileSize(path_utf8,&fileSize)) return false;
+    printf("%s: %" PRIu64 "   \"%s\"\n",tag,fileSize,path_utf8);
+    if (out_fileSize) * out_fileSize=fileSize;
+    return true;
+}
+
 
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
 #define _kNULL_SIZE     (~(size_t)0)
@@ -280,11 +296,21 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     }
     
     hpatch_TChecksum* strongChecksumPlugin=&md5ChecksumPlugin;
+    printf("create_sync_data run with strongChecksum plugin: \"%s\"\n",strongChecksumPlugin->checksumType());
     if (compressPlugin)
         printf("create_sync_data run with compress plugin: \"%s\"\n",compressPlugin->compressType());
-    printf("create_sync_data run with strongChecksum plugin: \"%s\"\n",strongChecksumPlugin->checksumType());
+    hpatch_StreamPos_t newDataSize=0;
+    _return_check(printFileInfo(newDataPath,"newFileSize",&newDataSize),
+                  SYNC_SERVER_NEWFILE_ERROR,"printFileInfo(%s,) run error!\n",newDataPath);
+    printf("block size : %d\n",(uint32_t)kMatchBlockSize);
+    hpatch_StreamPos_t blockCount=getBlockCount(newDataSize,(uint32_t)kMatchBlockSize);
+    printf("block count: %" PRIu64 "\n",blockCount);
+    double patchMemSize=estimatePatchMemSize(newDataSize,(uint32_t)kMatchBlockSize);
+    if (patchMemSize>=(1<<20))
+        printf("sync_patch memory size: ~ %.3f MB\n",patchMemSize/(1<<20));
+    else
+        printf("sync_patch memory size: ~ %.3f KB\n",patchMemSize/(1<<10));
 
-    
     double time0=clock_s();
     try {
         create_sync_data(newDataPath,out_newSyncInfoPath,out_newSyncDataPath,
@@ -294,6 +320,13 @@ int sync_server_cmd_line(int argc, const char * argv[]){
                       "create_sync_data run error: %s\n",e.what());
     }
     double time1=clock_s();
-    printf("create_sync_data time: %.3f s\n\n",(time1-time0));
+    _return_check(printFileInfo(out_newSyncInfoPath,"outFileSize"),
+                  SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncInfoPath);
+    if (out_newSyncDataPath){
+        _return_check(printFileInfo(out_newSyncDataPath,"outFileSize"),
+                      SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncDataPath);
+    }
+    
+    printf("\ncreate_sync_data time: %.3f s\n\n",(time1-time0));
     return 0;
 }

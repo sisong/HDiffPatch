@@ -74,6 +74,12 @@ hpatch_StreamPos_t getBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchB
                                     return (newDataSize+(kMatchBlockSize-1))/kMatchBlockSize; }
 
 hpatch_inline static
+hpatch_StreamPos_t estimatePatchMemSize(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
+    hpatch_StreamPos_t blockCount=getBlockCount(newDataSize,kMatchBlockSize);
+    return 44*blockCount+2*kMatchBlockSize;
+}
+
+hpatch_inline static
 hpatch_StreamPos_t TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self) {
                                     return getBlockCount(self->newDataSize,self->kMatchBlockSize); }
     
