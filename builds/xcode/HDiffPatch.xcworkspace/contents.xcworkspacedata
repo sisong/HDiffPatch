@@ -14,7 +14,7 @@
          location = "group:sync_server.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:sync_client.xcodeproj">
+         location = "group:sync_client_test.xcodeproj">
       </FileRef>
    </Group>
    <Group

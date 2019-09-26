@@ -98,7 +98,7 @@ static hpatch_TChecksum* findChecksumPlugin(ISyncPatchListener* listener,const c
 int main(int argc, const char * argv[]) {
     double time0=clock_s();
     if (argc!=1+4){
-        printf("emulation sync_patch: out_newPath newSyncInfoPath oldPath test_newSyncDataPath\n");
+        printf("test sync_patch: oldPath newSyncInfoPath test_newSyncDataPath out_newPath\n");
         return -1;
     }
     
@@ -110,14 +110,14 @@ int main(int argc, const char * argv[]) {
     memset(&emulation,0,sizeof(emulation));
     if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataPath))
         return kSyncClient_readSyncDataError;
-    emulation.findChecksumPlugin=findChecksumPlugin;
-    emulation.findDecompressPlugin=findDecompressPlugin;
     emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
     emulation.isChecksumNewSyncData=isChecksumNewSyncData;
+    emulation.findChecksumPlugin=findChecksumPlugin;
+    emulation.findDecompressPlugin=findDecompressPlugin;
     
     int result=sync_patch_by_file(out_newPath,oldPath,newSyncInfoPath,&emulation);
     downloadEmulation_close(&emulation);
     double time1=clock_s();
-    printf("emulation sync_patch time: %.3f s\n\n",(time1-time0));
+    printf("test sync_patch time: %.3f s\n\n",(time1-time0));
     return result;
 }
