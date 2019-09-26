@@ -218,14 +218,14 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
     uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
     {
         std::sort(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,icomp);
-        sorted_newIndexs_table[(1<<kTableBit)]=sortedBlockCount;
+        uint32_t* pos=sorted_newIndexs;
         for (uint32_t i=0; i<(1<<kTableBit); ++i) {
             roll_uint_t digest=((roll_uint_t)i)<<kTableHashShlBit;
             typename TIndex_comp::TDigest digest_value(digest);
-            const uint32_t* begin=std::lower_bound(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,
-                                                   digest_value,icomp);
-            sorted_newIndexs_table[i]=(uint32_t)(begin-sorted_newIndexs);
+            pos=std::lower_bound(pos,sorted_newIndexs+sortedBlockCount,digest_value,icomp);
+            sorted_newIndexs_table[i]=(uint32_t)(pos-sorted_newIndexs);
         }
+        sorted_newIndexs_table[(1<<kTableBit)]=sortedBlockCount;
     }
 
     TOldDataCache oldData(oldStream,kMatchBlockSize,strongChecksumPlugin,
