@@ -305,7 +305,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     printf("block size : %d\n",(uint32_t)kMatchBlockSize);
     hpatch_StreamPos_t blockCount=getBlockCount(newDataSize,(uint32_t)kMatchBlockSize);
     printf("block count: %" PRIu64 "\n",blockCount);
-    double patchMemSize=estimatePatchMemSize(newDataSize,(uint32_t)kMatchBlockSize);
+    double patchMemSize=estimatePatchMemSize(newDataSize,(uint32_t)kMatchBlockSize,(compressPlugin!=0));
     if (patchMemSize>=(1<<20))
         printf("sync_patch memory size: ~ %.3f MB\n",patchMemSize/(1<<20));
     else

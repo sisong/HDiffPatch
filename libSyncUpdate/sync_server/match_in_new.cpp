@@ -36,17 +36,18 @@
 using namespace hdiff_private;
 typedef unsigned char TByte;
 
+template<class tm_roll_uint>
 struct TIndex_comp{
-    inline explicit TIndex_comp(const roll_uint_t* _blocks):blocks(_blocks){ }
+    inline explicit TIndex_comp(const tm_roll_uint* _blocks):blocks(_blocks){ }
     struct TDigest{
-        roll_uint_t value;
-        uint32_t    index;
-        inline explicit TDigest(roll_uint_t _value,uint32_t _index)
+        tm_roll_uint value;
+        uint32_t     index;
+        inline explicit TDigest(tm_roll_uint _value,uint32_t _index)
             :value(_value),index(_index){}
     };
     template<class TIndex> inline
     bool operator()(const TIndex& x,const TDigest& y)const {
-        roll_uint_t hx=blocks[x];
+        tm_roll_uint hx=blocks[x];
         if (hx!=y.value)
             return hx<y.value;
         else
@@ -58,18 +59,19 @@ struct TIndex_comp{
     }
     template<class TIndex> inline
     bool operator()(const TIndex& x, const TIndex& y)const {//for sort
-        roll_uint_t hx=blocks[x];
-        roll_uint_t hy=blocks[y];
+        tm_roll_uint hx=blocks[x];
+        tm_roll_uint hy=blocks[y];
         if (hx!=hy)
             return hx<hy; //value sort
         else
             return x>y; //index sort
     }
 protected:
-    const roll_uint_t* blocks;
+    const tm_roll_uint* blocks;
 };
 
-void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
+template<class tm_roll_uint>
+void tm_matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     const unsigned char* partChecksums=newSyncInfo->partChecksums;
     TSameNewDataPair* samePairList=newSyncInfo->samePairList;
@@ -80,16 +82,16 @@ void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
         sorted_newIndexs[i]=i;
     }
     {
-        TIndex_comp icomp(newSyncInfo->rollHashs);
+        TIndex_comp<tm_roll_uint> icomp((tm_roll_uint*)newSyncInfo->rollHashs);
         std::sort(sorted_newIndexs,sorted_newIndexs+kBlockCount,icomp);
     }
 
-    TIndex_comp dcomp(newSyncInfo->rollHashs);
+    TIndex_comp<tm_roll_uint> dcomp((tm_roll_uint*)newSyncInfo->rollHashs);
     uint32_t matchedCount=0;
     const TByte* curChecksum=partChecksums;
     for (uint32_t i=0; i<kBlockCount; ++i,curChecksum+=kPartStrongChecksumByteSize){
-        roll_uint_t digest=newSyncInfo->rollHashs[i];
-        typename TIndex_comp::TDigest digest_value(digest,i);
+        tm_roll_uint digest=((tm_roll_uint*)newSyncInfo->rollHashs)[i];
+        typename TIndex_comp<tm_roll_uint>::TDigest digest_value(digest,i);
         std::pair<const uint32_t*,const uint32_t*>
             range=std::equal_range(sorted_newIndexs,sorted_newIndexs+kBlockCount,digest_value,dcomp);
         for (;range.first!=range.second; ++range.first) {
@@ -107,3 +109,10 @@ void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     newSyncInfo->samePairCount=matchedCount;
 }
 
+
+void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
+    if (newSyncInfo->is32Bit_rollHash)
+        tm_matchNewDataInNew<uint32_t>(newSyncInfo);
+    else
+        tm_matchNewDataInNew<uint64_t>(newSyncInfo);
+}

@@ -31,7 +31,6 @@
 #include <vector>
 #include <string>
 #include "../../file_for_patch.h"
-#include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "match_in_new.h"
 
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
@@ -94,6 +93,8 @@ inline static void _clear(std::vector<TByte>& buf){
     _temp.swap(buf);
 }
 
+#define rollHashSize(self) (self->is32Bit_rollHash?sizeof(uint32_t):sizeof(uint64_t))
+
 static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
                                     const hpatch_TStreamOutput* out_stream,
                                     hpatch_TChecksum*      strongChecksumPlugin,
@@ -122,6 +123,7 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
         packUInt(buf,self->kStrongChecksumByteSize);
         packUInt(buf,self->kMatchBlockSize);
         packUInt(buf,self->samePairCount);
+        writeUInt(buf,self->is32Bit_rollHash);
         packUInt(buf,self->newDataSize);
         packUInt(buf,self->newSyncDataSize);
     }
@@ -169,12 +171,14 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
         }
     }
     {//newSyncInfoSize
+        packUInt(head,(hpatch_StreamPos_t)0); //reservedDataSize , now not used
         //head +
         self->newSyncInfoSize = head.size() + sizeof(self->newSyncInfoSize) + buf.size();
-        self->newSyncInfoSize += (kBlockCount-self->samePairCount)
-                                *(hpatch_StreamPos_t)(sizeof(roll_uint_t)+kPartStrongChecksumByteSize);
+        self->newSyncInfoSize +=(rollHashSize(self)+kPartStrongChecksumByteSize)
+                                *(hpatch_StreamPos_t)(kBlockCount-self->samePairCount);
         self->newSyncInfoSize += kPartStrongChecksumByteSize;
         writeUInt(head,self->newSyncInfoSize);
+        //end head
     }
 
     //out head buf
@@ -188,10 +192,16 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
     
     {//rollHashs
         uint32_t curPair=0;
+        bool is32Bit_rollHash=self->is32Bit_rollHash;
+        uint32_t* rhashs32=(uint32_t*)self->rollHashs;
+        uint64_t* rhashs64=(uint64_t*)self->rollHashs;
         for (size_t i=0; i<kBlockCount; ++i){
             if ((curPair<self->samePairCount)
                 &&(i==self->samePairList[curPair].curIndex)){ ++curPair; continue; }
-            writeUInt(buf,self->rollHashs[i]);
+            if (is32Bit_rollHash)
+                writeUInt(buf,rhashs32[i]);
+            else
+                writeUInt(buf,rhashs64[i]);
             if (buf.size()>=hpatch_kFileIOBufBetterSize)
                 _outBuf(buf);
         }
@@ -243,7 +253,9 @@ public:
         this->samePairCount=0;
         this->_samePairList.resize(kBlockCount);
         this->samePairList=this->_samePairList.data();
-        this->_rollHashs.resize(kBlockCount);
+        
+        this->is32Bit_rollHash=estimateIsUse32bitRollHash(newDataSize,kMatchBlockSize);
+        this->_rollHashs.resize(this->is32Bit_rollHash?((kBlockCount+1)/2):kBlockCount);
         this->rollHashs=this->_rollHashs.data();
         
         this->_infoPartChecksum.resize(kPartStrongChecksumByteSize,0);
@@ -276,7 +288,7 @@ private:
     std::vector<TByte>          _infoPartChecksum;
     std::vector<TSameNewDataPair> _samePairList;
     std::vector<uint32_t>       _savedSizes;
-    std::vector<roll_uint_t>    _rollHashs;
+    std::vector<uint64_t>       _rollHashs;
     std::vector<TByte>          _partStrongChecksums;
     std::vector<TByte>          _newDataInsureStrongChecksums;
 };
@@ -318,7 +330,10 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
         if (backZeroLen>0)
             memset(buf.data()+dataLen,0,backZeroLen);
         //rool hash
-        out_newSyncInfo.rollHashs[i]=roll_hash_start(buf.data(),kMatchBlockSize);
+        if (out_newSyncInfo.is32Bit_rollHash)
+            ((uint32_t*)out_newSyncInfo.rollHashs)[i]=roll_hash_start((uint32_t*)0,buf.data(),kMatchBlockSize);
+        else
+            ((uint64_t*)out_newSyncInfo.rollHashs)[i]=roll_hash_start((uint64_t*)0,buf.data(),kMatchBlockSize);
         //strong hash
         strongChecksumPlugin->begin(checksumBlockData);
         strongChecksumPlugin->append(checksumBlockData,buf.data(),buf.data()+kMatchBlockSize);

@@ -30,6 +30,20 @@
 #define sync_client_type_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
+#include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
+#ifdef __cplusplus
+inline static uint64_t roll_hash_start(uint64_t*,const adler_data_t* pdata,size_t n){
+                                       return fast_adler64_start(pdata,n); }
+inline static uint32_t roll_hash_start(uint32_t*,const adler_data_t* pdata,size_t n){
+                                       return fast_adler32_start(pdata,n); }
+inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
+                                      adler_data_t out_data,adler_data_t in_data){
+                                        return fast_adler64_roll(adler,blockSize,out_data,in_data); }
+inline static uint32_t roll_hash_roll(uint32_t adler,size_t blockSize,
+                                      adler_data_t out_data,adler_data_t in_data){
+                                        return fast_adler32_roll(adler,blockSize,out_data,in_data); }
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,24 +55,20 @@ extern "C" {
     
     #define kPartStrongChecksumByteSize       8
     
-    typedef uint64_t roll_uint_t;
-    #define roll_hash_start  fast_adler64_start
-    #define roll_hash_roll   fast_adler64_roll
-    
-    
 typedef struct TNewDataSyncInfo{
     const char*             compressType;
     const char*             strongChecksumType;
     uint32_t                kStrongChecksumByteSize;
     uint32_t                kMatchBlockSize;
     uint32_t                samePairCount;
+    uint8_t                 is32Bit_rollHash;
     hpatch_StreamPos_t      newDataSize;
     hpatch_StreamPos_t      newSyncDataSize;
     hpatch_StreamPos_t      newSyncInfoSize;
     unsigned char*          infoPartChecksum; //this info data's strongChecksum
     TSameNewDataPair*       samePairList;
     uint32_t*               savedSizes;
-    roll_uint_t*            rollHashs;
+    void*                   rollHashs;
     unsigned char*          partChecksums;
     
     void*                   _import;
@@ -73,10 +83,26 @@ hpatch_inline static
 hpatch_StreamPos_t getBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
                                     return (newDataSize+(kMatchBlockSize-1))/kMatchBlockSize; }
 
+    hpatch_inline static
+    unsigned int upper_ilog2(hpatch_StreamPos_t v){
+        unsigned int result=0;
+        while (((hpatch_StreamPos_t)1<<result)<v) ++result;
+        return result;  }
+static bool estimateIsUse32bitRollHash(hpatch_StreamPos_t newDataSize,
+                                       uint32_t kMatchBlockSize){
+    return false;
+#warning is32Bit_rollHash?
+}
+
 hpatch_inline static
-hpatch_StreamPos_t estimatePatchMemSize(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
+hpatch_StreamPos_t estimatePatchMemSize(hpatch_StreamPos_t newDataSize,
+                                        uint32_t kMatchBlockSize,bool isUsedCompress){
     hpatch_StreamPos_t blockCount=getBlockCount(newDataSize,kMatchBlockSize);
-    return 44*blockCount+2*kMatchBlockSize;
+    bool  isUse32bitRollHash=estimateIsUse32bitRollHash(newDataSize,kMatchBlockSize);
+    hpatch_StreamPos_t bet=36;
+    if (isUse32bitRollHash) bet+=4;
+    if (isUsedCompress) bet+=4;
+    return bet*blockCount + 2*(hpatch_StreamPos_t)kMatchBlockSize;
 }
 
 hpatch_inline static
@@ -117,6 +143,7 @@ void toPartChecksum(unsigned char* out_partChecksum,
     memcpy(out_partChecksum,&v,kPartStrongChecksumByteSize);
 }
     
+
 #ifdef __cplusplus
 }
 #endif

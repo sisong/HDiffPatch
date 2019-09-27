@@ -29,7 +29,6 @@
 #include "match_in_old.h"
 #include "string.h" //memmove
 #include <algorithm> //sort, equal_range lower_bound
-#include <math.h> //log2
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/bloom_filter.h"
@@ -40,11 +39,12 @@
 using namespace hdiff_private;
 typedef unsigned char TByte;
 
+template<class tm_roll_uint>
 struct TIndex_comp{
-    inline explicit TIndex_comp(const roll_uint_t* _blocks):blocks(_blocks){ }
+    inline explicit TIndex_comp(const tm_roll_uint* _blocks):blocks(_blocks){ }
     struct TDigest{
-        roll_uint_t value;
-        inline explicit TDigest(roll_uint_t _value):value(_value){}
+        tm_roll_uint value;
+        inline explicit TDigest(tm_roll_uint _value):value(_value){}
     };
     template<class TIndex> inline
     bool operator()(const TIndex& x,const TDigest& y)const { return blocks[x]<y.value; }
@@ -53,12 +53,12 @@ struct TIndex_comp{
     template<class TIndex> inline
     bool operator()(const TIndex& x, const TIndex& y)const { return blocks[x]<blocks[y]; }
 protected:
-    const roll_uint_t* blocks;
+    const tm_roll_uint* blocks;
 };
 
 
-struct TOldDataCache {
-    TOldDataCache(const hpatch_TStreamInput* oldStream,uint32_t kMatchBlockSize,
+struct TOldDataCache_base {
+    TOldDataCache_base(const hpatch_TStreamInput* oldStream,uint32_t kMatchBlockSize,
                   hpatch_TChecksum* strongChecksumPlugin,size_t backZeroLen)
     :m_oldStream(oldStream),m_readedPos(0),m_strongChecksum_buf(0),m_cur(0),m_checksumHandle(0),
     m_kMatchBlockSize(kMatchBlockSize),m_backZeroLen(backZeroLen),
@@ -75,7 +75,7 @@ struct TOldDataCache {
         m_strongChecksum_buf=m_cache.data_end();
         _initCache();
     }
-    ~TOldDataCache(){
+    ~TOldDataCache_base(){
         if (m_checksumHandle)
             m_strongChecksumPlugin->close(m_strongChecksumPlugin,m_checksumHandle);
     }
@@ -96,12 +96,6 @@ struct TOldDataCache {
             memset(m_cache.data()+readLen,0,needLen-readLen);
         m_readedPos=0+needLen;
         m_cur=m_cache.data();
-        m_roolHash=roll_hash_start(m_cur,m_kMatchBlockSize);
-        // [       oldDataSize     +   backZeroLen  ]
-        //       ^              ^
-        //cache: [     readedPos]
-        //         ^
-        //        cur
     }
     void _cache(){
         if (m_readedPos >= m_oldStream->streamSize+m_backZeroLen){ m_cur=0; return; } //end
@@ -125,20 +119,9 @@ struct TOldDataCache {
         }
         m_readedPos+=needLen;
         m_cur-=needLen;
-        roll();
     }
-
+    
     inline bool isEnd()const{ return m_cur==0; }
-    inline roll_uint_t hashValue()const{ return m_roolHash; }
-    inline void roll(){
-        const TByte* curIn=m_cur+m_kMatchBlockSize;
-        if (curIn!=m_cache.data_end()){
-            m_roolHash=roll_hash_roll(m_roolHash,m_kMatchBlockSize,*m_cur,*curIn);
-            ++m_cur;
-        }else{
-            _cache();
-        }
-    }
     inline const TByte* calcPartStrongChecksum(){
         return _calcPartStrongChecksum(m_cur,m_kMatchBlockSize);
     }
@@ -148,12 +131,12 @@ struct TOldDataCache {
     inline hpatch_StreamPos_t curOldPos()const{
         return m_cur-m_cache.data();
     }
+protected:
     const hpatch_TStreamInput* m_oldStream;
     hpatch_StreamPos_t      m_readedPos;
     TAutoMem                m_cache;
     TByte*                  m_strongChecksum_buf;
     TByte*                  m_cur;
-    roll_uint_t             m_roolHash;
     uint32_t                m_kMatchBlockSize;
     uint32_t                m_checksumByteSize;
     size_t                  m_backZeroLen;
@@ -170,31 +153,84 @@ struct TOldDataCache {
     }
 };
 
+template<class tm_roll_uint>
+struct TOldDataCache:public TOldDataCache_base {
+    inline TOldDataCache(const hpatch_TStreamInput* oldStream,uint32_t kMatchBlockSize,
+                         hpatch_TChecksum* strongChecksumPlugin,size_t backZeroLen)
+            :TOldDataCache_base(oldStream,kMatchBlockSize,strongChecksumPlugin,backZeroLen){ }
+    void _initCache(){
+        TOldDataCache_base::_initCache();
+        if (isEnd()) return;
+        m_roolHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kMatchBlockSize);
+        // [       oldDataSize     +   backZeroLen  ]
+        //       ^              ^
+        //cache: [     readedPos]
+        //         ^
+        //        cur
+    }
+    void _cache(){
+        TOldDataCache_base::_cache();
+        if (isEnd()) return;
+        roll();
+    }
+    inline tm_roll_uint hashValue()const{ return m_roolHash; }
+    inline void roll(){
+        const TByte* curIn=m_cur+m_kMatchBlockSize;
+        if (curIn!=m_cache.data_end()){
+            m_roolHash=roll_hash_roll(m_roolHash,m_kMatchBlockSize,*m_cur,*curIn);
+            ++m_cur;
+        }else{
+            _cache();
+        }
+    }
+protected:
+    tm_roll_uint            m_roolHash;
+};
+
 inline static size_t getBackZeroLen(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
     size_t len=(size_t)(newDataSize % kMatchBlockSize);
     if (len!=0) len=kMatchBlockSize-len;
     return len;
 }
 
-static int getBestTableBit(uint32_t blockCount){
-    const int kMinBit = 8;
-    const int kMaxBit = 23;
-    int bit=(int)(log2((1<<kMinBit)+1.0+blockCount));
-    if (bit>kMaxBit) bit=kMaxBit;
-    return bit;
+static unsigned int getBetterTableBit(uint32_t blockCount){
+    const unsigned int kMinBit = 8;
+    const unsigned int kMaxBit = 23;
+    unsigned int result=upper_ilog2(blockCount);
+    result=(result<kMinBit)?kMinBit:result;
+    result=(result>kMaxBit)?kMaxBit:result;
+    return result;
 }
 
-//cpp code used stdexcept
-void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
-                       hpatch_StreamPos_t* out_needSyncSize,const TNewDataSyncInfo* newSyncInfo,
-                       const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin){
+static void setSameOldPos(uint32_t& matchedCount,hpatch_StreamPos_t& matchedSyncSize,
+                          const TNewDataSyncInfo* newSyncInfo,hpatch_StreamPos_t* out_newDataPoss) {
+    uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
+    uint32_t curPair=0;
+    for (uint32_t i=0; i<kBlockCount; ++i){
+        if ((curPair<newSyncInfo->samePairCount)
+            &&(i==newSyncInfo->samePairList[curPair].curIndex)){
+            hpatch_StreamPos_t sameOldPos=out_newDataPoss[newSyncInfo->samePairList[curPair].sameIndex];
+            if (sameOldPos!=kBlockType_needSync){
+                out_newDataPoss[i]=sameOldPos;
+                ++matchedCount;
+                matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+            }
+            ++curPair;
+        }
+    }
+}
+
+template<class tm_roll_uint>
+void tm_matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
+                          hpatch_StreamPos_t* out_needSyncSize,const TNewDataSyncInfo* newSyncInfo,
+                          const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin){
     uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
-    TIndex_comp icomp(newSyncInfo->rollHashs);
+    TIndex_comp<tm_roll_uint> icomp((tm_roll_uint*)newSyncInfo->rollHashs);
 
     TAutoMem _mem_sorted(kBlockCount*sizeof(uint32_t));
     uint32_t* sorted_newIndexs=(uint32_t*)_mem_sorted.data();
-    TBloomFilter<roll_uint_t> filter; filter.init(kBlockCount);
+    TBloomFilter<tm_roll_uint> filter; filter.init(kBlockCount);
     uint32_t sortedBlockCount=0;
     {
         uint32_t curPair=0;
@@ -205,39 +241,39 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
                 ++curPair;
             }else{
                 sorted_newIndexs[sortedBlockCount++]=i;
-                filter.insert(newSyncInfo->rollHashs[i]);
+                filter.insert(((tm_roll_uint*)newSyncInfo->rollHashs)[i]);
             }
         }
         assert(sortedBlockCount==kBlockCount-newSyncInfo->samePairCount);
     }
     
     //optimize for std::equal_range
-    const int kTableBit =getBestTableBit(sortedBlockCount);
-    const int kTableHashShlBit=(sizeof(roll_uint_t)*8-kTableBit);
+    const unsigned int kTableBit =getBetterTableBit(sortedBlockCount);
+    const unsigned int kTableHashShlBit=(sizeof(tm_roll_uint)*8-kTableBit);
     TAutoMem _mem_table(sizeof(uint32_t)*((1<<kTableBit)+1));
     uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
     {
         std::sort(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,icomp);
         uint32_t* pos=sorted_newIndexs;
         for (uint32_t i=0; i<(1<<kTableBit); ++i) {
-            roll_uint_t digest=((roll_uint_t)i)<<kTableHashShlBit;
-            typename TIndex_comp::TDigest digest_value(digest);
+            tm_roll_uint digest=((tm_roll_uint)i)<<kTableHashShlBit;
+            typename TIndex_comp<tm_roll_uint>::TDigest digest_value(digest);
             pos=std::lower_bound(pos,sorted_newIndexs+sortedBlockCount,digest_value,icomp);
             sorted_newIndexs_table[i]=(uint32_t)(pos-sorted_newIndexs);
         }
         sorted_newIndexs_table[(1<<kTableBit)]=sortedBlockCount;
     }
 
-    TOldDataCache oldData(oldStream,kMatchBlockSize,strongChecksumPlugin,
-                          getBackZeroLen(newSyncInfo->newDataSize,kMatchBlockSize));
+    TOldDataCache<tm_roll_uint> oldData(oldStream,kMatchBlockSize,strongChecksumPlugin,
+                                        getBackZeroLen(newSyncInfo->newDataSize,kMatchBlockSize));
     uint32_t matchedCount=0;
     hpatch_StreamPos_t matchedSyncSize=0;
     for (;!oldData.isEnd();oldData.roll()) {
-        roll_uint_t digest=oldData.hashValue();
+        tm_roll_uint digest=oldData.hashValue();
         if (!filter.is_hit(digest)) continue;
         
-        typename TIndex_comp::TDigest digest_value(digest);
         const uint32_t* ti_pos=&sorted_newIndexs_table[digest>>kTableHashShlBit];
+        typename TIndex_comp<tm_roll_uint>::TDigest digest_value(digest);
         std::pair<const uint32_t*,const uint32_t*>
             //range=std::equal_range(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,digest_value,icomp);
             range=std::equal_range(sorted_newIndexs+ti_pos[0],sorted_newIndexs+ti_pos[1],digest_value,icomp);
@@ -261,22 +297,21 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
             }while (range.first!=range.second);
         }
     }
-    { //samePair set same oldPos
-        uint32_t curPair=0;
-        for (uint32_t i=0; i<kBlockCount; ++i){
-            if ((curPair<newSyncInfo->samePairCount)
-                &&(i==newSyncInfo->samePairList[curPair].curIndex)){
-                hpatch_StreamPos_t sameOldPos=out_newDataPoss[newSyncInfo->samePairList[curPair].sameIndex];
-                if (sameOldPos!=kBlockType_needSync){
-                    out_newDataPoss[i]=sameOldPos;
-                    ++matchedCount;
-                    matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
-                }
-                ++curPair;
-            }
-        }
-    }
+    setSameOldPos(matchedCount,matchedSyncSize,newSyncInfo,out_newDataPoss);
     *out_needSyncCount=kBlockCount-matchedCount;
     *out_needSyncSize=newSyncInfo->newSyncDataSize-matchedSyncSize;
 }
 
+void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
+                       hpatch_StreamPos_t* out_needSyncSize,const TNewDataSyncInfo* newSyncInfo,
+                       const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin){
+    if (newSyncInfo->is32Bit_rollHash)
+        tm_matchNewDataInOld<uint32_t>(out_newDataPoss,out_needSyncCount,
+                                       out_needSyncSize,newSyncInfo,
+                                       oldStream,strongChecksumPlugin);
+    else
+        tm_matchNewDataInOld<uint64_t>(out_newDataPoss,out_needSyncCount,
+                                       out_needSyncSize,newSyncInfo,
+                                       oldStream,strongChecksumPlugin);
+        
+}
