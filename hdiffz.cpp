@@ -50,9 +50,6 @@
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
 #endif
-#ifndef _IS_NEED_ORIGINAL
-#   define  _IS_NEED_ORIGINAL 1
-#endif
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1
@@ -252,11 +249,6 @@ static void printUsage(){
            "  -f  Force overwrite, ignore write path already exists;\n"
            "      DEFAULT (no -f) not overwrite and then return error;\n"
            "      if used -f and write path is exist directory, will always return error.\n"
-#if (_IS_NEED_ORIGINAL)
-           "  -o  DEPRECATED; Original diff, unsupport run with -s -c -C -D;\n"
-           "      compatible with \"diff_demo.cpp\",\n"
-           "      diffFile must patch by \"patch_demo.c\" or \"hpatchz -o ...\"\n"
-#endif
            "  -h or -?\n"
            "      output Help info (this usage).\n"
            "  -v  output Version info.\n\n"
@@ -662,12 +654,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             continue;
         }
         switch (op[1]) {
-#if (_IS_NEED_ORIGINAL)
-            case 'o':{
-                _options_check((isOriginal==_kNULL_VALUE)&&(op[2]=='\0'),"-o");
-                isOriginal=hpatch_TRUE;
-            } break;
-#endif
             case 'm':{
                 _options_check((isLoadAll==_kNULL_VALUE)&&((op[2]=='-')||(op[2]=='\0')),"-m");
                 isLoadAll=hpatch_TRUE;
@@ -1038,48 +1024,6 @@ static hpatch_BOOL writeFileAll(const TByte* pdata,size_t dataSize,const char* o
     return hpatch_TFileStreamOutput_close(&file);
 }
 
-#if (_IS_NEED_ORIGINAL)
-static int saveSize(std::vector<TByte>& outBuf,hpatch_StreamPos_t size){
-    outBuf.push_back((TByte)size);
-    outBuf.push_back((TByte)(size>>8));
-    outBuf.push_back((TByte)(size>>16));
-    int writedSize;
-    if ((size>>31)==0){
-        writedSize=4;
-        outBuf.push_back((TByte)(size>>24));
-    }else{
-        writedSize=9;
-        outBuf.push_back(0xFF);
-        outBuf.push_back((TByte)(size>>24));
-        
-        const hpatch_StreamPos_t highSize=(size>>32);
-        outBuf.push_back((TByte)highSize);
-        outBuf.push_back((TByte)(highSize>>8));
-        outBuf.push_back((TByte)(highSize>>16));
-        outBuf.push_back((TByte)(highSize>>24));
-    }
-    return writedSize;
-}
-
-static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* outSize){
-    size_t lsize;
-    if (dataSize<4) return -1;
-    lsize=data[0]|(data[1]<<8)|(data[2]<<16);
-    if (data[3]!=0xFF){
-        lsize|=data[3]<<24;
-        *outSize=lsize;
-        return 4;
-    }else{
-        size_t hsize;
-        if (dataSize<9) return -1;
-        lsize|=data[4]<<24;
-        hsize=data[5]|(data[6]<<8)|(data[7]<<16)|(data[8]<<24);
-        *outSize=lsize|(((hpatch_StreamPos_t)hsize)<<32);
-        return 9;
-    }
-}
-#endif
-
 #define  _check_on_error(errorType) { \
     if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define check(value,errorType,errorInfo) { \
@@ -1101,18 +1045,8 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
     if (isDiff){
         std::vector<TByte> outDiffData;
         try {
-#if (_IS_NEED_ORIGINAL)
-            if (isOriginal){
-                size_t originalNewDataSavedSize=saveSize(outDiffData,newMem.size());
-                assert(originalNewDataSavedSize==outDiffData.size());
-                create_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                            outDiffData,(int)matchScore);
-            } else
-#endif
-            {
-                create_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                       outDiffData,compressPlugin,(int)matchScore);
-            }
+            create_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
+                                   outDiffData,compressPlugin,(int)matchScore);
         }catch(const std::exception& e){
             check(false,HDIFF_DIFF_ERROR,"diff run an error: "+e.what());
         }
@@ -1132,16 +1066,6 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
         printf("diffDataSize: %" PRIu64 "\n",(hpatch_StreamPos_t)diffMem.size());
         
         bool diffrt;
-#if (_IS_NEED_ORIGINAL)
-        if (isOriginal){
-            hpatch_StreamPos_t savedNewSize=0;
-            size_t originalNewDataSavedSize=readSavedSize(diffMem.data(),diffMem.size(),&savedNewSize);
-            check(originalNewDataSavedSize>0,HDIFF_PATCH_ERROR,"read diffFile savedNewSize");
-            check(savedNewSize==newMem.size(),HDIFF_PATCH_ERROR, "read diffFile savedNewSize")
-            diffrt=check_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                              diffMem.data()+originalNewDataSavedSize,diffMem.data_end());
-        } else
-#endif
         {
             hpatch_TDecompress* saved_decompressPlugin=0;
             {

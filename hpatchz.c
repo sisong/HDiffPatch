@@ -44,9 +44,6 @@
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
 #endif
-#ifndef _IS_NEED_ORIGINAL
-#   define  _IS_NEED_ORIGINAL 1
-#endif
 #ifndef _IS_NEED_SFX
 #   define _IS_NEED_SFX 1
 #endif
@@ -157,10 +154,6 @@ static void printUsage(){
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "        if patch output directory, will overwrite, but not delete\n"
            "          needless existing files in directory.\n"
-#endif
-#if (_IS_NEED_ORIGINAL)
-           "  -o  DEPRECATED; Original patch; compatible with \"patch_demo.c\",\n"
-           "      diffFile must created by \"diff_demo.cpp\" or \"hdiffz -o ...\"\n"
 #endif
            "  -h or -?\n"
            "      output Help info (this usage).\n"
@@ -400,12 +393,6 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 _options_check((isOutputVersion==_kNULL_VALUE)&&(op[2]=='\0'),"-v");
                 isOutputVersion=hpatch_TRUE;
             } break;
-#if (_IS_NEED_ORIGINAL)
-            case 'o':{
-                _options_check((isOriginal==_kNULL_VALUE)&&(op[2]=='\0'),"-o");
-                isOriginal=hpatch_TRUE;
-            } break;
-#endif
             default: {
                 _options_check(hpatch_FALSE,"-?");
             } break;
@@ -621,26 +608,6 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 }
 
 
-#if (_IS_NEED_ORIGINAL)
-static int readSavedSize(const TByte* data,size_t dataSize,hpatch_StreamPos_t* outSize){
-    size_t lsize;
-    if (dataSize<4) return -1;
-    lsize=data[0]|(data[1]<<8)|(data[2]<<16);
-    if (data[3]!=0xFF){
-        lsize|=data[3]<<24;
-        *outSize=lsize;
-        return 4;
-    }else{
-        size_t hsize;
-        if (dataSize<9) return -1;
-        lsize|=data[4]<<24;
-        hsize=data[5]|(data[6]<<8)|(data[7]<<16)|(data[8]<<24);
-        *outSize=lsize|(((hpatch_StreamPos_t)hsize)<<32);
-        return 9;
-    }
-}
-#endif
-
 #define  check_on_error(errorType) { \
     if (result==HPATCH_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define  check(value,errorType,errorInfo) { \
@@ -799,20 +766,6 @@ int hpatch(const char* oldFileName,const char* diffFileName,
         }
     }
 
-#if (_IS_NEED_ORIGINAL)
-    if (isOriginal){
-        int kNewDataSizeSavedSize=9;
-        TByte buf[9];
-        if (kNewDataSizeSavedSize>diffData.base.streamSize)
-            kNewDataSizeSavedSize=(int)diffData.base.streamSize;
-        check(diffData.base.read(&diffData.base,0,buf,buf+kNewDataSizeSavedSize),
-              HPATCH_FILEREAD_ERROR,"read diffFile");
-        kNewDataSizeSavedSize=readSavedSize(buf,kNewDataSizeSavedSize,&savedNewSize);
-        check(kNewDataSizeSavedSize>0,HPATCH_FILEDATA_ERROR,"read diffFile savedNewSize");
-        check(hpatch_TFileStreamInput_setOffset(&diffData,kNewDataSizeSavedSize),
-              HPATCH_FILEDATA_ERROR,"readed diffFile savedNewSize");
-    }else
-#endif
     {
         hpatch_compressedDiffInfo diffInfo;
         assert(!isOriginal);
@@ -839,14 +792,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,
     temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,poldData->streamSize, &temp_cache_size);
     check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory");
 
-#if (_IS_NEED_ORIGINAL)
-    if (isOriginal)
-        patch_result=patch_stream_with_cache(&newData.base,poldData,&diffData.base,
+    patch_result=patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
                                              temp_cache,temp_cache+temp_cache_size);
-    else
-#endif
-        patch_result=patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
-                                                 temp_cache,temp_cache+temp_cache_size);
     if (!patch_result){
         check(!oldData.fileError,HPATCH_FILEREAD_ERROR,"oldFile read");
         check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"diffFile read");
