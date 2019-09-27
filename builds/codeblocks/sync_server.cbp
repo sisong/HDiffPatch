@@ -49,6 +49,7 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 			<Add option="-D_FILE_OFFSET_BITS=64" />
+			<Add option="-D_7ZIP_ST" />
 			<Add directory="../../../lzma/C/" />
 			<Add directory="../../../libmd5/" />
 		</Compiler>
@@ -56,7 +57,16 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../libmd5/md5.h" />
+		<Unit filename="../../../lzma/C/Alloc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/LzFind.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../lzma/C/LzmaDec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/LzmaEnc.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/adler32.c">
