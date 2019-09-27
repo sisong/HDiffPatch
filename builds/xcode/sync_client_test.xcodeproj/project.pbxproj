@@ -37,9 +37,6 @@
 		D65892F82331D169003BB2F4 /* sync_client_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sync_client_test; sourceTree = BUILT_PRODUCTS_DIR; };
 		D658933A23327613003BB2F4 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
 		D658933C23327642003BB2F4 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
-		D658933D23327643003BB2F4 /* bloom_filter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bloom_filter.h; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/bloom_filter.h; sourceTree = "<group>"; };
-		D658933E23327643003BB2F4 /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = adler_roll.h; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h; sourceTree = "<group>"; };
-		D658933F23327643003BB2F4 /* mem_buf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mem_buf.h; path = ../../libHDiffPatch/HDiff/private_diff/mem_buf.h; sourceTree = "<group>"; };
 		D65893422332765B003BB2F4 /* sync_client_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sync_client_type.h; sourceTree = "<group>"; };
 		D65893432332765B003BB2F4 /* sync_client_main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_client_main.cpp; sourceTree = "<group>"; };
 		D65893442332765B003BB2F4 /* sync_client.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sync_client.h; sourceTree = "<group>"; };
@@ -108,9 +105,6 @@
 			children = (
 				D63B988E233607A6003D38A5 /* patch.c */,
 				D658933C23327642003BB2F4 /* adler_roll.c */,
-				D658933E23327643003BB2F4 /* adler_roll.h */,
-				D658933D23327643003BB2F4 /* bloom_filter.h */,
-				D658933F23327643003BB2F4 /* mem_buf.h */,
 				D658933A23327613003BB2F4 /* file_for_patch.c */,
 			);
 			name = HDiffPatch;

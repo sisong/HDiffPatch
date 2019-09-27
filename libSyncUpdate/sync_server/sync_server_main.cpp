@@ -51,8 +51,15 @@
 #define  IS_NOTICE_compress_canceled 0
 #include "../../compress_plugin_demo.h"
 
+
+#ifndef _IS_NEED_DEFAULT_ChecksumPlugin
+#   define _IS_NEED_DEFAULT_ChecksumPlugin 1
+#endif
+#if (_IS_NEED_DEFAULT_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
-#define  _ChecksumPlugin_md5
+#   define _ChecksumPlugin_md5
+#endif
+
 #include "../../checksum_plugin_demo.h"
 
 

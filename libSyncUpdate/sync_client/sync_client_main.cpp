@@ -46,7 +46,7 @@
 #endif
 #if (_IS_NEED_DEFAULT_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
-#   define _ChecksumPlugin_md5      // ? 128 bit effective
+#   define _ChecksumPlugin_md5
 #endif
 
 #include "../../checksum_plugin_demo.h"

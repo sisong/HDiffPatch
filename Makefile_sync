@@ -1,0 +1,72 @@
+# args
+LZMA     := 1
+
+HDP_OBJ := \
+    file_for_patch.o \
+    libHDiffPatch/HPatch/patch.o \
+    libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o
+
+SERVER_OBJ := \
+    libSyncUpdate/sync_server/sync_server.o \
+    libSyncUpdate/sync_server/match_in_new.o \
+    $(HDP_OBJ)
+
+CLIENT_OBJ := \
+    libSyncUpdate/sync_client/sync_client.o \
+    libSyncUpdate/sync_client/match_in_old.o \
+    libSyncUpdate/sync_client/download_emulation.o \
+    $(HDP_OBJ)
+
+DEF_FLAGS := \
+    -O3 -DNDEBUG -D_FILE_OFFSET_BITS=64 \
+    -D_IS_NEED_DEFAULT_CompressPlugin=0 \
+    -D_IS_NEED_DEFAULT_ChecksumPlugin=0 \
+    -D_7ZIP_ST \
+    -D_IS_USED_MULTITHREAD=0 \
+    -D_CompressPlugin_zlib  \
+    -D_ChecksumPlugin_md5 -I'../libmd5'
+
+  ifeq ($(LZMA),0)
+  else
+    DEF_FLAGS += \
+      -D_CompressPlugin_lzma -I'../lzma/C'
+  endif
+
+
+SYNC_LINK := -lz
+
+CFLAGS   += $(DEF_FLAGS) 
+CXXFLAGS += $(DEF_FLAGS)
+
+.PHONY: all clean
+
+all: md5Lib lzmaLib libsyncupdate.a sync_server sync_client_test
+
+MD5_OBJ     := 'md5.o'
+md5Lib      : # https://sourceforge.net/projects/libmd5-rfc  https://github.com/sisong/libmd5
+	$(CC) -c $(CFLAGS) '../libmd5/md5.c'
+
+ifeq ($(LZMA),0)
+  LZMA_DEC_OBJ :=
+  LZMA_OBJ     :=
+  lzmaLib      :
+else
+  LZMA_DEC_OBJ := 'LzmaDec.o'
+  LZMA_OBJ     := 'LzFind.o' 'LzmaEnc.o'  $(LZMA_DEC_OBJ)
+  LZMA_SRC     := '../lzma/C/LzFind.c' '../lzma/C/LzmaDec.c' '../lzma/C/LzmaEnc.c'
+  lzmaLib: # https://www.7-zip.org/sdk.html  https://github.com/sisong/lzma
+	$(CC) -c $(CFLAGS) $(LZMA_SRC)
+endif
+
+libsyncupdate.a: $(SERVER_OBJ) $(CLIENT_OBJ)
+	$(AR) rcs $@ $^
+
+sync_server: 
+	$(CXX) libSyncUpdate/sync_server/sync_server_main.cpp $(SERVER_OBJ) $(MD5_OBJ) $(LZMA_OBJ) $(CXXFLAGS) $(SYNC_LINK) -o  sync_server
+sync_client_test: 
+	$(CXX) libSyncUpdate/sync_client/sync_client_main.cpp $(CLIENT_OBJ) $(MD5_OBJ) $(LZMA_DEC_OBJ) $(CXXFLAGS) $(SYNC_LINK) -o sync_client_test
+
+RM := rm -f
+
+clean:
+	$(RM) libsyncupdate.a sync_server sync_client_test $(SERVER_OBJ) $(CLIENT_OBJ) $(MD5_OBJ) $(LZMA_OBJ)

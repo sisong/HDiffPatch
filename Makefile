@@ -3,6 +3,7 @@ LZMA     := 1
 DIR_DIFF := 1
 MD5      := 0
 MT       := 0
+SYNC     := 1
 
 
 HPATCH_OBJ := \
@@ -95,7 +96,7 @@ CXXFLAGS += $(DEF_FLAGS)
 
 .PHONY: all install clean
 
-all: md5Lib lzmaLib libhdiffpatch.a hdiffz hpatchz
+all: md5Lib lzmaLib libhdiffpatch.a hdiffz hpatchz make_sync
 
 ifeq ($(DIR_DIFF),0)
   MD5_OBJ     :=
@@ -138,12 +139,23 @@ hdiffz:
 hpatchz: 
 	$(CC) hpatchz.c $(HPATCH_OBJ) $(MD5_OBJ) $(LZMA_DEC_OBJ) $(CFLAGS) $(PATCH_LINK) -o hpatchz
 
+
+MAKE = make
+
+ifeq ($(SYNC),0)
+  make_sync:
+else
+  make_sync:
+	$(MAKE) -f Makefile_sync LZMA=$(LZMA)
+endif
+
 RM := rm -f
 INSTALL_X := install -m 0755
 INSTALL_BIN := $(DESTDIR)/usr/local/bin
 
 clean:
 	$(RM) libhdiffpatch.a hdiffz hpatchz $(HDIFF_OBJ) $(MD5_OBJ) $(LZMA_OBJ)
+	$(MAKE) -f Makefile_sync clean
 
 install: all
 	$(INSTALL_X) hdiffz $(INSTALL_BIN)/hdiffz
