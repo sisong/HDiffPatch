@@ -154,7 +154,7 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
     {//compress buf
         std::vector<TByte> cmbuf;
         if (compressPlugin){
-            cmbuf.resize(compressPlugin->maxCompressedSize(buf.size()));
+            cmbuf.resize((size_t)compressPlugin->maxCompressedSize(buf.size()));
             size_t compressedSize=hdiff_compress_mem(compressPlugin,cmbuf.data(),cmbuf.data()+cmbuf.size(),
                                                      buf.data(),buf.data()+buf.size());
             check(compressedSize>0);
@@ -192,7 +192,7 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
     
     {//rollHashs
         uint32_t curPair=0;
-        bool is32Bit_rollHash=self->is32Bit_rollHash;
+        bool is32Bit_rollHash=(0!=self->is32Bit_rollHash);
         uint32_t* rhashs32=(uint32_t*)self->rollHashs;
         uint64_t* rhashs64=(uint64_t*)self->rollHashs;
         for (size_t i=0; i<kBlockCount; ++i){
@@ -304,7 +304,7 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
     
     const uint32_t kBlockCount=out_newSyncInfo.blockCount();
     std::vector<TByte> buf(kMatchBlockSize);
-    std::vector<TByte> cmbuf(compressPlugin?compressPlugin->maxCompressedSize(kMatchBlockSize):0);
+    std::vector<TByte> cmbuf(compressPlugin?((size_t)compressPlugin->maxCompressedSize(kMatchBlockSize)):0);
     const size_t checksumByteSize=strongChecksumPlugin->checksumByteSize();
     check((checksumByteSize==(uint32_t)checksumByteSize)
           &&(checksumByteSize>=kPartStrongChecksumByteSize)
@@ -324,7 +324,7 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
     for (uint32_t i=0; i<kBlockCount; ++i,curReadPos+=kMatchBlockSize) {
         //read data
         size_t dataLen=buf.size();
-        if (i==kBlockCount-1) dataLen=newData->streamSize-curReadPos;
+        if (i==kBlockCount-1) dataLen=(size_t)(newData->streamSize-curReadPos);
         check(newData->read(newData,curReadPos,buf.data(),buf.data()+dataLen));
         size_t backZeroLen=kMatchBlockSize-dataLen;
         if (backZeroLen>0)

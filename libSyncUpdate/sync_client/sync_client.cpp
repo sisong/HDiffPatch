@@ -311,7 +311,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
     }
     {//rollHashs
         uint32_t curPair=0;
-        bool is32Bit_rollHash=self->is32Bit_rollHash;
+        bool is32Bit_rollHash=(0!=self->is32Bit_rollHash);
         uint32_t* rhashs32=(uint32_t*)self->rollHashs;
         uint64_t* rhashs64=(uint64_t*)self->rollHashs;
         for (size_t i=0; i<kBlockCount; ++i){

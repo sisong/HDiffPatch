@@ -76,7 +76,7 @@ bool downloadEmulation_close(ISyncPatchListener* emulation){
     TDownloadEmulation* self=(TDownloadEmulation*)emulation->import;
     memset(emulation,0,sizeof(*emulation));
     if (self==0) return true;
-    bool result=hpatch_TFileStreamInput_close(&self->file);
+    bool result=(0!=hpatch_TFileStreamInput_close(&self->file));
     free(self);
     return result;
 }

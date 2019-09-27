@@ -84,12 +84,12 @@ struct TOldDataCache_base {
         
         size_t needLen=m_cache.size();
         if (needLen>m_oldStream->streamSize+m_backZeroLen){
-            needLen=m_oldStream->streamSize+m_backZeroLen;
+            needLen=(size_t)(m_oldStream->streamSize+m_backZeroLen);
             m_cache.reduceSize(needLen);
         }
         size_t readLen=needLen;
         if (readLen>m_oldStream->streamSize)
-            readLen=m_oldStream->streamSize;
+            readLen=(size_t)(m_oldStream->streamSize);
         check(m_oldStream->read(m_oldStream,0,m_cache.data(),m_cache.data()+readLen),
               "TOldDataCache read oldData error!");
         if (readLen<needLen)
@@ -102,12 +102,12 @@ struct TOldDataCache_base {
         
         size_t needLen=m_cur-m_cache.data();
         if (m_readedPos+needLen>m_oldStream->streamSize+m_backZeroLen)
-            needLen=m_oldStream->streamSize+m_backZeroLen-m_readedPos;
+            needLen=(size_t)(m_oldStream->streamSize+m_backZeroLen-m_readedPos);
         memmove(m_cur-needLen,m_cur,m_cache.data_end()-m_cur);
         if (m_readedPos<m_oldStream->streamSize){
             size_t readLen=needLen;
             if (m_readedPos+readLen>m_oldStream->streamSize)
-                readLen=m_oldStream->streamSize-m_readedPos;
+                readLen=(size_t)(m_oldStream->streamSize-m_readedPos);
             TByte* buf=m_cache.data_end()-needLen;
             check(m_oldStream->read(m_oldStream,m_readedPos,buf,buf+readLen),
                   "TOldDataCache read oldData error!");
@@ -253,13 +253,13 @@ void tm_matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_need
     uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
     {
         uint32_t* pos=sorted_newIndexs;
-        for (uint32_t i=0; i<(1<<kTableBit); ++i) {
+        for (uint32_t i=0; i<((uint32_t)1<<kTableBit); ++i) {
             tm_roll_uint digest=((tm_roll_uint)i)<<kTableHashShlBit;
             typename TIndex_comp<tm_roll_uint>::TDigest digest_value(digest);
             pos=std::lower_bound(pos,sorted_newIndexs+sortedBlockCount,digest_value,icomp);
             sorted_newIndexs_table[i]=(uint32_t)(pos-sorted_newIndexs);
         }
-        sorted_newIndexs_table[(1<<kTableBit)]=sortedBlockCount;
+        sorted_newIndexs_table[((size_t)1<<kTableBit)]=sortedBlockCount;
     }
 
     TOldDataCache<tm_roll_uint> oldData(oldStream,kMatchBlockSize,strongChecksumPlugin,

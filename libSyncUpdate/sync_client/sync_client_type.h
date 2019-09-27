@@ -94,7 +94,7 @@ hpatch_StreamPos_t getBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchB
     static int estimateHashClashBit(hpatch_StreamPos_t newDataSize,
                                 uint32_t kMatchBlockSize,bool isUse32bitRollHash=false){
         //clash=oldDataSize*(newDataSize/kMatchBlockSize)/2^64/2^64
-        long double blockCount=getBlockCount(newDataSize,kMatchBlockSize);
+        long double blockCount=(long double)getBlockCount(newDataSize,kMatchBlockSize);
         int cmpHashCountBit=upper_ilog2(newDataSize*blockCount);
         return cmpHashCountBit-(isUse32bitRollHash?32:64)-kPartStrongChecksumByteSize*8;
     }
