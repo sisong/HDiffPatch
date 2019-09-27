@@ -4,7 +4,7 @@
 /*
  The MIT License (MIT)
  Copyright (c) 2019-2019 HouSisong
- 
+
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
  files (the "Software"), to deal in the Software without
@@ -13,10 +13,10 @@
  copies of the Software, and to permit persons to whom the
  Software is furnished to do so, subject to the following
  conditions:
- 
+
  The above copyright notice and this permission notice shall be
  included in all copies of the Software.
- 
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -60,13 +60,12 @@ protected:
 struct TOldDataCache_base {
     TOldDataCache_base(const hpatch_TStreamInput* oldStream,uint32_t kMatchBlockSize,
                   hpatch_TChecksum* strongChecksumPlugin,size_t backZeroLen)
-    :m_oldStream(oldStream),m_readedPos(0),m_strongChecksum_buf(0),m_cur(0),m_checksumHandle(0),
-    m_kMatchBlockSize(kMatchBlockSize),m_backZeroLen(backZeroLen),
-    m_strongChecksumPlugin(strongChecksumPlugin){
+    :m_oldStream(oldStream),m_readedPos(0),m_strongChecksum_buf(0),m_cur(0),m_kMatchBlockSize(kMatchBlockSize),m_checksumByteSize(0),
+    m_backZeroLen(backZeroLen),m_strongChecksumPlugin(strongChecksumPlugin),m_checksumHandle(0){
         size_t cacheSize=(size_t)kMatchBlockSize*2;
         check((cacheSize>>1)==kMatchBlockSize,"TOldDataCache mem error!");
         cacheSize=(cacheSize>=hpatch_kFileIOBufBetterSize)?cacheSize:hpatch_kFileIOBufBetterSize;
-        
+
         m_checksumHandle=strongChecksumPlugin->open(strongChecksumPlugin);
         checkv(m_checksumHandle!=0);
         m_checksumByteSize=(uint32_t)m_strongChecksumPlugin->checksumByteSize();
@@ -81,7 +80,7 @@ struct TOldDataCache_base {
     }
     void _initCache(){
         if (m_oldStream->streamSize+m_backZeroLen<m_kMatchBlockSize){ m_cur=0; return; } //end
-        
+
         size_t needLen=m_cache.size();
         if (needLen>m_oldStream->streamSize+m_backZeroLen){
             needLen=(size_t)(m_oldStream->streamSize+m_backZeroLen);
@@ -99,7 +98,7 @@ struct TOldDataCache_base {
     }
     void _cache(){
         if (m_readedPos >= m_oldStream->streamSize+m_backZeroLen){ m_cur=0; return; } //end
-        
+
         size_t needLen=m_cur-m_cache.data();
         if (m_readedPos+needLen>m_oldStream->streamSize+m_backZeroLen)
             needLen=(size_t)(m_oldStream->streamSize+m_backZeroLen-m_readedPos);
@@ -120,7 +119,7 @@ struct TOldDataCache_base {
         m_readedPos+=needLen;
         m_cur-=needLen;
     }
-    
+
     inline bool isEnd()const{ return m_cur==0; }
     inline const TByte* calcPartStrongChecksum(){
         return _calcPartStrongChecksum(m_cur,m_kMatchBlockSize);
@@ -142,7 +141,7 @@ protected:
     size_t                  m_backZeroLen;
     hpatch_TChecksum*       m_strongChecksumPlugin;
     hpatch_checksumHandle   m_checksumHandle;
-    
+
     inline const TByte* _calcPartStrongChecksum(const TByte* buf,size_t bufSize){
         m_strongChecksumPlugin->begin(m_checksumHandle);
         m_strongChecksumPlugin->append(m_checksumHandle,buf,buf+bufSize);
@@ -245,7 +244,7 @@ void tm_matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_need
         assert(sortedBlockCount==kBlockCount-newSyncInfo->samePairCount);
     }
     std::sort(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,icomp);
-    
+
     //optimize for std::equal_range
     const unsigned int kTableBit =getBetterTableBit(sortedBlockCount);
     const unsigned int kTableHashShlBit=(sizeof(tm_roll_uint)*8-kTableBit);
@@ -269,7 +268,7 @@ void tm_matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_need
     for (;!oldData.isEnd();oldData.roll()) {
         tm_roll_uint digest=oldData.hashValue();
         if (!filter.is_hit(digest)) continue;
-        
+
         const uint32_t* ti_pos=&sorted_newIndexs_table[digest>>kTableHashShlBit];
         typename TIndex_comp<tm_roll_uint>::TDigest digest_value(digest);
         std::pair<const uint32_t*,const uint32_t*>
@@ -311,5 +310,5 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
         tm_matchNewDataInOld<uint64_t>(out_newDataPoss,out_needSyncCount,
                                        out_needSyncSize,newSyncInfo,
                                        oldStream,strongChecksumPlugin);
-        
+
 }

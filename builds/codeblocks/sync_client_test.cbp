@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="sync_client_test" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/sync_client_test" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/sync_client_test" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-fomit-frame-pointer" />
+					<Add option="-O3" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+			<Target title="Release_x86">
+				<Option output="bin/Release_x86/sync_client_test" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release_x86/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-march=i386" />
+					<Add option="-fomit-frame-pointer" />
+					<Add option="-O3" />
+					<Add option="-m32" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="-m32" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+			<Add option="-D_FILE_OFFSET_BITS=64" />
+			<Add directory="../../../lzma/C/" />
+			<Add directory="../../../libmd5/" />
+		</Compiler>
+		<Unit filename="../../../libmd5/md5.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../libmd5/md5.h" />
+		<Unit filename="../../../lzma/C/LzmaDec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zlib/adler32.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zlib/crc32.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zlib/inffast.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zlib/inflate.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zlib/inftrees.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zlib/trees.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zlib/zlib.h" />
+		<Unit filename="../../../zlib/zutil.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../file_for_patch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../libSyncUpdate/sync_client/download_emulation.cpp" />
+		<Unit filename="../../libSyncUpdate/sync_client/match_in_old.cpp" />
+		<Unit filename="../../libSyncUpdate/sync_client/sync_client.cpp" />
+		<Unit filename="../../libSyncUpdate/sync_client/sync_client_main.cpp" />
+		<Extensions>
+			<envvars />
+			<code_completion />
+			<lib_finder disable_auto="1" />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

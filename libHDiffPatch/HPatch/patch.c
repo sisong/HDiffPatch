@@ -70,11 +70,13 @@ void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
             return _hpatch_FALSE;
         }
     }
+    typedef hpatch_BOOL (*_read_mem_stream_t)(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
+                                              unsigned char* out_data,unsigned char* out_data_end);
 void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
                           unsigned char* mem,unsigned char* mem_end){
     out_stream->streamImport=mem;
     out_stream->streamSize=mem_end-mem;
-    *(void**)(&out_stream->read_writed)=(void*)_read_mem_stream;
+    out_stream->read_writed=(_read_mem_stream_t)_read_mem_stream;
     out_stream->write=_write_mem_stream;
 }
 

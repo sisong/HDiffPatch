@@ -3,7 +3,7 @@ LZMA     := 1
 DIR_DIFF := 1
 MD5      := 0
 MT       := 0
-SYNC     := 1
+SYNC     := 0
 
 
 HPATCH_OBJ := \

@@ -24,12 +24,16 @@ script:
 - make clean
 - make
 - make clean
+- git clone https://github.com/sisong/libmd5.git ../libmd5
+- make SYNC=1
+- make clean
 - cd ../lzma
 - git checkout -b pthread origin/pthread
 - cd ../HDiffPatch
-- git clone https://github.com/sisong/libmd5.git ../libmd5
-- make MT=1 MD5=1
+- make MT=1 MD5=1 SYNC=1 
 - if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hdiffz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
 - if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
 - if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme unitTest -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
+- if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/sync_server.xcworkspace -scheme sync_server -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
+- if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/sync_client_test.xcworkspace -scheme sync_client_test -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
 
