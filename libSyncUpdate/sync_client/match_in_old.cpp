@@ -157,17 +157,15 @@ template<class tm_roll_uint>
 struct TOldDataCache:public TOldDataCache_base {
     inline TOldDataCache(const hpatch_TStreamInput* oldStream,uint32_t kMatchBlockSize,
                          hpatch_TChecksum* strongChecksumPlugin,size_t backZeroLen)
-            :TOldDataCache_base(oldStream,kMatchBlockSize,strongChecksumPlugin,backZeroLen){ }
-    void _initCache(){
-        TOldDataCache_base::_initCache();
-        if (isEnd()) return;
-        m_roolHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kMatchBlockSize);
-        // [       oldDataSize     +   backZeroLen  ]
-        //       ^              ^
-        //cache: [     readedPos]
-        //         ^
-        //        cur
-    }
+            :TOldDataCache_base(oldStream,kMatchBlockSize,strongChecksumPlugin,backZeroLen){
+                if (isEnd()) return;
+                m_roolHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kMatchBlockSize);
+                // [       oldDataSize     +   backZeroLen  ]
+                //       ^              ^
+                //cache: [     readedPos]
+                //         ^
+                //        cur
+            }
     void _cache(){
         TOldDataCache_base::_cache();
         if (isEnd()) return;
@@ -194,9 +192,9 @@ inline static size_t getBackZeroLen(hpatch_StreamPos_t newDataSize,uint32_t kMat
 }
 
 static unsigned int getBetterTableBit(uint32_t blockCount){
-    const unsigned int kMinBit = 8;
-    const unsigned int kMaxBit = 23;
-    unsigned int result=upper_ilog2(blockCount);
+    const int kMinBit = 8;
+    const int kMaxBit = 23;
+    int result=(int)upper_ilog2((1<<kMinBit)+blockCount)-1;
     result=(result<kMinBit)?kMinBit:result;
     result=(result>kMaxBit)?kMaxBit:result;
     return result;
@@ -246,6 +244,7 @@ void tm_matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_need
         }
         assert(sortedBlockCount==kBlockCount-newSyncInfo->samePairCount);
     }
+    std::sort(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,icomp);
     
     //optimize for std::equal_range
     const unsigned int kTableBit =getBetterTableBit(sortedBlockCount);
@@ -253,7 +252,6 @@ void tm_matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_need
     TAutoMem _mem_table(sizeof(uint32_t)*((1<<kTableBit)+1));
     uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
     {
-        std::sort(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,icomp);
         uint32_t* pos=sorted_newIndexs;
         for (uint32_t i=0; i<(1<<kTableBit); ++i) {
             tm_roll_uint digest=((tm_roll_uint)i)<<kTableHashShlBit;

@@ -254,7 +254,7 @@ public:
         this->_samePairList.resize(kBlockCount);
         this->samePairList=this->_samePairList.data();
         
-        this->is32Bit_rollHash=estimateIsUse32bitRollHash(newDataSize,kMatchBlockSize);
+        this->is32Bit_rollHash=isCanUse32bitRollHash(newDataSize,kMatchBlockSize);
         this->_rollHashs.resize(this->is32Bit_rollHash?((kBlockCount+1)/2):kBlockCount);
         this->rollHashs=this->_rollHashs.data();
         

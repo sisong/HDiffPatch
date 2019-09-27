@@ -84,24 +84,35 @@ hpatch_StreamPos_t getBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchB
                                     return (newDataSize+(kMatchBlockSize-1))/kMatchBlockSize; }
 
     hpatch_inline static
-    unsigned int upper_ilog2(hpatch_StreamPos_t v){
-        unsigned int result=0;
-        while (((hpatch_StreamPos_t)1<<result)<v) ++result;
-        return result;  }
-static bool estimateIsUse32bitRollHash(hpatch_StreamPos_t newDataSize,
-                                       uint32_t kMatchBlockSize){
-    return false;
-#warning is32Bit_rollHash?
+    unsigned int upper_ilog2(long double v){
+        unsigned int bit=0;
+        long double p=1;
+        while (p<v){ ++bit; p*=2; }
+        return bit;  }
+    
+    const int kAllowMaxHashClashBit = -48; // (1/2^48)
+    static int estimateHashClashBit(hpatch_StreamPos_t newDataSize,
+                                uint32_t kMatchBlockSize,bool isUse32bitRollHash=false){
+        //clash=oldDataSize*(newDataSize/kMatchBlockSize)/2^64/2^64
+        long double blockCount=getBlockCount(newDataSize,kMatchBlockSize);
+        int cmpHashCountBit=upper_ilog2(newDataSize*blockCount);
+        return cmpHashCountBit-(isUse32bitRollHash?32:64)-kPartStrongChecksumByteSize*8;
+    }
+hpatch_inline static
+bool isCanUse32bitRollHash(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
+    const bool isUse32bitRollHash=true;
+    int clashBit=estimateHashClashBit(newDataSize,kMatchBlockSize,isUse32bitRollHash);
+    return clashBit<=kAllowMaxHashClashBit;
 }
 
 hpatch_inline static
 hpatch_StreamPos_t estimatePatchMemSize(hpatch_StreamPos_t newDataSize,
                                         uint32_t kMatchBlockSize,bool isUsedCompress){
     hpatch_StreamPos_t blockCount=getBlockCount(newDataSize,kMatchBlockSize);
-    bool  isUse32bitRollHash=estimateIsUse32bitRollHash(newDataSize,kMatchBlockSize);
-    hpatch_StreamPos_t bet=36;
-    if (isUse32bitRollHash) bet+=4;
-    if (isUsedCompress) bet+=4;
+    bool  isUse32bitRollHash=isCanUse32bitRollHash(newDataSize,kMatchBlockSize);
+    hpatch_StreamPos_t bet=40;
+    if (isUse32bitRollHash) bet-=4;
+    if (isUsedCompress)     bet+=4;
     return bet*blockCount + 2*(hpatch_StreamPos_t)kMatchBlockSize;
 }
 

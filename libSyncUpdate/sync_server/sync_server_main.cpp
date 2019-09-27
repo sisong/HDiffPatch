@@ -84,6 +84,7 @@ static void printUsage(){
 typedef enum TSyncServerResult {
     SYNC_SERVER_SUCCESS=0,
     SYNC_SERVER_OPTIONS_ERROR,
+    SYNC_SERVER_BLOCKSIZE_ERROR,
     SYNC_SERVER_NEWFILE_ERROR,
     SYNC_SERVER_OUTFILE_ERROR,
     SYNC_SERVER_CANNOT_OVERWRITE_ERROR,
@@ -305,6 +306,9 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     printf("block size : %d\n",(uint32_t)kMatchBlockSize);
     hpatch_StreamPos_t blockCount=getBlockCount(newDataSize,(uint32_t)kMatchBlockSize);
     printf("block count: %" PRIu64 "\n",blockCount);
+    int hashClashBit=estimateHashClashBit(newDataSize,(uint32_t)kMatchBlockSize);
+    _return_check(hashClashBit<=kAllowMaxHashClashBit,
+                  SYNC_SERVER_BLOCKSIZE_ERROR,"hash clash warning! must increase matchBlockSize(%d) !\n",(uint32_t)kMatchBlockSize);
     double patchMemSize=estimatePatchMemSize(newDataSize,(uint32_t)kMatchBlockSize,(compressPlugin!=0));
     if (patchMemSize>=(1<<20))
         printf("sync_patch memory size: ~ %.3f MB\n",patchMemSize/(1<<20));
