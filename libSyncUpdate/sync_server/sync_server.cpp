@@ -32,6 +32,9 @@
 #include <string>
 #include "../../file_for_patch.h"
 #include "match_in_new.h"
+#if (_IS_USED_MULTITHREAD)
+#   include "../../libParallel/parallel_channel.h"
+#endif
 
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
@@ -270,12 +273,6 @@ public:
         }
     }
     ~CNewDataSyncInfo(){}
-    
-    void setStrongChecksums(size_t index,const TByte* checksum,size_t checksumByteSize){
-        assert(checksumByteSize==this->kStrongChecksumByteSize);
-        toPartChecksum(this->partChecksums+index*(size_t)kPartStrongChecksumByteSize,
-                       checksum,checksumByteSize);
-    }
     void insetSamePair(uint32_t curIndex,uint32_t sameIndex){
         TSameNewDataPair& samePair=this->samePairList[this->samePairCount];
         samePair.curIndex=curIndex;
@@ -293,16 +290,106 @@ private:
     std::vector<TByte>          _newDataInsureStrongChecksums;
 };
 
-static void create_sync_data(const hpatch_TStreamInput*  newData,
-                             CNewDataSyncInfo&           out_newSyncInfo,
-                             const hpatch_TStreamOutput* out_newSyncData,
-                             const hdiff_TCompress* compressPlugin,
-                             hpatch_TChecksum*      strongChecksumPlugin,
-                             uint32_t kMatchBlockSize){
-    check(kMatchBlockSize>=kMatchBlockSize_min);
-    if (compressPlugin) check(out_newSyncData!=0);
+#if (_IS_USED_MULTITHREAD)
+struct TMt_shareDatas {
+    const int threadNum;
+    hpatch_StreamPos_t curOutPos;
+    inline explicit TMt_shareDatas(int _threadNum,uint32_t _blockCount)
+        :threadNum(_threadNum),blockCount(_blockCount),curOutPos(0),
+        inputBlockIndex(0),finishThreadNum(0){
+            wakeup(0);
+        }
+    inline void finish(){
+        CAutoLocker _auto_locker(finishLocker.locker);
+        ++finishThreadNum;
+    }
+    void waitAllFinish(){
+        while(true){
+            {   CAutoLocker _auto_locker(finishLocker.locker);
+                if (finishThreadNum==threadNum) break;
+            }//else
+            this_thread_yield();
+        }
+    }
+    struct TAutoInputLocker{
+        TAutoInputLocker(TMt_shareDatas* _mt,uint32_t workBlockIndex,bool* out_isGotWork)
+        :mt(_mt),isLock(false){
+            if (mt){
+                isLock=_mt->getWork(workBlockIndex);
+                *out_isGotWork=isLock;
+                if (isLock)
+                    locker_enter(mt->readLocker.locker); //for read file
+            }else{
+                *out_isGotWork=true;
+            }
+        }
+        inline ~TAutoInputLocker(){ if (mt&&isLock) locker_leave(mt->readLocker.locker); }
+        TMt_shareDatas* mt;
+        bool            isLock;
+    };
+    struct TAutoOutputLocker{
+        TAutoOutputLocker(TMt_shareDatas* _mt,uint32_t workBlockIndex)
+        :mt(_mt),blockIndex(workBlockIndex){
+            if (mt){
+                check(mt->wait(workBlockIndex))
+            }
+        }
+        inline ~TAutoOutputLocker(){ if (mt) { mt->wakeup(blockIndex+1); } }
+        TMt_shareDatas* mt;
+        uint32_t        blockIndex;
+    };
+private:
+    uint32_t  blockCount;
+    uint32_t  inputBlockIndex;
+    int       finishThreadNum;
+    CHLocker  inputIndexLocker;
+    CHLocker  readLocker;
+    CHLocker  finishLocker;
+    CChannel  outChannel;
     
-    const uint32_t kBlockCount=out_newSyncInfo.blockCount();
+    bool wait(uint32_t workBlockIndex){
+        CChannel& channel=outChannel;
+        while(true){
+            TChanData cData=channel.accept(true);//wait
+            if (cData==0) return false; //channel closed
+            uint32_t curBlockIndex=(uint32_t)((size_t)cData-1);
+            if (workBlockIndex==curBlockIndex){
+                return true; //ok
+            }else{
+                wakeup(curBlockIndex);
+                //continue wait
+                this_thread_yield();
+            }
+        }
+    }
+    void wakeup(uint32_t curBlockIndex){
+        CChannel& channel=outChannel;
+        if (curBlockIndex<blockCount){
+            TChanData cData=(TChanData)(size_t)(curBlockIndex+1);
+            channel.send(cData,true);
+        }
+    }
+    
+    bool getWork(uint32_t blockIndex){
+        CAutoLocker _auto_locker(inputIndexLocker.locker);
+        if (blockIndex==inputBlockIndex){
+            ++inputBlockIndex;
+            return true;
+        }else{
+            return false;
+        }
+    }
+};
+#endif
+
+static void mt_create_sync_data(const hpatch_TStreamInput*  newData,
+                                TNewDataSyncInfo*           out_newSyncInfo,
+                                const hpatch_TStreamOutput* out_newSyncData,
+                                const hdiff_TCompress* compressPlugin,
+                                hpatch_TChecksum*      strongChecksumPlugin,
+                                uint32_t kMatchBlockSize,
+                                void* _mt=0){
+    const uint32_t kBlockCount=(uint32_t)getBlockCount(out_newSyncInfo->newDataSize,kMatchBlockSize);
     std::vector<TByte> buf(kMatchBlockSize);
     std::vector<TByte> cmbuf(compressPlugin?((size_t)compressPlugin->maxCompressedSize(kMatchBlockSize)):0);
     const size_t checksumByteSize=strongChecksumPlugin->checksumByteSize();
@@ -313,34 +400,36 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
     hpatch_checksumHandle checksumBlockData=strongChecksumPlugin->open(strongChecksumPlugin);
     check(checksumBlockData!=0);
     _TAutoClose_checksumHandle _autoClose_checksumHandle(strongChecksumPlugin,checksumBlockData);
-    std::vector<TByte> checksumNewData_buf(checksumByteSize);
-    hpatch_checksumHandle checksumNewData=strongChecksumPlugin->open(strongChecksumPlugin);
-    check(checksumNewData!=0);
-    _TAutoClose_checksumHandle _autoClose_checksumNewData(strongChecksumPlugin,checksumNewData);
     
     hpatch_StreamPos_t curReadPos=0;
     hpatch_StreamPos_t curOutPos=0;
-    strongChecksumPlugin->begin(checksumNewData);
     for (uint32_t i=0; i<kBlockCount; ++i,curReadPos+=kMatchBlockSize) {
-        //read data
         size_t dataLen=buf.size();
         if (i==kBlockCount-1) dataLen=(size_t)(newData->streamSize-curReadPos);
-        check(newData->read(newData,curReadPos,buf.data(),buf.data()+dataLen));
+        {//read data
+#if (_IS_USED_MULTITHREAD)
+            bool isGotWork;
+            TMt_shareDatas::TAutoInputLocker _autoLocker((TMt_shareDatas*)_mt,i,&isGotWork);
+            if (!isGotWork) continue; //next work;
+#endif
+            check(newData->read(newData,curReadPos,buf.data(),buf.data()+dataLen));
+        }
         size_t backZeroLen=kMatchBlockSize-dataLen;
         if (backZeroLen>0)
             memset(buf.data()+dataLen,0,backZeroLen);
+        
+        uint64_t rollHash;
         //rool hash
-        if (out_newSyncInfo.is32Bit_rollHash)
-            ((uint32_t*)out_newSyncInfo.rollHashs)[i]=roll_hash_start((uint32_t*)0,buf.data(),kMatchBlockSize);
+        if (out_newSyncInfo->is32Bit_rollHash)
+            rollHash=roll_hash_start((uint32_t*)0,buf.data(),kMatchBlockSize);
         else
-            ((uint64_t*)out_newSyncInfo.rollHashs)[i]=roll_hash_start((uint64_t*)0,buf.data(),kMatchBlockSize);
+            rollHash=roll_hash_start((uint64_t*)0,buf.data(),kMatchBlockSize);
         //strong hash
         strongChecksumPlugin->begin(checksumBlockData);
         strongChecksumPlugin->append(checksumBlockData,buf.data(),buf.data()+kMatchBlockSize);
         strongChecksumPlugin->end(checksumBlockData,checksumBlockData_buf.data(),
                                   checksumBlockData_buf.data()+checksumByteSize);
-        out_newSyncInfo.setStrongChecksums(i,checksumBlockData_buf.data(),checksumByteSize);
-        
+        toPartChecksum(checksumBlockData_buf.data(),checksumBlockData_buf.data(),checksumByteSize);
         //compress
         size_t compressedSize=0;
         if (compressPlugin){
@@ -351,25 +440,101 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
                 compressedSize=0; //not compressed
             //save compressed size
             check(compressedSize==(uint32_t)compressedSize);
-            if (compressedSize>0)
-                out_newSyncInfo.savedSizes[i]=(uint32_t)compressedSize;
-            else
-                out_newSyncInfo.savedSizes[i]=(uint32_t)dataLen;
         }
-        //save data
-        if (compressedSize>0){
-            if (out_newSyncData)
-                writeStream(out_newSyncData,curOutPos, cmbuf.data(),compressedSize);
-            out_newSyncInfo.newSyncDataSize+=compressedSize;
-        }else{
-            if (out_newSyncData)
-                writeStream(out_newSyncData,curOutPos, buf.data(),dataLen);
-            out_newSyncInfo.newSyncDataSize+=dataLen;
+        {//save data
+#if (_IS_USED_MULTITHREAD)
+            TMt_shareDatas::TAutoOutputLocker _autoLocker((TMt_shareDatas*)_mt,i);
+            if (_mt) curOutPos=((TMt_shareDatas*)_mt)->curOutPos;
+#endif
+            if (out_newSyncInfo->is32Bit_rollHash)
+                ((uint32_t*)out_newSyncInfo->rollHashs)[i]=(uint32_t)rollHash;
+            else
+                ((uint64_t*)out_newSyncInfo->rollHashs)[i]=rollHash;
+            memcpy(out_newSyncInfo->partChecksums+i*(size_t)kPartStrongChecksumByteSize,
+                   checksumBlockData_buf.data(),kPartStrongChecksumByteSize);
+            if (compressPlugin){
+                if (compressedSize>0)
+                    out_newSyncInfo->savedSizes[i]=(uint32_t)compressedSize;
+                else
+                    out_newSyncInfo->savedSizes[i]=(uint32_t)dataLen;
+            }
+            
+            if (compressedSize>0){
+                if (out_newSyncData)
+                    writeStream(out_newSyncData,curOutPos, cmbuf.data(),compressedSize);
+                out_newSyncInfo->newSyncDataSize+=compressedSize;
+            }else{
+                if (out_newSyncData)
+                    writeStream(out_newSyncData,curOutPos, buf.data(),dataLen);
+                out_newSyncInfo->newSyncDataSize+=dataLen;
+            }
+#if (_IS_USED_MULTITHREAD)
+            if (_mt) ((TMt_shareDatas*)_mt)->curOutPos=curOutPos;
+#endif
         }
     }
     _clear(cmbuf);
     _clear(buf);
-    matchNewDataInNew(&out_newSyncInfo);
+#if (_IS_USED_MULTITHREAD)
+    if (_mt) { ((TMt_shareDatas*)_mt)->finish(); }
+#endif
+}
+
+
+#if (_IS_USED_MULTITHREAD)
+struct TMt_threadDatas {
+    const hpatch_TStreamInput*  newData;
+    TNewDataSyncInfo*           out_newSyncInfo;
+    const hpatch_TStreamOutput* out_newSyncData;
+    const hdiff_TCompress*      compressPlugin;
+    hpatch_TChecksum*           strongChecksumPlugin;
+    uint32_t                    kMatchBlockSize;
+    TMt_shareDatas*             shareDatas;
+};
+
+void _mt_threadRunCallBackProc(int threadIndex,void* workData){
+    TMt_threadDatas* tdatas=(TMt_threadDatas*)workData;
+    mt_create_sync_data(tdatas->newData,tdatas->out_newSyncInfo,tdatas->out_newSyncData,
+                        tdatas->compressPlugin,tdatas->strongChecksumPlugin,
+                        tdatas->kMatchBlockSize,tdatas->shareDatas);
+    bool isMainThread=(threadIndex==tdatas->shareDatas->threadNum-1);
+    if (isMainThread) tdatas->shareDatas->waitAllFinish();
+}
+#endif
+
+static void create_sync_data(const hpatch_TStreamInput*  newData,
+                             TNewDataSyncInfo*           out_newSyncInfo,
+                             const hpatch_TStreamOutput* out_newSyncData,
+                             const hdiff_TCompress* compressPlugin,
+                             hpatch_TChecksum*      strongChecksumPlugin,
+                             uint32_t kMatchBlockSize,size_t threadNum){
+    check(kMatchBlockSize>=kMatchBlockSize_min);
+    if (compressPlugin) check(out_newSyncData!=0);
+    const uint32_t kBlockCount=(uint32_t)getBlockCount(out_newSyncInfo->newDataSize,kMatchBlockSize);
+
+    
+#if (_IS_USED_MULTITHREAD)
+    if (threadNum<=1){
+        mt_create_sync_data(newData,out_newSyncInfo,out_newSyncData,
+                            compressPlugin,strongChecksumPlugin,kMatchBlockSize);
+    }else{
+        TMt_shareDatas   shareDatas((int)threadNum,kBlockCount);
+        TMt_threadDatas  tdatas;  memset(&tdatas,0,sizeof(tdatas));
+        tdatas.shareDatas=&shareDatas;
+        tdatas.newData=newData;
+        tdatas.out_newSyncInfo=out_newSyncInfo;
+        tdatas.out_newSyncData=out_newSyncData;
+        tdatas.compressPlugin=compressPlugin;
+        tdatas.strongChecksumPlugin=strongChecksumPlugin;
+        tdatas.kMatchBlockSize=kMatchBlockSize;
+        thread_parallel((int)threadNum,_mt_threadRunCallBackProc,&tdatas,1,0);
+    }
+#else
+    mt_create_sync_data(newData,out_newSyncInfo,out_newSyncData,
+                        compressPlugin,strongChecksumPlugin,kMatchBlockSize);
+#endif
+    
+    matchNewDataInNew(out_newSyncInfo);
 }
 
 void create_sync_data(const hpatch_TStreamInput*  newData,
@@ -377,11 +542,11 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_newSyncData,
                       const hdiff_TCompress* compressPlugin,
                       hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize){
+                      uint32_t kMatchBlockSize,size_t threadNum){
     CNewDataSyncInfo newSyncInfo(strongChecksumPlugin,compressPlugin,
                                  newData->streamSize,kMatchBlockSize);
-    create_sync_data(newData,newSyncInfo,out_newSyncData,
-                     compressPlugin,strongChecksumPlugin,kMatchBlockSize);
+    create_sync_data(newData,&newSyncInfo,out_newSyncData,
+                     compressPlugin,strongChecksumPlugin,kMatchBlockSize,threadNum);
     check(TNewDataSyncInfo_saveTo(&newSyncInfo,out_newSyncInfo,
                                   strongChecksumPlugin,compressPlugin));
 }
@@ -391,7 +556,7 @@ void create_sync_data(const char* newDataPath,
                       const char* out_newSyncDataPath,
                       const hdiff_TCompress* compressPlugin,
                       hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize){
+                      uint32_t kMatchBlockSize,size_t threadNum){
     hpatch_TFileStreamInput  newData;
     hpatch_TFileStreamOutput out_newSyncInfo;
     hpatch_TFileStreamOutput out_newSyncData;
@@ -408,7 +573,7 @@ void create_sync_data(const char* newDataPath,
     
     create_sync_data(&newData.base,&out_newSyncInfo.base,
                      (out_newSyncDataPath)?&out_newSyncData.base:0,
-                     compressPlugin,strongChecksumPlugin,kMatchBlockSize);
+                     compressPlugin,strongChecksumPlugin,kMatchBlockSize,threadNum);
     check(hpatch_TFileStreamOutput_close(&out_newSyncData));
     check(hpatch_TFileStreamOutput_close(&out_newSyncInfo));
     check(hpatch_TFileStreamInput_close(&newData));
@@ -417,13 +582,13 @@ void create_sync_data(const char* newDataPath,
 void create_sync_data(const char* newDataPath,
                       const char* out_newSyncInfoPath,
                       hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize){
-    create_sync_data(newDataPath,out_newSyncInfoPath,0,0,strongChecksumPlugin,kMatchBlockSize);
+                      uint32_t kMatchBlockSize,size_t threadNum){
+    create_sync_data(newDataPath,out_newSyncInfoPath,0,0,strongChecksumPlugin,kMatchBlockSize,threadNum);
 }
 
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_newSyncInfo, //newSyncData same as newData
                       hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize){
-    create_sync_data(newData,out_newSyncInfo,0,0,strongChecksumPlugin,kMatchBlockSize);
+                      uint32_t kMatchBlockSize,size_t threadNum){
+    create_sync_data(newData,out_newSyncInfo,0,0,strongChecksumPlugin,kMatchBlockSize,threadNum);
 }

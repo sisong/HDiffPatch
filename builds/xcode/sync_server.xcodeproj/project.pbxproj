@@ -16,6 +16,8 @@
 		D65893372332757F003BB2F4 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D65893362332757F003BB2F4 /* libz.tbd */; };
 		D658933923327585003BB2F4 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D658933823327585003BB2F4 /* liblzma.a */; };
 		D699A2B3233B3F78003CB3DC /* match_in_new.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A2B1233B3F78003CB3DC /* match_in_new.cpp */; };
+		D699A2BC233ECDC9003CB3DC /* parallel_channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A2B8233ECDC9003CB3DC /* parallel_channel.cpp */; };
+		D699A2BD233ECDC9003CB3DC /* parallel_import.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A2BA233ECDC9003CB3DC /* parallel_import.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -44,6 +46,10 @@
 		D699A2AE2338EF80003CB3DC /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		D699A2B1233B3F78003CB3DC /* match_in_new.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_in_new.cpp; sourceTree = "<group>"; };
 		D699A2B2233B3F78003CB3DC /* match_in_new.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = match_in_new.h; sourceTree = "<group>"; };
+		D699A2B8233ECDC9003CB3DC /* parallel_channel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_channel.cpp; sourceTree = "<group>"; };
+		D699A2B9233ECDC9003CB3DC /* parallel_import.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_import.h; sourceTree = "<group>"; };
+		D699A2BA233ECDC9003CB3DC /* parallel_import.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_import.cpp; sourceTree = "<group>"; };
+		D699A2BB233ECDC9003CB3DC /* parallel_channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_channel.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,11 +118,24 @@
 		D65C6A662330B69700A3C89C /* HDiffPatch */ = {
 			isa = PBXGroup;
 			children = (
+				D699A2B7233ECDC9003CB3DC /* libParallel */,
 				D6589320233273BF003BB2F4 /* patch.c */,
 				D658931E2332739D003BB2F4 /* adler_roll.c */,
 				D658931C2332737F003BB2F4 /* file_for_patch.c */,
 			);
 			name = HDiffPatch;
+			sourceTree = "<group>";
+		};
+		D699A2B7233ECDC9003CB3DC /* libParallel */ = {
+			isa = PBXGroup;
+			children = (
+				D699A2B8233ECDC9003CB3DC /* parallel_channel.cpp */,
+				D699A2B9233ECDC9003CB3DC /* parallel_import.h */,
+				D699A2BA233ECDC9003CB3DC /* parallel_import.cpp */,
+				D699A2BB233ECDC9003CB3DC /* parallel_channel.h */,
+			);
+			name = libParallel;
+			path = ../../libParallel;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -177,9 +196,11 @@
 			files = (
 				D699A2B3233B3F78003CB3DC /* match_in_new.cpp in Sources */,
 				D658932C23327412003BB2F4 /* sync_server_main.cpp in Sources */,
+				D699A2BC233ECDC9003CB3DC /* parallel_channel.cpp in Sources */,
 				D6589321233273BF003BB2F4 /* patch.c in Sources */,
 				D658931B23327334003BB2F4 /* md5.c in Sources */,
 				D658932B23327412003BB2F4 /* sync_server.cpp in Sources */,
+				D699A2BD233ECDC9003CB3DC /* parallel_import.cpp in Sources */,
 				D658931F2332739D003BB2F4 /* adler_roll.c in Sources */,
 				D658931D2332737F003BB2F4 /* file_for_patch.c in Sources */,
 			);
@@ -231,6 +252,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
+					"_IS_USED_MULTITHREAD=1",
+					"_IS_USED_PTHREAD=1",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -290,6 +313,10 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"_IS_USED_MULTITHREAD=1",
+					"_IS_USED_PTHREAD=1",
+				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;

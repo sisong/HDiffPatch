@@ -45,12 +45,12 @@ static const uint32_t kMatchBlockSize_min     = 64;
 void create_sync_data(const char* newDataPath,
                       const char* out_newSyncInfoPath,
                       hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize=kMatchBlockSize_default);
+                      uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_newSyncInfo,
                       hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize=kMatchBlockSize_default);
+                      uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
 // out_newSyncData: out compressed newData by compressPlugin
 //   client download compressed part of newData from out_newSyncData;
@@ -59,13 +59,13 @@ void create_sync_data(const char* newDataPath,
                       const char* out_newSyncDataPath,
                       const hdiff_TCompress* compressPlugin,
                       hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize=kMatchBlockSize_default);
+                      uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_newSyncInfo,
                       const hpatch_TStreamOutput* out_newSyncData,
                       const hdiff_TCompress* compressPlugin,
                       hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize=kMatchBlockSize_default);
+                      uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
 #endif // sync_server_h

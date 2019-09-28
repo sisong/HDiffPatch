@@ -79,6 +79,11 @@ static void printUsage(){
            "        -c-lzma[-{0..9}[-dictSize]]     DEFAULT level 7\n"
            "            dictSize can like 4096 or 4k or 4m or 64m etc..., DEFAULT 8m\n"
 #endif
+#if (_IS_USED_MULTITHREAD)
+           "  -p-parallelThreadNumber\n"
+           "    if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
+           "    DEFAULT -p-4; requires more and more memory!\n"
+#endif
            "  -f  Force overwrite, ignore write path already exists;\n"
            "      DEFAULT (no -f) not overwrite and then return error;\n"
            "      if used -f and write path is exist directory, will always return error.\n"
@@ -223,11 +228,18 @@ static bool printFileInfo(const char *path_utf8,const char *tag,hpatch_StreamPos
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
 #define _kNULL_SIZE     (~(size_t)0)
 
+#define _THREAD_NUMBER_NULL     0
+#define _THREAD_NUMBER_MIN      1
+#define _THREAD_NUMBER_DEFUALT  kDefualtCompressThreadNumber
+#define _THREAD_NUMBER_MAX      (1<<8)
+
+
 int sync_server_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     size_t      kMatchBlockSize=_kNULL_SIZE;
     hdiff_TCompress* compressPlugin=0;
+    size_t      threadNum = _THREAD_NUMBER_NULL;
     std::vector<const char *> arg_values;
     for (int i=1; i<argc; ++i) {
         const char* op=argv[i];
@@ -253,6 +265,14 @@ int sync_server_cmd_line(int argc, const char * argv[]){
                 _options_check(kMatchBlockSize==(uint32_t)kMatchBlockSize,"-s-?");
                 _options_check(kMatchBlockSize>=kMatchBlockSize_min,"-s-?");
             } break;
+#if (_IS_USED_MULTITHREAD)
+            case 'p':{
+                _options_check((threadNum==_THREAD_NUMBER_NULL)&&((op[2]=='-')),"-p-?");
+                const char* pnum=op+3;
+                _options_check(a_to_size(pnum,strlen(pnum),&threadNum),"-p-?");
+                _options_check(threadNum>=_THREAD_NUMBER_MIN,"-p-?");
+            } break;
+#endif
             case 'c':{
                 _options_check((compressPlugin==0)&&(op[2]=='-'),"-c");
                 const char* ptype=op+3;
@@ -273,7 +293,11 @@ int sync_server_cmd_line(int argc, const char * argv[]){
         isForceOverwrite=hpatch_FALSE;
     if (kMatchBlockSize==_kNULL_SIZE)
         kMatchBlockSize=kMatchBlockSize_default;
-    
+    if (threadNum==_THREAD_NUMBER_NULL)
+        threadNum=_THREAD_NUMBER_DEFUALT;
+    else if (threadNum>_THREAD_NUMBER_MAX)
+        threadNum=_THREAD_NUMBER_MAX;
+
     if (isOutputHelp){
         printUsage();
         if (arg_values.empty())
@@ -325,7 +349,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     double time0=clock_s();
     try {
         create_sync_data(newDataPath,out_newSyncInfoPath,out_newSyncDataPath,
-                         compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize);
+                         compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize,threadNum);
     } catch (const std::exception& e){
         _return_check(false,SYNC_SERVER_CREATE_SYNC_DATA_ERROR,
                       "create_sync_data run error: %s\n",e.what());

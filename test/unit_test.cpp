@@ -101,7 +101,7 @@ int testCompress(const char* str,const char* error_tag){
     
     const TByte* data=(const TByte*)str;
     const size_t dataSize=strlen(str);
-    std::vector<TByte> code(compressPlugin->maxCompressedSize(dataSize));
+    std::vector<TByte> code((size_t)compressPlugin->maxCompressedSize(dataSize));
     size_t codeSize=hdiff_compress_mem(compressPlugin,code.data(),code.data()+code.size(),
                                        data,data+dataSize);
     if (codeSize>code.size()) {
