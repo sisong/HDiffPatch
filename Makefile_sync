@@ -1,10 +1,17 @@
 # args
-LZMA     := 1
+LZMA     := 0
+MT       := 0
 
 HDP_OBJ := \
     file_for_patch.o \
     libHDiffPatch/HPatch/patch.o \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o
+ifeq ($(MT),0)
+else
+  HDP_OBJ += \
+    libParallel/parallel_import.o \
+    libParallel/parallel_channel.o
+endif
 
 SERVER_OBJ := \
     libSyncUpdate/sync_server/sync_server.o \
@@ -21,19 +28,33 @@ DEF_FLAGS := \
     -O3 -DNDEBUG -D_FILE_OFFSET_BITS=64 \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \
     -D_IS_NEED_DEFAULT_ChecksumPlugin=0 \
-    -D_7ZIP_ST \
-    -D_IS_USED_MULTITHREAD=0 \
     -D_CompressPlugin_zlib  \
     -D_ChecksumPlugin_md5 -I'../libmd5'
 
-  ifeq ($(LZMA),0)
-  else
-    DEF_FLAGS += \
-      -D_CompressPlugin_lzma -I'../lzma/C'
-  endif
+ifeq ($(LZMA),0)
+else
+  DEF_FLAGS += \
+    -D_CompressPlugin_lzma -I'../lzma/C'
+endif
+
+ifeq ($(MT),0)
+  DEF_FLAGS += \
+    -D_7ZIP_ST \
+    -D_IS_USED_MULTITHREAD=0 
+else
+  DEF_FLAGS += \
+    -D_7ZIP_ST \
+    -D_IS_USED_MULTITHREAD=1 \
+    -D_IS_USED_PTHREAD=1
+endif
 
 
 SYNC_LINK := -lz
+SERVER_LINK := $(SYNC_LINK)
+ifeq ($(MT),0)
+else
+  SERVER_LINK += -lpthread
+endif
 
 CFLAGS   += $(DEF_FLAGS) 
 CXXFLAGS += $(DEF_FLAGS)
@@ -62,7 +83,7 @@ libsyncupdate.a: $(SERVER_OBJ) $(CLIENT_OBJ)
 	$(AR) rcs $@ $^
 
 sync_server: 
-	$(CXX) libSyncUpdate/sync_server/sync_server_main.cpp $(SERVER_OBJ) $(MD5_OBJ) $(LZMA_OBJ) $(CXXFLAGS) $(SYNC_LINK) -o  sync_server
+	$(CXX) libSyncUpdate/sync_server/sync_server_main.cpp $(SERVER_OBJ) $(MD5_OBJ) $(LZMA_OBJ) $(CXXFLAGS) $(SERVER_LINK) -o  sync_server
 sync_client_test: 
 	$(CXX) libSyncUpdate/sync_client/sync_client_main.cpp $(CLIENT_OBJ) $(MD5_OBJ) $(LZMA_DEC_OBJ) $(CXXFLAGS) $(SYNC_LINK) -o sync_client_test
 

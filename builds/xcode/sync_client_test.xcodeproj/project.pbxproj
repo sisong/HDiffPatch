@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D61DE519233F52E200F6FCCF /* LzmaDec.c in Sources */ = {isa = PBXBuildFile; fileRef = D61DE518233F52E200F6FCCF /* LzmaDec.c */; };
 		D63B988A2333B574003D38A5 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = D63B98892333B574003D38A5 /* md5.c */; };
 		D63B988F233607A7003D38A5 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D63B988E233607A6003D38A5 /* patch.c */; };
 		D658933B23327613003BB2F4 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D658933A23327613003BB2F4 /* file_for_patch.c */; };
 		D658934023327643003BB2F4 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D658933C23327642003BB2F4 /* adler_roll.c */; };
 		D65893462332765B003BB2F4 /* sync_client_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D65893432332765B003BB2F4 /* sync_client_main.cpp */; };
 		D65893472332765B003BB2F4 /* sync_client.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D65893452332765B003BB2F4 /* sync_client.cpp */; };
-		D6589349233276AD003BB2F4 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D6589348233276AD003BB2F4 /* liblzma.a */; };
 		D658934B233276B6003BB2F4 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D658934A233276B6003BB2F4 /* libz.tbd */; };
 		D699A29523372152003CB3DC /* match_in_old.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A29423372152003CB3DC /* match_in_old.cpp */; };
 		D699A2AB2338AFD2003CB3DC /* download_emulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A2A92338AFD2003CB3DC /* download_emulation.cpp */; };
@@ -32,6 +32,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D61DE518233F52E200F6FCCF /* LzmaDec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzmaDec.c; path = ../../../lzma/C/LzmaDec.c; sourceTree = "<group>"; };
 		D63B98892333B574003D38A5 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
 		D63B988E233607A6003D38A5 /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch.c; path = ../../libHDiffPatch/HPatch/patch.c; sourceTree = "<group>"; };
 		D65892F82331D169003BB2F4 /* sync_client_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sync_client_test; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -56,13 +57,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				D658934B233276B6003BB2F4 /* libz.tbd in Frameworks */,
-				D6589349233276AD003BB2F4 /* liblzma.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D61DE517233F52C600F6FCCF /* lzma */ = {
+			isa = PBXGroup;
+			children = (
+				D61DE518233F52E200F6FCCF /* LzmaDec.c */,
+			);
+			name = lzma;
+			sourceTree = "<group>";
+		};
 		D63B98882333B54C003D38A5 /* libmd5 */ = {
 			isa = PBXGroup;
 			children = (
@@ -75,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				D65893412332765B003BB2F4 /* sync_client */,
+				D61DE517233F52C600F6FCCF /* lzma */,
 				D63B98882333B54C003D38A5 /* libmd5 */,
 				D65893142331D73E003BB2F4 /* HDiffPatch */,
 				D65892F92331D169003BB2F4 /* Products */,
@@ -184,6 +193,7 @@
 			files = (
 				D63B988F233607A7003D38A5 /* patch.c in Sources */,
 				D658933B23327613003BB2F4 /* file_for_patch.c in Sources */,
+				D61DE519233F52E200F6FCCF /* LzmaDec.c in Sources */,
 				D63B988A2333B574003D38A5 /* md5.c in Sources */,
 				D658934023327643003BB2F4 /* adler_roll.c in Sources */,
 				D699A2AB2338AFD2003CB3DC /* download_emulation.cpp in Sources */,
@@ -239,6 +249,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
+					_7ZIP_ST,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -298,6 +309,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = "_7ZIP_ST ";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;

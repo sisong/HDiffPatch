@@ -517,7 +517,6 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
                              uint32_t kMatchBlockSize,size_t threadNum){
     check(kMatchBlockSize>=kMatchBlockSize_min);
     if (compressPlugin) check(out_newSyncData!=0);
-    const uint32_t kBlockCount=(uint32_t)getBlockCount(out_newSyncInfo->newDataSize,kMatchBlockSize);
 
     
 #if (_IS_USED_MULTITHREAD)
@@ -525,6 +524,7 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
         mt_create_sync_data(newData,out_newSyncInfo,out_newSyncData,
                             compressPlugin,strongChecksumPlugin,kMatchBlockSize);
     }else{
+        const uint32_t kBlockCount=(uint32_t)getBlockCount(out_newSyncInfo->newDataSize,kMatchBlockSize);
         TMt_shareDatas   shareDatas((int)threadNum,kBlockCount);
         TMt_threadDatas  tdatas;  memset(&tdatas,0,sizeof(tdatas));
         tdatas.shareDatas=&shareDatas;

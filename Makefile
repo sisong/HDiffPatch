@@ -146,7 +146,7 @@ ifeq ($(SYNC),0)
   make_sync:
 else
   make_sync:
-	$(MAKE) -f Makefile_sync LZMA=$(LZMA)
+	$(MAKE) -f Makefile_sync LZMA=$(LZMA) MT=$(MT)
 endif
 
 RM := rm -f
