@@ -199,27 +199,52 @@ static unsigned int getBetterTableBit(uint32_t blockCount){
     return result;
 }
 
-static void setSameOldPos(uint32_t& matchedCount,hpatch_StreamPos_t& matchedSyncSize,
+static void setSameOldPos(uint32_t& needSyncCount,hpatch_StreamPos_t& needSyncSize,
                           const TNewDataSyncInfo* newSyncInfo,hpatch_StreamPos_t* out_newDataPoss) {
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
+    needSyncCount=kBlockCount;
+    needSyncSize=newSyncInfo->newSyncDataSize;
     uint32_t curPair=0;
     for (uint32_t i=0; i<kBlockCount; ++i){
+        if (out_newDataPoss[i]!=kBlockType_needSync){
+            --needSyncCount;
+            needSyncSize-=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+        }
         if ((curPair<newSyncInfo->samePairCount)
             &&(i==newSyncInfo->samePairList[curPair].curIndex)){
-            hpatch_StreamPos_t sameOldPos=out_newDataPoss[newSyncInfo->samePairList[curPair].sameIndex];
-            if (sameOldPos!=kBlockType_needSync){
-                out_newDataPoss[i]=sameOldPos;
-                ++matchedCount;
-                matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+            if (out_newDataPoss[i]==kBlockType_needSync){
+                hpatch_StreamPos_t sameOldPos=out_newDataPoss[newSyncInfo->samePairList[curPair].sameIndex];
+                if (sameOldPos!=kBlockType_needSync){
+                    out_newDataPoss[i]=sameOldPos;
+                    --needSyncCount;
+                    needSyncSize-=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+                }
             }
             ++curPair;
         }
     }
 }
 
+static void matchRange(hpatch_StreamPos_t* out_newDataPoss,const TByte* partChecksums,
+                       TOldDataCache_base& oldData,const uint32_t* range_begin,const uint32_t* range_end) {
+    const TByte* oldPartStrongChecksum=0;
+    do {
+        uint32_t newBlockIndex=*range_begin;
+        if (out_newDataPoss[newBlockIndex]==kBlockType_needSync){
+            if (oldPartStrongChecksum==0)
+                oldPartStrongChecksum=oldData.calcPartStrongChecksum();
+            const TByte* newPairStrongChecksum=partChecksums+newBlockIndex*(size_t)kPartStrongChecksumByteSize;
+            if (0==memcmp(oldPartStrongChecksum,newPairStrongChecksum,kPartStrongChecksumByteSize)){
+                out_newDataPoss[newBlockIndex]=oldData.curOldPos();
+                break;
+            }
+        }
+        ++range_begin;
+    }while (range_begin!=range_end);
+}
+
 template<class tm_roll_uint>
-void tm_matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
-                          hpatch_StreamPos_t* out_needSyncSize,const TNewDataSyncInfo* newSyncInfo,
+void tm_matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,const TNewDataSyncInfo* newSyncInfo,
                           const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin){
     uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
@@ -261,10 +286,9 @@ void tm_matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_need
         sorted_newIndexs_table[((size_t)1<<kTableBit)]=sortedBlockCount;
     }
 
+    const TByte* partChecksums=newSyncInfo->partChecksums;
     TOldDataCache<tm_roll_uint> oldData(oldStream,kMatchBlockSize,strongChecksumPlugin,
                                         getBackZeroLen(newSyncInfo->newDataSize,kMatchBlockSize));
-    uint32_t matchedCount=0;
-    hpatch_StreamPos_t matchedSyncSize=0;
     for (;!oldData.isEnd();oldData.roll()) {
         tm_roll_uint digest=oldData.hashValue();
         if (!filter.is_hit(digest)) continue;
@@ -274,41 +298,17 @@ void tm_matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_need
         std::pair<const uint32_t*,const uint32_t*>
             //range=std::equal_range(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,digest_value,icomp);
             range=std::equal_range(sorted_newIndexs+ti_pos[0],sorted_newIndexs+ti_pos[1],digest_value,icomp);
-        if (range.first!=range.second){
-            const TByte* oldPartStrongChecksum=0;
-            do {
-                uint32_t newBlockIndex=*range.first;
-                if (out_newDataPoss[newBlockIndex]==kBlockType_needSync){
-                    if (oldPartStrongChecksum==0)
-                        oldPartStrongChecksum=oldData.calcPartStrongChecksum();
-                    const TByte* newPairStrongChecksum = newSyncInfo->partChecksums
-                                                    + newBlockIndex*(size_t)kPartStrongChecksumByteSize;
-                    if (0==memcmp(oldPartStrongChecksum,newPairStrongChecksum,kPartStrongChecksumByteSize)){
-                        out_newDataPoss[newBlockIndex]=oldData.curOldPos();
-                        ++matchedCount;
-                        matchedSyncSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,newBlockIndex);
-                        break;
-                    }
-                }
-                ++range.first;
-            }while (range.first!=range.second);
-        }
+        if (range.first!=range.second)
+            matchRange(out_newDataPoss,partChecksums,oldData,range.first,range.second);
     }
-    setSameOldPos(matchedCount,matchedSyncSize,newSyncInfo,out_newDataPoss);
-    *out_needSyncCount=kBlockCount-matchedCount;
-    *out_needSyncSize=newSyncInfo->newSyncDataSize-matchedSyncSize;
 }
 
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
                        hpatch_StreamPos_t* out_needSyncSize,const TNewDataSyncInfo* newSyncInfo,
                        const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin){
     if (newSyncInfo->is32Bit_rollHash)
-        tm_matchNewDataInOld<uint32_t>(out_newDataPoss,out_needSyncCount,
-                                       out_needSyncSize,newSyncInfo,
-                                       oldStream,strongChecksumPlugin);
+        tm_matchNewDataInOld<uint32_t>(out_newDataPoss,newSyncInfo,oldStream,strongChecksumPlugin);
     else
-        tm_matchNewDataInOld<uint64_t>(out_newDataPoss,out_needSyncCount,
-                                       out_needSyncSize,newSyncInfo,
-                                       oldStream,strongChecksumPlugin);
-
+        tm_matchNewDataInOld<uint64_t>(out_newDataPoss,newSyncInfo,oldStream,strongChecksumPlugin);
+    setSameOldPos(*out_needSyncCount,*out_needSyncSize,newSyncInfo,out_newDataPoss);
 }
