@@ -296,26 +296,26 @@ struct TMt_shareDatas {
     hpatch_StreamPos_t curOutPos;
     inline explicit TMt_shareDatas(int _threadNum,uint32_t _blockCount)
         :threadNum(_threadNum),blockCount(_blockCount),curOutPos(0),
-        inputBlockIndex(0),finishThreadNum(0){
-            wakeup(0);
-        }
+        inputBlockIndex(0),finishThreadNum(0),
+        threadChannels(_threadNum),threadWorkIndexs(_threadNum,0){ }
     inline void finish(){
-        CAutoLocker _auto_locker(finishLocker.locker);
+        CAutoLocker _auto_locker(mtdataLocker.locker);
         ++finishThreadNum;
     }
     void waitAllFinish(){
         while(true){
-            {   CAutoLocker _auto_locker(finishLocker.locker);
+            {   CAutoLocker _auto_locker(mtdataLocker.locker);
                 if (finishThreadNum==threadNum) break;
             }//else
             this_thread_yield();
         }
     }
     struct TAutoInputLocker{
-        TAutoInputLocker(TMt_shareDatas* _mt,uint32_t workBlockIndex,bool* out_isGotWork)
+        TAutoInputLocker(TMt_shareDatas* _mt,int threadIndex,
+                         uint32_t workBlockIndex,bool* out_isGotWork)
         :mt(_mt),isLock(false){
             if (mt){
-                isLock=_mt->getWork(workBlockIndex);
+                isLock=_mt->getWork(threadIndex,workBlockIndex);
                 *out_isGotWork=isLock;
                 if (isLock)
                     locker_enter(mt->readLocker.locker); //for read file
@@ -328,10 +328,10 @@ struct TMt_shareDatas {
         bool            isLock;
     };
     struct TAutoOutputLocker{
-        TAutoOutputLocker(TMt_shareDatas* _mt,uint32_t workBlockIndex)
+        TAutoOutputLocker(TMt_shareDatas* _mt,int threadIndex,uint32_t workBlockIndex)
         :mt(_mt),blockIndex(workBlockIndex){
             if (mt){
-                check(mt->wait(workBlockIndex))
+                check(mt->wait(threadIndex,workBlockIndex))
             }
         }
         inline ~TAutoOutputLocker(){ if (mt) { mt->wakeup(blockIndex+1); } }
@@ -342,37 +342,44 @@ private:
     uint32_t  blockCount;
     uint32_t  inputBlockIndex;
     int       finishThreadNum;
-    CHLocker  inputIndexLocker;
+    CHLocker  mtdataLocker;
     CHLocker  readLocker;
-    CHLocker  finishLocker;
-    CChannel  outChannel;
+    std::vector<CChannel> threadChannels;
+    std::vector<uint32_t> threadWorkIndexs;
     
-    bool wait(uint32_t workBlockIndex){
-        CChannel& channel=outChannel;
+    bool wait(int threadIndex,uint32_t workBlockIndex){
+        CChannel& channel=threadChannels[threadIndex];
+        TChanData cData=channel.accept(true);//wait
+        if (cData==0) return false; //error
+        uint32_t outputBlockIndex=(uint32_t)((size_t)cData-1);
+        return workBlockIndex==outputBlockIndex;
+    }
+    void wakeup(uint32_t outputBlockIndex){
+        if (outputBlockIndex>=blockCount) return;
+        int threadIndex=getThread(outputBlockIndex);
+        return wakeupChannel(threadChannels[threadIndex],outputBlockIndex);
+    }
+    inline void wakeupChannel(CChannel& channel,uint32_t outputBlockIndex){
+        if (outputBlockIndex>=blockCount) return;
+        TChanData cData=(TChanData)(size_t)(outputBlockIndex+1);
+        channel.send(cData,true);
+    }
+    
+    int getThread(uint32_t blockIndex){
         while(true){
-            TChanData cData=channel.accept(true);//wait
-            if (cData==0) return false; //channel closed
-            uint32_t curBlockIndex=(uint32_t)((size_t)cData-1);
-            if (workBlockIndex==curBlockIndex){
-                return true; //ok
-            }else{
-                wakeup(curBlockIndex);
-                //continue wait
-                this_thread_yield();
-            }
+            {   CAutoLocker _auto_locker(mtdataLocker.locker);
+                for (int i=0;i<threadNum;++i)
+                    if (threadWorkIndexs[i]==blockIndex) return i;
+            }//else
+            this_thread_yield();
         }
     }
-    void wakeup(uint32_t curBlockIndex){
-        CChannel& channel=outChannel;
-        if (curBlockIndex<blockCount){
-            TChanData cData=(TChanData)(size_t)(curBlockIndex+1);
-            channel.send(cData,true);
-        }
-    }
-    
-    bool getWork(uint32_t blockIndex){
-        CAutoLocker _auto_locker(inputIndexLocker.locker);
+    bool getWork(int threadIndex,uint32_t blockIndex){
+        CAutoLocker _auto_locker(mtdataLocker.locker);
         if (blockIndex==inputBlockIndex){
+            threadWorkIndexs[threadIndex]=blockIndex;
+            if (blockIndex==0)
+                wakeupChannel(threadChannels[threadIndex],0);
             ++inputBlockIndex;
             return true;
         }else{
@@ -388,7 +395,7 @@ static void mt_create_sync_data(const hpatch_TStreamInput*  newData,
                                 const hdiff_TCompress* compressPlugin,
                                 hpatch_TChecksum*      strongChecksumPlugin,
                                 uint32_t kMatchBlockSize,
-                                void* _mt=0){
+                                void* _mt=0,int threadIndex=0){
     const uint32_t kBlockCount=(uint32_t)getBlockCount(out_newSyncInfo->newDataSize,kMatchBlockSize);
     std::vector<TByte> buf(kMatchBlockSize);
     std::vector<TByte> cmbuf(compressPlugin?((size_t)compressPlugin->maxCompressedSize(kMatchBlockSize)):0);
@@ -409,7 +416,7 @@ static void mt_create_sync_data(const hpatch_TStreamInput*  newData,
         {//read data
 #if (_IS_USED_MULTITHREAD)
             bool isGotWork;
-            TMt_shareDatas::TAutoInputLocker _autoLocker((TMt_shareDatas*)_mt,i,&isGotWork);
+            TMt_shareDatas::TAutoInputLocker _autoLocker((TMt_shareDatas*)_mt,threadIndex,i,&isGotWork);
             if (!isGotWork) continue; //next work;
 #endif
             check(newData->read(newData,curReadPos,buf.data(),buf.data()+dataLen));
@@ -443,7 +450,7 @@ static void mt_create_sync_data(const hpatch_TStreamInput*  newData,
         }
         {//save data
 #if (_IS_USED_MULTITHREAD)
-            TMt_shareDatas::TAutoOutputLocker _autoLocker((TMt_shareDatas*)_mt,i);
+            TMt_shareDatas::TAutoOutputLocker _autoLocker((TMt_shareDatas*)_mt,threadIndex,i);
             if (_mt) curOutPos=((TMt_shareDatas*)_mt)->curOutPos;
 #endif
             if (out_newSyncInfo->is32Bit_rollHash)
@@ -496,7 +503,7 @@ void _mt_threadRunCallBackProc(int threadIndex,void* workData){
     TMt_threadDatas* tdatas=(TMt_threadDatas*)workData;
     mt_create_sync_data(tdatas->newData,tdatas->out_newSyncInfo,tdatas->out_newSyncData,
                         tdatas->compressPlugin,tdatas->strongChecksumPlugin,
-                        tdatas->kMatchBlockSize,tdatas->shareDatas);
+                        tdatas->kMatchBlockSize,tdatas->shareDatas,threadIndex);
     bool isMainThread=(threadIndex==tdatas->shareDatas->threadNum-1);
     if (isMainThread) tdatas->shareDatas->waitAllFinish();
 }
