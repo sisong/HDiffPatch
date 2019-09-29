@@ -32,9 +32,7 @@
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/bloom_filter.h"
-#if (_IS_USED_MULTITHREAD)
-#   include "../../libParallel/parallel_channel.h"
-#endif
+#include "mt_by_queue.h"
 
 #define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define checkv(value)     check(value,"check "#value" error!")
@@ -58,44 +56,6 @@ struct TIndex_comp{
 protected:
     const tm_roll_uint* blocks;
 };
-
-
-#if (_IS_USED_MULTITHREAD)
-struct TMt_shareDatas {
-    const int threadNum;
-    inline explicit TMt_shareDatas(int _threadNum)
-    :threadNum(_threadNum),finishedThreadNum(0){ }
-    inline void finish(){
-        CAutoLocker _auto_locker(mtdataLocker.locker);
-        ++finishedThreadNum;
-    }
-    void waitAllFinish(){
-        while(true){
-            {   CAutoLocker _auto_locker(mtdataLocker.locker);
-                if (finishedThreadNum==threadNum) break;
-            }//else
-            this_thread_yield();
-        }
-    }
-    struct TAutoInputLocker{
-        inline TAutoInputLocker(TMt_shareDatas* _mt)
-        :mt(_mt){ if (mt) locker_enter(mt->readLocker.locker); }
-        inline ~TAutoInputLocker(){ if (mt) locker_leave(mt->readLocker.locker); }
-        TMt_shareDatas* mt;
-    };
-    struct TAutoOutputLocker{
-        inline TAutoOutputLocker(TMt_shareDatas* _mt)
-        :mt(_mt){ if (mt) locker_enter(mt->writeLocker.locker); }
-        inline ~TAutoOutputLocker(){ if (mt) locker_leave(mt->writeLocker.locker); }
-        TMt_shareDatas* mt;
-    };
-private:
-    int       finishedThreadNum;
-    CHLocker  mtdataLocker;
-    CHLocker  readLocker;
-    CHLocker  writeLocker;
-};
-#endif
 
 struct TOldDataCache_base {
     TOldDataCache_base(const hpatch_TStreamInput* oldStream,hpatch_StreamPos_t oldRollBegin,
@@ -154,7 +114,7 @@ struct TOldDataCache_base {
         }
         if (readLen>0){
 #if (_IS_USED_MULTITHREAD)
-            TMt_shareDatas::TAutoInputLocker _autoLocker((TMt_shareDatas*)m_mt);
+            TMt_by_queue::TAutoInputLocker _autoLocker((TMt_by_queue*)m_mt);
 #endif
             TByte* buf=m_cache.data_end()-needLen;
             check(m_oldStream->read(m_oldStream,m_readedPos,buf,buf+readLen),
@@ -273,9 +233,6 @@ static void setSameOldPos(uint32_t& needSyncCount,hpatch_StreamPos_t& needSyncSi
 
 static void matchRange(hpatch_StreamPos_t* out_newDataPoss,const TByte* partChecksums,TOldDataCache_base& oldData,
                        const uint32_t* range_begin,const uint32_t* range_end,void* _mt=0){
-#if (_IS_USED_MULTITHREAD)
-    TMt_shareDatas::TAutoOutputLocker _autoLocker((TMt_shareDatas*)_mt);
-#endif
     const TByte* oldPartStrongChecksum=0;
     do {
         uint32_t newBlockIndex=*range_begin;
@@ -284,7 +241,12 @@ static void matchRange(hpatch_StreamPos_t* out_newDataPoss,const TByte* partChec
                 oldPartStrongChecksum=oldData.calcPartStrongChecksum();
             const TByte* newPairStrongChecksum=partChecksums+newBlockIndex*(size_t)kPartStrongChecksumByteSize;
             if (0==memcmp(oldPartStrongChecksum,newPairStrongChecksum,kPartStrongChecksumByteSize)){
-                out_newDataPoss[newBlockIndex]=oldData.curOldPos();
+#if (_IS_USED_MULTITHREAD)
+                TMt_by_queue::TAutoLocker _autoLocker((TMt_by_queue*)_mt);
+                hpatch_StreamPos_t cur=out_newDataPoss[newBlockIndex];
+                if ((cur==kBlockType_needSync)||(cur>oldData.curOldPos()))
+#endif
+                    out_newDataPoss[newBlockIndex]=oldData.curOldPos();
                 break;
             }
         }
@@ -305,25 +267,25 @@ struct _TMatchDatas{
 };
 
 template<class tm_roll_uint>
-static void _rollMatch(_TMatchDatas& rollDatas,hpatch_StreamPos_t oldRollBegin,
+static void _rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,
                        hpatch_StreamPos_t oldRollEnd,void* _mt=0){
-    TIndex_comp<tm_roll_uint> icomp((tm_roll_uint*)rollDatas.newSyncInfo->rollHashs);
-    TOldDataCache<tm_roll_uint> oldData(rollDatas.oldStream,oldRollBegin,oldRollEnd,
-                                        rollDatas.newSyncInfo->kMatchBlockSize,
-                                        rollDatas.strongChecksumPlugin,_mt);
-    const TBloomFilter<tm_roll_uint>& filter=*(TBloomFilter<tm_roll_uint>*)rollDatas.filter;
+    TIndex_comp<tm_roll_uint> icomp((tm_roll_uint*)rd.newSyncInfo->rollHashs);
+    TOldDataCache<tm_roll_uint> oldData(rd.oldStream,oldRollBegin,oldRollEnd,
+                                        rd.newSyncInfo->kMatchBlockSize,
+                                        rd.strongChecksumPlugin,_mt);
+    const TBloomFilter<tm_roll_uint>& filter=*(TBloomFilter<tm_roll_uint>*)rd.filter;
     for (;!oldData.isEnd();oldData.roll()) {
         tm_roll_uint digest=oldData.hashValue();
         if (!filter.is_hit(digest)) continue;
         
-        const uint32_t* ti_pos=&rollDatas.sorted_newIndexs_table[digest>>rollDatas.kTableHashShlBit];
+        const uint32_t* ti_pos=&rd.sorted_newIndexs_table[digest>>rd.kTableHashShlBit];
         typename TIndex_comp<tm_roll_uint>::TDigest digest_value(digest);
         std::pair<const uint32_t*,const uint32_t*>
         //range=std::equal_range(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,digest_value,icomp);
-        range=std::equal_range(rollDatas.sorted_newIndexs+ti_pos[0],
-                               rollDatas.sorted_newIndexs+ti_pos[1],digest_value,icomp);
+        range=std::equal_range(rd.sorted_newIndexs+ti_pos[0],
+                               rd.sorted_newIndexs+ti_pos[1],digest_value,icomp);
         if (range.first!=range.second){
-            matchRange(rollDatas.out_newDataPoss,rollDatas.newSyncInfo->partChecksums,
+            matchRange(rd.out_newDataPoss,rd.newSyncInfo->partChecksums,
                        oldData,range.first,range.second,_mt);
         }
             
@@ -334,7 +296,7 @@ static void _rollMatch(_TMatchDatas& rollDatas,hpatch_StreamPos_t oldRollBegin,
 struct TMt_threadDatas {
     _TMatchDatas*       matchDatas;
     hpatch_StreamPos_t  oldRollEnd;
-    TMt_shareDatas*     shareDatas;
+    TMt_by_queue*       shareDatas;
 };
 
 static void _mt_threadRunCallBackProc(int threadIndex,void* workData){
@@ -403,7 +365,7 @@ static void tm_matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
     hpatch_StreamPos_t oldRollEnd=matchDatas.oldStream->streamSize+backZeroLen;
 #if (_IS_USED_MULTITHREAD)
     if (threadNum>1){
-        TMt_shareDatas   shareDatas((int)threadNum);
+        TMt_by_queue   shareDatas((int)threadNum,0,false);
         TMt_threadDatas  tdatas;  memset(&tdatas,0,sizeof(tdatas));
         tdatas.shareDatas=&shareDatas;
         tdatas.matchDatas=&matchDatas;

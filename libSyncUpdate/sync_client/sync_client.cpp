@@ -31,6 +31,7 @@
 #include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HPatch/patch_private.h"
 #include "../../libHDiffPatch/HPatch/patch_types.h"
+#include "../sync_client/mt_by_queue.h"
 
 #define check(v,errorCode) \
             do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
@@ -378,13 +379,13 @@ void TNewDataSyncInfo_close(TNewDataSyncInfo* self){
 }
 
 int TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,
-                                  const char* newSyncInfoPath,ISyncPatchListener *listener){
+                                  const char* newSyncInfoFile,ISyncPatchListener *listener){
     hpatch_TFileStreamInput  newSyncInfo;
     hpatch_TFileStreamInput_init(&newSyncInfo);
     int rt;
     int result=kSyncClient_ok;
     int _inClear=0;
-    check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoPath), kSyncClient_newSyncInfoOpenError);
+    check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoFile), kSyncClient_newSyncInfoOpenError);
 
     rt=TNewDataSyncInfo_open(self,&newSyncInfo.base,listener);
     check(rt==kSyncClient_ok,rt);
@@ -394,10 +395,20 @@ clear:
     return result;
 }
 
-static int writeToNew(const hpatch_TStreamOutput* out_newStream,const TNewDataSyncInfo* newSyncInfo,
-                      const hpatch_StreamPos_t* newDataPoss,const hpatch_TStreamInput* oldStream,
-                      hpatch_TDecompress* decompressPlugin,hpatch_TChecksum* strongChecksumPlugin,
-                      ISyncPatchListener *listener) {
+struct _TWriteDatas {
+    const hpatch_TStreamOutput* out_newStream;
+    const TNewDataSyncInfo*     newSyncInfo;
+    const hpatch_StreamPos_t*   newDataPoss;
+    const hpatch_TStreamInput*  oldStream;
+    hpatch_TDecompress*         decompressPlugin;
+    hpatch_TChecksum*           strongChecksumPlugin;
+    ISyncPatchListener*         listener;
+};
+
+static int mt_writeToNew(_TWriteDatas& wd,void* _mt=0,int threadIndex=0) {
+    const TNewDataSyncInfo* newSyncInfo=wd.newSyncInfo;
+    ISyncPatchListener*     listener=wd.listener;
+    hpatch_TChecksum*       strongChecksumPlugin=wd.strongChecksumPlugin;
     int result=kSyncClient_ok;
     int _inClear=0;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
@@ -410,7 +421,7 @@ static int writeToNew(const hpatch_TStreamOutput* out_newStream,const TNewDataSy
     hpatch_StreamPos_t posInNewSyncData=0;
     hpatch_StreamPos_t outNewDataPos=0;
     
-    size_t _memSize=kMatchBlockSize*(decompressPlugin?2:1)
+    size_t _memSize=kMatchBlockSize*(wd.decompressPlugin?2:1)
                     +(isChecksumNewSyncData ? newSyncInfo->kStrongChecksumByteSize:0);
     dataBuf=(TByte*)malloc(_memSize);
     check(dataBuf!=0,kSyncClient_memError);
@@ -419,16 +430,25 @@ static int writeToNew(const hpatch_TStreamOutput* out_newStream,const TNewDataSy
         checksumSync=strongChecksumPlugin->open(strongChecksumPlugin);
         check(checksumSync!=0,kSyncClient_strongChecksumOpenError);
     }
-    for (uint32_t i=0; i<kBlockCount; ++i) {
-        uint32_t syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
-        uint32_t newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
-        if (newDataPoss[i]==kBlockType_needSync){ //sync
+    for (uint32_t syncSize,newDataSize,i=0; i<kBlockCount; ++i,
+                            outNewDataPos+=newDataSize,posInNewSyncData+=syncSize) {
+        syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+        newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
+#if (_IS_USED_MULTITHREAD)
+        if (_mt) { if (!((TMt_by_queue*)_mt)->getWork(threadIndex,i)) continue; } //next work;
+#endif
+        if (wd.newDataPoss[i]==kBlockType_needSync){ //sync
             TByte* buf=(syncSize<newDataSize)?(dataBuf+kMatchBlockSize):dataBuf;
-            if ((out_newStream)||(listener)){
-                check(listener->readSyncData(listener,buf,posInNewSyncData,syncSize),
-                      kSyncClient_readSyncDataError);
+            if ((wd.out_newStream)||(listener)){
+                {//read data
+#if (_IS_USED_MULTITHREAD)
+                    TMt_by_queue::TAutoInputLocker _autoLocker((TMt_by_queue*)_mt);
+#endif
+                    check(listener->readSyncData(listener,buf,posInNewSyncData,syncSize),
+                          kSyncClient_readSyncDataError);
+                }
                 if (syncSize<newDataSize){
-                    check(hpatch_deccompress_mem(decompressPlugin,buf,buf+syncSize,
+                    check(hpatch_deccompress_mem(wd.decompressPlugin,buf,buf+syncSize,
                                                  dataBuf,dataBuf+newDataSize),kSyncClient_decompressError);
                 }
                 if (isChecksumNewSyncData){ //checksum
@@ -445,15 +465,19 @@ static int writeToNew(const hpatch_TStreamOutput* out_newStream,const TNewDataSy
                 }
             }
         }else{//copy from old
-            check(oldStream->read(oldStream,newDataPoss[i],dataBuf,dataBuf+newDataSize),
+#if (_IS_USED_MULTITHREAD)
+            TMt_by_queue::TAutoInputLocker _autoLocker((TMt_by_queue*)_mt); //can use other locker
+#endif
+            check(wd.oldStream->read(wd.oldStream,wd.newDataPoss[i],dataBuf,dataBuf+newDataSize),
                   kSyncClient_readOldDataError);
         }
-        if (out_newStream){//write
-            check(out_newStream->write(out_newStream,outNewDataPos,dataBuf,
-                                       dataBuf+newDataSize), kSyncClient_writeNewDataError);
+        if (wd.out_newStream){//write
+#if (_IS_USED_MULTITHREAD)
+            TMt_by_queue::TAutoOutputLocker _autoLocker((TMt_by_queue*)_mt,threadIndex,i);
+#endif
+            check(wd.out_newStream->write(wd.out_newStream,outNewDataPos,dataBuf,
+                                          dataBuf+newDataSize), kSyncClient_writeNewDataError);
         }
-        outNewDataPos+=newDataSize;
-        posInNewSyncData+=syncSize;
     }
     assert(outNewDataPos==newSyncInfo->newDataSize);
     assert(posInNewSyncData==newSyncInfo->newSyncDataSize);
@@ -462,6 +486,46 @@ clear:
     if (checksumSync) strongChecksumPlugin->close(strongChecksumPlugin,checksumSync);
     if (dataBuf) free(dataBuf);
     return result;
+}
+
+
+#if (_IS_USED_MULTITHREAD)
+struct TMt_threadDatas{
+    _TWriteDatas*       writeDatas;
+    TMt_by_queue*       shareDatas;
+    int                 result;
+};
+
+static void _mt_threadRunCallBackProc(int threadIndex,void* workData){
+    TMt_threadDatas* tdatas=(TMt_threadDatas*)workData;
+    int result=mt_writeToNew(*tdatas->writeDatas,tdatas->shareDatas,threadIndex);
+    {//set result
+        TMt_by_queue::TAutoLocker _auto_locker(tdatas->shareDatas);
+        if (tdatas->result==kSyncClient_ok) tdatas->result=result;
+    }
+    tdatas->shareDatas->finish();
+    bool isMainThread=(threadIndex==tdatas->shareDatas->threadNum-1);
+    if (isMainThread) tdatas->shareDatas->waitAllFinish();
+}
+#endif
+
+static int writeToNew(_TWriteDatas& writeDatas,int threadNum) {
+
+#if (_IS_USED_MULTITHREAD)
+    if (threadNum>1){
+        const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(writeDatas.newSyncInfo);
+        TMt_by_queue   shareDatas((int)threadNum,kBlockCount,true);
+        TMt_threadDatas  tdatas;
+        tdatas.shareDatas=&shareDatas;
+        tdatas.writeDatas=&writeDatas;
+        tdatas.result=kSyncClient_ok;
+        thread_parallel((int)threadNum,_mt_threadRunCallBackProc,&tdatas,1);
+        return tdatas.result;
+    }else
+#endif
+    {
+        return mt_writeToNew(writeDatas);
+    }
 }
 
 static void sendSyncMsg(ISyncPatchListener* listener,hpatch_StreamPos_t* newDataPoss,
@@ -540,8 +604,15 @@ int sync_patch(const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInp
     //send msg: all need sync block
     sendSyncMsg(listener,newDataPoss,newSyncInfo,needSyncCount);
     
-    result=writeToNew(out_newStream,newSyncInfo,newDataPoss,oldStream,
-                      decompressPlugin,strongChecksumPlugin,listener);
+    _TWriteDatas writeDatas;
+    writeDatas.out_newStream=out_newStream;
+    writeDatas.newSyncInfo=newSyncInfo;
+    writeDatas.newDataPoss=newDataPoss;
+    writeDatas.oldStream=oldStream;
+    writeDatas.decompressPlugin=decompressPlugin;
+    writeDatas.strongChecksumPlugin=strongChecksumPlugin;
+    writeDatas.listener=listener;
+    result=writeToNew(writeDatas,threadNum);
     check(result==kSyncClient_ok,result);
 clear:
     _inClear=1;
@@ -550,7 +621,7 @@ clear:
 }
 
 int sync_patch_by_file(const char* out_newPath,const char* oldPath,
-                       const char* newSyncInfoPath,ISyncPatchListener* listener,int threadNum){
+                       const char* newSyncInfoFile,ISyncPatchListener* listener,int threadNum){
     int result=kSyncClient_ok;
     int _inClear=0;
     TNewDataSyncInfo         newSyncInfo;
@@ -560,7 +631,7 @@ int sync_patch_by_file(const char* out_newPath,const char* oldPath,
     TNewDataSyncInfo_init(&newSyncInfo);
     hpatch_TFileStreamInput_init(&oldData);
     hpatch_TFileStreamOutput_init(&out_newData);
-    result=TNewDataSyncInfo_open_by_file(&newSyncInfo,newSyncInfoPath,listener);
+    result=TNewDataSyncInfo_open_by_file(&newSyncInfo,newSyncInfoFile,listener);
     check(result==kSyncClient_ok,result);
     check(hpatch_TFileStreamInput_open(&oldData,oldPath),kSyncClient_oldFileOpenError);
     check(hpatch_TFileStreamOutput_open(&out_newData,out_newPath,(hpatch_StreamPos_t)(-1)),

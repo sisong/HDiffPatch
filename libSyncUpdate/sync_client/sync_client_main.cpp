@@ -26,9 +26,11 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
+#include <vector>
 #include "sync_client.h"
 #include "download_emulation.h"
 #include "../../_clock_for_demo.h"
+#include "../../_atosize.h"
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1
@@ -95,20 +97,66 @@ static hpatch_TChecksum* findChecksumPlugin(ISyncPatchListener* listener,const c
     }
 }
 
+const char* kCmdInfo="test sync_patch: oldPath newSyncInfoFile test_newSyncDataPath out_newPath"
+#if (_IS_USED_MULTITHREAD)
+                     " [-p-threadNum]"
+#endif
+;
+#define _options_check(value) do{ \
+    if (!(value)) { printf("%s\n",kCmdInfo);  return -1; } }while(0)
+
+#define _THREAD_NUMBER_NULL     0
+#define _THREAD_NUMBER_MIN      1
+#define _THREAD_NUMBER_DEFUALT  4
+#define _THREAD_NUMBER_MAX      (1<<8)
+
 int main(int argc, const char * argv[]) {
-    double time0=clock_s();
-    if (argc!=1+4){
-        printf("test sync_patch: oldPath newSyncInfoPath test_newSyncDataPath out_newPath\n");
-        return -1;
+    size_t      threadNum = _THREAD_NUMBER_NULL;
+    std::vector<const char *> arg_values;
+    for (int i=1; i<argc; ++i) {
+        const char* op=argv[i];
+        _options_check(op!=0);
+        if (op[0]!='-'){
+            arg_values.push_back(op); //file path
+            continue;
+        }
+        switch (op[1]) {
+#if (_IS_USED_MULTITHREAD)
+            case 'p':{
+                _options_check((threadNum==_THREAD_NUMBER_NULL)&&((op[2]=='-')));
+                const char* pnum=op+3;
+                _options_check(a_to_size(pnum,strlen(pnum),&threadNum));
+                _options_check(threadNum>=_THREAD_NUMBER_MIN);
+            } break;
+#endif
+            default: {
+                _options_check(hpatch_FALSE);
+            } break;
+        }//swich
     }
     
-    const char* oldPath=argv[1];
-    const char* newSyncInfoPath=argv[2];
-    const char* test_newSyncDataPath=argv[3]; //for test
-    const char* out_newPath=argv[4];
-    int threadNum=2;
-    ISyncPatchListener emulation;
-    memset(&emulation,0,sizeof(emulation));
+    if (threadNum==_THREAD_NUMBER_NULL)
+        threadNum=_THREAD_NUMBER_DEFUALT;
+    else if (threadNum>_THREAD_NUMBER_MAX)
+        threadNum=_THREAD_NUMBER_MAX;
+#if (_IS_USED_MULTITHREAD)
+#else
+    threadNum=1;
+#endif
+    _options_check(arg_values.size()==4);
+    const char* oldPath             =arg_values[0];
+    const char* newSyncInfoFile     =arg_values[1];
+    const char* test_newSyncDataPath=arg_values[2];
+    const char* out_newPath         =arg_values[3];
+
+    double time0=clock_s();
+
+    if (threadNum>1)
+        printf("muti-thread parallel: opened, threadNum: %d\n",(uint32_t)threadNum);
+    else
+        printf("muti-thread parallel: closed\n");
+    
+    ISyncPatchListener emulation; memset(&emulation,0,sizeof(emulation));
     if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataPath))
         return kSyncClient_readSyncDataError;
     emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
@@ -116,7 +164,7 @@ int main(int argc, const char * argv[]) {
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     
-    int result=sync_patch_by_file(out_newPath,oldPath,newSyncInfoPath,&emulation,threadNum);
+    int result=sync_patch_by_file(out_newPath,oldPath,newSyncInfoFile,&emulation,(int)threadNum);
     downloadEmulation_close(&emulation);
     double time1=clock_s();
     printf("test sync_patch time: %.3f s\n\n",(time1-time0));

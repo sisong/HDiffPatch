@@ -72,14 +72,14 @@ typedef enum TSyncClient_resultType{
     } ISyncPatchListener;
 
 int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,
-                                   const char* newSyncInfoPath,ISyncPatchListener *listener);
+                                   const char* newSyncInfoFile,ISyncPatchListener *listener);
 int  TNewDataSyncInfo_open(TNewDataSyncInfo* self,
                            const hpatch_TStreamInput* newSyncInfo,ISyncPatchListener *listener);
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
 
 
 int sync_patch_by_file(const char* out_newPath,const char* oldPath,
-                       const char* newSyncInfoPath,ISyncPatchListener* listener,int threadNum=0);
+                       const char* newSyncInfoFile,ISyncPatchListener* listener,int threadNum=0);
 
 int sync_patch(const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* oldStream,
                const TNewDataSyncInfo* newSyncInfo,ISyncPatchListener* listener,int threadNum=0);

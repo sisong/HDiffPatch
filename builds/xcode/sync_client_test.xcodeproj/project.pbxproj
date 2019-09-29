@@ -39,6 +39,7 @@
 		D61DE51C2340397000F6FCCF /* parallel_import.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_import.h; sourceTree = "<group>"; };
 		D61DE51D2340397000F6FCCF /* parallel_import.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_import.cpp; sourceTree = "<group>"; };
 		D61DE51E2340397000F6FCCF /* parallel_channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_channel.h; sourceTree = "<group>"; };
+		D61DE52323407BA600F6FCCF /* mt_by_queue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mt_by_queue.h; sourceTree = "<group>"; };
 		D63B98892333B574003D38A5 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
 		D63B988E233607A6003D38A5 /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch.c; path = ../../libHDiffPatch/HPatch/patch.c; sourceTree = "<group>"; };
 		D65892F82331D169003BB2F4 /* sync_client_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sync_client_test; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -149,6 +150,7 @@
 				D699A29423372152003CB3DC /* match_in_old.cpp */,
 				D699A2AA2338AFD2003CB3DC /* download_emulation.h */,
 				D699A2A92338AFD2003CB3DC /* download_emulation.cpp */,
+				D61DE52323407BA600F6FCCF /* mt_by_queue.h */,
 			);
 			name = sync_client;
 			path = ../../libSyncUpdate/sync_client;

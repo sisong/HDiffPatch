@@ -64,12 +64,12 @@
 
 
 static void printUsage(){
-    printf("sync_serever: [options] newDataPath out_newSyncInfoPath [out_newSyncDataPath]\n"
+    printf("sync_serever: [options] newDataPath out_newSyncInfoFile [out_newSyncDataFile]\n"
            "options:\n"
            "  -s-matchBlockSize\n"
            "      matchBlockSize can like 4096 or 4k or 128k or 1m etc..., DEFAULT 2048\n"
            "  -c-compressType[-compressLevel]\n"
-           "      set out_newSyncDataPath Compress type & level, DEFAULT uncompress;\n"
+           "      set out_newSyncDataFile Compress type & level, DEFAULT uncompress;\n"
            "      support compress type & level:\n"
            "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
@@ -297,7 +297,10 @@ int sync_server_cmd_line(int argc, const char * argv[]){
         threadNum=_THREAD_NUMBER_DEFUALT;
     else if (threadNum>_THREAD_NUMBER_MAX)
         threadNum=_THREAD_NUMBER_MAX;
-
+#if (_IS_USED_MULTITHREAD)
+#else
+    threadNum=1;
+#endif
     if (isOutputHelp){
         printUsage();
         if (arg_values.empty())
@@ -306,27 +309,32 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     
     _options_check((arg_values.size()==2)||(arg_values.size()==3),"input count");
     const char* newDataPath        =arg_values[0];
-    const char* out_newSyncInfoPath=arg_values[1];
-    const char* out_newSyncDataPath=0;
+    const char* out_newSyncInfoFile=arg_values[1];
+    const char* out_newSyncDataFile=0;
     if (arg_values.size()>=3)
-        out_newSyncDataPath=arg_values[2];
+        out_newSyncDataFile=arg_values[2];
     if (compressPlugin)
-        _options_check(out_newSyncDataPath!=0,"used compress need out_newSyncDataPath");
+        _options_check(out_newSyncDataFile!=0,"used compress need out_newSyncDataFile");
 
     if (!isForceOverwrite){
         hpatch_TPathType   outFileType;
-        _return_check(hpatch_getPathStat(out_newSyncInfoPath,&outFileType,0),
-                      SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"get %s type","out_newSyncInfoPath");
+        _return_check(hpatch_getPathStat(out_newSyncInfoFile,&outFileType,0),
+                      SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"get %s type","out_newSyncInfoFile");
         _return_check(outFileType==kPathType_notExist,
-                      SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"%s already exists, not overwrite","out_newSyncInfoPath");
-        if (out_newSyncDataPath){
-            _return_check(hpatch_getPathStat(out_newSyncDataPath,&outFileType,0),
-                          SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"get %s type","out_newSyncDataPath");
+                      SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"%s already exists, not overwrite","out_newSyncInfoFile");
+        if (out_newSyncDataFile){
+            _return_check(hpatch_getPathStat(out_newSyncDataFile,&outFileType,0),
+                          SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"get %s type","out_newSyncDataFile");
             _return_check(outFileType==kPathType_notExist,
-                          SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"%s already exists, not overwrite","out_newSyncDataPath");
+                          SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"%s already exists, not overwrite","out_newSyncDataFile");
         }
     }
     
+    if (threadNum>1)
+        printf("muti-thread parallel: opened, threadNum: %d\n",(uint32_t)threadNum);
+    else
+        printf("muti-thread parallel: closed\n");
+
     hpatch_TChecksum* strongChecksumPlugin=&md5ChecksumPlugin;
     printf("create_sync_data run with strongChecksum plugin: \"%s\"\n",strongChecksumPlugin->checksumType());
     if (compressPlugin)
@@ -348,18 +356,18 @@ int sync_server_cmd_line(int argc, const char * argv[]){
 
     double time0=clock_s();
     try {
-        create_sync_data(newDataPath,out_newSyncInfoPath,out_newSyncDataPath,
+        create_sync_data(newDataPath,out_newSyncInfoFile,out_newSyncDataFile,
                          compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize,threadNum);
     } catch (const std::exception& e){
         _return_check(false,SYNC_SERVER_CREATE_SYNC_DATA_ERROR,
                       "create_sync_data run error: %s\n",e.what());
     }
     double time1=clock_s();
-    _return_check(printFileInfo(out_newSyncInfoPath,"outFileSize"),
-                  SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncInfoPath);
-    if (out_newSyncDataPath){
-        _return_check(printFileInfo(out_newSyncDataPath,"outFileSize"),
-                      SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncDataPath);
+    _return_check(printFileInfo(out_newSyncInfoFile,"outFileSize"),
+                  SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncInfoFile);
+    if (out_newSyncDataFile){
+        _return_check(printFileInfo(out_newSyncDataFile,"outFileSize"),
+                      SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncDataFile);
     }
     
     printf("\ncreate_sync_data time: %.3f s\n\n",(time1-time0));
