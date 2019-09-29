@@ -106,6 +106,7 @@ int main(int argc, const char * argv[]) {
     const char* newSyncInfoPath=argv[2];
     const char* test_newSyncDataPath=argv[3]; //for test
     const char* out_newPath=argv[4];
+    int threadNum=2;
     ISyncPatchListener emulation;
     memset(&emulation,0,sizeof(emulation));
     if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataPath))
@@ -115,7 +116,7 @@ int main(int argc, const char * argv[]) {
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     
-    int result=sync_patch_by_file(out_newPath,oldPath,newSyncInfoPath,&emulation);
+    int result=sync_patch_by_file(out_newPath,oldPath,newSyncInfoPath,&emulation,threadNum);
     downloadEmulation_close(&emulation);
     double time1=clock_s();
     printf("test sync_patch time: %.3f s\n\n",(time1-time0));

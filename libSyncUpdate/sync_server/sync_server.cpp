@@ -296,22 +296,22 @@ struct TMt_shareDatas {
     hpatch_StreamPos_t curOutPos;
     inline explicit TMt_shareDatas(int _threadNum,uint32_t _blockCount)
         :threadNum(_threadNum),blockCount(_blockCount),curOutPos(0),
-        inputBlockIndex(0),finishThreadNum(0),
+        inputBlockIndex(0),finishedThreadNum(0),
         threadChannels(_threadNum),threadWorkIndexs(_threadNum,0){ }
     inline void finish(){
         CAutoLocker _auto_locker(mtdataLocker.locker);
-        ++finishThreadNum;
+        ++finishedThreadNum;
     }
     void waitAllFinish(){
         while(true){
             {   CAutoLocker _auto_locker(mtdataLocker.locker);
-                if (finishThreadNum==threadNum) break;
+                if (finishedThreadNum==threadNum) break;
             }//else
             this_thread_yield();
         }
     }
     struct TAutoInputLocker{
-        TAutoInputLocker(TMt_shareDatas* _mt,int threadIndex,
+        inline TAutoInputLocker(TMt_shareDatas* _mt,int threadIndex,
                          uint32_t workBlockIndex,bool* out_isGotWork)
         :mt(_mt),isLock(false){
             if (mt){
@@ -328,7 +328,7 @@ struct TMt_shareDatas {
         bool            isLock;
     };
     struct TAutoOutputLocker{
-        TAutoOutputLocker(TMt_shareDatas* _mt,int threadIndex,uint32_t workBlockIndex)
+        inline TAutoOutputLocker(TMt_shareDatas* _mt,int threadIndex,uint32_t workBlockIndex)
         :mt(_mt),blockIndex(workBlockIndex){
             if (mt){
                 check(mt->wait(threadIndex,workBlockIndex))
@@ -341,7 +341,7 @@ struct TMt_shareDatas {
 private:
     uint32_t  blockCount;
     uint32_t  inputBlockIndex;
-    int       finishThreadNum;
+    int       finishedThreadNum;
     CHLocker  mtdataLocker;
     CHLocker  readLocker;
     std::vector<CChannel> threadChannels;
@@ -482,9 +482,6 @@ static void mt_create_sync_data(const hpatch_TStreamInput*  newData,
     }
     _clear(cmbuf);
     _clear(buf);
-#if (_IS_USED_MULTITHREAD)
-    if (_mt) { ((TMt_shareDatas*)_mt)->finish(); }
-#endif
 }
 
 
@@ -496,14 +493,16 @@ struct TMt_threadDatas {
     const hdiff_TCompress*      compressPlugin;
     hpatch_TChecksum*           strongChecksumPlugin;
     uint32_t                    kMatchBlockSize;
+    
     TMt_shareDatas*             shareDatas;
 };
 
-void _mt_threadRunCallBackProc(int threadIndex,void* workData){
+static void _mt_threadRunCallBackProc(int threadIndex,void* workData){
     TMt_threadDatas* tdatas=(TMt_threadDatas*)workData;
     mt_create_sync_data(tdatas->newData,tdatas->out_newSyncInfo,tdatas->out_newSyncData,
                         tdatas->compressPlugin,tdatas->strongChecksumPlugin,
                         tdatas->kMatchBlockSize,tdatas->shareDatas,threadIndex);
+    tdatas->shareDatas->finish();
     bool isMainThread=(threadIndex==tdatas->shareDatas->threadNum-1);
     if (isMainThread) tdatas->shareDatas->waitAllFinish();
 }
@@ -517,13 +516,9 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
                              uint32_t kMatchBlockSize,size_t threadNum){
     check(kMatchBlockSize>=kMatchBlockSize_min);
     if (compressPlugin) check(out_newSyncData!=0);
-
     
 #if (_IS_USED_MULTITHREAD)
-    if (threadNum<=1){
-        mt_create_sync_data(newData,out_newSyncInfo,out_newSyncData,
-                            compressPlugin,strongChecksumPlugin,kMatchBlockSize);
-    }else{
+    if (threadNum>1){
         const uint32_t kBlockCount=(uint32_t)getBlockCount(out_newSyncInfo->newDataSize,kMatchBlockSize);
         TMt_shareDatas   shareDatas((int)threadNum,kBlockCount);
         TMt_threadDatas  tdatas;  memset(&tdatas,0,sizeof(tdatas));
@@ -534,13 +529,13 @@ static void create_sync_data(const hpatch_TStreamInput*  newData,
         tdatas.compressPlugin=compressPlugin;
         tdatas.strongChecksumPlugin=strongChecksumPlugin;
         tdatas.kMatchBlockSize=kMatchBlockSize;
-        thread_parallel((int)threadNum,_mt_threadRunCallBackProc,&tdatas,1,0);
-    }
-#else
-    mt_create_sync_data(newData,out_newSyncInfo,out_newSyncData,
-                        compressPlugin,strongChecksumPlugin,kMatchBlockSize);
+        thread_parallel((int)threadNum,_mt_threadRunCallBackProc,&tdatas,1);
+    }else
 #endif
-    
+    {
+        mt_create_sync_data(newData,out_newSyncInfo,out_newSyncData,
+                            compressPlugin,strongChecksumPlugin,kMatchBlockSize);
+    }
     matchNewDataInNew(out_newSyncInfo);
 }
 

@@ -492,7 +492,7 @@ static void printMatchResult(const TNewDataSyncInfo* newSyncInfo,
 }
 
 int sync_patch(const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput*  oldStream,
-               const TNewDataSyncInfo* newSyncInfo,ISyncPatchListener* listener){
+               const TNewDataSyncInfo* newSyncInfo,ISyncPatchListener* listener,int threadNum){
     assert(listener!=0);
     hpatch_TDecompress* decompressPlugin=0;
     hpatch_TChecksum*   strongChecksumPlugin=0;
@@ -530,7 +530,7 @@ int sync_patch(const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInp
     check(newDataPoss!=0,kSyncClient_memError);
     try{
         matchNewDataInOld(newDataPoss,&needSyncCount,&needSyncSize,
-                          newSyncInfo,oldStream,strongChecksumPlugin);
+                          newSyncInfo,oldStream,strongChecksumPlugin,threadNum);
         printMatchResult(newSyncInfo,needSyncCount, needSyncSize);
     }catch(...){
         result=kSyncClient_matchNewDataInOldError;
@@ -550,7 +550,7 @@ clear:
 }
 
 int sync_patch_by_file(const char* out_newPath,const char* oldPath,
-                       const char* newSyncInfoPath,ISyncPatchListener* listener){
+                       const char* newSyncInfoPath,ISyncPatchListener* listener,int threadNum){
     int result=kSyncClient_ok;
     int _inClear=0;
     TNewDataSyncInfo         newSyncInfo;
@@ -566,7 +566,7 @@ int sync_patch_by_file(const char* out_newPath,const char* oldPath,
     check(hpatch_TFileStreamOutput_open(&out_newData,out_newPath,(hpatch_StreamPos_t)(-1)),
           kSyncClient_newFileCreateError);
     
-    result=sync_patch(&out_newData.base,&oldData.base,&newSyncInfo,listener);
+    result=sync_patch(&out_newData.base,&oldData.base,&newSyncInfo,listener,threadNum);
 clear:
     _inClear=1;
     check(hpatch_TFileStreamOutput_close(&out_newData),kSyncClient_newFileCloseError);
