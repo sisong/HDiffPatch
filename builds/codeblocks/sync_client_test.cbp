@@ -49,9 +49,14 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 			<Add option="-D_FILE_OFFSET_BITS=64" />
+			<Add option="-D_7ZIP_ST" />
+			<Add option="-D_IS_USED_PTHREAD=1" />
 			<Add directory="../../../lzma/C/" />
 			<Add directory="../../../libmd5/" />
 		</Compiler>
+		<Linker>
+			<Add library="pthread" />
+		</Linker>
 		<Unit filename="../../../libmd5/md5.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -90,6 +95,8 @@
 		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../libParallel/parallel_channel.cpp" />
+		<Unit filename="../../libParallel/parallel_import.cpp" />
 		<Unit filename="../../libSyncUpdate/sync_client/download_emulation.cpp" />
 		<Unit filename="../../libSyncUpdate/sync_client/match_in_old.cpp" />
 		<Unit filename="../../libSyncUpdate/sync_client/sync_client.cpp" />

@@ -31,6 +31,7 @@
 #include "download_emulation.h"
 #include "../../_clock_for_demo.h"
 #include "../../_atosize.h"
+#include "../../libParallel/parallel_import.h"
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1

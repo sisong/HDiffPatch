@@ -85,7 +85,7 @@ struct TOldDataCache_base {
         if (dataSize<m_kMatchBlockSize){ m_cur=0; return; } //end
 
         if (m_cache.size()>dataSize)
-            m_cache.reduceSize(dataSize);
+            m_cache.reduceSize((size_t)dataSize);
         m_cur=m_cache.data_end();
         _cache();
     }

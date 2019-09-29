@@ -29,16 +29,16 @@
  */
 #ifndef mt_by_queue_h
 #define mt_by_queue_h
+#include "../../libParallel/parallel_channel.h"
 #if (_IS_USED_MULTITHREAD)
 #include <vector>
-#include "../../libParallel/parallel_channel.h"
+
 struct TMt_by_queue {
-    const int threadNum;
-    hpatch_StreamPos_t curOutPos;
+    const int    threadNum;
+    const size_t workCount;
     inline explicit TMt_by_queue(int _threadNum,size_t _workCount,bool _isOutputNeedQueue=true)
     :threadNum(_threadNum),workCount(_workCount),isOutputNeedQueue(_isOutputNeedQueue),
-    curOutPos(0),inputWorkIndex(0),finishedThreadNum(0),
-    threadChannels(),threadWorkIndexs(){
+    finishedThreadNum(0),inputWorkIndex(0){
         if (isOutputNeedQueue) {  threadChannels.resize(_threadNum);
                                   threadWorkIndexs.resize(_threadNum,0); } }
     inline void finish(){
@@ -88,10 +88,9 @@ struct TMt_by_queue {
         size_t        workIndex;
     };
 private:
-    size_t    workCount;
     bool      isOutputNeedQueue;
-    size_t    inputWorkIndex;
     int       finishedThreadNum;
+    size_t    inputWorkIndex;
     CHLocker  mtdataLocker;
     CHLocker  readLocker;
     std::vector<CChannel> threadChannels;

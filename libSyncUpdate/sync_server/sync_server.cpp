@@ -295,6 +295,7 @@ struct _TCreateDatas {
     const hdiff_TCompress*      compressPlugin;
     hpatch_TChecksum*           strongChecksumPlugin;
     uint32_t                    kMatchBlockSize;
+    hpatch_StreamPos_t          curOutPos;
 };
 
 static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0){
@@ -315,7 +316,6 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
     _TAutoClose_checksumHandle _autoClose_checksumHandle(strongChecksumPlugin,checksumBlockData);
     
     hpatch_StreamPos_t curReadPos=0;
-    hpatch_StreamPos_t curOutPos=0;
     for (uint32_t i=0; i<kBlockCount; ++i,curReadPos+=kMatchBlockSize) {
 #if (_IS_USED_MULTITHREAD)
         if (_mt) { if (!((TMt_by_queue*)_mt)->getWork(threadIndex,i)) continue; } //next work;
@@ -358,7 +358,6 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
         {//save data
 #if (_IS_USED_MULTITHREAD)
             TMt_by_queue::TAutoOutputLocker _autoLocker((TMt_by_queue*)_mt,threadIndex,i);
-            if (_mt) curOutPos=((TMt_by_queue*)_mt)->curOutPos;
 #endif
             if (out_newSyncInfo->is32Bit_rollHash)
                 ((uint32_t*)out_newSyncInfo->rollHashs)[i]=(uint32_t)rollHash;
@@ -375,16 +374,13 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
             
             if (compressedSize>0){
                 if (cd.out_newSyncData)
-                    writeStream(cd.out_newSyncData,curOutPos, cmbuf.data(),compressedSize);
+                    writeStream(cd.out_newSyncData,cd.curOutPos, cmbuf.data(),compressedSize);
                 out_newSyncInfo->newSyncDataSize+=compressedSize;
             }else{
                 if (cd.out_newSyncData)
-                    writeStream(cd.out_newSyncData,curOutPos, buf.data(),dataLen);
+                    writeStream(cd.out_newSyncData,cd.curOutPos, buf.data(),dataLen);
                 out_newSyncInfo->newSyncDataSize+=dataLen;
             }
-#if (_IS_USED_MULTITHREAD)
-            if (_mt) ((TMt_by_queue*)_mt)->curOutPos=curOutPos;
-#endif
         }
     }
 }
@@ -440,6 +436,7 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
     createDatas.compressPlugin=compressPlugin;
     createDatas.strongChecksumPlugin=strongChecksumPlugin;
     createDatas.kMatchBlockSize=kMatchBlockSize;
+    createDatas.curOutPos=0;
     _create_sync_data(createDatas,threadNum);
     check(TNewDataSyncInfo_saveTo(&newSyncInfo,out_newSyncInfo,
                                   strongChecksumPlugin,compressPlugin));

@@ -50,10 +50,9 @@ endif
 
 
 SYNC_LINK := -lz
-SERVER_LINK := $(SYNC_LINK)
 ifeq ($(MT),0)
 else
-  SERVER_LINK += -lpthread
+  SYNC_LINK += -lpthread
 endif
 
 CFLAGS   += $(DEF_FLAGS) 
@@ -83,7 +82,7 @@ libsyncupdate.a: $(SERVER_OBJ) $(CLIENT_OBJ)
 	$(AR) rcs $@ $^
 
 sync_server: 
-	$(CXX) libSyncUpdate/sync_server/sync_server_main.cpp $(SERVER_OBJ) $(MD5_OBJ) $(LZMA_OBJ) $(CXXFLAGS) $(SERVER_LINK) -o  sync_server
+	$(CXX) libSyncUpdate/sync_server/sync_server_main.cpp $(SERVER_OBJ) $(MD5_OBJ) $(LZMA_OBJ) $(CXXFLAGS) $(SYNC_LINK) -o  sync_server
 sync_client_test: 
 	$(CXX) libSyncUpdate/sync_client/sync_client_main.cpp $(CLIENT_OBJ) $(MD5_OBJ) $(LZMA_DEC_OBJ) $(CXXFLAGS) $(SYNC_LINK) -o sync_client_test
 

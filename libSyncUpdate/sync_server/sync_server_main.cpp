@@ -34,6 +34,7 @@
 #include "../../_clock_for_demo.h"
 #include "../../_atosize.h"
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
+#include "../../libParallel/parallel_import.h"
 
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
