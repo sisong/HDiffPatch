@@ -322,7 +322,7 @@ static void tm_matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     TIndex_comp<tm_roll_uint> icomp((tm_roll_uint*)newSyncInfo->rollHashs);
     
-    TAutoMem _mem_sorted(kBlockCount*sizeof(uint32_t));
+    TAutoMem _mem_sorted(kBlockCount*(size_t)sizeof(uint32_t));
     uint32_t* sorted_newIndexs=(uint32_t*)_mem_sorted.data();
     TBloomFilter<tm_roll_uint> filter; filter.init(kBlockCount);
     uint32_t sortedBlockCount=0;
@@ -344,7 +344,7 @@ static void tm_matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
     //optimize for std::equal_range
     const unsigned int kTableBit =getBetterTableBit(sortedBlockCount);
     const unsigned int kTableHashShlBit=(sizeof(tm_roll_uint)*8-kTableBit);
-    TAutoMem _mem_table(sizeof(uint32_t)*((1<<kTableBit)+1));
+    TAutoMem _mem_table((size_t)sizeof(uint32_t)*((1<<kTableBit)+1));
     uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
     {
         uint32_t* pos=sorted_newIndexs;

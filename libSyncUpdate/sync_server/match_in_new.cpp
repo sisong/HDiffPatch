@@ -76,7 +76,7 @@ void tm_matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     const unsigned char* partChecksums=newSyncInfo->partChecksums;
     TSameNewDataPair* samePairList=newSyncInfo->samePairList;
 
-    TAutoMem _mem(kBlockCount*sizeof(uint32_t));
+    TAutoMem _mem(kBlockCount*(size_t)sizeof(uint32_t));
     uint32_t* sorted_newIndexs=(uint32_t*)_mem.data();
     for (uint32_t i=0; i<kBlockCount; ++i){
         sorted_newIndexs[i]=i;

@@ -66,6 +66,7 @@
 
 static void printUsage(){
     printf("sync_serever: [options] newDataPath out_newSyncInfoFile [out_newSyncDataFile]\n"
+           "(if newDataPath is a file and not require compress,out_newSyncDataFile can null)\n"
            "options:\n"
            "  -s-matchBlockSize\n"
            "      matchBlockSize can like 4096 or 4k or 128k or 1m etc..., DEFAULT 2048\n"
@@ -312,8 +313,10 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     const char* newDataPath        =arg_values[0];
     const char* out_newSyncInfoFile=arg_values[1];
     const char* out_newSyncDataFile=0;
-    if (arg_values.size()>=3)
+    if (arg_values.size()>=3){
         out_newSyncDataFile=arg_values[2];
+        if (strlen(out_newSyncDataFile)==0) out_newSyncDataFile=0;
+    }
     if (compressPlugin)
         _options_check(out_newSyncDataFile!=0,"used compress need out_newSyncDataFile");
 

@@ -58,6 +58,7 @@
 static bool isChecksumNewSyncInfo(ISyncPatchListener* listener){
     return true;
 }
+//ISyncPatchListener::isChecksumNewSyncData
 static bool isChecksumNewSyncData(ISyncPatchListener* listener){
     return true;
 }

@@ -33,6 +33,7 @@
 #include "../../file_for_patch.h"
 #include "match_in_new.h"
 #include "../sync_client/mt_by_queue.h"
+#include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
@@ -249,26 +250,27 @@ public:
         this->kStrongChecksumByteSize=(uint32_t)strongChecksumPlugin->checksumByteSize();
         this->kMatchBlockSize=kMatchBlockSize;
         this->newDataSize=newDataSize;
-        
-        const uint32_t kBlockCount=this->blockCount();
-        this->samePairCount=0;
-        this->_samePairList.resize(kBlockCount);
-        this->samePairList=this->_samePairList.data();
-        
         this->is32Bit_rollHash=isCanUse32bitRollHash(newDataSize,kMatchBlockSize);
-        this->_rollHashs.resize(this->is32Bit_rollHash?((kBlockCount+1)/2):kBlockCount);
-        this->rollHashs=this->_rollHashs.data();
+        //mem
+        const size_t kBlockCount=this->blockCount();
+        hpatch_StreamPos_t memSize=kBlockCount*( (hpatch_StreamPos_t)0
+                                                +sizeof(TSameNewDataPair)+kPartStrongChecksumByteSize
+                                                +(this->is32Bit_rollHash?sizeof(uint32_t):sizeof(uint64_t))
+                                                +(compressPlugin?sizeof(uint32_t):0));
+        memSize+=kPartStrongChecksumByteSize;
+        check(memSize==(size_t)memSize);
+        _mem.realloc((size_t)memSize);
+        TByte* curMem=_mem.data();
         
-        this->_infoPartChecksum.resize(kPartStrongChecksumByteSize,0);
-        this->infoPartChecksum=this->_infoPartChecksum.data();
-        hpatch_StreamPos_t _checksumsBufSize=kBlockCount*(hpatch_StreamPos_t)kPartStrongChecksumByteSize;
-        check(_checksumsBufSize==(size_t)_checksumsBufSize);
-        this->_partStrongChecksums.resize((size_t)_checksumsBufSize);
-        this->partChecksums=this->_partStrongChecksums.data();
+        this->infoPartChecksum=curMem; curMem+=kPartStrongChecksumByteSize;
+        this->partChecksums=curMem; curMem+=kBlockCount*kPartStrongChecksumByteSize;
+        this->samePairCount=0;
+        this->samePairList=(TSameNewDataPair*)curMem; curMem+=kBlockCount*sizeof(TSameNewDataPair);
+        this->rollHashs=curMem; curMem+=kBlockCount*(this->is32Bit_rollHash?sizeof(uint32_t):sizeof(uint64_t));
         if (compressPlugin){
-            this->_savedSizes.resize(kBlockCount);
-            this->savedSizes=this->_savedSizes.data();
+            this->savedSizes=(uint32_t*)curMem; curMem+=kBlockCount*sizeof(uint32_t);
         }
+        assert(curMem==_mem.data_end());
     }
     ~CNewDataSyncInfo(){}
     void insetSamePair(uint32_t curIndex,uint32_t sameIndex){
@@ -280,12 +282,7 @@ public:
 private:
     std::string                 _compressType;
     std::string                 _strongChecksumType;
-    std::vector<TByte>          _infoPartChecksum;
-    std::vector<TSameNewDataPair> _samePairList;
-    std::vector<uint32_t>       _savedSizes;
-    std::vector<uint64_t>       _rollHashs;
-    std::vector<TByte>          _partStrongChecksums;
-    std::vector<TByte>          _newDataInsureStrongChecksums;
+    hdiff_private::TAutoMem     _mem;
 };
 
 struct _TCreateDatas {

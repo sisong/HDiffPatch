@@ -144,7 +144,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
     TChecksumInputStream  checksumInputStream;
     const bool isChecksumNewSyncInfo=(listener->isChecksumNewSyncInfo==0)
                                     ||listener->isChecksumNewSyncInfo(listener);
-    const size_t kFileIOBufBetterSize=hpatch_kFileIOBufBetterSize/2;
+    const size_t kFileIOBufBetterSize=hpatch_kFileIOBufBetterSize;
     TByte* temp_cache=(TByte*)malloc(kFileIOBufBetterSize);
     check(temp_cache!=0,kSyncClient_memError);
     memset(&decompresser,0,sizeof(decompresser));
@@ -590,7 +590,7 @@ int sync_patch(const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInp
     }
 
     //match in oldData
-    newDataPoss=(hpatch_StreamPos_t*)malloc(kBlockCount*sizeof(hpatch_StreamPos_t));
+    newDataPoss=(hpatch_StreamPos_t*)malloc(kBlockCount*(size_t)sizeof(hpatch_StreamPos_t));
     check(newDataPoss!=0,kSyncClient_memError);
     try{
         matchNewDataInOld(newDataPoss,&needSyncCount,&needSyncSize,

@@ -30,21 +30,23 @@
 #include "../../file_for_patch.h"
 
 struct TDownloadEmulation {
-    const hpatch_TStreamInput* newSyncData;
+    const hpatch_TStreamInput* emulation_newSyncData;
     hpatch_TFileStreamInput    file;
 };
 
 static bool _readSyncData(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,
                           hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize){
+#warning  Read newSyncData from emulation data; \
+In the actual project, these data need downloaded from server.
     TDownloadEmulation* self=(TDownloadEmulation*)listener->import;
-    return hpatch_FALSE!=self->newSyncData->read(self->newSyncData,posInNewSyncData,
+    return hpatch_FALSE!=self->emulation_newSyncData->read(self->emulation_newSyncData,posInNewSyncData,
                                                  out_syncDataBuf,out_syncDataBuf+syncDataSize);
 }
 
 static void downloadEmulation_open_by(TDownloadEmulation* self,ISyncPatchListener* out_emulation,
                                       const hpatch_TStreamInput* newSyncData){
     memset(out_emulation,0,sizeof(*out_emulation));
-    self->newSyncData=newSyncData;
+    self->emulation_newSyncData=newSyncData;
     out_emulation->import=self;
     out_emulation->readSyncData=_readSyncData;
 }

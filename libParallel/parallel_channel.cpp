@@ -52,6 +52,9 @@ public:
         }
         locker_delete(_locker);
         assert(_dataList.empty()); // error, why?
+        condvar_delete(_acceptCond);
+        condvar_delete(_sendCond);
+        condvar_delete(_wantSendCond);
     }
     void close(){
         if (_isClosed) return;
