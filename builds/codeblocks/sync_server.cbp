@@ -61,13 +61,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../libmd5/md5.h" />
-		<Unit filename="../../../lzma/C/Alloc.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="../../../lzma/C/LzFind.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../lzma/C/LzmaDec.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/LzmaEnc.c">
@@ -76,7 +70,13 @@
 		<Unit filename="../../../zlib/adler32.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../zlib/compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../zlib/crc32.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zlib/deflate.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/inffast.c">
@@ -106,10 +106,9 @@
 		</Unit>
 		<Unit filename="../../libParallel/parallel_channel.cpp" />
 		<Unit filename="../../libParallel/parallel_import.cpp" />
-		<Unit filename="../../libSyncUpdate/sync_client/download_emulation.cpp" />
-		<Unit filename="../../libSyncUpdate/sync_client/match_in_old.cpp" />
-		<Unit filename="../../libSyncUpdate/sync_client/sync_client.cpp" />
-		<Unit filename="../../libSyncUpdate/sync_client/sync_client_main.cpp" />
+		<Unit filename="../../libSyncUpdate/sync_server/match_in_new.cpp" />
+		<Unit filename="../../libSyncUpdate/sync_server/sync_server.cpp" />
+		<Unit filename="../../libSyncUpdate/sync_server/sync_server_main.cpp" />
 		<Extensions>
 			<envvars />
 			<code_completion />
