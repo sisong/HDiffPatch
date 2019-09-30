@@ -198,7 +198,7 @@ inline static size_t getBackZeroLen(hpatch_StreamPos_t newDataSize,uint32_t kMat
 static unsigned int getBetterTableBit(uint32_t blockCount){
     const int kMinBit = 8;
     const int kMaxBit = 23;
-    int result=(int)upper_ilog2((1<<kMinBit)+blockCount)-1;
+    int result=(int)upper_ilog2((1<<kMinBit)+blockCount)-2;
     result=(result<kMinBit)?kMinBit:result;
     result=(result>kMaxBit)?kMaxBit:result;
     return result;

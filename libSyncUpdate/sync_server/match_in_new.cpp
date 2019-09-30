@@ -27,11 +27,8 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "match_in_new.h"
-#include <algorithm> //sort, equal_range
+#include <algorithm> //sort, equal_range lower_bound
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
-
-#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
-#define checkv(value)     check(value,"check "#value" error!")
 
 using namespace hdiff_private;
 typedef unsigned char TByte;
@@ -70,6 +67,15 @@ protected:
     const tm_roll_uint* blocks;
 };
 
+static unsigned int getBetterTableBit(uint32_t blockCount){
+    const int kMinBit = 8;
+    const int kMaxBit = 23;
+    int result=(int)upper_ilog2((1<<kMinBit)+blockCount)-3;
+    result=(result<kMinBit)?kMinBit:result;
+    result=(result>kMaxBit)?kMaxBit:result;
+    return result;
+}
+
 template<class tm_roll_uint>
 void tm_matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
@@ -81,9 +87,23 @@ void tm_matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     for (uint32_t i=0; i<kBlockCount; ++i){
         sorted_newIndexs[i]=i;
     }
+    TIndex_comp<tm_roll_uint> icomp((tm_roll_uint*)newSyncInfo->rollHashs);
+    std::sort(sorted_newIndexs,sorted_newIndexs+kBlockCount,icomp);
+    
+    //optimize for std::equal_range
+    const unsigned int kTableBit =getBetterTableBit(kBlockCount);
+    const unsigned int kTableHashShlBit=(sizeof(tm_roll_uint)*8-kTableBit);
+    TAutoMem _mem_table((size_t)sizeof(uint32_t)*((1<<kTableBit)+1));
+    uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
     {
-        TIndex_comp<tm_roll_uint> icomp((tm_roll_uint*)newSyncInfo->rollHashs);
-        std::sort(sorted_newIndexs,sorted_newIndexs+kBlockCount,icomp);
+        uint32_t* pos=sorted_newIndexs;
+        for (uint32_t i=0; i<((uint32_t)1<<kTableBit); ++i) {
+            tm_roll_uint digest=((tm_roll_uint)i)<<kTableHashShlBit;
+            typename TIndex_comp<tm_roll_uint>::TDigest digest_value(digest,0);
+            pos=std::lower_bound(pos,sorted_newIndexs+kBlockCount,digest_value,icomp);
+            sorted_newIndexs_table[i]=(uint32_t)(pos-sorted_newIndexs);
+        }
+        sorted_newIndexs_table[((size_t)1<<kTableBit)]=kBlockCount;
     }
 
     TIndex_comp<tm_roll_uint> dcomp((tm_roll_uint*)newSyncInfo->rollHashs);
@@ -92,8 +112,11 @@ void tm_matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     for (uint32_t i=0; i<kBlockCount; ++i,curChecksum+=kPartStrongChecksumByteSize){
         tm_roll_uint digest=((tm_roll_uint*)newSyncInfo->rollHashs)[i];
         typename TIndex_comp<tm_roll_uint>::TDigest digest_value(digest,i);
+        const uint32_t* ti_pos=&sorted_newIndexs_table[digest>>kTableHashShlBit];
         std::pair<const uint32_t*,const uint32_t*>
-            range=std::equal_range(sorted_newIndexs,sorted_newIndexs+kBlockCount,digest_value,dcomp);
+            //range=std::equal_range(sorted_newIndexs,sorted_newIndexs+kBlockCount,digest_value,dcomp);
+            range=std::equal_range(sorted_newIndexs+ti_pos[0],
+                                   sorted_newIndexs+ti_pos[1],digest_value,dcomp);
         for (;range.first!=range.second; ++range.first) {
             uint32_t newBlockIndex=*range.first;
             //assert(newBlockIndex<i); // not need: if (newBlockIndex>=i) continue;
@@ -106,6 +129,7 @@ void tm_matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
             }
         }
     }
+    //printf("matchedCount: %d\n",matchedCount);
     newSyncInfo->samePairCount=matchedCount;
 }
 
