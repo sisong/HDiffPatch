@@ -38,8 +38,8 @@
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
 
-static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
-                       const TByte* buf,size_t byteSize){
+inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
+                               const TByte* buf,size_t byteSize){
     check(out_stream->write(out_stream,outPos,buf,buf+byteSize));
     outPos+=byteSize;
 }

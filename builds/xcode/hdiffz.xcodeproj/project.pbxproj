@@ -46,6 +46,7 @@
 
 /* Begin PBXFileReference section */
 		D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _dir_ignore.h; path = ../../_dir_ignore.h; sourceTree = "<group>"; };
+		D61DE52D234391CF00F6FCCF /* dir_diff_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_diff_private.h; sourceTree = "<group>"; };
 		D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = file_for_dirDiff.h; sourceTree = "<group>"; };
 		D6241AE021DE47D200E2846A /* new_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_stream.c; sourceTree = "<group>"; };
 		D6241AE121DE47D200E2846A /* new_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_stream.h; sourceTree = "<group>"; };
@@ -144,6 +145,7 @@
 				D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */,
 				D67D3BD521CBCD5D0050632A /* dir_diff.cpp */,
 				D67D3BDB21CBCD5D0050632A /* dir_diff.h */,
+				D61DE52D234391CF00F6FCCF /* dir_diff_private.h */,
 			);
 			path = dir_diff;
 			sourceTree = "<group>";

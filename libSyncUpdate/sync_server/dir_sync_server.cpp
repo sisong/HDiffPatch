@@ -27,8 +27,14 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_sync_server.h"
-#include "../../file_for_patch.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
+#include "../../file_for_patch.h"
+#include "../../dirDiffPatch/dir_diff/dir_diff_private.h"
+#include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
+using namespace hdiff_private;
+
+#define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
+#define check(value) checki(value,"check "#value" error!")
 
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const char*               newDataDir,
@@ -48,6 +54,19 @@ void create_dir_sync_data(IDirSyncListener*         listener,
                          compressPlugin,strongChecksumPlugin,kMaxOpenFileNumber,kMatchBlockSize,threadNum);
 }
 
+
+static void getRefList(const std::string& newRootPath,const std::vector<std::string>& newList,
+                       std::vector<hpatch_StreamPos_t>& out_newSizeList){
+    out_newSizeList.assign(newList.size(),0);
+    for (size_t newi=0; newi<newList.size(); ++newi){
+        const std::string& fileName=newList[newi];
+        if (isDirName(fileName)) continue;
+        hpatch_StreamPos_t fileSize=getFileSize(fileName);
+        out_newSizeList[newi]=fileSize;
+    }
+}
+
+
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const TManifest&          newManifest,
                           const char*               out_newSyncInfoFile,
@@ -56,7 +75,32 @@ void create_dir_sync_data(IDirSyncListener*         listener,
                           hpatch_TChecksum*         strongChecksumPlugin,
                           size_t                    kMaxOpenFileNumber,
                           uint32_t kMatchBlockSize,size_t threadNum){
-    throw 1;
+    assert(listener!=0);
+    assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
+    kMaxOpenFileNumber-=2; // for out_newSyncInfoFile & out_newSyncDataFile
+    const std::vector<std::string>& newList=newManifest.pathList;
+    listener->syncPathList(newList);
+    
+    std::vector<hpatch_StreamPos_t> newSizeList;
+    std::vector<size_t> newExecuteList; //for linux etc
+    
+    for (size_t newi=0; newi<newList.size(); ++newi) {
+        if ((!isDirName(newList[newi]))&&(listener->isExecuteFile(newList[newi])))
+            newExecuteList.push_back(newi);
+    }
+
+    getRefList(newManifest.rootPath,newList,newSizeList);
+    CFileResHandleLimit resLimit(kMaxOpenFileNumber,newList.size());
+    {
+        for (size_t i=0; i<newSizeList.size(); ++i) {
+            resLimit.addRes(newList[i],newSizeList[i]);
+        }
+    }
+    resLimit.open();
+    CRefStream newRefStream;
+    newRefStream.open(resLimit.limit.streamList,newList.size());
+    
+    listener->syncRefInfo(newList.size(),newRefStream.stream->streamSize,kMatchBlockSize);
 }
 
 

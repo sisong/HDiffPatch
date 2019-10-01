@@ -413,11 +413,11 @@ int sync_server_cmd_line(int argc, const char * argv[]){
         printf("muti-thread parallel: closed\n");
 
     hpatch_TChecksum* strongChecksumPlugin=&md5ChecksumPlugin;
-    printf("create_%ssync_data run with strongChecksum plugin: \"%s\"\n",
-           isUseDirSyncUpdate?"dir":"",strongChecksumPlugin->checksumType());
+    printf("create%s_sync_data run with strongChecksum plugin: \"%s\"\n",
+           isUseDirSyncUpdate?"_dir":"",strongChecksumPlugin->checksumType());
     if (compressPlugin)
-        printf("create_%ssync_data run with compress plugin: \"%s\"\n",
-               isUseDirSyncUpdate?"dir":"",compressPlugin->compressType());
+        printf("create%s_sync_data run with compress plugin: \"%s\"\n",
+               isUseDirSyncUpdate?"_dir":"",compressPlugin->compressType());
     double time0=clock_s();
     int result;
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -438,7 +438,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
                           SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncDataFile);
         }
     }
-    printf("\ncreate%s_sync_data time: %.3f s\n\n",isUseDirSyncUpdate?"dir":"",(time1-time0));
+    printf("\ncreate%s_sync_data time: %.3f s\n\n",isUseDirSyncUpdate?"_dir":"",(time1-time0));
     return result;
 }
 

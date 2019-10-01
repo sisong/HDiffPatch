@@ -44,6 +44,117 @@
 #include "../dir_patch/dir_patch_private.h"
 #include "../dir_patch/res_handle_limit.h"
 #include "../../_atosize.h"
+#include "dir_diff_private.h"
+
+#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
+#define checkv(value)     check(value,"check "#value" error!")
+
+namespace hdiff_private{
+
+    void CRefStream::open(const hpatch_TStreamInput** refList,size_t refCount){
+        check(hpatch_TRefStream_open(this,refList,refCount),"TRefStream_open() refList error!");
+    }
+    
+    hpatch_StreamPos_t getFileSize(const std::string& fileName){
+        hpatch_TPathType   type;
+        hpatch_StreamPos_t fileSize;
+        checkv(hpatch_getPathStat(fileName.c_str(),&type,&fileSize));
+        checkv(type==kPathType_file);
+        return fileSize;
+    }
+    
+    void pushIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list){
+        size_t backValue=~(size_t)0;
+        for (size_t i=0;i<list.size();++i){
+            size_t curValue=list[i];
+            assert(curValue>=(size_t)(backValue+1));
+            packUInt(out_data,(size_t)(curValue-(size_t)(backValue+1)));
+            backValue=curValue;
+        }
+    }
+    
+    void pushList(std::vector<TByte>& out_data,const std::vector<hpatch_StreamPos_t>& list){
+        for (size_t i=0;i<list.size();++i){
+            packUInt(out_data,list[i]);
+        }
+    }
+    
+    
+    static void formatDirTagForSave(std::string& path_utf8){
+        if (kPatch_dirSeparator==kPatch_dirSeparator_saved) return;
+        for (size_t i=0;i<path_utf8.size();++i){
+            if (path_utf8[i]!=kPatch_dirSeparator)
+                continue;
+            else
+                path_utf8[i]=kPatch_dirSeparator_saved;
+        }
+    }
+    
+    size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
+                        const std::vector<std::string>& nameList){
+        const size_t rootLen=rootPath.size();
+        std::string utf8;
+        size_t outSize=0;
+        for (size_t i=0;i<nameList.size();++i){
+            const std::string& name=nameList[i];
+            const size_t nameSize=name.size();
+            assert(nameSize>=rootLen);
+            assert(0==memcmp(name.data(),rootPath.data(),rootLen));
+            const char* subName=name.c_str()+rootLen;
+            const char* subNameEnd=subName+(nameSize-rootLen);
+            utf8.assign(subName,subNameEnd);
+            formatDirTagForSave(utf8);
+            size_t writeLen=utf8.size()+1; // '\0'
+            out_data.insert(out_data.end(),utf8.c_str(),utf8.c_str()+writeLen);
+            outSize+=writeLen;
+        }
+        return outSize;
+    }
+    
+    CFileResHandleLimit::CFileResHandleLimit(size_t _limitMaxOpenCount,size_t resCount)
+    :limitMaxOpenCount(_limitMaxOpenCount),curInsert(0){
+        hpatch_TResHandleLimit_init(&limit);
+        resList.resize(resCount);
+        memset(resList.data(),0,sizeof(hpatch_IResHandle)*resCount);
+        fileList.resize(resCount);
+        for(size_t i=0;i<resCount;++i)
+            hpatch_TFileStreamInput_init(&fileList[i]);
+    }
+    
+    void CFileResHandleLimit::addRes(const std::string& fileName,hpatch_StreamPos_t fileSize){
+        assert(curInsert<resList.size());
+        fileList[curInsert].fileName=fileName;
+        hpatch_IResHandle* res=&resList[curInsert];
+        res->open=CFileResHandleLimit::openRes;
+        res->close=CFileResHandleLimit::closeRes;
+        res->resImport=&fileList[curInsert];
+        res->resStreamSize=fileSize;
+        ++curInsert;
+    }
+    void CFileResHandleLimit::open(){
+        assert(curInsert==resList.size());
+        check(hpatch_TResHandleLimit_open(&limit,limitMaxOpenCount,resList.data(),
+                                          resList.size()),"TResHandleLimit_open error!");
+    }
+    void CFileResHandleLimit::close(){
+        check(hpatch_TResHandleLimit_close(&limit),"TResHandleLimit_close error!");
+    }
+    
+    hpatch_BOOL CFileResHandleLimit::openRes(struct hpatch_IResHandle* res,hpatch_TStreamInput** out_stream){
+        CFile* self=(CFile*)res->resImport;
+        assert(self->m_file==0);
+        check(hpatch_TFileStreamInput_open(self,self->fileName.c_str()),"CFileResHandleLimit open file error!");
+        *out_stream=&self->base;
+        return hpatch_TRUE;
+    }
+    hpatch_BOOL CFileResHandleLimit::closeRes(struct hpatch_IResHandle* res,const hpatch_TStreamInput* stream){
+        CFile* self=(CFile*)res->resImport;
+        assert(stream==&self->base);
+        check(hpatch_TFileStreamInput_close(self),"CFileResHandleLimit close file error!");
+        return hpatch_TRUE;
+    }
+    
+}
 using namespace hdiff_private;
 
 static const char* kDirDiffVersionType= "HDIFF19";
@@ -55,26 +166,9 @@ static std::string  cmp_hash_type    =  "fadler64";
 #define cmp_hash_end(ph)                {}
 #define cmp_hash_combine(ph,rightHash,rightLen) { (*(ph))=fast_adler64_by_combine(*(ph),rightHash,rightLen); }
 
-#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
-#define checkv(value)     check(value,"check "#value" error!")
-
 void assignDirTag(std::string& dir_utf8){
     if (dir_utf8.empty()||(dir_utf8[dir_utf8.size()-1]!=kPatch_dirSeparator))
         dir_utf8.push_back(kPatch_dirSeparator);
-}
-
-static inline bool isDirName(const std::string& path_utf8){
-    return 0!=hpatch_getIsDirName(path_utf8.c_str());
-}
-
-static void formatDirTagForSave(std::string& path_utf8){
-    if (kPatch_dirSeparator==kPatch_dirSeparator_saved) return;
-    for (size_t i=0;i<path_utf8.size();++i){
-        if (path_utf8[i]!=kPatch_dirSeparator)
-            continue;
-        else
-            path_utf8[i]=kPatch_dirSeparator_saved;
-    }
 }
 
 struct CFileStreamInput:public hpatch_TFileStreamInput{
@@ -88,13 +182,6 @@ struct CFileStreamInput:public hpatch_TFileStreamInput{
     inline ~CFileStreamInput(){ closeFile(); }
 };
 
-struct CRefStream:public hpatch_TRefStream{
-    inline CRefStream(){ hpatch_TRefStream_init(this); }
-    inline void open(const hpatch_TStreamInput** refList,size_t refCount){
-        check(hpatch_TRefStream_open(this,refList,refCount),"TRefStream_open() refList error!");
-    }
-    inline ~CRefStream(){ hpatch_TRefStream_close(this); }
-};
 
 struct TOffsetStreamOutput:public hpatch_TStreamOutput{
     inline explicit TOffsetStreamOutput(const hpatch_TStreamOutput* base,hpatch_StreamPos_t offset)
@@ -116,9 +203,6 @@ struct TOffsetStreamOutput:public hpatch_TStreamOutput{
         return self->_base->write(self->_base,self->_offset+writeToPos,data,data_end);
     }
 };
-
-template <class TVector>
-static inline void clearVector(TVector& v){ TVector _t; v.swap(_t); }
 
 
 struct CDir{
@@ -200,13 +284,6 @@ static cmp_hash_value_t getFileHash(const std::string& fileName,hpatch_StreamPos
     return getStreamHash(&f.base,fileName);
 }
 
-static hpatch_StreamPos_t getFileSize(const std::string& fileName){
-    hpatch_TPathType   type;
-    hpatch_StreamPos_t fileSize;
-    checkv(hpatch_getPathStat(fileName.c_str(),&type,&fileSize));
-    checkv(type==kPathType_file);
-    return fileSize;
-}
 
 static bool fileData_isSame(const std::string& file_x,const std::string& file_y,
                             hpatch_ICopyDataListener* copyListener=0){
@@ -236,22 +313,6 @@ void sortDirPathList(std::vector<std::string>& fileList){
     std::sort(fileList.begin(),fileList.end());
 }
 
-static void pushIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list){
-    size_t backValue=~(size_t)0;
-    for (size_t i=0;i<list.size();++i){
-        size_t curValue=list[i];
-        assert(curValue>=(size_t)(backValue+1));
-        packUInt(out_data,(size_t)(curValue-(size_t)(backValue+1)));
-        backValue=curValue;
-    }
-}
-
-static void pushList(std::vector<TByte>& out_data,const std::vector<hpatch_StreamPos_t>& list){
-    for (size_t i=0;i<list.size();++i){
-        packUInt(out_data,list[i]);
-    }
-}
-
 static void pushSamePairList(std::vector<TByte>& out_data,const std::vector<hpatch_TSameFilePair>& pairs){
     size_t backPairNew=~(size_t)0;
     size_t backPairOld=~(size_t)0;
@@ -269,28 +330,6 @@ static void pushSamePairList(std::vector<TByte>& out_data,const std::vector<hpat
         backPairOld=curOldValue;
     }
 }
-
-static size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
-                           const std::vector<std::string>& nameList,IDirDiffListener* listener){
-    const size_t rootLen=rootPath.size();
-    std::string utf8;
-    size_t outSize=0;
-    for (size_t i=0;i<nameList.size();++i){
-        const std::string& name=nameList[i];
-        const size_t nameSize=name.size();
-        assert(nameSize>=rootLen);
-        assert(0==memcmp(name.data(),rootPath.data(),rootLen));
-        const char* subName=name.c_str()+rootLen;
-        const char* subNameEnd=subName+(nameSize-rootLen);
-        utf8.assign(subName,subNameEnd);
-        formatDirTagForSave(utf8);
-        size_t writeLen=utf8.size()+1; // '\0'
-        out_data.insert(out_data.end(),utf8.c_str(),utf8.c_str()+writeLen);
-        outSize+=writeLen;
-    }
-    return outSize;
-}
-
 
 struct _TCmp_byHit {
     inline _TCmp_byHit(const char* _newPath,const std::vector<std::string>& _oldList,
@@ -415,58 +454,6 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
     std::sort(out_oldRefList.begin(),out_oldRefList.end());
 }
 
-struct CFileResHandleLimit{
-    inline CFileResHandleLimit(size_t _limitMaxOpenCount,size_t resCount)
-    :limitMaxOpenCount(_limitMaxOpenCount),curInsert(0){
-        hpatch_TResHandleLimit_init(&limit);
-        resList.resize(resCount);
-        memset(resList.data(),0,sizeof(hpatch_IResHandle)*resCount);
-        fileList.resize(resCount);
-        for(size_t i=0;i<resCount;++i)
-            hpatch_TFileStreamInput_init(&fileList[i]);
-    }
-    inline ~CFileResHandleLimit() { close(); }
-    void addRes(const std::string& fileName,hpatch_StreamPos_t fileSize){
-        assert(curInsert<resList.size());
-        fileList[curInsert].fileName=fileName;
-        hpatch_IResHandle* res=&resList[curInsert];
-        res->open=CFileResHandleLimit::openRes;
-        res->close=CFileResHandleLimit::closeRes;
-        res->resImport=&fileList[curInsert];
-        res->resStreamSize=fileSize;
-        ++curInsert;
-    }
-    void open(){
-        assert(curInsert==resList.size());
-        check(hpatch_TResHandleLimit_open(&limit,limitMaxOpenCount,resList.data(),
-                                          resList.size()),"TResHandleLimit_open error!");
-    }
-    void close(){
-        check(hpatch_TResHandleLimit_close(&limit),"TResHandleLimit_close error!");
-    }
-    
-    struct CFile:public hpatch_TFileStreamInput{
-        std::string  fileName;
-    };
-    hpatch_TResHandleLimit          limit;
-    std::vector<CFile>              fileList;
-    std::vector<hpatch_IResHandle>  resList;
-    size_t                          limitMaxOpenCount;
-    size_t                          curInsert;
-    static hpatch_BOOL openRes(struct hpatch_IResHandle* res,hpatch_TStreamInput** out_stream){
-        CFile* self=(CFile*)res->resImport;
-        assert(self->m_file==0);
-        check(hpatch_TFileStreamInput_open(self,self->fileName.c_str()),"CFileResHandleLimit open file error!");
-        *out_stream=&self->base;
-        return hpatch_TRUE;
-    }
-    static hpatch_BOOL closeRes(struct hpatch_IResHandle* res,const hpatch_TStreamInput* stream){
-        CFile* self=(CFile*)res->resImport;
-        assert(stream==&self->base);
-        check(hpatch_TFileStreamInput_close(self),"CFileResHandleLimit close file error!");
-        return hpatch_TRUE;
-    }
-};
 
 struct CChecksum{
     inline explicit CChecksum(hpatch_TChecksum* checksumPlugin,bool isCanUseCombine)
@@ -676,8 +663,8 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
 
     //serialize headData
     std::vector<TByte> headData;
-    size_t oldPathSumSize=pushNameList(headData,oldManifest.rootPath,oldList,listener);
-    size_t newPathSumSize=pushNameList(headData,newManifest.rootPath,newList,listener);
+    size_t oldPathSumSize=pushNameList(headData,oldManifest.rootPath,oldList);
+    size_t newPathSumSize=pushNameList(headData,newManifest.rootPath,newList);
     pushIncList(headData,oldRefIList);
     pushIncList(headData,newRefIList);
     pushList(headData,newRefSizeList);
@@ -693,7 +680,7 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         if ((0<codeSize)&&(codeSize<headData.size()))
             headCode.resize(codeSize);//compress ok
         else
-            clearVector(headCode); //compress error or give up
+            swapClear(headCode); //compress error or give up
     }
     
     //serialize  dir diff data
@@ -706,14 +693,14 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     packUInt(out_data,oldPathSumSize);
     packUInt(out_data,newList.size());
     packUInt(out_data,newPathSumSize);
-    packUInt(out_data,oldRefIList.size());      clearVector(oldRefIList);
+    packUInt(out_data,oldRefIList.size());      swapClear(oldRefIList);
     packUInt(out_data,oldRefStream.stream->streamSize); //same as hdiffz::oldDataSize
-    packUInt(out_data,newRefIList.size());      clearVector(newRefIList);
+    packUInt(out_data,newRefIList.size());      swapClear(newRefIList);
     packUInt(out_data,newRefStream.stream->streamSize); //same as hdiffz::newDataSize
-    packUInt(out_data,dataSamePairList.size()); clearVector(dataSamePairList);
+    packUInt(out_data,dataSamePairList.size()); swapClear(dataSamePairList);
     packUInt(out_data,sameFileSize);
-    packUInt(out_data,newExecuteList.size());   clearVector(newExecuteList);
-    packUInt(out_data,privateReservedData.size()); clearVector(privateReservedData);
+    packUInt(out_data,newExecuteList.size());   swapClear(newExecuteList);
+    packUInt(out_data,privateReservedData.size()); swapClear(privateReservedData);
     std::vector<TByte> privateExternData;//now empty
     //privateExtern size
     packUInt(out_data,privateExternData.size());
@@ -745,7 +732,7 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
                             diffChecksum.append(v); \
                         check(outDiffStream->write(outDiffStream,writeToPos,v.data(),v.data()+v.size()), \
                             "write diff data " #v " error!"); \
-                        writeToPos+=v.size();  clearVector(v); }
+                        writeToPos+=v.size();  swapClear(v); }
     _pushv(out_data);
     if (headCode.size()>0){
         _pushv(headCode);
@@ -817,7 +804,7 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
 static std::string kChecksumTypeTag="Checksum_Type:";
 static std::string kPathCountTag="Path_Count:";
 static std::string kPathTag="Path:";
-void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
+void save_manifest(IDirPathIgnore* listener,const std::string& inputPath,
                    const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin){
     assert(listener!=0);
     std::vector<std::string> pathList;

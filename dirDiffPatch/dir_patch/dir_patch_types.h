@@ -35,7 +35,7 @@
 #endif
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#   define kMaxOpenFileNumber_limit_min          3
+#   define kMaxOpenFileNumber_limit_min          4
 #   define kMaxOpenFileNumber_default_min        8 //must >= limit_min
 #   define kMaxOpenFileNumber_default_diff      48
 #   define kMaxOpenFileNumber_default_patch     24
