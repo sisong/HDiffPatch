@@ -1,5 +1,5 @@
 //  sync_server_main.cpp
-//  sync_server
+//  sync_server:  create sync files
 //  Created by housisong on 2019-09-17.
 /*
  The MIT License (MIT)
@@ -33,6 +33,7 @@
 #include "sync_server.h"
 #include "../../_clock_for_demo.h"
 #include "../../_atosize.h"
+#include "../../_dir_ignore.h"
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libParallel/parallel_import.h"
 
@@ -66,7 +67,10 @@
 
 static void printUsage(){
     printf("sync_serever: [options] newDataPath out_newSyncInfoFile [out_newSyncDataFile]\n"
-           "(if newDataPath is a file and not require compress,out_newSyncDataFile can null)\n"
+           " ( if newDataPath is a file & no -c-... option, out_newSyncDataFile can null; )\n"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+           " ( newDataPath can be file or directory(folder); )\n"
+#endif
            "options:\n"
            "  -s-matchBlockSize\n"
            "      matchBlockSize can like 4096 or 4k or 128k or 1m etc..., DEFAULT 2048\n"
@@ -86,6 +90,18 @@ static void printUsage(){
            "    if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
            "    DEFAULT -p-4; requires more and more memory!\n"
 #endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
+           "  -n-maxOpenFileNumber\n"
+           "      limit Number of open files at same time when newDataPath is directory;\n"
+           "      maxOpenFileNumber>=8, DEFAULT -n-48, the best limit value by different\n"
+           "        operating system.\n"
+           "  -g#ignorePath[#ignorePath#...]\n"
+           "      set iGnore path list in newDataPath directory; ignore path list such as:\n"
+           "        #.DS_Store#desktop.ini#*thumbs*.db#.git*#.svn/#cache_*/00*11/*.tmp\n"
+           "      # means separator between names; (if char # in name, need write #: )\n"
+           "      * means can match any chars in name; (if char * in name, need write *: );\n"
+           "      / at the end of name means must match directory;\n"
+#endif
            "  -f  Force overwrite, ignore write path already exists;\n"
            "      DEFAULT (no -f) not overwrite and then return error;\n"
            "      if used -f and write path is exist directory, will always return error.\n"
@@ -99,7 +115,7 @@ typedef enum TSyncServerResult {
     SYNC_SERVER_SUCCESS=0,
     SYNC_SERVER_OPTIONS_ERROR,
     SYNC_SERVER_BLOCKSIZE_ERROR,
-    SYNC_SERVER_NEWFILE_ERROR,
+    SYNC_SERVER_NEWPATH_ERROR,
     SYNC_SERVER_OUTFILE_ERROR,
     SYNC_SERVER_CANNOT_OVERWRITE_ERROR,
     SYNC_SERVER_CREATE_SYNC_DATA_ERROR,
@@ -126,11 +142,6 @@ int main(int argc,char* argv[]){
 #endif
 
 
-hpatch_inline static const char* findEnd(const char* str,char c){
-    const char* result=strchr(str,c);
-    return (result!=0)?result:(str+strlen(str));
-}
-
 static bool _tryGetCompressSet(const char** isMatchedType,const char* ptype,const char* ptypeEnd,
                                const char* cmpType,const char* cmpType2=0,
                                size_t* compressLevel=0,size_t levelMin=0,size_t levelMax=0,size_t levelDefault=0,
@@ -146,13 +157,13 @@ static bool _tryGetCompressSet(const char** isMatchedType,const char* ptype,cons
     
     if ((compressLevel)&&(ptypeEnd[0]=='-')){
         const char* plevel=ptypeEnd+1;
-        const char* plevelEnd=findEnd(plevel,'-');
+        const char* plevelEnd=findUntilEnd(plevel,'-');
         if (!a_to_size(plevel,plevelEnd-plevel,compressLevel)) return false; //error
         if (*compressLevel<levelMin) *compressLevel=levelMin;
         else if (*compressLevel>levelMax) *compressLevel=levelMax;
         if ((dictSize)&&(plevelEnd[0]=='-')){
             const char* pdictSize=plevelEnd+1;
-            const char* pdictSizeEnd=findEnd(pdictSize,'-');
+            const char* pdictSizeEnd=findUntilEnd(pdictSize,'-');
             if (!kmg_to_size(pdictSize,pdictSizeEnd-pdictSize,dictSize)) return false; //error
             if (*dictSize<dictSizeMin) *dictSize=dictSizeMin;
             else if (*dictSize>dictSizeMax) *dictSize=dictSizeMax;
@@ -212,7 +223,8 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     return SYNC_SERVER_SUCCESS;
 }
 
-static bool getFileSize(const char *path_utf8,hpatch_StreamPos_t* out_fileSize){
+hpatch_inline static
+bool getFileSize(const char *path_utf8,hpatch_StreamPos_t* out_fileSize){
     hpatch_TPathType out_type;
     if (!hpatch_getPathStat(path_utf8,&out_type,out_fileSize)) return false;
     return out_type==kPathType_file;
@@ -226,6 +238,16 @@ static bool printFileInfo(const char *path_utf8,const char *tag,hpatch_StreamPos
     return true;
 }
 
+static void printCreateSyncInfo(hpatch_StreamPos_t newDataSize,size_t kMatchBlockSize,bool isUsedCompress){
+    printf("block size : %d\n",(uint32_t)kMatchBlockSize);
+    hpatch_StreamPos_t blockCount=getBlockCount(newDataSize,(uint32_t)kMatchBlockSize);
+    printf("block count: %" PRIu64 "\n",blockCount);
+    double patchMemSize=(double)estimatePatchMemSize(newDataSize,(uint32_t)kMatchBlockSize,isUsedCompress);
+    if (patchMemSize>=(1<<20))
+        printf("sync_patch memory size: ~ %.3f MB\n",patchMemSize/(1<<20));
+    else
+        printf("sync_patch memory size: ~ %.3f KB\n",patchMemSize/(1<<10));
+}
 
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
 #define _kNULL_SIZE     (~(size_t)0)
@@ -236,6 +258,7 @@ static bool printFileInfo(const char *path_utf8,const char *tag,hpatch_StreamPos
 #define _THREAD_NUMBER_MAX      (1<<8)
 
 
+
 int sync_server_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
@@ -243,6 +266,10 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     hdiff_TCompress* compressPlugin=0;
     size_t      threadNum = _THREAD_NUMBER_NULL;
     std::vector<const char *> arg_values;
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    size_t                      kMaxOpenFileNumber=_kNULL_SIZE; //only used in newDataPath is dir
+    std::vector<std::string>    ignoreNewPathList;
+#endif
     for (int i=1; i<argc; ++i) {
         const char* op=argv[i];
         _options_check(op!=0,"?");
@@ -278,11 +305,26 @@ int sync_server_cmd_line(int argc, const char * argv[]){
             case 'c':{
                 _options_check((compressPlugin==0)&&(op[2]=='-'),"-c");
                 const char* ptype=op+3;
-                const char* ptypeEnd=findEnd(ptype,'-');
+                const char* ptypeEnd=findUntilEnd(ptype,'-');
                 int result=_checkSetCompress(&compressPlugin,ptype,ptypeEnd);
                 if (SYNC_SERVER_SUCCESS!=result)
                     return result;
             } break;
+#if (_IS_NEED_DIR_DIFF_PATCH)
+            case 'n':{
+                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?");
+                const char* pnum=op+3;
+                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
+            } break;
+            case 'g':{
+                if (op[2]=='#'){ //-g#
+                    const char* plist=op+3;
+                    _options_check(_getIgnorePathSetList(ignoreNewPathList,plist),"-g#?");
+                }else{
+                    _options_check(hpatch_FALSE,"-g?");
+                }
+            } break;
+#endif
             default: {
                 _options_check(hpatch_FALSE,"-?");
             } break;
@@ -302,6 +344,12 @@ int sync_server_cmd_line(int argc, const char * argv[]){
 #if (_IS_USED_MULTITHREAD)
 #else
     threadNum=1;
+#endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    if (kMaxOpenFileNumber==_kNULL_SIZE)
+        kMaxOpenFileNumber=kMaxOpenFileNumber_default_diff;
+    if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
+        kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
 #endif
     if (isOutputHelp){
         printUsage();
@@ -333,6 +381,17 @@ int sync_server_cmd_line(int argc, const char * argv[]){
                           SYNC_SERVER_CANNOT_OVERWRITE_ERROR,"%s already exists, not overwrite","out_newSyncDataFile");
         }
     }
+    hpatch_TPathType newType;
+    _return_check(hpatch_getPathStat(newDataPath,&newType,0),
+                  SYNC_SERVER_NEWPATH_ERROR,"get %s type","newDataPath");
+    _return_check((newType!=kPathType_notExist),
+                  SYNC_SERVER_NEWPATH_ERROR,"%s not exist","newDataPath");
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    hpatch_BOOL isUseDirSyncUpdate=(kPathType_dir==newType);
+#else
+    _return_check(kPathType_dir!=newType,
+                  SYNC_SERVER_NEWPATH_ERROR,"%s must file","newDataPath");
+#endif
     
     if (threadNum>1)
         printf("muti-thread parallel: opened, threadNum: %d\n",(uint32_t)threadNum);
@@ -343,25 +402,30 @@ int sync_server_cmd_line(int argc, const char * argv[]){
     printf("create_sync_data run with strongChecksum plugin: \"%s\"\n",strongChecksumPlugin->checksumType());
     if (compressPlugin)
         printf("create_sync_data run with compress plugin: \"%s\"\n",compressPlugin->compressType());
-    hpatch_StreamPos_t newDataSize=0;
-    _return_check(printFileInfo(newDataPath,"newFileSize",&newDataSize),
-                  SYNC_SERVER_NEWFILE_ERROR,"printFileInfo(%s,) run error!\n",newDataPath);
-    printf("block size : %d\n",(uint32_t)kMatchBlockSize);
-    hpatch_StreamPos_t blockCount=getBlockCount(newDataSize,(uint32_t)kMatchBlockSize);
-    printf("block count: %" PRIu64 "\n",blockCount);
-    int hashClashBit=estimateHashClashBit(newDataSize,(uint32_t)kMatchBlockSize);
-    _return_check(hashClashBit<=kAllowMaxHashClashBit,
-                  SYNC_SERVER_BLOCKSIZE_ERROR,"hash clash warning! must increase matchBlockSize(%d) !\n",(uint32_t)kMatchBlockSize);
-    double patchMemSize=(double)estimatePatchMemSize(newDataSize,(uint32_t)kMatchBlockSize,(compressPlugin!=0));
-    if (patchMemSize>=(1<<20))
-        printf("sync_patch memory size: ~ %.3f MB\n",patchMemSize/(1<<20));
-    else
-        printf("sync_patch memory size: ~ %.3f KB\n",patchMemSize/(1<<10));
-
     double time0=clock_s();
+    
+    hpatch_StreamPos_t newDataSize=0;
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    if (isUseDirSyncUpdate)
+        ;//todo:
+    else
+#endif
+        _return_check(printFileInfo(newDataPath,"newFileSize",&newDataSize),
+                      SYNC_SERVER_NEWPATH_ERROR,"printFileInfo(%s,) run error!\n",newDataPath);
+    int hashClashBit=estimateHashClashBit(newDataSize,(uint32_t)kMatchBlockSize);
+    _return_check(hashClashBit<=kAllowMaxHashClashBit,SYNC_SERVER_BLOCKSIZE_ERROR,
+                  "hash clash warning! must increase matchBlockSize(%d) !\n",(uint32_t)kMatchBlockSize);
+    printCreateSyncInfo(newDataSize,kMatchBlockSize,(compressPlugin!=0));
+
     try {
-        create_sync_data(newDataPath,out_newSyncInfoFile,out_newSyncDataFile,
-                         compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize,threadNum);
+#if (_IS_NEED_DIR_DIFF_PATCH)
+        if (isUseDirSyncUpdate)
+            ;//create_sync_data_by_dir(newDataPath,out_newSyncInfoFile,out_newSyncDataFile,
+                                //    compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize,threadNum);
+        else
+#endif
+            create_sync_data_by_file(newDataPath,out_newSyncInfoFile,out_newSyncDataFile,
+                                     compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize,threadNum);
     } catch (const std::exception& e){
         _return_check(false,SYNC_SERVER_CREATE_SYNC_DATA_ERROR,
                       "create_sync_data run error: %s\n",e.what());

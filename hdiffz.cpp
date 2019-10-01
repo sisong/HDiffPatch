@@ -42,7 +42,7 @@
 #include "file_for_patch.h"
 #include "libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
-#include "dirDiffPatch/dir_patch/dir_patch.h"
+#include "_dir_ignore.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dirDiffPatch/dir_diff/dir_diff.h"
 #endif
@@ -320,11 +320,6 @@ int main(int argc,char* argv[]){
 #endif
 
 
-hpatch_inline static const char* findEnd(const char* str,char c){
-    const char* result=strchr(str,c);
-    return (result!=0)?result:(str+strlen(str));
-}
-
 static void _trySetDecompress(hpatch_TDecompress** out_decompressPlugin,const char* compressType,
                             hpatch_TDecompress* testDecompressPlugin){
     if ((*out_decompressPlugin)!=0) return;
@@ -400,65 +395,6 @@ static hpatch_BOOL _getOptChecksum(hpatch_TChecksum** out_checksumPlugin,
         return findChecksum(out_checksumPlugin,checksumType);
 }
 
-
-static void formatIgnorePathName(std::string& path_utf8){
-    for (size_t i=0;i<path_utf8.size();++i) {
-        char c=path_utf8[i];
-        if ((c=='\\')||(c=='/'))
-            path_utf8[i]=kPatch_dirSeparator;
-#ifdef _WIN32
-        else if (isascii(c))
-            path_utf8[i]=(char)tolower(c);
-#endif
-    }
-}
-
-#ifdef _WIN32
-    static const char kIgnoreMagicChar = '?';
-#else
-    static const char kIgnoreMagicChar = ':';
-#endif
-static void _formatIgnorePathSet(std::string& path_utf8){
-    formatIgnorePathName(path_utf8);
-    size_t insert=0;
-    size_t i=0;
-    while (i<path_utf8.size()) {
-        char c=path_utf8[i];
-        if (c=='*'){
-            if ((i+1<path_utf8.size())&&(path_utf8[i+1]==':')){ // *: as *
-                path_utf8[insert++]=c; i+=2; //skip *:
-            }else{
-                path_utf8[insert++]=kIgnoreMagicChar; ++i; //skip *
-            }
-        }else{
-            path_utf8[insert++]=c; ++i;  //skip c
-        }
-    }
-    path_utf8.resize(insert);
-}
-
-static hpatch_BOOL _getIgnorePathSetList(std::vector<std::string>& out_pathList,const char* plist){
-    std::string cur;
-    while (true) {
-        char c=*plist;
-        if ((c=='#')&&(plist[1]==':')){ // #: as #
-            cur.push_back(c); plist+=2; //skip #:
-        }else if ((c=='*')&&(plist[1]==':')){ // *: as *:
-            cur.push_back(c); cur.push_back(':'); plist+=2; //skip *:
-        }else if ((c=='\0')||((c=='#')&&(plist[1]!=':'))){
-            if (cur.empty()) return hpatch_FALSE;// can't empty
-            if (std::string::npos!=cur.find("**")) return hpatch_FALSE;// can't **
-            _formatIgnorePathSet(cur);
-            out_pathList.push_back(cur);
-            if (c=='\0') return hpatch_TRUE;
-            cur.clear();  ++plist; //skip #
-        }else if (c==kIgnoreMagicChar){
-            return hpatch_FALSE; //error path char
-        }else{
-            cur.push_back(c); ++plist; //skip c
-        }
-    }
-}
 #endif //_IS_NEED_DIR_DIFF_PATCH
 
 
@@ -477,13 +413,13 @@ static bool _tryGetCompressSet(hpatch_TDecompress** out_decompressPlugin,hpatch_
     
     if ((compressLevel)&&(ptypeEnd[0]=='-')){
         const char* plevel=ptypeEnd+1;
-        const char* plevelEnd=findEnd(plevel,'-');
+        const char* plevelEnd=findUntilEnd(plevel,'-');
         if (!a_to_size(plevel,plevelEnd-plevel,compressLevel)) return false; //error
         if (*compressLevel<levelMin) *compressLevel=levelMin;
         else if (*compressLevel>levelMax) *compressLevel=levelMax;
         if ((dictSize)&&(plevelEnd[0]=='-')){
             const char* pdictSize=plevelEnd+1;
-            const char* pdictSizeEnd=findEnd(pdictSize,'-');
+            const char* pdictSizeEnd=findUntilEnd(pdictSize,'-');
             if (!kmg_to_size(pdictSize,pdictSizeEnd-pdictSize,dictSize)) return false; //error
             if (*dictSize<dictSizeMin) *dictSize=dictSizeMin;
             else if (*dictSize>dictSizeMax) *dictSize=dictSizeMax;
@@ -706,7 +642,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             case 'c':{
                 _options_check((compressPlugin==0)&&(op[2]=='-'),"-c");
                 const char* ptype=op+3;
-                const char* ptypeEnd=findEnd(ptype,'-');
+                const char* ptypeEnd=findUntilEnd(ptype,'-');
                 int result=_checkSetCompress(&compressPlugin,&decompressPlugin,ptype,ptypeEnd);
                 if (HDIFF_SUCCESS!=result)
                     return result;

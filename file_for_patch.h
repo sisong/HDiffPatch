@@ -77,6 +77,11 @@ hpatch_BOOL hpatch_getIsDirName(const char* path_utf8){
     return (len>0)&&(path_utf8[len-1]==kPatch_dirSeparator);
 }
 
+hpatch_inline static const char* findUntilEnd(const char* str,char c){
+    const char* result=strchr(str,c);
+    return (result!=0)?result:(str+strlen(str));
+}
+
 
 #define _path_noEndDirSeparator(dst_path,src_path)  \
     char  dst_path[hpatch_kPathMaxSize];      \

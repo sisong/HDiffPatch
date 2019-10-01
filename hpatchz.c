@@ -236,14 +236,9 @@ int main(int argc, const char * argv[]){
 #endif
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
-hpatch_inline static const char* findEnd(const char* str,char c){
-    const char* result=strchr(str,c);
-    return (result!=0)?result:(str+strlen(str));
-}
-
 static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checksumSet){
     while (hpatch_TRUE) {
-        const char* pend=findEnd(psets,'-');
+        const char* pend=findUntilEnd(psets,'-');
         size_t len=(size_t)(pend-psets);
         if (len==0) return hpatch_FALSE; //error no set
         if        ((len==4)&&(0==memcmp(psets,"diff",len))){

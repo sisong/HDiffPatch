@@ -1,5 +1,5 @@
 //  sync_client_main.cpp
-//  sync_client
+//  sync_client:  test patch sync files
 //  Created by housisong on 2019-09-18.
 /*
  The MIT License (MIT)

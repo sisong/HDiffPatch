@@ -42,30 +42,30 @@ static const uint32_t kMatchBlockSize_min     = 64;
 //  newSyncInfo's size becomes smaller when kMatchBlockSize increases,
 //    but the part of newData's size that need download becomes larger;
 //  note: you can compress part newData when downloading data by yourself;
-void create_sync_data(const char* newDataPath,
-                      const char* out_newSyncInfoFile,
-                      hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
-
-void create_sync_data(const hpatch_TStreamInput*  newData,
-                      const hpatch_TStreamOutput* out_newSyncInfo,
-                      hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
+void create_sync_data_by_file(const char*               newDataFile,
+                              const char*               out_newSyncInfoFile,
+                              hpatch_TChecksum*         strongChecksumPlugin,
+                              uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
 // out_newSyncData: out compressed newData by compressPlugin
 //   client download compressed part of newData from out_newSyncData;
-void create_sync_data(const char* newDataPath,
-                      const char* out_newSyncInfoFile,
-                      const char* out_newSyncDataFile,
-                      const hdiff_TCompress* compressPlugin,
-                      hpatch_TChecksum*      strongChecksumPlugin,
+void create_sync_data_by_file(const char*               newDataFile,
+                              const char*               out_newSyncInfoFile,
+                              const char*               out_newSyncDataFile,
+                              const hdiff_TCompress*    compressPlugin,
+                              hpatch_TChecksum*         strongChecksumPlugin,
+                              uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
+
+void create_sync_data(const hpatch_TStreamInput*        newData,
+                      const hpatch_TStreamOutput*       out_newSyncInfo,
+                      hpatch_TChecksum*                 strongChecksumPlugin,
                       uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
-void create_sync_data(const hpatch_TStreamInput*  newData,
-                      const hpatch_TStreamOutput* out_newSyncInfo,
-                      const hpatch_TStreamOutput* out_newSyncData,
-                      const hdiff_TCompress* compressPlugin,
-                      hpatch_TChecksum*      strongChecksumPlugin,
+void create_sync_data(const hpatch_TStreamInput*        newData,
+                      const hpatch_TStreamOutput*       out_newSyncInfo,
+                      const hpatch_TStreamOutput*       out_newSyncData,
+                      const hdiff_TCompress*            compressPlugin,
+                      hpatch_TChecksum*                 strongChecksumPlugin,
                       uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
 #endif // sync_server_h

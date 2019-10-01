@@ -45,6 +45,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _dir_ignore.h; path = ../../_dir_ignore.h; sourceTree = "<group>"; };
 		D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = file_for_dirDiff.h; sourceTree = "<group>"; };
 		D6241AE021DE47D200E2846A /* new_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_stream.c; sourceTree = "<group>"; };
 		D6241AE121DE47D200E2846A /* new_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_stream.h; sourceTree = "<group>"; };
@@ -177,6 +178,7 @@
 				D6BF3A6421EE17EB00833537 /* checksum_plugin_demo.h */,
 				D6BF3A5C21E97A0A00833537 /* file_for_patch.c */,
 				D68CD8FF1F45D22C00A61337 /* file_for_patch.h */,
+				D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */,
 				D6367E4E21A65CB20032B717 /* _atosize.h */,
 				D6367E4D21A65CB20032B717 /* _clock_for_demo.h */,
 				D690AB9B1F20792A0089DC57 /* hdiffz.cpp */,

@@ -14,7 +14,8 @@ a C\C++ library and command-line tools for binary data Diff & Patch; fast and cr
    
 ---
 ## diff command line usage:   
-diff    usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
+diff     usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
+compress usage: **hdiffz** [-c-...]  **"" newPath outDiffFile**   
 test    usage: **hdiffz**    -t     **oldPath newPath testDiffFile**   
 resave  usage: **hdiffz** [-c-...]  **diffFile outDiffFile**   
 get  manifest: **hdiffz** [-g#...] [-C-checksumType] **inputPath -M#outManifestTxtFile**   
