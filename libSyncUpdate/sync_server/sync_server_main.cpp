@@ -33,9 +33,13 @@
 #include "sync_server.h"
 #include "../../_clock_for_demo.h"
 #include "../../_atosize.h"
-#include "../../_dir_ignore.h"
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libParallel/parallel_import.h"
+#include "../../_dir_ignore.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+#include "../../dirDiffPatch/dir_diff/dir_diff.h"
+#include "dir_sync_server.h"
+#endif
 
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
@@ -119,10 +123,21 @@ typedef enum TSyncServerResult {
     SYNC_SERVER_OUTFILE_ERROR,
     SYNC_SERVER_CANNOT_OVERWRITE_ERROR,
     SYNC_SERVER_CREATE_SYNC_DATA_ERROR,
+    SYNC_SERVER_CREATE_DIR_SYNC_DATA_ERROR,
 } TSyncServerResult;
 
 int sync_server_cmd_line(int argc, const char * argv[]);
 
+int create_sync_files_for_file(const char* newDataFile,const char* out_newSyncInfoFile,
+                               const char* out_newSyncDataFile,const hdiff_TCompress* compressPlugin,
+                               hpatch_TChecksum* strongChecksumPlugin,uint32_t kMatchBlockSize,size_t threadNum);
+#if (_IS_NEED_DIR_DIFF_PATCH)
+int create_sync_files_for_dir(const char* newDataDir,const char* out_newSyncInfoFile,
+                              const char* out_newSyncDataFile,const hdiff_TCompress* compressPlugin,
+                              hpatch_TChecksum* strongChecksumPlugin,size_t kMaxOpenFileNumber,
+                              const std::vector<std::string>& ignoreNewPathList,
+                              uint32_t kMatchBlockSize,size_t threadNum);
+#endif
 
 #if (_IS_NEED_MAIN)
 #   if (_IS_USED_WIN32_UTF8_WAPI)
@@ -257,8 +272,6 @@ static void printCreateSyncInfo(hpatch_StreamPos_t newDataSize,size_t kMatchBloc
 #define _THREAD_NUMBER_DEFUALT  kDefualtCompressThreadNumber
 #define _THREAD_NUMBER_MAX      (1<<8)
 
-
-
 int sync_server_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
@@ -389,6 +402,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
 #if (_IS_NEED_DIR_DIFF_PATCH)
     hpatch_BOOL isUseDirSyncUpdate=(kPathType_dir==newType);
 #else
+    hpatch_BOOL isUseDirSyncUpdate=false;
     _return_check(kPathType_dir!=newType,
                   SYNC_SERVER_NEWPATH_ERROR,"%s must file","newDataPath");
 #endif
@@ -399,45 +413,112 @@ int sync_server_cmd_line(int argc, const char * argv[]){
         printf("muti-thread parallel: closed\n");
 
     hpatch_TChecksum* strongChecksumPlugin=&md5ChecksumPlugin;
-    printf("create_sync_data run with strongChecksum plugin: \"%s\"\n",strongChecksumPlugin->checksumType());
+    printf("create_%ssync_data run with strongChecksum plugin: \"%s\"\n",
+           isUseDirSyncUpdate?"dir":"",strongChecksumPlugin->checksumType());
     if (compressPlugin)
-        printf("create_sync_data run with compress plugin: \"%s\"\n",compressPlugin->compressType());
+        printf("create_%ssync_data run with compress plugin: \"%s\"\n",
+               isUseDirSyncUpdate?"dir":"",compressPlugin->compressType());
     double time0=clock_s();
-    
-    hpatch_StreamPos_t newDataSize=0;
+    int result;
 #if (_IS_NEED_DIR_DIFF_PATCH)
-    if (isUseDirSyncUpdate)
-        ;//todo:
-    else
+        if (isUseDirSyncUpdate)
+            result=create_sync_files_for_dir(newDataPath,out_newSyncInfoFile,out_newSyncDataFile,compressPlugin,
+                                             strongChecksumPlugin,kMaxOpenFileNumber,ignoreNewPathList,
+                                             (uint32_t)kMatchBlockSize,threadNum);
+        else
 #endif
-        _return_check(printFileInfo(newDataPath,"newFileSize",&newDataSize),
-                      SYNC_SERVER_NEWPATH_ERROR,"printFileInfo(%s,) run error!\n",newDataPath);
+            result=create_sync_files_for_file(newDataPath,out_newSyncInfoFile,out_newSyncDataFile,compressPlugin,
+                                              strongChecksumPlugin,(uint32_t)kMatchBlockSize,threadNum);
+    double time1=clock_s();
+    if (result==SYNC_SERVER_SUCCESS){
+        _return_check(printFileInfo(out_newSyncInfoFile,"outFileSize"),
+                      SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncInfoFile);
+        if (out_newSyncDataFile){
+            _return_check(printFileInfo(out_newSyncDataFile,"outFileSize"),
+                          SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncDataFile);
+        }
+    }
+    printf("\ncreate%s_sync_data time: %.3f s\n\n",isUseDirSyncUpdate?"dir":"",(time1-time0));
+    return result;
+}
+
+
+int create_sync_files_for_file(const char* newDataFile,const char* out_newSyncInfoFile,
+                               const char* out_newSyncDataFile,const hdiff_TCompress* compressPlugin,
+                               hpatch_TChecksum* strongChecksumPlugin,uint32_t kMatchBlockSize,size_t threadNum){
+    hpatch_StreamPos_t newDataSize=0;
+    _return_check(printFileInfo(newDataFile,"newFileSize",&newDataSize),
+                  SYNC_SERVER_NEWPATH_ERROR,"printFileInfo(%s,) run error!\n",newDataFile);
     int hashClashBit=estimateHashClashBit(newDataSize,(uint32_t)kMatchBlockSize);
     _return_check(hashClashBit<=kAllowMaxHashClashBit,SYNC_SERVER_BLOCKSIZE_ERROR,
                   "hash clash warning! must increase matchBlockSize(%d) !\n",(uint32_t)kMatchBlockSize);
     printCreateSyncInfo(newDataSize,kMatchBlockSize,(compressPlugin!=0));
-
+    
     try {
-#if (_IS_NEED_DIR_DIFF_PATCH)
-        if (isUseDirSyncUpdate)
-            ;//create_sync_data_by_dir(newDataPath,out_newSyncInfoFile,out_newSyncDataFile,
-                                //    compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize,threadNum);
-        else
-#endif
-            create_sync_data_by_file(newDataPath,out_newSyncInfoFile,out_newSyncDataFile,
-                                     compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize,threadNum);
+        create_sync_data_by_file(newDataFile,out_newSyncInfoFile,out_newSyncDataFile,
+                                 compressPlugin,strongChecksumPlugin,(uint32_t)kMatchBlockSize,threadNum);
     } catch (const std::exception& e){
         _return_check(false,SYNC_SERVER_CREATE_SYNC_DATA_ERROR,
                       "create_sync_data run error: %s\n",e.what());
     }
-    double time1=clock_s();
-    _return_check(printFileInfo(out_newSyncInfoFile,"outFileSize"),
-                  SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncInfoFile);
-    if (out_newSyncDataFile){
-        _return_check(printFileInfo(out_newSyncDataFile,"outFileSize"),
-                      SYNC_SERVER_OUTFILE_ERROR,"printFileInfo(%s,) run error!\n",out_newSyncDataFile);
+    return SYNC_SERVER_SUCCESS;
+}
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
+
+struct DirSyncListener:public IDirSyncListener{
+    explicit DirSyncListener(const std::vector<std::string>& ignorePathList,
+                             bool isUsedCompress,bool isPrintIgnore=true)
+    :_ignorePathList(ignorePathList),_isUsedCompress(isUsedCompress),
+    _isPrintIgnore(isPrintIgnore),_ignoreCount(0){ }
+    const std::vector<std::string>& _ignorePathList;
+    const bool                      _isUsedCompress;
+    const bool                      _isPrintIgnore;
+    size_t                          _ignoreCount;
+    
+    virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen,bool){
+        std::string subPath(path.begin()+rootPathNameLen,path.end());
+        formatIgnorePathName(subPath);
+        bool result=isMatchIgnoreList(subPath,_ignorePathList);
+        if (result) ++_ignoreCount;
+        if (result&&_isPrintIgnore){ //printf
+            printf("  ignore file : \"");
+            hpatch_printPath_utf8(path.c_str());  printf("\"\n");
+        }
+        return result;
     }
     
-    printf("\ncreate_sync_data time: %.3f s\n\n",(time1-time0));
-    return 0;
+    virtual bool isExecuteFile(const std::string& fileName) {
+        bool result= 0!=hpatch_getIsExecuteFile(fileName.c_str());
+        if (result){
+            std::string info="  get file Execute tag:\""+fileName+"\"\n";
+            hpatch_printPath_utf8(info.c_str());
+        }
+        return result;
+    }
+    virtual void syncRefInfo(size_t pathCount,hpatch_StreamPos_t refFileSize,uint32_t kMatchBlockSize){
+        if ((_ignoreCount>0)&&_isPrintIgnore)
+            printf("\n");
+        printf("sync path count: %" PRIu64 "\n",(hpatch_StreamPos_t)pathCount);
+        printCreateSyncInfo(refFileSize,kMatchBlockSize,_isPrintIgnore);
+    }
+};
+
+int create_sync_files_for_dir(const char* newDataDir,const char* out_newSyncInfoFile,
+                              const char* out_newSyncDataFile,const hdiff_TCompress* compressPlugin,
+                              hpatch_TChecksum* strongChecksumPlugin,size_t kMaxOpenFileNumber,
+                              const std::vector<std::string>& ignoreNewPathList,
+                              uint32_t kMatchBlockSize,size_t threadNum){
+    std::string newDir(newDataDir);
+    assignDirTag(newDir);
+    DirSyncListener listener(ignoreNewPathList,(compressPlugin!=0));
+    try {
+        create_dir_sync_data(&listener,newDir.c_str(),out_newSyncInfoFile,out_newSyncDataFile,
+                             compressPlugin,strongChecksumPlugin,kMaxOpenFileNumber,kMatchBlockSize,threadNum);
+    } catch (const std::exception& e){
+        _return_check(false,SYNC_SERVER_CREATE_DIR_SYNC_DATA_ERROR,
+                      "create_dir_sync_data run error: %s\n",e.what());
+    }
+    return SYNC_SERVER_SUCCESS;
 }
+#endif

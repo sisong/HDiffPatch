@@ -1237,68 +1237,6 @@ struct DirDiffListener:public IDirDiffListener{
     const bool                      _isPrintIgnore;
     size_t                          _ignoreCount;
     
-    static bool _match(const char* beginS,const char* endS,
-                       const std::vector<const char*>& matchs,size_t mi,
-                       const char* ignoreBegin,const char* ignoreEnd){
-         //O(n*n) !
-        const char* match   =matchs[mi];
-        const char* matchEnd=matchs[mi+1];
-        const char* curS=beginS;
-        while (curS<endS){
-            const char* found=std::search(curS,endS,match,matchEnd);
-            if (found==endS) return false;
-            bool isMatched=true;
-            //check front
-            if (beginS<found){
-                if (mi>0){ //[front match]*[cur match]
-                    for (const char* it=beginS;it<found; ++it) {
-                        if ((*it)==kPatch_dirSeparator) { isMatched=false; break; }
-                    }
-                }else{ // ?[first match]
-                    if ((match==ignoreBegin)&&(match[0]!=kPatch_dirSeparator)&&(found[-1]!=kPatch_dirSeparator))
-                        isMatched=false;
-                }
-            }
-            const char* foundEnd=found+(matchEnd-match);
-            //check back
-            if (isMatched && (mi+2>=matchs.size()) && (foundEnd<endS)){ //[last match]
-                if ((matchEnd==ignoreEnd)&&(matchEnd[-1]!=kPatch_dirSeparator)&&(foundEnd[0]!=kPatch_dirSeparator))
-                    isMatched=false;
-            }
-            if (isMatched && (mi+2<matchs.size())
-                && (!_match(foundEnd,endS,matchs,mi+2,ignoreBegin,ignoreEnd)))
-                isMatched=false;
-            if (isMatched) return true;
-            curS=found+1;//continue
-        }
-        return false;
-    }
-    static bool isMatchIgnore(const std::string& subPath,const std::string& ignore){
-        assert(!ignore.empty());
-        std::vector<const char*> matchs;
-        const char* beginI=ignore.c_str();
-        const char* endI=beginI+ignore.size();
-        const char* curI=beginI;
-        while (curI<endI) {
-            const char* clip=std::find(curI,endI,kIgnoreMagicChar);
-            if (curI<clip){
-                matchs.push_back(curI);
-                matchs.push_back(clip);
-            }
-            curI=clip+1;
-        }
-        if (matchs.empty()) return true; // WARNING : match any path
-        const char* beginS=subPath.c_str();
-        const char* endS=beginS+subPath.size();
-        return _match(beginS,endS,matchs,0,beginI,endI);
-    }
-    static bool isMatchIgnoreList(const std::string& subPath,const std::vector<std::string>& ignoreList){
-        for (size_t i=0; i<ignoreList.size(); ++i) {
-            if (isMatchIgnore(subPath,ignoreList[i])) return true;
-        }
-        return false;
-    }
-    
     virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen,bool pathIsInOld){
         std::string subPath(path.begin()+rootPathNameLen,path.end());
         formatIgnorePathName(subPath);

@@ -38,12 +38,12 @@
 void assignDirTag(std::string& dir);
 struct IDirPathIgnore;
 void getDirAllPathList(const std::string& dir,std::vector<std::string>& out_list,
-                       IDirPathIgnore* filter,bool pathIsInOld);
+                       IDirPathIgnore* filter,bool pathIsInOld=false);
 void sortDirPathList(std::vector<std::string>& fileList);
 
 struct IDirPathIgnore{
     virtual ~IDirPathIgnore(){}
-    virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen,bool pathIsInOld) { return false; }
+    virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen,bool pathIsInOld=false) { return false; }
 };
 
 struct IDirDiffListener:public IDirPathIgnore{

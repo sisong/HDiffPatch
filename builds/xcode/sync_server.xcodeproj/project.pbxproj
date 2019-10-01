@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D61DE5292342F50B00F6FCCF /* dir_diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE5282342F50B00F6FCCF /* dir_diff.cpp */; };
+		D61DE52C2342F5F100F6FCCF /* dir_sync_server.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE52A2342F5F100F6FCCF /* dir_sync_server.cpp */; };
 		D658931B23327334003BB2F4 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931A23327334003BB2F4 /* md5.c */; };
 		D658931D2332737F003BB2F4 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931C2332737F003BB2F4 /* file_for_patch.c */; };
 		D658931F2332739D003BB2F4 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931E2332739D003BB2F4 /* adler_roll.c */; };
@@ -34,6 +36,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D61DE5272342E2FE00F6FCCF /* _dir_ignore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _dir_ignore.h; path = ../../_dir_ignore.h; sourceTree = "<group>"; };
+		D61DE5282342F50B00F6FCCF /* dir_diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dir_diff.cpp; path = ../../dirDiffPatch/dir_diff/dir_diff.cpp; sourceTree = "<group>"; };
+		D61DE52A2342F5F100F6FCCF /* dir_sync_server.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_sync_server.cpp; sourceTree = "<group>"; };
+		D61DE52B2342F5F100F6FCCF /* dir_sync_server.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_sync_server.h; sourceTree = "<group>"; };
 		D658931A23327334003BB2F4 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
 		D658931C2332737F003BB2F4 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
 		D658931E2332739D003BB2F4 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
@@ -93,6 +99,8 @@
 				D658932323327412003BB2F4 /* sync_server.cpp */,
 				D699A2B2233B3F78003CB3DC /* match_in_new.h */,
 				D699A2B1233B3F78003CB3DC /* match_in_new.cpp */,
+				D61DE52A2342F5F100F6FCCF /* dir_sync_server.cpp */,
+				D61DE52B2342F5F100F6FCCF /* dir_sync_server.h */,
 			);
 			name = sync_server;
 			path = ../../libSyncUpdate/sync_server;
@@ -125,6 +133,8 @@
 				D6589320233273BF003BB2F4 /* patch.c */,
 				D658931E2332739D003BB2F4 /* adler_roll.c */,
 				D658931C2332737F003BB2F4 /* file_for_patch.c */,
+				D61DE5272342E2FE00F6FCCF /* _dir_ignore.h */,
+				D61DE5282342F50B00F6FCCF /* dir_diff.cpp */,
 			);
 			name = HDiffPatch;
 			sourceTree = "<group>";
@@ -206,7 +216,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D61DE5292342F50B00F6FCCF /* dir_diff.cpp in Sources */,
 				D699A2B3233B3F78003CB3DC /* match_in_new.cpp in Sources */,
+				D61DE52C2342F5F100F6FCCF /* dir_sync_server.cpp in Sources */,
 				D658932C23327412003BB2F4 /* sync_server_main.cpp in Sources */,
 				D699A2BC233ECDC9003CB3DC /* parallel_channel.cpp in Sources */,
 				D6589321233273BF003BB2F4 /* patch.c in Sources */,
