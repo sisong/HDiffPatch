@@ -1,4 +1,4 @@
-// dir_diff_private.h
+// dir_diff_tools.h
 // hdiffz dir diff
 //
 /*
@@ -26,10 +26,18 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef hdiff_dir_diff_private_h
-#define hdiff_dir_diff_private_h
+#ifndef hdiff_dir_diff_tools_h
+#define hdiff_dir_diff_tools_h
 #include "dir_diff.h"
+#include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
+#include "../dir_patch/ref_stream.h"
+#include "../dir_patch/res_handle_limit.h"
+#include "file_for_dirDiff.h"
+
+#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
+#define checkv(value)     check(value,"check "#value" error!")
+
 namespace hdiff_private{
 
 template <class TVector>
@@ -65,12 +73,15 @@ struct CRefStream:public hpatch_TRefStream{
     void open(const hpatch_TStreamInput** refList,size_t refCount);
     inline ~CRefStream(){ hpatch_TRefStream_close(this); }
 };
+    
+void pushTypes(std::vector<TByte>& out_data,const char* kTypeAndVersion,
+               const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin);
 
 size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
                     const std::vector<std::string>& nameList);
-void pushList(std::vector<TByte>& out_data,const std::vector<hpatch_StreamPos_t>& list);
-void pushIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list);
+void packList(std::vector<TByte>& out_data,const std::vector<hpatch_StreamPos_t>& list);
+void packIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list);
 
 }
 #endif
-#endif //hdiff_dir_diff_private_h
+#endif //hdiff_dir_diff_tools_h

@@ -104,6 +104,10 @@ typedef int hpatch_BOOL;
                                        const unsigned char* data,const unsigned char* data_end);
     } hpatch_TStreamOutput;
     
+    //default once I/O (read/write) max byte size
+    #ifndef hpatch_kStreamCacheSize
+    #   define hpatch_kStreamCacheSize  (1024)
+    #endif
 
     #define hpatch_kFileIOBufBetterSize  (1024*64)
     

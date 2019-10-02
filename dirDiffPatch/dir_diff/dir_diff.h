@@ -32,6 +32,7 @@
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include <string>
 #include <vector>
+#include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 

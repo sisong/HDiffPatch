@@ -28,13 +28,8 @@
  */
 #include "dir_sync_server.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#include "../../file_for_patch.h"
-#include "../../dirDiffPatch/dir_diff/dir_diff_private.h"
-#include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
+#include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
 using namespace hdiff_private;
-
-#define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
-#define check(value) checki(value,"check "#value" error!")
 
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const char*               newDataDir,
@@ -61,8 +56,7 @@ static void getRefList(const std::string& newRootPath,const std::vector<std::str
     for (size_t newi=0; newi<newList.size(); ++newi){
         const std::string& fileName=newList[newi];
         if (isDirName(fileName)) continue;
-        hpatch_StreamPos_t fileSize=getFileSize(fileName);
-        out_newSizeList[newi]=fileSize;
+        out_newSizeList[newi]=getFileSize(fileName);
     }
 }
 

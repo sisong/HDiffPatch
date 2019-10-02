@@ -10,8 +10,8 @@
 		D61DE519233F52E200F6FCCF /* LzmaDec.c in Sources */ = {isa = PBXBuildFile; fileRef = D61DE518233F52E200F6FCCF /* LzmaDec.c */; };
 		D61DE51F2340397000F6FCCF /* parallel_channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE51B2340397000F6FCCF /* parallel_channel.cpp */; };
 		D61DE5202340397000F6FCCF /* parallel_import.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE51D2340397000F6FCCF /* parallel_import.cpp */; };
+		D61DE53D2344BFFC00F6FCCF /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D61DE53C2344BFFC00F6FCCF /* patch.c */; };
 		D63B988A2333B574003D38A5 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = D63B98892333B574003D38A5 /* md5.c */; };
-		D63B988F233607A7003D38A5 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D63B988E233607A6003D38A5 /* patch.c */; };
 		D658933B23327613003BB2F4 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D658933A23327613003BB2F4 /* file_for_patch.c */; };
 		D658934023327643003BB2F4 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D658933C23327642003BB2F4 /* adler_roll.c */; };
 		D65893462332765B003BB2F4 /* sync_client_main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D65893432332765B003BB2F4 /* sync_client_main.cpp */; };
@@ -40,8 +40,8 @@
 		D61DE51D2340397000F6FCCF /* parallel_import.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_import.cpp; sourceTree = "<group>"; };
 		D61DE51E2340397000F6FCCF /* parallel_channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_channel.h; sourceTree = "<group>"; };
 		D61DE52323407BA600F6FCCF /* mt_by_queue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mt_by_queue.h; sourceTree = "<group>"; };
+		D61DE53C2344BFFC00F6FCCF /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch.c; path = ../../libHDiffPatch/HPatch/patch.c; sourceTree = "<group>"; };
 		D63B98892333B574003D38A5 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
-		D63B988E233607A6003D38A5 /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch.c; path = ../../libHDiffPatch/HPatch/patch.c; sourceTree = "<group>"; };
 		D65892F82331D169003BB2F4 /* sync_client_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sync_client_test; sourceTree = BUILT_PRODUCTS_DIR; };
 		D658933A23327613003BB2F4 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
 		D658933C23327642003BB2F4 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
@@ -132,9 +132,9 @@
 			isa = PBXGroup;
 			children = (
 				D61DE51A2340397000F6FCCF /* libParallel */,
-				D63B988E233607A6003D38A5 /* patch.c */,
 				D658933C23327642003BB2F4 /* adler_roll.c */,
 				D658933A23327613003BB2F4 /* file_for_patch.c */,
+				D61DE53C2344BFFC00F6FCCF /* patch.c */,
 			);
 			name = HDiffPatch;
 			sourceTree = "<group>";
@@ -212,7 +212,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D63B988F233607A7003D38A5 /* patch.c in Sources */,
 				D658933B23327613003BB2F4 /* file_for_patch.c in Sources */,
 				D61DE519233F52E200F6FCCF /* LzmaDec.c in Sources */,
 				D63B988A2333B574003D38A5 /* md5.c in Sources */,
@@ -220,6 +219,7 @@
 				D699A2AB2338AFD2003CB3DC /* download_emulation.cpp in Sources */,
 				D61DE51F2340397000F6FCCF /* parallel_channel.cpp in Sources */,
 				D65893462332765B003BB2F4 /* sync_client_main.cpp in Sources */,
+				D61DE53D2344BFFC00F6FCCF /* patch.c in Sources */,
 				D65893472332765B003BB2F4 /* sync_client.cpp in Sources */,
 				D61DE5202340397000F6FCCF /* parallel_import.cpp in Sources */,
 				D699A29523372152003CB3DC /* match_in_old.cpp in Sources */,

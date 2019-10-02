@@ -42,11 +42,6 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
                   const unsigned char* oldData,const unsigned char* oldData_end,
                   const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
 
-//default once I/O (read/write) max byte size
-#ifndef hpatch_kStreamCacheSize
-#define hpatch_kStreamCacheSize  (1024)
-#endif
-
 //patch by stream , used (hpatch_kStreamCacheSize*7 stack memory) for I/O cache
 //  serializedDiff create by create_diff()
 //  if use patch_stream_with_cache(), can passing more memory for I/O cache

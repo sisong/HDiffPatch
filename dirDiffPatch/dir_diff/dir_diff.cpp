@@ -35,126 +35,11 @@
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
-#include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #include "../../libHDiffPatch/HDiff/diff.h"
-#include "../../file_for_patch.h"
-#include "file_for_dirDiff.h"
-#include "../dir_patch/ref_stream.h"
+#include "../../_atosize.h"
 #include "../dir_patch/dir_patch.h"
 #include "../dir_patch/dir_patch_private.h"
-#include "../dir_patch/res_handle_limit.h"
-#include "../../_atosize.h"
-#include "dir_diff_private.h"
-
-#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
-#define checkv(value)     check(value,"check "#value" error!")
-
-namespace hdiff_private{
-
-    void CRefStream::open(const hpatch_TStreamInput** refList,size_t refCount){
-        check(hpatch_TRefStream_open(this,refList,refCount),"TRefStream_open() refList error!");
-    }
-    
-    hpatch_StreamPos_t getFileSize(const std::string& fileName){
-        hpatch_TPathType   type;
-        hpatch_StreamPos_t fileSize;
-        checkv(hpatch_getPathStat(fileName.c_str(),&type,&fileSize));
-        checkv(type==kPathType_file);
-        return fileSize;
-    }
-    
-    void pushIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list){
-        size_t backValue=~(size_t)0;
-        for (size_t i=0;i<list.size();++i){
-            size_t curValue=list[i];
-            assert(curValue>=(size_t)(backValue+1));
-            packUInt(out_data,(size_t)(curValue-(size_t)(backValue+1)));
-            backValue=curValue;
-        }
-    }
-    
-    void pushList(std::vector<TByte>& out_data,const std::vector<hpatch_StreamPos_t>& list){
-        for (size_t i=0;i<list.size();++i){
-            packUInt(out_data,list[i]);
-        }
-    }
-    
-    
-    static void formatDirTagForSave(std::string& path_utf8){
-        if (kPatch_dirSeparator==kPatch_dirSeparator_saved) return;
-        for (size_t i=0;i<path_utf8.size();++i){
-            if (path_utf8[i]!=kPatch_dirSeparator)
-                continue;
-            else
-                path_utf8[i]=kPatch_dirSeparator_saved;
-        }
-    }
-    
-    size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
-                        const std::vector<std::string>& nameList){
-        const size_t rootLen=rootPath.size();
-        std::string utf8;
-        size_t outSize=0;
-        for (size_t i=0;i<nameList.size();++i){
-            const std::string& name=nameList[i];
-            const size_t nameSize=name.size();
-            assert(nameSize>=rootLen);
-            assert(0==memcmp(name.data(),rootPath.data(),rootLen));
-            const char* subName=name.c_str()+rootLen;
-            const char* subNameEnd=subName+(nameSize-rootLen);
-            utf8.assign(subName,subNameEnd);
-            formatDirTagForSave(utf8);
-            size_t writeLen=utf8.size()+1; // '\0'
-            out_data.insert(out_data.end(),utf8.c_str(),utf8.c_str()+writeLen);
-            outSize+=writeLen;
-        }
-        return outSize;
-    }
-    
-    CFileResHandleLimit::CFileResHandleLimit(size_t _limitMaxOpenCount,size_t resCount)
-    :limitMaxOpenCount(_limitMaxOpenCount),curInsert(0){
-        hpatch_TResHandleLimit_init(&limit);
-        resList.resize(resCount);
-        memset(resList.data(),0,sizeof(hpatch_IResHandle)*resCount);
-        fileList.resize(resCount);
-        for(size_t i=0;i<resCount;++i)
-            hpatch_TFileStreamInput_init(&fileList[i]);
-    }
-    
-    void CFileResHandleLimit::addRes(const std::string& fileName,hpatch_StreamPos_t fileSize){
-        assert(curInsert<resList.size());
-        fileList[curInsert].fileName=fileName;
-        hpatch_IResHandle* res=&resList[curInsert];
-        res->open=CFileResHandleLimit::openRes;
-        res->close=CFileResHandleLimit::closeRes;
-        res->resImport=&fileList[curInsert];
-        res->resStreamSize=fileSize;
-        ++curInsert;
-    }
-    void CFileResHandleLimit::open(){
-        assert(curInsert==resList.size());
-        check(hpatch_TResHandleLimit_open(&limit,limitMaxOpenCount,resList.data(),
-                                          resList.size()),"TResHandleLimit_open error!");
-    }
-    void CFileResHandleLimit::close(){
-        check(hpatch_TResHandleLimit_close(&limit),"TResHandleLimit_close error!");
-    }
-    
-    hpatch_BOOL CFileResHandleLimit::openRes(struct hpatch_IResHandle* res,hpatch_TStreamInput** out_stream){
-        CFile* self=(CFile*)res->resImport;
-        assert(self->m_file==0);
-        check(hpatch_TFileStreamInput_open(self,self->fileName.c_str()),"CFileResHandleLimit open file error!");
-        *out_stream=&self->base;
-        return hpatch_TRUE;
-    }
-    hpatch_BOOL CFileResHandleLimit::closeRes(struct hpatch_IResHandle* res,const hpatch_TStreamInput* stream){
-        CFile* self=(CFile*)res->resImport;
-        assert(stream==&self->base);
-        check(hpatch_TFileStreamInput_close(self),"CFileResHandleLimit close file error!");
-        return hpatch_TRUE;
-    }
-    
-}
+#include "dir_diff_tools.h"
 using namespace hdiff_private;
 
 static const char* kDirDiffVersionType= "HDIFF19";
@@ -166,10 +51,6 @@ static std::string  cmp_hash_type    =  "fadler64";
 #define cmp_hash_end(ph)                {}
 #define cmp_hash_combine(ph,rightHash,rightLen) { (*(ph))=fast_adler64_by_combine(*(ph),rightHash,rightLen); }
 
-void assignDirTag(std::string& dir_utf8){
-    if (dir_utf8.empty()||(dir_utf8[dir_utf8.size()-1]!=kPatch_dirSeparator))
-        dir_utf8.push_back(kPatch_dirSeparator);
-}
 
 struct CFileStreamInput:public hpatch_TFileStreamInput{
     inline CFileStreamInput(){ hpatch_TFileStreamInput_init(this); }
@@ -203,62 +84,6 @@ struct TOffsetStreamOutput:public hpatch_TStreamOutput{
         return self->_base->write(self->_base,self->_offset+writeToPos,data,data_end);
     }
 };
-
-
-struct CDir{
-    inline CDir(const std::string& dir):handle(0){ handle=hdiff_dirOpenForRead(dir.c_str()); }
-    inline ~CDir(){ hdiff_dirClose(handle); }
-    hdiff_TDirHandle handle;
-};
-
-void _getDirSubFileList(const std::string& dirPath,std::vector<std::string>& out_list,
-                        IDirPathIgnore* filter,size_t rootPathNameLen,bool pathIsInOld){
-    assert(!isDirName(dirPath));
-    std::vector<std::string> subDirs;
-    {//serach cur dir
-        CDir dir(dirPath);
-        check((dir.handle!=0),"hdiff_dirOpenForRead \""+dirPath+"\" error!");
-        while (true) {
-            hpatch_TPathType  type;
-            const char* path=0;
-            check(hdiff_dirNext(dir.handle,&type,&path),"hdiff_dirNext \""+dirPath+"\" error!");
-            if (path==0) break; //finish
-            if ((0==strcmp(path,""))||(0==strcmp(path,"."))||(0==strcmp(path,"..")))
-                continue;
-            std::string subName(dirPath+kPatch_dirSeparator+path);
-            assert(!isDirName(subName));
-            switch (type) {
-                case kPathType_dir:{
-                    assignDirTag(subName);
-                    if (!filter->isNeedIgnore(subName,rootPathNameLen,pathIsInOld)){
-                        subDirs.push_back(subName.substr(0,subName.size()-1)); //no '/'
-                        out_list.push_back(subName); //add dir
-                    }
-                } break;
-                case kPathType_file:{
-                    if (!filter->isNeedIgnore(subName,rootPathNameLen,pathIsInOld))
-                        out_list.push_back(subName); //add file
-                } break;
-                default:{
-                    //nothing
-                } break;
-            }
-        }
-    }
-    
-    for (size_t i=0; i<subDirs.size(); ++i) {
-        assert(!isDirName(subDirs[i]));
-        _getDirSubFileList(subDirs[i],out_list,filter,rootPathNameLen,pathIsInOld);
-    }
-}
-
-void getDirAllPathList(const std::string& dirPath,std::vector<std::string>& out_list,
-                       IDirPathIgnore* filter,bool pathIsInOld){
-    assert(isDirName(dirPath));
-    out_list.push_back(dirPath);
-    const std::string dirName(dirPath.c_str(),dirPath.c_str()+dirPath.size()-1); //without '/'
-    _getDirSubFileList(dirName,out_list,filter,dirName.size(),pathIsInOld);
-}
 
 
 static cmp_hash_value_t getStreamHash(const hpatch_TStreamInput* stream,const std::string& errorTag){
@@ -309,11 +134,7 @@ static bool fileData_isSame(const std::string& file_x,const std::string& file_y,
     return true;
 }
 
-void sortDirPathList(std::vector<std::string>& fileList){
-    std::sort(fileList.begin(),fileList.end());
-}
-
-static void pushSamePairList(std::vector<TByte>& out_data,const std::vector<hpatch_TSameFilePair>& pairs){
+static void packSamePairList(std::vector<TByte>& out_data,const std::vector<hpatch_TSameFilePair>& pairs){
     size_t backPairNew=~(size_t)0;
     size_t backPairOld=~(size_t)0;
     for (size_t i=0;i<pairs.size();++i){
@@ -508,34 +329,6 @@ struct CChecksum{
     std::vector<TByte>      checksum;
 };
 
-static void _outType(std::vector<TByte>& out_data,const hdiff_TCompress* compressPlugin,
-                     hpatch_TChecksum* checksumPlugin){
-    //type version
-    pushCStr(out_data,kDirDiffVersionType);
-    pushCStr(out_data,"&");
-    {//compressType
-        const char* compressType="";
-        if (compressPlugin)
-            compressType=compressPlugin->compressType();
-        size_t compressTypeLen=strlen(compressType);
-        check(compressTypeLen<=hpatch_kMaxPluginTypeLength,"compressTypeLen error!");
-        check(0==strchr(compressType,'&'), "compressType cannot contain '&'");
-        pushCStr(out_data,compressType);
-    }
-    pushCStr(out_data,"&");
-    {//checksumType
-        const char* checksumType="";
-        if (checksumPlugin)
-            checksumType=checksumPlugin->checksumType();
-        size_t checksumTypeLen=strlen(checksumType);
-        check(checksumTypeLen<=hpatch_kMaxPluginTypeLength,"checksumTypeLen error!");
-        check(0==strchr(checksumType,'&'), "checksumType cannot contain '&'");
-        pushCStr(out_data,checksumType);
-    }
-    const TByte _cstrEndTag='\0';//c string end tag
-    pushBack(out_data,&_cstrEndTag,(&_cstrEndTag)+1);
-}
-
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
               const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
               const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
@@ -665,11 +458,11 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     std::vector<TByte> headData;
     size_t oldPathSumSize=pushNameList(headData,oldManifest.rootPath,oldList);
     size_t newPathSumSize=pushNameList(headData,newManifest.rootPath,newList);
-    pushIncList(headData,oldRefIList);
-    pushIncList(headData,newRefIList);
-    pushList(headData,newRefSizeList);
-    pushSamePairList(headData,dataSamePairList);
-    pushIncList(headData,newExecuteList);
+    packIncList(headData,oldRefIList);
+    packIncList(headData,newRefIList);
+    packList(headData,newRefSizeList);
+    packSamePairList(headData,dataSamePairList);
+    packIncList(headData,newExecuteList);
     std::vector<TByte> privateReservedData;//now empty
     headData.insert(headData.end(),privateReservedData.begin(),privateReservedData.end());
     std::vector<TByte> headCode;
@@ -685,7 +478,7 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     
     //serialize  dir diff data
     std::vector<TByte> out_data;
-    _outType(out_data,compressPlugin,checksumPlugin);
+    pushTypes(out_data,kDirDiffVersionType,compressPlugin,checksumPlugin);
     //head info
     packUInt(out_data,oldIsDir?1:0);
     packUInt(out_data,newIsDir?1:0);
@@ -1283,7 +1076,7 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
         TDiffStream outDiff(out_diff);
         {//type
             std::vector<TByte> out_type;
-            _outType(out_type,compressPlugin,checksumPlugin);
+            pushTypes(out_type,kDirDiffVersionType,compressPlugin,checksumPlugin);
             outDiff.pushBack(out_type.data(),out_type.size());
         }
         {//copy other
