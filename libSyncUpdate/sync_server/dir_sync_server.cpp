@@ -96,7 +96,10 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     CRefStream newRefStream;
     newRefStream.open(resLimit.limit.streamList,newList.size());
     
-    listener->syncRefInfo(newList.size(),newRefStream.stream->streamSize,kMatchBlockSize);
+    int hashClashBit=estimateHashClashBit(newRefStream.stream->streamSize,kMatchBlockSize);
+    bool isMatchBlockSizeWarning=hashClashBit>kAllowMaxHashClashBit;
+    listener->syncRefInfo(newList.size(),newRefStream.stream->streamSize,kMatchBlockSize,isMatchBlockSizeWarning);
+    checkv(!isMatchBlockSizeWarning);
     
     //serialize headData
     std::vector<TByte> buf;

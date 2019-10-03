@@ -470,10 +470,11 @@ struct DirSyncListener:public IDirSyncListener{
     explicit DirSyncListener(const std::vector<std::string>& ignorePathList,
                              bool isUsedCompress,bool isPrintIgnore=true)
     :_ignorePathList(ignorePathList),_isUsedCompress(isUsedCompress),
-    _isPrintIgnore(isPrintIgnore),_ignoreCount(0){ }
+    _isPrintIgnore(isPrintIgnore),isMatchBlockSizeWarning(false),_ignoreCount(0){ }
     const std::vector<std::string>& _ignorePathList;
     const bool                      _isUsedCompress;
     const bool                      _isPrintIgnore;
+    bool                            isMatchBlockSizeWarning;
     size_t                          _ignoreCount;
     
     virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen,bool){
@@ -496,7 +497,9 @@ struct DirSyncListener:public IDirSyncListener{
         }
         return result;
     }
-    virtual void syncRefInfo(size_t pathCount,hpatch_StreamPos_t refFileSize,uint32_t kMatchBlockSize){
+    virtual void syncRefInfo(size_t pathCount,hpatch_StreamPos_t refFileSize,
+                             uint32_t kMatchBlockSize,bool _isMatchBlockSizeWarning){
+        isMatchBlockSizeWarning=_isMatchBlockSizeWarning;
         if ((_ignoreCount>0)&&_isPrintIgnore)
             printf("\n");
         printf("dir sync path count: %" PRIu64 "\n",(hpatch_StreamPos_t)pathCount);
@@ -517,8 +520,13 @@ int create_sync_files_for_dir(const char* newDataDir,const char* out_newSyncInfo
         create_dir_sync_data(&listener,newDir.c_str(),out_newSyncInfoFile,out_newSyncDataFile,
                              compressPlugin,strongChecksumPlugin,kMaxOpenFileNumber,kMatchBlockSize,threadNum);
     } catch (const std::exception& e){
-        _return_check(false,SYNC_SERVER_CREATE_DIR_SYNC_DATA_ERROR,
-                      "create_dir_sync_data run error: %s\n",e.what());
+        if (listener.isMatchBlockSizeWarning){
+            _return_check(false,SYNC_SERVER_BLOCKSIZE_ERROR,
+                          "hash clash warning! must increase matchBlockSize(%d) !\n",(uint32_t)kMatchBlockSize);
+        }else{
+            _return_check(false,SYNC_SERVER_CREATE_DIR_SYNC_DATA_ERROR,
+                          "create_dir_sync_data run error: %s\n",e.what());
+        }
     }
     return SYNC_SERVER_SUCCESS;
 }

@@ -37,7 +37,8 @@ struct IDirSyncListener:public IDirPathIgnore{
     virtual ~IDirSyncListener(){}
     virtual bool isExecuteFile(const std::string& fileName) { return false; }
     virtual void syncPathList(const std::vector<std::string>& pathList){}
-    virtual void syncRefInfo(size_t pathCount,hpatch_StreamPos_t refFileSize,uint32_t kMatchBlockSize){}
+    virtual void syncRefInfo(size_t pathCount,hpatch_StreamPos_t refFileSize,
+                             uint32_t kMatchBlockSize,bool isMatchBlockSizeWarning){}
     virtual void externData(std::vector<unsigned char>& out_externData){}
     virtual void externDataPosInSyncInfoStream(hpatch_StreamPos_t externDataPos,size_t externDataSize){}
 };
