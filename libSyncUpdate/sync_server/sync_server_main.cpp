@@ -1,5 +1,6 @@
 //  sync_server_main.cpp
 //  sync_server:  create sync files
+//      like zsync : http://zsync.moria.org.uk/
 //  Created by housisong on 2019-09-17.
 /*
  The MIT License (MIT)
@@ -78,6 +79,11 @@ static void printUsage(){
            "options:\n"
            "  -s-matchBlockSize\n"
            "      matchBlockSize can like 4096 or 4k or 128k or 1m etc..., DEFAULT 2048\n"
+#if (_IS_USED_MULTITHREAD)
+           "  -p-parallelThreadNumber\n"
+           "    if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
+           "    DEFAULT -p-4; requires more and more memory!\n"
+#endif
            "  -c-compressType[-compressLevel]\n"
            "      set outNewSyncDataFile Compress type & level, DEFAULT uncompress;\n"
            "      support compress type & level:\n"
@@ -88,11 +94,6 @@ static void printUsage(){
 #ifdef _CompressPlugin_lzma
            "        -c-lzma[-{0..9}[-dictSize]]     DEFAULT level 7\n"
            "            dictSize can like 4096 or 4k or 4m or 64m etc..., DEFAULT 8m\n"
-#endif
-#if (_IS_USED_MULTITHREAD)
-           "  -p-parallelThreadNumber\n"
-           "    if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
-           "    DEFAULT -p-4; requires more and more memory!\n"
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -n-maxOpenFileNumber\n"

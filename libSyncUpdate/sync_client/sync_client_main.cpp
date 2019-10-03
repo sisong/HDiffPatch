@@ -33,6 +33,8 @@
 #include "../../_atosize.h"
 #include "../../libParallel/parallel_import.h"
 #include "../../file_for_patch.h"
+#include "../../_dir_ignore.h"
+
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1
@@ -176,8 +178,12 @@ static hpatch_BOOL _toChecksumSet(const char* psets,bool* isChecksumNewSyncInfo,
     }
 }
 
-#define _options_check(value) do{ \
-    if (!(value)) { printUsage();  return kSyncClient_optionsError; } }while(0)
+#define _options_check(value,errorInfo){ \
+    if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n\n"); \
+                    printUsage(); return kSyncClient_optionsError; } }
+
+#define _kNULL_VALUE    (-1)
+#define _kNULL_SIZE     (~(size_t)0)
 
 #define _THREAD_NUMBER_NULL     0
 #define _THREAD_NUMBER_MIN      1
@@ -186,10 +192,19 @@ static hpatch_BOOL _toChecksumSet(const char* psets,bool* isChecksumNewSyncInfo,
 
 int main(int argc, const char * argv[]) {
     size_t      threadNum = _THREAD_NUMBER_NULL;
+    hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
+    hpatch_BOOL isOutputHelp=_kNULL_VALUE;
+    hpatch_BOOL isOutputVersion=_kNULL_VALUE;
+    bool isChecksumNewSyncInfo=false;
+    bool isChecksumNewSyncData=true; //checksumSet DEFAULT
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    size_t                      kMaxOpenFileNumber=_kNULL_SIZE; //only used in oldPath is dir
+    std::vector<std::string>    ignoreOldPathList;
+#endif
     std::vector<const char *> arg_values;
     for (int i=1; i<argc; ++i) {
         const char* op=argv[i];
-        _options_check(op!=0);
+        _options_check(op!=0,"?");
         if (op[0]!='-'){
             arg_values.push_back(op); //file path
             continue;
@@ -197,14 +212,49 @@ int main(int argc, const char * argv[]) {
         switch (op[1]) {
 #if (_IS_USED_MULTITHREAD)
             case 'p':{
-                _options_check((threadNum==_THREAD_NUMBER_NULL)&&((op[2]=='-')));
+                _options_check((threadNum==_THREAD_NUMBER_NULL)&&((op[2]=='-')),"-p-?");
                 const char* pnum=op+3;
-                _options_check(a_to_size(pnum,strlen(pnum),&threadNum));
-                _options_check(threadNum>=_THREAD_NUMBER_MIN);
+                _options_check(a_to_size(pnum,strlen(pnum),&threadNum),"-p-?");
+                _options_check(threadNum>=_THREAD_NUMBER_MIN,"-p-?");
             } break;
 #endif
+            case 'C':{
+                const char* psets=op+3;
+                _options_check((op[2]=='-'),"-C-?");
+                isChecksumNewSyncInfo=false;
+                isChecksumNewSyncData=false;//all set false
+                _options_check(_toChecksumSet(psets,&isChecksumNewSyncInfo,&isChecksumNewSyncData),"-C-?");
+            } break;
+#if (_IS_NEED_DIR_DIFF_PATCH)
+            case 'n':{
+                const char* pnum=op+3;
+                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?");
+                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
+            } break;
+            case 'g':{
+                if (op[2]=='#'){ //-g#
+                    const char* plist=op+3;
+                    _options_check(_getIgnorePathSetList(ignoreOldPathList,plist),"-g#?");
+                }else{
+                    _options_check(hpatch_FALSE,"-g?");
+                }
+            } break;
+#endif
+            case 'f':{
+                _options_check((isForceOverwrite==_kNULL_VALUE)&&(op[2]=='\0'),"-f");
+                isForceOverwrite=hpatch_TRUE;
+            } break;
+            case '?':
+            case 'h':{
+                _options_check((isOutputHelp==_kNULL_VALUE)&&(op[2]=='\0'),"-h");
+                isOutputHelp=hpatch_TRUE;
+            } break;
+            case 'v':{
+                _options_check((isOutputVersion==_kNULL_VALUE)&&(op[2]=='\0'),"-v");
+                isOutputVersion=hpatch_TRUE;
+            } break;
             default: {
-                _options_check(hpatch_FALSE);
+                _options_check(hpatch_FALSE,"?");
             } break;
         }//swich
     }
@@ -217,7 +267,7 @@ int main(int argc, const char * argv[]) {
 #else
     threadNum=1;
 #endif
-    _options_check(arg_values.size()==4);
+    _options_check(arg_values.size()==4,"input count");
     const char* oldPath             =arg_values[0];
     const char* newSyncInfoFile     =arg_values[1];
     const char* test_newSyncDataFile=arg_values[2];
@@ -233,8 +283,8 @@ int main(int argc, const char * argv[]) {
     ISyncPatchListener emulation; memset(&emulation,0,sizeof(emulation));
     if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataFile))
         return kSyncClient_readSyncDataError;
-    emulation.isChecksumNewSyncInfo=true;
-    emulation.isChecksumNewSyncData=true;
+    emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
+    emulation.isChecksumNewSyncData=isChecksumNewSyncData;
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     
