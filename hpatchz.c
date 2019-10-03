@@ -206,7 +206,7 @@ typedef enum THPatchResult {
 int hpatch_cmd_line(int argc, const char * argv[]);
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
-           hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
+           hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
            hpatch_StreamPos_t diffDataOffert,hpatch_StreamPos_t diffDataSize);
 #if (_IS_NEED_DIR_DIFF_PATCH)
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
@@ -286,7 +286,6 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
 #define _kNULL_SIZE     (~(size_t)0)
 
 int hpatch_cmd_line(int argc, const char * argv[]){
-    hpatch_BOOL isOriginal=_kNULL_VALUE;
     hpatch_BOOL isLoadOldAll=_kNULL_VALUE;
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
@@ -429,9 +428,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
 #endif
-
-    if (isOriginal==_kNULL_VALUE)
-        isOriginal=hpatch_FALSE;
+    
     if (isLoadOldAll==_kNULL_VALUE){
         isLoadOldAll=hpatch_FALSE;
         patchCacheSize=kPatchCacheSize_default;
@@ -521,8 +518,6 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #if (_IS_NEED_DIR_DIFF_PATCH)
         _return_check(getDirDiffInfoByFile(diffFileName,&dirDiffInfo,diffDataOffert,diffDataSize),
                       HPATCH_OPENREAD_ERROR,"input diffFile open read");
-        if (dirDiffInfo.isDirDiff)
-            _options_check(!isOriginal,"-o unsupport dir patch");
         isOutDir=(dirDiffInfo.isDirDiff)&&(dirDiffInfo.newPathIsDir);
 #endif
         if (!isSamePath){ // out new file or new dir
@@ -534,7 +529,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #endif
             {
                 return hpatch(oldPath,diffFileName,outNewPath,
-                              isOriginal,isLoadOldAll,patchCacheSize,diffDataOffert,diffDataSize);
+                              isLoadOldAll,patchCacheSize,diffDataOffert,diffDataSize);
             }
         }else
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -562,7 +557,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #endif
             {
                 result=hpatch(oldPath,diffFileName,newTempName,
-                              isOriginal,isLoadOldAll,patchCacheSize,diffDataOffert,diffDataSize);
+                              isLoadOldAll,patchCacheSize,diffDataOffert,diffDataSize);
             }
             if (result==HPATCH_SUCCESS){
                 _return_check(hpatch_removeFile(oldPath),
@@ -722,7 +717,7 @@ static void* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
 
 
 int hpatch(const char* oldFileName,const char* diffFileName,
-           const char* outNewFileName,hpatch_BOOL isOriginal,hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
+           const char* outNewFileName,hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
            hpatch_StreamPos_t diffDataOffert,hpatch_StreamPos_t diffDataSize){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
@@ -763,7 +758,6 @@ int hpatch(const char* oldFileName,const char* diffFileName,
 
     {
         hpatch_compressedDiffInfo diffInfo;
-        assert(!isOriginal);
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
             check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");

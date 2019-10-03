@@ -296,7 +296,7 @@ int create_manifest(const char* inputPath,const char* outManifestFileName,
                     hpatch_TChecksum* checksumPlugin,const std::vector<std::string>& ignorePathList);
 #endif
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,hpatch_BOOL isDiff,
-          hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,hpatch_BOOL isOriginal,
+          hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
           const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin);
 int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                  const hdiff_TCompress* compressPlugin);
@@ -547,7 +547,6 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
 #define _THREAD_NUMBER_MAX      (1<<8)
 
 int hdiff_cmd_line(int argc, const char * argv[]){
-    hpatch_BOOL isOriginal=_kNULL_VALUE;
     hpatch_BOOL isLoadAll=_kNULL_VALUE;
     hpatch_BOOL isPatchCheck=_kNULL_VALUE;
     hpatch_BOOL isDiff=_kNULL_VALUE;
@@ -738,12 +737,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         isOldPathInputEmpty=hpatch_FALSE;
     _options_check((arg_values.size()==1)||(arg_values.size()==2)||(arg_values.size()==3),"input count");
     if (arg_values.size()==3){ //diff
-        if (isOriginal==_kNULL_VALUE)
-            isOriginal=hpatch_FALSE;
-        if (isOriginal){
-            _options_check((isLoadAll!=hpatch_FALSE)&&(compressPlugin==0),
-                           "-o unsupport run with -s or -c");
-        }
         if (isLoadAll==_kNULL_VALUE){
             isLoadAll=hpatch_TRUE;
             matchValue=kMinSingleMatchScore_default;
@@ -825,7 +818,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             }
 #   endif
 #endif
-            _options_check(!isOriginal,"-o unsupport dir diff");
         }else
         {
             _options_check(checksumPlugin==0,"-C now only support dir diff, unsupport diff");
@@ -842,7 +834,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         }else
 #endif
         {
-            return hdiff(oldPath,newPath,outDiffFileName,isDiff,isLoadAll,matchValue,isPatchCheck,isOriginal,
+            return hdiff(oldPath,newPath,outDiffFileName,isDiff,isLoadAll,matchValue,isPatchCheck,
                          compressPlugin,decompressPlugin);
         }
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -879,7 +871,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #endif
     }else{// (arg_values.size()==2)  //resave
         _options_check(!isOldPathInputEmpty,"can't resave, must input a diffFile");
-        _options_check((isOriginal==_kNULL_VALUE),"-o unsupport run with resave mode");
         _options_check((isLoadAll==_kNULL_VALUE),"-m or -s unsupport run with resave mode");
         _options_check((isDiff==_kNULL_VALUE),"-d unsupport run with resave mode");
         _options_check((isPatchCheck==_kNULL_VALUE),"-t unsupport run with resave mode");
@@ -967,7 +958,7 @@ static hpatch_BOOL writeFileAll(const TByte* pdata,size_t dataSize,const char* o
     if (!(value)){ hpatch_printStdErrPath_utf8(erri.c_str()); _check_on_error(errorType); } }
 
 static int hdiff_mem(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-                     hpatch_BOOL isDiff,size_t matchScore,hpatch_BOOL isPatchCheck,hpatch_BOOL isOriginal,
+                     hpatch_BOOL isDiff,size_t matchScore,hpatch_BOOL isPatchCheck,
                      const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin){
     double diff_time0=clock_s();
     int    result=HDIFF_SUCCESS;
@@ -1091,7 +1082,7 @@ clear:
 }
 
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,hpatch_BOOL isDiff,
-          hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,hpatch_BOOL isOriginal,
+          hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
           const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin){
     double time0=clock_s();
     std::string fnameInfo=std::string("old : \"")+oldFileName+"\"\n"
@@ -1108,7 +1099,7 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
     int exitCode;
     if (isLoadAll){
         exitCode=hdiff_mem(oldFileName,newFileName,outDiffFileName,
-                           isDiff,matchValue,isPatchCheck,isOriginal,compressPlugin,decompressPlugin);
+                           isDiff,matchValue,isPatchCheck,compressPlugin,decompressPlugin);
     }else{
         exitCode=hdiff_stream(oldFileName,newFileName,outDiffFileName,
                               isDiff,matchValue,isPatchCheck,compressPlugin,decompressPlugin);
