@@ -32,6 +32,7 @@
 #include "../../_clock_for_demo.h"
 #include "../../_atosize.h"
 #include "../../libParallel/parallel_import.h"
+#include "../../file_for_patch.h"
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1
@@ -65,6 +66,13 @@ static void printUsage(){
            "    if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
            "    DEFAULT -p-4; requires more and more memory!\n"
 #endif
+           "  -C-checksumSets\n"
+           "      set Checksum data for patch, DEFAULT -C-sync;\n"
+           "      checksumSets support:\n"
+           "        -C-info         checksum newSyncInfoFile;\n"
+           "        -C-sync         checksum outNewPath's data sync from newSyncDataFile;\n"
+           "        -C-no           no checksum;\n"
+           "        -C-all          same as: -C-info-sync;\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when oldPath is directory;\n"
@@ -106,14 +114,6 @@ static void printUsage(){
 }
 
 
-//ISyncPatchListener::isChecksumNewSyncInfo
-static bool isChecksumNewSyncInfo(ISyncPatchListener* listener){
-    return true;
-}
-//ISyncPatchListener::isChecksumNewSyncData
-static bool isChecksumNewSyncData(ISyncPatchListener* listener){
-    return true;
-}
 //ISyncPatchListener::findDecompressPlugin
 static hpatch_TDecompress* findDecompressPlugin(ISyncPatchListener* listener,const char* compressType){
     if (compressType==0) return 0; //ok
@@ -148,6 +148,31 @@ static hpatch_TChecksum* findChecksumPlugin(ISyncPatchListener* listener,const c
     }else{
         printf("sync_patch run with strongChecksum plugin: \"%s\"\n",strongChecksumType);
         return strongChecksumPlugin; //ok
+    }
+}
+
+static hpatch_BOOL _toChecksumSet(const char* psets,bool* isChecksumNewSyncInfo,bool* isChecksumNewSyncData){
+    while (hpatch_TRUE) {
+        const char* pend=findUntilEnd(psets,'-');
+        size_t len=(size_t)(pend-psets);
+        if (len==0) return hpatch_FALSE; //error no set
+        if        ((len==4)&&(0==memcmp(psets,"info",len))){
+            *isChecksumNewSyncInfo=true;
+        }else  if ((len==4)&&(0==memcmp(psets,"sync",len))){
+            *isChecksumNewSyncData=true;
+        }else  if ((len==3)&&(0==memcmp(psets,"all",len))){
+            *isChecksumNewSyncInfo=true;
+            *isChecksumNewSyncData=true;
+        }else  if ((len==2)&&(0==memcmp(psets,"no",len))){
+            *isChecksumNewSyncInfo=false;
+            *isChecksumNewSyncData=false;
+        }else{
+            return hpatch_FALSE;//error unknow set
+        }
+        if (*pend=='\0')
+            return hpatch_TRUE; //ok
+        else
+            psets=pend+1;
     }
 }
 
@@ -208,8 +233,8 @@ int main(int argc, const char * argv[]) {
     ISyncPatchListener emulation; memset(&emulation,0,sizeof(emulation));
     if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataFile))
         return kSyncClient_readSyncDataError;
-    emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
-    emulation.isChecksumNewSyncData=isChecksumNewSyncData;
+    emulation.isChecksumNewSyncInfo=true;
+    emulation.isChecksumNewSyncData=true;
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     

@@ -146,7 +146,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
         }
     }
     {//dirSyncHeadSize
-        hpatch_StreamPos_t dirSyncHeadSize= head.size() + sizeof(dirSyncHeadSize)
+        hpatch_StreamPos_t dirSyncHeadSize= (hpatch_StreamPos_t)head.size() + sizeof(dirSyncHeadSize)
                                            + privateExternData.size() + externData.size() + buf.size()
                                            + kPartStrongChecksumByteSize;
         //head +

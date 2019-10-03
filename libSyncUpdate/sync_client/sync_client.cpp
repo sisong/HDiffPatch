@@ -142,8 +142,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
     TByte*             decompressBuf=0;
     _TDecompressInputSteram decompresser;
     TChecksumInputStream  checksumInputStream;
-    const bool isChecksumNewSyncInfo=(listener->isChecksumNewSyncInfo==0)
-                                    ||listener->isChecksumNewSyncInfo(listener);
+    const bool isChecksumNewSyncInfo=listener->isChecksumNewSyncInfo;
     const size_t kFileIOBufBetterSize=hpatch_kFileIOBufBetterSize;
     TByte* temp_cache=(TByte*)malloc(kFileIOBufBetterSize);
     check(temp_cache!=0,kSyncClient_memError);
@@ -414,8 +413,7 @@ static int mt_writeToNew(_TWriteDatas& wd,void* _mt=0,int threadIndex=0) {
     int _inClear=0;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     const uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
-    const bool     isChecksumNewSyncData=(listener->isChecksumNewSyncData==0) ? true
-                                            : listener->isChecksumNewSyncData(listener);
+    const bool     isChecksumNewSyncData=listener->isChecksumNewSyncData;
     TByte*             dataBuf=0;
     TByte*             checksumSync_buf=0;
     hpatch_checksumHandle checksumSync=0;
