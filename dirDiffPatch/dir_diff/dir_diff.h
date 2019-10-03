@@ -36,16 +36,24 @@
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 
-void assignDirTag(std::string& dir);
-struct IDirPathIgnore;
-void getDirAllPathList(const std::string& dir,std::vector<std::string>& out_list,
-                       IDirPathIgnore* filter,bool pathIsInOld=false);
-void sortDirPathList(std::vector<std::string>& fileList);
+static inline
+void assignDirTag(std::string& dir){
+    if (dir.empty()||(dir[dir.size()-1]!=kPatch_dirSeparator))
+        dir.push_back(kPatch_dirSeparator);
+}
+
+static inline
+void sortDirPathList(std::vector<std::string>& fileList){
+    std::sort(fileList.begin(),fileList.end());
+}
 
 struct IDirPathIgnore{
     virtual ~IDirPathIgnore(){}
     virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen,bool pathIsInOld=false) { return false; }
 };
+
+void getDirAllPathList(const std::string& dir,std::vector<std::string>& out_list,
+                       IDirPathIgnore* filter,bool pathIsInOld=false);
 
 struct IDirDiffListener:public IDirPathIgnore{
     virtual ~IDirDiffListener(){}

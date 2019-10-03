@@ -29,15 +29,6 @@
 #include "dir_diff_tools.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 
-void assignDirTag(std::string& dir_utf8){
-    if (dir_utf8.empty()||(dir_utf8[dir_utf8.size()-1]!=kPatch_dirSeparator))
-        dir_utf8.push_back(kPatch_dirSeparator);
-}
-
-void sortDirPathList(std::vector<std::string>& fileList){
-    std::sort(fileList.begin(),fileList.end());
-}
-
     struct CDir{
         inline CDir(const std::string& dir):handle(0){ handle=hdiff_dirOpenForRead(dir.c_str()); }
         inline ~CDir(){ hdiff_dirClose(handle); }
@@ -103,6 +94,36 @@ namespace hdiff_private{
         checkv(hpatch_getPathStat(fileName.c_str(),&type,&fileSize));
         checkv(type==kPathType_file);
         return fileSize;
+    }
+    
+    TOffsetStreamOutput::TOffsetStreamOutput(const hpatch_TStreamOutput* base,hpatch_StreamPos_t offset)
+    :_base(base),_offset(offset),outSize(0){
+        assert(offset<=base->streamSize);
+        this->streamImport=this;
+        this->streamSize=base->streamSize-offset;
+        this->read_writed=0;
+        this->write=_write;
+    }
+    hpatch_BOOL TOffsetStreamOutput::_write(const hpatch_TStreamOutput* stream,const hpatch_StreamPos_t writeToPos,
+                                            const unsigned char* data,const unsigned char* data_end){
+        TOffsetStreamOutput* self=(TOffsetStreamOutput*)stream->streamImport;
+        hpatch_StreamPos_t newSize=writeToPos+(data_end-data);
+        if (newSize>self->outSize) self->outSize=newSize;
+        return self->_base->write(self->_base,self->_offset+writeToPos,data,data_end);
+    }
+
+    
+    void CChecksum::append(const hpatch_TStreamInput* data,hpatch_StreamPos_t begin,hpatch_StreamPos_t end){
+        if (!_handle) return;
+        TAutoMem buf(hpatch_kFileIOBufBetterSize);
+        while (begin<end){
+            size_t len=buf.size();
+            if (len>(end-begin))
+                len=(size_t)(end-begin);
+            checkv(data->read(data,begin,buf.data(),buf.data()+len));
+            append(buf.data(),buf.data()+len);
+            begin+=len;
+        }
     }
     
     void packIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list){

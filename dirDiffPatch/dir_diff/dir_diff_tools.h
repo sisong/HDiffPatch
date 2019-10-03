@@ -29,7 +29,9 @@
 #ifndef hdiff_dir_diff_tools_h
 #define hdiff_dir_diff_tools_h
 #include "dir_diff.h"
+#include <algorithm> //sort
 #include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
+#include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../dir_patch/ref_stream.h"
 #include "../dir_patch/res_handle_limit.h"
@@ -49,6 +51,75 @@ static inline bool isDirName(const std::string& path_utf8){
 
 hpatch_StreamPos_t getFileSize(const std::string& fileName);
 
+inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
+                               const TByte* buf,size_t byteSize){
+    checkv(out_stream->write(out_stream,outPos,buf,buf+byteSize));
+    outPos+=byteSize;
+}
+inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
+                               const std::vector<TByte>& buf){
+    writeStream(out_stream,outPos,buf.data(),buf.size());
+}
+
+struct CFileStreamInput:public hpatch_TFileStreamInput{
+    inline CFileStreamInput(){ hpatch_TFileStreamInput_init(this); }
+    inline void open(const std::string& fileName){
+        assert(this->base.streamImport==0);
+        check(hpatch_TFileStreamInput_open(this,fileName.c_str()),"open file \""+fileName+"\" error!"); }
+    inline CFileStreamInput(const std::string& fileName){
+        hpatch_TFileStreamInput_init(this); open(fileName); }
+    inline void closeFile() { check(hpatch_TFileStreamInput_close(this),"close file error!"); }
+    inline ~CFileStreamInput(){ closeFile(); }
+};
+
+struct CFileStreamOutput:public hpatch_TFileStreamOutput{
+    inline CFileStreamOutput(){ hpatch_TFileStreamOutput_init(this); }
+    inline void open(const std::string& fileName,hpatch_StreamPos_t max_file_length){
+        assert(this->base.streamImport==0);
+        check(hpatch_TFileStreamOutput_open(this,fileName.c_str(),max_file_length),
+              "write file \""+fileName+"\" error!"); }
+    inline CFileStreamOutput(const std::string& fileName,hpatch_StreamPos_t max_file_length){
+        hpatch_TFileStreamOutput_init(this); open(fileName,max_file_length); }
+    inline void closeFile() { check(hpatch_TFileStreamOutput_close(this),"close file error!"); }
+    inline ~CFileStreamOutput(){ closeFile(); }
+};
+    
+
+struct TOffsetStreamOutput:public hpatch_TStreamOutput{
+    explicit TOffsetStreamOutput(const hpatch_TStreamOutput* base,hpatch_StreamPos_t offset);
+    const hpatch_TStreamOutput* _base;
+    hpatch_StreamPos_t          _offset;
+    hpatch_StreamPos_t          outSize;
+    static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,const hpatch_StreamPos_t writeToPos,
+                              const unsigned char* data,const unsigned char* data_end);
+};
+
+struct CChecksum{
+    inline explicit CChecksum(hpatch_TChecksum* checksumPlugin,bool autoBegin=true)
+    :_checksumPlugin(checksumPlugin),_handle(0){
+        if (checksumPlugin){
+            _handle=checksumPlugin->open(checksumPlugin);
+            checkv(_handle!=0);
+            if (autoBegin) appendBegin();
+        } }
+    inline ~CChecksum(){ if (_handle) _checksumPlugin->close(_checksumPlugin,_handle); }
+    inline void append(const unsigned char* data,const unsigned char* data_end){
+        if (_handle) _checksumPlugin->append(_handle,data,data_end); }
+    inline void append(const std::vector<TByte>& data){ append(data.data(),data.data()+data.size()); }
+    inline void append(const hpatch_TStreamInput* data){ append(data,0,data->streamSize); }
+    void append(const hpatch_TStreamInput* data,hpatch_StreamPos_t begin,hpatch_StreamPos_t end);
+    inline void appendBegin(){ if (_handle) _checksumPlugin->begin(_handle); }
+    inline void appendEnd(){
+        if (_handle){
+            checksum.resize(_checksumPlugin->checksumByteSize());
+            _checksumPlugin->end(_handle,checksum.data(),checksum.data()+checksum.size());
+        }
+    }
+    hpatch_TChecksum*       _checksumPlugin;
+    hpatch_checksumHandle   _handle;
+    std::vector<TByte>      checksum;
+};
+    
 struct CFileResHandleLimit{
     CFileResHandleLimit(size_t _limitMaxOpenCount,size_t resCount);
     inline ~CFileResHandleLimit() { close(); }

@@ -491,7 +491,7 @@ struct DirSyncListener:public IDirSyncListener{
     virtual bool isExecuteFile(const std::string& fileName) {
         bool result= 0!=hpatch_getIsExecuteFile(fileName.c_str());
         if (result){
-            std::string info="  get file Execute tag:\""+fileName+"\"\n";
+            std::string info="  got file Execute tag:\""+fileName+"\"\n";
             hpatch_printPath_utf8(info.c_str());
         }
         return result;
@@ -499,7 +499,8 @@ struct DirSyncListener:public IDirSyncListener{
     virtual void syncRefInfo(size_t pathCount,hpatch_StreamPos_t refFileSize,uint32_t kMatchBlockSize){
         if ((_ignoreCount>0)&&_isPrintIgnore)
             printf("\n");
-        printf("sync path count: %" PRIu64 "\n",(hpatch_StreamPos_t)pathCount);
+        printf("dir sync path count: %" PRIu64 "\n",(hpatch_StreamPos_t)pathCount);
+        printf("dir sync files size: %" PRIu64 "\n",(hpatch_StreamPos_t)refFileSize);
         printCreateSyncInfo(refFileSize,kMatchBlockSize,_isPrintIgnore);
     }
 };

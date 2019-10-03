@@ -37,31 +37,6 @@
 #include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
 using namespace hdiff_private;
 
-inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
-                               const TByte* buf,size_t byteSize){
-    checkv(out_stream->write(out_stream,outPos,buf,buf+byteSize));
-    outPos+=byteSize;
-}
-inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
-                              const std::vector<TByte>& buf){
-    writeStream(out_stream,outPos,buf.data(),buf.size());
-}
-
-class _TAutoClose_checksumHandle{
-public:
-    inline _TAutoClose_checksumHandle(hpatch_TChecksum* cp,hpatch_checksumHandle ch)
-    :_cp(cp),_ch(ch){}
-    inline ~_TAutoClose_checksumHandle(){ _cp->close(_cp,_ch); }
-private:
-    hpatch_TChecksum*     _cp;
-    hpatch_checksumHandle _ch;
-};
-
-inline static void _clear(std::vector<TByte>& buf){
-    std::vector<TByte> _temp;
-    _temp.swap(buf);
-}
-
 #define rollHashSize(self) (self->is32Bit_rollHash?sizeof(uint32_t):sizeof(uint64_t))
 
 static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
@@ -74,27 +49,22 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
     }else{
         checkv(self->compressType==0); }
     checkv(0==strcmp(strongChecksumPlugin->checksumType(),self->strongChecksumType));
-    hpatch_checksumHandle checksumInfo=strongChecksumPlugin->open(strongChecksumPlugin);
-    checkv(checksumInfo!=0);
-    _TAutoClose_checksumHandle _autoClose_checksumHandle(strongChecksumPlugin,checksumInfo);
-
+    CChecksum checksumInfo(strongChecksumPlugin);
+    
     std::vector<TByte> head;
     {//head
-        std::vector<TByte>& buf=head;
-        pushCStr(buf,kSyncUpdateTypeVersion);
-        buf.push_back('&');
-        pushCStr(buf,self->strongChecksumType);
-        buf.push_back('&');
-        if (self->compressType)
-            pushCStr(buf,self->compressType);
-        buf.push_back('\0');//c string end tag
-        
-        packUInt(buf,self->kStrongChecksumByteSize);
-        packUInt(buf,self->kMatchBlockSize);
-        packUInt(buf,self->samePairCount);
-        pushUInt(buf,self->is32Bit_rollHash);
-        packUInt(buf,self->newDataSize);
-        packUInt(buf,self->newSyncDataSize);
+        pushTypes(head,kSyncUpdateTypeVersion,compressPlugin,strongChecksumPlugin);
+        packUInt(head,self->kStrongChecksumByteSize);
+        packUInt(head,self->kMatchBlockSize);
+        packUInt(head,self->samePairCount);
+        pushUInt(head,self->is32Bit_rollHash);
+        packUInt(head,self->newDataSize);
+        packUInt(head,self->newSyncDataSize);
+    }
+    std::vector<TByte> privateExternData;//now empty
+    {//privateExternData size
+        //head +
+        packUInt(head,privateExternData.size());
     }
     
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
@@ -135,28 +105,28 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
         packUInt(head,buf.size());
         packUInt(head,cmbuf.size());
         if (cmbuf.size()>0){
-            _clear(buf);
+            swapClear(buf);
             buf.swap(cmbuf);
         }
     }
     {//newSyncInfoSize
-        packUInt(head,(hpatch_StreamPos_t)0); //reservedDataSize , now not used
-        //head +
-        self->newSyncInfoSize = head.size() + sizeof(self->newSyncInfoSize) + buf.size();
+        self->newSyncInfoSize = head.size() + sizeof(self->newSyncInfoSize)
+                                + privateExternData.size() + buf.size();
         self->newSyncInfoSize +=(rollHashSize(self)+kPartStrongChecksumByteSize)
                                 *(hpatch_StreamPos_t)(kBlockCount-self->samePairCount);
         self->newSyncInfoSize += kPartStrongChecksumByteSize;
+        //head +
         pushUInt(head,self->newSyncInfoSize);
-        //end head
+        //end head info
     }
 
-    //out head buf
     #define _outBuf(_buf)    if (!_buf.empty()){ \
-            strongChecksumPlugin->append(checksumInfo,_buf.data(),_buf.data()+_buf.size()); \
+            checksumInfo.append(_buf); \
             writeStream(out_stream,outPos,_buf);  _buf.clear(); }
     hpatch_StreamPos_t outPos=0;
-    strongChecksumPlugin->begin(checksumInfo);
-    _outBuf(head); _clear(head);
+    //out head buf
+    _outBuf(head);              swapClear(head);
+    _outBuf(privateExternData); swapClear(privateExternData);
     _outBuf(buf);
     
     {//rollHashs
@@ -186,12 +156,11 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
                 _outBuf(buf);
         }
     }
-    _outBuf(buf); _clear(buf);
+    _outBuf(buf); swapClear(buf);
     
     {// out infoPartChecksum
-        std::vector<TByte> checksumBuf(self->kStrongChecksumByteSize);
-        strongChecksumPlugin->end(checksumInfo,checksumBuf.data(),checksumBuf.data()+checksumBuf.size());
-        toPartChecksum(self->infoPartChecksum,checksumBuf.data(),checksumBuf.size());
+        checksumInfo.appendEnd();
+        toPartChecksum(self->infoPartChecksum,checksumInfo.checksum.data(),checksumInfo.checksum.size());
         writeStream(out_stream,outPos,self->infoPartChecksum,kPartStrongChecksumByteSize);
         assert(outPos==self->newSyncInfoSize);
     }
@@ -274,10 +243,7 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
     checkv((checksumByteSize==(uint32_t)checksumByteSize)
           &&(checksumByteSize>=kPartStrongChecksumByteSize)
           &&(checksumByteSize%kPartStrongChecksumByteSize==0));
-    std::vector<TByte> checksumBlockData_buf(checksumByteSize);
-    hpatch_checksumHandle checksumBlockData=strongChecksumPlugin->open(strongChecksumPlugin);
-    checkv(checksumBlockData!=0);
-    _TAutoClose_checksumHandle _autoClose_checksumHandle(strongChecksumPlugin,checksumBlockData);
+    CChecksum checksumBlockData(strongChecksumPlugin,false);
     
     hpatch_StreamPos_t curReadPos=0;
     for (uint32_t i=0; i<kBlockCount; ++i,curReadPos+=kMatchBlockSize) {
@@ -303,11 +269,11 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
         else
             rollHash=roll_hash_start((uint64_t*)0,buf.data(),kMatchBlockSize);
         //strong hash
-        strongChecksumPlugin->begin(checksumBlockData);
-        strongChecksumPlugin->append(checksumBlockData,buf.data(),buf.data()+kMatchBlockSize);
-        strongChecksumPlugin->end(checksumBlockData,checksumBlockData_buf.data(),
-                                  checksumBlockData_buf.data()+checksumByteSize);
-        toPartChecksum(checksumBlockData_buf.data(),checksumBlockData_buf.data(),checksumByteSize);
+        checksumBlockData.appendBegin();
+        checksumBlockData.append(buf.data(),buf.data()+kMatchBlockSize);
+        checksumBlockData.appendEnd();
+        toPartChecksum(checksumBlockData.checksum.data(),
+                       checksumBlockData.checksum.data(),checksumByteSize);
         //compress
         size_t compressedSize=0;
         if (compressPlugin){
@@ -328,7 +294,7 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
             else
                 ((uint64_t*)out_newSyncInfo->rollHashs)[i]=rollHash;
             memcpy(out_newSyncInfo->partChecksums+i*(size_t)kPartStrongChecksumByteSize,
-                   checksumBlockData_buf.data(),kPartStrongChecksumByteSize);
+                   checksumBlockData.checksum.data(),kPartStrongChecksumByteSize);
             if (compressPlugin){
                 if (compressedSize>0)
                     out_newSyncInfo->savedSizes[i]=(uint32_t)compressedSize;
@@ -412,38 +378,29 @@ void create_sync_data_by_file(const char* newDataFile,
                               const hdiff_TCompress* compressPlugin,
                               hpatch_TChecksum*      strongChecksumPlugin,
                               uint32_t kMatchBlockSize,size_t threadNum){
-    hpatch_TFileStreamInput  newData;
-    hpatch_TFileStreamOutput out_newSyncInfo;
-    hpatch_TFileStreamOutput out_newSyncData;
-    
-    hpatch_TFileStreamInput_init(&newData);
-    hpatch_TFileStreamOutput_init(&out_newSyncInfo);
-    hpatch_TFileStreamOutput_init(&out_newSyncData);
-    checkv(hpatch_TFileStreamInput_open(&newData,newDataFile));
-    checkv(hpatch_TFileStreamOutput_open(&out_newSyncInfo,out_newSyncInfoFile,
-                                        (hpatch_StreamPos_t)(-1)));
+    CFileStreamInput  newData(newDataFile);
+    CFileStreamOutput out_newSyncInfo(out_newSyncInfoFile,~(hpatch_StreamPos_t)0);
+    CFileStreamOutput out_newSyncData;
     if (out_newSyncDataFile)
-        checkv(hpatch_TFileStreamOutput_open(&out_newSyncData,out_newSyncDataFile,
-                                            (hpatch_StreamPos_t)(-1)));
+        out_newSyncData.open(out_newSyncDataFile,~(hpatch_StreamPos_t)0);
     
     create_sync_data(&newData.base,&out_newSyncInfo.base,
                      (out_newSyncDataFile)?&out_newSyncData.base:0,
                      compressPlugin,strongChecksumPlugin,kMatchBlockSize,threadNum);
-    checkv(hpatch_TFileStreamOutput_close(&out_newSyncData));
-    checkv(hpatch_TFileStreamOutput_close(&out_newSyncInfo));
-    checkv(hpatch_TFileStreamInput_close(&newData));
 }
 
 void create_sync_data_by_file(const char* newDataFile,
                               const char* out_newSyncInfoFile,
                               hpatch_TChecksum*      strongChecksumPlugin,
                               uint32_t kMatchBlockSize,size_t threadNum){
-    create_sync_data_by_file(newDataFile,out_newSyncInfoFile,0,0,strongChecksumPlugin,kMatchBlockSize,threadNum);
+    create_sync_data_by_file(newDataFile,out_newSyncInfoFile,0,0,
+                             strongChecksumPlugin,kMatchBlockSize,threadNum);
 }
 
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_newSyncInfo, //newSyncData same as newData
                       hpatch_TChecksum*      strongChecksumPlugin,
                       uint32_t kMatchBlockSize,size_t threadNum){
-    create_sync_data(newData,out_newSyncInfo,0,0,strongChecksumPlugin,kMatchBlockSize,threadNum);
+    create_sync_data(newData,out_newSyncInfo,0,0,
+                     strongChecksumPlugin,kMatchBlockSize,threadNum);
 }

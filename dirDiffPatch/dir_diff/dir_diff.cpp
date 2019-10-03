@@ -29,10 +29,8 @@
 #include "dir_diff.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include <stdio.h>
-#include <algorithm> //sort
 #include <map>
 #include <set>
-#include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
 #include "../../libHDiffPatch/HDiff/diff.h"
@@ -50,40 +48,6 @@ static std::string  cmp_hash_type    =  "fadler64";
 #define cmp_hash_append(ph,pvalues,n)   { (*(ph))=fast_adler64_append(*(ph),pvalues,n); }
 #define cmp_hash_end(ph)                {}
 #define cmp_hash_combine(ph,rightHash,rightLen) { (*(ph))=fast_adler64_by_combine(*(ph),rightHash,rightLen); }
-
-
-struct CFileStreamInput:public hpatch_TFileStreamInput{
-    inline CFileStreamInput(){ hpatch_TFileStreamInput_init(this); }
-    inline void open(const std::string& fileName){
-        assert(this->base.streamImport==0);
-        check(hpatch_TFileStreamInput_open(this,fileName.c_str()),"open file \""+fileName+"\" error!"); }
-    inline CFileStreamInput(const std::string& fileName){
-        hpatch_TFileStreamInput_init(this); open(fileName); }
-    inline void closeFile() { check(hpatch_TFileStreamInput_close(this),"close file error!"); }
-    inline ~CFileStreamInput(){ closeFile(); }
-};
-
-
-struct TOffsetStreamOutput:public hpatch_TStreamOutput{
-    inline explicit TOffsetStreamOutput(const hpatch_TStreamOutput* base,hpatch_StreamPos_t offset)
-    :_base(base),_offset(offset),outSize(0){
-        assert(offset<=base->streamSize);
-        this->streamImport=this;
-        this->streamSize=base->streamSize-offset;
-        this->read_writed=0;
-        this->write=_write;
-    }
-    const hpatch_TStreamOutput* _base;
-    hpatch_StreamPos_t          _offset;
-    hpatch_StreamPos_t          outSize;
-    static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,const hpatch_StreamPos_t writeToPos,
-                              const unsigned char* data,const unsigned char* data_end){
-        TOffsetStreamOutput* self=(TOffsetStreamOutput*)stream->streamImport;
-        hpatch_StreamPos_t newSize=writeToPos+(data_end-data);
-        if (newSize>self->outSize) self->outSize=newSize;
-        return self->_base->write(self->_base,self->_offset+writeToPos,data,data_end);
-    }
-};
 
 
 static cmp_hash_value_t getStreamHash(const hpatch_TStreamInput* stream,const std::string& errorTag){
@@ -275,39 +239,12 @@ static void getRefList(const std::string& oldRootPath,const std::string& newRoot
     std::sort(out_oldRefList.begin(),out_oldRefList.end());
 }
 
-
-struct CChecksum{
-    inline explicit CChecksum(hpatch_TChecksum* checksumPlugin,bool isCanUseCombine)
-    :_checksumPlugin(checksumPlugin),_handle(0),_isCanUseCombine(isCanUseCombine) {
-        if (checksumPlugin){
-            _handle=checksumPlugin->open(checksumPlugin);
-            checkv(_handle!=0);
-            checksumPlugin->begin(_handle);
-            if (_isCanUseCombine) cmp_hash_begin(&_combineHash);
-        } }
-    inline ~CChecksum(){
-        if (_handle) _checksumPlugin->close(_checksumPlugin,_handle); }
-    inline void append(const unsigned char* data,const unsigned char* data_end){
-        if (_handle) _checksumPlugin->append(_handle,data,data_end); }
-    inline void append(const std::vector<TByte>& data){ append(data.data(),data.data()+data.size()); }
-    inline void append(const hpatch_TStreamInput* data){ append(data,0,data->streamSize); }
-    void append(const hpatch_TStreamInput* data,hpatch_StreamPos_t begin,hpatch_StreamPos_t end){
-        if (!_handle) return;
-        TAutoMem buf(hpatch_kFileIOBufBetterSize);
-        while (begin<end){
-            size_t len=buf.size();
-            if (len>(end-begin))
-                len=(size_t)(end-begin);
-            checkv(data->read(data,begin,buf.data(),buf.data()+len));
-            append(buf.data(),buf.data()+len);
-            begin+=len;
-        }
-    }
+struct CChecksumCombine:public CChecksum{
+    inline explicit CChecksumCombine(hpatch_TChecksum* checksumPlugin,bool isCanUseCombine)
+    :CChecksum(checksumPlugin),_isCanUseCombine(isCanUseCombine) {
+        if (checksumPlugin&&_isCanUseCombine) cmp_hash_begin(&_combineHash); }
     inline void appendEnd(){
-        if (_handle){
-            checksum.resize(_checksumPlugin->checksumByteSize());
-            _checksumPlugin->end(_handle,checksum.data(),checksum.data()+checksum.size());
-        }
+        CChecksum::appendEnd();
         if (_isCanUseCombine){
             cmp_hash_end(&_combineHash);
             assert(sizeof(cmp_hash_value_t)==_checksumPlugin->checksumByteSize());
@@ -322,11 +259,8 @@ struct CChecksum{
     inline void combine(cmp_hash_value_t rightHash,uint64_t rightLen){
         cmp_hash_combine(&_combineHash,rightHash,rightLen);
     }
-    hpatch_TChecksum*       _checksumPlugin;
-    hpatch_checksumHandle   _handle;
     const bool              _isCanUseCombine;
     cmp_hash_value_t        _combineHash;
-    std::vector<TByte>      checksum;
 };
 
 void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
@@ -411,7 +345,7 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     //checksum
     const size_t checksumByteSize=(checksumPlugin==0)?0:checksumPlugin->checksumByteSize();
     //oldRefChecksum
-    CChecksum oldRefChecksum(checksumPlugin,isCachedHashs);
+    CChecksumCombine oldRefChecksum(checksumPlugin,isCachedHashs);
     if (isCachedHashs){
         for (size_t i=0; i<oldRefIList.size(); ++i) {
             size_t fi=oldRefIList[i];
@@ -422,7 +356,7 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     }
     oldRefChecksum.appendEnd();
     //newRefChecksum
-    CChecksum newRefChecksum(checksumPlugin,isCachedHashs);
+    CChecksumCombine newRefChecksum(checksumPlugin,isCachedHashs);
     if (isCachedHashs){
         for (size_t i=0; i<newRefIList.size(); ++i) {
             size_t fi=newRefIList[i];
@@ -433,7 +367,7 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     }
     newRefChecksum.appendEnd();
     //sameFileChecksum
-    CChecksum sameFileChecksum(checksumPlugin,isCachedHashs);
+    CChecksumCombine sameFileChecksum(checksumPlugin,isCachedHashs);
     hpatch_StreamPos_t sameFileSize=0;
     for (size_t i=0; i<dataSamePairList.size(); ++i) {
         size_t newi=dataSamePairList[i].newIndex;
@@ -512,7 +446,7 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         pushBack(out_data,sameFileChecksum.checksum);
     }
     //checksum(dirdiff)
-    CChecksum diffChecksum(checksumPlugin,false);
+    CChecksumCombine diffChecksum(checksumPlugin,false);
     TPlaceholder diffChecksumPlaceholder(out_data.size(),out_data.size()+checksumByteSize);
     if (checksumByteSize>0){
         diffChecksum.append(out_data);
@@ -625,7 +559,7 @@ void save_manifest(IDirPathIgnore* listener,const std::string& inputPath,
         const std::string& pathName=pathList[i];
         pushCStr(out_data, "Path:");
         if ((!isDirName(pathName))&&(checksumPlugin!=0)){//checksum file
-            CChecksum fileChecksum(checksumPlugin,false);
+            CChecksumCombine fileChecksum(checksumPlugin,false);
             CFileStreamInput file(pathName);
             fileChecksum.append(&file.base);
             fileChecksum.appendEnd();
@@ -793,7 +727,7 @@ void checksum_manifest(const TManifestSaved& manifest,hpatch_TChecksum* checksum
         }else{
             check(pathType==kPathType_file,"checksum_manifest file: "+pathName);
             const std::vector<TByte>& datas=manifest.checksumList[i];
-            CChecksum fileChecksum(checksumPlugin,false);
+            CChecksumCombine fileChecksum(checksumPlugin,false);
             CFileStreamInput file(pathName);
             fileChecksum.append(&file.base);
             fileChecksum.appendEnd();
@@ -1123,7 +1057,7 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
         writeToPos+=ofStream.outSize;
     }
     if (checksumByteSize>0){// update dirdiff checksum
-        CChecksum    diffChecksum(checksumPlugin,false);
+        CChecksumCombine    diffChecksum(checksumPlugin,false);
         assert(out_diff->read_writed!=0);
         diffChecksum.append((const hpatch_TStreamInput*)out_diff,0,diffChecksumPlaceholder.pos);
         diffChecksum.append((const hpatch_TStreamInput*)out_diff,diffChecksumPlaceholder.pos_end,writeToPos);
