@@ -33,8 +33,8 @@ using namespace hdiff_private;
 
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const char*               newDataDir,
-                          const char*               out_newSyncInfoFile,
-                          const char*               out_newSyncDataFile,
+                          const char*               outNewSyncInfoFile,
+                          const char*               outNewSyncDataFile,
                           const hdiff_TCompress*    compressPlugin,
                           hpatch_TChecksum*         strongChecksumPlugin,
                           size_t                    kMaxOpenFileNumber,
@@ -45,7 +45,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     getDirAllPathList(newManifest.rootPath,newManifest.pathList,listener);
     sortDirPathList(newManifest.pathList);
     
-    create_dir_sync_data(listener,newManifest,out_newSyncInfoFile,out_newSyncDataFile,
+    create_dir_sync_data(listener,newManifest,outNewSyncInfoFile,outNewSyncDataFile,
                          compressPlugin,strongChecksumPlugin,kMaxOpenFileNumber,kMatchBlockSize,threadNum);
 }
 
@@ -63,17 +63,17 @@ static void getRefList(const std::string& newRootPath,const std::vector<std::str
 
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const TManifest&          newManifest,
-                          const char*               out_newSyncInfoFile,
-                          const char*               out_newSyncDataFile,
+                          const char*               outNewSyncInfoFile,
+                          const char*               outNewSyncDataFile,
                           const hdiff_TCompress*    compressPlugin,
                           hpatch_TChecksum*         strongChecksumPlugin,
                           size_t                    kMaxOpenFileNumber,
                           uint32_t kMatchBlockSize,size_t threadNum){
     const char* kDirSyncUpdateTypeVersion = "DirSyncUpdate19";
     assert(listener!=0);
-    checkv(out_newSyncDataFile!=0);
+    checkv(outNewSyncDataFile!=0);
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
-    kMaxOpenFileNumber-=2; // for out_newSyncInfoFile & out_newSyncDataFile
+    kMaxOpenFileNumber-=2; // for outNewSyncInfoFile & outNewSyncDataFile
     const std::vector<std::string>& newList=newManifest.pathList;
     listener->syncPathList(newList);
     
@@ -173,12 +173,12 @@ void create_dir_sync_data(IDirSyncListener*         listener,
         //end head
     }
     
-    CFileStreamOutput out_newSyncInfo(out_newSyncInfoFile,~(hpatch_StreamPos_t)0);
+    CFileStreamOutput out_newSyncInfo(outNewSyncInfoFile,~(hpatch_StreamPos_t)0);
     hpatch_StreamPos_t writeToPos=0;
     writeStream(&out_newSyncInfo.base,writeToPos,head);     swapClear(head);
     TOffsetStreamOutput ofStream(&out_newSyncInfo.base,writeToPos);
     
-    CFileStreamOutput out_newSyncData(out_newSyncDataFile,~(hpatch_StreamPos_t)0);
+    CFileStreamOutput out_newSyncData(outNewSyncDataFile,~(hpatch_StreamPos_t)0);
     
     create_sync_data(newRefStream.stream,&ofStream,&out_newSyncData.base,
                      compressPlugin,strongChecksumPlugin,kMatchBlockSize,threadNum);

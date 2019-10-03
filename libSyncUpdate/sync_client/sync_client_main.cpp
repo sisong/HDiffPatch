@@ -54,6 +54,58 @@
 
 #include "../../checksum_plugin_demo.h"
 
+static void printUsage(){
+    printf("test sync_patch: [options] oldPath newSyncInfoFile test_newSyncDataFile outNewPath\n"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+           " ( oldPath can be file or directory(folder); )\n"
+#endif
+           "options:\n"
+#if (_IS_USED_MULTITHREAD)
+           "  -p-parallelThreadNumber\n"
+           "    if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
+           "    DEFAULT -p-4; requires more and more memory!\n"
+#endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
+           "  -n-maxOpenFileNumber\n"
+           "      limit Number of open files at same time when oldPath is directory;\n"
+           "      maxOpenFileNumber>=8, DEFAULT -n-24, the best limit value by different\n"
+           "        operating system.\n"
+           "  -g#ignorePath[#ignorePath#...]\n"
+           "      set iGnore path list in newDataPath directory; ignore path list such as:\n"
+           "        #.DS_Store#desktop.ini#*thumbs*.db#.git*#.svn/#cache_*/00*11/*.tmp\n"
+           "      # means separator between names; (if char # in name, need write #: )\n"
+           "      * means can match any chars in name; (if char * in name, need write *: );\n"
+           "      / at the end of name means must match directory;\n"
+#endif
+           "  -f  Force overwrite, ignore write path already exists;\n"
+           "      DEFAULT (no -f) not overwrite and then return error;\n"
+           "      support oldPath outNewPath same path!(patch to tempPath and overwrite old)\n"
+           "      if used -f and outNewPath is exist file:\n"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+           "        if patch output file, will overwrite;\n"
+#else
+           "        will overwrite;\n"
+#endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
+           "        if patch output directory, will always return error;\n"
+#endif
+           "      if used -f and outNewPath is exist directory:\n"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+           "        if patch output file, will always return error;\n"
+#else
+           "        will always return error;\n"
+#endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
+           "        if patch output directory, will overwrite, but not delete\n"
+           "          needless existing files in directory.\n"
+#endif
+           "  -h or -?\n"
+           "      output Help info (this usage).\n"
+           "  -v  output Version info.\n\n"
+           );
+}
+
+
 //ISyncPatchListener::isChecksumNewSyncInfo
 static bool isChecksumNewSyncInfo(ISyncPatchListener* listener){
     return true;
@@ -99,13 +151,8 @@ static hpatch_TChecksum* findChecksumPlugin(ISyncPatchListener* listener,const c
     }
 }
 
-const char* kCmdInfo="test sync_patch: oldPath newSyncInfoFile test_newSyncDataPath out_newPath"
-#if (_IS_USED_MULTITHREAD)
-                     " [-p-threadNum]"
-#endif
-;
 #define _options_check(value) do{ \
-    if (!(value)) { printf("%s\n",kCmdInfo);  return -1; } }while(0)
+    if (!(value)) { printUsage();  return kSyncClient_optionsError; } }while(0)
 
 #define _THREAD_NUMBER_NULL     0
 #define _THREAD_NUMBER_MIN      1
@@ -148,8 +195,8 @@ int main(int argc, const char * argv[]) {
     _options_check(arg_values.size()==4);
     const char* oldPath             =arg_values[0];
     const char* newSyncInfoFile     =arg_values[1];
-    const char* test_newSyncDataPath=arg_values[2];
-    const char* out_newPath         =arg_values[3];
+    const char* test_newSyncDataFile=arg_values[2];
+    const char* outNewPath          =arg_values[3];
 
     double time0=clock_s();
 
@@ -159,14 +206,14 @@ int main(int argc, const char * argv[]) {
         printf("muti-thread parallel: closed\n");
     
     ISyncPatchListener emulation; memset(&emulation,0,sizeof(emulation));
-    if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataPath))
+    if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataFile))
         return kSyncClient_readSyncDataError;
     emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
     emulation.isChecksumNewSyncData=isChecksumNewSyncData;
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     
-    int result=sync_patch_by_file(out_newPath,oldPath,newSyncInfoFile,&emulation,(int)threadNum);
+    int result=sync_patch_by_file(outNewPath,oldPath,newSyncInfoFile,&emulation,(int)threadNum);
     downloadEmulation_close(&emulation);
     double time1=clock_s();
     printf("test sync_patch time: %.3f s\n\n",(time1-time0));

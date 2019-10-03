@@ -35,6 +35,7 @@ extern "C" {
     
 typedef enum TSyncClient_resultType{
     kSyncClient_ok,
+    kSyncClient_optionsError, //cmdline error
     kSyncClient_memError,
     kSyncClient_newSyncInfoTypeError,
     kSyncClient_noStrongChecksumPluginError,
@@ -78,7 +79,7 @@ int  TNewDataSyncInfo_open(TNewDataSyncInfo* self,
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
 
 
-int sync_patch_by_file(const char* out_newPath,const char* oldPath,
+int sync_patch_by_file(const char* outNewPath,const char* oldPath,
                        const char* newSyncInfoFile,ISyncPatchListener* listener,int threadNum=0);
 
 int sync_patch(const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* oldStream,

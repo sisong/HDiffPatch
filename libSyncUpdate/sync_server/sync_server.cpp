@@ -373,27 +373,27 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
 }
 
 void create_sync_data_by_file(const char* newDataFile,
-                              const char* out_newSyncInfoFile,
-                              const char* out_newSyncDataFile,
+                              const char* outNewSyncInfoFile,
+                              const char* outNewSyncDataFile,
                               const hdiff_TCompress* compressPlugin,
                               hpatch_TChecksum*      strongChecksumPlugin,
                               uint32_t kMatchBlockSize,size_t threadNum){
     CFileStreamInput  newData(newDataFile);
-    CFileStreamOutput out_newSyncInfo(out_newSyncInfoFile,~(hpatch_StreamPos_t)0);
+    CFileStreamOutput out_newSyncInfo(outNewSyncInfoFile,~(hpatch_StreamPos_t)0);
     CFileStreamOutput out_newSyncData;
-    if (out_newSyncDataFile)
-        out_newSyncData.open(out_newSyncDataFile,~(hpatch_StreamPos_t)0);
+    if (outNewSyncDataFile)
+        out_newSyncData.open(outNewSyncDataFile,~(hpatch_StreamPos_t)0);
     
     create_sync_data(&newData.base,&out_newSyncInfo.base,
-                     (out_newSyncDataFile)?&out_newSyncData.base:0,
+                     (outNewSyncDataFile)?&out_newSyncData.base:0,
                      compressPlugin,strongChecksumPlugin,kMatchBlockSize,threadNum);
 }
 
 void create_sync_data_by_file(const char* newDataFile,
-                              const char* out_newSyncInfoFile,
+                              const char* outNewSyncInfoFile,
                               hpatch_TChecksum*      strongChecksumPlugin,
                               uint32_t kMatchBlockSize,size_t threadNum){
-    create_sync_data_by_file(newDataFile,out_newSyncInfoFile,0,0,
+    create_sync_data_by_file(newDataFile,outNewSyncInfoFile,0,0,
                              strongChecksumPlugin,kMatchBlockSize,threadNum);
 }
 
