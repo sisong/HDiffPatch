@@ -39,6 +39,12 @@ bool downloadEmulation_open_by_file(ISyncPatchListener* out_emulation,const char
 bool downloadEmulation_open(ISyncPatchListener* out_emulation,const hpatch_TStreamInput* newSyncData);
 bool downloadEmulation_close(ISyncPatchListener* emulation);
 
+bool cacheDownloadEmulation_open_by_file(ISyncPatchListener* out_emulation,const char* newSyncDataPath,
+                                         const char* downloadCacheFile);
+bool cacheDownloadEmulation_open(ISyncPatchListener* out_emulation,const hpatch_TStreamInput* newSyncData,
+                                 const hpatch_TStreamOutput* downloadCacheBuf);
+bool cacheDownloadEmulation_close(ISyncPatchListener* emulation);
+
 #ifdef __cplusplus
 }
 #endif

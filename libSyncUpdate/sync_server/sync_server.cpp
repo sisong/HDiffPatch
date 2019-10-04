@@ -88,6 +88,7 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
             else
                 packUInt(buf,(uint32_t)0);
         }
+        assert(curPair==self->samePairCount);
     }
     
     {//compress buf
@@ -144,6 +145,7 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
             if (buf.size()>=hpatch_kFileIOBufBetterSize)
                 _outBuf(buf);
         }
+        assert(curPair==self->samePairCount);
     }
     {//partStrongChecksums
         uint32_t curPair=0;
@@ -155,6 +157,7 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
             if (buf.size()>=hpatch_kFileIOBufBetterSize)
                 _outBuf(buf);
         }
+        assert(curPair==self->samePairCount);
     }
     _outBuf(buf); swapClear(buf);
     

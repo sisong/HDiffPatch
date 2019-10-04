@@ -281,15 +281,30 @@ int main(int argc, const char * argv[]) {
         printf("muti-thread parallel: closed\n");
     
     ISyncPatchListener emulation; memset(&emulation,0,sizeof(emulation));
-    if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataFile))
-        return kSyncClient_readSyncDataError;
+    bool isUseCacheDownload=true;
+    char downloadCacheTempFile[hpatch_kPathMaxSize+1];
+    if (isUseCacheDownload){
+        if (!hpatch_getTempPathName(outNewPath,downloadCacheTempFile,
+                                    downloadCacheTempFile+sizeof(downloadCacheTempFile)))
+            return kSyncClient_tempCacheFileError;
+        if (!cacheDownloadEmulation_open_by_file(&emulation,test_newSyncDataFile,downloadCacheTempFile))
+            return kSyncClient_readSyncDataError;
+    }else{
+        if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataFile))
+            return kSyncClient_readSyncDataError;
+    }
     emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
     emulation.isChecksumNewSyncData=isChecksumNewSyncData;
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     
     int result=sync_patch_by_file(outNewPath,oldPath,newSyncInfoFile,&emulation,(int)threadNum);
-    downloadEmulation_close(&emulation);
+    if (isUseCacheDownload){
+        cacheDownloadEmulation_close(&emulation);
+        hpatch_removeFile(downloadCacheTempFile);
+    }else{
+        downloadEmulation_close(&emulation);
+    }
     double time1=clock_s();
     printf("test sync_patch time: %.3f s\n\n",(time1-time0));
     return result;

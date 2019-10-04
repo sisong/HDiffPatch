@@ -50,6 +50,7 @@ typedef enum TSyncClient_resultType{
     kSyncClient_newFileCreateError,
     kSyncClient_newFileCloseError,
     kSyncClient_matchNewDataInOldError,
+    kSyncClient_tempCacheFileError,
     kSyncClient_readSyncDataError,
     kSyncClient_decompressError,
     kSyncClient_readOldDataError,
@@ -59,17 +60,24 @@ typedef enum TSyncClient_resultType{
 } TNewDataSyncInfo_resultType;
     
 
-    typedef struct ISyncPatchListener{
-        void*             import;
-        bool              isChecksumNewSyncInfo;
-        bool              isChecksumNewSyncData;
-        hpatch_TDecompress* (*findDecompressPlugin)(ISyncPatchListener* listener,const char* compressType);
-        hpatch_TChecksum*     (*findChecksumPlugin)(ISyncPatchListener* listener,const char* strongChecksumType);
-        void   (*needSyncMsg)(ISyncPatchListener* listener,uint32_t needSyncCount,  // needSyncMsg can nil
-                              hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
-        bool  (*readSyncData)(ISyncPatchListener* listener,unsigned char* out_syncDataBuf,
-                              hpatch_StreamPos_t posInNewSyncData,uint32_t syncDataSize);
-    } ISyncPatchListener;
+typedef hpatch_StreamPos_t TSyncDataType;
+static const TSyncDataType kSyncDataType_needSync=~(TSyncDataType)0; //download, default
+//if samePosInNewSyncData==posInNewSyncData mean: download,can cache this data
+//other value(samePosInNewSyncData<posInNewSyncData) mead: this data can read from cached same data
+typedef struct ISyncPatchListener{
+    void*             import;
+    bool              isCanCacheRepeatSyncData;
+    bool              isChecksumNewSyncInfo;
+    bool              isChecksumNewSyncData;
+    hpatch_TDecompress* (*findDecompressPlugin)(ISyncPatchListener* listener,const char* compressType);
+    hpatch_TChecksum*   (*findChecksumPlugin)  (ISyncPatchListener* listener,const char* strongChecksumType);
+    void (*needSyncMsg)    (ISyncPatchListener* listener,uint32_t needSyncCount,uint32_t needCacheSyncCount);//can nil
+    void (*needSyncDataMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,//needSyncDataMsg can nil
+                            uint32_t syncDataSize,TSyncDataType samePosInNewSyncData);
+    bool (*readSyncData)   (ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
+                            uint32_t syncDataSize,TSyncDataType samePosInNewSyncData,
+                            unsigned char* out_syncDataBuf);
+} ISyncPatchListener;
 
 int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,
                                    const char* newSyncInfoFile,ISyncPatchListener *listener);

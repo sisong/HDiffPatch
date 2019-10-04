@@ -204,30 +204,68 @@ static unsigned int getBetterTableBit(uint32_t blockCount){
     return result;
 }
 
-static void setSameOldPos(uint32_t& needSyncCount,hpatch_StreamPos_t& needSyncSize,
-                          const TNewDataSyncInfo* newSyncInfo,hpatch_StreamPos_t* out_newDataPoss) {
+static void setSameOldPos(hpatch_StreamPos_t* out_newDataPoss,uint32_t& needSyncCount,
+                          uint32_t* out_needCacheSyncCount,hpatch_StreamPos_t& needSyncSize,
+                          const TNewDataSyncInfo* newSyncInfo,hpatch_StreamPos_t oldDataSize){
+    static const hpatch_StreamPos_t kBlockType_repeat =kBlockType_needSync-1;
+
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     needSyncCount=kBlockCount;
+    if (out_needCacheSyncCount) *out_needCacheSyncCount=0;
     needSyncSize=newSyncInfo->newSyncDataSize;
     uint32_t curPair=0;
-    for (uint32_t i=0; i<kBlockCount; ++i){
+    for (uint32_t syncSize,i=0; i<kBlockCount; ++i){
+        syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
         if (out_newDataPoss[i]!=kBlockType_needSync){
             --needSyncCount;
-            needSyncSize-=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+            needSyncSize-=syncSize;
         }
         if ((curPair<newSyncInfo->samePairCount)
             &&(i==newSyncInfo->samePairList[curPair].curIndex)){
-            if (out_newDataPoss[i]==kBlockType_needSync){
-                hpatch_StreamPos_t sameOldPos=out_newDataPoss[newSyncInfo->samePairList[curPair].sameIndex];
-                if (sameOldPos!=kBlockType_needSync){
-                    out_newDataPoss[i]=sameOldPos;
+            assert(out_newDataPoss[i]==kBlockType_needSync);
+            {
+                uint32_t sameIndex=newSyncInfo->samePairList[curPair].sameIndex;
+                hpatch_StreamPos_t syncInfo=out_newDataPoss[sameIndex];
+                if (syncInfo<oldDataSize){
+                    out_newDataPoss[i]=syncInfo; //ok from old
                     --needSyncCount;
-                    needSyncSize-=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+                    needSyncSize-=syncSize;
+                }else{
+                    if (out_needCacheSyncCount){
+                        out_newDataPoss[i]=kBlockType_repeat;
+                        out_newDataPoss[sameIndex]=kBlockType_repeat;
+                        --needSyncCount;
+                        needSyncSize-=syncSize;
+                    } //else download,not cache
                 }
             }
             ++curPair;
         }
     }
+    assert(curPair==newSyncInfo->samePairCount);
+    
+    if (out_needCacheSyncCount==0) return;
+    
+    hpatch_StreamPos_t posInNewSyncData=0;
+    curPair=0;
+    for (uint32_t syncSize,i=0; i<kBlockCount; ++i,posInNewSyncData+=syncSize){
+        syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+        if (out_newDataPoss[i]==kBlockType_repeat){
+            out_newDataPoss[i]=oldDataSize+posInNewSyncData;
+        }
+        if ((curPair<newSyncInfo->samePairCount)
+            &&(i==newSyncInfo->samePairList[curPair].curIndex)){
+            {
+                uint32_t sameIndex=newSyncInfo->samePairList[curPair].sameIndex;
+                out_newDataPoss[i]=out_newDataPoss[sameIndex];
+            }
+            ++curPair;
+        }
+        if (out_newDataPoss[i]==oldDataSize+posInNewSyncData)
+            ++(*out_needCacheSyncCount);
+    }
+    assert(curPair==newSyncInfo->samePairCount);
+    assert(posInNewSyncData==newSyncInfo->newSyncDataSize);
 }
 
 
@@ -337,6 +375,7 @@ static void tm_matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
                 filter.insert(((tm_roll_uint*)newSyncInfo->rollHashs)[i]);
             }
         }
+        assert(curPair==newSyncInfo->samePairCount);
         assert(sortedBlockCount==kBlockCount-newSyncInfo->samePairCount);
     }
     std::sort(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,icomp);
@@ -380,8 +419,9 @@ static void tm_matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
 }
 
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
-                       hpatch_StreamPos_t* out_needSyncSize,const TNewDataSyncInfo* newSyncInfo,
-                       const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin,int threadNum){
+                       uint32_t* out_needCacheSyncCount,hpatch_StreamPos_t* out_needSyncSize,
+                       const TNewDataSyncInfo* newSyncInfo,const hpatch_TStreamInput* oldStream,
+                       hpatch_TChecksum* strongChecksumPlugin,int threadNum){
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     for (uint32_t i=0; i<kBlockCount; ++i)
         out_newDataPoss[i]=kBlockType_needSync;
@@ -395,5 +435,6 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyn
         tm_matchNewDataInOld<uint32_t>(matchDatas,threadNum);
     else
         tm_matchNewDataInOld<uint64_t>(matchDatas,threadNum);
-    setSameOldPos(*out_needSyncCount,*out_needSyncSize,newSyncInfo,out_newDataPoss);
+    setSameOldPos(out_newDataPoss,*out_needSyncCount,out_needCacheSyncCount,*out_needSyncSize,
+                  newSyncInfo,oldStream->streamSize);
 }

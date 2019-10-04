@@ -31,11 +31,14 @@
 #include "sync_client_type.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 
-static const hpatch_StreamPos_t kBlockType_needSync =~(hpatch_StreamPos_t)0;
+static const hpatch_StreamPos_t kBlockType_needSync =~(hpatch_StreamPos_t)0; //download, default
+//value[0--oldSize) meed: this data read from oldStream
+//value[oldSize--oldSize+newSyncDataSize) meed: this data have same data, repeat download
 
 //used stdexcept
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
-                       hpatch_StreamPos_t* out_needSyncSize,const TNewDataSyncInfo* newSyncInfo,
-                       const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin,int threadNum=0);
+                       uint32_t* out_needCacheSyncCount,hpatch_StreamPos_t* out_needSyncSize,
+                       const TNewDataSyncInfo* newSyncInfo,const hpatch_TStreamInput* oldStream,
+                       hpatch_TChecksum* strongChecksumPlugin,int threadNum=0);
 
 #endif // match_in_old_h
