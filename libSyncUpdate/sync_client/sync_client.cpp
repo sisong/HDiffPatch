@@ -440,17 +440,17 @@ static int mt_writeToNew(_TWriteDatas& wd,void* _mt=0,int threadIndex=0) {
 #if (_IS_USED_MULTITHREAD)
         if (_mt) { if (!((TMt_by_queue*)_mt)->getWork(threadIndex,i)) continue; } //next work;
 #endif
-        const hpatch_StreamPos_t curSyncInfo=wd.newDataPoss[i];
-        if (curSyncInfo>=oldDataSize){ //needSync
+        const hpatch_StreamPos_t curSyncPos=wd.newDataPoss[i];
+        if (curSyncPos>=oldDataSize){ //needSync
             TByte* buf=(syncSize<newDataSize)?(dataBuf+kMatchBlockSize):dataBuf;
             if ((wd.out_newStream)||(listener)){
                 {//read data
-                    TSyncDataType syncType=(curSyncInfo==kBlockType_needSync)?kSyncDataType_needSync
-                                                              :(curSyncInfo-oldDataSize);
+                    TSyncDataType cacheIndex=(curSyncPos==kBlockType_needSync)?kSyncDataType_needSync
+                                                              :(curSyncPos-oldDataSize);
 #if (_IS_USED_MULTITHREAD)
                     TMt_by_queue::TAutoInputLocker _autoLocker((TMt_by_queue*)_mt);
 #endif
-                    check(listener->readSyncData(listener,posInNewSyncData,syncSize,syncType,buf),
+                    check(listener->readSyncData(listener,posInNewSyncData,syncSize,cacheIndex,buf),
                           kSyncClient_readSyncDataError);
                 }
                 if (syncSize<newDataSize){
@@ -474,7 +474,7 @@ static int mt_writeToNew(_TWriteDatas& wd,void* _mt=0,int threadIndex=0) {
 #if (_IS_USED_MULTITHREAD)
             TMt_by_queue::TAutoInputLocker _autoLocker((TMt_by_queue*)_mt); //can use other locker
 #endif
-            check(wd.oldStream->read(wd.oldStream,curSyncInfo,dataBuf,dataBuf+newDataSize),
+            check(wd.oldStream->read(wd.oldStream,curSyncPos,dataBuf,dataBuf+newDataSize),
                   kSyncClient_readOldDataError);
         }
         if (wd.out_newStream){//write

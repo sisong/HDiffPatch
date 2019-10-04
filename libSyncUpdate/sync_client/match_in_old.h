@@ -32,8 +32,8 @@
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 
 static const hpatch_StreamPos_t kBlockType_needSync =~(hpatch_StreamPos_t)0; //download, default
-//value[0--oldSize) meed: this data read from oldStream
-//value[oldSize--oldSize+newSyncDataSize) meed: this data have same data, repeat download
+//                                     value[0--oldDataSize) mead: this data read from oldStream
+//   value[oldDataSize--oldDataSize+needCacheSyncCount) mead: this data have same data,can cache
 
 //used stdexcept
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,

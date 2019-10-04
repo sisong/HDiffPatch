@@ -61,9 +61,8 @@ typedef enum TSyncClient_resultType{
     
 
 typedef hpatch_StreamPos_t TSyncDataType;
-static const TSyncDataType kSyncDataType_needSync=~(TSyncDataType)0; //download, default
-//if samePosInNewSyncData==posInNewSyncData mean: download,can cache this data
-//other value(samePosInNewSyncData<posInNewSyncData) mead: this data can read from cached same data
+static const TSyncDataType kSyncDataType_needSync=~(TSyncDataType)0; // download, default
+//                                                          other value mead: cache index
 typedef struct ISyncPatchListener{
     void*             import;
     bool              isCanCacheRepeatSyncData;
@@ -75,8 +74,7 @@ typedef struct ISyncPatchListener{
     void (*needSyncDataMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,//needSyncDataMsg can nil
                             uint32_t syncDataSize,TSyncDataType samePosInNewSyncData);
     bool (*readSyncData)   (ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
-                            uint32_t syncDataSize,TSyncDataType samePosInNewSyncData,
-                            unsigned char* out_syncDataBuf);
+                            uint32_t syncDataSize,TSyncDataType cacheIndex,unsigned char* out_syncDataBuf);
 } ISyncPatchListener;
 
 int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,

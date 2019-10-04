@@ -246,12 +246,11 @@ static void setSameOldPos(hpatch_StreamPos_t* out_newDataPoss,uint32_t& needSync
     
     if (out_needCacheSyncCount==0) return;
     
-    hpatch_StreamPos_t posInNewSyncData=0;
+    hpatch_StreamPos_t cacheIndex=0;
     curPair=0;
-    for (uint32_t syncSize,i=0; i<kBlockCount; ++i,posInNewSyncData+=syncSize){
-        syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+    for (uint32_t i=0; i<kBlockCount; ++i){
         if (out_newDataPoss[i]==kBlockType_repeat){
-            out_newDataPoss[i]=oldDataSize+posInNewSyncData;
+            out_newDataPoss[i]=oldDataSize+cacheIndex;
         }
         if ((curPair<newSyncInfo->samePairCount)
             &&(i==newSyncInfo->samePairList[curPair].curIndex)){
@@ -261,11 +260,12 @@ static void setSameOldPos(hpatch_StreamPos_t* out_newDataPoss,uint32_t& needSync
             }
             ++curPair;
         }
-        if (out_newDataPoss[i]==oldDataSize+posInNewSyncData)
+        if (out_newDataPoss[i]==oldDataSize+cacheIndex){
             ++(*out_needCacheSyncCount);
+            ++cacheIndex;
+        }
     }
     assert(curPair==newSyncInfo->samePairCount);
-    assert(posInNewSyncData==newSyncInfo->newSyncDataSize);
 }
 
 

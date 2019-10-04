@@ -28,7 +28,6 @@
  */
 #include "download_emulation.h"
 #include "../../file_for_patch.h"
-#include <map>
 
 struct TDownloadEmulation {
     const hpatch_TStreamInput* emulation_newSyncData;
@@ -36,8 +35,7 @@ struct TDownloadEmulation {
 };
 
 static bool _readSyncData(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
-                          uint32_t syncDataSize,TSyncDataType samePosInNewSyncData,
-                          unsigned char* out_syncDataBuf){
+                          uint32_t syncDataSize,TSyncDataType cacheIndex,unsigned char* out_syncDataBuf){
 //warning: "Read newSyncData from emulation data;" \
     " In the actual project, these data need downloaded from server."
     TDownloadEmulation* self=(TDownloadEmulation*)listener->import;
@@ -96,49 +94,52 @@ struct TCacheDownloadEmulation {
     uint32_t                    needCacheSyncCount;
     uint32_t                    curCachedSyncCount;
     hpatch_StreamPos_t          curCachedSize;
-    typedef std::map<hpatch_StreamPos_t,hpatch_StreamPos_t> TMap;
-    TMap*                       cachePosMap;
+    hpatch_StreamPos_t*         cachePoss;
 };
 
-static bool _doCache(TCacheDownloadEmulation* self,hpatch_StreamPos_t posInNewSyncData,
-                     uint32_t syncDataSize,const unsigned char* syncDataBuf){
-    assert(self->curCachedSyncCount<self->needCacheSyncCount);
-    try {
-        if (self->cachePosMap==0)
-            self->cachePosMap=new TCacheDownloadEmulation::TMap();
-        //assert(self->cachePosMap->find(posInNewSyncData)==self->cachePosMap->end());
-        self->cachePosMap->insert(TCacheDownloadEmulation::TMap::value_type(posInNewSyncData,self->curCachedSize));
-    } catch (...) { return false; }
+static bool _doCache(TCacheDownloadEmulation* self,uint32_t cacheIndex,
+                     const unsigned char* syncDataBuf,uint32_t syncDataSize){
+    assert(cacheIndex==self->curCachedSyncCount);
+    assert(cacheIndex<self->needCacheSyncCount);
+    if (self->cachePoss==0){
+        self->cachePoss=(hpatch_StreamPos_t*)malloc(self->needCacheSyncCount*sizeof(hpatch_StreamPos_t));
+        for (uint32_t i=0; i<self->needCacheSyncCount; ++i)
+            self->cachePoss[i]=kSyncDataType_needSync;
+    }
+    assert(self->cachePoss[cacheIndex]==kSyncDataType_needSync);
     if (!self->downloadCacheBuf->write(self->downloadCacheBuf,self->curCachedSize,
                                        syncDataBuf,syncDataBuf+syncDataSize)) return false;
+    self->cachePoss[cacheIndex]=self->curCachedSize;
     self->curCachedSize+=syncDataSize;
     ++self->curCachedSyncCount;
     return true;
 }
 
 
-static bool _readCache(const TCacheDownloadEmulation* self,hpatch_StreamPos_t samePosInNewSyncData,
-                     uint32_t syncDataSize,unsigned char* out_syncDataBuf){
-    TCacheDownloadEmulation::TMap::const_iterator it=self->cachePosMap->find(samePosInNewSyncData);
-    if (it==self->cachePosMap->end()) return false;
-    hpatch_StreamPos_t savedPos=it->second;
-    if (!self->downloadCacheBuf->read_writed(self->downloadCacheBuf,savedPos,
+static bool _readCache(const TCacheDownloadEmulation* self,uint32_t cacheIndex,
+                       unsigned char* out_syncDataBuf,uint32_t syncDataSize){
+    assert(cacheIndex<self->needCacheSyncCount);
+    assert(self->cachePoss[cacheIndex]!=kSyncDataType_needSync);
+    if (!self->downloadCacheBuf->read_writed(self->downloadCacheBuf,self->cachePoss[cacheIndex],
                out_syncDataBuf,out_syncDataBuf+syncDataSize)) return false;
     return true;
 }
 
 static bool _cache_readSyncData(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
-                                uint32_t syncDataSize,TSyncDataType samePosInNewSyncData,
-                                unsigned char* out_syncDataBuf){
+                                uint32_t syncDataSize,TSyncDataType _cacheIndex,unsigned char* out_syncDataBuf){
     TCacheDownloadEmulation* self=(TCacheDownloadEmulation*)listener->import;
-    if (samePosInNewSyncData<posInNewSyncData) //can read from cache
-        return _readCache(self,samePosInNewSyncData,syncDataSize,out_syncDataBuf);
+    bool isNeedCache=(_cacheIndex!=kSyncDataType_needSync);
+    uint32_t cacheIndex=(uint32_t)_cacheIndex;
+    bool isCached=isNeedCache&&(self->cachePoss)
+                  &&(self->cachePoss[cacheIndex]!=kSyncDataType_needSync);
+    if (isCached)//read from cache
+        return _readCache(self,cacheIndex,out_syncDataBuf,syncDataSize);
     //download
-    bool result=hpatch_FALSE!=self->emulation_newSyncData->read(self->emulation_newSyncData,posInNewSyncData,
-                                                                out_syncDataBuf,out_syncDataBuf+syncDataSize);
-    if (result&&(samePosInNewSyncData==posInNewSyncData))//cache
-        result=_doCache(self,posInNewSyncData,syncDataSize,out_syncDataBuf);
-    return result;
+    if (!self->emulation_newSyncData->read(self->emulation_newSyncData,posInNewSyncData,out_syncDataBuf,
+                                           out_syncDataBuf+syncDataSize)) return false;
+    if (!isNeedCache) return true;
+    //cache
+    return _doCache(self,cacheIndex,out_syncDataBuf,syncDataSize);
 }
 
 static void _cache_needSyncMsg(ISyncPatchListener* listener,uint32_t needSyncCount,uint32_t needCacheSyncCount){
@@ -194,7 +195,7 @@ bool cacheDownloadEmulation_close(ISyncPatchListener* emulation){
     TCacheDownloadEmulation* self=(TCacheDownloadEmulation*)emulation->import;
     memset(emulation,0,sizeof(*emulation));
     if (self==0) return true;
-    if (self->cachePosMap) delete self->cachePosMap;
+    if (self->cachePoss) free(self->cachePoss);
     bool result=(0!=hpatch_TFileStreamInput_close(&self->newSyncFile));
     if (!hpatch_TFileStreamOutput_close(&self->downloadCacheFile))
         result=false;
