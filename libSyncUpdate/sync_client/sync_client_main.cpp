@@ -115,6 +115,10 @@ static void printUsage(){
            );
 }
 
+static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
+                           const char *test_newSyncDataFile,const char* outNewPath,
+                           bool isChecksumNewSyncInfo,bool isChecksumNewSyncData,size_t threadNum);
+
 
 //ISyncPatchListener::findDecompressPlugin
 static hpatch_TDecompress* findDecompressPlugin(ISyncPatchListener* listener,const char* compressType){
@@ -189,6 +193,7 @@ static hpatch_BOOL _toChecksumSet(const char* psets,bool* isChecksumNewSyncInfo,
 #define _THREAD_NUMBER_MIN      1
 #define _THREAD_NUMBER_DEFUALT  4
 #define _THREAD_NUMBER_MAX      (1<<8)
+
 
 int main(int argc, const char * argv[]) {
     size_t      threadNum = _THREAD_NUMBER_NULL;
@@ -273,6 +278,8 @@ int main(int argc, const char * argv[]) {
     const char* test_newSyncDataFile=arg_values[2];
     const char* outNewPath          =arg_values[3];
 
+    
+    
     double time0=clock_s();
 
     if (threadNum>1)
@@ -280,13 +287,23 @@ int main(int argc, const char * argv[]) {
     else
         printf("muti-thread parallel: closed\n");
     
+    int result=test_sync_patch(oldPath,newSyncInfoFile,test_newSyncDataFile,outNewPath,
+                               isChecksumNewSyncInfo,isChecksumNewSyncData,threadNum);
+    double time1=clock_s();
+    printf("test sync_patch time: %.3f s\n\n",(time1-time0));
+    return result;
+}
+
+static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
+                           const char *test_newSyncDataFile,const char* outNewFile,
+                           bool isChecksumNewSyncInfo,bool isChecksumNewSyncData,size_t threadNum){
     ISyncPatchListener emulation; memset(&emulation,0,sizeof(emulation));
     bool isUseCacheDownload=true;
     char downloadCacheTempFile[hpatch_kPathMaxSize+1];
     if (isUseCacheDownload){
-        if (!hpatch_getTempPathName(outNewPath,downloadCacheTempFile,
+        if (!hpatch_getTempPathName(outNewFile,downloadCacheTempFile,
                                     downloadCacheTempFile+sizeof(downloadCacheTempFile)))
-            return kSyncClient_tempCacheFileError;
+            return kSyncClient_tempFileError;
         if (!cacheDownloadEmulation_open_by_file(&emulation,test_newSyncDataFile,downloadCacheTempFile))
             return kSyncClient_readSyncDataError;
     }else{
@@ -298,14 +315,12 @@ int main(int argc, const char * argv[]) {
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     
-    int result=sync_patch_by_file(outNewPath,oldPath,newSyncInfoFile,&emulation,(int)threadNum);
+    int result = sync_patch_by_file(outNewFile,oldPath,newSyncInfoFile,&emulation,(int)threadNum);
     if (isUseCacheDownload){
         cacheDownloadEmulation_close(&emulation);
         hpatch_removeFile(downloadCacheTempFile);
     }else{
         downloadEmulation_close(&emulation);
     }
-    double time1=clock_s();
-    printf("test sync_patch time: %.3f s\n\n",(time1-time0));
     return result;
 }

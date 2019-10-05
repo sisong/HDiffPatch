@@ -37,6 +37,7 @@ typedef enum TSyncClient_resultType{
     kSyncClient_ok,
     kSyncClient_optionsError, //cmdline error
     kSyncClient_memError,
+    kSyncClient_tempFileError,
     kSyncClient_newSyncInfoTypeError,
     kSyncClient_noStrongChecksumPluginError,
     kSyncClient_strongChecksumByteSizeError,
@@ -50,7 +51,6 @@ typedef enum TSyncClient_resultType{
     kSyncClient_newFileCreateError,
     kSyncClient_newFileCloseError,
     kSyncClient_matchNewDataInOldError,
-    kSyncClient_tempCacheFileError,
     kSyncClient_readSyncDataError,
     kSyncClient_decompressError,
     kSyncClient_readOldDataError,
@@ -59,7 +59,14 @@ typedef enum TSyncClient_resultType{
     kSyncClient_checksumSyncDataError,
 } TNewDataSyncInfo_resultType;
     
-
+    
+    typedef struct TNeedSyncInfo{
+        uint32_t needSyncCount;
+        uint32_t needCacheSyncCount;
+        hpatch_StreamPos_t needSyncSize;
+        hpatch_StreamPos_t needCacheSyncSize;
+    } TNeedSyncInfo;
+    
 typedef hpatch_StreamPos_t TSyncDataType;
 static const TSyncDataType kSyncDataType_needSync=~(TSyncDataType)0; // download, default
 //                                                          other value mead: cache index
@@ -70,8 +77,8 @@ typedef struct ISyncPatchListener{
     bool              isChecksumNewSyncData;
     hpatch_TDecompress* (*findDecompressPlugin)(ISyncPatchListener* listener,const char* compressType);
     hpatch_TChecksum*   (*findChecksumPlugin)  (ISyncPatchListener* listener,const char* strongChecksumType);
-    void (*needSyncMsg)    (ISyncPatchListener* listener,uint32_t needSyncCount,uint32_t needCacheSyncCount);//can nil
-    void (*needSyncDataMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,//needSyncDataMsg can nil
+    void (*needSyncMsg)    (ISyncPatchListener* listener,const TNeedSyncInfo* needSyncInfo);//can null
+    void (*needSyncDataMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,//needSyncDataMsg can null
                             uint32_t syncDataSize,TSyncDataType samePosInNewSyncData);
     bool (*readSyncData)   (ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
                             uint32_t syncDataSize,TSyncDataType cacheIndex,unsigned char* out_syncDataBuf);

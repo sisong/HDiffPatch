@@ -58,9 +58,7 @@
 		D699A2B1233B3F78003CB3DC /* match_in_new.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_in_new.cpp; sourceTree = "<group>"; };
 		D699A2B2233B3F78003CB3DC /* match_in_new.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = match_in_new.h; sourceTree = "<group>"; };
 		D699A2B8233ECDC9003CB3DC /* parallel_channel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_channel.cpp; sourceTree = "<group>"; };
-		D699A2B9233ECDC9003CB3DC /* parallel_import.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_import.h; sourceTree = "<group>"; };
 		D699A2BA233ECDC9003CB3DC /* parallel_import.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_import.cpp; sourceTree = "<group>"; };
-		D699A2BB233ECDC9003CB3DC /* parallel_channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_channel.h; sourceTree = "<group>"; };
 		D699A2BF233F509D003CB3DC /* LzmaEnc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzmaEnc.c; path = ../../../lzma/C/LzmaEnc.c; sourceTree = "<group>"; };
 		D699A575233F509D003CB3DC /* LzFind.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzFind.c; path = ../../../lzma/C/LzFind.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -149,9 +147,7 @@
 			isa = PBXGroup;
 			children = (
 				D699A2B8233ECDC9003CB3DC /* parallel_channel.cpp */,
-				D699A2B9233ECDC9003CB3DC /* parallel_import.h */,
 				D699A2BA233ECDC9003CB3DC /* parallel_import.cpp */,
-				D699A2BB233ECDC9003CB3DC /* parallel_channel.h */,
 			);
 			name = libParallel;
 			path = ../../libParallel;

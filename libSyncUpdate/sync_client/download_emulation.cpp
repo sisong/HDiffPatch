@@ -36,11 +36,12 @@ struct TDownloadEmulation {
 
 static bool _readSyncData(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
                           uint32_t syncDataSize,TSyncDataType cacheIndex,unsigned char* out_syncDataBuf){
-//warning: "Read newSyncData from emulation data;" \
-    " In the actual project, these data need downloaded from server."
+//warning: Read newSyncData from emulation data;
+//         In the actual project, these data need downloaded from server.
     TDownloadEmulation* self=(TDownloadEmulation*)listener->import;
-    return hpatch_FALSE!=self->emulation_newSyncData->read(self->emulation_newSyncData,posInNewSyncData,
-                                                           out_syncDataBuf,out_syncDataBuf+syncDataSize);
+    if (!self->emulation_newSyncData->read(self->emulation_newSyncData,posInNewSyncData,out_syncDataBuf,
+                                           out_syncDataBuf+syncDataSize)) return false;
+    return true;
 }
 
 static void downloadEmulation_open_by(TDownloadEmulation* self,ISyncPatchListener* out_emulation,
@@ -93,14 +94,15 @@ struct TCacheDownloadEmulation {
     hpatch_TFileStreamOutput    downloadCacheFile;
     uint32_t                    needCacheSyncCount;
     uint32_t                    curCachedSyncCount;
+    hpatch_StreamPos_t          needCachedSize;
     hpatch_StreamPos_t          curCachedSize;
     hpatch_StreamPos_t*         cachePoss;
 };
 
 static bool _doCache(TCacheDownloadEmulation* self,uint32_t cacheIndex,
                      const unsigned char* syncDataBuf,uint32_t syncDataSize){
-    assert(cacheIndex==self->curCachedSyncCount);
     assert(cacheIndex<self->needCacheSyncCount);
+    assert(self->curCachedSize+syncDataSize<=self->needCachedSize);
     if (self->cachePoss==0){
         self->cachePoss=(hpatch_StreamPos_t*)malloc(self->needCacheSyncCount*sizeof(hpatch_StreamPos_t));
         for (uint32_t i=0; i<self->needCacheSyncCount; ++i)
@@ -130,11 +132,14 @@ static bool _cache_readSyncData(ISyncPatchListener* listener,hpatch_StreamPos_t 
     TCacheDownloadEmulation* self=(TCacheDownloadEmulation*)listener->import;
     bool isNeedCache=(_cacheIndex!=kSyncDataType_needSync);
     uint32_t cacheIndex=(uint32_t)_cacheIndex;
+    if (isNeedCache) assert(cacheIndex==_cacheIndex);
     bool isCached=isNeedCache&&(self->cachePoss)
                   &&(self->cachePoss[cacheIndex]!=kSyncDataType_needSync);
     if (isCached)//read from cache
         return _readCache(self,cacheIndex,out_syncDataBuf,syncDataSize);
     //download
+    //  warning: Read newSyncData from emulation data;
+    //           In the actual project, these data need downloaded from server.
     if (!self->emulation_newSyncData->read(self->emulation_newSyncData,posInNewSyncData,out_syncDataBuf,
                                            out_syncDataBuf+syncDataSize)) return false;
     if (!isNeedCache) return true;
@@ -142,9 +147,10 @@ static bool _cache_readSyncData(ISyncPatchListener* listener,hpatch_StreamPos_t 
     return _doCache(self,cacheIndex,out_syncDataBuf,syncDataSize);
 }
 
-static void _cache_needSyncMsg(ISyncPatchListener* listener,uint32_t needSyncCount,uint32_t needCacheSyncCount){
+static void _cache_needSyncMsg(ISyncPatchListener* listener,const TNeedSyncInfo* needSyncInfo){
     TCacheDownloadEmulation* self=(TCacheDownloadEmulation*)listener->import;
-    self->needCacheSyncCount=needCacheSyncCount;
+    self->needCacheSyncCount=needSyncInfo->needCacheSyncCount;
+    self->needCachedSize=needSyncInfo->needCacheSyncSize;
 }
 
 static void cacheDownloadEmulation_open_by(TCacheDownloadEmulation* self,ISyncPatchListener* out_emulation,

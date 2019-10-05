@@ -1,6 +1,6 @@
-//  download_emulation.h
+//  dir_sync_client.h
 //  sync_client
-//  Created by housisong on 2019-09-23.
+//  Created by housisong on 2019-10-05.
 /*
  The MIT License (MIT)
  Copyright (c) 2019-2019 HouSisong
@@ -26,28 +26,17 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef download_emulation_h
-#define download_emulation_h
-#include "sync_client.h"
+#ifndef dir_sync_client_h
+#define dir_sync_client_h
+#include "sync_client_type.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-//downloadEmulation for patch test:
-//  when need to download part of newSyncData, emulation read it from local data;
-bool downloadEmulation_open_by_file(ISyncPatchListener* out_emulation,const char* newSyncDataPath);
-bool downloadEmulation_open(ISyncPatchListener* out_emulation,const hpatch_TStreamInput* newSyncData);
-bool downloadEmulation_close(ISyncPatchListener* emulation);
 
-//cacheDownloadEmulation is a download cache demo, not download the same data block
-bool cacheDownloadEmulation_open_by_file(ISyncPatchListener* out_emulation,const char* newSyncDataPath,
-                                         const char* downloadCacheFile);
-bool cacheDownloadEmulation_open(ISyncPatchListener* out_emulation,const hpatch_TStreamInput* newSyncData,
-                                 const hpatch_TStreamOutput* downloadCacheBuf);//downloadCacheBuf need 
-bool cacheDownloadEmulation_close(ISyncPatchListener* emulation);
 
 #ifdef __cplusplus
 }
 #endif
         
-#endif // download_emulation_h
+#endif // dir_sync_client_h

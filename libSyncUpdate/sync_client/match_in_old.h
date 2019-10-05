@@ -36,9 +36,7 @@ static const hpatch_StreamPos_t kBlockType_needSync =~(hpatch_StreamPos_t)0; //d
 //   value[oldDataSize--oldDataSize+needCacheSyncCount) mead: this data have same data,can cache
 
 //used stdexcept
-void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,uint32_t* out_needSyncCount,
-                       uint32_t* out_needCacheSyncCount,hpatch_StreamPos_t* out_needSyncSize,
-                       const TNewDataSyncInfo* newSyncInfo,const hpatch_TStreamInput* oldStream,
-                       hpatch_TChecksum* strongChecksumPlugin,int threadNum=0);
+void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,const TNewDataSyncInfo* newSyncInfo,
+                       const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin,int threadNum=0);
 
 #endif // match_in_old_h

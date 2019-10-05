@@ -1,6 +1,6 @@
-//  match_in_new.h
-//  sync_server
-//  Created by housisong on 2019-09-25.
+//  dir_sync_client.cpp
+//  sync_client
+//  Created by housisong on 2019-10-05.
 /*
  The MIT License (MIT)
  Copyright (c) 2019-2019 HouSisong
@@ -26,11 +26,4 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef match_in_new_h
-#define match_in_new_h
-#include "../sync_client/sync_client_type.h"
-
-//get samePairList\samePairCount
-void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo);
-
-#endif // match_in_new_h
+#include "dir_sync_client.h"
