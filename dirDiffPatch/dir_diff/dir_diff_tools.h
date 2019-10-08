@@ -32,13 +32,18 @@
 #include <algorithm> //sort
 #include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
+#include "../../libHDiffPatch/HPatch/checksum_plugin.h"
+#include "../../libHDiffPatch/HDiff/diff_types.h"
+#include "../../file_for_patch.h"
+
+#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
+#define checkv(value)     check(value,"check "#value" error!")
+
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../dir_patch/ref_stream.h"
 #include "../dir_patch/res_handle_limit.h"
 #include "file_for_dirDiff.h"
-
-#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
-#define checkv(value)     check(value,"check "#value" error!")
+#endif
 
 namespace hdiff_private{
 
@@ -83,16 +88,6 @@ struct CFileStreamOutput:public hpatch_TFileStreamOutput{
     inline void closeFile() { check(hpatch_TFileStreamOutput_close(this),"close file error!"); }
     inline ~CFileStreamOutput(){ closeFile(); }
 };
-    
-
-struct TOffsetStreamOutput:public hpatch_TStreamOutput{
-    explicit TOffsetStreamOutput(const hpatch_TStreamOutput* base,hpatch_StreamPos_t offset);
-    const hpatch_TStreamOutput* _base;
-    hpatch_StreamPos_t          _offset;
-    hpatch_StreamPos_t          outSize;
-    static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,const hpatch_StreamPos_t writeToPos,
-                              const unsigned char* data,const unsigned char* data_end);
-};
 
 struct CChecksum{
     inline explicit CChecksum(hpatch_TChecksum* checksumPlugin,bool autoBegin=true)
@@ -120,6 +115,20 @@ struct CChecksum{
     std::vector<TByte>      checksum;
 };
     
+void pushTypes(std::vector<TByte>& out_data,const char* kTypeAndVersion,
+               const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin);
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
+
+struct TOffsetStreamOutput:public hpatch_TStreamOutput{
+    explicit TOffsetStreamOutput(const hpatch_TStreamOutput* base,hpatch_StreamPos_t offset);
+    const hpatch_TStreamOutput* _base;
+    hpatch_StreamPos_t          _offset;
+    hpatch_StreamPos_t          outSize;
+    static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,const hpatch_StreamPos_t writeToPos,
+                              const unsigned char* data,const unsigned char* data_end);
+};
+    
 struct CFileResHandleLimit{
     CFileResHandleLimit(size_t _limitMaxOpenCount,size_t resCount);
     inline ~CFileResHandleLimit() { close(); }
@@ -144,15 +153,12 @@ struct CRefStream:public hpatch_TRefStream{
     void open(const hpatch_TStreamInput** refList,size_t refCount);
     inline ~CRefStream(){ hpatch_TRefStream_close(this); }
 };
-    
-void pushTypes(std::vector<TByte>& out_data,const char* kTypeAndVersion,
-               const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin);
 
 size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
                     const std::vector<std::string>& nameList);
 void packList(std::vector<TByte>& out_data,const std::vector<hpatch_StreamPos_t>& list);
 void packIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list);
-
-}
 #endif
+}
+
 #endif //hdiff_dir_diff_tools_h
