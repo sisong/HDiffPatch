@@ -388,8 +388,10 @@ int sync_server_cmd_line(int argc, const char * argv[]){
         outNewSyncDataFile=arg_values[2];
         if (strlen(outNewSyncDataFile)==0) outNewSyncDataFile=0;
     }
-    if (compressPlugin)
+    if (compressPlugin){
+        compressPlugin->setParallelThreadNumber(compressPlugin,1); //not need compressPlugin parallel
         _options_check(outNewSyncDataFile!=0,"used compress need outNewSyncDataFile");
+    }
 
     if (!isForceOverwrite){
         hpatch_TPathType   outFileType;

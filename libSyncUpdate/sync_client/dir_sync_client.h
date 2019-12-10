@@ -28,15 +28,23 @@
  */
 #ifndef dir_sync_client_h
 #define dir_sync_client_h
-#include "sync_client_type.h"
+#include "sync_client.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #ifdef __cplusplus
 extern "C" {
 #endif
+    
+struct TDirSyncPatcher{
+        
+} TDirSyncPatcher;
 
+    
+int dir_sync_patch(const char* outNewPath,const char* oldPath,
+                   const char* newSyncInfoFile,ISyncPatchListener* listener,int threadNum=0);
 
 
 #ifdef __cplusplus
 }
 #endif
-        
+#endif
 #endif // dir_sync_client_h
