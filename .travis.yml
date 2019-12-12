@@ -24,8 +24,6 @@ script:
 - make clean
 - make
 - make clean
-- cd ../lzma
-- git checkout -b pthread origin/pthread
 - cd ../HDiffPatch
 - git clone https://github.com/sisong/libmd5.git ../libmd5
 - make MT=1 MD5=1
