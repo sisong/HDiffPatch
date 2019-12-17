@@ -585,7 +585,8 @@ hpatch_BOOL TDirPatcher_openOldRefAsStream(TDirPatcher* self,size_t kMaxOpenFile
         check(sumFSize==self->dirDiffInfo.hdiffInfo.oldDataSize);
         //open
         check(hpatch_TResHandleLimit_open(&self->_resLimit,kMaxOpenFileNumber,self->_resList,refCount));
-        check(hpatch_TRefStream_open(&self->_oldRefStream,self->_resLimit.streamList,self->_resLimit.streamCount));
+        check(hpatch_TRefStream_open(&self->_oldRefStream,self->_resLimit.streamList,
+                                     self->_resLimit.streamCount,1));
         *out_oldRefStream=self->_oldRefStream.stream;
     }
 clear:

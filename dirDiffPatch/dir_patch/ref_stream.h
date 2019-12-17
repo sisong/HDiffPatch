@@ -43,13 +43,15 @@ typedef struct hpatch_TRefStream{
     hpatch_StreamPos_t*         _rangeEndList;
     size_t                      _rangeCount;//==refCount
     size_t                      _curRangeIndex;
+    size_t                      kAlignSize;
     //mem
     unsigned char*              _buf;
 } hpatch_TRefStream;
 
 hpatch_inline static
 void        hpatch_TRefStream_init(hpatch_TRefStream* self) { memset(self,0,sizeof(*self)); }
-hpatch_BOOL hpatch_TRefStream_open(hpatch_TRefStream* self,const hpatch_TStreamInput** refList,size_t refCount);
+hpatch_BOOL hpatch_TRefStream_open(hpatch_TRefStream* self,const hpatch_TStreamInput** refList,
+                                   size_t refCount,size_t kAlignSize);
 void        hpatch_TRefStream_close(hpatch_TRefStream* self);
 
 #ifdef __cplusplus

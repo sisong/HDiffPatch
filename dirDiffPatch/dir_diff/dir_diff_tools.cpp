@@ -153,8 +153,8 @@ namespace hdiff_private{
         return self->_base->write(self->_base,self->_offset+writeToPos,data,data_end);
     }
 
-    void CRefStream::open(const hpatch_TStreamInput** refList,size_t refCount){
-        check(hpatch_TRefStream_open(this,refList,refCount),"TRefStream_open() refList error!");
+    void CRefStream::open(const hpatch_TStreamInput** refList,size_t refCount,size_t kAlignSize){
+        check(hpatch_TRefStream_open(this,refList,refCount,kAlignSize),"TRefStream_open() refList error!");
     }
     void packIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list){
         size_t backValue=~(size_t)0;

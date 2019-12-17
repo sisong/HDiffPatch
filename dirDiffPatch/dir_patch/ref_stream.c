@@ -41,6 +41,13 @@ static hpatch_BOOL _TRefStream_read_do(hpatch_TRefStream* self,hpatch_StreamPos_
                                unsigned char* out_data,unsigned char* out_data_end,size_t curRangeIndex){
     hpatch_StreamPos_t readPos=readFromPos - self->_rangeEndList[curRangeIndex-1];
     const hpatch_TStreamInput* ref=self->_refList[curRangeIndex];
+    unsigned char* max_end=out_data+ref->streamSize-readPos;
+    if (out_data_end<=max_end){
+        //continue;
+    }else{
+        memset(max_end,0,out_data_end-max_end);//for align
+        out_data_end=max_end;
+    }
     return ref->read(ref,readPos,out_data,out_data_end);
 }
 
@@ -87,13 +94,15 @@ clear:
     return result;
 }
 
-hpatch_BOOL _createRange(hpatch_TRefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
+hpatch_BOOL _createRange(hpatch_TRefStream* self,const hpatch_TStreamInput** refList,
+                         size_t refCount,size_t kAlignSize){
     hpatch_BOOL result=hpatch_TRUE;
     size_t   i;
     size_t   rangIndex=0;
     hpatch_StreamPos_t curSumSize=0;
     assert(self->_buf==0);
     assert(self->_refList==0);
+    assert(kAlignSize>0);
     
     self->_refList=refList;
     self->_rangeCount=refCount;
@@ -103,6 +112,7 @@ hpatch_BOOL _createRange(hpatch_TRefStream* self,const hpatch_TStreamInput** ref
     self->_rangeEndList[-1]=0;
     for (i=0; i<refCount; ++i) {
         hpatch_StreamPos_t rangeSize=refList[i]->streamSize;
+        rangeSize=(rangeSize+kAlignSize-1)/kAlignSize*kAlignSize;//align upper
         curSumSize+=rangeSize;
         self->_rangeEndList[rangIndex]=curSumSize;
         ++rangIndex;
@@ -113,11 +123,13 @@ clear:
     return result;
 }
 
-hpatch_BOOL hpatch_TRefStream_open(hpatch_TRefStream* self,const hpatch_TStreamInput** refList,size_t refCount){
+hpatch_BOOL hpatch_TRefStream_open(hpatch_TRefStream* self,const hpatch_TStreamInput** refList,
+                                   size_t refCount,size_t kAlignSize){ //kAlignSize default 1
     hpatch_BOOL result=hpatch_TRUE;
     check(self->stream==0);
-    check(_createRange(self,refList,refCount));
+    check(_createRange(self,refList,refCount,kAlignSize));
     
+    self->kAlignSize=kAlignSize;
     self->_stream.streamImport=self;
     self->_stream.streamSize=self->_rangeEndList[self->_rangeCount-1]; //safe
     self->_stream.read=_refStream_read;
