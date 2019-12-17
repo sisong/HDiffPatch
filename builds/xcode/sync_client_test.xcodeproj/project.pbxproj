@@ -56,7 +56,6 @@
 		D699A29423372152003CB3DC /* match_in_old.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_in_old.cpp; sourceTree = "<group>"; };
 		D699A2A92338AFD2003CB3DC /* download_emulation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = download_emulation.cpp; sourceTree = "<group>"; };
 		D699A2AA2338AFD2003CB3DC /* download_emulation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = download_emulation.h; sourceTree = "<group>"; };
-		D699A2AC2338EABF003CB3DC /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,7 +119,6 @@
 		D658930F2331D35D003BB2F4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D699A2AC2338EABF003CB3DC /* libbz2.tbd */,
 				D658934A233276B6003BB2F4 /* libz.tbd */,
 				D6589348233276AD003BB2F4 /* liblzma.a */,
 			);

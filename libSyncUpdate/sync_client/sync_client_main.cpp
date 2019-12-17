@@ -43,6 +43,7 @@
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_zlib
 #   define _CompressPlugin_lzma
+//#   define _CompressPlugin_bz2
 #endif
 
 #include "../../decompress_plugin_demo.h"
@@ -127,6 +128,10 @@ static hpatch_TDecompress* findDecompressPlugin(ISyncPatchListener* listener,con
 #ifdef  _CompressPlugin_zlib
     if ((!decompressPlugin)&&zlibDecompressPlugin.is_can_open(compressType))
         decompressPlugin=&zlibDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_bz2
+    if ((!decompressPlugin)&&bz2DecompressPlugin.is_can_open(compressType))
+        decompressPlugin=&bz2DecompressPlugin;
 #endif
 #ifdef  _CompressPlugin_lzma
     if ((!decompressPlugin)&&lzmaDecompressPlugin.is_can_open(compressType))

@@ -54,7 +54,6 @@
 		D65893362332757F003BB2F4 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		D658933823327585003BB2F4 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D65C6A512330A3C700A3C89C /* sync_server */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = sync_server; sourceTree = BUILT_PRODUCTS_DIR; };
-		D699A2AE2338EF80003CB3DC /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		D699A2B1233B3F78003CB3DC /* match_in_new.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_in_new.cpp; sourceTree = "<group>"; };
 		D699A2B2233B3F78003CB3DC /* match_in_new.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = match_in_new.h; sourceTree = "<group>"; };
 		D699A2B8233ECDC9003CB3DC /* parallel_channel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_channel.cpp; sourceTree = "<group>"; };
@@ -86,7 +85,6 @@
 		D65892E42330D4B9003BB2F4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D699A2AE2338EF80003CB3DC /* libbz2.tbd */,
 				D658933823327585003BB2F4 /* liblzma.a */,
 				D65893362332757F003BB2F4 /* libz.tbd */,
 			);

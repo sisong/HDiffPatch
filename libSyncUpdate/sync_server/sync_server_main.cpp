@@ -53,6 +53,7 @@
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_zlib
 #   define _CompressPlugin_lzma
+//#   define _CompressPlugin_bz2
 #endif
 
 #define  IS_NOTICE_compress_canceled 0
@@ -90,6 +91,9 @@ static void printUsage(){
            "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
            "        -c-zlib[-{1..9}]                DEFAULT level 9\n"
+#endif
+#ifdef _CompressPlugin_bz2
+           "        -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9\n"
 #endif
 #ifdef _CompressPlugin_lzma
            "        -c-lzma[-{0..9}[-dictSize]]     DEFAULT level 7\n"
@@ -260,9 +264,9 @@ static void printCreateSyncInfo(hpatch_StreamPos_t newDataSize,size_t kMatchBloc
     printf("block count: %" PRIu64 "\n",blockCount);
     double patchMemSize=(double)estimatePatchMemSize(newDataSize,(uint32_t)kMatchBlockSize,isUsedCompress);
     if (patchMemSize>=(1<<20))
-        printf("sync_patch memory size: ~ %.3f MB\n",patchMemSize/(1<<20));
+        printf("sync_patch memory size: ~ %.1f MB\n",patchMemSize/(1<<20));
     else
-        printf("sync_patch memory size: ~ %.3f KB\n",patchMemSize/(1<<10));
+        printf("sync_patch memory size: ~ %.0f KB\n",patchMemSize/(1<<10)+1);
 }
 
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))

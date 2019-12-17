@@ -87,14 +87,24 @@ void create_dir_sync_data(IDirSyncListener*         listener,
 
     getRefList(newManifest.rootPath,newList,newSizeList);
     CFileResHandleLimit resLimit(kMaxOpenFileNumber,newList.size());
+    hpatch_StreamPos_t maxNewSize=0;
     {
         for (size_t i=0; i<newSizeList.size(); ++i) {
-            resLimit.addRes(newList[i],newSizeList[i]);
+            hpatch_StreamPos_t newSize=newSizeList[i];
+            maxNewSize=(newSize>maxNewSize)?newSize:maxNewSize;
+            resLimit.addRes(newList[i],newSize);
         }
     }
+    if (kMatchBlockSize>maxNewSize){
+        kMatchBlockSize=(uint32_t)maxNewSize;
+        if (kMatchBlockSize<kMatchBlockSize_min)
+            kMatchBlockSize=kMatchBlockSize_min;
+    }
+    
     resLimit.open();
     CRefStream newRefStream;
-    newRefStream.open(resLimit.limit.streamList,newList.size());
+    const size_t kAlignSize=kMatchBlockSize;
+    newRefStream.open(resLimit.limit.streamList,newList.size(),kAlignSize);
     
     int hashClashBit=estimateHashClashBit(newRefStream.stream->streamSize,kMatchBlockSize);
     bool isMatchBlockSizeWarning=hashClashBit>kAllowMaxHashClashBit;
@@ -112,6 +122,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
         pushTypes(head,kDirSyncUpdateTypeVersion,compressPlugin,strongChecksumPlugin);
         packUInt(head,newList.size());
         packUInt(head,newPathSumSize);
+        packUInt(head,kAlignSize);
         packUInt(head,newRefStream.stream->streamSize); //same as syncInfo::newDataSize
         packUInt(head,newExecuteList.size());     swapClear(newExecuteList);
     }

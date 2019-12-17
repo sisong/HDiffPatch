@@ -150,7 +150,7 @@ struct CFileResHandleLimit{
 
 struct CRefStream:public hpatch_TRefStream{
     inline CRefStream(){ hpatch_TRefStream_init(this); }
-    void open(const hpatch_TStreamInput** refList,size_t refCount,size_t kAlignSize=1);
+    void open(const hpatch_TStreamInput** refList,size_t refCount,size_t kAlignSize);
     inline ~CRefStream(){ hpatch_TRefStream_close(this); }
 };
 
