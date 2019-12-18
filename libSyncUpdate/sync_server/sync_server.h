@@ -42,16 +42,16 @@ static const uint32_t kMatchBlockSize_min     = 64;
 //  newSyncInfo's size becomes smaller when kMatchBlockSize increases,
 //    but the part of newData's size that need download becomes larger;
 //  note: you can compress part newData when downloading data by yourself;
-void create_sync_data_by_file(const char*               newDataFile,
-                              const char*               outNewSyncInfoFile,
+void create_sync_data_by_file(const char*               newDataFile,        // .hsynd == newDataFile
+                              const char*               outNewSyncInfoFile, // .hsyni
                               hpatch_TChecksum*         strongChecksumPlugin,
                               uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
 // out_newSyncData: out compressed newData by compressPlugin
 //   client download compressed part of newData from out_newSyncData;
 void create_sync_data_by_file(const char*               newDataFile,
-                              const char*               outNewSyncInfoFile,
-                              const char*               outNewSyncDataFile,
+                              const char*               outNewSyncInfoFile, // .hsyni
+                              const char*               outNewSyncDataFile, // .hsynd
                               const hdiff_TCompress*    compressPlugin,
                               hpatch_TChecksum*         strongChecksumPlugin,
                               uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);

@@ -31,24 +31,13 @@
 #include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
 using namespace hdiff_private;
 
-void create_dir_sync_data(IDirSyncListener*         listener,
-                          const char*               newDataDir,
-                          const char*               outNewSyncInfoFile,
-                          const char*               outNewSyncDataFile,
-                          const hdiff_TCompress*    compressPlugin,
-                          hpatch_TChecksum*         strongChecksumPlugin,
-                          size_t                    kMaxOpenFileNumber,
-                          uint32_t kMatchBlockSize,size_t threadNum){
-    TManifest newManifest;
-    newManifest.rootPath=newDataDir;
-    assert(hpatch_getIsDirName(newManifest.rootPath.c_str()));
-    getDirAllPathList(newManifest.rootPath,newManifest.pathList,listener);
-    sortDirPathList(newManifest.pathList);
-    
-    create_dir_sync_data(listener,newManifest,outNewSyncInfoFile,outNewSyncDataFile,
-                         compressPlugin,strongChecksumPlugin,kMaxOpenFileNumber,kMatchBlockSize,threadNum);
-}
 
+void get_newManifest(IDirPathIgnore* filter,const char* newDir,TManifest& out_newManifest){
+    assert(hpatch_getIsDirName(newDir));
+    out_newManifest.rootPath=newDir;
+    out_newManifest.pathList.clear();
+    getDirAllPathList(out_newManifest.rootPath,out_newManifest.pathList,filter,false);
+}
 
 static void getRefList(const std::string& newRootPath,const std::vector<std::string>& newList,
                        std::vector<hpatch_StreamPos_t>& out_newSizeList){
@@ -59,7 +48,6 @@ static void getRefList(const std::string& newRootPath,const std::vector<std::str
         out_newSizeList[newi]=getFileSize(fileName);
     }
 }
-
 
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const TManifest&          newManifest,

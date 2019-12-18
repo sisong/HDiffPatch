@@ -33,7 +33,7 @@
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../dirDiffPatch/dir_diff/dir_diff.h"
 
-struct IDirSyncListener:public IDirPathIgnore{
+struct IDirSyncListener{
     virtual ~IDirSyncListener(){}
     virtual bool isExecuteFile(const std::string& fileName) { return false; }
     virtual void syncPathList(const std::vector<std::string>& pathList){}
@@ -43,19 +43,12 @@ struct IDirSyncListener:public IDirPathIgnore{
     virtual void externDataPosInSyncInfoStream(hpatch_StreamPos_t externDataPos,size_t externDataSize){}
 };
 
-void create_dir_sync_data(IDirSyncListener*         listener,
-                          const char*               newDataDir,
-                          const char*               outNewSyncInfoFile,
-                          const char*               outNewSyncDataFile,
-                          const hdiff_TCompress*    compressPlugin,
-                          hpatch_TChecksum*         strongChecksumPlugin,
-                          size_t                    kMaxOpenFileNumber,
-                          uint32_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
+void get_newManifest(IDirPathIgnore* filter,const char* newDir,TManifest& out_newManifest);
 
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const TManifest&          newManifest,
-                          const char*               outNewSyncInfoFile,
-                          const char*               outNewSyncDataFile,
+                          const char*               outNewSyncInfoFile, // .hsyni
+                          const char*               outNewSyncDataFile, // .hsynd
                           const hdiff_TCompress*    compressPlugin,
                           hpatch_TChecksum*         strongChecksumPlugin,
                           size_t                    kMaxOpenFileNumber,

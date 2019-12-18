@@ -272,13 +272,11 @@ void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::s
     newManifest.rootPath=newPath;
     if (isDirName(oldManifest.rootPath)){
         getDirAllPathList(oldManifest.rootPath,oldManifest.pathList,listener,true);
-        sortDirPathList(oldManifest.pathList);
     }else{
         oldManifest.pathList.push_back(oldManifest.rootPath);
     }
     if (isDirName(newManifest.rootPath)){
         getDirAllPathList(newManifest.rootPath,newManifest.pathList,listener,false);
-        sortDirPathList(newManifest.pathList);
     }else{
         newManifest.pathList.push_back(newManifest.rootPath);
     }
@@ -531,14 +529,13 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
 static std::string kChecksumTypeTag="Checksum_Type:";
 static std::string kPathCountTag="Path_Count:";
 static std::string kPathTag="Path:";
-void save_manifest(IDirPathIgnore* listener,const std::string& inputPath,
+void save_manifest(IDirPathIgnore* filter,const std::string& inputPath,
                    const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin){
-    assert(listener!=0);
+    assert(filter!=0);
     std::vector<std::string> pathList;
     const bool inputIsDir=isDirName(inputPath);
     if (inputIsDir){
-        getDirAllPathList(inputPath,pathList,listener,false);
-        sortDirPathList(pathList);
+        getDirAllPathList(inputPath,pathList,filter,false);
     }else{
         pathList.push_back(inputPath);
     }
@@ -877,13 +874,11 @@ bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const s
     newManifest.rootPath=newPath;
     if (isDirName(oldManifest.rootPath)){
         getDirAllPathList(oldManifest.rootPath,oldManifest.pathList,listener,true);
-        sortDirPathList(oldManifest.pathList);
     }else{
         oldManifest.pathList.push_back(oldManifest.rootPath);
     }
     if (isDirName(newManifest.rootPath)){
         getDirAllPathList(newManifest.rootPath,newManifest.pathList,listener,false);
-        sortDirPathList(newManifest.pathList);
     }else{
         newManifest.pathList.push_back(newManifest.rootPath);
     }

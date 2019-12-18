@@ -29,15 +29,14 @@
 #ifndef sync_client_h
 #define sync_client_h
 #include "sync_client_type.h"
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "../../dirDiffPatch/dir_patch/dir_patch_types.h"
     
 typedef enum TSyncClient_resultType{
     kSyncClient_ok,
     kSyncClient_optionsError, //cmdline error
     kSyncClient_memError,
     kSyncClient_tempFileError,
+    kSyncClient_pathTypeError,
     kSyncClient_newSyncInfoTypeError,
     kSyncClient_noStrongChecksumPluginError,
     kSyncClient_strongChecksumByteSizeError,
@@ -84,21 +83,16 @@ typedef struct ISyncPatchListener{
                             uint32_t syncDataSize,TSyncDataType cacheIndex,unsigned char* out_syncDataBuf);
 } ISyncPatchListener;
 
-int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,
-                                   const char* newSyncInfoFile,ISyncPatchListener *listener);
-int  TNewDataSyncInfo_open(TNewDataSyncInfo* self,
-                           const hpatch_TStreamInput* newSyncInfo,ISyncPatchListener *listener);
-void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
+int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,
+                                   ISyncPatchListener* listener);
+int  TNewDataSyncInfo_open        (TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+                                   ISyncPatchListener* listener);
+void TNewDataSyncInfo_close       (TNewDataSyncInfo* self);
 
+int sync_patch_by_file(ISyncPatchListener* listener,const char* outNewFile,const char* oldPath,
+                       const char* newSyncInfoFile,int threadNum=0);
 
-int sync_patch_by_file(const char* outNewPath,const char* oldPath,
-                       const char* newSyncInfoFile,ISyncPatchListener* listener,int threadNum=0);
-
-int sync_patch(const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* oldStream,
-               const TNewDataSyncInfo* newSyncInfo,ISyncPatchListener* listener,int threadNum=0);
-
-#ifdef __cplusplus
-}
-#endif
+int sync_patch(ISyncPatchListener* listener,const hpatch_TStreamOutput* out_newStream,
+               const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,int threadNum=0);
         
 #endif // sync_client_h

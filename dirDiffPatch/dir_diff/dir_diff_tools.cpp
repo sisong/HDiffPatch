@@ -80,6 +80,7 @@ void getDirAllPathList(const std::string& dirPath,std::vector<std::string>& out_
     out_list.push_back(dirPath);
     const std::string dirName(dirPath.c_str(),dirPath.c_str()+dirPath.size()-1); //without '/'
     _getDirSubFileList(dirName,out_list,filter,dirName.size(),pathIsInOld);
+    sortDirPathList(out_list);
 }
 #endif
 

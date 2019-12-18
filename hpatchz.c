@@ -449,7 +449,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 _return_check(hpatch_getPathStat(out_SFX,&outPathType,0),
                               HPATCH_PATHTYPE_ERROR,"get outSelfExtractArchive type");
                 _return_check(outPathType==kPathType_notExist,
-                              HPATCH_PATHTYPE_ERROR,"outSelfExtractArchive already exists, not overwrite");
+                              HPATCH_PATHTYPE_ERROR,"outSelfExtractArchive already exists, overwrite");
             }
             return createSfx(selfExecuteFile,diffFileName,out_SFX);
         }
@@ -511,10 +511,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             _return_check(hpatch_getPathStat(outNewPath,&outNewPathType,0),
                           HPATCH_PATHTYPE_ERROR,"get outNewPath type");
             _return_check(outNewPathType==kPathType_notExist,
-                          HPATCH_PATHTYPE_ERROR,"outNewPath already exists, not overwrite");
+                          HPATCH_PATHTYPE_ERROR,"outNewPath already exists, overwrite");
         }
         if (isSamePath)
-            _return_check(isForceOverwrite,HPATCH_PATHTYPE_ERROR,"oldPath outNewPath same path");
+            _return_check(isForceOverwrite,HPATCH_PATHTYPE_ERROR,"oldPath outNewPath same path, overwrite");
 #if (_IS_NEED_DIR_DIFF_PATCH)
         _return_check(getDirDiffInfoByFile(diffFileName,&dirDiffInfo,diffDataOffert,diffDataSize),
                       HPATCH_OPENREAD_ERROR,"input diffFile open read");

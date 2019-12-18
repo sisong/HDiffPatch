@@ -27,3 +27,15 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_sync_client.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+
+void get_oldManifest(IDirPathIgnore* filter,const char* oldPath,TManifest& out_oldManifest){
+    out_oldManifest.rootPath=oldPath;
+    out_oldManifest.pathList.clear();
+    if (hpatch_getIsDirName(oldPath))
+        getDirAllPathList(out_oldManifest.rootPath,out_oldManifest.pathList,filter,true);
+}
+
+
+
+#endif //_IS_NEED_DIR_DIFF_PATCH

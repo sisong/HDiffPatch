@@ -53,7 +53,7 @@ struct IDirPathIgnore{
 };
 
 void getDirAllPathList(const std::string& dir,std::vector<std::string>& out_list,
-                       IDirPathIgnore* filter,bool pathIsInOld=false);
+                       IDirPathIgnore* filter,bool pathIsInOld);
 
 struct IDirDiffListener:public IDirPathIgnore{
     virtual ~IDirDiffListener(){}
@@ -102,7 +102,7 @@ struct TManifestSaved:public TManifest{
     std::vector<std::vector<unsigned char> >    checksumList;
 };
 
-void save_manifest(IDirPathIgnore* listener,const std::string& inputPath,
+void save_manifest(IDirPathIgnore* filter,const std::string& inputPath,
                    const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin);
 
 void load_manifestFile(TManifestSaved& out_manifest,const std::string& rootPath,

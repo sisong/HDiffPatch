@@ -127,7 +127,7 @@ static void printUsage(){
 #if (_IS_USED_MULTITHREAD)
            "  -p-parallelThreadNumber\n"
            "    if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
-           "    DEFAULT -p-4; requires more and more memory!\n"
+           "    DEFAULT -p-4; requires more memory!\n"
 #endif
            "  -c-compressType[-compressLevel]\n"
            "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"
@@ -788,7 +788,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             _return_check(hpatch_getPathStat(outDiffFileName,&outDiffFileType,0),
                           HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
             _return_check((outDiffFileType==kPathType_notExist)||(!isDiff),
-                          HDIFF_PATHTYPE_ERROR,"diff outDiffFile already exists, not overwrite");
+                          HDIFF_PATHTYPE_ERROR,"diff outDiffFile already exists, overwrite");
         }
         hpatch_TPathType oldType;
         hpatch_TPathType newType;
@@ -865,7 +865,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             _return_check(hpatch_getPathStat(manifestOut.c_str(),&outFileType,0),
                           HDIFF_PATHTYPE_ERROR,"get outManifestFile type");
             _return_check(outFileType==kPathType_notExist,
-                          HDIFF_PATHTYPE_ERROR,"create outManifestFile already exists, not overwrite");
+                          HDIFF_PATHTYPE_ERROR,"create outManifestFile already exists, overwrite");
         }
         return create_manifest(inputPath,manifestOut.c_str(),checksumPlugin,ignorePathList);
 #endif
@@ -891,7 +891,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             _return_check(hpatch_getPathStat(outDiffFileName,&outDiffFileType,0),
                           HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
             _return_check(outDiffFileType==kPathType_notExist,
-                          HDIFF_PATHTYPE_ERROR,"resave outDiffFile already exists, not overwrite");
+                          HDIFF_PATHTYPE_ERROR,"resave outDiffFile already exists, overwrite");
         }
         hpatch_BOOL isSamePath=hpatch_getIsSamePath(diffFileName,outDiffFileName);
         if (isSamePath)

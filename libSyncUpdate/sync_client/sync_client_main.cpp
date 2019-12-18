@@ -1,5 +1,5 @@
 //  sync_client_main.cpp
-//  sync_client:  test patch sync files
+//  sync_client: client demo for sync patch
 //  Created by housisong on 2019-09-18.
 /*
  The MIT License (MIT)
@@ -34,7 +34,9 @@
 #include "../../libParallel/parallel_import.h"
 #include "../../file_for_patch.h"
 #include "../../_dir_ignore.h"
-
+#if (_IS_NEED_DIR_DIFF_PATCH)
+#   include "dir_sync_client.h"
+#endif
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1
@@ -67,7 +69,7 @@ static void printUsage(){
 #if (_IS_USED_MULTITHREAD)
            "  -p-parallelThreadNumber\n"
            "    if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
-           "    DEFAULT -p-4; requires more and more memory!\n"
+           "    DEFAULT -p-4; requires more memory!\n"
 #endif
            "  -C-checksumSets\n"
            "      set Checksum data for patch, DEFAULT -C-sync;\n"
@@ -116,9 +118,27 @@ static void printUsage(){
            );
 }
 
+int sync_client_cmd_line(int argc, const char * argv[]);
+
 static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
-                           const char *test_newSyncDataFile,const char* outNewPath,
+                           const char* test_newSyncDataFile,const char* outNewPath,
                            bool isChecksumNewSyncInfo,bool isChecksumNewSyncData,size_t threadNum);
+
+
+#   if (_IS_USED_WIN32_UTF8_WAPI)
+int wmain(int argc,wchar_t* argv_w[]){
+    hdiff_private::TAutoMem  _mem(hpatch_kPathMaxSize*4);
+    char** argv_utf8=(char**)_mem.data();
+    if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,_mem.size()))
+        return SYNC_SERVER_OPTIONS_ERROR;
+    SetDefaultStringLocale();
+    return sync_client_cmd_line(argc,(const char**)argv_utf8);
+}
+#   else
+int main(int argc,char* argv[]){
+    return  sync_client_cmd_line(argc,(const char**)argv);
+}
+#   endif
 
 
 //ISyncPatchListener::findDecompressPlugin
@@ -187,9 +207,12 @@ static hpatch_BOOL _toChecksumSet(const char* psets,bool* isChecksumNewSyncInfo,
     }
 }
 
-#define _options_check(value,errorInfo){ \
+#define _options_check(value,errorInfo) do{ \
     if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n\n"); \
-                    printUsage(); return kSyncClient_optionsError; } }
+                    printUsage(); return kSyncClient_optionsError; } }while(0)
+
+#define _return_check(value,exitCode,fmt,errorInfo) do{ \
+    if (!(value)) { fprintf(stderr,fmt " ERROR!\n",errorInfo); return exitCode; } }while(0)
 
 #define _kNULL_VALUE    (-1)
 #define _kNULL_SIZE     (~(size_t)0)
@@ -200,11 +223,12 @@ static hpatch_BOOL _toChecksumSet(const char* psets,bool* isChecksumNewSyncInfo,
 #define _THREAD_NUMBER_MAX      (1<<8)
 
 
-int main(int argc, const char * argv[]) {
+int sync_client_cmd_line(int argc, const char * argv[]) {
     size_t      threadNum = _THREAD_NUMBER_NULL;
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
+    hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
     bool isChecksumNewSyncInfo=false;
     bool isChecksumNewSyncData=true; //checksumSet DEFAULT
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -216,6 +240,16 @@ int main(int argc, const char * argv[]) {
         const char* op=argv[i];
         _options_check(op!=0,"?");
         if (op[0]!='-'){
+            hpatch_BOOL isEmpty=(strlen(op)==0);
+            if (isEmpty){
+                if (isOldPathInputEmpty==_kNULL_VALUE)
+                    isOldPathInputEmpty=hpatch_TRUE;
+                else
+                    _options_check(!isEmpty,"?"); //error return
+            }else{
+                if (isOldPathInputEmpty==_kNULL_VALUE)
+                    isOldPathInputEmpty=hpatch_FALSE;
+            }
             arg_values.push_back(op); //file path
             continue;
         }
@@ -269,29 +303,59 @@ int main(int argc, const char * argv[]) {
         }//swich
     }
     
+    if (isOutputHelp==_kNULL_VALUE)
+        isOutputHelp=hpatch_FALSE;
+    if (isOutputVersion==_kNULL_VALUE)
+        isOutputVersion=hpatch_FALSE;
+    if (isForceOverwrite==_kNULL_VALUE)
+        isForceOverwrite=hpatch_FALSE;
+#if (_IS_USED_MULTITHREAD)
     if (threadNum==_THREAD_NUMBER_NULL)
         threadNum=_THREAD_NUMBER_DEFUALT;
     else if (threadNum>_THREAD_NUMBER_MAX)
         threadNum=_THREAD_NUMBER_MAX;
-#if (_IS_USED_MULTITHREAD)
 #else
     threadNum=1;
 #endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    if (kMaxOpenFileNumber==_kNULL_SIZE)
+        kMaxOpenFileNumber=kMaxOpenFileNumber_default_diff;
+    if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
+        kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
+#endif
+    if (isOldPathInputEmpty==_kNULL_VALUE)
+        isOldPathInputEmpty=hpatch_FALSE;
+    
+    if (isOutputHelp||isOutputVersion){
+        printf("HDiffPatch::sync_client v" HDIFFPATCH_VERSION_STRING "\n\n");
+        if (isOutputHelp)
+            printUsage();
+        if (arg_values.empty())
+            return kSyncClient_ok; //ok
+    }
+
     _options_check(arg_values.size()==4,"input count");
     const char* oldPath             =arg_values[0];
-    const char* newSyncInfoFile     =arg_values[1];
-    const char* test_newSyncDataFile=arg_values[2];
+    const char* newSyncInfoFile     =arg_values[1]; // .hsyni
+    const char* test_newSyncDataFile=arg_values[2]; // .hsynd
     const char* outNewPath          =arg_values[3];
-
-    
-    
     double time0=clock_s();
-
+    
+    const hpatch_BOOL isSamePath=hpatch_getIsSamePath(oldPath,outNewPath);
+    if (!isForceOverwrite){
+        hpatch_TPathType   outNewPathType;
+        _return_check(hpatch_getPathStat(outNewPath,&outNewPathType,0),
+                      kSyncClient_pathTypeError,"get %s type","outNewPath");
+        _return_check(outNewPathType==kPathType_notExist,
+                      kSyncClient_pathTypeError,"%s already exists, overwrite","outNewPath");
+    }
+    if (isSamePath)
+        _return_check(isForceOverwrite,kSyncClient_pathTypeError,"%s same path, overwrite","oldPath outNewPath");
+    bool isOutDir=false;
     if (threadNum>1)
         printf("muti-thread parallel: opened, threadNum: %d\n",(uint32_t)threadNum);
     else
         printf("muti-thread parallel: closed\n");
-    
     int result=test_sync_patch(oldPath,newSyncInfoFile,test_newSyncDataFile,outNewPath,
                                isChecksumNewSyncInfo,isChecksumNewSyncData,threadNum);
     double time1=clock_s();
@@ -305,22 +369,23 @@ static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
     ISyncPatchListener emulation; memset(&emulation,0,sizeof(emulation));
     bool isUseCacheDownload=true;
     char downloadCacheTempFile[hpatch_kPathMaxSize+1];
-    if (isUseCacheDownload){
+    if (isUseCacheDownload){//cache demo
         if (!hpatch_getTempPathName(outNewFile,downloadCacheTempFile,
                                     downloadCacheTempFile+sizeof(downloadCacheTempFile)))
             return kSyncClient_tempFileError;
         if (!cacheDownloadEmulation_open_by_file(&emulation,test_newSyncDataFile,downloadCacheTempFile))
             return kSyncClient_readSyncDataError;
-    }else{
+    }else{//simple demo
         if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataFile))
             return kSyncClient_readSyncDataError;
     }
+    assert(emulation.isCanCacheRepeatSyncData==isUseCacheDownload);
     emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
     emulation.isChecksumNewSyncData=isChecksumNewSyncData;
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     
-    int result = sync_patch_by_file(outNewFile,oldPath,newSyncInfoFile,&emulation,(int)threadNum);
+    int result = sync_patch_by_file(&emulation,outNewFile,oldPath,newSyncInfoFile,(int)threadNum);
     if (isUseCacheDownload){
         cacheDownloadEmulation_close(&emulation);
         hpatch_removeFile(downloadCacheTempFile);

@@ -30,21 +30,34 @@
 #define dir_sync_client_h
 #include "sync_client.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#ifdef __cplusplus
-extern "C" {
-#endif
-    
-struct TDirSyncPatcher{
-        
-} TDirSyncPatcher;
+#include "../../dirDiffPatch/dir_patch/dir_patch.h"
+#include "../../dirDiffPatch/dir_diff/dir_diff.h"
 
-    
-int dir_sync_patch(const char* outNewPath,const char* oldPath,
-                   const char* newSyncInfoFile,ISyncPatchListener* listener,int threadNum=0);
+typedef struct TNewDirSyncInfo{
+    hpatch_BOOL             newPathIsDir;
+    TNewDataSyncInfo        baseSyncInfo;
+    hpatch_StreamPos_t      externDataOffset;
+    hpatch_StreamPos_t      externDataSize;
+    //todo:
+} TNewDirSyncInfo;
 
+struct IDirSyncPatchListener:public ISyncPatchListener,IDirPatchListener {
+};
 
-#ifdef __cplusplus
-}
-#endif
+hpatch_inline static void
+     TNewDirSyncInfo_init        (TNewDirSyncInfo* self) { memset(self,0,sizeof(*self)); }
+int  TNewDirSyncInfo_open_by_file(TNewDirSyncInfo* self,const char* newDirSyncInfoFile,
+                                  IDirSyncPatchListener* listener);
+int  TNewDirSyncInfo_open        (TNewDirSyncInfo* self,const hpatch_TStreamInput* newDirSyncInfo,
+                                  IDirSyncPatchListener* listener);
+void TNewDirSyncInfo_close       (TNewDirSyncInfo* self);
+
+int  get_isNewDirSyncInfo        (const char* newDirSyncInfoFile,hpatch_BOOL* out_newIsDir);
+
+void get_oldManifest(IDirPathIgnore* filter,const char* oldPath,TManifest& out_oldManifest);
+
+int  dir_sync_patch(IDirSyncPatchListener* listener,const char* outNewDir,const TManifest& oldManifest,
+                    TNewDirSyncInfo* newDirSyncInfo,int threadNum=0);
+
 #endif
 #endif // dir_sync_client_h
