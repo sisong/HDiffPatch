@@ -815,6 +815,16 @@ void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         result.resize(len);
         return result;
     }
+    static const char* _toSavedPath(std::string& tempPath,const char* path){
+        if (kPatch_dirSeparator_saved==kPatch_dirSeparator)
+            return path;
+        tempPath.assign(path);
+        for (size_t i=0; i<tempPath.size(); ++i) {
+            if (tempPath[i]==kPatch_dirSeparator)
+                tempPath[i]=kPatch_dirSeparator_saved;
+        }
+        return tempPath.c_str();
+    }
 static std::string kChecksumTypeTag="Checksum_Type:";
 static std::string kPathCountTag="Path_Count:";
 static std::string kPathTag="Path:";
@@ -834,14 +844,14 @@ void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
     {//head
         pushCStr(out_data,"HDiff_Manifest_Version:1.0\n");
         pushCStr(out_data,kChecksumTypeTag.c_str());
-        if (checksumPlugin){
+        if (checksumPlugin)
             pushCStr(out_data,checksumPlugin->checksumType());
-            pushCStr(out_data, "\n");
-        }
+        pushCStr(out_data, "\n");
         pushString(out_data, kPathCountTag+_i2a(pathList.size())+"\n");
         pushCStr(out_data, "\n");
     }
     //path list
+    std::string tempPath;
     for (size_t i=0; i<pathList.size(); ++i) {
         const std::string& pathName=pathList[i];
         pushCStr(out_data, "Path:");
@@ -863,7 +873,8 @@ void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
             pushCStr(out_data, hexs.c_str());
             pushCStr(out_data, ":");
         }
-        pushCStr(out_data, pathName.c_str()+inputPath.size());
+        const char* savedPath=_toSavedPath(tempPath,pathName.c_str()+inputPath.size());
+        pushCStr(out_data, savedPath);
         pushCStr(out_data, "\n");
     }
     check(outManifest->write(outManifest,0,out_data.data(),out_data.data()+out_data.size()),
@@ -877,12 +888,24 @@ void load_manifestFile(TManifestSaved& out_manifest,const std::string& rootPath,
 }
 
 
+    static void _fromSavedPath(char* begin,char* end){
+        if (kPatch_dirSeparator_saved==kPatch_dirSeparator)
+            return;
+        for (;begin<end;++begin){
+            if ((*begin)==kPatch_dirSeparator_saved)
+                *begin=kPatch_dirSeparator;
+        }
+    }
     static void _pushPathBack(std::vector<std::string>& pathList,const std::string& rootPath,
                       const char* begin,const char* end){
         pathList.push_back(std::string());
         std::string& path=pathList.back();
         path.append(rootPath);
-        path.append(begin,end);
+        if (begin<end){
+            path.append(begin,end);
+            char* pload=&path[0];
+            _fromSavedPath(pload+rootPath.size(),pload+path.size());
+        }
     }
     static TByte _hex2b(char c){
         switch (c) {
