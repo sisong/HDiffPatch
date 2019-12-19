@@ -28,6 +28,10 @@
  */
 #include "dir_sync_client.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
+#define check(v,errorCode) \
+    do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
+                    if (!_inClear) goto clear; } }while(0)
+
 
 void get_oldManifest(IDirPathIgnore* filter,const char* oldPath,TManifest& out_oldManifest){
     out_oldManifest.rootPath=oldPath;
@@ -36,6 +40,33 @@ void get_oldManifest(IDirPathIgnore* filter,const char* oldPath,TManifest& out_o
         getDirAllPathList(out_oldManifest.rootPath,out_oldManifest.pathList,filter,true);
 }
 
-
+int sync_patch_2file(ISyncPatchListener* listener,const char* outNewFile,const TManifest& oldManifest,
+                     const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum){
+    int result=kSyncClient_ok;
+    int _inClear=0;
+    TNewDataSyncInfo         newSyncInfo;
+    hpatch_TFileStreamInput  oldData;
+    hpatch_TFileStreamOutput out_newData;
+    const hpatch_TStreamInput* oldStream=0;
+    
+    TNewDataSyncInfo_init(&newSyncInfo);
+    hpatch_TFileStreamInput_init(&oldData);
+    hpatch_TFileStreamOutput_init(&out_newData);
+    result=TNewDataSyncInfo_open_by_file(&newSyncInfo,newSyncInfoFile,listener);
+    check(result==kSyncClient_ok,result);
+    
+    //todo:
+    
+    check(hpatch_TFileStreamOutput_open(&out_newData,outNewFile,(hpatch_StreamPos_t)(-1)),
+          kSyncClient_newFileCreateError);
+    
+    result=sync_patch(listener,&out_newData.base,oldStream,&newSyncInfo,threadNum);
+clear:
+    _inClear=1;
+    check(hpatch_TFileStreamOutput_close(&out_newData),kSyncClient_newFileCloseError);
+    check(hpatch_TFileStreamInput_close(&oldData),kSyncClient_oldFileCloseError);
+    TNewDataSyncInfo_close(&newSyncInfo);
+    return result;
+}
 
 #endif //_IS_NEED_DIR_DIFF_PATCH

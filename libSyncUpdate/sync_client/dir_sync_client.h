@@ -29,9 +29,17 @@
 #ifndef dir_sync_client_h
 #define dir_sync_client_h
 #include "sync_client.h"
+#include "../../dirDiffPatch/dir_patch/dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../dirDiffPatch/dir_patch/dir_patch.h"
 #include "../../dirDiffPatch/dir_diff/dir_diff.h"
+
+//sync patch oldDir to newFile
+void get_oldManifest(IDirPathIgnore* filter,const char* oldPath,TManifest& out_oldManifest);
+int sync_patch_2file(ISyncPatchListener* listener,const char* outNewFile,const TManifest& oldManifest,
+                     const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum=0);
+
+int  get_isNewDirSyncInfo(const char* newDirSyncInfoFile,hpatch_BOOL* out_newIsDir);
 
 typedef struct TNewDirSyncInfo{
     hpatch_BOOL             newPathIsDir;
@@ -52,12 +60,10 @@ int  TNewDirSyncInfo_open        (TNewDirSyncInfo* self,const hpatch_TStreamInpu
                                   IDirSyncPatchListener* listener);
 void TNewDirSyncInfo_close       (TNewDirSyncInfo* self);
 
-int  get_isNewDirSyncInfo        (const char* newDirSyncInfoFile,hpatch_BOOL* out_newIsDir);
 
-void get_oldManifest(IDirPathIgnore* filter,const char* oldPath,TManifest& out_oldManifest);
-
-int  dir_sync_patch(IDirSyncPatchListener* listener,const char* outNewDir,const TManifest& oldManifest,
-                    TNewDirSyncInfo* newDirSyncInfo,int threadNum=0);
+//sync patch oldPatch(file or dir) to newDir
+int  sync_patch_2dir(IDirSyncPatchListener* listener,const char* outNewDir,const TManifest& oldManifest,
+                     TNewDirSyncInfo* newDirSyncInfo,int threadNum=0);
 
 #endif
 #endif // dir_sync_client_h

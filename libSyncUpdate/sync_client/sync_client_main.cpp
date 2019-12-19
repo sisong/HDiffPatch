@@ -385,7 +385,7 @@ static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     
-    int result = sync_patch_by_file(&emulation,outNewFile,oldPath,newSyncInfoFile,(int)threadNum);
+    int result = sync_patch_file2file(&emulation,outNewFile,oldPath,newSyncInfoFile,(int)threadNum);
     if (isUseCacheDownload){
         cacheDownloadEmulation_close(&emulation);
         hpatch_removeFile(downloadCacheTempFile);

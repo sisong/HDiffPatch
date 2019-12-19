@@ -703,15 +703,15 @@ clear:
     return result;
 }
 
-int sync_patch_by_file(ISyncPatchListener* listener,const char* outNewFile,
-                       const char* oldPath,const char* newSyncInfoFile,int threadNum){
+int sync_patch_file2file(ISyncPatchListener* listener,const char* outNewFile,
+                         const char* oldFile,const char* newSyncInfoFile,int threadNum){
     int result=kSyncClient_ok;
     int _inClear=0;
     TNewDataSyncInfo         newSyncInfo;
     hpatch_TFileStreamInput  oldData;
     hpatch_TFileStreamOutput out_newData;
     const hpatch_TStreamInput* oldStream=0;
-    bool isOldPathInputEmpty=(oldPath==0)||(strlen(oldPath)==0);
+    bool isOldPathInputEmpty=(oldFile==0)||(strlen(oldFile)==0);
     
     TNewDataSyncInfo_init(&newSyncInfo);
     hpatch_TFileStreamInput_init(&oldData);
@@ -720,7 +720,7 @@ int sync_patch_by_file(ISyncPatchListener* listener,const char* outNewFile,
     check(result==kSyncClient_ok,result);
     
     if (!isOldPathInputEmpty)
-        check(hpatch_TFileStreamInput_open(&oldData,oldPath),kSyncClient_oldFileOpenError);
+        check(hpatch_TFileStreamInput_open(&oldData,oldFile),kSyncClient_oldFileOpenError);
     oldStream=&oldData.base;
     check(hpatch_TFileStreamOutput_open(&out_newData,outNewFile,(hpatch_StreamPos_t)(-1)),
           kSyncClient_newFileCreateError);

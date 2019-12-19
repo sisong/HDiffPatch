@@ -29,7 +29,6 @@
 #ifndef sync_client_h
 #define sync_client_h
 #include "sync_client_type.h"
-#include "../../dirDiffPatch/dir_patch/dir_patch_types.h"
     
 typedef enum TSyncClient_resultType{
     kSyncClient_ok,
@@ -89,8 +88,8 @@ int  TNewDataSyncInfo_open        (TNewDataSyncInfo* self,const hpatch_TStreamIn
                                    ISyncPatchListener* listener);
 void TNewDataSyncInfo_close       (TNewDataSyncInfo* self);
 
-int sync_patch_by_file(ISyncPatchListener* listener,const char* outNewFile,const char* oldPath,
-                       const char* newSyncInfoFile,int threadNum=0);
+int sync_patch_file2file(ISyncPatchListener* listener,const char* outNewFile,const char* oldFile,
+                         const char* newSyncInfoFile,int threadNum=0);
 
 int sync_patch(ISyncPatchListener* listener,const hpatch_TStreamOutput* out_newStream,
                const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,int threadNum=0);
