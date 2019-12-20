@@ -2,13 +2,18 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
    
+## [v3.0.7](https://github.com/sisong/HDiffPatch/tree/v3.0.7) - 2019-12-19
+### Fixed
+* Fix a bug when create dir's manifest file without checksum (hdiffz -C-no -M...);
+* Fix a bug when create dir's manifest file on windows operating system;
+   
 ## [v3.0.6](https://github.com/sisong/HDiffPatch/tree/v3.0.6) - 2019-09-18
 ### Fixed
-* Fix a patch bug when old file size >=4G and patch with large cache memory on 32bit operating system;
+* Fix a patch bug when old file size >=4GB and patch with large cache memory and run as 32bit app;
 
 ## [v3.0.5](https://github.com/sisong/HDiffPatch/tree/v3.0.5) - 2019-09-18
 ### Fixed
-* Fix a directory patch bug when changed file's sumSize >=4G on 32bit operating system;
+* Fix a directory patch bug when changed file's sumSize >=4GB and run as 32bit app;
 
 ## [v3.0.0](https://github.com/sisong/HDiffPatch/tree/v3.0.0) - 2019-03-01
 ### Added
@@ -26,11 +31,15 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 ### Added
 * resave_compressed_diff(...) support resave diffFile with new compress type;
 
-## [v2.4.1](https://github.com/sisong/HDiffPatch/tree/v2.4.1) - 2018-08-14
+## [v2.4.2](https://github.com/sisong/HDiffPatch/tree/v2.4.2) - 2018-11-06
 ### Added
-* Add CI(travis-ci.org) for this repository;
+* Add CI(ci.appveyor.com) for this repository;
+
+## [v2.4.1](https://github.com/sisong/HDiffPatch/tree/v2.4.1) - 2018-08-14
 ### Fixed
 * Fix a memroy bug in zlibCompressPlugin;
+### Added
+* Add CI(travis-ci.org) for this repository;
 
 ## [v2.4](https://github.com/sisong/HDiffPatch/tree/v2.4) - 2018-04-26
 ### Changed
