@@ -1,12 +1,16 @@
 # HDiffPatch Change Log
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
-   
+
+## [v3.0.8](https://github.com/sisong/HDiffPatch/tree/v3.0.8) - 2020-01-01
+### Added
+* patch demo for Android, out lib file libhpatchz.so; 
+
 ## [v3.0.7](https://github.com/sisong/HDiffPatch/tree/v3.0.7) - 2019-12-19
 ### Fixed
 * Fix a bug when create dir's manifest file without checksum (hdiffz -C-no -M...);
 * Fix a bug when create dir's manifest file on windows operating system;
-   
+
 ## [v3.0.6](https://github.com/sisong/HDiffPatch/tree/v3.0.6) - 2019-09-18
 ### Fixed
 * Fix a patch bug when old file size >=4GB and patch with large cache memory and run as 32bit app;
@@ -91,7 +95,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v1.1.4](https://github.com/sisong/HDiffPatch/tree/v1.1.4) - 2017-06-10
 ### Added
-* Add MakeFile for support make; by author JayXon;
+* Add MakeFile for support make; by author [JayXon](https://github.com/JayXon);
 ### Changed
 * Slightly optimize diff used memory size;
 
@@ -101,7 +105,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v1.1.2](https://github.com/sisong/HDiffPatch/tree/v1.1.2) - 2016-09-01
 ### Fixed
-* Fix a bug when write out diffFile on Windows; by author Wenhai Lin;
+* Fix a bug when write out diffFile on Windows; by author [Wenhai Lin](https://github.com/WenhaiLin);
 
 ## [v1.1.1](https://github.com/sisong/HDiffPatch/tree/v1.1.1) - 2015-04-20
 ### Fixed
