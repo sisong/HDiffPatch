@@ -186,7 +186,8 @@ typedef enum THPatchResult {
     HPATCH_TEMPPATH_ERROR,
     HPATCH_DELETEPATH_ERROR,
     HPATCH_RENAMEPATH_ERROR,
-    
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
     DIRPATCH_DIRDIFFINFO_ERROR=101,
     DIRPATCH_CHECKSUMTYPE_ERROR,
     DIRPATCH_CHECKSUMSET_ERROR,
@@ -202,12 +203,14 @@ typedef enum THPatchResult {
     DIRPATCH_CLOSE_NEWPATH_ERROR,
     DIRPATCH_PATCHBEGIN_ERROR,
     DIRPATCH_PATCHFINISH_ERROR,
-    
+#endif
+#if (_IS_NEED_SFX)
     HPATCH_CREATE_SFX_DIFFFILETYPE_ERROR=201,
     HPATCH_CREATE_SFX_SFXTYPE_ERROR,
     HPATCH_CREATE_SFX_EXECUTETAG_ERROR,
     HPATCH_RUN_SFX_NOTSFX_ERROR,
     HPATCH_RUN_SFX_DIFFOFFSERT_ERROR,
+#endif
 } THPatchResult;
 
 int hpatch_cmd_line(int argc, const char * argv[]);
@@ -730,9 +733,9 @@ static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char
 
 #define _free_mem(p) { if (p) { free(p); p=0; } }
 
-static void* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
-                              hpatch_StreamPos_t oldDataSize,size_t* out_memCacheSize){
-    void*  temp_cache=0;
+static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
+                               hpatch_StreamPos_t oldDataSize,size_t* out_memCacheSize){
+    TByte* temp_cache=0;
     size_t temp_cache_size;
     if (isLoadOldAll){
         size_t addSize=kPatchCacheSize_bestmin;
@@ -790,6 +793,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,
         }
         check(hpatch_TFileStreamInput_open(&diffData,diffFileName),
               HPATCH_OPENREAD_ERROR,"open diffFile for read");
+#if (_IS_NEED_SFX)
         if (diffDataOffert>0){ //run sfx
             check(hpatch_TFileStreamInput_setOffset(&diffData,diffDataOffert),
                   HPATCH_RUN_SFX_DIFFOFFSERT_ERROR,"readed sfx diffFile offset");
@@ -797,6 +801,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,
                   HPATCH_RUN_SFX_DIFFOFFSERT_ERROR,"readed sfx diffFile size");
             diffData.base.streamSize=diffDataSize;
         }
+#endif
     }
 
 #if (_IS_NEED_ORIGINAL)
@@ -900,6 +905,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             check((oldType!=kPathType_notExist),HPATCH_PATHTYPE_ERROR,"oldPath not exist");
         }
         check(hpatch_TFileStreamInput_open(&diffData,diffFileName),HPATCH_OPENREAD_ERROR,"open diffFile for read");
+#if (_IS_NEED_SFX)
         if (diffDataOffert>0){ //run sfx
             check(hpatch_TFileStreamInput_setOffset(&diffData,diffDataOffert),
                   HPATCH_RUN_SFX_DIFFOFFSERT_ERROR,"readed sfx diffFile offset");
@@ -907,6 +913,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
                   HPATCH_RUN_SFX_DIFFOFFSERT_ERROR,"readed sfx diffFile size");
             diffData.base.streamSize=diffDataSize;
         }
+#endif
         rt=TDirPatcher_open(&dirPatcher,&diffData.base,&dirDiffInfo);
         if((!rt)||(!dirDiffInfo->isDirDiff)){
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");

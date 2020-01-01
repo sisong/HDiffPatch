@@ -89,7 +89,7 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
 
 
 //resave compressed_diff
-//  decompress int_diff and recompress to out_diff
+//  decompress in_diff and recompress to out_diff
 //  throw std::runtime_error when input file error or I/O error,etc.
 void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
                             hpatch_TDecompress*         decompressPlugin,
