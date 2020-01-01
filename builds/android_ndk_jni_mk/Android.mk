@@ -20,6 +20,7 @@ Hdp_Files := $(HDP_PATH)/file_for_patch.c \
 Src_Files := $(LOCAL_PATH)/hpatch_jni.c \
              $(LOCAL_PATH)/hpatch.c
 
+DEF_LIBS  :=  -lz
 DEF_FLAGS :=  -D_CompressPlugin_zlib
 ifeq ($(LZMA),0)
 else
@@ -27,7 +28,7 @@ else
 endif
 
 LOCAL_SRC_FILES  := $(Src_Files) $(Lzma_Files) $(Hdp_Files)
-LOCAL_LDLIBS     := -llog -landroid  -lz
+LOCAL_LDLIBS     := -llog -landroid  $(DEF_LIBS)
 LOCAL_CFLAGS     := -DANDROID_NDK $(DEF_FLAGS)
 include $(BUILD_SHARED_LIBRARY)
 
