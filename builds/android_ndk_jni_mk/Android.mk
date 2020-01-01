@@ -10,7 +10,9 @@ ifeq ($(LZMA),0)
   Lzma_Files :=
 else
   # http://www.7-zip.org/sdk.html  https://github.com/sisong/lzma
-  Lzma_Files := $(LOCAL_PATH)/../../../lzma/C/LzmaDec.c
+  LZMA_PATH  := $(LOCAL_PATH)/../../../lzma/C/
+  Lzma_Files := $(LZMA_PATH)/LzmaDec.c  \
+                $(LZMA_PATH)/Lzma2Dec.c
 endif
 
 HDP_PATH  := $(LOCAL_PATH)/../../
@@ -24,7 +26,8 @@ DEF_LIBS  :=  -lz
 DEF_FLAGS :=  -D_CompressPlugin_zlib
 ifeq ($(LZMA),0)
 else
-  DEF_FLAGS += -D_7ZIP_ST -D_CompressPlugin_lzma -I$(LOCAL_PATH)/../../../lzma/C
+  DEF_FLAGS += -D_7ZIP_ST -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 \
+               -I$(LZMA_PATH)
 endif
 
 LOCAL_SRC_FILES  := $(Src_Files) $(Lzma_Files) $(Hdp_Files)
