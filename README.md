@@ -1,8 +1,8 @@
-**HDiffPatch**
-================
-[![release](https://img.shields.io/badge/release-v3.0.7-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+# [HDiffPatch](https://github.com/sisong/HDiffPatch)
+[![release](https://img.shields.io/badge/release-v3.0.8-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)   
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
+[![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
 
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) 
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
@@ -176,7 +176,7 @@ special options:
 *  **dir_diff()** & **dir patch APIs** read source code;   
    
 ---
-### HDiffPatch vs BsDiff4.3:
+### HDiffPatch vs BsDiff:
 system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
    (purge file cache before every test)
 ```
@@ -218,7 +218,7 @@ Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      1
 =======================================================================================================
 ```
    
-### HDiffPatch vs xdelta3.1:
+### HDiffPatch vs xdelta:
 ```
 HDiffPatch2.4 hdiffz run by: -s-128 -c-bzip2-9 oldFile newFile outDiffFile
               hpatchz run by: -s-4m oldFile diffFile outNewFile
@@ -243,8 +243,8 @@ Average           12.18%    7.81%     100%  79.0%     100%  15.5%      100%  169
               (fix 9.78%)
 =======================================================================================================
 
-HDiffPatch hdiffz run by: -s-64 -c-lzma-7-4m  oldFile newFile outDiffFile
-           hpatchz run by: -s-4m oldFile diffFile outNewFile
+HDiffPatch2.4 hdiffz run by: -s-64 -c-lzma-7-4m  oldFile newFile outDiffFile
+              hpatchz run by: -s-4m oldFile diffFile outNewFile
 xdelta3.1 diff run by: -S lzma -9 -s old_file new_file delta_file   
           patch run by: -d -s old_file delta_file decoded_new_file
           (NOTE fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
