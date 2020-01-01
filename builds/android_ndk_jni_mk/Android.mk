@@ -17,8 +17,8 @@ HDP_PATH  := $(LOCAL_PATH)/../../
 Hdp_Files := $(HDP_PATH)/file_for_patch.c \
              $(HDP_PATH)/libHDiffPatch/HPatch/patch.c
 
-Src_Files := $(LOCAL_PATH)/hpatch_jni.cpp \
-             $(LOCAL_PATH)/hpatch.cpp
+Src_Files := $(LOCAL_PATH)/hpatch_jni.c \
+             $(LOCAL_PATH)/hpatch.c
 
 DEF_FLAGS :=  -D_CompressPlugin_zlib
 ifeq ($(LZMA),0)
