@@ -13,6 +13,9 @@ a C\C++ library and command-line tools for binary data Diff & Patch; fast and cr
 ( NOTE: This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
    
 ---
+## Releases/Binaries
+[Download from last release](https://github.com/sisong/HDiffPatch/releases) : Command line app for Windows , Linux , MacOS; and .so .java for Android.   
+
 ## diff command line usage:   
 diff    usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
 test    usage: **hdiffz**    -t     **oldPath newPath testDiffFile**   
@@ -176,7 +179,7 @@ special options:
 *  **dir_diff()** & **dir patch APIs** read source code;   
    
 ---
-### HDiffPatch vs BsDiff:
+## HDiffPatch vs BsDiff:
 system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
    (purge file cache before every test)
 ```
@@ -218,7 +221,7 @@ Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      1
 =======================================================================================================
 ```
    
-### HDiffPatch vs xdelta:
+## HDiffPatch vs xdelta:
 ```
 HDiffPatch2.4 hdiffz run by: -s-128 -c-bzip2-9 oldFile newFile outDiffFile
               hpatchz run by: -s-4m oldFile diffFile outNewFile
@@ -268,5 +271,6 @@ Average           11.24%    6.44%     100%  88.9%     100%  20.0%      100%  151
 ```
   
 ---
-by housisong@gmail.com  
+## Contact
+housisong@gmail.com  
 
