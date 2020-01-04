@@ -1,5 +1,5 @@
-//  sync_client_main.cpp
-//  sync_client: client demo for sync patch
+//  hsync_client_test.cpp
+//  hsync_client_test: client demo for sync patch
 //  Created by housisong on 2019-09-18.
 /*
  The MIT License (MIT)
@@ -61,7 +61,7 @@
 #include "../../checksum_plugin_demo.h"
 
 static void printUsage(){
-    printf("test sync_patch: [options] oldPath newSyncInfoFile test_newSyncDataFile outNewPath\n"
+    printf("test sync patch: [options] oldPath newSyncInfoFile test_newSyncDataFile outNewPath\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
            " ( oldPath can be file or directory(folder); )\n"
 #endif

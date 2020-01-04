@@ -1,5 +1,5 @@
-//  sync_server_main.cpp
-//  sync_server:  create sync files
+//  hsync_server.cpp
+//  hsync_server:  create sync files
 //      like zsync : http://zsync.moria.org.uk/
 //  Created by housisong on 2019-09-17.
 /*
@@ -72,7 +72,7 @@
 
 
 static void printUsage(){
-    printf("sync_serever: [options] newDataPath outNewSyncInfoFile [outNewSyncDataFile]\n"
+    printf("hsync_server: [options] newDataPath outNewSyncInfoFile [outNewSyncDataFile]\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
            " ( newDataPath can be file or directory(folder); )\n"
 #endif
@@ -378,7 +378,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
 #endif
     if (isOutputHelp||isOutputVersion){
-        printf("HDiffPatch::sync_server v" HDIFFPATCH_VERSION_STRING "\n\n");
+        printf("HDiffPatch::hsync_server v" HDIFFPATCH_VERSION_STRING "\n\n");
         if (isOutputHelp)
             printUsage();
         if (arg_values.empty())

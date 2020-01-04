@@ -9,12 +9,12 @@
    </FileRef>
    <Group
       location = "container:"
-      name = "sync_update">
+      name = "hsync_update">
       <FileRef
-         location = "group:sync_server.xcodeproj">
+         location = "group:hsync_server.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:sync_client_test.xcodeproj">
+         location = "group:hsync_client_test.xcodeproj">
       </FileRef>
    </Group>
    <Group
