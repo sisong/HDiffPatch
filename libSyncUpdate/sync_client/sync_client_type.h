@@ -31,30 +31,17 @@
 #include "../../libHDiffPatch/HPatch/patch_types.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
-#ifdef __cplusplus
-inline static uint64_t roll_hash_start(uint64_t*,const adler_data_t* pdata,size_t n){
-                                       return fast_adler64_start(pdata,n); }
-inline static uint32_t roll_hash_start(uint32_t*,const adler_data_t* pdata,size_t n){
-                                       return fast_adler32_start(pdata,n); }
-inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
-                                      adler_data_t out_data,adler_data_t in_data){
-                                        return fast_adler64_roll(adler,blockSize,out_data,in_data); }
-inline static uint32_t roll_hash_roll(uint32_t adler,size_t blockSize,
-                                      adler_data_t out_data,adler_data_t in_data){
-                                        return fast_adler32_roll(adler,blockSize,out_data,in_data); }
-#endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-    
-    typedef struct TSameNewBlockPair{
-        uint32_t  curIndex;
-        uint32_t  sameIndex; // sameIndex < curIndex;
-    } TSameNewBlockPair;
-    
-    #define kPartStrongChecksumByteSize       8
-    
+hpatch_inline static
+hpatch_StreamPos_t getSyncBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
+    return (newDataSize+(kMatchBlockSize-1))/kMatchBlockSize; }
+
+
+typedef struct TSameNewBlockPair{
+    uint32_t  curIndex;
+    uint32_t  sameIndex; // sameIndex < curIndex;
+} TSameNewBlockPair;
+
 typedef struct TNewDataSyncInfo{
     const char*             compressType;
     const char*             strongChecksumType;
@@ -76,17 +63,16 @@ typedef struct TNewDataSyncInfo{
     hpatch_TDecompress*     _decompressPlugin;
 } TNewDataSyncInfo;
 
+
+namespace sync_private{
+    
 hpatch_inline static void
 TNewDataSyncInfo_init(TNewDataSyncInfo* self) { memset(self,0,sizeof(*self)); }
-
-hpatch_inline static
-hpatch_StreamPos_t getSyncBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
-                            return (newDataSize+(kMatchBlockSize-1))/kMatchBlockSize; }
-
+    
 hpatch_inline static
 hpatch_StreamPos_t TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self){
-                            return getSyncBlockCount(self->newDataSize,self->kMatchBlockSize); }
-    
+        return getSyncBlockCount(self->newDataSize,self->kMatchBlockSize); }
+
 hpatch_inline static
 uint32_t TNewDataSyncInfo_newDataBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
     uint32_t blockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
@@ -102,7 +88,20 @@ uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t bl
     else
         return self->kMatchBlockSize;
 }
-
+    
+inline static uint64_t roll_hash_start(uint64_t*,const adler_data_t* pdata,size_t n){
+                                        return fast_adler64_start(pdata,n); }
+inline static uint32_t roll_hash_start(uint32_t*,const adler_data_t* pdata,size_t n){
+                                        return fast_adler32_start(pdata,n); }
+inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
+                                      adler_data_t out_data,adler_data_t in_data){
+                                        return fast_adler64_roll(adler,blockSize,out_data,in_data); }
+inline static uint32_t roll_hash_roll(uint32_t adler,size_t blockSize,
+                                      adler_data_t out_data,adler_data_t in_data){
+                                        return fast_adler32_roll(adler,blockSize,out_data,in_data); }
+    
+#define kPartStrongChecksumByteSize       8
+    
 hpatch_inline static
 void toSyncPartChecksum(unsigned char* out_partChecksum,
                         const unsigned char* checksum,size_t checksumByteSize){
@@ -137,8 +136,5 @@ unsigned int getBetterCacheBlockTableBit(uint32_t blockCount){
     return result;
 }
 
-
-#ifdef __cplusplus
-}
-#endif
+} //namespace sync_private
 #endif //sync_client_type_h

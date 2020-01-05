@@ -27,6 +27,8 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_sync_client.h"
+using namespace sync_private;
+
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #define check(v,errorCode) \
     do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \

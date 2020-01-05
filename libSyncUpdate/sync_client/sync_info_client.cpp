@@ -29,6 +29,7 @@
 #include "sync_info_client.h"
 #include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HPatch/patch_private.h"
+namespace sync_private{
 
 #define check(v,errorCode) \
             do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
@@ -119,6 +120,9 @@ hpatch_BOOL _clip_readUIntTo(TUInt* result,TStreamCacheClip* sclip){
     return rt;
 }
 #define rollHashSize(self) (self->is32Bit_rollHash?sizeof(uint32_t):sizeof(uint64_t))
+
+} //namespace sync_private
+using namespace sync_private;
 
 int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
                           ISyncInfoListener *listener){

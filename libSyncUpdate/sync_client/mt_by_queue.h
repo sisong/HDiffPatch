@@ -32,6 +32,7 @@
 #include "../../libParallel/parallel_channel.h"
 #if (_IS_USED_MULTITHREAD)
 #include <vector>
+namespace sync_private{
 
 struct TMt_by_queue {
     const int    threadNum;
@@ -127,5 +128,7 @@ private:
         }
     }
 };
+
+} //namespace sync_private
 #endif
 #endif // mt_by_queue_h

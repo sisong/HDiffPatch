@@ -33,11 +33,12 @@
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/bloom_filter.h"
 #include "mt_by_queue.h"
+using namespace hdiff_private;
+namespace sync_private{
 
 #define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define checkv(value)     check(value,"check "#value" error!")
 
-using namespace hdiff_private;
 typedef unsigned char TByte;
 
 template<class tm_roll_uint>
@@ -360,3 +361,5 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,const TNewDataSyncInf
     else
         tm_matchNewDataInOld<uint64_t>(matchDatas,threadNum);
 }
+
+} //namespace sync_private

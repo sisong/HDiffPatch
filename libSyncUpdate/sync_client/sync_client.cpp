@@ -30,6 +30,7 @@
 #include "../../file_for_patch.h"
 #include "match_in_old.h"
 #include "mt_by_queue.h"
+namespace sync_private{
 
 #define check(v,errorCode) \
             do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
@@ -101,7 +102,7 @@ static int mt_writeToNew(_TWriteDatas& wd,void* _mt=0,int threadIndex=0) {
                     strongChecksumPlugin->append(checksumSync,dataBuf,dataBuf+kMatchBlockSize);
                     strongChecksumPlugin->end(checksumSync,checksumSync_buf,
                                               checksumSync_buf+newSyncInfo->kStrongChecksumByteSize);
-                    toPartChecksum(checksumSync_buf,checksumSync_buf,newSyncInfo->kStrongChecksumByteSize);
+                    toSyncPartChecksum(checksumSync_buf,checksumSync_buf,newSyncInfo->kStrongChecksumByteSize);
                     check(0==memcmp(checksumSync_buf,
                                     newSyncInfo->partChecksums+i*(size_t)kPartStrongChecksumByteSize,
                                     kPartStrongChecksumByteSize),kSyncClient_checksumSyncDataError);
@@ -275,6 +276,8 @@ static void printMatchResult(const TNewDataSyncInfo* newSyncInfo,const TMatchedS
     printf(" (/%" PRIu64 "=%.3f)\n",
            newSyncInfo->newDataSize,(double)downloadSize/newSyncInfo->newDataSize);
 }
+} //namespace sync_private
+using namespace  sync_private;
 
 int sync_patch(ISyncPatchListener* listener,const hpatch_TStreamOutput* out_newStream,
                const hpatch_TStreamInput*  oldStream,const TNewDataSyncInfo* newSyncInfo,int threadNum){
