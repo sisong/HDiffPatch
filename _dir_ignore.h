@@ -150,7 +150,7 @@ static bool isMatchIgnore(const std::string& subPath,const std::string& ignore){
     return _matchIgnore(beginS,endS,matchs,0,beginI,endI);
 }
 
-static bool isMatchIgnoreList(const std::string& subPath,const std::vector<std::string>& ignoreList){
+static inline bool isMatchIgnoreList(const std::string& subPath,const std::vector<std::string>& ignoreList){
     for (size_t i=0; i<ignoreList.size(); ++i) {
         if (isMatchIgnore(subPath,ignoreList[i])) return true;
     }

@@ -32,13 +32,13 @@
     do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
                     if (!_inClear) goto clear; } }while(0)
 
-
+/*
 void get_oldManifest(IDirPathIgnore* filter,const char* oldPath,TManifest& out_oldManifest){
     out_oldManifest.rootPath=oldPath;
     out_oldManifest.pathList.clear();
     if (hpatch_getIsDirName(oldPath))
         getDirAllPathList(out_oldManifest.rootPath,out_oldManifest.pathList,filter,true);
-}
+}*/
 
 int sync_patch_2file(ISyncPatchListener* listener,const char* outNewFile,const TManifest& oldManifest,
                      const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum){

@@ -133,7 +133,7 @@ uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t bl
     if (self->savedSizes)
         return self->savedSizes[blockIndex];
     else
-        return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);
+        return self->kMatchBlockSize;
 }
 
 

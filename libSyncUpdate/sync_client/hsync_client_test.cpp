@@ -37,6 +37,9 @@
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #   include "dir_sync_client.h"
 #endif
+#ifndef _IS_NEED_MAIN
+#   define  _IS_NEED_MAIN 1
+#endif
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1
@@ -125,6 +128,7 @@ static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
                            bool isChecksumNewSyncInfo,bool isChecksumNewSyncData,size_t threadNum);
 
 
+#if (_IS_NEED_MAIN)
 #   if (_IS_USED_WIN32_UTF8_WAPI)
 int wmain(int argc,wchar_t* argv_w[]){
     hdiff_private::TAutoMem  _mem(hpatch_kPathMaxSize*4);
@@ -139,6 +143,7 @@ int main(int argc,char* argv[]){
     return  sync_client_cmd_line(argc,(const char**)argv);
 }
 #   endif
+#endif
 
 
 //ISyncPatchListener::findDecompressPlugin
@@ -327,7 +332,7 @@ int sync_client_cmd_line(int argc, const char * argv[]) {
         isOldPathInputEmpty=hpatch_FALSE;
     
     if (isOutputHelp||isOutputVersion){
-        printf("HDiffPatch::sync_client v" HDIFFPATCH_VERSION_STRING "\n\n");
+        printf("HDiffPatch::hsync_client_test v" HDIFFPATCH_VERSION_STRING "\n\n");
         if (isOutputHelp)
             printUsage();
         if (arg_values.empty())

@@ -76,7 +76,7 @@ static void printUsage(){
 #if (_IS_NEED_DIR_DIFF_PATCH)
            " ( newDataPath can be file or directory(folder); )\n"
 #endif
-           " ( if newDataPath is a file & no -c-... option, outNewSyncDataFile can null; )\n"
+           " ( if newDataPath is a file & no -c-... option, outNewSyncDataFile can empty; )\n"
            "options:\n"
            "  -s-matchBlockSize\n"
            "      matchBlockSize can like 4096 or 4k or 128k or 1m etc..., DEFAULT 2048\n"
@@ -418,11 +418,15 @@ int sync_server_cmd_line(int argc, const char * argv[]){
                   SYNC_SERVER_NEWPATH_ERROR,"%s not exist","newDataPath");
 #if (_IS_NEED_DIR_DIFF_PATCH)
     hpatch_BOOL isUseDirSyncUpdate=(kPathType_dir==newType);
+    if (isUseDirSyncUpdate)
+        _options_check(outNewSyncDataFile!=0,"used DirSyncUpdate need outNewSyncDataFile");
 #else
     hpatch_BOOL isUseDirSyncUpdate=false;
     _return_check(kPathType_dir!=newType,
                   SYNC_SERVER_NEWPATH_ERROR,"%s must file","newDataPath");
 #endif
+    if ((compressPlugin==0)&&(kPathType_file==newType))
+        printf("NOTE: outNewSyncDataFile's data is same as newDataPath file!\n");
     
     if (threadNum>1)
         printf("muti-thread parallel: opened, threadNum: %d\n",(uint32_t)threadNum);

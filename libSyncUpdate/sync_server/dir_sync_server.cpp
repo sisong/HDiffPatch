@@ -59,7 +59,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
                           uint32_t kMatchBlockSize,size_t threadNum){
     const char* kDirSyncUpdateTypeVersion = "DirSyncUpdate19";
     assert(listener!=0);
-    checkv(outNewSyncDataFile!=0);
+    assert((outNewSyncDataFile!=0)&&(strlen(outNewSyncDataFile)>0));
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     kMaxOpenFileNumber-=2; // for outNewSyncInfoFile & outNewSyncDataFile
     const std::vector<std::string>& newList=newManifest.pathList;

@@ -287,20 +287,24 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
             hpatch_StreamPos_t sumSavedSize=0;
             uint32_t curPair=0;
             for (uint32_t i=0; i<kBlockCount; ++i){
+                uint32_t savedSize=0;
                 if ((curPair<self->samePairCount)
                     &&(i==self->samePairList[curPair].curIndex)){
-                    self->savedSizes[i]=self->savedSizes[self->samePairList[curPair].sameIndex];
+                    savedSize=self->savedSizes[self->samePairList[curPair].sameIndex];
                     ++curPair;
                 }else{
-                    check(_clip_unpackUInt32To(&self->savedSizes[i],codeClip),
+                    check(_clip_unpackUInt32To(&savedSize,codeClip),
                           kSyncClient_newSyncInfoDataError);
-                    if (self->savedSizes[i]==0)
-                        self->savedSizes[i]=TNewDataSyncInfo_newDataBlockSize(self,i);
+                    if (savedSize==0)
+                        savedSize=TNewDataSyncInfo_newDataBlockSize(self,i);
                 }
-                sumSavedSize+=self->savedSizes[i];
+                self->savedSizes[i]=savedSize;
+                sumSavedSize+=savedSize;
             }
-            assert(curPair==self->samePairCount);
+            check(curPair==self->samePairCount,kSyncClient_newSyncInfoDataError);
             check(sumSavedSize==self->newSyncDataSize,kSyncClient_newSyncInfoDataError);
+        }else{
+            assert(self->savedSizes==0);
         }
 
         if (compressDataSize>0){
@@ -351,7 +355,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,
                       kSyncClient_newSyncInfoDataError);
             }
         }
-        assert(curPair==self->samePairCount);
+        check(curPair==self->samePairCount,kSyncClient_newSyncInfoDataError);
     }
     if (isChecksumNewSyncInfo){ //infoPartChecksum
         const hpatch_StreamPos_t infoChecksumPos=_TStreamCacheClip_readPosOfSrcStream(&clip);

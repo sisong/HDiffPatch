@@ -118,7 +118,7 @@ void tm_matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
                                    sorted_newIndexs+ti_pos[1],digest_value,dcomp);
         for (;range.first!=range.second; ++range.first) {
             uint32_t newBlockIndex=*range.first;
-            //assert(newBlockIndex<i); // not need: if (newBlockIndex>=i) continue;
+            assert(newBlockIndex<i);
             const unsigned char* newChecksum=partChecksums+newBlockIndex*(size_t)kPartStrongChecksumByteSize;
             if (0==memcmp(newChecksum,curChecksum,kPartStrongChecksumByteSize)){
                 samePairList[matchedCount].curIndex=i;

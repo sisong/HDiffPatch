@@ -80,15 +80,22 @@ static bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo*      self,
     }
     if (compressPlugin){ //savedSizes
         uint32_t curPair=0;
+        hpatch_StreamPos_t sumSavedSize=0;
         for (uint32_t i=0; i<kBlockCount; ++i){
+            uint32_t savedSize=self->savedSizes[i];
+            sumSavedSize+=savedSize;
             if ((curPair<self->samePairCount)
-                &&(i==self->samePairList[curPair].curIndex)){ ++curPair; continue; }
-            if (self->savedSizes[i]!=TNewDataSyncInfo_newDataBlockSize(self,i))
-                packUInt(buf,self->savedSizes[i]);
-            else
-                packUInt(buf,(uint32_t)0);
+                &&(i==self->samePairList[curPair].curIndex)){
+                assert(savedSize==self->savedSizes[self->samePairList[curPair].sameIndex]);
+                ++curPair;
+            }else{
+                if (savedSize==TNewDataSyncInfo_newDataBlockSize(self,i))
+                    savedSize=0;
+                packUInt(buf,savedSize);
+            }
         }
         assert(curPair==self->samePairCount);
+        assert(sumSavedSize==self->newSyncDataSize);
     }
     
     {//compress buf
@@ -212,12 +219,6 @@ public:
         assert(curMem==_mem.data_end());
     }
     ~CNewDataSyncInfo(){}
-    void insetSamePair(uint32_t curIndex,uint32_t sameIndex){
-        TSameNewDataPair& samePair=this->samePairList[this->samePairCount];
-        samePair.curIndex=curIndex;
-        samePair.sameIndex=sameIndex;
-        ++this->samePairCount;
-    }
 private:
     std::string                 _compressType;
     std::string                 _strongChecksumType;
@@ -253,7 +254,7 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
 #if (_IS_USED_MULTITHREAD)
         if (_mt) { if (!((TMt_by_queue*)_mt)->getWork(threadIndex,i)) continue; } //next work;
 #endif
-        size_t dataLen=buf.size();
+        size_t dataLen=kMatchBlockSize;
         if (i==kBlockCount-1) dataLen=(size_t)(cd.newData->streamSize-curReadPos);
         {//read data
 #if (_IS_USED_MULTITHREAD)
@@ -281,9 +282,9 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
         size_t compressedSize=0;
         if (compressPlugin){
             compressedSize=hdiff_compress_mem(compressPlugin,cmbuf.data(),cmbuf.data()+cmbuf.size(),
-                                              buf.data(),buf.data()+dataLen);
+                                              buf.data(),buf.data()+kMatchBlockSize);
             checkv(compressedSize>0);
-            if (compressedSize+sizeof(uint32_t)>=dataLen)
+            if (compressedSize+sizeof(uint32_t)>=kMatchBlockSize)
                 compressedSize=0; //not compressed
             //save compressed size
             checkv(compressedSize==(uint32_t)compressedSize);
@@ -302,7 +303,7 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
                 if (compressedSize>0)
                     out_newSyncInfo->savedSizes[i]=(uint32_t)compressedSize;
                 else
-                    out_newSyncInfo->savedSizes[i]=(uint32_t)dataLen;
+                    out_newSyncInfo->savedSizes[i]=kMatchBlockSize;
             }
             
             if (compressedSize>0){
@@ -311,8 +312,8 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
                 out_newSyncInfo->newSyncDataSize+=compressedSize;
             }else{
                 if (cd.out_newSyncData)
-                    writeStream(cd.out_newSyncData,cd.curOutPos, buf.data(),dataLen);
-                out_newSyncInfo->newSyncDataSize+=dataLen;
+                    writeStream(cd.out_newSyncData,cd.curOutPos, buf.data(),dataLen); //!
+                out_newSyncInfo->newSyncDataSize+=kMatchBlockSize;
             }
         }
     }
@@ -372,7 +373,7 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
     createDatas.curOutPos=0;
     _create_sync_data(createDatas,threadNum);
     checkv(TNewDataSyncInfo_saveTo(&newSyncInfo,out_newSyncInfo,
-                                  strongChecksumPlugin,compressPlugin));
+                                   strongChecksumPlugin,compressPlugin));
 }
 
 void create_sync_data_by_file(const char* newDataFile,
