@@ -125,8 +125,7 @@ int sync_client_cmd_line(int argc, const char * argv[]);
 
 static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
                            const char* test_newSyncDataFile,const char* outNewPath,
-                           bool isChecksumNewSyncInfo,bool isChecksumNewSyncData,size_t threadNum);
-
+                           const TSyncPatchChecksumSet& checksumSet,size_t threadNum);
 
 #if (_IS_NEED_MAIN)
 #   if (_IS_USED_WIN32_UTF8_WAPI)
@@ -187,21 +186,22 @@ static hpatch_TChecksum* findChecksumPlugin(ISyncPatchListener* listener,const c
     }
 }
 
-static hpatch_BOOL _toChecksumSet(const char* psets,bool* isChecksumNewSyncInfo,bool* isChecksumNewSyncData){
+
+static hpatch_BOOL _toChecksumSet(const char* psets,TSyncPatchChecksumSet* out_checksumSet){
     while (hpatch_TRUE) {
         const char* pend=findUntilEnd(psets,'-');
         size_t len=(size_t)(pend-psets);
         if (len==0) return hpatch_FALSE; //error no set
         if        ((len==4)&&(0==memcmp(psets,"info",len))){
-            *isChecksumNewSyncInfo=true;
+            out_checksumSet->isChecksumNewSyncInfo=true;
         }else  if ((len==4)&&(0==memcmp(psets,"sync",len))){
-            *isChecksumNewSyncData=true;
+            out_checksumSet->isChecksumNewSyncData=true;
         }else  if ((len==3)&&(0==memcmp(psets,"all",len))){
-            *isChecksumNewSyncInfo=true;
-            *isChecksumNewSyncData=true;
+            out_checksumSet->isChecksumNewSyncInfo=true;
+            out_checksumSet->isChecksumNewSyncData=true;
         }else  if ((len==2)&&(0==memcmp(psets,"no",len))){
-            *isChecksumNewSyncInfo=false;
-            *isChecksumNewSyncData=false;
+            out_checksumSet->isChecksumNewSyncInfo=false;
+            out_checksumSet->isChecksumNewSyncData=false;
         }else{
             return hpatch_FALSE;//error unknow set
         }
@@ -234,8 +234,7 @@ int sync_client_cmd_line(int argc, const char * argv[]) {
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
-    bool isChecksumNewSyncInfo=false;
-    bool isChecksumNewSyncData=true; //checksumSet DEFAULT
+    TSyncPatchChecksumSet checksumSet={false,true};//checksumSet DEFAULT
 #if (_IS_NEED_DIR_DIFF_PATCH)
     size_t                      kMaxOpenFileNumber=_kNULL_SIZE; //only used in oldPath is dir
     std::vector<std::string>    ignoreOldPathList;
@@ -270,9 +269,9 @@ int sync_client_cmd_line(int argc, const char * argv[]) {
             case 'C':{
                 const char* psets=op+3;
                 _options_check((op[2]=='-'),"-C-?");
-                isChecksumNewSyncInfo=false;
-                isChecksumNewSyncData=false;//all set false
-                _options_check(_toChecksumSet(psets,&isChecksumNewSyncInfo,&isChecksumNewSyncData),"-C-?");
+                checksumSet.isChecksumNewSyncInfo=false;
+                checksumSet.isChecksumNewSyncData=false;//all set false
+                _options_check(_toChecksumSet(psets,&checksumSet),"-C-?");
             } break;
 #if (_IS_NEED_DIR_DIFF_PATCH)
             case 'n':{
@@ -362,7 +361,7 @@ int sync_client_cmd_line(int argc, const char * argv[]) {
     else
         printf("muti-thread parallel: closed\n");
     int result=test_sync_patch(oldPath,newSyncInfoFile,test_newSyncDataFile,outNewPath,
-                               isChecksumNewSyncInfo,isChecksumNewSyncData,threadNum);
+                               checksumSet,threadNum);
     double time1=clock_s();
     printf("test sync_patch time: %.3f s\n\n",(time1-time0));
     return result;
@@ -370,7 +369,7 @@ int sync_client_cmd_line(int argc, const char * argv[]) {
 
 static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
                            const char *test_newSyncDataFile,const char* outNewFile,
-                           bool isChecksumNewSyncInfo,bool isChecksumNewSyncData,size_t threadNum){
+                           const TSyncPatchChecksumSet& checksumSet,size_t threadNum){
     ISyncPatchListener emulation; memset(&emulation,0,sizeof(emulation));
     bool isUseCacheDownload=true;
     char downloadCacheTempFile[hpatch_kPathMaxSize+1];
@@ -385,8 +384,7 @@ static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
             return kSyncClient_readSyncDataError;
     }
     assert(emulation.isCanCacheRepeatSyncData==isUseCacheDownload);
-    emulation.isChecksumNewSyncInfo=isChecksumNewSyncInfo;
-    emulation.isChecksumNewSyncData=isChecksumNewSyncData;
+    emulation.checksumSet=checksumSet;
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     

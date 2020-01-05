@@ -68,11 +68,14 @@ typedef enum TSyncClient_resultType{
 typedef hpatch_StreamPos_t TSyncDataType;
 static const TSyncDataType kSyncDataType_needSync=~(TSyncDataType)0; // download, default
 //                                                          other value mead: cache index
-typedef struct ISyncPatchListener{
-    void*             import;
-    bool              isCanCacheRepeatSyncData;
+typedef struct TSyncPatchChecksumSet{
     bool              isChecksumNewSyncInfo;
     bool              isChecksumNewSyncData;
+} TSyncPatchChecksumSet;
+
+typedef struct ISyncPatchListener{
+    void*             import;
+    TSyncPatchChecksumSet checksumSet;
     hpatch_TDecompress* (*findDecompressPlugin)(ISyncPatchListener* listener,const char* compressType);
     hpatch_TChecksum*   (*findChecksumPlugin)  (ISyncPatchListener* listener,const char* strongChecksumType);
     void (*needSyncMsg)    (ISyncPatchListener* listener,const TNeedSyncInfo* needSyncInfo);//can null
