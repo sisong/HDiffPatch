@@ -3,7 +3,7 @@
 //  Created by housisong on 2019-09-18.
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2019 HouSisong
+ Copyright (c) 2019-2020 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -69,18 +69,27 @@ typedef hpatch_StreamPos_t TSyncDataType;
 static const TSyncDataType kSyncDataType_needSync=~(TSyncDataType)0; // download, default
 //                                                          other value mead: cache index
 typedef struct TSyncPatchChecksumSet{
-    bool              isChecksumNewSyncInfo;
-    bool              isChecksumNewSyncData;
+    bool    isChecksumNewSyncInfo;
+    bool    isChecksumNewSyncData;
 } TSyncPatchChecksumSet;
+
+struct TDownloadCacheIO{
+    // .read_writed can't null
+    hpatch_TStreamOutput* streamIO;
+    bool (*deleteCacheIO)(const struct TDownloadCacheIO* cacheIO);
+};
 
 typedef struct ISyncPatchListener{
     void*             import;
     TSyncPatchChecksumSet checksumSet;
     hpatch_TDecompress* (*findDecompressPlugin)(ISyncPatchListener* listener,const char* compressType);
     hpatch_TChecksum*   (*findChecksumPlugin)  (ISyncPatchListener* listener,const char* strongChecksumType);
-    void (*needSyncMsg)    (ISyncPatchListener* listener,const TNeedSyncInfo* needSyncInfo);//can null
-    void (*needSyncDataMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,//needSyncDataMsg can null
+    //needSyncMsg can null; return a stream I/O for cache repeat downloaded data, can return null;
+    const TDownloadCacheIO*  (*needSyncMsg)    (ISyncPatchListener* listener,const TNeedSyncInfo* needSyncInfo);
+    //needSyncDataMsg can null; called befor all readSyncData called;
+    void (*needSyncDataMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
                             uint32_t syncDataSize,TSyncDataType samePosInNewSyncData);
+    //download data
     bool (*readSyncData)   (ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
                             uint32_t syncDataSize,TSyncDataType cacheIndex,unsigned char* out_syncDataBuf);
 } ISyncPatchListener;

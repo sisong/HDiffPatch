@@ -3,7 +3,7 @@
 //  Created by housisong on 2019-09-18.
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2019 HouSisong
+ Copyright (c) 2019-2020 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -383,7 +383,6 @@ static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
         if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataFile))
             return kSyncClient_readSyncDataError;
     }
-    assert(emulation.isCanCacheRepeatSyncData==isUseCacheDownload);
     emulation.checksumSet=checksumSet;
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
