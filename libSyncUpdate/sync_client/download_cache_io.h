@@ -32,10 +32,11 @@
 //cache io demo
 struct TDownloadCacheIO;
 
+
 //cache in memory
 const TDownloadCacheIO* createMemoryCacheIO(hpatch_StreamPos_t needCacheSyncSize);
 
-//cache in temp file
+//cache in a temp file
 const TDownloadCacheIO* createTempFileCacheIO(const char* tempCacheFileName,
                                               hpatch_StreamPos_t needCacheSyncSize);
 

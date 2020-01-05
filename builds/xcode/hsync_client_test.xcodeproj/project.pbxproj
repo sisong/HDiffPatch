@@ -21,6 +21,7 @@
 		D699A29523372152003CB3DC /* match_in_old.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A29423372152003CB3DC /* match_in_old.cpp */; };
 		D699A2AB2338AFD2003CB3DC /* download_emulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A2A92338AFD2003CB3DC /* download_emulation.cpp */; };
 		D6E443F523C19E1000EB7B80 /* download_cache_io.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6E443F323C19E1000EB7B80 /* download_cache_io.cpp */; };
+		D6E443F823C1F35800EB7B80 /* sync_info.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6E443F723C1F35800EB7B80 /* sync_info.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -59,6 +60,8 @@
 		D699A2AA2338AFD2003CB3DC /* download_emulation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = download_emulation.h; sourceTree = "<group>"; };
 		D6E443F323C19E1000EB7B80 /* download_cache_io.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = download_cache_io.cpp; sourceTree = "<group>"; };
 		D6E443F423C19E1000EB7B80 /* download_cache_io.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = download_cache_io.h; sourceTree = "<group>"; };
+		D6E443F623C1F35800EB7B80 /* sync_info.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sync_info.h; sourceTree = "<group>"; };
+		D6E443F723C1F35800EB7B80 /* sync_info.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_info.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -146,6 +149,8 @@
 				D65893422332765B003BB2F4 /* sync_client_type.h */,
 				D65893442332765B003BB2F4 /* sync_client.h */,
 				D65893452332765B003BB2F4 /* sync_client.cpp */,
+				D6E443F723C1F35800EB7B80 /* sync_info.cpp */,
+				D6E443F623C1F35800EB7B80 /* sync_info.h */,
 				D61DE54B23481CA900F6FCCF /* dir_sync_client.h */,
 				D61DE54A23481CA900F6FCCF /* dir_sync_client.cpp */,
 				D699A29323372152003CB3DC /* match_in_old.h */,
@@ -228,6 +233,7 @@
 				D65893472332765B003BB2F4 /* sync_client.cpp in Sources */,
 				D61DE5202340397000F6FCCF /* parallel_import.cpp in Sources */,
 				D699A29523372152003CB3DC /* match_in_old.cpp in Sources */,
+				D6E443F823C1F35800EB7B80 /* sync_info.cpp in Sources */,
 				D6E443F523C19E1000EB7B80 /* download_cache_io.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

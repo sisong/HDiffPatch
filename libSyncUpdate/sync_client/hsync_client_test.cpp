@@ -145,8 +145,8 @@ int main(int argc,char* argv[]){
 #endif
 
 
-//ISyncPatchListener::findDecompressPlugin
-static hpatch_TDecompress* findDecompressPlugin(ISyncPatchListener* listener,const char* compressType){
+//ISyncInfoListener::findDecompressPlugin
+static hpatch_TDecompress* findDecompressPlugin(ISyncInfoListener* listener,const char* compressType){
     if (compressType==0) return 0; //ok
     hpatch_TDecompress* decompressPlugin=0;
 #ifdef  _CompressPlugin_zlib
@@ -169,8 +169,8 @@ static hpatch_TDecompress* findDecompressPlugin(ISyncPatchListener* listener,con
         return decompressPlugin; //ok
     }
 }
-//ISyncPatchListener::findChecksumPlugin
-static hpatch_TChecksum* findChecksumPlugin(ISyncPatchListener* listener,const char* strongChecksumType){
+//ISyncInfoListener::findChecksumPlugin
+static hpatch_TChecksum* findChecksumPlugin(ISyncInfoListener* listener,const char* strongChecksumType){
     if (strongChecksumType==0) return 0; //ok
     hpatch_TChecksum* strongChecksumPlugin=0;
 #ifdef  _ChecksumPlugin_md5

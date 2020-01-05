@@ -29,49 +29,18 @@
 #ifndef sync_client_h
 #define sync_client_h
 #include "sync_client_type.h"
-    
-typedef enum TSyncClient_resultType{
-    kSyncClient_ok,
-    kSyncClient_optionsError, //cmdline error
-    kSyncClient_memError,
-    kSyncClient_tempFileError,
-    kSyncClient_pathTypeError,
-    kSyncClient_newSyncInfoTypeError,
-    kSyncClient_noStrongChecksumPluginError,
-    kSyncClient_strongChecksumByteSizeError,
-    kSyncClient_noDecompressPluginError,
-    kSyncClient_newSyncInfoDataError,
-    kSyncClient_newSyncInfoChecksumError,
-    kSyncClient_newSyncInfoOpenError,
-    kSyncClient_newSyncInfoCloseError,
-    kSyncClient_oldFileOpenError,
-    kSyncClient_oldFileCloseError,
-    kSyncClient_newFileCreateError,
-    kSyncClient_newFileCloseError,
-    kSyncClient_matchNewDataInOldError,
-    kSyncClient_readSyncDataError,
-    kSyncClient_decompressError,
-    kSyncClient_readOldDataError,
-    kSyncClient_writeNewDataError,
-    kSyncClient_strongChecksumOpenError,
-    kSyncClient_checksumSyncDataError,
-} TNewDataSyncInfo_resultType;
-    
-    
-    typedef struct TNeedSyncInfo{
-        uint32_t needSyncCount;
-        uint32_t needCacheSyncCount;
-        hpatch_StreamPos_t needSyncSize;
-        hpatch_StreamPos_t needCacheSyncSize;
-    } TNeedSyncInfo;
-    
+#include "sync_info.h"
+
+
+typedef struct TNeedSyncInfo{
+    uint32_t needSyncCount;
+    uint32_t needCacheSyncCount;
+    hpatch_StreamPos_t needSyncSize;
+    hpatch_StreamPos_t needCacheSyncSize;
+} TNeedSyncInfo;
+
 typedef hpatch_StreamPos_t TSyncDataType;
 static const TSyncDataType kSyncDataType_needSync=~(TSyncDataType)0; // download, default
-//                                                          other value mead: cache index
-typedef struct TSyncPatchChecksumSet{
-    bool    isChecksumNewSyncInfo;
-    bool    isChecksumNewSyncData;
-} TSyncPatchChecksumSet;
 
 struct TDownloadCacheIO{
     // .read_writed can't null
@@ -79,11 +48,7 @@ struct TDownloadCacheIO{
     bool (*deleteCacheIO)(const struct TDownloadCacheIO* cacheIO);
 };
 
-typedef struct ISyncPatchListener{
-    void*             import;
-    TSyncPatchChecksumSet checksumSet;
-    hpatch_TDecompress* (*findDecompressPlugin)(ISyncPatchListener* listener,const char* compressType);
-    hpatch_TChecksum*   (*findChecksumPlugin)  (ISyncPatchListener* listener,const char* strongChecksumType);
+typedef struct ISyncPatchListener:public ISyncInfoListener{
     //needSyncMsg can null; return a stream I/O for cache repeat downloaded data, can return null;
     const TDownloadCacheIO*  (*needSyncMsg)    (ISyncPatchListener* listener,const TNeedSyncInfo* needSyncInfo);
     //needSyncDataMsg can null; called befor all readSyncData called;
@@ -93,12 +58,6 @@ typedef struct ISyncPatchListener{
     bool (*readSyncData)   (ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
                             uint32_t syncDataSize,TSyncDataType cacheIndex,unsigned char* out_syncDataBuf);
 } ISyncPatchListener;
-
-int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,
-                                   ISyncPatchListener* listener);
-int  TNewDataSyncInfo_open        (TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
-                                   ISyncPatchListener* listener);
-void TNewDataSyncInfo_close       (TNewDataSyncInfo* self);
 
 int sync_patch_file2file(ISyncPatchListener* listener,const char* outNewFile,const char* oldFile,
                          const char* newSyncInfoFile,int threadNum=0);
