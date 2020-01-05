@@ -267,7 +267,7 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
             memset(buf.data()+dataLen,0,backZeroLen);
         
         uint64_t rollHash;
-        //rool hash
+        //roll hash
         if (out_newSyncInfo->is32Bit_rollHash)
             rollHash=roll_hash_start((uint32_t*)0,buf.data(),kMatchBlockSize);
         else

@@ -1,4 +1,4 @@
-//  sync_info.cpp
+//  sync_info_client.cpp
 //  sync_client
 //  Created by housisong on 2019-09-18.
 /*
@@ -26,7 +26,7 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "sync_info.h"
+#include "sync_info_client.h"
 #include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HPatch/patch_private.h"
 

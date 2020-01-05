@@ -1,4 +1,4 @@
-//  sync_info.h
+//  sync_info_client.h
 //  sync_client
 //  Created by housisong on 2019-09-18.
 /*
@@ -26,8 +26,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef sync_info_h
-#define sync_info_h
+#ifndef sync_info_client_h
+#define sync_info_client_h
 #include "sync_client_type.h"
 
 typedef enum TSyncClient_resultType{
@@ -63,7 +63,7 @@ typedef struct TSyncPatchChecksumSet{
 } TSyncPatchChecksumSet;
 
 typedef struct ISyncInfoListener{
-    void*             import;
+    void*                 import;
     TSyncPatchChecksumSet checksumSet;
     hpatch_TDecompress* (*findDecompressPlugin)(ISyncInfoListener* listener,const char* compressType);
     hpatch_TChecksum*   (*findChecksumPlugin)  (ISyncInfoListener* listener,const char* strongChecksumType);
@@ -75,4 +75,4 @@ int  TNewDataSyncInfo_open        (TNewDataSyncInfo* self,const hpatch_TStreamIn
                                    ISyncInfoListener* listener);
 void TNewDataSyncInfo_close       (TNewDataSyncInfo* self);
 
-#endif // sync_info_h
+#endif // sync_info_client_h

@@ -29,7 +29,7 @@
 #ifndef sync_client_h
 #define sync_client_h
 #include "sync_client_type.h"
-#include "sync_info.h"
+#include "sync_info_client.h"
 
 
 typedef struct TNeedSyncInfo{
