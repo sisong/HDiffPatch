@@ -33,6 +33,7 @@
 #include "match_in_new.h"
 #include "../sync_client/mt_by_queue.h"
 using namespace hdiff_private;
+using namespace sync_private;
 
 struct _TCreateDatas {
     const hpatch_TStreamInput*  newData;
@@ -49,7 +50,7 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
     TNewDataSyncInfo*       out_newSyncInfo=cd.out_newSyncInfo;
     const hdiff_TCompress*  compressPlugin=cd.compressPlugin;
     hpatch_TChecksum*       strongChecksumPlugin=cd.strongChecksumPlugin;
-    const uint32_t kBlockCount=(uint32_t)getBlockCount(out_newSyncInfo->newDataSize,kMatchBlockSize);
+    const uint32_t kBlockCount=(uint32_t)getSyncBlockCount(out_newSyncInfo->newDataSize,kMatchBlockSize);
     std::vector<TByte> buf(kMatchBlockSize);
     std::vector<TByte> cmbuf(compressPlugin?((size_t)compressPlugin->maxCompressedSize(kMatchBlockSize)):0);
     const size_t checksumByteSize=strongChecksumPlugin->checksumByteSize();
@@ -85,7 +86,7 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
         checksumBlockData.appendBegin();
         checksumBlockData.append(buf.data(),buf.data()+kMatchBlockSize);
         checksumBlockData.appendEnd();
-        toPartChecksum(checksumBlockData.checksum.data(),
+        toSyncPartChecksum(checksumBlockData.checksum.data(),
                        checksumBlockData.checksum.data(),checksumByteSize);
         //compress
         size_t compressedSize=0;
@@ -149,8 +150,8 @@ static void _create_sync_data(_TCreateDatas& createDatas,size_t threadNum){
     
 #if (_IS_USED_MULTITHREAD)
     if (threadNum>1){
-        const uint32_t kBlockCount=(uint32_t)getBlockCount(createDatas.out_newSyncInfo->newDataSize,
-                                                           createDatas.kMatchBlockSize);
+        const uint32_t kBlockCount=(uint32_t)getSyncBlockCount(createDatas.out_newSyncInfo->newDataSize,
+                                                               createDatas.kMatchBlockSize);
         TMt_by_queue   shareDatas((int)threadNum,kBlockCount,true);
         TMt_threadDatas  tdatas;  memset(&tdatas,0,sizeof(tdatas));
         tdatas.shareDatas=&shareDatas;

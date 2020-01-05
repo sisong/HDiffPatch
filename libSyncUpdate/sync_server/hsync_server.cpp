@@ -261,7 +261,7 @@ static bool printFileInfo(const char *path_utf8,const char *tag,hpatch_StreamPos
 
 static void printCreateSyncInfo(hpatch_StreamPos_t newDataSize,size_t kMatchBlockSize,bool isUsedCompress){
     printf("block size : %d\n",(uint32_t)kMatchBlockSize);
-    hpatch_StreamPos_t blockCount=getBlockCount(newDataSize,(uint32_t)kMatchBlockSize);
+    hpatch_StreamPos_t blockCount=getSyncBlockCount(newDataSize,(uint32_t)kMatchBlockSize);
     printf("block count: %" PRIu64 "\n",blockCount);
     double patchMemSize=(double)estimatePatchMemSize(newDataSize,(uint32_t)kMatchBlockSize,isUsedCompress);
     if (patchMemSize>=(1<<20))
@@ -426,7 +426,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
                   SYNC_SERVER_NEWPATH_ERROR,"%s must file","newDataPath");
 #endif
     if ((compressPlugin==0)&&(kPathType_file==newType))
-        printf("NOTE: outNewSyncDataFile's data is same as newDataPath file!\n");
+        printf("NOTE: outNewSyncDataFile's data is same as newDataPath file!\n\n");
     
     if (threadNum>1)
         printf("muti-thread parallel: opened, threadNum: %d\n",(uint32_t)threadNum);

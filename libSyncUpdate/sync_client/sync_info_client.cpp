@@ -202,7 +202,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
         TByte* curMem=0;
         hpatch_StreamPos_t dataSize=(rollHashSize(self)+kPartStrongChecksumByteSize)
                                     *(hpatch_StreamPos_t)kBlockCount;
-        dataSize+=self->samePairCount*sizeof(TSameNewDataPair);
+        dataSize+=self->samePairCount*sizeof(TSameNewBlockPair);
         if (decompressPlugin)
             dataSize+=sizeof(uint32_t)*(hpatch_StreamPos_t)kBlockCount;
         dataSize+=memSize;
@@ -212,8 +212,8 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
         check(curMem!=0,kSyncClient_memError);
         
         self->_import=curMem;
-        self->samePairList=(TSameNewDataPair*)curMem;
-        curMem+=self->samePairCount*sizeof(TSameNewDataPair);
+        self->samePairList=(TSameNewBlockPair*)curMem;
+        curMem+=self->samePairCount*sizeof(TSameNewBlockPair);
         self->rollHashs=curMem;
         curMem+=rollHashSize(self)*(size_t)kBlockCount;
         if (decompressPlugin){
@@ -269,7 +269,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
         {//samePairList
             uint32_t pre=0;
             for (size_t i=0;i<self->samePairCount;++i){
-                TSameNewDataPair& sp=self->samePairList[i];
+                TSameNewBlockPair& sp=self->samePairList[i];
                 uint32_t v;
                 check(_clip_unpackUInt32To(&v,codeClip),kSyncClient_newSyncInfoDataError);
                 sp.curIndex=v+pre;
@@ -361,7 +361,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
               kSyncClient_newSyncInfoDataError);
         
         TByte* strongChecksumInfo=checksumInputStream.end();
-        toPartChecksum(strongChecksumInfo,strongChecksumInfo,checksumInputStream.checksumByteSize());
+        toSyncPartChecksum(strongChecksumInfo,strongChecksumInfo,checksumInputStream.checksumByteSize());
         check(0==memcmp(strongChecksumInfo,self->infoPartChecksum,kPartStrongChecksumByteSize),
               kSyncClient_newSyncInfoChecksumError);
     }

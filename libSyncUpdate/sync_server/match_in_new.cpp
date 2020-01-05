@@ -31,6 +31,7 @@
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
 using namespace hdiff_private;
+namespace sync_private{
 
 template<class tm_roll_uint>
 struct TIndex_comp{
@@ -66,20 +67,11 @@ protected:
     const tm_roll_uint* blocks;
 };
 
-static unsigned int getBetterTableBit(uint32_t blockCount){
-    const int kMinBit = 8;
-    const int kMaxBit = 23;
-    int result=(int)upper_ilog2((1<<kMinBit)+blockCount)-3;
-    result=(result<kMinBit)?kMinBit:result;
-    result=(result>kMaxBit)?kMaxBit:result;
-    return result;
-}
-
-template<class tm_roll_uint>
+template<class tm_roll_uint> static
 void tm_matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     const unsigned char* partChecksums=newSyncInfo->partChecksums;
-    TSameNewDataPair* samePairList=newSyncInfo->samePairList;
+    TSameNewBlockPair* samePairList=newSyncInfo->samePairList;
 
     TAutoMem _mem(kBlockCount*(size_t)sizeof(uint32_t));
     uint32_t* sorted_newIndexs=(uint32_t*)_mem.data();
@@ -90,7 +82,7 @@ void tm_matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     std::sort(sorted_newIndexs,sorted_newIndexs+kBlockCount,icomp);
     
     //optimize for std::equal_range
-    const unsigned int kTableBit =getBetterTableBit(kBlockCount);
+    const unsigned int kTableBit =getBetterCacheBlockTableBit(kBlockCount);
     const unsigned int kTableHashShlBit=(sizeof(tm_roll_uint)*8-kTableBit);
     TAutoMem _mem_table((size_t)sizeof(uint32_t)*((1<<kTableBit)+1));
     uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
@@ -139,3 +131,6 @@ void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     else
         tm_matchNewDataInNew<uint64_t>(newSyncInfo);
 }
+
+}//namespace sync_private
+

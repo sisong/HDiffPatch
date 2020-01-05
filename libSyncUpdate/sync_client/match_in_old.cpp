@@ -155,7 +155,7 @@ protected:
         m_strongChecksumPlugin->append(m_checksumHandle,buf,buf+bufSize);
         m_strongChecksumPlugin->end(m_checksumHandle,m_strongChecksum_buf,
                                     m_strongChecksum_buf+m_checksumByteSize);
-        toPartChecksum(m_strongChecksum_buf,m_strongChecksum_buf,m_checksumByteSize);
+        toSyncPartChecksum(m_strongChecksum_buf,m_strongChecksum_buf,m_checksumByteSize);
         return m_strongChecksum_buf;
     }
 };
@@ -193,15 +193,6 @@ inline static size_t getBackZeroLen(hpatch_StreamPos_t newDataSize,uint32_t kMat
     size_t len=(size_t)(newDataSize % kMatchBlockSize);
     if (len!=0) len=kMatchBlockSize-len;
     return len;
-}
-
-static unsigned int getBetterTableBit(uint32_t blockCount){
-    const int kMinBit = 8;
-    const int kMaxBit = 23;
-    int result=(int)upper_ilog2((1<<kMinBit)+blockCount)-2;
-    result=(result<kMinBit)?kMinBit:result;
-    result=(result>kMaxBit)?kMaxBit:result;
-    return result;
 }
 
 static void matchRange(hpatch_StreamPos_t* out_newDataPoss,const TByte* partChecksums,TOldDataCache_base& oldData,
@@ -316,7 +307,7 @@ static void tm_matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
     std::sort(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,icomp);
     
     //optimize for std::equal_range
-    const unsigned int kTableBit =getBetterTableBit(sortedBlockCount);
+    const unsigned int kTableBit =getBetterCacheBlockTableBit(sortedBlockCount);
     const unsigned int kTableHashShlBit=(sizeof(tm_roll_uint)*8-kTableBit);
     TAutoMem _mem_table((size_t)sizeof(uint32_t)*((1<<kTableBit)+1));
     uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();

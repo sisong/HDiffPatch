@@ -29,6 +29,7 @@
 #ifndef sync_server_h
 #define sync_server_h
 #include "../sync_client/sync_client_type.h"
+#include "sync_patch_hash_clash.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 

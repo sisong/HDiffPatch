@@ -31,7 +31,6 @@
 #include "sync_client_type.h"
 #include "sync_info_client.h"
 
-
 typedef struct TNeedSyncInfo{
     uint32_t needSyncCount;
     uint32_t needCacheSyncCount;
@@ -43,8 +42,7 @@ typedef hpatch_StreamPos_t TSyncDataType;
 static const TSyncDataType kSyncDataType_needSync=~(TSyncDataType)0; // download, default
 
 struct TDownloadCacheIO{
-    // .read_writed can't null
-    hpatch_TStreamOutput* streamIO;
+    hpatch_TStreamOutput* streamIO;// .read_writed can't null
     bool (*deleteCacheIO)(const struct TDownloadCacheIO* cacheIO);
 };
 

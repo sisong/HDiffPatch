@@ -28,8 +28,10 @@
  */
 #include "dir_sync_server.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
+#include "sync_info_server.h"
 #include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
 using namespace hdiff_private;
+using namespace sync_private;
 
 
 void get_newManifest(IDirPathIgnore* filter,const char* newDir,TManifest& out_newManifest){
@@ -165,7 +167,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
         CChecksum checksumHead(strongChecksumPlugin);
         checksumHead.append(head);
         checksumHead.appendEnd();
-        toPartChecksum(checksumHead.checksum.data(),
+        toSyncPartChecksum(checksumHead.checksum.data(),
                        checksumHead.checksum.data(),checksumHead.checksum.size());
         
         pushBack(head,checksumHead.checksum.data(),kPartStrongChecksumByteSize);

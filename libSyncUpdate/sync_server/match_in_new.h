@@ -29,8 +29,10 @@
 #ifndef match_in_new_h
 #define match_in_new_h
 #include "../sync_client/sync_client_type.h"
+namespace sync_private{
+    
+    //get samePairList\samePairCount
+    void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo);
 
-//get samePairList\samePairCount
-void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo);
-
+}//namespace sync_private
 #endif // match_in_new_h

@@ -34,6 +34,8 @@
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 #include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
 
+namespace sync_private{
+    
 bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* out_stream,
                              hpatch_TChecksum* strongChecksumPlugin,const hdiff_TCompress* compressPlugin);
 
@@ -51,5 +53,6 @@ private:
     std::string                 _strongChecksumType;
     hdiff_private::TAutoMem     _mem;
 };
-
+    
+}//namespace sync_private
 #endif // sync_info_server_h
