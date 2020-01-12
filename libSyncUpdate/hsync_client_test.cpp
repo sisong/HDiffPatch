@@ -27,15 +27,16 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include <vector>
-#include "sync_client.h"
-#include "download_emulation.h"
-#include "../../_clock_for_demo.h"
-#include "../../_atosize.h"
-#include "../../libParallel/parallel_import.h"
-#include "../../file_for_patch.h"
-#include "../../_dir_ignore.h"
+#include "../_clock_for_demo.h"
+#include "../_atosize.h"
+#include "../libParallel/parallel_import.h"
+#include "../file_for_patch.h"
+#include "../_dir_ignore.h"
+
+#include "sync_client/sync_client.h"
+#include "sync_client/download_emulation.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#   include "dir_sync_client.h"
+#   include "sync_client/dir_sync_client.h"
 #endif
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
@@ -51,7 +52,7 @@
 //#   define _CompressPlugin_bz2
 #endif
 
-#include "../../decompress_plugin_demo.h"
+#include "../decompress_plugin_demo.h"
 
 #ifndef _IS_NEED_DEFAULT_ChecksumPlugin
 #   define _IS_NEED_DEFAULT_ChecksumPlugin 1
@@ -61,7 +62,7 @@
 #   define _ChecksumPlugin_md5
 #endif
 
-#include "../../checksum_plugin_demo.h"
+#include "../checksum_plugin_demo.h"
 
 static void printUsage(){
     printf("test sync patch: [options] oldPath newSyncInfoFile test_newSyncDataFile outNewPath\n"

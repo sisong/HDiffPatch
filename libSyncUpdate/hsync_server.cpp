@@ -30,16 +30,17 @@
 #include <stdexcept>
 #include <vector>
 #include <string>
-#include "../../file_for_patch.h"
-#include "../../_clock_for_demo.h"
-#include "../../_atosize.h"
-#include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
-#include "../../libParallel/parallel_import.h"
-#include "../../_dir_ignore.h"
-#include "sync_server.h"
+#include "../file_for_patch.h"
+#include "../_clock_for_demo.h"
+#include "../_atosize.h"
+#include "../libHDiffPatch/HDiff/private_diff/mem_buf.h"
+#include "../libParallel/parallel_import.h"
+#include "../_dir_ignore.h"
+
+#include "sync_server/sync_server.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#include "../../dirDiffPatch/dir_diff/dir_diff.h"
-#include "dir_sync_server.h"
+#include "../dirDiffPatch/dir_diff/dir_diff.h"
+#include "sync_server/dir_sync_server.h"
 #endif
 
 #ifndef _IS_NEED_MAIN
@@ -57,7 +58,7 @@
 #endif
 
 #define  IS_NOTICE_compress_canceled 0
-#include "../../compress_plugin_demo.h"
+#include "../compress_plugin_demo.h"
 
 
 #ifndef _IS_NEED_DEFAULT_ChecksumPlugin
@@ -68,7 +69,7 @@
 #   define _ChecksumPlugin_md5
 #endif
 
-#include "../../checksum_plugin_demo.h"
+#include "../checksum_plugin_demo.h"
 
 
 static void printUsage(){
