@@ -297,7 +297,7 @@ int hdiff_dir(const char* oldPath,const char* newPath,const char* outDiffFileNam
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
               const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
               hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber,
-              const std::vector<std::string>& ignorePathList,const std::vector<std::string>& ignoreOldPathList,
+              const std::vector<std::string>& ignorePathListBase,const std::vector<std::string>& ignoreOldPathList,
               const std::vector<std::string>& ignoreNewPathList,
               const std::string& oldManifestFileName,const std::string& newManifestFileName);
 int create_manifest(const char* inputPath,const char* outManifestFileName,
@@ -1365,22 +1365,20 @@ clear:
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
 
-struct DirDiffListener:public IDirDiffListener{
-    DirDiffListener(const std::vector<std::string>& ignorePathList,
-                    const std::vector<std::string>& ignoreOldPathList,
-                    const std::vector<std::string>& ignoreNewPathList,bool isPrintIgnore=true)
-    :_ignorePathList(ignorePathList),_ignoreOldPathList(ignoreOldPathList),
-    _ignoreNewPathList(ignoreNewPathList),_isPrintIgnore(isPrintIgnore),_ignoreCount(0){ }
+struct DirPathIgnoreListener:public IDirPathIgnore{
+    DirPathIgnoreListener(const std::vector<std::string>& ignorePathListBase,
+                          const std::vector<std::string>& ignorePathList,bool isPrintIgnore=true)
+    :_ignorePathListBase(ignorePathListBase),_ignorePathList(ignorePathList),
+    _isPrintIgnore(isPrintIgnore),_ignoreCount(0){ }
+    const std::vector<std::string>& _ignorePathListBase;
     const std::vector<std::string>& _ignorePathList;
-    const std::vector<std::string>& _ignoreOldPathList;
-    const std::vector<std::string>& _ignoreNewPathList;
     const bool                      _isPrintIgnore;
     size_t                          _ignoreCount;
     
     static bool _match(const char* beginS,const char* endS,
                        const std::vector<const char*>& matchs,size_t mi,
                        const char* ignoreBegin,const char* ignoreEnd){
-         //O(n*n) !
+        //O(n*n) !
         const char* match   =matchs[mi];
         const char* matchEnd=matchs[mi+1];
         const char* curS=beginS;
@@ -1439,19 +1437,21 @@ struct DirDiffListener:public IDirDiffListener{
         return false;
     }
     
-    virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen,bool pathIsInOld){
+    virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen){
         std::string subPath(path.begin()+rootPathNameLen,path.end());
         formatIgnorePathName(subPath);
-        bool result=isMatchIgnoreList(subPath,_ignorePathList) ||
-                    isMatchIgnoreList(subPath,pathIsInOld?_ignoreOldPathList:_ignoreNewPathList);
+        bool result=   isMatchIgnoreList(subPath,_ignorePathListBase)
+        || isMatchIgnoreList(subPath,_ignorePathList);
         if (result) ++_ignoreCount;
         if (result&&_isPrintIgnore){ //printf
-            printf("  ignore %s file : \"",pathIsInOld?"old":"new");
+            printf("  ignore file : \"");
             hpatch_printPath_utf8(path.c_str());  printf("\"\n");
         }
         return result;
     }
-    
+};
+
+struct DirDiffListener:public IDirDiffListener{
     virtual bool isExecuteFile(const std::string& fileName) {
         bool result= 0!=hpatch_getIsExecuteFile(fileName.c_str());
         if (result){
@@ -1463,8 +1463,7 @@ struct DirDiffListener:public IDirDiffListener{
     virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,
                              hpatch_StreamPos_t sameFileSize,size_t refOldFileCount,size_t refNewFileCount,
                              hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){
-        if ((_ignoreCount>0)&&_isPrintIgnore)
-            printf("\n");
+        printf("\n");
         printf("DirDiff old path count: %" PRIu64 "\n",(hpatch_StreamPos_t)oldPathCount);
         printf("        new path count: %" PRIu64 " (fileCount:%" PRIu64 ")\n",
                (hpatch_StreamPos_t)newPathCount,(hpatch_StreamPos_t)(sameFilePairCount+refNewFileCount));
@@ -1500,7 +1499,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
               hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
               const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
               hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber,
-              const std::vector<std::string>& ignorePathList,const std::vector<std::string>& ignoreOldPathList,
+              const std::vector<std::string>& ignorePathListBase,const std::vector<std::string>& ignoreOldPathList,
               const std::vector<std::string>& ignoreNewPathList,
               const std::string& oldManifestFileName,const std::string& newManifestFileName){
     double time0=clock_s();
@@ -1546,6 +1545,11 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         }
         printf("check manifest time: %.3f s\n",(clock_s()-check_time0));
         printf("  check path datas by manifest ok!\n\n");
+    }else{
+        DirPathIgnoreListener oldDirPathIgnore(ignorePathListBase,ignoreOldPathList);
+        DirPathIgnoreListener newDirPathIgnore(ignorePathListBase,ignoreNewPathList);
+        get_manifest(&oldDirPathIgnore,oldPath,oldManifest);
+        get_manifest(&newDirPathIgnore,newPath,newManifest);
     }
 
     if (isDiff){
@@ -1554,14 +1558,9 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
             check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,~(hpatch_StreamPos_t)0),
                   HDIFF_OPENWRITE_ERROR,"open out diffFile");
             hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
-            DirDiffListener listener(ignorePathList,ignoreOldPathList,ignoreNewPathList);
-            if (isManifest){
-                manifest_diff(&listener,oldManifest,newManifest,&diffData_out.base,isLoadAll!=0,matchValue,
-                              compressPlugin,checksumPlugin,kMaxOpenFileNumber);
-            }else{
-                dir_diff(&listener,oldPath,newPath,&diffData_out.base,isLoadAll!=0,matchValue,
-                         compressPlugin,checksumPlugin,kMaxOpenFileNumber);
-            }
+            DirDiffListener listener;
+            dir_diff(&listener,oldManifest,newManifest,&diffData_out.base,isLoadAll!=0,matchValue,
+                     compressPlugin,checksumPlugin,kMaxOpenFileNumber);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             check(false,DIRDIFF_DIFF_ERROR,"dir diff run an error: "+e.what());
@@ -1589,16 +1588,11 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         //check(check_dirOldDataChecksum(oldPath.c_str(),&diffData_in.base,
         //      saved_decompressPlugin,saved_checksumPlugin),
         //      DIRDIFF_PATCH_ERROR,"part diff data check_dirOldDataChecksum");
-        DirDiffListener listener(ignorePathList,ignoreOldPathList,ignoreNewPathList,false);
-        if (isManifest){
-            check(check_manifestdiff(&listener,oldManifest,newManifest,&diffData_in.base,
-                                     saved_decompressPlugin,saved_checksumPlugin,kMaxOpenFileNumber),
-                  DIRDIFF_PATCH_ERROR,"dir patch check diff data");
-        }else{
-            check(check_dirdiff(&listener,oldPath,newPath,&diffData_in.base,
-                                saved_decompressPlugin,saved_checksumPlugin,kMaxOpenFileNumber),
-                  DIRDIFF_PATCH_ERROR,"dir patch check diff data");
-        }
+        DirDiffListener listener;
+        check(check_dirdiff(&listener,oldManifest,newManifest,&diffData_in.base,
+                            saved_decompressPlugin,saved_checksumPlugin,kMaxOpenFileNumber),
+              DIRDIFF_PATCH_ERROR,"dir patch check diff data");
+
         printf("dir patch time: %.3f s\n",(clock_s()-patch_time0));
         printf("  patch check diff data ok!\n");
     }
@@ -1643,8 +1637,8 @@ int create_manifest(const char* _inputPath,const char* outManifestFileName,
             check(hpatch_TFileStreamOutput_open(&manifestData_out,outManifestFileName,~(hpatch_StreamPos_t)0),
                   HDIFF_OPENWRITE_ERROR,"open out manifestFile");
             //hpatch_TFileStreamOutput_setRandomOut(&manifestData_out,hpatch_TRUE);
-            DirDiffListener listener(ignorePathList,emptyPathList,emptyPathList);
-            save_manifest(&listener,inputPath,&manifestData_out.base,checksumPlugin);
+            DirPathIgnoreListener dirPathIgnore(ignorePathList,emptyPathList);
+            save_manifest(&dirPathIgnore,inputPath,&manifestData_out.base,checksumPlugin);
             manifestData_out.base.streamSize=manifestData_out.out_length;
         }catch(const std::exception& e){
             check(false,MANIFEST_CREATE_ERROR,"create manifest run an error: "+e.what());

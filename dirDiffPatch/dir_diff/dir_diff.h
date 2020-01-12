@@ -38,15 +38,15 @@
 void assignDirTag(std::string& dir);
 struct IDirPathIgnore;
 void getDirAllPathList(const std::string& dir,std::vector<std::string>& out_list,
-                       IDirPathIgnore* filter,bool pathIsInOld);
+                       IDirPathIgnore* filter);
 void sortDirPathList(std::vector<std::string>& fileList);
 
 struct IDirPathIgnore{
     virtual ~IDirPathIgnore(){}
-    virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen,bool pathIsInOld) { return false; }
+    virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen)=0;
 };
 
-struct IDirDiffListener:public IDirPathIgnore{
+struct IDirDiffListener{
     virtual ~IDirDiffListener(){}
     virtual bool isExecuteFile(const std::string& fileName) { return false; }
     virtual void diffPathList(const std::vector<std::string>& oldPathList,
@@ -60,26 +60,17 @@ struct IDirDiffListener:public IDirPathIgnore{
     virtual void externDataPosInDiffStream(hpatch_StreamPos_t externDataPos,size_t externDataSize){}
 };
 
-void dir_diff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
-              const hpatch_TStreamOutput* outDiffStream,bool isLoadAll,size_t matchValue,
-              const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
-bool check_dirdiff(IDirDiffListener* listener,const std::string& oldPath,const std::string& newPath,
-                   const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
-                   hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
-
 struct TManifest{
     std::string                 rootPath;
     std::vector<std::string>    pathList;
 };
-void manifest_diff(IDirDiffListener* listener,const TManifest& oldManifest,
-                   const TManifest& newManifest,const hpatch_TStreamOutput* outDiffStream,
-                   bool isLoadAll,size_t matchValue,const hdiff_TCompress* compressPlugin,
+void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
+              const TManifest& newManifest,const hpatch_TStreamOutput* outDiffStream,
+              bool isLoadAll,size_t matchValue,const hdiff_TCompress* compressPlugin,
+              hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
+bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const TManifest& newManifest,
+                   const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
                    hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
-bool check_manifestdiff(IDirDiffListener* listener,const TManifest& oldManifest,const TManifest& newManifest,
-                        const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
-                        hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
-void save_manifest(IDirDiffListener* listener,const std::string& inputPath,
-                   const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin);
 
 //as api demo
 hpatch_BOOL check_dirOldDataChecksum(const char* oldPath,hpatch_TStreamInput* diffData,
@@ -89,10 +80,17 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
                     const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                     hpatch_TChecksum* checksumPlugin);
 
+void get_manifest(IDirPathIgnore* listener,const std::string& inputPath,TManifest& out_manifest);
+void save_manifest(const TManifest& manifest,
+                   const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin);
+
+void save_manifest(IDirPathIgnore* listener,const std::string& inputPath,
+                   const hpatch_TStreamOutput* outManifest,hpatch_TChecksum* checksumPlugin);
 
 struct TManifestSaved:public TManifest{
-    std::string                                 checksumType;
-    std::vector<std::vector<unsigned char> >    checksumList;
+    std::string                     checksumType;
+    size_t                          checksumByteSize;//if no file checksum,checksumByteSize==0
+    std::vector<unsigned char>      checksumList;//size==checksumByteSize*pathList.size()
 };
 
 void load_manifestFile(TManifestSaved& out_manifest,const std::string& rootPath,
