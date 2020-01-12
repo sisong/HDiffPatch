@@ -342,7 +342,15 @@ static void tm_matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
     {
         _rollMatch<tm_roll_uint>(matchDatas,0,oldRollEnd);
     }
-
+}
+    
+static void matchInOldBySameBlock(hpatch_StreamPos_t* out_newDataPoss,const TNewDataSyncInfo* newSyncInfo){
+    for (uint32_t curPair=0; curPair<newSyncInfo->samePairCount; ++curPair) {
+        const TSameNewBlockPair& pair=newSyncInfo->samePairList[curPair];
+        hpatch_StreamPos_t syncInfo=out_newDataPoss[pair.sameIndex];
+        if (syncInfo!=kBlockType_needSync)//can from old?
+            out_newDataPoss[pair.curIndex]=syncInfo;
+    }
 }
 
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,const TNewDataSyncInfo* newSyncInfo,
@@ -360,6 +368,7 @@ void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,const TNewDataSyncInf
         tm_matchNewDataInOld<uint32_t>(matchDatas,threadNum);
     else
         tm_matchNewDataInOld<uint64_t>(matchDatas,threadNum);
+    matchInOldBySameBlock(out_newDataPoss,newSyncInfo);
 }
 
 } //namespace sync_private

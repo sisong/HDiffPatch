@@ -33,8 +33,8 @@
 #include "../file_for_patch.h"
 #include "../_dir_ignore.h"
 
+#include "client_download_emulation.h"
 #include "sync_client/sync_client.h"
-#include "sync_client/download_emulation.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #   include "sync_client/dir_sync_client.h"
 #endif
@@ -372,28 +372,14 @@ static int test_sync_patch(const char* oldPath,const char *newSyncInfoFile,
                            const char *test_newSyncDataFile,const char* outNewFile,
                            const TSyncPatchChecksumSet& checksumSet,size_t threadNum){
     ISyncPatchListener emulation; memset(&emulation,0,sizeof(emulation));
-    bool isUseCacheDownload=true;
-    char downloadCacheTempFile[hpatch_kPathMaxSize+1];
-    if (isUseCacheDownload){//cache demo
-        if (!hpatch_getTempPathName(outNewFile,downloadCacheTempFile,
-                                    downloadCacheTempFile+sizeof(downloadCacheTempFile)))
-            return kSyncClient_tempFileError;
-        if (!cacheDownloadEmulation_open_by_file(&emulation,test_newSyncDataFile,downloadCacheTempFile))
-            return kSyncClient_readSyncDataError;
-    }else{//simple demo
-        if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataFile))
-            return kSyncClient_readSyncDataError;
-    }
+    //simple demo
+    if (!downloadEmulation_open_by_file(&emulation,test_newSyncDataFile))
+        return kSyncClient_readSyncDataError;
     emulation.checksumSet=checksumSet;
     emulation.findChecksumPlugin=findChecksumPlugin;
     emulation.findDecompressPlugin=findDecompressPlugin;
     
     int result = sync_patch_file2file(&emulation,outNewFile,oldPath,newSyncInfoFile,(int)threadNum);
-    if (isUseCacheDownload){
-        cacheDownloadEmulation_close(&emulation);
-        hpatch_removeFile(downloadCacheTempFile);
-    }else{
-        downloadEmulation_close(&emulation);
-    }
+    downloadEmulation_close(&emulation);
     return result;
 }

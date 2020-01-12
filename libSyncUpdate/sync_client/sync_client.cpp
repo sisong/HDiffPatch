@@ -79,16 +79,14 @@ static int mt_writeToNew(_TWriteDatas& wd,void* _mt=0,int threadIndex=0) {
         if (_mt) { if (!((TMt_by_queue*)_mt)->getWork(threadIndex,i)) continue; } //next work;
 #endif
         const hpatch_StreamPos_t curSyncPos=wd.newDataPoss[i];
-        if (curSyncPos>=oldDataSize){ //needSync
+        if (curSyncPos==kBlockType_needSync){
             TByte* buf=(syncSize<newDataSize)?(dataBuf+kMatchBlockSize):dataBuf;
             if ((wd.out_newStream)||(listener)){
-                {//read data
-                    TSyncDataType cacheIndex=(curSyncPos==kBlockType_needSync)?kSyncDataType_needSync
-                                                              :(curSyncPos-oldDataSize);
+                {//download data
 #if (_IS_USED_MULTITHREAD)
                     TMt_by_queue::TAutoInputLocker _autoLocker((TMt_by_queue*)_mt);
 #endif
-                    check(listener->readSyncData(listener,posInNewSyncData,syncSize,cacheIndex,buf),
+                    check(listener->readSyncData(listener,posInNewSyncData,syncSize,buf),
                           kSyncClient_readSyncDataError);
                 }
                 if (syncSize<newDataSize){
@@ -109,6 +107,7 @@ static int mt_writeToNew(_TWriteDatas& wd,void* _mt=0,int threadIndex=0) {
                 }
             }
         }else{//copy from old
+            assert(curSyncPos<oldDataSize);
 #if (_IS_USED_MULTITHREAD)
             TMt_by_queue::TAutoInputLocker _autoLocker((TMt_by_queue*)_mt); //can use other locker
 #endif
@@ -172,109 +171,50 @@ static int writeToNew(_TWriteDatas& writeDatas,int threadNum) {
     }
 }
 
-
-struct TMatchedSyncInfo:public TNeedSyncInfo{
-    inline explicit TMatchedSyncInfo(bool _isUseCache)
-    :isUseCache(_isUseCache) { needSyncCount=0; needCacheSyncCount=0;
-        needSyncSize=0; needCacheSyncSize=0; }
-    const bool isUseCache;
-};
-
-static void setSameOldPos(hpatch_StreamPos_t* out_newDataPoss,TMatchedSyncInfo& msi,
-                          const TNewDataSyncInfo* newSyncInfo,hpatch_StreamPos_t oldDataSize){
-    static const hpatch_StreamPos_t kBlockType_repeat =kBlockType_needSync-1;
     
-    uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
-    msi.needSyncCount=kBlockCount;
-    msi.needSyncSize=newSyncInfo->newSyncDataSize;
-    uint32_t curPair=0;
-    for (uint32_t syncSize,i=0; i<kBlockCount; ++i){
-        syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
-        if (out_newDataPoss[i]!=kBlockType_needSync){
-            --msi.needSyncCount;
-            msi.needSyncSize-=syncSize;
-        }
-        if ((curPair<newSyncInfo->samePairCount)
-            &&(i==newSyncInfo->samePairList[curPair].curIndex)){
-            assert(out_newDataPoss[i]==kBlockType_needSync);
-            {
-                uint32_t sameIndex=newSyncInfo->samePairList[curPair].sameIndex;
-                hpatch_StreamPos_t syncInfo=out_newDataPoss[sameIndex];
-                if (syncInfo<oldDataSize){
-                    out_newDataPoss[i]=syncInfo; //ok from old
-                    --msi.needSyncCount;
-                    msi.needSyncSize-=syncSize;
-                }else{
-                    if (msi.isUseCache){
-                        out_newDataPoss[i]=kBlockType_repeat;
-                        out_newDataPoss[sameIndex]=kBlockType_repeat;
-                        --msi.needSyncCount;
-                        msi.needSyncSize-=syncSize;
-                    } //else download,not cache
-                }
-            }
-            ++curPair;
-        }
-    }
-    assert(curPair==newSyncInfo->samePairCount);
-    
-    if (!msi.isUseCache) return;
-    
-    hpatch_StreamPos_t cacheIndex=0;
-    curPair=0;
+static void getNeedSyncInfo(const hpatch_StreamPos_t* newDataPoss,
+                            const TNewDataSyncInfo* newSyncInfo,TNeedSyncInfo* out_nsi){
+    const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
+    out_nsi->syncBlockCount=0;
+    out_nsi->syncDataSize=0;
     for (uint32_t i=0; i<kBlockCount; ++i){
-        if (out_newDataPoss[i]==kBlockType_repeat){
-            out_newDataPoss[i]=oldDataSize+cacheIndex;
-        }
-        if ((curPair<newSyncInfo->samePairCount)
-            &&(i==newSyncInfo->samePairList[curPair].curIndex)){
-            {
-                uint32_t sameIndex=newSyncInfo->samePairList[curPair].sameIndex;
-                out_newDataPoss[i]=out_newDataPoss[sameIndex];
-            }
-            ++curPair;
-        }
-        if (out_newDataPoss[i]==oldDataSize+cacheIndex){
-            ++msi.needCacheSyncCount;
-            uint32_t syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
-            msi.needCacheSyncSize+=syncSize;
-            ++cacheIndex;
+        if (newDataPoss[i]==kBlockType_needSync){
+            ++out_nsi->syncBlockCount;
+            out_nsi->syncDataSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
         }
     }
-    assert(curPair==newSyncInfo->samePairCount);
 }
 
 static void sendSyncMsg(ISyncPatchListener* listener,const hpatch_StreamPos_t* newDataPoss,
-                        const TNewDataSyncInfo* newSyncInfo,const TMatchedSyncInfo& msi,hpatch_StreamPos_t oldDataSize){
+                        const TNewDataSyncInfo* newSyncInfo,const TNeedSyncInfo& nsi){
     if (listener==0) return;
     if (listener->needSyncMsg)
-        listener->needSyncMsg(listener,&msi);
+        listener->needSyncMsg(listener,&nsi);
     if (listener->needSyncDataMsg==0) return;
     
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     hpatch_StreamPos_t posInNewSyncData=0;
     for (uint32_t syncSize,i=0; i<kBlockCount; ++i,posInNewSyncData+=syncSize){
         syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
-        hpatch_StreamPos_t curSyncInfo=newDataPoss[i];
-        if (curSyncInfo<oldDataSize) continue;
-        TSyncDataType syncType=(curSyncInfo==kBlockType_needSync)?kSyncDataType_needSync
-                                                                 :(curSyncInfo-oldDataSize);
-        listener->needSyncDataMsg(listener,posInNewSyncData,syncSize,syncType);
+        if (newDataPoss[i]==kBlockType_needSync)
+            listener->needSyncDataMsg(listener,posInNewSyncData,syncSize);
     }
     assert(posInNewSyncData==newSyncInfo->newSyncDataSize);
 }
 
-static void printMatchResult(const TNewDataSyncInfo* newSyncInfo,const TMatchedSyncInfo& msi) {
+static void printMatchResult(const TNewDataSyncInfo* newSyncInfo,const TNeedSyncInfo& nsi) {
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
-    printf("syncCount: %d (/%d=%.3f) (cacheCount: %d)  syncSize: %" PRIu64 "\n",
-           msi.needSyncCount,kBlockCount,(double)msi.needSyncCount/kBlockCount,
-           msi.needCacheSyncCount,msi.needSyncSize);
-    hpatch_StreamPos_t downloadSize=newSyncInfo->newSyncInfoSize+msi.needSyncSize;
-    printf("downloadSize: %" PRIu64 "+%" PRIu64 "= %" PRIu64 " (/%" PRIu64 "=%.3f)",
-           newSyncInfo->newSyncInfoSize,msi.needSyncSize,downloadSize,
-           newSyncInfo->newSyncDataSize,(double)downloadSize/newSyncInfo->newSyncDataSize);
-    printf(" (/%" PRIu64 "=%.3f)\n",
-           newSyncInfo->newDataSize,(double)downloadSize/newSyncInfo->newDataSize);
+    printf("syncBlockCount: %d, /%d=%.1f%%\nsyncDataSize: %" PRIu64 "\n",
+           nsi.syncBlockCount,kBlockCount,100.0*nsi.syncBlockCount/kBlockCount,nsi.syncDataSize);
+    hpatch_StreamPos_t downloadSize=newSyncInfo->newSyncInfoSize+nsi.syncDataSize;
+    printf("downloadSize: %" PRIu64 "+%" PRIu64 "= %" PRIu64 ", /%" PRIu64 "=%.1f%%",
+           newSyncInfo->newSyncInfoSize,nsi.syncDataSize,downloadSize,
+           newSyncInfo->newDataSize,100.0*downloadSize/newSyncInfo->newDataSize);
+    if (newSyncInfo->savedSizes){
+        hpatch_StreamPos_t maxDownloadSize=newSyncInfo->newSyncInfoSize+newSyncInfo->newSyncDataSize;
+        printf(" (/%" PRIu64 "=%.1f%%)",maxDownloadSize,100.0*downloadSize/maxDownloadSize);
+    }
+    printf("\n");
 }
 } //namespace sync_private
 using namespace  sync_private;
@@ -285,7 +225,7 @@ int sync_patch(ISyncPatchListener* listener,const hpatch_TStreamOutput* out_newS
     hpatch_TDecompress* decompressPlugin=0;
     hpatch_TChecksum*   strongChecksumPlugin=0;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
-    TMatchedSyncInfo matchedSyncInfo(listener->isCanCacheRepeatSyncData);
+    TNeedSyncInfo needSyncInfo={0,0};
     hpatch_StreamPos_t* newDataPoss=0;
     int result=kSyncClient_ok;
     int _inClear=0;
@@ -317,15 +257,15 @@ int sync_patch(ISyncPatchListener* listener,const hpatch_TStreamOutput* out_newS
     check(newDataPoss!=0,kSyncClient_memError);
     try{
         matchNewDataInOld(newDataPoss,newSyncInfo,oldStream,strongChecksumPlugin,threadNum);
-    }catch(...){
+    }catch(const std::exception& e){
+        //printf("matchNewDataInOld() run an error: %s",e.what());
         result=kSyncClient_matchNewDataInOldError;
     }
     check(result==kSyncClient_ok,result);
-    setSameOldPos(newDataPoss,matchedSyncInfo,newSyncInfo,oldStream->streamSize);
-    printMatchResult(newSyncInfo,matchedSyncInfo);
-    
+    getNeedSyncInfo(newDataPoss,newSyncInfo,&needSyncInfo);
+    printMatchResult(newSyncInfo,needSyncInfo);
     //send msg: all need sync block
-    sendSyncMsg(listener,newDataPoss,newSyncInfo,matchedSyncInfo,oldStream->streamSize);
+    sendSyncMsg(listener,newDataPoss,newSyncInfo,needSyncInfo);
     
     _TWriteDatas writeDatas;
     writeDatas.out_newStream=out_newStream;

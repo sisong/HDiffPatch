@@ -32,29 +32,19 @@
 #include "sync_info_client.h"
 
 typedef struct TNeedSyncInfo{
-    uint32_t needSyncCount;
-    uint32_t needCacheSyncCount;
-    hpatch_StreamPos_t needSyncSize;
-    hpatch_StreamPos_t needCacheSyncSize;
+    uint32_t           syncBlockCount;
+    hpatch_StreamPos_t syncDataSize;
 } TNeedSyncInfo;
 
-typedef hpatch_StreamPos_t TSyncDataType;
-static const TSyncDataType kSyncDataType_needSync=~(TSyncDataType)0; // download, default
-
-struct TDownloadCacheIO{
-    hpatch_TStreamOutput* streamIO;// .read_writed can't null
-    bool (*deleteCacheIO)(const struct TDownloadCacheIO* cacheIO);
-};
-
 typedef struct ISyncPatchListener:public ISyncInfoListener{
-    //needSyncMsg can null; return a stream I/O for cache repeat downloaded data, can return null;
-    const TDownloadCacheIO*  (*needSyncMsg)    (ISyncPatchListener* listener,const TNeedSyncInfo* needSyncInfo);
+    //needSyncMsg can null
+    void (*needSyncMsg)    (ISyncPatchListener* listener,const TNeedSyncInfo* needSyncInfo);
     //needSyncDataMsg can null; called befor all readSyncData called;
     void (*needSyncDataMsg)(ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
-                            uint32_t syncDataSize,TSyncDataType samePosInNewSyncData);
+                            uint32_t syncDataSize);
     //download data
     bool (*readSyncData)   (ISyncPatchListener* listener,hpatch_StreamPos_t posInNewSyncData,
-                            uint32_t syncDataSize,TSyncDataType cacheIndex,unsigned char* out_syncDataBuf);
+                            uint32_t syncDataSize,unsigned char* out_syncDataBuf);
 } ISyncPatchListener;
 
 int sync_patch_file2file(ISyncPatchListener* listener,const char* outNewFile,const char* oldFile,
@@ -62,5 +52,5 @@ int sync_patch_file2file(ISyncPatchListener* listener,const char* outNewFile,con
 
 int sync_patch(ISyncPatchListener* listener,const hpatch_TStreamOutput* out_newStream,
                const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,int threadNum=0);
-        
+
 #endif // sync_client_h
