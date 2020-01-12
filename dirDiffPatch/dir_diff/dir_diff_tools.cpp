@@ -35,7 +35,7 @@
         hdiff_TDirHandle handle;
     };
     static void _getDirSubFileList(const std::string& dirPath,std::vector<std::string>& out_list,
-                                   IDirPathIgnore* filter,size_t rootPathNameLen,bool pathIsInOld){
+                                   IDirPathIgnore* filter,size_t rootPathNameLen){
         assert(!hdiff_private::isDirName(dirPath));
         std::vector<std::string> subDirs;
         {//serach cur dir
@@ -53,13 +53,13 @@
                 switch (type) {
                     case kPathType_dir:{
                         assignDirTag(subName);
-                        if (!filter->isNeedIgnore(subName,rootPathNameLen,pathIsInOld)){
+                        if (!filter->isNeedIgnore(subName,rootPathNameLen)){
                             subDirs.push_back(subName.substr(0,subName.size()-1)); //no '/'
                             out_list.push_back(subName); //add dir
                         }
                     } break;
                     case kPathType_file:{
-                        if (!filter->isNeedIgnore(subName,rootPathNameLen,pathIsInOld))
+                        if (!filter->isNeedIgnore(subName,rootPathNameLen))
                             out_list.push_back(subName); //add file
                     } break;
                     default:{
@@ -71,15 +71,15 @@
         
         for (size_t i=0; i<subDirs.size(); ++i) {
             assert(!hdiff_private::isDirName(subDirs[i]));
-            _getDirSubFileList(subDirs[i],out_list,filter,rootPathNameLen,pathIsInOld);
+            _getDirSubFileList(subDirs[i],out_list,filter,rootPathNameLen);
         }
     }
 void getDirAllPathList(const std::string& dirPath,std::vector<std::string>& out_list,
-                       IDirPathIgnore* filter,bool pathIsInOld){
+                       IDirPathIgnore* filter){
     assert(hdiff_private::isDirName(dirPath));
     out_list.push_back(dirPath);
     const std::string dirName(dirPath.c_str(),dirPath.c_str()+dirPath.size()-1); //without '/'
-    _getDirSubFileList(dirName,out_list,filter,dirName.size(),pathIsInOld);
+    _getDirSubFileList(dirName,out_list,filter,dirName.size());
     sortDirPathList(out_list);
 }
 #endif
