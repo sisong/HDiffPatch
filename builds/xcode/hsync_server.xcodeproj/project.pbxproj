@@ -10,11 +10,9 @@
 		D61DE52C2342F5F100F6FCCF /* dir_sync_server.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE52A2342F5F100F6FCCF /* dir_sync_server.cpp */; };
 		D61DE53423442F6C00F6FCCF /* ref_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D61DE53223442F6C00F6FCCF /* ref_stream.c */; };
 		D61DE53523442F6C00F6FCCF /* res_handle_limit.c in Sources */ = {isa = PBXBuildFile; fileRef = D61DE53323442F6C00F6FCCF /* res_handle_limit.c */; };
-		D61DE5492344D20D00F6FCCF /* dir_diff_tools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE5482344D20D00F6FCCF /* dir_diff_tools.cpp */; };
 		D658931B23327334003BB2F4 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931A23327334003BB2F4 /* md5.c */; };
 		D658931D2332737F003BB2F4 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931C2332737F003BB2F4 /* file_for_patch.c */; };
 		D658931F2332739D003BB2F4 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D658931E2332739D003BB2F4 /* adler_roll.c */; };
-		D6589321233273BF003BB2F4 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6589320233273BF003BB2F4 /* patch.c */; };
 		D658932B23327412003BB2F4 /* sync_server.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D658932323327412003BB2F4 /* sync_server.cpp */; };
 		D65893372332757F003BB2F4 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D65893362332757F003BB2F4 /* libz.tbd */; };
 		D684E20A23C1FC99004C6EB9 /* sync_info_server.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D684E20823C1FC99004C6EB9 /* sync_info_server.cpp */; };
@@ -24,6 +22,9 @@
 		D699A2BD233ECDC9003CB3DC /* parallel_import.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A2BA233ECDC9003CB3DC /* parallel_import.cpp */; };
 		D699A576233F509E003CB3DC /* LzmaEnc.c in Sources */ = {isa = PBXBuildFile; fileRef = D699A2BF233F509D003CB3DC /* LzmaEnc.c */; };
 		D699A68E233F509E003CB3DC /* LzFind.c in Sources */ = {isa = PBXBuildFile; fileRef = D699A575233F509D003CB3DC /* LzFind.c */; };
+		D6C9A99323CBF8CA00AC50F8 /* dir_manifest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A99123CBF8CA00AC50F8 /* dir_manifest.cpp */; };
+		D6C9A99423CBF8CA00AC50F8 /* dir_diff_tools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A99223CBF8CA00AC50F8 /* dir_diff_tools.cpp */; };
+		D6C9A99623CBF95200AC50F8 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A99523CBF95200AC50F8 /* patch.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -44,11 +45,9 @@
 		D61DE52B2342F5F100F6FCCF /* dir_sync_server.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_sync_server.h; sourceTree = "<group>"; };
 		D61DE53223442F6C00F6FCCF /* ref_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ref_stream.c; path = ../../dirDiffPatch/dir_patch/ref_stream.c; sourceTree = "<group>"; };
 		D61DE53323442F6C00F6FCCF /* res_handle_limit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = res_handle_limit.c; path = ../../dirDiffPatch/dir_patch/res_handle_limit.c; sourceTree = "<group>"; };
-		D61DE5482344D20D00F6FCCF /* dir_diff_tools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dir_diff_tools.cpp; path = ../../dirDiffPatch/dir_diff/dir_diff_tools.cpp; sourceTree = "<group>"; };
 		D658931A23327334003BB2F4 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
 		D658931C2332737F003BB2F4 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
 		D658931E2332739D003BB2F4 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = adler_roll.c; path = ../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c; sourceTree = "<group>"; };
-		D6589320233273BF003BB2F4 /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch.c; path = ../../libHDiffPatch/HPatch/patch.c; sourceTree = "<group>"; };
 		D658932323327412003BB2F4 /* sync_server.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_server.cpp; sourceTree = "<group>"; };
 		D658932523327412003BB2F4 /* sync_server.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sync_server.h; sourceTree = "<group>"; };
 		D65893362332757F003BB2F4 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
@@ -63,6 +62,11 @@
 		D699A2BA233ECDC9003CB3DC /* parallel_import.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_import.cpp; sourceTree = "<group>"; };
 		D699A2BF233F509D003CB3DC /* LzmaEnc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzmaEnc.c; path = ../../../lzma/C/LzmaEnc.c; sourceTree = "<group>"; };
 		D699A575233F509D003CB3DC /* LzFind.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzFind.c; path = ../../../lzma/C/LzFind.c; sourceTree = "<group>"; };
+		D6C9A98F23CBF8CA00AC50F8 /* dir_manifest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dir_manifest.h; path = ../../dirDiffPatch/dir_diff/dir_manifest.h; sourceTree = "<group>"; };
+		D6C9A99023CBF8CA00AC50F8 /* dir_diff_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dir_diff_tools.h; path = ../../dirDiffPatch/dir_diff/dir_diff_tools.h; sourceTree = "<group>"; };
+		D6C9A99123CBF8CA00AC50F8 /* dir_manifest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dir_manifest.cpp; path = ../../dirDiffPatch/dir_diff/dir_manifest.cpp; sourceTree = "<group>"; };
+		D6C9A99223CBF8CA00AC50F8 /* dir_diff_tools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dir_diff_tools.cpp; path = ../../dirDiffPatch/dir_diff/dir_diff_tools.cpp; sourceTree = "<group>"; };
+		D6C9A99523CBF95200AC50F8 /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch.c; path = ../../libHDiffPatch/HPatch/patch.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -135,11 +139,14 @@
 			isa = PBXGroup;
 			children = (
 				D699A2B7233ECDC9003CB3DC /* libParallel */,
+				D61DE5272342E2FE00F6FCCF /* _dir_ignore.h */,
+				D6C9A99223CBF8CA00AC50F8 /* dir_diff_tools.cpp */,
+				D6C9A99023CBF8CA00AC50F8 /* dir_diff_tools.h */,
+				D6C9A99123CBF8CA00AC50F8 /* dir_manifest.cpp */,
+				D6C9A98F23CBF8CA00AC50F8 /* dir_manifest.h */,
 				D658931E2332739D003BB2F4 /* adler_roll.c */,
 				D658931C2332737F003BB2F4 /* file_for_patch.c */,
-				D61DE5272342E2FE00F6FCCF /* _dir_ignore.h */,
-				D6589320233273BF003BB2F4 /* patch.c */,
-				D61DE5482344D20D00F6FCCF /* dir_diff_tools.cpp */,
+				D6C9A99523CBF95200AC50F8 /* patch.c */,
 				D61DE53223442F6C00F6FCCF /* ref_stream.c */,
 				D61DE53323442F6C00F6FCCF /* res_handle_limit.c */,
 			);
@@ -222,13 +229,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				D699A2B3233B3F78003CB3DC /* match_in_new.cpp in Sources */,
+				D6C9A99423CBF8CA00AC50F8 /* dir_diff_tools.cpp in Sources */,
 				D61DE52C2342F5F100F6FCCF /* dir_sync_server.cpp in Sources */,
+				D6C9A99623CBF95200AC50F8 /* patch.c in Sources */,
 				D684E20A23C1FC99004C6EB9 /* sync_info_server.cpp in Sources */,
 				D61DE53523442F6C00F6FCCF /* res_handle_limit.c in Sources */,
 				D699A2BC233ECDC9003CB3DC /* parallel_channel.cpp in Sources */,
 				D61DE53423442F6C00F6FCCF /* ref_stream.c in Sources */,
-				D6589321233273BF003BB2F4 /* patch.c in Sources */,
-				D61DE5492344D20D00F6FCCF /* dir_diff_tools.cpp in Sources */,
+				D6C9A99323CBF8CA00AC50F8 /* dir_manifest.cpp in Sources */,
 				D699A576233F509E003CB3DC /* LzmaEnc.c in Sources */,
 				D699A68E233F509E003CB3DC /* LzFind.c in Sources */,
 				D658931B23327334003BB2F4 /* md5.c in Sources */,

@@ -28,6 +28,7 @@
 		D69EECE0220C49DE001EF085 /* parallel_import.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D69EECDD220C49DE001EF085 /* parallel_import.cpp */; };
 		D6B240B021E5C21300993A81 /* res_handle_limit.c in Sources */ = {isa = PBXBuildFile; fileRef = D6B240AE21E5C21300993A81 /* res_handle_limit.c */; };
 		D6BF3A5D21E97A0B00833537 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5C21E97A0A00833537 /* file_for_patch.c */; };
+		D6C9A98E23CBF37D00AC50F8 /* dir_manifest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A98C23CBF37D00AC50F8 /* dir_manifest.cpp */; };
 		D6DD68E01F4015A900A1B22B /* digest_matcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */; };
 		D6DD68E31F40163200A1B22B /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D6DD68E21F40163200A1B22B /* adler_roll.c */; };
 		D6EE505D1F287234002854A2 /* compress_detect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6EE505B1F287234002854A2 /* compress_detect.cpp */; };
@@ -105,6 +106,8 @@
 		D6BF3A6121EDD5A000833537 /* dir_patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_private.h; sourceTree = "<group>"; };
 		D6BF3A6421EE17EB00833537 /* checksum_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checksum_plugin_demo.h; path = ../../checksum_plugin_demo.h; sourceTree = "<group>"; };
 		D6BF3A6521EE18BB00833537 /* checksum_plugin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = checksum_plugin.h; sourceTree = "<group>"; };
+		D6C9A98C23CBF37D00AC50F8 /* dir_manifest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_manifest.cpp; sourceTree = "<group>"; };
+		D6C9A98D23CBF37D00AC50F8 /* dir_manifest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_manifest.h; sourceTree = "<group>"; };
 		D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = digest_matcher.cpp; sourceTree = "<group>"; };
 		D6DD68DF1F4015A900A1B22B /* digest_matcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = digest_matcher.h; sourceTree = "<group>"; };
 		D6DD68E11F40163200A1B22B /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = adler_roll.h; sourceTree = "<group>"; };
@@ -144,9 +147,11 @@
 		D67D3BD621CBCD5D0050632A /* dir_diff */ = {
 			isa = PBXGroup;
 			children = (
-				D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */,
+				D6C9A98C23CBF37D00AC50F8 /* dir_manifest.cpp */,
+				D6C9A98D23CBF37D00AC50F8 /* dir_manifest.h */,
 				D67D3BD521CBCD5D0050632A /* dir_diff.cpp */,
 				D67D3BDB21CBCD5D0050632A /* dir_diff.h */,
+				D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */,
 				D61DE52D234391CF00F6FCCF /* dir_diff_tools.h */,
 				D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */,
 			);
@@ -367,6 +372,7 @@
 				D6BF3A5D21E97A0B00833537 /* file_for_patch.c in Sources */,
 				D67D3BDC21CBCD5D0050632A /* dir_diff.cpp in Sources */,
 				D67D3BE121D11DF70050632A /* dir_patch.c in Sources */,
+				D6C9A98E23CBF37D00AC50F8 /* dir_manifest.cpp in Sources */,
 				D6EE505D1F287234002854A2 /* compress_detect.cpp in Sources */,
 				D6DD68E01F4015A900A1B22B /* digest_matcher.cpp in Sources */,
 				D6241AE221DE47D200E2846A /* new_stream.c in Sources */,

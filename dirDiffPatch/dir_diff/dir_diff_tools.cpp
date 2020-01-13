@@ -27,62 +27,6 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_diff_tools.h"
-#if (_IS_NEED_DIR_DIFF_PATCH)
-
-    struct CDir{
-        inline CDir(const std::string& dir):handle(0){ handle=hdiff_dirOpenForRead(dir.c_str()); }
-        inline ~CDir(){ hdiff_dirClose(handle); }
-        hdiff_TDirHandle handle;
-    };
-    static void _getDirSubFileList(const std::string& dirPath,std::vector<std::string>& out_list,
-                                   IDirPathIgnore* filter,size_t rootPathNameLen){
-        assert(!hdiff_private::isDirName(dirPath));
-        std::vector<std::string> subDirs;
-        {//serach cur dir
-            CDir dir(dirPath);
-            check((dir.handle!=0),"hdiff_dirOpenForRead \""+dirPath+"\" error!");
-            while (true) {
-                hpatch_TPathType  type;
-                const char* path=0;
-                check(hdiff_dirNext(dir.handle,&type,&path),"hdiff_dirNext \""+dirPath+"\" error!");
-                if (path==0) break; //finish
-                if ((0==strcmp(path,""))||(0==strcmp(path,"."))||(0==strcmp(path,"..")))
-                    continue;
-                std::string subName(dirPath+kPatch_dirSeparator+path);
-                assert(!hdiff_private::isDirName(subName));
-                switch (type) {
-                    case kPathType_dir:{
-                        assignDirTag(subName);
-                        if (!filter->isNeedIgnore(subName,rootPathNameLen)){
-                            subDirs.push_back(subName.substr(0,subName.size()-1)); //no '/'
-                            out_list.push_back(subName); //add dir
-                        }
-                    } break;
-                    case kPathType_file:{
-                        if (!filter->isNeedIgnore(subName,rootPathNameLen))
-                            out_list.push_back(subName); //add file
-                    } break;
-                    default:{
-                        //nothing
-                    } break;
-                }
-            }
-        }
-        
-        for (size_t i=0; i<subDirs.size(); ++i) {
-            assert(!hdiff_private::isDirName(subDirs[i]));
-            _getDirSubFileList(subDirs[i],out_list,filter,rootPathNameLen);
-        }
-    }
-void getDirAllPathList(const std::string& dirPath,std::vector<std::string>& out_list,
-                       IDirPathIgnore* filter){
-    assert(hdiff_private::isDirName(dirPath));
-    out_list.push_back(dirPath);
-    const std::string dirName(dirPath.c_str(),dirPath.c_str()+dirPath.size()-1); //without '/'
-    _getDirSubFileList(dirName,out_list,filter,dirName.size());
-    sortDirPathList(out_list);
-}
-#endif
 
 namespace hdiff_private{
 

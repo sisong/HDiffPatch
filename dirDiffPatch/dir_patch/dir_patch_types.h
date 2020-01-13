@@ -41,4 +41,11 @@
 #   define kMaxOpenFileNumber_default_patch     24
 #endif
 
+#ifdef _WIN32
+static const char kPatch_dirSeparator = '\\';
+#else
+static const char kPatch_dirSeparator = '/';
+#endif
+static const char kPatch_dirSeparator_saved = '/';
+
 #endif //DirPatch_dir_patch_types_h

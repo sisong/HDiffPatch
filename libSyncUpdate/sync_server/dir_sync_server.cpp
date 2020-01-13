@@ -33,14 +33,6 @@
 using namespace hdiff_private;
 using namespace sync_private;
 
-
-void get_newManifest(IDirPathIgnore* filter,const char* newDir,TManifest& out_newManifest){
-    assert(hpatch_getIsDirName(newDir));
-    out_newManifest.rootPath=newDir;
-    out_newManifest.pathList.clear();
-    getDirAllPathList(out_newManifest.rootPath,out_newManifest.pathList,filter,false);
-}
-
 static void getRefList(const std::string& newRootPath,const std::vector<std::string>& newList,
                        std::vector<hpatch_StreamPos_t>& out_newSizeList){
     out_newSizeList.assign(newList.size(),0);

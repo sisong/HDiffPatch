@@ -43,8 +43,6 @@ struct IDirSyncListener{
     virtual void externDataPosInSyncInfoStream(hpatch_StreamPos_t externDataPos,size_t externDataSize){}
 };
 
-void get_newManifest(IDirPathIgnore* filter,const char* newDir,TManifest& out_newManifest);
-
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const TManifest&          newManifest,
                           const char*               outNewSyncInfoFile, // .hsyni

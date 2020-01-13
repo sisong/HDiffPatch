@@ -64,13 +64,6 @@ typedef unsigned char TByte;
 #define hpatch_kFileIOBestMaxSize  (1<<20)
 #define hpatch_kPathMaxSize  (1024*2)
     
-#ifdef _WIN32
-    static const char kPatch_dirSeparator = '\\';
-#else
-    static const char kPatch_dirSeparator = '/';
-#endif
-    static const char kPatch_dirSeparator_saved = '/';
-    
 hpatch_inline static
 hpatch_BOOL hpatch_getIsDirName(const char* path_utf8){
     size_t len=strlen(path_utf8);

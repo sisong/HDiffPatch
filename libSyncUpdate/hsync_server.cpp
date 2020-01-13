@@ -500,7 +500,7 @@ struct DirSyncListener:public IDirSyncListener,IDirPathIgnore{
     size_t                          _ignoreCount;
     
     //IDirPathIgnore
-    virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen,bool){
+    virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen){
         std::string subPath(path.begin()+rootPathNameLen,path.end());
         formatIgnorePathName(subPath);
         bool result=isMatchIgnoreList(subPath,_ignorePathList);
@@ -542,10 +542,10 @@ int create_sync_files_for_dir(const char* newDataDir,const char* outNewSyncInfoF
     DirSyncListener listener(ignoreNewPathList,(compressPlugin!=0));
     TManifest newManifest;
     try {
-        get_newManifest(&listener,newDir.c_str(),newManifest);
+        get_manifest(&listener,newDir.c_str(),newManifest);
     } catch (const std::exception& e){
         _return_check(false,SYNC_SERVER_DIR_FILELIST_ERROR,
-                      "run get_newManifest with \"%s\"",e.what());
+                      "run get_manifest with \"%s\"",e.what());
     }
     try {
         create_dir_sync_data(&listener,newManifest,outNewSyncInfoFile,outNewSyncDataFile,
