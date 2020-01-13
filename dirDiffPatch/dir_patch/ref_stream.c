@@ -47,6 +47,7 @@ static hpatch_BOOL _TRefStream_read_do(hpatch_TRefStream* self,hpatch_StreamPos_
     }else{
         memset(max_end,0,out_data_end-max_end);//for align
         out_data_end=max_end;
+        if (out_data>=out_data_end) return hpatch_TRUE;
     }
     return ref->read(ref,readPos,out_data,out_data_end);
 }

@@ -1216,27 +1216,13 @@ clear:
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
 
-struct DirPathIgnoreListener:public IDirPathIgnore{
+struct DirPathIgnoreListener:public CDirPathIgnore,IDirPathIgnore{
     DirPathIgnoreListener(const std::vector<std::string>& ignorePathListBase,
                           const std::vector<std::string>& ignorePathList,bool isPrintIgnore=true)
-    :_ignorePathListBase(ignorePathListBase),_ignorePathList(ignorePathList),
-    _isPrintIgnore(isPrintIgnore),_ignoreCount(0){ }
-    const std::vector<std::string>& _ignorePathListBase;
-    const std::vector<std::string>& _ignorePathList;
-    const bool                      _isPrintIgnore;
-    size_t                          _ignoreCount;
-    
+    :CDirPathIgnore(ignorePathListBase,ignorePathList,isPrintIgnore){}
+    //IDirPathIgnore
     virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen){
-        std::string subPath(path.begin()+rootPathNameLen,path.end());
-        formatIgnorePathName(subPath);
-        bool result=   isMatchIgnoreList(subPath,_ignorePathListBase)
-                    || isMatchIgnoreList(subPath,_ignorePathList);
-        if (result) ++_ignoreCount;
-        if (result&&_isPrintIgnore){ //printf
-            printf("  ignore file : \"");
-            hpatch_printPath_utf8(path.c_str());  printf("\"\n");
-        }
-        return result;
+        return CDirPathIgnore::isNeedIgnore(path,rootPathNameLen);
     }
 };
 

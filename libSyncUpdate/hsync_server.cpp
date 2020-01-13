@@ -453,10 +453,10 @@ int sync_server_cmd_line(int argc, const char * argv[]){
                                               strongChecksumPlugin,(uint32_t)kMatchBlockSize,threadNum);
     double time1=clock_s();
     if (result==SYNC_SERVER_SUCCESS){
-        _return_check(printFileInfo(outNewSyncInfoFile,"outFileSize"),
+        _return_check(printFileInfo(outNewSyncInfoFile,"out .hsyni fileSize"),
                       SYNC_SERVER_OUTFILE_ERROR,"run printFileInfo(%s,)",outNewSyncInfoFile);
         if (outNewSyncDataFile){
-            _return_check(printFileInfo(outNewSyncDataFile,"outFileSize"),
+            _return_check(printFileInfo(outNewSyncDataFile,"out .hsynd fileSize"),
                           SYNC_SERVER_OUTFILE_ERROR,"run printFileInfo(%s,)",outNewSyncDataFile);
         }
     }
@@ -488,29 +488,20 @@ int create_sync_files_for_file(const char* newDataFile,const char* outNewSyncInf
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
 
-struct DirSyncListener:public IDirSyncListener,IDirPathIgnore{
-    explicit DirSyncListener(const std::vector<std::string>& ignorePathList,
-                             bool isUsedCompress,bool isPrintIgnore=true)
-    :_ignorePathList(ignorePathList),_isUsedCompress(isUsedCompress),
-    _isPrintIgnore(isPrintIgnore),isMatchBlockSizeWarning(false),_ignoreCount(0){ }
-    const std::vector<std::string>& _ignorePathList;
-    const bool                      _isUsedCompress;
-    const bool                      _isPrintIgnore;
-    bool                            isMatchBlockSizeWarning;
-    size_t                          _ignoreCount;
-    
+struct DirPathIgnoreListener:public CDirPathIgnore,IDirPathIgnore{
+    DirPathIgnoreListener(const std::vector<std::string>& ignorePathList,bool isPrintIgnore=true)
+    :CDirPathIgnore(ignorePathList,isPrintIgnore){}
     //IDirPathIgnore
     virtual bool isNeedIgnore(const std::string& path,size_t rootPathNameLen){
-        std::string subPath(path.begin()+rootPathNameLen,path.end());
-        formatIgnorePathName(subPath);
-        bool result=isMatchIgnoreList(subPath,_ignorePathList);
-        if (result) ++_ignoreCount;
-        if (result&&_isPrintIgnore){ //printf
-            printf("  ignore file : \"");
-            hpatch_printPath_utf8(path.c_str());  printf("\"\n");
-        }
-        return result;
+        return CDirPathIgnore::isNeedIgnore(path,rootPathNameLen);
     }
+};
+
+struct DirSyncListener:public IDirSyncListener{
+    explicit DirSyncListener(bool isUsedCompress=true)
+    :_isUsedCompress(isUsedCompress),isMatchBlockSizeWarning(false){ }
+    const bool  _isUsedCompress;
+    bool        isMatchBlockSizeWarning;
     
     //IDirSyncListener
     virtual bool isExecuteFile(const std::string& fileName) {
@@ -524,11 +515,10 @@ struct DirSyncListener:public IDirSyncListener,IDirPathIgnore{
     virtual void syncRefInfo(size_t pathCount,hpatch_StreamPos_t refFileSize,
                              uint32_t kMatchBlockSize,bool _isMatchBlockSizeWarning){
         isMatchBlockSizeWarning=_isMatchBlockSizeWarning;
-        if ((_ignoreCount>0)&&_isPrintIgnore)
-            printf("\n");
+        printf("\n");
         printf("dir sync path count: %" PRIu64 "\n",(hpatch_StreamPos_t)pathCount);
         printf("dir sync files size: %" PRIu64 "\n",(hpatch_StreamPos_t)refFileSize);
-        printCreateSyncInfo(refFileSize,kMatchBlockSize,_isPrintIgnore);
+        printCreateSyncInfo(refFileSize,kMatchBlockSize,_isUsedCompress);
     }
 };
 
@@ -539,10 +529,11 @@ int create_sync_files_for_dir(const char* newDataDir,const char* outNewSyncInfoF
                               uint32_t kMatchBlockSize,size_t threadNum){
     std::string newDir(newDataDir);
     assignDirTag(newDir);
-    DirSyncListener listener(ignoreNewPathList,(compressPlugin!=0));
+    DirSyncListener listener(compressPlugin!=0);
     TManifest newManifest;
     try {
-        get_manifest(&listener,newDir.c_str(),newManifest);
+        DirPathIgnoreListener pathIgnore(ignoreNewPathList);
+        get_manifest(&pathIgnore,newDir.c_str(),newManifest);
     } catch (const std::exception& e){
         _return_check(false,SYNC_SERVER_DIR_FILELIST_ERROR,
                       "run get_manifest with \"%s\"",e.what());

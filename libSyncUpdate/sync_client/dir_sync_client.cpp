@@ -27,46 +27,73 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_sync_client.h"
+#include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
 using namespace sync_private;
+using namespace hdiff_private;
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#define check(v,errorCode) \
+#include "../../file_for_patch.h"
+
+#define check_r(v,errorCode) \
     do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
                     if (!_inClear) goto clear; } }while(0)
 
-/*
-void get_oldManifest(IDirPathIgnore* filter,const char* oldPath,TManifest& out_oldManifest){
-    out_oldManifest.rootPath=oldPath;
-    out_oldManifest.pathList.clear();
-    if (hpatch_getIsDirName(oldPath))
-        getDirAllPathList(out_oldManifest.rootPath,out_oldManifest.pathList,filter,true);
-}*/
+static size_t getFileCount(const std::vector<std::string>& pathList){
+    size_t result=0;
+    for (size_t i=0; i<pathList.size(); ++i){
+        const std::string& fileName=pathList[i];
+        if (!isDirName(fileName))
+            ++result;
+    }
+    return result;
+}
 
-int sync_patch_2file(ISyncPatchListener* listener,const char* outNewFile,const TManifest& oldManifest,
-                     const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum){
+struct CFilesStream{
+    explicit CFilesStream(const std::vector<std::string>& pathList,
+                          size_t kMaxOpenFileNumber,size_t kAlignSize)
+    :resLimit(kMaxOpenFileNumber,getFileCount(pathList)){
+        for (size_t i=0;i<pathList.size();++i){
+            const std::string& fileName=pathList[i];
+            if (!isDirName(fileName)){
+                hpatch_StreamPos_t fileSize=getFileSize(fileName);
+                resLimit.addRes(fileName,fileSize);
+            }
+        }
+        resLimit.open();
+        newRefStream.open(resLimit.limit.streamList,resLimit.resList.size(),kAlignSize);
+    }
+    CFileResHandleLimit resLimit;
+    CRefStream newRefStream;
+};
+
+
+int sync_patch_dir2file(ISyncPatchListener* listener,const char* outNewFile,const TManifest& oldManifest,
+                        const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum){
+    assert(listener!=0);
+    assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
+    kMaxOpenFileNumber-=2; // for newSyncInfoFile & outNewFile
+    
     int result=kSyncClient_ok;
     int _inClear=0;
     TNewDataSyncInfo         newSyncInfo;
-    hpatch_TFileStreamInput  oldData;
     hpatch_TFileStreamOutput out_newData;
-    const hpatch_TStreamInput* oldStream=0;
     
     TNewDataSyncInfo_init(&newSyncInfo);
-    hpatch_TFileStreamInput_init(&oldData);
     hpatch_TFileStreamOutput_init(&out_newData);
     result=TNewDataSyncInfo_open_by_file(&newSyncInfo,newSyncInfoFile,listener);
-    check(result==kSyncClient_ok,result);
-    
-    //todo:
-    
-    check(hpatch_TFileStreamOutput_open(&out_newData,outNewFile,(hpatch_StreamPos_t)(-1)),
-          kSyncClient_newFileCreateError);
-    
-    result=sync_patch(listener,&out_newData.base,oldStream,&newSyncInfo,threadNum);
+    check_r(result==kSyncClient_ok,result);
+    check_r(hpatch_TFileStreamOutput_open(&out_newData,outNewFile,(hpatch_StreamPos_t)(-1)),
+                                          kSyncClient_newFileCreateError);
+    try {
+        CFilesStream oldFilesStream(oldManifest.pathList,kMaxOpenFileNumber,newSyncInfo.kMatchBlockSize);
+        const hpatch_TStreamInput* oldStream=oldFilesStream.newRefStream.stream;
+        result=sync_patch(listener,&out_newData.base,oldStream,&newSyncInfo,threadNum);
+    } catch (const std::exception& e){
+        result=kSyncClient_oldDirFilesError;
+    }
 clear:
     _inClear=1;
-    check(hpatch_TFileStreamOutput_close(&out_newData),kSyncClient_newFileCloseError);
-    check(hpatch_TFileStreamInput_close(&oldData),kSyncClient_oldFileCloseError);
+    check_r(hpatch_TFileStreamOutput_close(&out_newData),kSyncClient_newFileCloseError);
     TNewDataSyncInfo_close(&newSyncInfo);
     return result;
 }

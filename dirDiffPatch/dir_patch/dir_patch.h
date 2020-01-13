@@ -203,7 +203,7 @@ hpatch_BOOL TDirPatcher_closeOldRefStream(TDirPatcher* self);//for TDirPatcher_o
 hpatch_BOOL TDirPatcher_closeNewDirStream(TDirPatcher* self);//for TDirPatcher_openNewDirAsStream
 hpatch_BOOL TDirPatcher_close(TDirPatcher* self);
 
-//after loadDirData
+//can be called after TDirPatcher_loadDirData
 const char* TDirPatcher_getOldPathByIndex(TDirPatcher* self,size_t oldPathIndex);
 const char* TDirPatcher_getOldRefPathByRefIndex(TDirPatcher* self,size_t oldRefIndex);
 const char* TDirPatcher_getOldPathByNewPath(TDirPatcher* self,const char* newPath);
@@ -218,7 +218,7 @@ size_t      TDirPatcher_oldSameRefCount(TDirPatcher* self,size_t sameIndex);
 void        TDirPatcher_decOldSameRefCount(TDirPatcher* self,size_t sameIndex);
 
 
-//can checksum oldRefFiles+oldCopyFiles by part of dirDiffData;
+//can checksum oldData(oldRefFiles+oldCopyFiles) by part of dirDiffData;
 typedef struct TDirOldDataChecksum{
 //private:
     TDirPatcher         _dirPatcher;

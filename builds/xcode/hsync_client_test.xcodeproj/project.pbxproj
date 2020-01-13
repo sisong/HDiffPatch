@@ -20,6 +20,10 @@
 		D684E20F23CAB3F6004C6EB9 /* hsync_client_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D684E20E23CAB3F6004C6EB9 /* hsync_client_test.cpp */; };
 		D684E21223CAD52D004C6EB9 /* client_download_emulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D684E21123CAD52D004C6EB9 /* client_download_emulation.cpp */; };
 		D699A29523372152003CB3DC /* match_in_old.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A29423372152003CB3DC /* match_in_old.cpp */; };
+		D6C9A99B23CC4ABB00AC50F8 /* dir_diff_tools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A99723CC4ABB00AC50F8 /* dir_diff_tools.cpp */; };
+		D6C9A99C23CC4ABB00AC50F8 /* dir_manifest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A99823CC4ABB00AC50F8 /* dir_manifest.cpp */; };
+		D6C9A9A023CC4B5C00AC50F8 /* ref_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A99F23CC4B5C00AC50F8 /* ref_stream.c */; };
+		D6C9A9A223CC4BC800AC50F8 /* res_handle_limit.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A9A123CC4BC800AC50F8 /* res_handle_limit.c */; };
 		D6E443F823C1F35800EB7B80 /* sync_info_client.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6E443F723C1F35800EB7B80 /* sync_info_client.cpp */; };
 /* End PBXBuildFile section */
 
@@ -56,6 +60,10 @@
 		D684E21123CAD52D004C6EB9 /* client_download_emulation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = client_download_emulation.cpp; path = ../../libSyncUpdate/client_download_emulation.cpp; sourceTree = "<group>"; };
 		D699A29323372152003CB3DC /* match_in_old.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = match_in_old.h; sourceTree = "<group>"; };
 		D699A29423372152003CB3DC /* match_in_old.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_in_old.cpp; sourceTree = "<group>"; };
+		D6C9A99723CC4ABB00AC50F8 /* dir_diff_tools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dir_diff_tools.cpp; path = ../../dirDiffPatch/dir_diff/dir_diff_tools.cpp; sourceTree = "<group>"; };
+		D6C9A99823CC4ABB00AC50F8 /* dir_manifest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dir_manifest.cpp; path = ../../dirDiffPatch/dir_diff/dir_manifest.cpp; sourceTree = "<group>"; };
+		D6C9A99F23CC4B5C00AC50F8 /* ref_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ref_stream.c; path = ../../dirDiffPatch/dir_patch/ref_stream.c; sourceTree = "<group>"; };
+		D6C9A9A123CC4BC800AC50F8 /* res_handle_limit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = res_handle_limit.c; path = ../../dirDiffPatch/dir_patch/res_handle_limit.c; sourceTree = "<group>"; };
 		D6E443F623C1F35800EB7B80 /* sync_info_client.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sync_info_client.h; sourceTree = "<group>"; };
 		D6E443F723C1F35800EB7B80 /* sync_info_client.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_info_client.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -133,6 +141,10 @@
 			isa = PBXGroup;
 			children = (
 				D61DE51A2340397000F6FCCF /* libParallel */,
+				D6C9A9A123CC4BC800AC50F8 /* res_handle_limit.c */,
+				D6C9A99F23CC4B5C00AC50F8 /* ref_stream.c */,
+				D6C9A99723CC4ABB00AC50F8 /* dir_diff_tools.cpp */,
+				D6C9A99823CC4ABB00AC50F8 /* dir_manifest.cpp */,
 				D658933C23327642003BB2F4 /* adler_roll.c */,
 				D658933A23327613003BB2F4 /* file_for_patch.c */,
 				D61DE53C2344BFFC00F6FCCF /* patch.c */,
@@ -146,10 +158,10 @@
 				D65893422332765B003BB2F4 /* sync_client_type.h */,
 				D65893442332765B003BB2F4 /* sync_client.h */,
 				D65893452332765B003BB2F4 /* sync_client.cpp */,
-				D6E443F723C1F35800EB7B80 /* sync_info_client.cpp */,
-				D6E443F623C1F35800EB7B80 /* sync_info_client.h */,
 				D61DE54B23481CA900F6FCCF /* dir_sync_client.h */,
 				D61DE54A23481CA900F6FCCF /* dir_sync_client.cpp */,
+				D6E443F723C1F35800EB7B80 /* sync_info_client.cpp */,
+				D6E443F623C1F35800EB7B80 /* sync_info_client.h */,
 				D699A29323372152003CB3DC /* match_in_old.h */,
 				D699A29423372152003CB3DC /* match_in_old.cpp */,
 				D61DE52323407BA600F6FCCF /* mt_by_queue.h */,
@@ -214,9 +226,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D6C9A99B23CC4ABB00AC50F8 /* dir_diff_tools.cpp in Sources */,
 				D658933B23327613003BB2F4 /* file_for_patch.c in Sources */,
+				D6C9A99C23CC4ABB00AC50F8 /* dir_manifest.cpp in Sources */,
 				D61DE519233F52E200F6FCCF /* LzmaDec.c in Sources */,
 				D63B988A2333B574003D38A5 /* md5.c in Sources */,
+				D6C9A9A023CC4B5C00AC50F8 /* ref_stream.c in Sources */,
 				D658934023327643003BB2F4 /* adler_roll.c in Sources */,
 				D61DE54C23481CA900F6FCCF /* dir_sync_client.cpp in Sources */,
 				D61DE51F2340397000F6FCCF /* parallel_channel.cpp in Sources */,
@@ -227,6 +242,7 @@
 				D699A29523372152003CB3DC /* match_in_old.cpp in Sources */,
 				D6E443F823C1F35800EB7B80 /* sync_info_client.cpp in Sources */,
 				D684E21223CAD52D004C6EB9 /* client_download_emulation.cpp in Sources */,
+				D6C9A9A223CC4BC800AC50F8 /* res_handle_limit.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

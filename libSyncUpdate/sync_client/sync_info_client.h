@@ -31,11 +31,12 @@
 #include "sync_client_type.h"
 
 typedef enum TSyncClient_resultType{
-    kSyncClient_ok,
+    kSyncClient_ok=0,
     kSyncClient_optionsError, //cmdline error
     kSyncClient_memError,
     kSyncClient_tempFileError,
-    kSyncClient_pathTypeError,
+    kSyncClient_newPathTypeError,
+    kSyncClient_overwriteNewPathError,
     kSyncClient_newSyncInfoTypeError,
     kSyncClient_noStrongChecksumPluginError,
     kSyncClient_strongChecksumByteSizeError,
@@ -44,17 +45,24 @@ typedef enum TSyncClient_resultType{
     kSyncClient_newSyncInfoChecksumError,
     kSyncClient_newSyncInfoOpenError,
     kSyncClient_newSyncInfoCloseError,
+    kSyncClient_oldPathTypeError,
     kSyncClient_oldFileOpenError,
     kSyncClient_oldFileCloseError,
     kSyncClient_newFileCreateError,
     kSyncClient_newFileCloseError,
     kSyncClient_matchNewDataInOldError,
+    kSyncClient_openSyncDataError,
     kSyncClient_readSyncDataError,
+    kSyncClient_closeSyncDataError,
     kSyncClient_decompressError,
     kSyncClient_readOldDataError,
     kSyncClient_writeNewDataError,
     kSyncClient_strongChecksumOpenError,
     kSyncClient_checksumSyncDataError,
+    
+//_IS_NEED_DIR_DIFF_PATCH
+    kSyncClient_oldDirFilesError=50,
+
 } TNewDataSyncInfo_resultType;
     
 typedef struct TSyncPatchChecksumSet{

@@ -156,6 +156,35 @@ static inline bool isMatchIgnoreList(const std::string& subPath,const std::vecto
     }
     return false;
 }
+
+struct CDirPathIgnore{
+    CDirPathIgnore(const std::vector<std::string>& ignorePathListBase,
+                   const std::vector<std::string>& ignorePathList,bool isPrintIgnore)
+    :_ignorePathListBase(ignorePathListBase),_ignorePathList(ignorePathList),
+    _isPrintIgnore(isPrintIgnore),_ignoreCount(0){ }
+    CDirPathIgnore(const std::vector<std::string>& ignorePathList,bool isPrintIgnore)
+    :_ignorePathListBase(ignorePathList),_ignorePathList(ignorePathList),
+    _isPrintIgnore(isPrintIgnore),_ignoreCount(0){ }
+    bool isNeedIgnore(const std::string& path,size_t rootPathNameLen){
+        std::string subPath(path.begin()+rootPathNameLen,path.end());
+        formatIgnorePathName(subPath);
+        bool result=   isMatchIgnoreList(subPath,_ignorePathListBase);
+        if ((!result)&&(&_ignorePathListBase!=&_ignorePathList))
+            result=isMatchIgnoreList(subPath,_ignorePathList);
+        if (result) ++_ignoreCount;
+        if (result&&_isPrintIgnore){ //printf
+            printf("  ignore file : \"");
+            hpatch_printPath_utf8(path.c_str());  printf("\"\n");
+        }
+        return result;
+    }
+    inline size_t ignoreCount()const{ return _ignoreCount; }
+private:
+    const std::vector<std::string>& _ignorePathListBase;
+    const std::vector<std::string>& _ignorePathList;
+    const bool                      _isPrintIgnore;
+    size_t                          _ignoreCount;
+};
 #endif
 
 #endif // dir_ignore_h

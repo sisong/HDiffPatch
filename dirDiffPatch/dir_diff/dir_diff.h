@@ -61,7 +61,7 @@ bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const
                    const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
                    hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
 
-//as api demo
+//check oldPath's data is same as that in dir_diff
 hpatch_BOOL check_dirOldDataChecksum(const char* oldPath,hpatch_TStreamInput* diffData,
                                      hpatch_TDecompress *decompressPlugin,hpatch_TChecksum *checksumPlugin);
 

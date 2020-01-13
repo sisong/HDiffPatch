@@ -33,7 +33,7 @@
 using namespace hdiff_private;
 using namespace sync_private;
 
-static void getRefList(const std::string& newRootPath,const std::vector<std::string>& newList,
+static void getRefList(const std::vector<std::string>& newList,
                        std::vector<hpatch_StreamPos_t>& out_newSizeList){
     out_newSizeList.assign(newList.size(),0);
     for (size_t newi=0; newi<newList.size(); ++newi){
@@ -67,7 +67,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
             newExecuteList.push_back(newi);
     }
 
-    getRefList(newManifest.rootPath,newList,newSizeList);
+    getRefList(newList,newSizeList);
     CFileResHandleLimit resLimit(kMaxOpenFileNumber,newList.size());
     hpatch_StreamPos_t maxNewSize=0;
     {
@@ -91,7 +91,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     int hashClashBit=estimateHashClashBit(newRefStream.stream->streamSize,kMatchBlockSize);
     bool isMatchBlockSizeWarning=hashClashBit>kAllowMaxHashClashBit;
     listener->syncRefInfo(newList.size(),newRefStream.stream->streamSize,kMatchBlockSize,isMatchBlockSizeWarning);
-    checkv(!isMatchBlockSizeWarning);
+    checkv(!isMatchBlockSizeWarning); //warning as error
     
     //serialize headData
     std::vector<TByte> buf;

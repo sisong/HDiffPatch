@@ -46,7 +46,7 @@ static bool _readSyncData(ISyncPatchListener* listener,hpatch_StreamPos_t posInN
 
 static void downloadEmulation_open_by(TDownloadEmulation* self,ISyncPatchListener* out_emulation,
                                       const hpatch_TStreamInput* newSyncData){
-    memset(out_emulation,0,sizeof(*out_emulation));
+    assert(out_emulation->import==0);
     self->emulation_newSyncData=newSyncData;
     out_emulation->import=self;
     out_emulation->readSyncData=_readSyncData;

@@ -47,10 +47,10 @@ typedef struct ISyncPatchListener:public ISyncInfoListener{
                             uint32_t syncDataSize,unsigned char* out_syncDataBuf);
 } ISyncPatchListener;
 
-int sync_patch_file2file(ISyncPatchListener* listener,const char* outNewFile,const char* oldFile,
-                         const char* newSyncInfoFile,int threadNum=0);
-
 int sync_patch(ISyncPatchListener* listener,const hpatch_TStreamOutput* out_newStream,
                const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,int threadNum=0);
+
+int sync_patch_file2file(ISyncPatchListener* listener,const char* outNewFile,const char* oldFile,
+                         const char* newSyncInfoFile,int threadNum=0);
 
 #endif // sync_client_h
