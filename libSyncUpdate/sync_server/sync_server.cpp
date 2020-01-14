@@ -40,16 +40,14 @@ struct _TCreateDatas {
     TNewDataSyncInfo*           out_newSyncInfo;
     const hpatch_TStreamOutput* out_newSyncData;
     const hdiff_TCompress*      compressPlugin;
-    hpatch_TChecksum*           strongChecksumPlugin;
-    uint32_t                    kMatchBlockSize;
     hpatch_StreamPos_t          curOutPos;
 };
 
 static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0){
-    const uint32_t kMatchBlockSize=cd.kMatchBlockSize;
     TNewDataSyncInfo*       out_newSyncInfo=cd.out_newSyncInfo;
     const hdiff_TCompress*  compressPlugin=cd.compressPlugin;
-    hpatch_TChecksum*       strongChecksumPlugin=cd.strongChecksumPlugin;
+    const uint32_t kMatchBlockSize=out_newSyncInfo->kMatchBlockSize;
+    hpatch_TChecksum*       strongChecksumPlugin=out_newSyncInfo->_strongChecksumPlugin;
     const uint32_t kBlockCount=(uint32_t)getSyncBlockCount(out_newSyncInfo->newDataSize,kMatchBlockSize);
     std::vector<TByte> buf(kMatchBlockSize);
     std::vector<TByte> cmbuf(compressPlugin?((size_t)compressPlugin->maxCompressedSize(kMatchBlockSize)):0);
@@ -144,14 +142,26 @@ static void _mt_threadRunCallBackProc(int threadIndex,void* workData){
 }
 #endif
 
-static void _create_sync_data(_TCreateDatas& createDatas,size_t threadNum){
-    checkv(createDatas.kMatchBlockSize>=kMatchBlockSize_min);
+static void _create_sync_data(const hpatch_TStreamInput*  newData,
+                              TNewDataSyncInfo*           newSyncInfo,
+                              const hpatch_TStreamOutput* out_newSyncInfo_stream,
+                              const hpatch_TStreamOutput* out_newSyncData,
+                              const hdiff_TCompress* compressPlugin,size_t threadNum){
+    _TCreateDatas  createDatas;
+    createDatas.newData=newData;
+    createDatas.out_newSyncInfo=newSyncInfo;
+    createDatas.out_newSyncData=out_newSyncData;
+    createDatas.compressPlugin=compressPlugin;
+    createDatas.curOutPos=0;
+
+    const uint32_t kMatchBlockSize=createDatas.out_newSyncInfo->kMatchBlockSize;
+    checkv(kMatchBlockSize>=kMatchBlockSize_min);
     if (createDatas.compressPlugin) checkv(createDatas.out_newSyncData!=0);
     
 #if (_IS_USED_MULTITHREAD)
     if (threadNum>1){
         const uint32_t kBlockCount=(uint32_t)getSyncBlockCount(createDatas.out_newSyncInfo->newDataSize,
-                                                               createDatas.kMatchBlockSize);
+                                                               kMatchBlockSize);
         TMt_by_queue   shareDatas((int)threadNum,kBlockCount,true);
         TMt_threadDatas  tdatas;  memset(&tdatas,0,sizeof(tdatas));
         tdatas.shareDatas=&shareDatas;
@@ -163,6 +173,8 @@ static void _create_sync_data(_TCreateDatas& createDatas,size_t threadNum){
         mt_create_sync_data(createDatas);
     }
     matchNewDataInNew(createDatas.out_newSyncInfo);
+    //save to out_newSyncInfo_stream
+    TNewDataSyncInfo_saveTo(newSyncInfo,out_newSyncInfo_stream,compressPlugin);
 }
 
 void create_sync_data(const hpatch_TStreamInput*  newData,
@@ -177,17 +189,7 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
                                  newData->streamSize,kMatchBlockSize);
     newSyncInfo.externData_begin=externData_begin;
     newSyncInfo.externData_end=externData_end;
-    _TCreateDatas  createDatas;
-    createDatas.newData=newData;
-    createDatas.out_newSyncInfo=&newSyncInfo;
-    createDatas.out_newSyncData=out_newSyncData;
-    createDatas.compressPlugin=compressPlugin;
-    createDatas.strongChecksumPlugin=strongChecksumPlugin;
-    createDatas.kMatchBlockSize=kMatchBlockSize;
-    createDatas.curOutPos=0;
-    _create_sync_data(createDatas,threadNum);
-    TNewDataSyncInfo_saveTo(&newSyncInfo,out_newSyncInfo,
-                            strongChecksumPlugin,compressPlugin);
+    _create_sync_data(newData,&newSyncInfo,out_newSyncInfo,out_newSyncData,compressPlugin,threadNum);
 }
 
 void create_sync_data_by_file(const char* newDataFile,

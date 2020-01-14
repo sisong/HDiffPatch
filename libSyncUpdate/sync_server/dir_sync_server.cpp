@@ -57,8 +57,6 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     kMaxOpenFileNumber-=2; // for outNewSyncInfoFile & outNewSyncDataFile
     const std::vector<std::string>& newList=newManifest.pathList;
-    listener->syncPathList(newList);
-    
     std::vector<hpatch_StreamPos_t> newSizeList;
     std::vector<size_t> newExecuteList; //for linux etc
     

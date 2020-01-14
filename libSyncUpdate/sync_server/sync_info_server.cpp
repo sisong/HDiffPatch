@@ -76,8 +76,10 @@ namespace sync_private{
         size_t compressedSize=hdiff_compress_mem(compressPlugin,cmbuf.data(),cmbuf.data()+cmbuf.size(),
                                                  buf.data(),buf.data()+buf.size());
         checkv(compressedSize>0);
-        if (compressedSize<buf.size())
+        if (compressedSize<buf.size()){
+            cmbuf.resize(compressedSize);
             buf.swap(cmbuf);
+        }
     }
     
     static void saveRollHashs(const hpatch_TStreamOutput *out_stream, TNewDataSyncInfo *self,
@@ -120,16 +122,39 @@ namespace sync_private{
     }
     
 void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* out_stream,
-                             hpatch_TChecksum* strongChecksumPlugin,const hdiff_TCompress* compressPlugin){
+                             const hdiff_TCompress* compressPlugin){
     const char* kVersionType="HSync20";
     if (compressPlugin)
         checkv(0==strcmp(compressPlugin->compressType(),self->compressType));
     else
         checkv(self->compressType==0);
+    hpatch_TChecksum* strongChecksumPlugin=self->_strongChecksumPlugin;
     checkv(0==strcmp(strongChecksumPlugin->checksumType(),self->strongChecksumType));
-    CChecksum checksumInfo(strongChecksumPlugin);
+#if (!_IS_NEED_DIR_DIFF_PATCH)
+    checkv(!self->isDirSyncInfo);
+#endif
+
     const size_t privateExternDataSize=0; //reserved ,now empty
     const size_t externDataSize=self->externData_end-self->externData_begin;
+    const uint8_t isSavedSizes=(self->savedSizes)!=0?1:0;
+    std::vector<TByte> buf;
+    saveSamePairList(buf,self);
+    if (isSavedSizes)
+        saveSavedSizes(buf,self);
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    size_t dir_newPathSumCharSize=0;
+    //todo:
+#endif
+
+    //compress buf
+    size_t uncompressDataSize=buf.size();
+    size_t compressDataSize=0;
+    if (compressPlugin){
+        compressBuf(buf,compressPlugin);
+        if (buf.size()<uncompressDataSize)
+            compressDataSize=buf.size();
+    }
     
     std::vector<TByte> head;
     {//head
@@ -137,38 +162,36 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
         packUInt(head,self->kStrongChecksumByteSize);
         packUInt(head,self->kMatchBlockSize);
         packUInt(head,self->samePairCount);
-        pushUInt(head,self->is32Bit_rollHash);
         pushUInt(head,self->isDirSyncInfo);
+        pushUInt(head,self->is32Bit_rollHash);
+        pushUInt(head,isSavedSizes);
         packUInt(head,self->newDataSize);
         packUInt(head,self->newSyncDataSize);
         packUInt(head,privateExternDataSize);
         packUInt(head,externDataSize);
-    }
-
-    std::vector<TByte> buf;
-    saveSamePairList(buf,self);
-    if (compressPlugin)
-        saveSavedSizes(buf,self);
-    
-    {//compress buf
-        size_t uncmSize=buf.size();
-        packUInt(head,uncmSize); //head +
-        if (compressPlugin)
-            compressBuf(buf,compressPlugin);
-        size_t cmSize=buf.size()<uncmSize?buf.size():0;
-        packUInt(head,cmSize); //head +
-    }
-    {//newSyncInfoSize
-        self->newSyncInfoSize = head.size() + sizeof(self->newSyncInfoSize)
-                                + privateExternDataSize + externDataSize + buf.size();
-        self->newSyncInfoSize +=(rollHashSize(self)+kPartStrongChecksumByteSize)
-                                *(TNewDataSyncInfo_blockCount(self)-self->samePairCount);
-        self->newSyncInfoSize += kPartStrongChecksumByteSize;
-        //head +
+        packUInt(head,uncompressDataSize);
+        packUInt(head,compressDataSize);
+        
+        if (self->isDirSyncInfo){
+#if (_IS_NEED_DIR_DIFF_PATCH)
+            packUInt(head,dir_newPathSumCharSize);
+            packUInt(head,self->dir_subPathCount);
+            packUInt(head,self->dir_newExecuteCount);
+#endif
+        }
+        
+        {//newSyncInfoSize
+            self->newSyncInfoSize = head.size() + sizeof(self->newSyncInfoSize)
+                                    + privateExternDataSize + externDataSize + buf.size();
+            self->newSyncInfoSize +=(rollHashSize(self)+kPartStrongChecksumByteSize)
+                                    *(TNewDataSyncInfo_blockCount(self)-self->samePairCount);
+            self->newSyncInfoSize += kPartStrongChecksumByteSize;
+        }
         pushUInt(head,self->newSyncInfoSize);
         //end head info
     }
 
+    CChecksum checksumInfo(strongChecksumPlugin);
     hpatch_StreamPos_t outPos=0;
     //out head buf
     _outV_clear(head);
@@ -194,6 +217,7 @@ CNewDataSyncInfo::CNewDataSyncInfo(hpatch_TChecksum* strongChecksumPlugin,const 
         this->_compressType.assign(compressPlugin->compressType());
         this->compressType=this->_compressType.c_str();
     }
+    this->_strongChecksumPlugin=strongChecksumPlugin;
     this->_strongChecksumType.assign(strongChecksumPlugin->checksumType());
     this->strongChecksumType=this->_strongChecksumType.c_str();
     this->kStrongChecksumByteSize=(uint32_t)strongChecksumPlugin->checksumByteSize();

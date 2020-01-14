@@ -51,8 +51,8 @@ typedef struct TNewDataSyncInfo{
     uint32_t                kStrongChecksumByteSize;
     uint32_t                kMatchBlockSize;
     uint32_t                samePairCount;
-    uint8_t                 is32Bit_rollHash;
     uint8_t                 isDirSyncInfo;
+    uint8_t                 is32Bit_rollHash;
     hpatch_StreamPos_t      newDataSize;
     hpatch_StreamPos_t      newSyncDataSize;
     hpatch_StreamPos_t      newSyncInfoSize;
@@ -62,14 +62,11 @@ typedef struct TNewDataSyncInfo{
     void*                   rollHashs;
     unsigned char*          partChecksums;
 #if (_IS_NEED_DIR_DIFF_PATCH)
-    const char*             manifest_utf8RootPath;
-    const char**            manifest_utf8Paths;
-    size_t                  manifest_pathCount;
-    size_t                  kAlignSize;
-    size_t*                 newExecuteIndexList;
-    size_t                  newExecuteCount;
-    size_t                  headBufSize;
-    size_t                  headBufCompressedSize;
+    size_t                  dir_subPathCount;
+    const char**            dir_utf8SubPathList;
+    const char*             dir_utf8RootPath;
+    size_t                  dir_newExecuteCount;
+    size_t*                 dir_newExecuteIndexList;
 #endif
     hpatch_TChecksum*       _strongChecksumPlugin;
     hpatch_TDecompress*     _decompressPlugin;

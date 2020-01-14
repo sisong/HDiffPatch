@@ -273,7 +273,6 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     kMaxOpenFileNumber-=1; // for outDiffStream
     const std::vector<std::string>& oldList=oldManifest.pathList;
     const std::vector<std::string>& newList=newManifest.pathList;
-    listener->diffPathList(oldList,newList);
     const bool oldIsDir=isDirName(oldManifest.rootPath);
     const bool newIsDir=isDirName(newManifest.rootPath);
     
@@ -625,7 +624,6 @@ bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     const std::vector<std::string>& oldList=oldManifest.pathList;
     const std::vector<std::string>& newList=newManifest.pathList;
-    listener->diffPathList(oldList,newList);
     
     CDirPatchListener    patchListener(newManifest.rootPath,oldList,newList);
     CDirPatcher          dirPatcher;
