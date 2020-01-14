@@ -29,6 +29,7 @@
 #ifndef dir_sync_server_h
 #define dir_sync_server_h
 #include "sync_server.h"
+#include "../../dirDiffPatch/dir_patch/dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../dirDiffPatch/dir_patch/dir_patch.h"
 #include "../../dirDiffPatch/dir_diff/dir_diff.h"

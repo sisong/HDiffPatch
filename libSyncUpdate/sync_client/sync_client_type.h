@@ -31,6 +31,7 @@
 #include "../../libHDiffPatch/HPatch/patch_types.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
+#include "../../dirDiffPatch/dir_patch/dir_patch_types.h"
 
 hpatch_inline static
 hpatch_StreamPos_t getSyncBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
@@ -43,12 +44,15 @@ typedef struct TSameNewBlockPair{
 } TSameNewBlockPair;
 
 typedef struct TNewDataSyncInfo{
+    const unsigned char*    externData_begin;//externData is used by user
+    const unsigned char*    externData_end;
     const char*             compressType;
     const char*             strongChecksumType;
     uint32_t                kStrongChecksumByteSize;
     uint32_t                kMatchBlockSize;
     uint32_t                samePairCount;
     uint8_t                 is32Bit_rollHash;
+    uint8_t                 isDirSyncInfo;
     hpatch_StreamPos_t      newDataSize;
     hpatch_StreamPos_t      newSyncDataSize;
     hpatch_StreamPos_t      newSyncInfoSize;
@@ -57,10 +61,19 @@ typedef struct TNewDataSyncInfo{
     uint32_t*               savedSizes;
     void*                   rollHashs;
     unsigned char*          partChecksums;
-    
-    void*                   _import;
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    const char*             manifest_utf8RootPath;
+    const char**            manifest_utf8Paths;
+    size_t                  manifest_pathCount;
+    size_t                  kAlignSize;
+    size_t*                 newExecuteIndexList;
+    size_t                  newExecuteCount;
+    size_t                  headBufSize;
+    size_t                  headBufCompressedSize;
+#endif
     hpatch_TChecksum*       _strongChecksumPlugin;
     hpatch_TDecompress*     _decompressPlugin;
+    void*                   _import;
 } TNewDataSyncInfo;
 
 

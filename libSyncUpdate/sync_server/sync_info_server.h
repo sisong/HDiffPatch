@@ -36,7 +36,7 @@
 
 namespace sync_private{
     
-bool TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* out_stream,
+void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* out_stream,
                              hpatch_TChecksum* strongChecksumPlugin,const hdiff_TCompress* compressPlugin);
 
 class CNewDataSyncInfo :public TNewDataSyncInfo{

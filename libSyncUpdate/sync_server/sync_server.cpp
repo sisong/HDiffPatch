@@ -170,9 +170,13 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_newSyncData,
                       const hdiff_TCompress* compressPlugin,
                       hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize,size_t threadNum){
+                      uint32_t kMatchBlockSize,size_t threadNum,
+                      const unsigned char* externData_begin,const unsigned char* externData_end){
+    assert(externData_begin<=externData_end);
     CNewDataSyncInfo newSyncInfo(strongChecksumPlugin,compressPlugin,
                                  newData->streamSize,kMatchBlockSize);
+    newSyncInfo.externData_begin=externData_begin;
+    newSyncInfo.externData_end=externData_end;
     _TCreateDatas  createDatas;
     createDatas.newData=newData;
     createDatas.out_newSyncInfo=&newSyncInfo;
@@ -182,8 +186,8 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
     createDatas.kMatchBlockSize=kMatchBlockSize;
     createDatas.curOutPos=0;
     _create_sync_data(createDatas,threadNum);
-    checkv(TNewDataSyncInfo_saveTo(&newSyncInfo,out_newSyncInfo,
-                                   strongChecksumPlugin,compressPlugin));
+    TNewDataSyncInfo_saveTo(&newSyncInfo,out_newSyncInfo,
+                            strongChecksumPlugin,compressPlugin);
 }
 
 void create_sync_data_by_file(const char* newDataFile,
@@ -191,30 +195,35 @@ void create_sync_data_by_file(const char* newDataFile,
                               const char* outNewSyncDataFile,
                               const hdiff_TCompress* compressPlugin,
                               hpatch_TChecksum*      strongChecksumPlugin,
-                              uint32_t kMatchBlockSize,size_t threadNum){
+                              uint32_t kMatchBlockSize,size_t threadNum,
+                              const unsigned char* externData_begin,const unsigned char* externData_end){
     CFileStreamInput  newData(newDataFile);
     CFileStreamOutput out_newSyncInfo(outNewSyncInfoFile,~(hpatch_StreamPos_t)0);
     CFileStreamOutput out_newSyncData;
-    if (outNewSyncDataFile)
+    const hpatch_TStreamOutput* newDataStream=0;
+    if (outNewSyncDataFile){
         out_newSyncData.open(outNewSyncDataFile,~(hpatch_StreamPos_t)0);
+        newDataStream=&out_newSyncData.base;
+    }
     
-    create_sync_data(&newData.base,&out_newSyncInfo.base,
-                     (outNewSyncDataFile)?&out_newSyncData.base:0,
-                     compressPlugin,strongChecksumPlugin,kMatchBlockSize,threadNum);
+    create_sync_data(&newData.base,&out_newSyncInfo.base,newDataStream,compressPlugin,
+                     strongChecksumPlugin,kMatchBlockSize,threadNum,externData_begin,externData_end);
 }
 
 void create_sync_data_by_file(const char* newDataFile,
                               const char* outNewSyncInfoFile,
                               hpatch_TChecksum*      strongChecksumPlugin,
-                              uint32_t kMatchBlockSize,size_t threadNum){
-    create_sync_data_by_file(newDataFile,outNewSyncInfoFile,0,0,
-                             strongChecksumPlugin,kMatchBlockSize,threadNum);
+                              uint32_t kMatchBlockSize,size_t threadNum,
+                              const unsigned char* externData_begin,const unsigned char* externData_end){
+    create_sync_data_by_file(newDataFile,outNewSyncInfoFile,0,0, strongChecksumPlugin,
+                             kMatchBlockSize,threadNum,externData_begin,externData_end);
 }
 
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_newSyncInfo, //newSyncData same as newData
                       hpatch_TChecksum*      strongChecksumPlugin,
-                      uint32_t kMatchBlockSize,size_t threadNum){
-    create_sync_data(newData,out_newSyncInfo,0,0,
-                     strongChecksumPlugin,kMatchBlockSize,threadNum);
+                      uint32_t kMatchBlockSize,size_t threadNum,
+                      const unsigned char* externData_begin,const unsigned char* externData_end){
+    create_sync_data(newData,out_newSyncInfo,0,0, strongChecksumPlugin,
+                     kMatchBlockSize,threadNum,externData_begin,externData_end);
 }

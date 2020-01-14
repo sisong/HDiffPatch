@@ -36,8 +36,8 @@
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 #include "../../file_for_patch.h"
 
-#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
-#define checkv(value)     check(value,"check "#value" error!")
+#define check(value,info) do { if (!(value)) { throw std::runtime_error(info); } } while(0)
+#define checkv(value)     do { check(value,"check "#value" error!"); } while(0)
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../dir_patch/ref_stream.h"
@@ -57,13 +57,17 @@ static inline bool isDirName(const std::string& path_utf8){
 hpatch_StreamPos_t getFileSize(const std::string& fileName);
 
 inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
+                               const TByte* buf_begin,const TByte* buf_end){
+    checkv(out_stream->write(out_stream,outPos,buf_begin,buf_end));
+    outPos+=(size_t)(buf_end-buf_begin);
+}
+inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
                                const TByte* buf,size_t byteSize){
-    checkv(out_stream->write(out_stream,outPos,buf,buf+byteSize));
-    outPos+=byteSize;
+    writeStream(out_stream,outPos,buf,buf+byteSize);
 }
 inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
                                const std::vector<TByte>& buf){
-    writeStream(out_stream,outPos,buf.data(),buf.size());
+    writeStream(out_stream,outPos,buf.data(),buf.data()+buf.size());
 }
 
 struct CFileStreamInput:public hpatch_TFileStreamInput{

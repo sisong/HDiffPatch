@@ -134,10 +134,11 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
     int _inClear=0;
 
     uint32_t kBlockCount=0;
-    size_t   memSize=0;
     const char* checksumType=0;
     char  compressType[hpatch_kMaxPluginTypeLength+1];
     hpatch_StreamPos_t headEndPos=0;
+    hpatch_StreamPos_t privateExternDataSize=0;
+    hpatch_StreamPos_t externDataSize=0;
     hpatch_StreamPos_t uncompressDataSize=0;
     hpatch_StreamPos_t compressDataSize=0;
     TByte*             decompressBuf=0;
@@ -149,13 +150,12 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
     check(temp_cache!=0,kSyncClient_memError);
     memset(&decompresser,0,sizeof(decompresser));
     {//head
-        hpatch_StreamPos_t reservedDataSize;
         char  tempType[hpatch_kMaxPluginTypeLength+1];
         const size_t kHeadCacheSize =1024*2;
         assert(kFileIOBufBetterSize>=kHeadCacheSize);
         _TStreamCacheClip_init(&clip,newSyncInfo,0,newSyncInfo->streamSize,
                                temp_cache,isChecksumNewSyncInfo?kHeadCacheSize:kFileIOBufBetterSize);
-        const char* kTypeVersion="SyncUpdate19";
+        const char* kTypeVersion="HSync20";
         {//type
             check(_TStreamCacheClip_readType_end(&clip,'&',tempType),kSyncClient_newSyncInfoTypeError);
             check(0==strcmp(tempType,kTypeVersion),kSyncClient_newSyncInfoTypeError);
@@ -183,9 +183,11 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
         check(_clip_unpackUInt32To(&self->kMatchBlockSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUInt32To(&self->samePairCount,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_readUIntTo(&self->is32Bit_rollHash,&clip),kSyncClient_newSyncInfoDataError);
+        check(_clip_readUIntTo(&self->isDirSyncInfo,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newDataSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newSyncDataSize,&clip),kSyncClient_newSyncInfoDataError);
-        check(_clip_unpackUIntTo(&reservedDataSize,&clip),kSyncClient_newSyncInfoDataError);
+        check(_clip_unpackUIntTo(&privateExternDataSize,&clip),kSyncClient_newSyncInfoDataError);
+        check(_clip_unpackUIntTo(&externDataSize,&clip),kSyncClient_newSyncInfoDataError);
         
         check(_clip_unpackUIntTo(&uncompressDataSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&compressDataSize,&clip),kSyncClient_newSyncInfoDataError);
@@ -193,29 +195,25 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
         if (compressDataSize>0) check(decompressPlugin!=0, kSyncClient_newSyncInfoDataError);
         check(_clip_readUIntTo(&self->newSyncInfoSize,&clip), kSyncClient_newSyncInfoDataError);
         check(newSyncInfo->streamSize==self->newSyncInfoSize,kSyncClient_newSyncInfoDataError);
-        
-        if (reservedDataSize>0){
-            check(_TStreamCacheClip_skipData(&clip,reservedDataSize), //now not used
-                  kSyncClient_newSyncInfoDataError);
-        }
         check(toUInt32(&kBlockCount,TNewDataSyncInfo_blockCount(self)), kSyncClient_newSyncInfoDataError);
-        memSize=strlen(compressType)+1+strlen(checksumType)+1+kPartStrongChecksumByteSize;
         headEndPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
     }
     {//mem
         TByte* curMem=0;
-        hpatch_StreamPos_t dataSize=(rollHashSize(self)+kPartStrongChecksumByteSize)
-                                    *(hpatch_StreamPos_t)kBlockCount;
-        dataSize+=self->samePairCount*sizeof(TSameNewBlockPair);
+        hpatch_StreamPos_t memSize=strlen(compressType)+1+strlen(checksumType)+1
+                                   +kPartStrongChecksumByteSize + externDataSize;
+        memSize+=(rollHashSize(self)+kPartStrongChecksumByteSize)*(hpatch_StreamPos_t)kBlockCount;
+        memSize+=self->samePairCount*sizeof(TSameNewBlockPair);
         if (decompressPlugin)
-            dataSize+=sizeof(uint32_t)*(hpatch_StreamPos_t)kBlockCount;
-        dataSize+=memSize;
-        check(dataSize==(size_t)dataSize,kSyncClient_memError);
-        memSize=(size_t)dataSize;
-        curMem=(TByte*)malloc(memSize);
+            memSize+=sizeof(uint32_t)*(hpatch_StreamPos_t)kBlockCount;
+        check(memSize==(size_t)memSize,kSyncClient_memError);
+        curMem=(TByte*)malloc((size_t)memSize);
         check(curMem!=0,kSyncClient_memError);
-        
         self->_import=curMem;
+        
+        self->externData_begin=curMem;
+        self->externData_end=self->externData_begin+(size_t)externDataSize;
+        curMem+=externDataSize;
         self->samePairList=(TSameNewBlockPair*)curMem;
         curMem+=self->samePairCount*sizeof(TSameNewBlockPair);
         self->rollHashs=curMem;
@@ -244,7 +242,15 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
               kSyncClient_strongChecksumOpenError);
         _TStreamCacheClip_init(&clip,&checksumInputStream,0,checksumInputStream.streamSize,
                                temp_cache,kFileIOBufBetterSize);
-        check(_TStreamCacheClip_skipData(&clip,headEndPos), //checksum head data
+        check(_TStreamCacheClip_skipData(&clip,headEndPos), //checksum head data[0--headEndPos)
+              kSyncClient_newSyncInfoDataError);
+    }
+    if (privateExternDataSize>0){
+        check(_TStreamCacheClip_skipData(&clip,privateExternDataSize), //reserved ,now unknow
+              kSyncClient_newSyncInfoDataError);
+    }
+    if (externDataSize>0){
+        check(_TStreamCacheClip_readDataTo(&clip,(TByte*)self->externData_begin,(TByte*)self->externData_end),
               kSyncClient_newSyncInfoDataError);
     }
     {// compressed? buf
