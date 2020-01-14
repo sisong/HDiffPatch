@@ -29,18 +29,6 @@
 #include "dir_patch.h"
 #include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HPatch/patch.h"
-
-hpatch_BOOL getCompressedDiffInfoByFile(const char* diffFileName,hpatch_compressedDiffInfo *out_info){
-    hpatch_BOOL          result=hpatch_TRUE;
-    hpatch_TFileStreamInput     diffData;
-    hpatch_TFileStreamInput_init(&diffData);
-    
-    if (!hpatch_TFileStreamInput_open(&diffData,diffFileName)) return hpatch_FALSE;
-    result=getCompressedDiffInfo(out_info,&diffData.base);
-    if (!hpatch_TFileStreamInput_close(&diffData)) return hpatch_FALSE;
-    return result;
-}
-
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dir_patch_private.h"
 #include <stdio.h>

@@ -44,13 +44,15 @@ int sync_patch_dir2file(ISyncPatchListener* listener,const char* outNewFile,cons
 
 typedef struct TNewDirSyncInfo{
     hpatch_BOOL             newPathIsDir;
-    TNewDataSyncInfo        baseSyncInfo;
+    TNewDataSyncInfo        syncInfo;
     hpatch_StreamPos_t      externDataOffset;
     hpatch_StreamPos_t      externDataSize;
+//private:
     //todo:
 } TNewDirSyncInfo;
 
 struct IDirSyncPatchListener:public ISyncPatchListener,IDirPatchListener {
+    
 };
 
 hpatch_inline static void

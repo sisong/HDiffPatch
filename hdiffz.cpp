@@ -320,6 +320,16 @@ int main(int argc,char* argv[]){
 #endif
 
 
+static hpatch_BOOL _getIsCompressedDiffFile(const char* diffFileName){
+    hpatch_TFileStreamInput diffData;
+    hpatch_TFileStreamInput_init(&diffData);
+    if (!hpatch_TFileStreamInput_open(&diffData,diffFileName)) return hpatch_FALSE;
+    hpatch_compressedDiffInfo diffInfo;
+    hpatch_BOOL result=getCompressedDiffInfo(&diffInfo,&diffData.base);
+    if (!hpatch_TFileStreamInput_close(&diffData)) return hpatch_FALSE;
+    return result;
+}
+
 static void _trySetDecompress(hpatch_TDecompress** out_decompressPlugin,const char* compressType,
                             hpatch_TDecompress* testDecompressPlugin){
     if ((*out_decompressPlugin)!=0) return;
@@ -881,7 +891,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #endif
         const char* diffFileName   =arg_values[0];
         const char* outDiffFileName=arg_values[1];
-        hpatch_BOOL isDiffFile=getIsCompressedDiffFile(diffFileName);
+        hpatch_BOOL isDiffFile=_getIsCompressedDiffFile(diffFileName);
 #if (_IS_NEED_DIR_DIFF_PATCH)
         isDiffFile=isDiffFile || getIsDirDiffFile(diffFileName);
 #endif

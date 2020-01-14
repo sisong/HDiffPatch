@@ -36,8 +36,8 @@
 #include "_atosize.h"
 #include "file_for_patch.h"
 
-#include "dirDiffPatch/dir_patch/dir_patch.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
+#include "dirDiffPatch/dir_patch/dir_patch.h"
 #include "hpatch_dir_listener.h"
 #endif
 
@@ -1126,6 +1126,16 @@ clear:
     return result;
 }
 
+static hpatch_BOOL _getIsCompressedDiffFile(const char* diffFileName){
+    hpatch_TFileStreamInput diffData;
+    hpatch_TFileStreamInput_init(&diffData);
+    if (!hpatch_TFileStreamInput_open(&diffData,diffFileName)) return hpatch_FALSE;
+    hpatch_compressedDiffInfo diffInfo;
+    hpatch_BOOL result=getCompressedDiffInfo(&diffInfo,&diffData.base);
+    if (!hpatch_TFileStreamInput_close(&diffData)) return hpatch_FALSE;
+    return result;
+}
+
 int createSfx(const char* selfExecuteFileName,const char* diffFileName,const char* out_sfxFileName){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
@@ -1136,7 +1146,7 @@ int createSfx(const char* selfExecuteFileName,const char* diffFileName,const cha
             isDiffFile=getIsDirDiffFile(diffFileName);
 #endif
         if (!isDiffFile)
-            isDiffFile=getIsCompressedDiffFile(diffFileName);
+            isDiffFile=_getIsCompressedDiffFile(diffFileName);
         check(isDiffFile,HPATCH_CREATE_SFX_DIFFFILETYPE_ERROR,
               "createSfx() input diffFile is unsupported type");
     }

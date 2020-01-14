@@ -156,14 +156,14 @@
 			isa = PBXGroup;
 			children = (
 				D65893422332765B003BB2F4 /* sync_client_type.h */,
-				D65893442332765B003BB2F4 /* sync_client.h */,
 				D65893452332765B003BB2F4 /* sync_client.cpp */,
-				D61DE54B23481CA900F6FCCF /* dir_sync_client.h */,
+				D65893442332765B003BB2F4 /* sync_client.h */,
 				D61DE54A23481CA900F6FCCF /* dir_sync_client.cpp */,
+				D61DE54B23481CA900F6FCCF /* dir_sync_client.h */,
 				D6E443F723C1F35800EB7B80 /* sync_info_client.cpp */,
 				D6E443F623C1F35800EB7B80 /* sync_info_client.h */,
-				D699A29323372152003CB3DC /* match_in_old.h */,
 				D699A29423372152003CB3DC /* match_in_old.cpp */,
+				D699A29323372152003CB3DC /* match_in_old.h */,
 				D61DE52323407BA600F6FCCF /* mt_by_queue.h */,
 			);
 			name = sync_client;
