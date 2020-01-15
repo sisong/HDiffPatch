@@ -86,12 +86,13 @@
 #endif
 #if (_IS_NEED_ALL_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
-#   define _ChecksumPlugin_adler32  // ~  29 bit effective
-#   define _ChecksumPlugin_adler64  // ?  36 bit effective
+#   define _ChecksumPlugin_adler32  // ?  29 bit effective
+#   define _ChecksumPlugin_adler64  // ?  30 bit effective
 #   define _ChecksumPlugin_fadler32 // ~  32 bit effective
-#   define _ChecksumPlugin_fadler128// ? 126 bit effective
+#   define _ChecksumPlugin_fadler128// ?  81 bit effective
 #   define _ChecksumPlugin_md5      // ? 128 bit effective
 #endif
+
 
 #include "checksum_plugin_demo.h"
 #endif

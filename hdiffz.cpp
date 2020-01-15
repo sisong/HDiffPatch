@@ -63,7 +63,7 @@
 #   define _CompressPlugin_zlib  // memroy requires less
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma  // better compresser
-#   define _CompressPlugin_lzma2 // muti-thread compresser
+#   define _CompressPlugin_lzma2 // better compresser / muti-thread compresser
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
@@ -92,12 +92,13 @@
 #endif
 #if (_IS_NEED_ALL_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
-#   define _ChecksumPlugin_adler32  // ~  29 bit effective
-#   define _ChecksumPlugin_adler64  // ?  36 bit effective
+#   define _ChecksumPlugin_adler32  // ?  29 bit effective
+#   define _ChecksumPlugin_adler64  // ?  30 bit effective
 #   define _ChecksumPlugin_fadler32 // ~  32 bit effective
-#   define _ChecksumPlugin_fadler128// ? 126 bit effective
+#   define _ChecksumPlugin_fadler128// ?  81 bit effective
 #   define _ChecksumPlugin_md5      // ? 128 bit effective
 #endif
+
 
 #include "checksum_plugin_demo.h"
 #endif
