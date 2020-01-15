@@ -40,7 +40,6 @@ struct IDirSyncListener{
     virtual void syncRefInfo(size_t pathCount,hpatch_StreamPos_t refFileSize,
                              uint32_t kMatchBlockSize,bool isMatchBlockSizeWarning){}
     virtual void externData(std::vector<unsigned char>& out_externData){}
-    virtual void externDataPosInSyncInfoStream(hpatch_StreamPos_t externDataPos,size_t externDataSize){}
 };
 
 void create_dir_sync_data(IDirSyncListener*         listener,

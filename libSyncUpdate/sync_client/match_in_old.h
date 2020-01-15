@@ -40,7 +40,7 @@ static const hpatch_StreamPos_t kBlockType_needSync =~(hpatch_StreamPos_t)0; //d
 // value==kBlockType_needSync : this block need download from server;
 // 0<=value<oldDataSize : this block read from oldStream,starting at value in oldStream;
 void matchNewDataInOld(hpatch_StreamPos_t* out_newDataPoss,const TNewDataSyncInfo* newSyncInfo,
-                       const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin,int threadNum=0);
+                       const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin,int threadNum=1);
 
 } //namespace sync_private
 #endif // match_in_old_h

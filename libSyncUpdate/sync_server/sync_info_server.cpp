@@ -130,7 +130,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
         checkv(self->compressType==0);
     hpatch_TChecksum* strongChecksumPlugin=self->_strongChecksumPlugin;
     checkv(0==strcmp(strongChecksumPlugin->checksumType(),self->strongChecksumType));
-#if (!_IS_NEED_DIR_DIFF_PATCH)
+#if ( ! (_IS_NEED_DIR_DIFF_PATCH) )
     checkv(!self->isDirSyncInfo);
 #endif
 
@@ -138,13 +138,20 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     const size_t externDataSize=self->externData_end-self->externData_begin;
     const uint8_t isSavedSizes=(self->savedSizes)!=0?1:0;
     std::vector<TByte> buf;
+    
     saveSamePairList(buf,self);
     if (isSavedSizes)
         saveSavedSizes(buf,self);
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
     size_t dir_newPathSumCharSize=0;
-    //todo:
+    if (self->isDirSyncInfo){
+        checkv(!self->dir_newNameList_isCString);
+        dir_newPathSumCharSize=pushNameList(buf,self->dir_utf8RootPath,
+                                            (std::string*)self->dir_utf8NewNameList,self->dir_newCount);
+        packList(buf,self->dir_newSizeList,self->dir_newCount);
+        packIncList(buf,self->dir_newExecuteIndexList,self->dir_newExecuteCount);
+    }
 #endif
 
     //compress buf
@@ -172,13 +179,13 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
         packUInt(head,uncompressDataSize);
         packUInt(head,compressDataSize);
         
-        if (self->isDirSyncInfo){
 #if (_IS_NEED_DIR_DIFF_PATCH)
+        if (self->isDirSyncInfo){
             packUInt(head,dir_newPathSumCharSize);
-            packUInt(head,self->dir_subPathCount);
+            packUInt(head,self->dir_newCount);
             packUInt(head,self->dir_newExecuteCount);
-#endif
         }
+#endif
         
         {//newSyncInfoSize
             self->newSyncInfoSize = head.size() + sizeof(self->newSyncInfoSize)
@@ -195,7 +202,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     hpatch_StreamPos_t outPos=0;
     //out head buf
     _outV_clear(head);
-    //out privateExternData //reserved ,now empty
+    assert(privateExternDataSize==0);//out privateExternData //reserved ,now empty
     _outBuf(self->externData_end,self->externData_begin);
     _outV_clear(buf);
     

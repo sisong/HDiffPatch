@@ -158,10 +158,19 @@ struct CRefStream:public hpatch_TRefStream{
     inline ~CRefStream(){ hpatch_TRefStream_close(this); }
 };
 
-size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
-                    const std::vector<std::string>& nameList);
-void packList(std::vector<TByte>& out_data,const std::vector<hpatch_StreamPos_t>& list);
-void packIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list);
+size_t pushNameList(std::vector<TByte>& out_data,const char* rootPath,
+                    const std::string* nameList,size_t nameListSize);
+inline static size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
+                                  const std::vector<std::string>& nameList){
+    return pushNameList(out_data,rootPath.c_str(),nameList.data(),nameList.size()); }
+
+void packList(std::vector<TByte>& out_data,const hpatch_StreamPos_t* list,size_t listSize);
+inline static void packList(std::vector<TByte>& out_data,const std::vector<hpatch_StreamPos_t>& list){
+    packList(out_data,list.data(),list.size()); }
+void packIncList(std::vector<TByte>& out_data,const size_t* list,size_t listSize);
+inline static void packIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list){
+    packIncList(out_data,list.data(),list.size()); }
+
 #endif
 }
 

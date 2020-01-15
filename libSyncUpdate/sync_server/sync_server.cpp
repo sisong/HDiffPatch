@@ -142,11 +142,11 @@ static void _mt_threadRunCallBackProc(int threadIndex,void* workData){
 }
 #endif
 
-static void _create_sync_data(const hpatch_TStreamInput*  newData,
-                              TNewDataSyncInfo*           newSyncInfo,
-                              const hpatch_TStreamOutput* out_newSyncInfo_stream,
-                              const hpatch_TStreamOutput* out_newSyncData,
-                              const hdiff_TCompress* compressPlugin,size_t threadNum){
+void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
+                               const hpatch_TStreamInput*  newData,
+                               const hpatch_TStreamOutput* out_newSyncInfo,
+                               const hpatch_TStreamOutput* out_newSyncData,
+                               const hdiff_TCompress* compressPlugin,size_t threadNum){
     _TCreateDatas  createDatas;
     createDatas.newData=newData;
     createDatas.out_newSyncInfo=newSyncInfo;
@@ -174,7 +174,7 @@ static void _create_sync_data(const hpatch_TStreamInput*  newData,
     }
     matchNewDataInNew(createDatas.out_newSyncInfo);
     //save to out_newSyncInfo_stream
-    TNewDataSyncInfo_saveTo(newSyncInfo,out_newSyncInfo_stream,compressPlugin);
+    TNewDataSyncInfo_saveTo(newSyncInfo,out_newSyncInfo,compressPlugin);
 }
 
 void create_sync_data(const hpatch_TStreamInput*  newData,
@@ -189,7 +189,7 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
                                  newData->streamSize,kMatchBlockSize);
     newSyncInfo.externData_begin=externData_begin;
     newSyncInfo.externData_end=externData_end;
-    _create_sync_data(newData,&newSyncInfo,out_newSyncInfo,out_newSyncData,compressPlugin,threadNum);
+    _private_create_sync_data(&newSyncInfo,newData,out_newSyncInfo,out_newSyncData,compressPlugin,threadNum);
 }
 
 void create_sync_data_by_file(const char* newDataFile,

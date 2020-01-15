@@ -101,9 +101,9 @@ namespace hdiff_private{
     void CRefStream::open(const hpatch_TStreamInput** refList,size_t refCount,size_t kAlignSize){
         check(hpatch_TRefStream_open(this,refList,refCount,kAlignSize),"TRefStream_open() refList error!");
     }
-    void packIncList(std::vector<TByte>& out_data,const std::vector<size_t>& list){
+    void packIncList(std::vector<TByte>& out_data,const size_t* list,size_t listSize){
         size_t backValue=~(size_t)0;
-        for (size_t i=0;i<list.size();++i){
+        for (size_t i=0;i<listSize;++i){
             size_t curValue=list[i];
             assert(curValue>=(size_t)(backValue+1));
             packUInt(out_data,(size_t)(curValue-(size_t)(backValue+1)));
@@ -111,8 +111,8 @@ namespace hdiff_private{
         }
     }
     
-    void packList(std::vector<TByte>& out_data,const std::vector<hpatch_StreamPos_t>& list){
-        for (size_t i=0;i<list.size();++i){
+    void packList(std::vector<TByte>& out_data,const hpatch_StreamPos_t* list,size_t listSize){
+        for (size_t i=0;i<listSize;++i){
             packUInt(out_data,list[i]);
         }
     }
@@ -128,16 +128,16 @@ namespace hdiff_private{
         }
     }
     
-    size_t pushNameList(std::vector<TByte>& out_data,const std::string& rootPath,
-                        const std::vector<std::string>& nameList){
-        const size_t rootLen=rootPath.size();
+    size_t pushNameList(std::vector<TByte>& out_data,const char* rootPath,
+                        const std::string* nameList,size_t nameListSize){
+        const size_t rootLen=strlen(rootPath);
         std::string utf8;
         size_t outSize=0;
-        for (size_t i=0;i<nameList.size();++i){
+        for (size_t i=0;i<nameListSize;++i){
             const std::string& name=nameList[i];
             const size_t nameSize=name.size();
             assert(nameSize>=rootLen);
-            assert(0==memcmp(name.data(),rootPath.data(),rootLen));
+            assert(0==memcmp(name.data(),rootPath,rootLen));
             const char* subName=name.c_str()+rootLen;
             const char* subNameEnd=subName+(nameSize-rootLen);
             utf8.assign(subName,subNameEnd);
@@ -148,6 +148,7 @@ namespace hdiff_private{
         }
         return outSize;
     }
+
     
     CFileResHandleLimit::CFileResHandleLimit(size_t _limitMaxOpenCount,size_t resCount)
     :limitMaxOpenCount(_limitMaxOpenCount),curInsert(0){

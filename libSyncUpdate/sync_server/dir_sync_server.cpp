@@ -43,6 +43,12 @@ static void getRefList(const std::vector<std::string>& newList,
     }
 }
 
+void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
+                               const hpatch_TStreamInput*  newData,
+                               const hpatch_TStreamOutput* out_newSyncInfo,
+                               const hpatch_TStreamOutput* out_newSyncData,
+                               const hdiff_TCompress* compressPlugin,size_t threadNum);
+
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const TManifest&          newManifest,
                           const char*               outNewSyncInfoFile,
@@ -51,7 +57,6 @@ void create_dir_sync_data(IDirSyncListener*         listener,
                           hpatch_TChecksum*         strongChecksumPlugin,
                           size_t                    kMaxOpenFileNumber,
                           uint32_t kMatchBlockSize,size_t threadNum){
-    const char* kDirSyncUpdateTypeVersion = "DirSyncUpdate19";
     assert(listener!=0);
     assert((outNewSyncDataFile!=0)&&(strlen(outNewSyncDataFile)>0));
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
@@ -90,89 +95,28 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     bool isMatchBlockSizeWarning=hashClashBit>kAllowMaxHashClashBit;
     listener->syncRefInfo(newList.size(),newRefStream.stream->streamSize,kMatchBlockSize,isMatchBlockSizeWarning);
     checkv(!isMatchBlockSizeWarning); //warning as error
+
+    CNewDataSyncInfo  newDataSyncInfo(strongChecksumPlugin,compressPlugin,
+                                      newRefStream.stream->streamSize,kMatchBlockSize);
+    newDataSyncInfo.isDirSyncInfo=hpatch_TRUE;
+    newDataSyncInfo.dir_newCount=newList.size();
+    newDataSyncInfo.dir_newNameList_isCString=hpatch_FALSE;
+    newDataSyncInfo.dir_utf8NewNameList=newList.data();
+    newDataSyncInfo.dir_utf8RootPath=newManifest.rootPath.c_str();
+    newDataSyncInfo.dir_newSizeList=newSizeList.data();
+    newDataSyncInfo.dir_newExecuteCount=newExecuteList.size();
+    newDataSyncInfo.dir_newExecuteIndexList=newExecuteList.data();
     
-    //serialize headData
-    std::vector<TByte> buf;
-    size_t newPathSumSize=pushNameList(buf,newManifest.rootPath,newList);
-    packList(buf,newSizeList);
-    packIncList(buf,newExecuteList);
-    
-    std::vector<TByte> head;
-    {//head info
-        pushTypes(head,kDirSyncUpdateTypeVersion,compressPlugin,strongChecksumPlugin);
-        packUInt(head,newList.size());
-        packUInt(head,newPathSumSize);
-        packUInt(head,kAlignSize);
-        packUInt(head,newRefStream.stream->streamSize); //same as syncInfo::newDataSize
-        packUInt(head,newExecuteList.size());     swapClear(newExecuteList);
-    }
-    std::vector<TByte> privateExternData;//now empty
-    {//reservedDataSize
-        //head +
-        packUInt(head,privateExternData.size());
-    }
-    std::vector<TByte> externData;
-    {//externData size
-        listener->externData(externData);
-        //head +
-        packUInt(head,externData.size());
-    }
-    {//compress buf
-        std::vector<TByte> cmbuf;
-        if (compressPlugin){
-            cmbuf.resize((size_t)compressPlugin->maxCompressedSize(buf.size()));
-            size_t compressedSize=hdiff_compress_mem(compressPlugin,cmbuf.data(),cmbuf.data()+cmbuf.size(),
-                                                     buf.data(),buf.data()+buf.size());
-            checkv(compressedSize>0);
-            if (compressedSize>=buf.size()) compressedSize=0; //not compressed
-            cmbuf.resize(compressedSize);
-        }
-        
-        //head +
-        packUInt(head,buf.size());
-        packUInt(head,cmbuf.size());
-        if (cmbuf.size()>0){
-            swapClear(buf);
-            buf.swap(cmbuf);
-        }
-    }
-    {//dirSyncHeadSize
-        hpatch_StreamPos_t dirSyncHeadSize= (hpatch_StreamPos_t)head.size() + sizeof(dirSyncHeadSize)
-                                           + privateExternData.size() + externData.size() + buf.size()
-                                           + kPartStrongChecksumByteSize;
-        //head +
-        pushUInt(head,dirSyncHeadSize);
-        //end head info
-    }
-    
-    //privateExtern data
-    pushBack(head,privateExternData);   swapClear(privateExternData);
-    //externData data
-    listener->externDataPosInSyncInfoStream(head.size(),externData.size());
-    pushBack(head,externData);          swapClear(externData);
-    //headData data
-    pushBack(head,buf);                 swapClear(buf);
-    
-    {//checksum dir head
-        CChecksum checksumHead(strongChecksumPlugin);
-        checksumHead.append(head);
-        checksumHead.appendEnd();
-        toSyncPartChecksum(checksumHead.checksum.data(),
-                       checksumHead.checksum.data(),checksumHead.checksum.size());
-        
-        pushBack(head,checksumHead.checksum.data(),kPartStrongChecksumByteSize);
-        //end head
-    }
+    std::vector<unsigned char> out_externData;
+    listener->externData(out_externData);
+    newDataSyncInfo.externData_begin=out_externData.data();
+    newDataSyncInfo.externData_end=out_externData.data()+out_externData.size();
     
     CFileStreamOutput out_newSyncInfo(outNewSyncInfoFile,~(hpatch_StreamPos_t)0);
-    hpatch_StreamPos_t writeToPos=0;
-    writeStream(&out_newSyncInfo.base,writeToPos,head);     swapClear(head);
-    TOffsetStreamOutput ofStream(&out_newSyncInfo.base,writeToPos);
-    
     CFileStreamOutput out_newSyncData(outNewSyncDataFile,~(hpatch_StreamPos_t)0);
     
-    create_sync_data(newRefStream.stream,&ofStream,&out_newSyncData.base,
-                     compressPlugin,strongChecksumPlugin,kMatchBlockSize,threadNum);
+    _private_create_sync_data(&newDataSyncInfo, newRefStream.stream,&out_newSyncInfo.base,
+                              &out_newSyncData.base, compressPlugin,threadNum);
 }
 
 
