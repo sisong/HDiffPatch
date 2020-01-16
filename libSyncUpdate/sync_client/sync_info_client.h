@@ -83,4 +83,8 @@ int  TNewDataSyncInfo_open        (TNewDataSyncInfo* self,const hpatch_TStreamIn
                                    ISyncInfoListener* listener);
 void TNewDataSyncInfo_close       (TNewDataSyncInfo* self);
 
+int  checkNewSyncInfoType_by_file(const char* newSyncInfoFile,hpatch_BOOL* out_newIsDir);
+int  checkNewSyncInfoType(const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL* out_newIsDir);
+
+
 #endif // sync_info_client_h

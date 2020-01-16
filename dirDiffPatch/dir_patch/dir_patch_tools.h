@@ -1,9 +1,9 @@
-//  dir_sync_client.h
-//  sync_client
-//  Created by housisong on 2019-10-05.
+// dir_patch_tools.h
+// hdiffz dir patch
+//
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2019 HouSisong
+ Copyright (c) 2018-2019 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -26,23 +26,22 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef dir_sync_client_h
-#define dir_sync_client_h
-#include "sync_client.h"
-#include "../../dirDiffPatch/dir_patch/dir_patch_types.h"
+#ifndef DirPatch_dir_patch_tools_h
+#define DirPatch_dir_patch_tools_h
+#include "dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#include "../../dirDiffPatch/dir_patch/dir_patch.h"
-#include "../../dirDiffPatch/dir_diff/dir_diff.h"
-
-//sync patch oldDir to newFile
-//  use get_manifest(dir) to get TManifest
-int sync_patch_dir2file(ISyncPatchListener* listener,const char* outNewFile,const TManifest& oldManifest,
-                        const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum=1);
-
-//sync patch oldPatch to newDir
-int sync_patch_fileOrDir2dir(IDirPatchListener* patchListener,ISyncPatchListener* syncListener,
-                             const char* outNewDir,const TManifest& oldManifest,
-                             const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum=1);
-
+#include "../../libHDiffPatch/HPatch/patch_private.h"
+#ifdef __cplusplus
+extern "C" {
 #endif
-#endif // dir_sync_client_h
+    void formatDirTagForLoad(char* utf8_path,char* utf8_pathEnd);
+    hpatch_BOOL clipCStrsTo(const char* cstrs,const char* cstrsEnd,
+                            const char** out_cstrList,size_t cstrCount);
+    hpatch_BOOL readListTo(TStreamCacheClip* sclip,hpatch_StreamPos_t* out_list,size_t count);
+    hpatch_BOOL readIncListTo(TStreamCacheClip* sclip,size_t* out_list,
+                              size_t count,size_t check_endValue);
+#ifdef __cplusplus
+}
+#endif
+#endif
+#endif //DirPatch_dir_patch_tools_h

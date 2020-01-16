@@ -137,11 +137,16 @@ static void printUsage(){
 
 int sync_client_cmd_line(int argc, const char * argv[]);
 
-int sync_patch_2file(ISyncPatchListener* listener,const char* outNewFile,
-                     const char* _oldPath,bool oldIsDir,
+int sync_patch_2file(const char* outNewFile,const char* _oldPath,bool oldIsDir,
                      const std::vector<std::string>& ignoreOldPathList,
-                     const char* newSyncInfoFile,
-                     size_t kMaxOpenFileNumber,size_t threadNum);
+                     const char* newSyncInfoFile,const char* newSyncDataFile_url,
+                     TSyncPatchChecksumSet checksumSet,size_t kMaxOpenFileNumber,size_t threadNum);
+#if (_IS_NEED_DIR_DIFF_PATCH)
+int  sync_patch_2dir(const char* outNewDir,const char* _oldPath,bool oldIsDir,
+                     const std::vector<std::string>& ignoreOldPathList,
+                     const char* newSyncInfoFile,const char* newSyncDataFile_url,
+                     TSyncPatchChecksumSet checksumSet,size_t kMaxOpenFileNumber,size_t threadNum);
+#endif
 
 bool openNewSyncDataByUrl(ISyncPatchListener* listener,const char* newSyncDataFile_url);
 bool closeNewSyncData(ISyncPatchListener* listener);
@@ -379,24 +384,30 @@ int sync_client_cmd_line(int argc, const char * argv[]) {
     else
         printf("muti-thread parallel: closed\n");
     
-    ISyncPatchListener listener; memset(&listener,0,sizeof(listener));
-    listener.checksumSet=checksumSet;
-    listener.findChecksumPlugin=findChecksumPlugin;
-    listener.findDecompressPlugin=findDecompressPlugin;
-    _return_check(openNewSyncDataByUrl(&listener,newSyncDataFile_url),
-                  kSyncClient_openSyncDataError,"open newSyncData: %s",newSyncDataFile_url);
     hpatch_TPathType oldPathType;
     _return_check(hpatch_getPathStat(oldPath,&oldPathType,0),
                   kSyncClient_oldPathTypeError,"get oldPath %s type",oldPath);
     _return_check((oldPathType!=kPathType_notExist),
                   kSyncClient_oldPathTypeError,"oldPath %s not exist",oldPath);
     
-    int result=sync_patch_2file(&listener,outNewPath,oldPath,(oldPathType==kPathType_dir),
-                                ignoreOldPathList,newSyncInfoFile,kMaxOpenFileNumber,threadNum);
-
-    _return_check(closeNewSyncData(&listener),(result!=kSyncClient_ok)?result:kSyncClient_closeSyncDataError,
-                  "close newSyncData: %s",newSyncDataFile_url);
-    ;
+    int result=kSyncClient_ok;
+    hpatch_BOOL newIsDir=hpatch_FALSE;
+    result=checkNewSyncInfoType_by_file(newSyncInfoFile,&newIsDir);
+    _return_check(result==kSyncClient_ok,result,"check newSyncInfoFile:%s ",newSyncInfoFile);
+    if (!newIsDir)
+        _return_check(!hpatch_getIsDirName(outNewPath),
+                      kSyncClient_newPathTypeError,"outNewPath must fileName:%s ",outNewPath);
+    
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    if (newIsDir)
+        result=sync_patch_2dir(outNewPath,oldPath,(oldPathType==kPathType_dir),
+                               ignoreOldPathList,newSyncInfoFile,newSyncDataFile_url,
+                               checksumSet,kMaxOpenFileNumber,threadNum);
+    else
+#endif
+        result=sync_patch_2file(outNewPath,oldPath,(oldPathType==kPathType_dir),ignoreOldPathList,
+                                newSyncInfoFile,newSyncDataFile_url,
+                                checksumSet,kMaxOpenFileNumber,threadNum);
     double time1=clock_s();
     printf("test sync_patch time: %.3f s\n\n",(time1-time0));
     return result;
@@ -414,21 +425,73 @@ struct DirPathIgnoreListener:public CDirPathIgnore,IDirPathIgnore{
 };
 #endif
 
-int sync_patch_2file(ISyncPatchListener* listener,const char* outNewFile,
-                     const char* _oldPath,bool oldIsDir,
+#if (_IS_NEED_DIR_DIFF_PATCH)
+bool getManifest(TManifest& out_manifest,const char* _rootPath,bool rootPathIsDir,
+                 const std::vector<std::string>& ignorePathList){
+    try {
+        std::string rootPath(_rootPath);
+        if (rootPathIsDir) assignDirTag(rootPath);
+        DirPathIgnoreListener pathIgnore(ignorePathList);
+        get_manifest(&pathIgnore,rootPath,out_manifest);
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+#endif
+
+int sync_patch_2file(const char* outNewFile,const char* _oldPath,bool oldIsDir,
                      const std::vector<std::string>& ignoreOldPathList,
-                     const char* newSyncInfoFile,
-                     size_t kMaxOpenFileNumber,size_t threadNum){
+                     const char* newSyncInfoFile,const char* newSyncDataFile_url,
+                     TSyncPatchChecksumSet checksumSet,size_t kMaxOpenFileNumber,size_t threadNum){
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    TManifest oldManifest;
+    if (oldIsDir){
+        _return_check(getManifest(oldManifest,_oldPath,oldIsDir,ignoreOldPathList),
+                      kSyncClient_oldDirFilesError,"open oldPath: %s",_oldPath);
+    }
+#endif
+    ISyncPatchListener listener; memset(&listener,0,sizeof(listener));
+    listener.checksumSet=checksumSet;
+    listener.findChecksumPlugin=findChecksumPlugin;
+    listener.findDecompressPlugin=findDecompressPlugin;
+    _return_check(openNewSyncDataByUrl(&listener,newSyncDataFile_url),
+                  kSyncClient_openSyncDataError,"open newSyncData: %s",newSyncDataFile_url);
+    int result=kSyncClient_ok;
 #if (_IS_NEED_DIR_DIFF_PATCH)
     if (oldIsDir){
-        DirPathIgnoreListener pathIgnore(ignoreOldPathList);
-        TManifest oldManifest;
-        std::string oldPath(_oldPath);
-        assignDirTag(oldPath);
-        get_manifest(&pathIgnore,oldPath,oldManifest);
-        return sync_patch_dir2file(listener,outNewFile,oldManifest,newSyncInfoFile,
+        result=sync_patch_dir2file(&listener,outNewFile,oldManifest,newSyncInfoFile,
                                    kMaxOpenFileNumber,(int)threadNum);
     }else
 #endif
-        return sync_patch_file2file(listener,outNewFile,_oldPath,newSyncInfoFile,(int)threadNum);
+    {
+        assert(!oldIsDir);
+        result=sync_patch_file2file(&listener,outNewFile,_oldPath,newSyncInfoFile,(int)threadNum);
+    }
+    _return_check(closeNewSyncData(&listener),(result!=kSyncClient_ok)?result:kSyncClient_closeSyncDataError,
+                  "close newSyncData: %s",newSyncDataFile_url);
+    return result;
 }
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
+int  sync_patch_2dir(const char* outNewDir,const char* _oldPath,bool oldIsDir,
+                     const std::vector<std::string>& ignoreOldPathList,
+                     const char* newSyncInfoFile,const char* newSyncDataFile_url,
+                     TSyncPatchChecksumSet checksumSet,size_t kMaxOpenFileNumber,size_t threadNum){
+    TManifest oldManifest;
+    _return_check(getManifest(oldManifest,_oldPath,oldIsDir,ignoreOldPathList),
+                  kSyncClient_oldDirFilesError,"open oldPath: %s",_oldPath);
+    ISyncPatchListener listener; memset(&listener,0,sizeof(listener));
+    listener.checksumSet=checksumSet;
+    listener.findChecksumPlugin=findChecksumPlugin;
+    listener.findDecompressPlugin=findDecompressPlugin;
+    _return_check(openNewSyncDataByUrl(&listener,newSyncDataFile_url),
+                  kSyncClient_openSyncDataError,"open newSyncData: %s",newSyncDataFile_url);
+    int result=sync_patch_fileOrDir2dir(0,&listener,outNewDir,oldManifest,newSyncInfoFile,
+                                        kMaxOpenFileNumber,(int)threadNum);
+    _return_check(closeNewSyncData(&listener),(result!=kSyncClient_ok)?result:kSyncClient_closeSyncDataError,
+                  "close newSyncData: %s",newSyncDataFile_url);
+    return result;
+}
+#endif
+

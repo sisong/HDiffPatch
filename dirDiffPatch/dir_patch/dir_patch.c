@@ -30,10 +30,9 @@
 #include "../../file_for_patch.h"
 #include "../../libHDiffPatch/HPatch/patch.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#include "dir_patch_private.h"
+#include "dir_patch_tools.h"
 #include <stdio.h>
 #include <string.h>
-#include "../../libHDiffPatch/HPatch/patch_private.h"
 
 static const char* kVersionType="HDIFF19";
 
@@ -120,16 +119,6 @@ static hpatch_BOOL addingPath(char* out_pathBegin,char* out_pathBufEnd,const cha
     memcpy(out_pathBegin,utf8fileName,utf8fileNameSize+1);
 clear:
     return result;
-}
-
-static void formatDirTagForLoad(char* utf8_path,char* utf8_pathEnd){
-    if (kPatch_dirSeparator==kPatch_dirSeparator_saved) return;
-    for (;utf8_path<utf8_pathEnd;++utf8_path){
-        if ((*utf8_path)!=kPatch_dirSeparator_saved)
-            continue;
-        else
-            *utf8_path=kPatch_dirSeparator;
-    }
 }
 
 hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info,
@@ -270,45 +259,6 @@ hpatch_BOOL TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* dirDif
     }
     return result;
 }
-
-static hpatch_BOOL clipCStrsTo(const char* cstrs,const char* cstrsEnd,
-                               const char** out_cstrList,size_t cstrCount){
-    if (cstrs<cstrsEnd){
-        if (cstrsEnd[-1]!='\0') return hpatch_FALSE;
-        while ((cstrs<cstrsEnd)&(cstrCount>0)) {
-            *out_cstrList=cstrs;  ++out_cstrList; --cstrCount;
-            cstrs+=strlen(cstrs)+1; //safe
-        }
-    }
-    return (cstrs==cstrsEnd)&(cstrCount==0);
-}
-
-static hpatch_BOOL readIncListTo(TStreamCacheClip* sclip,size_t* out_list,size_t count,size_t check_endValue){
-    //endValue: maxValue+1
-    hpatch_BOOL result=hpatch_TRUE;
-    TUInt backValue=~(TUInt)0;
-    size_t i;
-    for (i=0; i<count; ++i) {
-        TUInt incValue;
-        check(_TStreamCacheClip_unpackUIntWithTag(sclip,&incValue,0));
-        backValue+=1+incValue;
-        check(backValue<check_endValue);
-        out_list[i]=(size_t)backValue;
-    }
-clear:
-    return result;
-}
-
-static hpatch_BOOL readListTo(TStreamCacheClip* sclip,hpatch_StreamPos_t* out_list,size_t count){
-    hpatch_BOOL result=hpatch_TRUE;
-    size_t i;
-    for (i=0; i<count; ++i) {
-        check(_TStreamCacheClip_unpackUIntWithTag(sclip,&out_list[i],0));
-    }
-clear:
-    return result;
-}
-
 
 static hpatch_BOOL readSamePairListTo(TStreamCacheClip* sclip,hpatch_TSameFilePair* out_pairList,size_t pairCount,
                                       size_t check_endNewValue,size_t check_endOldValue){

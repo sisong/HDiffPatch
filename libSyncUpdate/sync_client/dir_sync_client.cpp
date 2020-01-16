@@ -98,4 +98,41 @@ clear:
     return result;
 }
 
+
+int sync_patch_fileOrDir2dir(IDirPatchListener* patchListener,ISyncPatchListener* syncListener,
+                             const char* outNewDir,const TManifest& oldManifest,
+                             const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum){
+    //assert((patchListener!=0)&&(syncListener!=0));
+    assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
+    kMaxOpenFileNumber-=2; // for newSyncInfoFile & outNewFile
+    
+    int result=kSyncClient_ok;
+    int _inClear=0;
+    TNewDataSyncInfo         newSyncInfo;
+    hpatch_TFileStreamOutput out_newData;
+    
+    TNewDataSyncInfo_init(&newSyncInfo);
+    hpatch_TFileStreamOutput_init(&out_newData);
+    result=TNewDataSyncInfo_open_by_file(&newSyncInfo,newSyncInfoFile,syncListener);
+    check_r(result==kSyncClient_ok,result);
+    check_r(newSyncInfo.isDirSyncInfo,kSyncClient_newSyncInfoTypeError);
+    
+    
+    check_r(hpatch_TFileStreamOutput_open(&out_newData,outNewDir,(hpatch_StreamPos_t)(-1)),
+            kSyncClient_newFileCreateError);
+    try {
+        CFilesStream oldFilesStream(oldManifest.pathList,kMaxOpenFileNumber,newSyncInfo.kMatchBlockSize);
+        const hpatch_TStreamInput* oldStream=oldFilesStream.newRefStream.stream;
+        result=sync_patch(syncListener,&out_newData.base,oldStream,&newSyncInfo,threadNum);
+    } catch (const std::exception& e){
+        result=kSyncClient_oldDirFilesError;
+    }
+clear:
+    _inClear=1;
+    check_r(hpatch_TFileStreamOutput_close(&out_newData),kSyncClient_newFileCloseError);
+    TNewDataSyncInfo_close(&newSyncInfo);
+    return result;
+}
+
+
 #endif //_IS_NEED_DIR_DIFF_PATCH

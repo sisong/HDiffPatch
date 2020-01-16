@@ -123,16 +123,16 @@ namespace sync_private{
     
 void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* out_stream,
                              const hdiff_TCompress* compressPlugin){
-    const char* kVersionType="HSync20";
+#if ( ! (_IS_NEED_DIR_DIFF_PATCH) )
+    checkv(!self->isDirSyncInfo);
+#endif
+    const char* kVersionType=self->isDirSyncInfo?"HDirSync20":"HSync20";
     if (compressPlugin)
         checkv(0==strcmp(compressPlugin->compressType(),self->compressType));
     else
         checkv(self->compressType==0);
     hpatch_TChecksum* strongChecksumPlugin=self->_strongChecksumPlugin;
     checkv(0==strcmp(strongChecksumPlugin->checksumType(),self->strongChecksumType));
-#if ( ! (_IS_NEED_DIR_DIFF_PATCH) )
-    checkv(!self->isDirSyncInfo);
-#endif
 
     const size_t privateExternDataSize=0; //reserved ,now empty
     const size_t externDataSize=self->externData_end-self->externData_begin;

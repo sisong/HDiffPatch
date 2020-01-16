@@ -19,6 +19,10 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 ### Fixed
 * Fix a directory patch bug when changed file's sumSize >=4GB and run as 32bit app;
 
+## [v3.0.4](https://github.com/sisong/HDiffPatch/tree/v3.0.4) - 2019-09-06
+### Fixed
+* Fix dir_patch can't remove some files bug when patch to same dir on Windows operating system;
+
 ## [v3.0.0](https://github.com/sisong/HDiffPatch/tree/v3.0.0) - 2019-03-01
 ### Added
 * hdiffz,hpatchz command line support diff&patch between directories(folder);
