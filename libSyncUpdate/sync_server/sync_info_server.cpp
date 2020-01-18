@@ -39,10 +39,11 @@ namespace sync_private{
 #define _outV(_v)  if (!_v.empty()){ _outBuf(_v.data(),_v.data()+_v.size()); }
 #define _outV_clear(_v)  if (!_v.empty()){ _outV(_v); swapClear(_v); }
 
-    static void saveSamePairList(std::vector<TByte> &buf, TNewDataSyncInfo *self) {
+    static void saveSamePairList(std::vector<TByte> &buf,
+                                 const TSameNewBlockPair* samePairList, size_t samePairCount) {
         uint32_t pre=0;
-        for (size_t i=0;i<self->samePairCount;++i){
-            const TSameNewBlockPair& sp=self->samePairList[i];
+        for (size_t i=0;i<samePairCount;++i){
+            const TSameNewBlockPair& sp=samePairList[i];
             packUInt(buf,(uint32_t)(sp.curIndex-pre));
             packUInt(buf,(uint32_t)(sp.curIndex-sp.sameIndex));
             pre=sp.curIndex;
@@ -56,8 +57,7 @@ namespace sync_private{
         for (uint32_t i=0; i<kBlockCount; ++i){
             uint32_t savedSize=self->savedSizes[i];
             sumSavedSize+=savedSize;
-            if ((curPair<self->samePairCount)
-                &&(i==self->samePairList[curPair].curIndex)){
+            if ((curPair<self->samePairCount)&&(i==self->samePairList[curPair].curIndex)){
                 assert(savedSize==self->savedSizes[self->samePairList[curPair].sameIndex]);
                 ++curPair;
             }else{
@@ -82,43 +82,41 @@ namespace sync_private{
         }
     }
     
-    static void saveRollHashs(const hpatch_TStreamOutput *out_stream, TNewDataSyncInfo *self,
-                              CChecksum &checksumInfo, hpatch_StreamPos_t &outPos) {
+    static void saveRollHashs(const hpatch_TStreamOutput *out_stream,hpatch_StreamPos_t &outPos,
+                              uint32_t kBlockCount,const void* rollHashs,uint8_t is32Bit_rollHash,
+                              const TSameNewBlockPair* samePairList,uint32_t samePairCount,
+                              CChecksum& checksumInfo) {
         std::vector<TByte> buf;
-        const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
         uint32_t curPair=0;
-        bool is32Bit_rollHash=(0!=self->is32Bit_rollHash);
-        uint32_t* rhashs32=(uint32_t*)self->rollHashs;
-        uint64_t* rhashs64=(uint64_t*)self->rollHashs;
         for (size_t i=0; i<kBlockCount; ++i){
-            if ((curPair<self->samePairCount)
-                &&(i==self->samePairList[curPair].curIndex)){ ++curPair; continue; }
+            if ((curPair<samePairCount)&&(i==samePairList[curPair].curIndex))
+                { ++curPair; continue; }
             if (is32Bit_rollHash)
-                pushUInt(buf,rhashs32[i]);
+                pushUInt(buf,((const uint32_t*)rollHashs)[i]);
             else
-                pushUInt(buf,rhashs64[i]);
+                pushUInt(buf,((const uint64_t*)rollHashs)[i]);
             if (buf.size()>=hpatch_kFileIOBufBetterSize)
                 _outV(buf);
         }
         _outV(buf);
-        assert(curPair==self->samePairCount);
+        assert(curPair==samePairCount);
     }
     
-    static void savePartStrongChecksums(const hpatch_TStreamOutput *out_stream, TNewDataSyncInfo *self,
-                                        CChecksum &checksumInfo, hpatch_StreamPos_t &outPos) {
+    static void savePartStrongChecksums(const hpatch_TStreamOutput *out_stream,hpatch_StreamPos_t &outPos,
+                                        uint32_t kBlockCount,const TByte* partChecksums,
+                                        const TSameNewBlockPair* samePairList,uint32_t samePairCount,
+                                        CChecksum &checksumInfo) {
         std::vector<TByte> buf;
-        const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
         uint32_t curPair=0;
-        for (size_t i=0; i<kBlockCount; ++i){
-            if ((curPair<self->samePairCount)
-                &&(i==self->samePairList[curPair].curIndex)){ ++curPair; continue; }
-            pushBack(buf,self->partChecksums+i*(size_t)kPartStrongChecksumByteSize,
-                     kPartStrongChecksumByteSize);
+        for (size_t i=0; i<kBlockCount; ++i,partChecksums+=kPartStrongChecksumByteSize){
+            if ((curPair<samePairCount)&&(i==samePairList[curPair].curIndex))
+                { ++curPair; continue; }
+            pushBack(buf,partChecksums,kPartStrongChecksumByteSize);
             if (buf.size()>=hpatch_kFileIOBufBetterSize)
                 _outV(buf);
         }
         _outV(buf);
-        assert(curPair==self->samePairCount);
+        assert(curPair==samePairCount);
     }
     
 void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* out_stream,
@@ -139,7 +137,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     const uint8_t isSavedSizes=(self->savedSizes)!=0?1:0;
     std::vector<TByte> buf;
     
-    saveSamePairList(buf,self);
+    saveSamePairList(buf,self->samePairList,self->samePairCount);
     if (isSavedSizes)
         saveSavedSizes(buf,self);
 
@@ -197,6 +195,8 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
         pushUInt(head,self->newSyncInfoSize);
         //end head info
     }
+    hpatch_StreamPos_t kBlockCount=TNewDataSyncInfo_blockCount(self);
+    checkv(kBlockCount==(uint32_t)kBlockCount);
 
     CChecksum checksumInfo(strongChecksumPlugin);
     hpatch_StreamPos_t outPos=0;
@@ -206,8 +206,10 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     _outBuf(self->externData_end,self->externData_begin);
     _outV_clear(buf);
     
-    saveRollHashs(out_stream,self,checksumInfo,outPos);
-    savePartStrongChecksums(out_stream,self,checksumInfo,outPos);;
+    saveRollHashs(out_stream,outPos,(uint32_t)kBlockCount,self->rollHashs,self->is32Bit_rollHash,
+                  self->samePairList,self->samePairCount,checksumInfo);
+    savePartStrongChecksums(out_stream,outPos,(uint32_t)kBlockCount,self->partChecksums,
+                            self->samePairList,self->samePairCount,checksumInfo);
     
     {// out infoPartChecksum
         checksumInfo.appendEnd();

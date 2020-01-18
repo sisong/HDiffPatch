@@ -294,8 +294,7 @@ static void tm_matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
     {
         uint32_t curPair=0;
         for (uint32_t i=0; i<kBlockCount; ++i){
-            if ((curPair<newSyncInfo->samePairCount)
-                &&(i==newSyncInfo->samePairList[curPair].curIndex)){
+            if ((curPair<newSyncInfo->samePairCount)&&(i==newSyncInfo->samePairList[curPair].curIndex)){
                 ++curPair;
             }else{
                 sorted_newIndexs[sortedBlockCount++]=i;

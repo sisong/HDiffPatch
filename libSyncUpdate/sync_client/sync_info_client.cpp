@@ -174,6 +174,89 @@ clear:
     return result;
 }
 
+static bool readSamePairListTo(TStreamCacheClip* codeClip,TSameNewBlockPair* samePairList,
+                               size_t samePairCount,uint32_t kBlockCount){
+    uint32_t pre=0;
+    for (size_t i=0;i<samePairCount;++i){
+        TSameNewBlockPair& sp=samePairList[i];
+        uint32_t v;
+        if (!_clip_unpackUInt32To(&v,codeClip)) return false;
+        sp.curIndex=v+pre;
+        if (sp.curIndex>=kBlockCount) return false;
+        if (!_clip_unpackUInt32To(&v,codeClip)) return false;
+        if (v>=sp.curIndex) return false;
+        sp.sameIndex=sp.curIndex-v;
+        pre=sp.curIndex;
+    }
+    return true;
+}
+
+static bool readSavedSizesTo(TStreamCacheClip* codeClip,TNewDataSyncInfo* self){
+    uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
+    hpatch_StreamPos_t sumSavedSize=0;
+    uint32_t curPair=0;
+    for (uint32_t i=0; i<kBlockCount; ++i){
+        uint32_t savedSize=0;
+        if ((curPair<self->samePairCount)&&(i==self->samePairList[curPair].curIndex)){
+            savedSize=self->savedSizes[self->samePairList[curPair].sameIndex];
+            ++curPair;
+        }else{
+            if (!_clip_unpackUInt32To(&savedSize,codeClip)) return false;
+            if (savedSize==0)
+                savedSize=TNewDataSyncInfo_newDataBlockSize(self,i);
+        }
+        self->savedSizes[i]=savedSize;
+        sumSavedSize+=savedSize;
+    }
+    if (curPair!=self->samePairCount) return false;
+    if (sumSavedSize!=self->newSyncDataSize) return false;
+    return true;
+}
+
+static bool readRollHashsTo(TStreamCacheClip* clip,void* rollHashs,uint8_t is32Bit_rollHash,
+                            TSameNewBlockPair* samePairList,size_t samePairCount,uint32_t kBlockCount){
+    uint32_t curPair=0;
+    uint32_t* rhashs32=((uint32_t*)rollHashs);
+    uint64_t* rhashs64=(uint64_t*)rollHashs;
+    for (size_t i=0; i<kBlockCount; ++i){
+        if ((curPair<samePairCount)&&(i==samePairList[curPair].curIndex)){
+            uint32_t sameIndex=samePairList[curPair].sameIndex;
+            if (is32Bit_rollHash)
+                rhashs32[i]=rhashs32[sameIndex];
+                else
+                    rhashs64[i]=rhashs64[sameIndex];
+                    ++curPair;
+        }else{
+            if (is32Bit_rollHash){
+                if (!_clip_readUIntTo(&rhashs32[i],clip)) return false;
+            }else{
+                if (!_clip_readUIntTo(&rhashs64[i],clip)) return false;
+            }
+        }
+    }
+    if (curPair!=samePairCount) return false;
+    return true;
+}
+
+static bool readPartStrongChecksumsTo(TStreamCacheClip* clip,TByte* partChecksums,
+                                      TSameNewBlockPair* samePairList,size_t samePairCount,uint32_t kBlockCount){
+    uint32_t curPair=0;
+    TByte* curPartChecksum=partChecksums;
+    for (size_t i=0; i<kBlockCount; ++i,curPartChecksum+=kPartStrongChecksumByteSize){
+        if ((curPair<samePairCount)&&(i==samePairList[curPair].curIndex)){
+            size_t sameIndex=samePairList[curPair].sameIndex;
+            memcpy(curPartChecksum,partChecksums+sameIndex*kPartStrongChecksumByteSize,
+                   kPartStrongChecksumByteSize);
+            ++curPair;
+        }else{
+            if (!_TStreamCacheClip_readDataTo(clip,curPartChecksum,curPartChecksum+kPartStrongChecksumByteSize))
+                return false;
+        }
+    }
+    if (curPair!=samePairCount) return false;
+    return true;
+}
+
 int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
                           ISyncInfoListener *listener){
     assert(self->_import==0);
@@ -342,11 +425,12 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
               kSyncClient_newSyncInfoDataError);
     }
     {// compressed? buf
-        #define _clear_decompresser(_decompresser) \
+        #define _clear_decompresser(_decompresser,_decompressBuf) \
                     if (_decompresser.decompressHandle){   \
                         check(decompressPlugin->close(decompressPlugin, \
                             _decompresser.decompressHandle),kSyncClient_decompressError); \
-                        _decompresser.decompressHandle=0; }
+                        _decompresser.decompressHandle=0; } \
+                    if (_decompressBuf) { free(_decompressBuf); _decompressBuf=0; }
         TStreamCacheClip _cmCodeClip;
         TStreamCacheClip* codeClip=0;
         if (compressDataSize>0){
@@ -362,98 +446,50 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
             codeClip=&clip;
         }
         
-        {//samePairList
-            uint32_t pre=0;
-            for (size_t i=0;i<self->samePairCount;++i){
-                TSameNewBlockPair& sp=self->samePairList[i];
-                uint32_t v;
-                check(_clip_unpackUInt32To(&v,codeClip),kSyncClient_newSyncInfoDataError);
-                sp.curIndex=v+pre;
-                check(sp.curIndex<kBlockCount, kSyncClient_newSyncInfoDataError);
-                check(_clip_unpackUInt32To(&v,codeClip),kSyncClient_newSyncInfoDataError);
-                check(v<=sp.curIndex,kSyncClient_newSyncInfoDataError);
-                sp.sameIndex=sp.curIndex-v;
-                pre=sp.curIndex;
-            }
-        }
-        if (isSavedSizes){ //savedSizes
-            hpatch_StreamPos_t sumSavedSize=0;
-            uint32_t curPair=0;
-            for (uint32_t i=0; i<kBlockCount; ++i){
-                uint32_t savedSize=0;
-                if ((curPair<self->samePairCount)
-                    &&(i==self->samePairList[curPair].curIndex)){
-                    savedSize=self->savedSizes[self->samePairList[curPair].sameIndex];
-                    ++curPair;
-                }else{
-                    check(_clip_unpackUInt32To(&savedSize,codeClip),
-                          kSyncClient_newSyncInfoDataError);
-                    if (savedSize==0)
-                        savedSize=TNewDataSyncInfo_newDataBlockSize(self,i);
-                }
-                self->savedSizes[i]=savedSize;
-                sumSavedSize+=savedSize;
-            }
-            check(curPair==self->samePairCount,kSyncClient_newSyncInfoDataError);
-            check(sumSavedSize==self->newSyncDataSize,kSyncClient_newSyncInfoDataError);
-        }else{
+        //samePairList
+        check(readSamePairListTo(codeClip,self->samePairList,self->samePairCount,kBlockCount),
+              kSyncClient_newSyncInfoDataError);
+        if (isSavedSizes) //savedSizes
+            check(readSavedSizesTo(codeClip,self),kSyncClient_newSyncInfoDataError);
+        else
             assert(self->savedSizes==0);
-        }
+        
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
-            //todo: self->dir_utf8NewNameList，self->dir_newSizeList，self->dir_newExecuteIndexList
+            //dir_utf8NewNameList
+            if (self->dir_newCount>0){
+                char* charsBuf=((char**)self->dir_utf8NewNameList)[0];
+                check(_TStreamCacheClip_readDataTo(codeClip,(TByte*)charsBuf,
+                                                   (TByte*)charsBuf+dir_newPathSumCharSize),
+                      kSyncClient_newSyncInfoDataError);
+                formatDirTagForLoad(charsBuf,charsBuf+dir_newPathSumCharSize);
+                check(clipCStrsTo(charsBuf,charsBuf+dir_newPathSumCharSize,
+                                  (const char**)self->dir_utf8NewNameList,self->dir_newCount),
+                      kSyncClient_newSyncInfoDataError);
+            }
+            //dir_newSizeList
+            check(readListTo(codeClip,self->dir_newSizeList,self->dir_newCount),
+                  kSyncClient_newSyncInfoDataError);
+            //dir_newExecuteIndexList
+            check(readIncListTo(codeClip,self->dir_newExecuteIndexList,self->dir_newExecuteCount,
+                                self->dir_newCount),kSyncClient_newSyncInfoDataError);
         }
 #endif
         if (compressDataSize>0){
-            _clear_decompresser(decompresser);
+            _clear_decompresser(decompresser,decompressBuf);
             hpatch_StreamPos_t curPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
             const hpatch_TStreamInput* inStream=isChecksumNewSyncInfo?&checksumInputStream:newSyncInfo;
             _TStreamCacheClip_init(&clip,inStream,curPos+compressDataSize,inStream->streamSize,
                                    temp_cache,kFileIOBufBetterSize);
         }
     }
-    {//rollHashs
-        uint32_t curPair=0;
-        bool is32Bit_rollHash=(0!=self->is32Bit_rollHash);
-        uint32_t* rhashs32=(uint32_t*)self->rollHashs;
-        uint64_t* rhashs64=(uint64_t*)self->rollHashs;
-        for (size_t i=0; i<kBlockCount; ++i){
-            if ((curPair<self->samePairCount)
-                &&(i==self->samePairList[curPair].curIndex)){
-                uint32_t sameIndex=self->samePairList[curPair].sameIndex;
-                if (is32Bit_rollHash)
-                    rhashs32[i]=rhashs32[sameIndex];
-                else
-                    rhashs64[i]=rhashs64[sameIndex];
-                ++curPair;
-            }else{
-                if (is32Bit_rollHash){
-                    check(_clip_readUIntTo(&rhashs32[i],&clip), kSyncClient_newSyncInfoDataError);
-                }else{
-                    check(_clip_readUIntTo(&rhashs64[i],&clip), kSyncClient_newSyncInfoDataError);
-                }
-            }
-        }
-        assert(curPair==self->samePairCount);
-    }
-    {//partStrongChecksums
-        uint32_t curPair=0;
-        for (size_t i=0; i<kBlockCount; ++i){
-            TByte* curPartChecksum=self->partChecksums+i*(size_t)kPartStrongChecksumByteSize;
-            if ((curPair<self->samePairCount)
-                &&(i==self->samePairList[curPair].curIndex)){
-                size_t sameIndex=self->samePairList[curPair].sameIndex;
-                memcpy(curPartChecksum,self->partChecksums+sameIndex*(size_t)kPartStrongChecksumByteSize,
-                       kPartStrongChecksumByteSize);
-                ++curPair;
-            }else{
-                check(_TStreamCacheClip_readDataTo(&clip,curPartChecksum,
-                                                   curPartChecksum+kPartStrongChecksumByteSize),
-                      kSyncClient_newSyncInfoDataError);
-            }
-        }
-        check(curPair==self->samePairCount,kSyncClient_newSyncInfoDataError);
-    }
+    //rollHashs
+    check(readRollHashsTo(&clip,self->rollHashs,self->is32Bit_rollHash, self->samePairList,
+                          self->samePairCount,kBlockCount), kSyncClient_newSyncInfoDataError);
+    //partStrongChecksums
+    check(readPartStrongChecksumsTo(&clip,self->partChecksums,self->samePairList,self->samePairCount,
+                                    kBlockCount), kSyncClient_newSyncInfoDataError);
+
     if (isChecksumNewSyncInfo){ //infoPartChecksum
         const hpatch_StreamPos_t infoChecksumPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
         check(newSyncInfo->read(newSyncInfo,infoChecksumPos,self->infoPartChecksum,
@@ -466,11 +502,10 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
               kSyncClient_newSyncInfoChecksumError);
     }
     check(_TStreamCacheClip_readPosOfSrcStream(&clip)+kPartStrongChecksumByteSize
-            ==newSyncInfo->streamSize, kSyncClient_newSyncInfoDataError);
+          ==newSyncInfo->streamSize, kSyncClient_newSyncInfoDataError);
 clear:
     _inClear=1;
-    _clear_decompresser(decompresser);
-    if (decompressBuf) free(decompressBuf);
+    _clear_decompresser(decompresser,decompressBuf);
     if (result!=kSyncClient_ok) TNewDataSyncInfo_close(self);
     if (temp_cache) free(temp_cache);
     return result;
