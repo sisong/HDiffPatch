@@ -86,5 +86,27 @@ clear:
     return result;
 }
 
+char* setPath(char* out_path,char* out_pathBufEnd,const char* fileName){
+    char* result=0; //false
+    size_t strLen=strlen(fileName);
+    check(strLen+1<=(size_t)(out_pathBufEnd-out_path));
+    memcpy(out_path,fileName,strLen+1);//with '\0'
+    result=out_path+strLen;
+clear:
+    return result;
+}
+
+char* setDirPath(char* out_path,char* out_pathBufEnd,const char* dirName){
+    char* result=0; //false
+    size_t strLen=strlen(dirName);
+    hpatch_BOOL isNeedDirSeparator=(strLen>0)&&(dirName[strLen-1]!=kPatch_dirSeparator);
+    check((strLen+(isNeedDirSeparator?1:0)+1)<=(size_t)(out_pathBufEnd-out_path));
+    memcpy(out_path,dirName,strLen);
+    result=out_path+strLen;
+    if (isNeedDirSeparator) { *result=kPatch_dirSeparator; ++result; }
+    *result='\0'; //C string end
+clear:
+    return result;
+}
 
 #endif

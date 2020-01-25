@@ -40,6 +40,12 @@ extern "C" {
     hpatch_BOOL readListTo(TStreamCacheClip* sclip,hpatch_StreamPos_t* out_list,size_t count);
     hpatch_BOOL readIncListTo(TStreamCacheClip* sclip,size_t* out_list,
                               size_t count,size_t check_endValue);
+    
+    //return path end pos
+    char* setPath(char* out_path,char* out_pathBufEnd,const char* fileName);
+    char* setDirPath(char* out_path,char* out_pathBufEnd,const char* dirName);
+
+    
 #ifdef __cplusplus
 }
 #endif

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		D61DE5472344D16900F6FCCF /* dir_diff_tools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */; };
+		D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */ = {isa = PBXBuildFile; fileRef = D621352123DC521F00EC4FA4 /* new_dir_output.c */; };
 		D6241AE221DE47D200E2846A /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AE021DE47D200E2846A /* new_stream.c */; };
 		D64989831F600C27000FCC24 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64989821F600C27000FCC24 /* liblzma.a */; };
 		D67D3BDC21CBCD5D0050632A /* dir_diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BD521CBCD5D0050632A /* dir_diff.cpp */; };
@@ -51,6 +52,8 @@
 		D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _dir_ignore.h; path = ../../_dir_ignore.h; sourceTree = "<group>"; };
 		D61DE52D234391CF00F6FCCF /* dir_diff_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_diff_tools.h; sourceTree = "<group>"; };
 		D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_diff_tools.cpp; sourceTree = "<group>"; };
+		D621352123DC521F00EC4FA4 /* new_dir_output.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_dir_output.c; sourceTree = "<group>"; };
+		D621352223DC521F00EC4FA4 /* new_dir_output.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_dir_output.h; sourceTree = "<group>"; };
 		D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = file_for_dirDiff.h; sourceTree = "<group>"; };
 		D6241AE021DE47D200E2846A /* new_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_stream.c; sourceTree = "<group>"; };
 		D6241AE121DE47D200E2846A /* new_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_stream.h; sourceTree = "<group>"; };
@@ -172,8 +175,10 @@
 				D67D3BD821CBCD5D0050632A /* ref_stream.h */,
 				D67D3BD921CBCD5D0050632A /* ref_stream.c */,
 				D6BF3A6121EDD5A000833537 /* dir_patch_private.h */,
-				D6C9A9AA23D04F3900AC50F8 /* dir_patch_tools.c */,
 				D6C9A9AB23D04F3900AC50F8 /* dir_patch_tools.h */,
+				D6C9A9AA23D04F3900AC50F8 /* dir_patch_tools.c */,
+				D621352123DC521F00EC4FA4 /* new_dir_output.c */,
+				D621352223DC521F00EC4FA4 /* new_dir_output.h */,
 				D67D3BDF21D11DF70050632A /* dir_patch.h */,
 				D67D3BE021D11DF70050632A /* dir_patch.c */,
 			);
@@ -374,6 +379,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6C9A9AC23D04F3900AC50F8 /* dir_patch_tools.c in Sources */,
+				D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */,
 				D69EECD9220BD8E2001EF085 /* compress_parallel.cpp in Sources */,
 				D6BF3A5D21E97A0B00833537 /* file_for_patch.c in Sources */,
 				D67D3BDC21CBCD5D0050632A /* dir_diff.cpp in Sources */,

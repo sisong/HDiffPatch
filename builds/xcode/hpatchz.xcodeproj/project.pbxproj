@@ -20,6 +20,7 @@
 		D6BF3A5721E8CDC300833537 /* res_handle_limit.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5621E8CDC300833537 /* res_handle_limit.c */; };
 		D6BF3A5921E95F4200833537 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5821E95F4200833537 /* file_for_patch.c */; };
 		D6C9A9A623D03F4B00AC50F8 /* dir_patch_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A9A423D03F4B00AC50F8 /* dir_patch_tools.c */; };
+		D6C9A9AF23D3CC2500AC50F8 /* new_dir_output.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A9AD23D3CC2500AC50F8 /* new_dir_output.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -68,6 +69,8 @@
 		D6C9A9A323D03F4B00AC50F8 /* dir_patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_types.h; sourceTree = "<group>"; };
 		D6C9A9A423D03F4B00AC50F8 /* dir_patch_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dir_patch_tools.c; sourceTree = "<group>"; };
 		D6C9A9A523D03F4B00AC50F8 /* dir_patch_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_tools.h; sourceTree = "<group>"; };
+		D6C9A9AD23D3CC2500AC50F8 /* new_dir_output.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_dir_output.c; sourceTree = "<group>"; };
+		D6C9A9AE23D3CC2500AC50F8 /* new_dir_output.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_dir_output.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -143,6 +146,8 @@
 				D6C9A9A323D03F4B00AC50F8 /* dir_patch_types.h */,
 				D6C9A9A423D03F4B00AC50F8 /* dir_patch_tools.c */,
 				D6C9A9A523D03F4B00AC50F8 /* dir_patch_tools.h */,
+				D6C9A9AD23D3CC2500AC50F8 /* new_dir_output.c */,
+				D6C9A9AE23D3CC2500AC50F8 /* new_dir_output.h */,
 				D67D3BF021D3C5870050632A /* dir_patch.h */,
 				D67D3BF221D3C5870050632A /* dir_patch.c */,
 			);
@@ -225,6 +230,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6241AD321DC6C0F00E2846A /* LzmaDec.c in Sources */,
+				D6C9A9AF23D3CC2500AC50F8 /* new_dir_output.c in Sources */,
 				D69EECD5220A8F2B001EF085 /* Lzma2Dec.c in Sources */,
 				D6BD9BCE17578601004886DE /* patch.c in Sources */,
 				D67D3BF421D3C5870050632A /* ref_stream.c in Sources */,

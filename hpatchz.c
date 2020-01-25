@@ -902,7 +902,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
                 printf("hpatchz run with checksum plugin: \"%s\" (need checksum %d)\n",
                        dirDiffInfo->checksumType,wantChecksumCount);
                 if (!TDirPatcher_checksum(&dirPatcher,checksumSet)){
-                    check(!dirPatcher.isDiffDataChecksumError,
+                    check(!TDirPatcher_isDiffDataChecksumError(&dirPatcher),
                           DIRPATCH_CHECKSUM_DIFFDATA_ERROR,"diffFile checksum");
                     check(hpatch_FALSE,DIRPATCH_CHECKSUMSET_ERROR,"diffFile set checksum");
                 }
@@ -940,11 +940,11 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     }
     //patch
     if(!TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size)){
-        check(!dirPatcher.isOldRefDataChecksumError,
+        check(!TDirPatcher_isOldRefDataChecksumError(&dirPatcher),
               DIRPATCH_CHECKSUM_OLDDATA_ERROR,"oldFile checksum");
-        check(!dirPatcher.isCopyDataChecksumError,
+        check(!TDirPatcher_isCopyDataChecksumError(&dirPatcher),
               DIRPATCH_CHECKSUM_COPYDATA_ERROR,"copyOldFile checksum");
-        check(!dirPatcher.isNewRefDataChecksumError,
+        check(!TDirPatcher_isNewRefDataChecksumError(&dirPatcher),
               DIRPATCH_CHECKSUM_NEWDATA_ERROR,"newFile checksum");
         check(hpatch_FALSE,DIRPATCH_PATCH_ERROR,"dir patch run");
     }

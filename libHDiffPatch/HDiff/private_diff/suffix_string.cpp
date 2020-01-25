@@ -278,7 +278,7 @@ void TSuffixString::resetSuffixString(const TChar* src_begin,const TChar* src_en
 TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
     //not use any cached range table
     //return m_lower_bound(m_cached_SA_begin,m_cached_SA_end,
-    //                     str,str_end,m_src_begin,m_src_end,m_cached_SA_begin);
+    //                     str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,0);
     
     TInt str_len=str_end-str;
     if ((str_len>=2)&(m_cached2char_range!=0)){
