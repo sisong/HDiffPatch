@@ -1129,10 +1129,11 @@ clear:
 
 static hpatch_BOOL _getIsCompressedDiffFile(const char* diffFileName){
     hpatch_TFileStreamInput diffData;
+    hpatch_compressedDiffInfo diffInfo;
+    hpatch_BOOL result=hpatch_TRUE;
     hpatch_TFileStreamInput_init(&diffData);
     if (!hpatch_TFileStreamInput_open(&diffData,diffFileName)) return hpatch_FALSE;
-    hpatch_compressedDiffInfo diffInfo;
-    hpatch_BOOL result=getCompressedDiffInfo(&diffInfo,&diffData.base);
+    result=getCompressedDiffInfo(&diffInfo,&diffData.base);
     if (!hpatch_TFileStreamInput_close(&diffData)) return hpatch_FALSE;
     return result;
 }

@@ -74,7 +74,7 @@ hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,hpatch_ICopyDataLi
         const size_t*               newExecuteList;
         const hpatch_StreamPos_t*   newRefSizeList;
         const hpatch_TSameFilePair* dataSamePairList; //new map to old index
-        size_t                      newDataSize;
+        hpatch_StreamPos_t          newDataSize;
         size_t                      newPathCount;
         size_t                      newRefFileCount;
         size_t                      newExecuteCount;

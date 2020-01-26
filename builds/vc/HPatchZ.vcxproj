@@ -274,6 +274,8 @@
     <ClCompile Include="..\..\..\zlib\trees.c" />
     <ClCompile Include="..\..\..\zlib\zutil.c" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\dir_patch.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\dir_patch_tools.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\new_dir_output.c" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\new_stream.c" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\ref_stream.c" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\res_handle_limit.c" />

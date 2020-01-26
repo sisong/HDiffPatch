@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <algorithm> //std::sort
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 

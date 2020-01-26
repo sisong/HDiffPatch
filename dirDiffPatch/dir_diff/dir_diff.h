@@ -31,7 +31,6 @@
 #include "../dir_patch/dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dir_manifest.h"
-#include <algorithm> //std::sort
 
 static inline
 void assignDirTag(std::string& dir){

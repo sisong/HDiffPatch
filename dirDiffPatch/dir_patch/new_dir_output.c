@@ -299,8 +299,9 @@ const char* TNewDirOutput_getNewPathByIndex(TNewDirOutput* self,size_t newPathIn
 }
 
 const char* TNewDirOutput_getNewPathByRefIndex(TNewDirOutput* self,size_t newRefIndex){
+    size_t newPathIndex;
     assert(newRefIndex<self->newRefFileCount);
-    size_t newPathIndex=self->newRefList?self->newRefList[newRefIndex]:newRefIndex;
+    newPathIndex=self->newRefList?self->newRefList[newRefIndex]:newRefIndex;
     return TNewDirOutput_getNewPathByIndex(self,newPathIndex);
 }
 

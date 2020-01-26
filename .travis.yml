@@ -17,21 +17,21 @@ matrix:
     - os: osx
       osx_image: xcode9.4
 script:
-- make LZMA=0
+- make DIR_DIFF=1 LZMA=0 MD5=0 MT=0 SYNC=0 
 - make clean
 
 - git clone https://github.com/sisong/lzma.git ../lzma
-- make DIR_DIFF=0
+- make DIR_DIFF=0 LZMA=1 MD5=0 MT=1 SYNC=0 
 - make clean
 
 - make
 - make clean
 
 - git clone https://github.com/sisong/libmd5.git ../libmd5
-- make SYNC=1
+- make DIR_DIFF=0 LZMA=0 MD5=1 MT=0 SYNC=1
 - make clean
 
-- make MT=1 MD5=1 SYNC=1 
+- make DIR_DIFF=1 LZMA=1 MD5=1 MT=1 SYNC=1
 
 - if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hdiffz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
 - if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
