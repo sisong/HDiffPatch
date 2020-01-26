@@ -99,13 +99,13 @@
 			children = (
 				D658932323327412003BB2F4 /* sync_server.cpp */,
 				D658932523327412003BB2F4 /* sync_server.h */,
+				D61DE52A2342F5F100F6FCCF /* dir_sync_server.cpp */,
+				D61DE52B2342F5F100F6FCCF /* dir_sync_server.h */,
 				D684E20B23C2097F004C6EB9 /* sync_patch_hash_clash.h */,
 				D684E20823C1FC99004C6EB9 /* sync_info_server.cpp */,
 				D684E20923C1FC99004C6EB9 /* sync_info_server.h */,
 				D699A2B1233B3F78003CB3DC /* match_in_new.cpp */,
 				D699A2B2233B3F78003CB3DC /* match_in_new.h */,
-				D61DE52A2342F5F100F6FCCF /* dir_sync_server.cpp */,
-				D61DE52B2342F5F100F6FCCF /* dir_sync_server.h */,
 			);
 			name = sync_server;
 			path = ../../libSyncUpdate/sync_server;

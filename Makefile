@@ -1,8 +1,8 @@
 # args
 DIR_DIFF := 1
+MT       := 1
 LZMA     := 1
 MD5      := 0
-MT       := 1
 SYNC     := 0
 
 
@@ -151,7 +151,7 @@ ifeq ($(SYNC),0)
   make_sync:
 else
   make_sync:
-	$(MAKE) -f Makefile_sync LZMA=$(LZMA) MT=$(MT)
+	$(MAKE) -f Makefile_sync DIR_DIFF=$(DIR_DIFF) LZMA=$(LZMA) MT=$(MT)
 endif
 
 RM := rm -f

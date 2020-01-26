@@ -1,11 +1,22 @@
 # args
+DIR_DIFF := 1
+MT       := 1
 LZMA     := 0
-MT       := 0
 
 HDP_OBJ := \
     file_for_patch.o \
     libHDiffPatch/HPatch/patch.o \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o
+ifeq ($(DIR_DIFF),0)
+else
+  HDP_OBJ += \
+    dirDiffPatch/dir_patch/dir_patch_tools.o \
+    dirDiffPatch/dir_patch/new_dir_output.o \
+    dirDiffPatch/dir_patch/res_handle_limit.o \
+    dirDiffPatch/dir_patch/ref_stream.o \
+    dirDiffPatch/dir_patch/new_stream.o \
+    dirDiffPatch/dir_diff/dir_manifest.o
+endif
 ifeq ($(MT),0)
 else
   HDP_OBJ += \
@@ -13,16 +24,30 @@ else
     libParallel/parallel_channel.o
 endif
 
-SERVER_OBJ := \
-    libSyncUpdate/sync_server/sync_server.o \
-    libSyncUpdate/sync_server/match_in_new.o \
-    $(HDP_OBJ)
 
 CLIENT_OBJ := \
+    libSyncUpdate/client_download_emulation.o \
     libSyncUpdate/sync_client/sync_client.o \
+    libSyncUpdate/sync_client/sync_info_client.o \
     libSyncUpdate/sync_client/match_in_old.o \
-    libSyncUpdate/sync_client/download_emulation.o \
     $(HDP_OBJ)
+ifeq ($(DIR_DIFF),0)
+else
+  CLIENT_OBJ += \
+    libSyncUpdate/sync_client/dir_sync_client.o
+endif
+
+SERVER_OBJ := \
+    libSyncUpdate/sync_server/sync_server.o \
+    libSyncUpdate/sync_server/sync_info_server.o \
+    libSyncUpdate/sync_server/match_in_new.o \
+    dirDiffPatch/dir_diff/dir_diff_tools.o \
+    $(CLIENT_OBJ)
+ifeq ($(DIR_DIFF),0)
+else
+  SERVER_OBJ += \
+    libSyncUpdate/sync_server/dir_sync_server.o
+endif
 
 DEF_FLAGS := \
     -O3 -DNDEBUG -D_FILE_OFFSET_BITS=64 \
@@ -30,13 +55,15 @@ DEF_FLAGS := \
     -D_IS_NEED_DEFAULT_ChecksumPlugin=0 \
     -D_CompressPlugin_zlib  \
     -D_ChecksumPlugin_md5 -I'../libmd5'
-
+ifeq ($(DIR_DIFF),0)
+  DEF_FLAGS += -D_IS_NEED_DIR_DIFF_PATCH=0
+else
+  DEF_FLAGS += -D_IS_NEED_DIR_DIFF_PATCH=1
+endif
 ifeq ($(LZMA),0)
 else
-  DEF_FLAGS += \
-    -D_CompressPlugin_lzma -I'../lzma/C'
+  DEF_FLAGS += -D_CompressPlugin_lzma -I'../lzma/C'
 endif
-
 ifeq ($(MT),0)
   DEF_FLAGS += \
     -D_7ZIP_ST \
@@ -60,7 +87,7 @@ CXXFLAGS += $(DEF_FLAGS)
 
 .PHONY: all clean
 
-all: md5Lib lzmaLib libsyncupdate.a sync_server sync_client_test
+all: md5Lib lzmaLib libsyncupdate.a hsync_server hsync_client_test
 
 MD5_OBJ     := 'md5.o'
 md5Lib      : # https://sourceforge.net/projects/libmd5-rfc  https://github.com/sisong/libmd5
@@ -81,12 +108,12 @@ endif
 libsyncupdate.a: $(SERVER_OBJ) $(CLIENT_OBJ)
 	$(AR) rcs $@ $^
 
-sync_server: 
-	$(CXX) libSyncUpdate/sync_server/sync_server_main.cpp $(SERVER_OBJ) $(MD5_OBJ) $(LZMA_OBJ) $(CXXFLAGS) $(SYNC_LINK) -o  sync_server
-sync_client_test: 
-	$(CXX) libSyncUpdate/sync_client/sync_client_main.cpp $(CLIENT_OBJ) $(MD5_OBJ) $(LZMA_DEC_OBJ) $(CXXFLAGS) $(SYNC_LINK) -o sync_client_test
+hsync_server: 
+	$(CXX) libSyncUpdate/hsync_server.cpp $(SERVER_OBJ) $(MD5_OBJ) $(LZMA_OBJ) $(CXXFLAGS) $(SYNC_LINK) -o hsync_server
+hsync_client_test: 
+	$(CXX) libSyncUpdate/hsync_client_test.cpp $(CLIENT_OBJ) $(MD5_OBJ) $(LZMA_DEC_OBJ) $(CXXFLAGS) $(SYNC_LINK) -o hsync_client_test
 
 RM := rm -f
 
 clean:
-	$(RM) libsyncupdate.a sync_server sync_client_test $(SERVER_OBJ) $(CLIENT_OBJ) $(MD5_OBJ) $(LZMA_OBJ)
+	$(RM) libsyncupdate.a hsync_server hsync_client_test $(SERVER_OBJ) $(CLIENT_OBJ) $(MD5_OBJ) $(LZMA_OBJ)

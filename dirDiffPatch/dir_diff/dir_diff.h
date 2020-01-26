@@ -32,11 +32,6 @@
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dir_manifest.h"
 
-static inline
-void assignDirTag(std::string& dir){
-    if (dir.empty()||(dir[dir.size()-1]!=kPatch_dirSeparator))
-        dir.push_back(kPatch_dirSeparator);
-}
 
 struct IDirDiffListener{
     virtual ~IDirDiffListener(){}

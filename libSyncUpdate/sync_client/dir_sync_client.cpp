@@ -27,12 +27,12 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_sync_client.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
+#include "../../dirDiffPatch/dir_patch/new_dir_output.h"
 using namespace sync_private;
 using namespace hdiff_private;
 
-#if (_IS_NEED_DIR_DIFF_PATCH)
-#include "../../file_for_patch.h"
 
 #define check_r(v,errorCode) \
     do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
@@ -60,10 +60,10 @@ struct CFilesStream{
             }
         }
         resLimit.open();
-        newRefStream.open(resLimit.limit.streamList,resLimit.resList.size(),kAlignSize);
+        refStream.open(resLimit.limit.streamList,resLimit.resList.size(),kAlignSize);
     }
     CFileResHandleLimit resLimit;
-    CRefStream newRefStream;
+    CRefStream refStream;
 };
 
 
@@ -86,7 +86,7 @@ int sync_patch_dir2file(ISyncPatchListener* listener,const char* outNewFile,cons
                                           kSyncClient_newFileCreateError);
     try {
         CFilesStream oldFilesStream(oldManifest.pathList,kMaxOpenFileNumber,newSyncInfo.kMatchBlockSize);
-        const hpatch_TStreamInput* oldStream=oldFilesStream.newRefStream.stream;
+        const hpatch_TStreamInput* oldStream=oldFilesStream.refStream.stream;
         result=sync_patch(listener,&out_newData.base,oldStream,&newSyncInfo,threadNum);
     } catch (const std::exception& e){
         result=kSyncClient_oldDirFilesError;
@@ -99,10 +99,11 @@ clear:
 }
 
 
+
 int sync_patch_fileOrDir2dir(IDirPatchListener* patchListener,ISyncPatchListener* syncListener,
                              const char* outNewDir,const TManifest& oldManifest,
                              const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum){
-    //assert((patchListener!=0)&&(syncListener!=0));
+    assert((patchListener!=0)&&(syncListener!=0));
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     kMaxOpenFileNumber-=2; // for newSyncInfoFile & outNewFile
     
@@ -122,7 +123,7 @@ int sync_patch_fileOrDir2dir(IDirPatchListener* patchListener,ISyncPatchListener
             kSyncClient_newFileCreateError);
     try {
         CFilesStream oldFilesStream(oldManifest.pathList,kMaxOpenFileNumber,newSyncInfo.kMatchBlockSize);
-        const hpatch_TStreamInput* oldStream=oldFilesStream.newRefStream.stream;
+        const hpatch_TStreamInput* oldStream=oldFilesStream.refStream.stream;
         result=sync_patch(syncListener,&out_newData.base,oldStream,&newSyncInfo,threadNum);
     } catch (const std::exception& e){
         result=kSyncClient_oldDirFilesError;

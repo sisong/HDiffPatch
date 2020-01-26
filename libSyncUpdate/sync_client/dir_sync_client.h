@@ -31,8 +31,8 @@
 #include "sync_client.h"
 #include "../../dirDiffPatch/dir_patch/dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#include "../../dirDiffPatch/dir_patch/dir_patch.h"
-#include "../../dirDiffPatch/dir_diff/dir_diff.h"
+#include "../../dirDiffPatch/dir_diff/dir_manifest.h"
+#include "../../dirDiffPatch/dir_patch/new_dir_output.h"
 
 //sync patch oldDir to newFile
 //  use get_manifest(dir) to get TManifest
