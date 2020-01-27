@@ -175,6 +175,9 @@ namespace hdiff_private{
         check(hpatch_TResHandleLimit_open(&limit,limitMaxOpenCount,resList.data(),
                                           resList.size()),"TResHandleLimit_open error!");
     }
+    bool CFileResHandleLimit::closeFileHandles(){
+        return hpatch_TResHandleLimit_closeFileHandles(&limit)!=0;
+    }
     void CFileResHandleLimit::close(){
         check(hpatch_TResHandleLimit_close(&limit),"TResHandleLimit_close error!");
     }

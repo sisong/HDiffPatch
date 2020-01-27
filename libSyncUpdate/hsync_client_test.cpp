@@ -37,6 +37,7 @@
 #include "sync_client/sync_client.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #   include "sync_client/dir_sync_client.h"
+#   include "../hpatch_dir_listener.h"
 #endif
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
@@ -475,21 +476,35 @@ int sync_patch_2file(const char* outNewFile,const char* _oldPath,bool oldIsDir,
 }
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
+static hpatch_BOOL _dirSyncPatchFinish(IDirSyncPatchListener* listener,hpatch_BOOL isPatchSuccess,
+                                       const TNewDataSyncInfo* newSyncInfo,TNewDirOutput* newDirOutput){
+    hpatch_BOOL result=hpatch_TRUE;
+    if (isPatchSuccess){
+        IDirPatchExecuteList executeList;
+        TNewDirOutput_getExecuteList(newDirOutput,&executeList);
+        result=_dirPatch_setIsExecuteFile(&executeList);
+    }
+    return result;
+}
+
 int  sync_patch_2dir(const char* outNewDir,const char* _oldPath,bool oldIsDir,
                      const std::vector<std::string>& ignoreOldPathList,
                      const char* newSyncInfoFile,const char* newSyncDataFile_url,
                      TSyncPatchChecksumSet checksumSet,size_t kMaxOpenFileNumber,size_t threadNum){
+    IDirPatchListener defaultPatchDirlistener={0,_makeNewDir,_copySameFile,_openNewFile,_closeNewFile};
     TManifest oldManifest;
     _return_check(getManifest(oldManifest,_oldPath,oldIsDir,ignoreOldPathList),
                   kSyncClient_oldDirFilesError,"open oldPath: %s",_oldPath);
-    ISyncPatchListener listener; memset(&listener,0,sizeof(listener));
+    IDirSyncPatchListener listener; memset(&listener,0,sizeof(listener));
     listener.checksumSet=checksumSet;
     listener.findChecksumPlugin=findChecksumPlugin;
     listener.findDecompressPlugin=findDecompressPlugin;
+    listener.patchBegin=0;
+    listener.patchFinish=_dirSyncPatchFinish;
     _return_check(openNewSyncDataByUrl(&listener,newSyncDataFile_url),
                   kSyncClient_openSyncDataError,"open newSyncData: %s",newSyncDataFile_url);
-    int result=sync_patch_fileOrDir2dir(0,&listener,outNewDir,oldManifest,newSyncInfoFile,
-                                        kMaxOpenFileNumber,(int)threadNum);
+    int result=sync_patch_fileOrDir2dir(&defaultPatchDirlistener,&listener, outNewDir,oldManifest,
+                                        newSyncInfoFile, kMaxOpenFileNumber,(int)threadNum);
     _return_check(closeNewSyncData(&listener),(result!=kSyncClient_ok)?result:kSyncClient_closeSyncDataError,
                   "close newSyncData: %s",newSyncDataFile_url);
     return result;

@@ -505,7 +505,7 @@ hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,IDirPatchListener* 
     self->_newDir._pChecksum_temp=_pchecksumTemp(self);
     self->_newDir._oldPathListener.listenerImport=self;
     self->_newDir._oldPathListener.getOldPathByIndex=_getOldPathByIndex;
-    return TNewDirOutput_openDir(&self->_newDir,listener,out_newDirStream);
+    return TNewDirOutput_openDir(&self->_newDir,listener,1,out_newDirStream);
 }
 
 static hpatch_BOOL _TDirPatcher_closeNewFileHandles(TDirPatcher* self){

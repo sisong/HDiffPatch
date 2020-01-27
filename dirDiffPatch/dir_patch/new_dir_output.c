@@ -129,14 +129,20 @@ static hpatch_BOOL _openNewFile(hpatch_INewStreamListener* listener,size_t newRe
     hpatch_BOOL  result=hpatch_TRUE;
     TNewDirOutput* self=(TNewDirOutput*)listener->listenerImport;
     const char*  utf8fileName=0;
+    hpatch_StreamPos_t fileSize=self->newRefSizeList[newRefIndex];
     assert(newRefIndex<self->newRefFileCount);
     assert(self->_curNewFile->m_file==0);
-    
-    utf8fileName=TNewDirOutput_getNewPathByRefIndex(self,newRefIndex);
-    check(utf8fileName!=0);
-    check(self->_listener->openNewFile(self->_listener,self->_curNewFile,
-                                       utf8fileName,self->newRefSizeList[newRefIndex]));
-    *out_newFileStream=&self->_curNewFile->base;
+    if (fileSize==0){
+        size_t newPathIndex=self->newRefList?self->newRefList[newRefIndex]:newRefIndex;
+        check(_makeNewDirOrEmptyFile(listener,newPathIndex));
+        *out_newFileStream=0;
+    }else{
+        utf8fileName=TNewDirOutput_getNewPathByRefIndex(self,newRefIndex);
+        check(utf8fileName!=0);
+        check(self->_listener->openNewFile(self->_listener,self->_curNewFile,
+                                           utf8fileName,fileSize));
+        *out_newFileStream=&self->_curNewFile->base;
+    }
 clear:
     return result;
 }
@@ -201,7 +207,7 @@ static void _sameFile_copyedData(hpatch_ICopyDataListener* listener,const unsign
 }
 
 hpatch_BOOL TNewDirOutput_openDir(TNewDirOutput* self,IDirPatchListener* listener,
-                                  const hpatch_TStreamOutput** out_newDirStream){
+                                  size_t kAlignSize,const hpatch_TStreamOutput** out_newDirStream){
     hpatch_BOOL result=hpatch_TRUE;
     size_t      refCount=self->newRefFileCount;
     assert(self->_pmem==0);
@@ -244,8 +250,8 @@ hpatch_BOOL TNewDirOutput_openDir(TNewDirOutput* self,IDirPatchListener* listene
     }
     check(hpatch_TNewStream_open(&self->_newDirStream,&self->_newDirStreamListener,
                                  self->newDataSize,self->newPathCount,
-                                 self->newRefList,refCount,
-                                 self->dataSamePairList,self->sameFilePairCount));
+                                 self->newRefList,refCount,self->dataSamePairList,
+                                 self->sameFilePairCount,kAlignSize));
     *out_newDirStream=self->_newDirStream.stream;
 clear:
     return result;

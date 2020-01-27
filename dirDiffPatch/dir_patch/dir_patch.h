@@ -143,6 +143,7 @@ hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,IDirPatchListener* 
 hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
                               const hpatch_TStreamInput* oldData,
                               unsigned char* temp_cache,unsigned char* temp_cache_end);
+    
 static hpatch_inline
 hpatch_BOOL TDirPatcher_isCopyDataChecksumError(const TDirPatcher* self)
                             { return self->_newDir._isCopyDataChecksumError; }
@@ -178,6 +179,8 @@ static hpatch_inline const char* TDirPatcher_getOldPathBySameIndex(TDirPatcher* 
     { return TNewDirOutput_getOldPathBySameIndex(&self->_newDir,sameIndex); }
 static hpatch_inline const char* TDirPatcher_getNewPathBySameIndex(TDirPatcher* self,size_t sameIndex)
     { return TNewDirOutput_getNewPathBySameIndex(&self->_newDir,sameIndex); }
+static hpatch_inline void TDirPatcher_getExecuteList(TDirPatcher* self,IDirPatchExecuteList* out_executeList)
+    { TNewDirOutput_getExecuteList(&self->_newDir,out_executeList); }
 
 
 hpatch_BOOL TDirPatcher_initOldSameRefCount(TDirPatcher* self);
@@ -186,6 +189,7 @@ const char* TDirPatcher_getOldPathBySameIndex(TDirPatcher* self,size_t sameIndex
 const char* TDirPatcher_getNewPathBySameIndex(TDirPatcher* self,size_t sameIndex);
 size_t      TDirPatcher_oldSameRefCount(TDirPatcher* self,size_t sameIndex);
 void        TDirPatcher_decOldSameRefCount(TDirPatcher* self,size_t sameIndex);
+    
 
 
 //can checksum oldData(oldRefFiles+oldCopyFiles) by head of dirDiffData,not need download all data;

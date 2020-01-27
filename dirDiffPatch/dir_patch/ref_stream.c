@@ -113,7 +113,7 @@ hpatch_BOOL _createRange(hpatch_TRefStream* self,const hpatch_TStreamInput** ref
     self->_rangeEndList[-1]=0;
     for (i=0; i<refCount; ++i) {
         hpatch_StreamPos_t rangeSize=refList[i]->streamSize;
-        rangeSize=(rangeSize+kAlignSize-1)/kAlignSize*kAlignSize;//align upper
+        rangeSize=toAlignRangeSize(rangeSize,kAlignSize);
         curSumSize+=rangeSize;
         self->_rangeEndList[rangIndex]=curSumSize;
         ++rangIndex;

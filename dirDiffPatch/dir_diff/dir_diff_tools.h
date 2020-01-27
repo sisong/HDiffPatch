@@ -138,6 +138,7 @@ struct CFileResHandleLimit{
     inline ~CFileResHandleLimit() { close(); }
     void addRes(const std::string& fileName,hpatch_StreamPos_t fileSize);
     void open();
+    bool closeFileHandles();
     void close();
     
     struct CFile:public hpatch_TFileStreamInput{

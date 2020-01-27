@@ -48,4 +48,8 @@ static const char kPatch_dirSeparator = '/';
 #endif
 static const char kPatch_dirSeparator_saved = '/';
 
+static hpatch_inline  //align upper
+hpatch_StreamPos_t toAlignRangeSize(hpatch_StreamPos_t rangeSize,size_t kAlignSize)
+        { return (rangeSize+kAlignSize-1)/kAlignSize*kAlignSize; }
+
 #endif //DirPatch_dir_patch_types_h

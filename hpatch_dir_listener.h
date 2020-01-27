@@ -63,20 +63,25 @@ static hpatch_BOOL _dirPatchBegin(IHPatchDirListener* listener,TDirPatcher* dirP
     listener->listenerImport=dirPatcher;
     return hpatch_TRUE;
 }
-static hpatch_BOOL _dirPatchFinish(IHPatchDirListener* listener,hpatch_BOOL isPatchSuccess){
-    TDirPatcher* dirPatcher=(TDirPatcher*)listener->listenerImport;
-    {//ExecuteFile
+    
+
+    static hpatch_BOOL _dirPatch_setIsExecuteFile(IDirPatchExecuteList* executeList){
         size_t i;
-        size_t count=TDirPatcher_getNewExecuteFileCount(dirPatcher);
-        for (i=0; i<count; ++i) {
-            const char* executeFileName=TDirPatcher_getNewExecuteFileByIndex(dirPatcher,i);
+        for (i=0; i<executeList->executeFileCount; ++i) {
+            const char* executeFileName=executeList->getNewFileNameByExecuteIndex(executeList->import,i);
             if (!hpatch_setIsExecuteFile(executeFileName)){
                 printf("WARNING: can't set Execute tag to new file \"");
                 hpatch_printPath_utf8(executeFileName); printf("\"\n");
             }
         }
+        return hpatch_TRUE;
     }
-    return hpatch_TRUE;
+
+static hpatch_BOOL _dirPatchFinish(IHPatchDirListener* listener,hpatch_BOOL isPatchSuccess){
+    TDirPatcher* dirPatcher=(TDirPatcher*)listener->listenerImport;
+    IDirPatchExecuteList executeList;
+    TDirPatcher_getExecuteList(dirPatcher,&executeList);
+    return _dirPatch_setIsExecuteFile(&executeList);
 }
 
 static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,_openNewFile,_closeNewFile},

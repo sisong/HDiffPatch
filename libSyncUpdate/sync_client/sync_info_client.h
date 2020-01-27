@@ -62,7 +62,10 @@ typedef enum TSyncClient_resultType{
     
 //_IS_NEED_DIR_DIFF_PATCH
     kSyncClient_oldDirFilesError=50,
-
+    kSyncClient_newDirOpenError,
+    kSyncClient_newDirCloseError,
+    kSyncClient_newDirPatchBeginError,
+    kSyncClient_newDirPatchFinishError,
 } TNewDataSyncInfo_resultType;
     
 typedef struct TSyncPatchChecksumSet{

@@ -106,7 +106,7 @@ hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,hpatch_ICopyDataLi
 hpatch_inline
 static void TNewDirOutput_init(TNewDirOutput* self)  { memset(self,0,sizeof(*self)); }
 hpatch_BOOL TNewDirOutput_openDir(TNewDirOutput* self,IDirPatchListener* listener,
-                                  const hpatch_TStreamOutput** out_newDirStream);
+                                  size_t kAlignSize,const hpatch_TStreamOutput** out_newDirStream);
 
 hpatch_BOOL TNewDirOutput_closeNewDirHandles(TNewDirOutput* self);//for TNewDirOutput_openDir
 hpatch_BOOL TNewDirOutput_close(TNewDirOutput* self);
@@ -117,7 +117,22 @@ const char* TNewDirOutput_getNewExecuteFileByIndex(TNewDirOutput* self,size_t ne
 const char* TNewDirOutput_getNewPathByRefIndex(TNewDirOutput* self,size_t newRefIndex);
 const char* TNewDirOutput_getOldPathBySameIndex(TNewDirOutput* self,size_t sameIndex);
 const char* TNewDirOutput_getNewPathBySameIndex(TNewDirOutput* self,size_t sameIndex);
-    
+
+//ExecuteList
+typedef const char* (*TDirPatch_getFileNameByIndex)(void* import,size_t index);
+typedef struct IDirPatchExecuteList{
+    void*                   import;
+    size_t                  executeFileCount;
+    TDirPatch_getFileNameByIndex getNewFileNameByExecuteIndex;
+} IDirPatchExecuteList;
+static hpatch_inline void TNewDirOutput_getExecuteList(TNewDirOutput* self,
+                                                       IDirPatchExecuteList* out_executeList) {
+    out_executeList->import=self;
+    out_executeList->executeFileCount=self->newExecuteCount;
+    out_executeList->getNewFileNameByExecuteIndex=
+            (TDirPatch_getFileNameByIndex)TNewDirOutput_getNewExecuteFileByIndex;
+}
+
 #ifdef __cplusplus
 }
 #endif

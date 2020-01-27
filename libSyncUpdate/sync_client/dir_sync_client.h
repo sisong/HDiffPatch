@@ -39,8 +39,15 @@
 int sync_patch_dir2file(ISyncPatchListener* listener,const char* outNewFile,const TManifest& oldManifest,
                         const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum=1);
 
+struct IDirSyncPatchListener:public ISyncPatchListener{
+    hpatch_BOOL (*patchBegin) (struct IDirSyncPatchListener* listener,
+                               const TNewDataSyncInfo* newSyncInfo,TNewDirOutput* newDirOutput);
+    hpatch_BOOL (*patchFinish)(struct IDirSyncPatchListener* listener,hpatch_BOOL isPatchSuccess,
+                               const TNewDataSyncInfo* newSyncInfo,TNewDirOutput* newDirOutput);
+};
+
 //sync patch oldPatch to newDir
-int sync_patch_fileOrDir2dir(IDirPatchListener* patchListener,ISyncPatchListener* syncListener,
+int sync_patch_fileOrDir2dir(IDirPatchListener* patchListener,IDirSyncPatchListener* syncListener,
                              const char* outNewDir,const TManifest& oldManifest,
                              const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum=1);
 
