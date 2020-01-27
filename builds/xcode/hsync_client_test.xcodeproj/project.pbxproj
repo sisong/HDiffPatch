@@ -12,6 +12,8 @@
 		D61DE5202340397000F6FCCF /* parallel_import.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE51D2340397000F6FCCF /* parallel_import.cpp */; };
 		D61DE53D2344BFFC00F6FCCF /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D61DE53C2344BFFC00F6FCCF /* patch.c */; };
 		D61DE54C23481CA900F6FCCF /* dir_sync_client.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE54A23481CA900F6FCCF /* dir_sync_client.cpp */; };
+		D621352523DE83FD00EC4FA4 /* new_dir_output.c in Sources */ = {isa = PBXBuildFile; fileRef = D621352423DE83FD00EC4FA4 /* new_dir_output.c */; };
+		D621352723DE843F00EC4FA4 /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D621352623DE843F00EC4FA4 /* new_stream.c */; };
 		D63B988A2333B574003D38A5 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = D63B98892333B574003D38A5 /* md5.c */; };
 		D658933B23327613003BB2F4 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D658933A23327613003BB2F4 /* file_for_patch.c */; };
 		D658934023327643003BB2F4 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D658933C23327642003BB2F4 /* adler_roll.c */; };
@@ -48,6 +50,8 @@
 		D61DE53C2344BFFC00F6FCCF /* patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = patch.c; path = ../../libHDiffPatch/HPatch/patch.c; sourceTree = "<group>"; };
 		D61DE54A23481CA900F6FCCF /* dir_sync_client.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_sync_client.cpp; sourceTree = "<group>"; };
 		D61DE54B23481CA900F6FCCF /* dir_sync_client.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_sync_client.h; sourceTree = "<group>"; };
+		D621352423DE83FD00EC4FA4 /* new_dir_output.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = new_dir_output.c; path = ../../dirDiffPatch/dir_patch/new_dir_output.c; sourceTree = "<group>"; };
+		D621352623DE843F00EC4FA4 /* new_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = new_stream.c; path = ../../dirDiffPatch/dir_patch/new_stream.c; sourceTree = "<group>"; };
 		D63B98892333B574003D38A5 /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
 		D65892F82331D169003BB2F4 /* hsync_client_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hsync_client_test; sourceTree = BUILT_PRODUCTS_DIR; };
 		D658933A23327613003BB2F4 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
@@ -144,6 +148,8 @@
 			isa = PBXGroup;
 			children = (
 				D61DE51A2340397000F6FCCF /* libParallel */,
+				D621352423DE83FD00EC4FA4 /* new_dir_output.c */,
+				D621352623DE843F00EC4FA4 /* new_stream.c */,
 				D6C9A9A123CC4BC800AC50F8 /* res_handle_limit.c */,
 				D6C9A99F23CC4B5C00AC50F8 /* ref_stream.c */,
 				D6C9A9A823D04EC400AC50F8 /* dir_patch_tools.c */,
@@ -234,6 +240,7 @@
 				D6C9A99B23CC4ABB00AC50F8 /* dir_diff_tools.cpp in Sources */,
 				D658933B23327613003BB2F4 /* file_for_patch.c in Sources */,
 				D6C9A99C23CC4ABB00AC50F8 /* dir_manifest.cpp in Sources */,
+				D621352523DE83FD00EC4FA4 /* new_dir_output.c in Sources */,
 				D61DE519233F52E200F6FCCF /* LzmaDec.c in Sources */,
 				D63B988A2333B574003D38A5 /* md5.c in Sources */,
 				D6C9A9A023CC4B5C00AC50F8 /* ref_stream.c in Sources */,
@@ -244,6 +251,7 @@
 				D61DE53D2344BFFC00F6FCCF /* patch.c in Sources */,
 				D684E20F23CAB3F6004C6EB9 /* hsync_client_test.cpp in Sources */,
 				D65893472332765B003BB2F4 /* sync_client.cpp in Sources */,
+				D621352723DE843F00EC4FA4 /* new_stream.c in Sources */,
 				D61DE5202340397000F6FCCF /* parallel_import.cpp in Sources */,
 				D699A29523372152003CB3DC /* match_in_old.cpp in Sources */,
 				D6E443F823C1F35800EB7B80 /* sync_info_client.cpp in Sources */,

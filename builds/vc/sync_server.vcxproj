@@ -157,18 +157,23 @@
     <ClCompile Include="..\..\..\zlib\trees.c" />
     <ClCompile Include="..\..\..\zlib\uncompr.c" />
     <ClCompile Include="..\..\..\zlib\zutil.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_diff\dir_diff_tools.cpp" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_diff\dir_manifest.cpp" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\dir_patch_tools.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\new_dir_output.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\new_stream.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\ref_stream.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\res_handle_limit.c" />
     <ClCompile Include="..\..\file_for_patch.c" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\limit_mem_diff\adler_roll.c" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
     <ClCompile Include="..\..\libParallel\parallel_channel.cpp" />
     <ClCompile Include="..\..\libParallel\parallel_import.cpp" />
+    <ClCompile Include="..\..\libSyncUpdate\hsync_server.cpp" />
+    <ClCompile Include="..\..\libSyncUpdate\sync_server\dir_sync_server.cpp" />
     <ClCompile Include="..\..\libSyncUpdate\sync_server\match_in_new.cpp" />
+    <ClCompile Include="..\..\libSyncUpdate\sync_server\sync_info_server.cpp" />
     <ClCompile Include="..\..\libSyncUpdate\sync_server\sync_server.cpp" />
-    <ClCompile Include="..\..\libSyncUpdate\sync_server\sync_server_main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\libSyncUpdate\sync_server\match_in_new.h" />
-    <ClInclude Include="..\..\libSyncUpdate\sync_server\sync_server.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

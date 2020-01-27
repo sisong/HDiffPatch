@@ -27,6 +27,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "dir_sync_client.h"
+#include <stdexcept>
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
 #include "../../dirDiffPatch/dir_patch/new_dir_output.h"

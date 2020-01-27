@@ -32,6 +32,7 @@
 #include "../libParallel/parallel_import.h"
 #include "../file_for_patch.h"
 #include "../_dir_ignore.h"
+#include "../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
 #include "sync_client/sync_client.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -157,7 +158,7 @@ int wmain(int argc,wchar_t* argv_w[]){
     hdiff_private::TAutoMem  _mem(hpatch_kPathMaxSize*4);
     char** argv_utf8=(char**)_mem.data();
     if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,_mem.size()))
-        return SYNC_SERVER_OPTIONS_ERROR;
+        return kSyncClient_optionsError;
     SetDefaultStringLocale();
     return sync_client_cmd_line(argc,(const char**)argv_utf8);
 }

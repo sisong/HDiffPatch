@@ -23,9 +23,13 @@
 				<Compiler>
 					<Add option="-fomit-frame-pointer" />
 					<Add option="-O3" />
+					<Add option="-Wno-error=format-security" />
+					<Add option="-fvisibility=hidden -fvisibility-inlines-hidden" />
+					<Add option="-ffunction-sections -fdata-sections" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add option="-Wl,--gc-sections" />
 				</Linker>
 			</Target>
 			<Target title="Release_x86">
@@ -38,10 +42,14 @@
 					<Add option="-fomit-frame-pointer" />
 					<Add option="-O3" />
 					<Add option="-m32" />
+					<Add option="-Wno-error=format-security" />
+					<Add option="-fvisibility=hidden -fvisibility-inlines-hidden" />
+					<Add option="-ffunction-sections -fdata-sections" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
 					<Add option="-m32" />
+					<Add option="-Wl,--gc-sections" />
 				</Linker>
 			</Target>
 		</Build>
@@ -60,7 +68,6 @@
 		<Unit filename="../../../libmd5/md5.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../libmd5/md5.h" />
 		<Unit filename="../../../lzma/C/LzFind.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -91,8 +98,24 @@
 		<Unit filename="../../../zlib/trees.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../zlib/zlib.h" />
 		<Unit filename="../../../zlib/zutil.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_diff/dir_diff_tools.cpp" />
+		<Unit filename="../../dirDiffPatch/dir_diff/dir_manifest.cpp" />
+		<Unit filename="../../dirDiffPatch/dir_patch/dir_patch_tools.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/new_dir_output.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/new_stream.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/ref_stream.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/res_handle_limit.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../file_for_patch.c">
@@ -106,9 +129,11 @@
 		</Unit>
 		<Unit filename="../../libParallel/parallel_channel.cpp" />
 		<Unit filename="../../libParallel/parallel_import.cpp" />
+		<Unit filename="../../libSyncUpdate/hsync_server.cpp" />
+		<Unit filename="../../libSyncUpdate/sync_server/dir_sync_server.cpp" />
 		<Unit filename="../../libSyncUpdate/sync_server/match_in_new.cpp" />
+		<Unit filename="../../libSyncUpdate/sync_server/sync_info_server.cpp" />
 		<Unit filename="../../libSyncUpdate/sync_server/sync_server.cpp" />
-		<Unit filename="../../libSyncUpdate/sync_server/sync_server_main.cpp" />
 		<Extensions>
 			<envvars />
 			<code_completion />

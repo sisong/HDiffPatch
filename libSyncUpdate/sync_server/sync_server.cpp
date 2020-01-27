@@ -28,7 +28,6 @@
  */
 #include "sync_server.h"
 #include "sync_info_server.h"
-#include <stdexcept>
 #include <vector>
 #include "match_in_new.h"
 #include "../sync_client/mt_by_queue.h"

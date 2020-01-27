@@ -30,6 +30,7 @@
 #include "../../file_for_patch.h"
 #include "match_in_old.h"
 #include "mt_by_queue.h"
+#include <stdexcept>
 namespace sync_private{
 
 #define check(v,errorCode) \

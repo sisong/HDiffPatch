@@ -31,6 +31,7 @@
 #define _dir_ignore_h
 #include <vector>
 #include <string>
+#include <algorithm>
 #include "dirDiffPatch/dir_patch/dir_patch.h"
 
 #if (_IS_NEED_DIR_DIFF_PATCH)

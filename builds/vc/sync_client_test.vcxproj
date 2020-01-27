@@ -151,21 +151,24 @@
     <ClCompile Include="..\..\..\zlib\inftrees.c" />
     <ClCompile Include="..\..\..\zlib\trees.c" />
     <ClCompile Include="..\..\..\zlib\zutil.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_diff\dir_diff_tools.cpp" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_diff\dir_manifest.cpp" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\dir_patch_tools.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\new_dir_output.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\new_stream.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\ref_stream.c" />
+    <ClCompile Include="..\..\dirDiffPatch\dir_patch\res_handle_limit.c" />
     <ClCompile Include="..\..\file_for_patch.c" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\limit_mem_diff\adler_roll.c" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
     <ClCompile Include="..\..\libParallel\parallel_channel.cpp" />
     <ClCompile Include="..\..\libParallel\parallel_import.cpp" />
-    <ClCompile Include="..\..\libSyncUpdate\sync_client\download_emulation.cpp" />
+    <ClCompile Include="..\..\libSyncUpdate\client_download_emulation.cpp" />
+    <ClCompile Include="..\..\libSyncUpdate\hsync_client_test.cpp" />
+    <ClCompile Include="..\..\libSyncUpdate\sync_client\dir_sync_client.cpp" />
     <ClCompile Include="..\..\libSyncUpdate\sync_client\match_in_old.cpp" />
     <ClCompile Include="..\..\libSyncUpdate\sync_client\sync_client.cpp" />
-    <ClCompile Include="..\..\libSyncUpdate\sync_client\sync_client_main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\libSyncUpdate\sync_client\download_emulation.h" />
-    <ClInclude Include="..\..\libSyncUpdate\sync_client\match_in_old.h" />
-    <ClInclude Include="..\..\libSyncUpdate\sync_client\sync_client.h" />
-    <ClInclude Include="..\..\libSyncUpdate\sync_client\sync_client_type.h" />
+    <ClCompile Include="..\..\libSyncUpdate\sync_client\sync_info_client.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
