@@ -145,9 +145,9 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     size_t dir_newPathSumCharSize=0;
     if (self->isDirSyncInfo){
         checkv(!self->dir_newNameList_isCString);
-        dir_newPathSumCharSize=pushNameList(buf,self->dir_utf8RootPath,
-                                            (std::string*)self->dir_utf8NewNameList,self->dir_newCount);
-        packList(buf,self->dir_newSizeList,self->dir_newCount);
+        dir_newPathSumCharSize=pushNameList(buf,self->dir_utf8NewRootPath,
+                                            (std::string*)self->dir_utf8NewNameList,self->dir_newPathCount);
+        packList(buf,self->dir_newSizeList,self->dir_newPathCount);
         packIncList(buf,self->dir_newExecuteIndexList,self->dir_newExecuteCount);
     }
 #endif
@@ -180,7 +180,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
             packUInt(head,dir_newPathSumCharSize);
-            packUInt(head,self->dir_newCount);
+            packUInt(head,self->dir_newPathCount);
             packUInt(head,self->dir_newExecuteCount);
         }
 #endif

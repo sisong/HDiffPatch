@@ -89,7 +89,7 @@ int sync_patch_dir2file(ISyncPatchListener* listener,const char* outNewFile,cons
         CFilesStream oldFilesStream(oldManifest.pathList,kMaxOpenFileNumber,newSyncInfo.kMatchBlockSize);
         const hpatch_TStreamInput* oldStream=oldFilesStream.refStream.stream;
         result=sync_patch(listener,&out_newData.base,oldStream,&newSyncInfo,threadNum);
-    } catch (const std::exception& e){
+    } catch (const std::exception&){
         result=kSyncClient_oldDirFilesError;
     }
 clear:
@@ -126,7 +126,7 @@ int sync_patch_fileOrDir2dir(IDirPatchListener* patchListener,ISyncPatchListener
         CFilesStream oldFilesStream(oldManifest.pathList,kMaxOpenFileNumber,newSyncInfo.kMatchBlockSize);
         const hpatch_TStreamInput* oldStream=oldFilesStream.refStream.stream;
         result=sync_patch(syncListener,&out_newData.base,oldStream,&newSyncInfo,threadNum);
-    } catch (const std::exception& e){
+    } catch (const std::exception&){
         result=kSyncClient_oldDirFilesError;
     }
 clear:

@@ -99,10 +99,10 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     CNewDataSyncInfo  newDataSyncInfo(strongChecksumPlugin,compressPlugin,
                                       newRefStream.stream->streamSize,kMatchBlockSize);
     newDataSyncInfo.isDirSyncInfo=hpatch_TRUE;
-    newDataSyncInfo.dir_newCount=newList.size();
+    newDataSyncInfo.dir_newPathCount=newList.size();
     newDataSyncInfo.dir_newNameList_isCString=hpatch_FALSE;
     newDataSyncInfo.dir_utf8NewNameList=newList.data();
-    newDataSyncInfo.dir_utf8RootPath=newManifest.rootPath.c_str();
+    newDataSyncInfo.dir_utf8NewRootPath=newManifest.rootPath.c_str();
     newDataSyncInfo.dir_newSizeList=newSizeList.data();
     newDataSyncInfo.dir_newExecuteCount=newExecuteList.size();
     newDataSyncInfo.dir_newExecuteIndexList=newExecuteList.data();

@@ -62,10 +62,10 @@ typedef struct TNewDataSyncInfo{
     void*                   rollHashs;
     unsigned char*          partChecksums;
 #if (_IS_NEED_DIR_DIFF_PATCH)
-    size_t                  dir_newCount;
+    size_t                  dir_newPathCount;
     uint8_t                 dir_newNameList_isCString;
     const void*             dir_utf8NewNameList;//is const char** or const std::string* type
-    const char*             dir_utf8RootPath;
+    const char*             dir_utf8NewRootPath;
     hpatch_StreamPos_t*     dir_newSizeList;
     size_t                  dir_newExecuteCount;
     size_t*                 dir_newExecuteIndexList;

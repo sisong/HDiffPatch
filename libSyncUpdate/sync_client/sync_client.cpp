@@ -258,7 +258,7 @@ int sync_patch(ISyncPatchListener* listener,const hpatch_TStreamOutput* out_newS
     check(newDataPoss!=0,kSyncClient_memError);
     try{
         matchNewDataInOld(newDataPoss,newSyncInfo,oldStream,strongChecksumPlugin,threadNum);
-    }catch(const std::exception& e){
+    }catch(const std::exception&){
         //printf("matchNewDataInOld() run an error: %s",e.what());
         result=kSyncClient_matchNewDataInOldError;
     }

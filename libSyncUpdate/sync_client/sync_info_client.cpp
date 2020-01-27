@@ -337,7 +337,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
             check(_clip_unpackToSize_t(&dir_newPathSumCharSize,&clip),kSyncClient_newSyncInfoDataError);
-            check(_clip_unpackToSize_t(&self->dir_newCount,&clip),kSyncClient_newSyncInfoDataError);
+            check(_clip_unpackToSize_t(&self->dir_newPathCount,&clip),kSyncClient_newSyncInfoDataError);
             check(_clip_unpackToSize_t(&self->dir_newExecuteCount,&clip),kSyncClient_newSyncInfoDataError);
         }
 #endif
@@ -357,8 +357,8 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
             self->dir_newNameList_isCString=hpatch_TRUE;
-            memSize+=dir_newPathSumCharSize + sizeof(const char*)*self->dir_newCount
-                    +sizeof(hpatch_StreamPos_t)*self->dir_newCount
+            memSize+=dir_newPathSumCharSize + sizeof(const char*)*self->dir_newPathCount
+                    +sizeof(hpatch_StreamPos_t)*self->dir_newPathCount
                     +sizeof(size_t)*self->dir_newExecuteCount;
         }
 #endif
@@ -375,9 +375,9 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
             self->dir_newSizeList=(hpatch_StreamPos_t*)curMem;
-            curMem+=sizeof(hpatch_StreamPos_t)*self->dir_newCount;
+            curMem+=sizeof(hpatch_StreamPos_t)*self->dir_newPathCount;
             self->dir_utf8NewNameList=(const char**)curMem;
-            curMem+=sizeof(const char*)*self->dir_newCount;
+            curMem+=sizeof(const char*)*self->dir_newPathCount;
             self->dir_newExecuteIndexList=(size_t*)curMem;
             curMem+=sizeof(size_t)*self->dir_newExecuteCount;
         }
@@ -390,7 +390,7 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
         }
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
-            if (self->dir_newCount>0){
+            if (self->dir_newPathCount>0){
                 ((const char**)self->dir_utf8NewNameList)[0]=(char*)curMem;
                 curMem+=dir_newPathSumCharSize;
             }
@@ -459,22 +459,22 @@ int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newS
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
             //dir_utf8NewNameList
-            if (self->dir_newCount>0){
+            if (self->dir_newPathCount>0){
                 char* charsBuf=((char**)self->dir_utf8NewNameList)[0];
                 check(_TStreamCacheClip_readDataTo(codeClip,(TByte*)charsBuf,
                                                    (TByte*)charsBuf+dir_newPathSumCharSize),
                       kSyncClient_newSyncInfoDataError);
                 formatDirTagForLoad(charsBuf,charsBuf+dir_newPathSumCharSize);
                 check(clipCStrsTo(charsBuf,charsBuf+dir_newPathSumCharSize,
-                                  (const char**)self->dir_utf8NewNameList,self->dir_newCount),
+                                  (const char**)self->dir_utf8NewNameList,self->dir_newPathCount),
                       kSyncClient_newSyncInfoDataError);
             }
             //dir_newSizeList
-            check(readListTo(codeClip,self->dir_newSizeList,self->dir_newCount),
+            check(readListTo(codeClip,self->dir_newSizeList,self->dir_newPathCount),
                   kSyncClient_newSyncInfoDataError);
             //dir_newExecuteIndexList
             check(readIncListTo(codeClip,self->dir_newExecuteIndexList,self->dir_newExecuteCount,
-                                self->dir_newCount),kSyncClient_newSyncInfoDataError);
+                                self->dir_newPathCount),kSyncClient_newSyncInfoDataError);
         }
 #endif
         if (compressDataSize>0){

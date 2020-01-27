@@ -78,8 +78,8 @@ hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,hpatch_ICopyDataLi
         size_t                      newPathCount;
         size_t                      newRefFileCount;
         size_t                      newExecuteCount;
-        size_t                      checksumByteSize;
         size_t                      sameFilePairCount;
+        size_t                      checksumByteSize;
         hpatch_BOOL                 isCheck_newRefData;
         hpatch_BOOL                 isCheck_copyFileData;
         //private input:
