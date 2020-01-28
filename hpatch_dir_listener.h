@@ -87,8 +87,12 @@ static hpatch_BOOL _dirPatchFinish(IHPatchDirListener* listener,hpatch_BOOL isPa
 static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,_openNewFile,_closeNewFile},
                                                     0,_dirPatchBegin,_dirPatchFinish};
 
-    
+#ifndef _IS_NEED_tempDirPatchListener
+#   define _IS_NEED_tempDirPatchListener 1
+#endif
 
+#if (_IS_NEED_tempDirPatchListener)
+    
 //IDirPatchListener
 static hpatch_BOOL _tempDir_copySameFile(IDirPatchListener* listener,const char* oldFileName,
                                          const char* newFileName,hpatch_ICopyDataListener* copyListener){
@@ -241,6 +245,7 @@ static IHPatchDirListener tempDirPatchListener={{&tempDirPatchListener,_makeNewD
                                                    _openNewFile,_closeNewFile},
                                                  0,_tempDirPatchBegin,_tempDirPatchFinish};
     
+#endif //_IS_NEED_tempDirPatchListener
 #ifdef __cplusplus
 }
 #endif

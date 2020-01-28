@@ -37,6 +37,7 @@
 #include "sync_client/sync_client.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #   include "sync_client/dir_sync_client.h"
+#   define _IS_NEED_tempDirPatchListener 0
 #   include "../hpatch_dir_listener.h"
 #endif
 #ifndef _IS_NEED_MAIN
@@ -455,7 +456,7 @@ int sync_client_cmd_line(int argc, const char * argv[]) {
                   kSyncClient_oldPathTypeError,"get oldPath %s type",oldPath);
     _return_check((oldPathType!=kPathType_notExist),
                   kSyncClient_oldPathTypeError,"oldPath %s not exist",oldPath);
-    const hpatch_BOOL oldIsDir=(oldPathType==kPathType_dir);
+    const bool oldIsDir=(oldPathType==kPathType_dir);
     
     int result=kSyncClient_ok;
     hpatch_BOOL newIsDir=hpatch_FALSE;
@@ -510,7 +511,9 @@ int sync_patch_2file(const char* outNewFile,const char* oldPath,bool oldIsDir,
                      const std::vector<std::string>& ignoreOldPathList,
                      const char* newSyncInfoFile,const char* newSyncDataFile_url,
                      TSyncPatchChecksumSet checksumSet,size_t kMaxOpenFileNumber,size_t threadNum){
+#if (_IS_NEED_DIR_DIFF_PATCH)
     std::string _oldPath(oldPath); if (oldIsDir) assignDirTag(_oldPath); oldPath=_oldPath.c_str();
+#endif
     printf(  "\nin old %s: \"",oldIsDir?"dir ":"file"); hpatch_printPath_utf8(oldPath); printf("\"\n");
 #if (_IS_NEED_DIR_DIFF_PATCH)
     TManifest oldManifest;
@@ -567,14 +570,12 @@ int  sync_patch_2dir(const char* outNewDir,const char* oldPath,bool oldIsDir,
     std::string _outNewDir(outNewDir); assignDirTag(_outNewDir); outNewDir=_outNewDir.c_str();
     std::string _oldPath(oldPath); if (oldIsDir) assignDirTag(_oldPath); oldPath=_oldPath.c_str();
     printf(  "\nin old %s: \"",oldIsDir?"dir ":"file"); hpatch_printPath_utf8(oldPath); printf("\"\n");
-#if (_IS_NEED_DIR_DIFF_PATCH)
     TManifest oldManifest;
     if (oldIsDir){
         _return_check(getManifest(oldManifest,oldPath,oldIsDir,ignoreOldPathList),
                       kSyncClient_oldDirFilesError,"open oldPath: %s",oldPath);
         _oldPath=oldManifest.rootPath.c_str();
     }
-#endif
     printf(    "in .hsyni  : \""); hpatch_printPath_utf8(newSyncInfoFile);
     printf("\"\nin .hsynd  : \""); hpatch_printPath_utf8(newSyncDataFile_url);
     printf("\"\nout dir    : \""); hpatch_printPath_utf8(outNewDir);
