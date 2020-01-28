@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -163,7 +163,7 @@
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
     <ClCompile Include="..\..\libParallel\parallel_channel.cpp" />
     <ClCompile Include="..\..\libParallel\parallel_import.cpp" />
-    <ClCompile Include="..\..\libSyncUpdate\client_download_emulation.cpp" />
+    <ClCompile Include="..\..\libSyncUpdate\client_download_test.cpp" />
     <ClCompile Include="..\..\libSyncUpdate\hsync_client_test.cpp" />
     <ClCompile Include="..\..\libSyncUpdate\sync_client\dir_sync_client.cpp" />
     <ClCompile Include="..\..\libSyncUpdate\sync_client\match_in_old.cpp" />

@@ -255,20 +255,20 @@ bool getFileSize(const char *path_utf8,hpatch_StreamPos_t* out_fileSize){
 static bool printFileInfo(const char *path_utf8,const char *tag,hpatch_StreamPos_t* out_fileSize=0){
     hpatch_StreamPos_t fileSize=0;
     if (!getFileSize(path_utf8,&fileSize)) return false;
-    printf("%s: %" PRIu64 "   \"%s\"\n",tag,fileSize,path_utf8);
+    printf("%s: %" PRIu64 "   \"",tag,fileSize); hpatch_printPath_utf8(path_utf8); printf("\"\n");
     if (out_fileSize) * out_fileSize=fileSize;
     return true;
 }
 
 static void printCreateSyncInfo(hpatch_StreamPos_t newDataSize,size_t kMatchBlockSize,bool isUsedCompress){
-    printf("block size : %d\n",(uint32_t)kMatchBlockSize);
+    printf("  block size : %d\n",(uint32_t)kMatchBlockSize);
     hpatch_StreamPos_t blockCount=getSyncBlockCount(newDataSize,(uint32_t)kMatchBlockSize);
-    printf("block count: %" PRIu64 "\n",blockCount);
+    printf("  block count: %" PRIu64 "\n",blockCount);
     double patchMemSize=(double)estimatePatchMemSize(newDataSize,(uint32_t)kMatchBlockSize,isUsedCompress);
     if (patchMemSize>=(1<<20))
-        printf("sync_patch memory size: ~ %.1f MB\n",patchMemSize/(1<<20));
+        printf("  sync_patch memory size: ~ %.1f MB\n",patchMemSize/(1<<20));
     else
-        printf("sync_patch memory size: ~ %.0f KB\n",patchMemSize/(1<<10)+1);
+        printf("  sync_patch memory size: ~ %.0f KB\n",patchMemSize/(1<<10)+1);
 }
 
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
@@ -321,7 +321,7 @@ int sync_server_cmd_line(int argc, const char * argv[]){
             } break;
 #if (_IS_USED_MULTITHREAD)
             case 'p':{
-                _options_check((threadNum==_THREAD_NUMBER_NULL)&&((op[2]=='-')),"-p-?");
+                _options_check((threadNum==_THREAD_NUMBER_NULL)&&(op[2]=='-'),"-p-?");
                 const char* pnum=op+3;
                 _options_check(a_to_size(pnum,strlen(pnum),&threadNum),"-p-?");
                 _options_check(threadNum>=_THREAD_NUMBER_MIN,"-p-?");
@@ -469,7 +469,7 @@ int create_sync_files_for_file(const char* newDataFile,const char* outNewSyncInf
                                const char* outNewSyncDataFile,const hdiff_TCompress* compressPlugin,
                                hpatch_TChecksum* strongChecksumPlugin,uint32_t kMatchBlockSize,size_t threadNum){
     hpatch_StreamPos_t newDataSize=0;
-    _return_check(printFileInfo(newDataFile,"newFileSize",&newDataSize),
+    _return_check(printFileInfo(newDataFile,"\nin sync fileSize",&newDataSize),
                   SYNC_SERVER_NEWPATH_ERROR,"run printFileInfo(%s,)",newDataFile);
     int hashClashBit=estimateHashClashBit(newDataSize,(uint32_t)kMatchBlockSize);
     _return_check(hashClashBit<=kAllowMaxHashClashBit,SYNC_SERVER_BLOCKSIZE_ERROR,
@@ -507,17 +507,16 @@ struct DirSyncListener:public IDirSyncListener{
     virtual bool isExecuteFile(const std::string& fileName) {
         bool result= 0!=hpatch_getIsExecuteFile(fileName.c_str());
         if (result){
-            std::string info="  got file Execute tag:\""+fileName+"\"\n";
-            hpatch_printPath_utf8(info.c_str());
+            printf("  got file Execute tag: \"");
+            hpatch_printPath_utf8(fileName.c_str()); printf("\"\n");
         }
         return result;
     }
-    virtual void syncRefInfo(size_t pathCount,hpatch_StreamPos_t refFileSize,
+    virtual void syncRefInfo(const char* rootDirPath,size_t pathCount,hpatch_StreamPos_t refFileSize,
                              uint32_t kMatchBlockSize,bool _isMatchBlockSizeWarning){
         isMatchBlockSizeWarning=_isMatchBlockSizeWarning;
-        printf("\n");
-        printf("dir sync path count: %" PRIu64 "\n",(hpatch_StreamPos_t)pathCount);
-        printf("dir sync files size: %" PRIu64 "\n",(hpatch_StreamPos_t)refFileSize);
+        printf("  path count : %" PRIu64 "\n",(hpatch_StreamPos_t)pathCount);
+        printf("  files size : %" PRIu64 "\n",(hpatch_StreamPos_t)refFileSize);
         printCreateSyncInfo(refFileSize,kMatchBlockSize,_isUsedCompress);
     }
 };
@@ -529,6 +528,7 @@ int create_sync_files_for_dir(const char* newDataDir,const char* outNewSyncInfoF
                               uint32_t kMatchBlockSize,size_t threadNum){
     std::string newDir(newDataDir);
     assignDirTag(newDir);
+    printf("\nin sync dir: \""); hpatch_printPath_utf8(newDir.c_str()); printf("\"\n");
     DirSyncListener listener(compressPlugin!=0);
     TManifest newManifest;
     try {

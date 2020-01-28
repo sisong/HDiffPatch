@@ -643,7 +643,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
 #if (_IS_USED_MULTITHREAD)
             case 'p':{
-                _options_check((threadNum==_THREAD_NUMBER_NULL)&&((op[2]=='-')),"-p-?");
+                _options_check((threadNum==_THREAD_NUMBER_NULL)&&(op[2]=='-'),"-p-?");
                 const char* pnum=op+3;
                 _options_check(a_to_size(pnum,strlen(pnum),&threadNum),"-p-?");
                 _options_check(threadNum>=_THREAD_NUMBER_MIN,"-p-?");

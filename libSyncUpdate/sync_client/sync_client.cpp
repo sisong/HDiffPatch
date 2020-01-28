@@ -176,6 +176,7 @@ static int writeToNew(_TWriteDatas& writeDatas,int threadNum) {
 static void getNeedSyncInfo(const hpatch_StreamPos_t* newDataPoss,
                             const TNewDataSyncInfo* newSyncInfo,TNeedSyncInfo* out_nsi){
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
+    out_nsi->blockCount=kBlockCount;
     out_nsi->syncBlockCount=0;
     out_nsi->syncDataSize=0;
     for (uint32_t i=0; i<kBlockCount; ++i){
@@ -203,20 +204,6 @@ static void sendSyncMsg(ISyncPatchListener* listener,const hpatch_StreamPos_t* n
     assert(posInNewSyncData==newSyncInfo->newSyncDataSize);
 }
 
-static void printMatchResult(const TNewDataSyncInfo* newSyncInfo,const TNeedSyncInfo& nsi) {
-    const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
-    printf("syncBlockCount: %d, /%d=%.1f%%\nsyncDataSize: %" PRIu64 "\n",
-           nsi.syncBlockCount,kBlockCount,100.0*nsi.syncBlockCount/kBlockCount,nsi.syncDataSize);
-    hpatch_StreamPos_t downloadSize=newSyncInfo->newSyncInfoSize+nsi.syncDataSize;
-    printf("downloadSize: %" PRIu64 "+%" PRIu64 "= %" PRIu64 ", /%" PRIu64 "=%.1f%%",
-           newSyncInfo->newSyncInfoSize,nsi.syncDataSize,downloadSize,
-           newSyncInfo->newDataSize,100.0*downloadSize/newSyncInfo->newDataSize);
-    if (newSyncInfo->savedSizes){
-        hpatch_StreamPos_t maxDownloadSize=newSyncInfo->newSyncInfoSize+newSyncInfo->newSyncDataSize;
-        printf(" (/%" PRIu64 "=%.1f%%)",maxDownloadSize,100.0*downloadSize/maxDownloadSize);
-    }
-    printf("\n");
-}
 } //namespace sync_private
 using namespace  sync_private;
 
@@ -258,13 +245,14 @@ int sync_patch(ISyncPatchListener* listener,const hpatch_TStreamOutput* out_newS
     check(newDataPoss!=0,kSyncClient_memError);
     try{
         matchNewDataInOld(newDataPoss,newSyncInfo,oldStream,strongChecksumPlugin,threadNum);
-    }catch(const std::exception&){
-        //printf("matchNewDataInOld() run an error: %s",e.what());
+    }catch(const std::exception& e){
+        fprintf(stderr,"matchNewDataInOld() run an error: %s",e.what());
         result=kSyncClient_matchNewDataInOldError;
     }
     check(result==kSyncClient_ok,result);
     getNeedSyncInfo(newDataPoss,newSyncInfo,&needSyncInfo);
-    printMatchResult(newSyncInfo,needSyncInfo);
+    if (listener->syncInfo)
+        listener->syncInfo(listener,newSyncInfo,&needSyncInfo);
     //send msg: all need sync block
     sendSyncMsg(listener,newDataPoss,newSyncInfo,needSyncInfo);
     

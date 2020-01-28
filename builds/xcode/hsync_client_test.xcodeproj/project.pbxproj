@@ -20,7 +20,7 @@
 		D65893472332765B003BB2F4 /* sync_client.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D65893452332765B003BB2F4 /* sync_client.cpp */; };
 		D658934B233276B6003BB2F4 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D658934A233276B6003BB2F4 /* libz.tbd */; };
 		D684E20F23CAB3F6004C6EB9 /* hsync_client_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D684E20E23CAB3F6004C6EB9 /* hsync_client_test.cpp */; };
-		D684E21223CAD52D004C6EB9 /* client_download_emulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D684E21123CAD52D004C6EB9 /* client_download_emulation.cpp */; };
+		D684E21223CAD52D004C6EB9 /* client_download_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D684E21123CAD52D004C6EB9 /* client_download_test.cpp */; };
 		D699A29523372152003CB3DC /* match_in_old.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D699A29423372152003CB3DC /* match_in_old.cpp */; };
 		D6C9A99B23CC4ABB00AC50F8 /* dir_diff_tools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A99723CC4ABB00AC50F8 /* dir_diff_tools.cpp */; };
 		D6C9A99C23CC4ABB00AC50F8 /* dir_manifest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A99823CC4ABB00AC50F8 /* dir_manifest.cpp */; };
@@ -61,8 +61,8 @@
 		D65893452332765B003BB2F4 /* sync_client.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sync_client.cpp; sourceTree = "<group>"; };
 		D658934A233276B6003BB2F4 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		D684E20E23CAB3F6004C6EB9 /* hsync_client_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hsync_client_test.cpp; path = ../../libSyncUpdate/hsync_client_test.cpp; sourceTree = "<group>"; };
-		D684E21023CAD52D004C6EB9 /* client_download_emulation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = client_download_emulation.h; path = ../../libSyncUpdate/client_download_emulation.h; sourceTree = "<group>"; };
-		D684E21123CAD52D004C6EB9 /* client_download_emulation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = client_download_emulation.cpp; path = ../../libSyncUpdate/client_download_emulation.cpp; sourceTree = "<group>"; };
+		D684E21023CAD52D004C6EB9 /* client_download_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = client_download_test.h; path = ../../libSyncUpdate/client_download_test.h; sourceTree = "<group>"; };
+		D684E21123CAD52D004C6EB9 /* client_download_test.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = client_download_test.cpp; path = ../../libSyncUpdate/client_download_test.cpp; sourceTree = "<group>"; };
 		D699A29323372152003CB3DC /* match_in_old.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = match_in_old.h; sourceTree = "<group>"; };
 		D699A29423372152003CB3DC /* match_in_old.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_in_old.cpp; sourceTree = "<group>"; };
 		D6C9A99723CC4ABB00AC50F8 /* dir_diff_tools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dir_diff_tools.cpp; path = ../../dirDiffPatch/dir_diff/dir_diff_tools.cpp; sourceTree = "<group>"; };
@@ -117,8 +117,8 @@
 			isa = PBXGroup;
 			children = (
 				D684E20E23CAB3F6004C6EB9 /* hsync_client_test.cpp */,
-				D684E21123CAD52D004C6EB9 /* client_download_emulation.cpp */,
-				D684E21023CAD52D004C6EB9 /* client_download_emulation.h */,
+				D684E21123CAD52D004C6EB9 /* client_download_test.cpp */,
+				D684E21023CAD52D004C6EB9 /* client_download_test.h */,
 				D65893412332765B003BB2F4 /* sync_client */,
 				D61DE517233F52C600F6FCCF /* lzma */,
 				D63B98882333B54C003D38A5 /* libmd5 */,
@@ -255,7 +255,7 @@
 				D61DE5202340397000F6FCCF /* parallel_import.cpp in Sources */,
 				D699A29523372152003CB3DC /* match_in_old.cpp in Sources */,
 				D6E443F823C1F35800EB7B80 /* sync_info_client.cpp in Sources */,
-				D684E21223CAD52D004C6EB9 /* client_download_emulation.cpp in Sources */,
+				D684E21223CAD52D004C6EB9 /* client_download_test.cpp in Sources */,
 				D6C9A9A223CC4BC800AC50F8 /* res_handle_limit.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

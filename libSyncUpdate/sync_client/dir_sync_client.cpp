@@ -66,7 +66,8 @@ struct CFilesStream{
             }
             resLimit->open();
             refStream.open(resLimit->limit.streamList,resLimit->resList.size(),kAlignSize);
-        } catch (const std::exception&){
+        } catch (const std::exception& e){
+            fprintf(stderr,"CFilesStream::open error: %s",e.what());
             return false;
         }
         return true;

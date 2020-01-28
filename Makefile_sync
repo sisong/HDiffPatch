@@ -27,7 +27,7 @@ endif
 
 
 CLIENT_OBJ := \
-    libSyncUpdate/client_download_emulation.o \
+    libSyncUpdate/client_download_test.o \
     libSyncUpdate/sync_client/sync_client.o \
     libSyncUpdate/sync_client/sync_info_client.o \
     libSyncUpdate/sync_client/match_in_old.o \

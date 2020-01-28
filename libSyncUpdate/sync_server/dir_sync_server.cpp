@@ -93,7 +93,8 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     
     int hashClashBit=estimateHashClashBit(newRefStream.stream->streamSize,kMatchBlockSize);
     bool isMatchBlockSizeWarning=hashClashBit>kAllowMaxHashClashBit;
-    listener->syncRefInfo(newList.size(),newRefStream.stream->streamSize,kMatchBlockSize,isMatchBlockSizeWarning);
+    listener->syncRefInfo(newManifest.rootPath.c_str(),newList.size(),newRefStream.stream->streamSize,
+                          kMatchBlockSize,isMatchBlockSizeWarning);
     checkv(!isMatchBlockSizeWarning); //warning as error
 
     CNewDataSyncInfo  newDataSyncInfo(strongChecksumPlugin,compressPlugin,

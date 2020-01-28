@@ -157,8 +157,8 @@ hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
         for (int t=0;t<threadNum; ++t) //wait all thread end
             workData.chanForWorkEnd.accept(true);
         return workData.isInError?0:workData.outCodePos;
-    } catch (const std::exception& err) {
-        fprintf(stderr,"parallel_compress_blocks run error! %s\n",err.what());
+    } catch (const std::exception& e) {
+        fprintf(stderr,"parallel_compress_blocks run error! %s\n",e.what());
         return 0; //error
     }
 }
