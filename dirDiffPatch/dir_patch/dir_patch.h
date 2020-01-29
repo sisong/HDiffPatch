@@ -179,7 +179,7 @@ static hpatch_inline const char* TDirPatcher_getOldPathBySameIndex(TDirPatcher* 
     { return TNewDirOutput_getOldPathBySameIndex(&self->_newDir,sameIndex); }
 static hpatch_inline const char* TDirPatcher_getNewPathBySameIndex(TDirPatcher* self,size_t sameIndex)
     { return TNewDirOutput_getNewPathBySameIndex(&self->_newDir,sameIndex); }
-static hpatch_inline void TDirPatcher_getExecuteList(TDirPatcher* self,IDirPathList* out_executeList)
+static hpatch_inline void TDirPatcher_getNewExecuteList(TDirPatcher* self,IDirPathList* out_executeList)
     { TNewDirOutput_getExecuteList(&self->_newDir,out_executeList); }
 static hpatch_inline void TDirPatcher_getNewDirPathList(TDirPatcher* self,IDirPathList* out_newPathList)
     { TNewDirOutput_getNewDirPathList(&self->_newDir,out_newPathList); }

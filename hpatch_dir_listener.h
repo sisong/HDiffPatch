@@ -80,10 +80,10 @@ static hpatch_BOOL _dirPatchBegin(IHPatchDirListener* listener,TDirPatcher* dirP
     }
 
 static hpatch_BOOL _dirPatchFinish(IHPatchDirListener* listener,hpatch_BOOL isPatchSuccess){
-    if (!isPatchSuccess) return hpatch_TRUE;
     TDirPatcher* dirPatcher=(TDirPatcher*)listener->listenerImport;
     IDirPathList executeList;
-    TDirPatcher_getExecuteList(dirPatcher,&executeList);
+    if (!isPatchSuccess) return hpatch_TRUE;
+    TDirPatcher_getNewExecuteList(dirPatcher,&executeList);
     return _dirPatch_setIsExecuteFile(&executeList);
 }
 

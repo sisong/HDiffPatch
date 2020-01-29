@@ -436,7 +436,7 @@ int sync_client_cmd_line(int argc, const char * argv[]) {
 #endif
     double time0=clock_s();
     
-    const hpatch_BOOL isSamePath=hpatch_getIsSamePath(oldPath,outNewPath);
+    const bool isSamePath=hpatch_getIsSamePath(oldPath,outNewPath)!=0;
     hpatch_TPathType   outNewPathType;
     _return_check(hpatch_getPathStat(outNewPath,&outNewPathType,0),
                   kSyncClient_newPathTypeError,"get %s type",outNewPath);
