@@ -110,7 +110,7 @@ static void printUsage(){
            "\"./\")\n"
 #   endif
 #endif
-           "  ( if oldPath is empty input parameter \"\" )\n"
+           "  if oldPath is empty input parameter \"\"\n"
            "memory options:\n"
            "  -m  oldPath all loaded into Memory;\n"
            "      requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.\n"
@@ -835,7 +835,6 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         hpatch_BOOL  rt;
         hpatch_TPathType    oldType;
         if (0==strcmp(oldPath,"")){ // isOldPathInputEmpty
-            assert(!isLoadOldAll);
             oldType=kPathType_file; //as empty file
         }else{
             check(hpatch_getPathStat(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"get oldPath type");

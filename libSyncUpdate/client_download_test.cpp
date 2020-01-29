@@ -38,7 +38,7 @@ static bool _readSyncData(ISyncPatchListener* listener,hpatch_StreamPos_t posInN
                           uint32_t syncDataSize,unsigned char* out_syncDataBuf){
 //warning: Read newSyncData from emulation data;
 //         In the actual project, these data need downloaded from server.
-    TDownloadEmulation* self=(TDownloadEmulation*)listener->import;
+    TDownloadEmulation* self=(TDownloadEmulation*)listener->syncImport;
     if (!self->emulation_newSyncData->read(self->emulation_newSyncData,posInNewSyncData,out_syncDataBuf,
                                            out_syncDataBuf+syncDataSize)) return false;
     return true;
@@ -46,14 +46,14 @@ static bool _readSyncData(ISyncPatchListener* listener,hpatch_StreamPos_t posInN
 
 static void downloadEmulation_open_by(TDownloadEmulation* self,ISyncPatchListener* out_emulation,
                                       const hpatch_TStreamInput* newSyncData){
-    assert(out_emulation->import==0);
+    assert(out_emulation->syncImport==0);
     self->emulation_newSyncData=newSyncData;
-    out_emulation->import=self;
+    out_emulation->syncImport=self;
     out_emulation->readSyncData=_readSyncData;
 }
 
 bool downloadEmulation_open(ISyncPatchListener* out_emulation,const hpatch_TStreamInput* newSyncData){
-    assert(out_emulation->import==0);
+    assert(out_emulation->syncImport==0);
     TDownloadEmulation* self=(TDownloadEmulation*)malloc(sizeof(TDownloadEmulation));
     if (self==0) return false;
     memset(self,0,sizeof(*self));
@@ -62,7 +62,7 @@ bool downloadEmulation_open(ISyncPatchListener* out_emulation,const hpatch_TStre
 }
 
 bool downloadEmulation_open_by_file(ISyncPatchListener* out_emulation,const char* newSyncDataPath){
-    assert(out_emulation->import==0);
+    assert(out_emulation->syncImport==0);
     TDownloadEmulation* self=(TDownloadEmulation*)malloc(sizeof(TDownloadEmulation));
     if (self==0) return false;
     memset(self,0,sizeof(*self));
@@ -76,7 +76,7 @@ bool downloadEmulation_open_by_file(ISyncPatchListener* out_emulation,const char
 
 bool downloadEmulation_close(ISyncPatchListener* emulation){
     if (emulation==0) return true;
-    TDownloadEmulation* self=(TDownloadEmulation*)emulation->import;
+    TDownloadEmulation* self=(TDownloadEmulation*)emulation->syncImport;
     memset(emulation,0,sizeof(*emulation));
     if (self==0) return true;
     bool result=(0!=hpatch_TFileStreamInput_close(&self->newSyncFile));

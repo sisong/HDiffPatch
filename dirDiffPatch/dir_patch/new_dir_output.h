@@ -119,18 +119,22 @@ const char* TNewDirOutput_getOldPathBySameIndex(TNewDirOutput* self,size_t sameI
 const char* TNewDirOutput_getNewPathBySameIndex(TNewDirOutput* self,size_t sameIndex);
 
 //ExecuteList
-typedef const char* (*TDirPatch_getFileNameByIndex)(void* import,size_t index);
-typedef struct IDirPatchExecuteList{
+typedef const char* (*IDirPathList_getPathNameByIndex)(void* import,size_t index);
+typedef struct IDirPathList{
     void*                   import;
-    size_t                  executeFileCount;
-    TDirPatch_getFileNameByIndex getNewFileNameByExecuteIndex;
-} IDirPatchExecuteList;
-static hpatch_inline void TNewDirOutput_getExecuteList(TNewDirOutput* self,
-                                                       IDirPatchExecuteList* out_executeList) {
+    size_t                  pathCount;
+    IDirPathList_getPathNameByIndex getPathNameByIndex;
+} IDirPathList;
+
+static hpatch_inline void TNewDirOutput_getExecuteList(TNewDirOutput* self,IDirPathList* out_executeList) {
     out_executeList->import=self;
-    out_executeList->executeFileCount=self->newExecuteCount;
-    out_executeList->getNewFileNameByExecuteIndex=
-            (TDirPatch_getFileNameByIndex)TNewDirOutput_getNewExecuteFileByIndex;
+    out_executeList->pathCount=self->newExecuteCount;
+    out_executeList->getPathNameByIndex=(IDirPathList_getPathNameByIndex)TNewDirOutput_getNewExecuteFileByIndex;
+}
+static hpatch_inline void TNewDirOutput_getNewDirPathList(TNewDirOutput* self,IDirPathList* out_newPathList) {
+    out_newPathList->import=self;
+    out_newPathList->pathCount=self->newPathCount;
+    out_newPathList->getPathNameByIndex=(IDirPathList_getPathNameByIndex)TNewDirOutput_getNewPathByIndex;
 }
 
 #ifdef __cplusplus

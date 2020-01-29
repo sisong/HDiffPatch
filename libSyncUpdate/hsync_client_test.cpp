@@ -92,8 +92,9 @@ static void printUsage(){
     printf("http sync patch: [options] oldPath newSyncInfoFile newSyncDataFile_url outNewPath\n"
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
-           " ( oldPath can be file or directory(folder); )\n"
+           "  oldPath can be file or directory(folder),\n"
 #endif
+           "  if oldPath is empty input parameter \"\" )\n"
            "options:\n"
 #if (_IS_USED_MULTITHREAD)
            "  -p-parallelThreadNumber\n"
@@ -154,12 +155,12 @@ static void printUsage(){
 
 int sync_client_cmd_line(int argc, const char * argv[]);
 
-int sync_patch_2file(const char* outNewFile,const char* _oldPath,bool oldIsDir,
+int sync_patch_2file(const char* outNewFile,const char* oldPath,bool isSamePath,bool oldIsDir,
                      const std::vector<std::string>& ignoreOldPathList,
                      const char* newSyncInfoFile,const char* newSyncDataFile_url,
                      TSyncPatchChecksumSet checksumSet,size_t kMaxOpenFileNumber,size_t threadNum);
 #if (_IS_NEED_DIR_DIFF_PATCH)
-int  sync_patch_2dir(const char* outNewDir,const char* _oldPath,bool oldIsDir,
+int  sync_patch_2dir(const char* outNewDir,const char* oldPath,bool isSamePath,bool oldIsDir,
                      const std::vector<std::string>& ignoreOldPathList,
                      const char* newSyncInfoFile,const char* newSyncDataFile_url,
                      TSyncPatchChecksumSet checksumSet,size_t kMaxOpenFileNumber,size_t threadNum);
@@ -279,9 +280,9 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TSyncPatchChecksumSet* out_c
 #define _options_check(value,errorInfo) do{ \
     if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n\n"); \
                     printUsage(); return kSyncClient_optionsError; } }while(0)
-
+#define _printErr(fmt,errorInfo) do{ fprintf(stderr,fmt " ERROR!\n",errorInfo); }while(0)
 #define _return_check(value,exitCode,fmt,errorInfo) do{ \
-    if (!(value)) { fprintf(stderr,fmt " ERROR!\n",errorInfo); return exitCode; } }while(0)
+    if (!(value)) { _printErr(fmt,errorInfo); return exitCode; } }while(0)
 
 #define _kNULL_VALUE    (-1)
 #define _kNULL_SIZE     (~(size_t)0)
@@ -452,10 +453,14 @@ int sync_client_cmd_line(int argc, const char * argv[]) {
         printf("muti-thread parallel: closed\n");
     
     hpatch_TPathType oldPathType;
-    _return_check(hpatch_getPathStat(oldPath,&oldPathType,0),
-                  kSyncClient_oldPathTypeError,"get oldPath %s type",oldPath);
-    _return_check((oldPathType!=kPathType_notExist),
-                  kSyncClient_oldPathTypeError,"oldPath %s not exist",oldPath);
+    if (0!=strcmp(oldPath,"")){ // isOldPathInputEmpty
+        _return_check(hpatch_getPathStat(oldPath,&oldPathType,0),
+                      kSyncClient_oldPathTypeError,"get oldPath %s type",oldPath);
+        _return_check((oldPathType!=kPathType_notExist),
+                      kSyncClient_oldPathTypeError,"oldPath %s not exist",oldPath);
+    }else{ //same as empty file
+        oldPathType=kPathType_file;
+    }
     const bool oldIsDir=(oldPathType==kPathType_dir);
     
     int result=kSyncClient_ok;
@@ -466,15 +471,26 @@ int sync_client_cmd_line(int argc, const char * argv[]) {
         _return_check(!hpatch_getIsDirName(outNewPath),
                       kSyncClient_newPathTypeError,"outNewPath must fileName:%s ",outNewPath);
     
+    char _newTempName[hpatch_kPathMaxSize];
+    if (isSamePath){
+        if (oldIsDir) _return_check(newIsDir,kSyncClient_overwriteNewPathError,
+                                    "can not use file overwrite oldDirectory%s", "");
+        if (!oldIsDir) _return_check(!newIsDir,kSyncClient_overwriteNewPathError,
+                                     "can not use directory overwrite oldFile%s", "");
+        _return_check(hpatch_getTempPathName(outNewPath,_newTempName,_newTempName+sizeof(_newTempName)),
+                      kSyncClient_tempFileError,"getTempPathName(\"%s\")",outNewPath);
+        printf("NOTE: temp outNewPath will be move to oldPath after sync_patch!\n");
+        outNewPath=_newTempName;
+    }
 #if (_IS_NEED_DIR_DIFF_PATCH)
     if (newIsDir)
-        result=sync_patch_2dir(outNewPath,oldPath,oldIsDir,
+        result=sync_patch_2dir(outNewPath,oldPath,isSamePath,oldIsDir,
                                ignoreOldPathList,newSyncInfoFile,newSyncDataFile_url,
                                checksumSet,kMaxOpenFileNumber,threadNum);
     else
 #endif
-        result=sync_patch_2file(outNewPath,oldPath,oldIsDir,ignoreOldPathList,
-                                newSyncInfoFile,newSyncDataFile_url,
+        result=sync_patch_2file(outNewPath,oldPath,isSamePath,oldIsDir,
+                                ignoreOldPathList,newSyncInfoFile,newSyncDataFile_url,
                                 checksumSet,kMaxOpenFileNumber,threadNum);
     double time1=clock_s();
     printf("\nsync_patch_%s2%s time: %.3f s\n\n",oldIsDir?"dir":"file",newIsDir?"dir":"file",(time1-time0));
@@ -507,7 +523,7 @@ bool getManifest(TManifest& out_manifest,const char* _rootPath,bool rootPathIsDi
 }
 #endif
 
-int sync_patch_2file(const char* outNewFile,const char* oldPath,bool oldIsDir,
+int sync_patch_2file(const char* outNewFile,const char* oldPath,bool isSamePath,bool oldIsDir,
                      const std::vector<std::string>& ignoreOldPathList,
                      const char* newSyncInfoFile,const char* newSyncDataFile_url,
                      TSyncPatchChecksumSet checksumSet,size_t kMaxOpenFileNumber,size_t threadNum){
@@ -546,24 +562,106 @@ int sync_patch_2file(const char* outNewFile,const char* oldPath,bool oldIsDir,
         assert(!oldIsDir);
         result=sync_patch_file2file(&listener,outNewFile,oldPath,newSyncInfoFile,(int)threadNum);
     }
+    if (isSamePath){
+        // 1. patch to newTempName
+        // 2. if patch ok    then  { delelte oldPath; rename newTempName to oldPath; }
+        //    if patch error then  { delelte newTempName; }
+        if (result==kSyncClient_ok){
+            _return_check(hpatch_removeFile(oldPath),kSyncClient_deleteFileError,
+                          "remove oldFile \"%s\"",oldPath);
+            _return_check(hpatch_renamePath(outNewFile,oldPath),kSyncClient_renameFileError,
+                          "rename \"%s\" to oldFile",outNewFile);
+            printf("outNewPath temp file renamed to oldPath name!\n");
+        }else{ //fail
+            if (!hpatch_removeFile(outNewFile)){
+                printf("WARNING: can't remove temp file \"");
+                hpatch_printPath_utf8(outNewFile); printf("\"\n");
+            }
+        }
+    }
     _return_check(closeNewSyncData(&listener),(result!=kSyncClient_ok)?result:kSyncClient_closeSyncDataError,
                   "close newSyncData: %s",newSyncDataFile_url);
     return result;
 }
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
+        
+struct TDirSyncPatchListener:public IDirSyncPatchListener{
+    bool                isPatchToNewTempDir;
+    const TManifest*    oldManifest;
+    const std::string*  newDirRoot;
+    std::string         oldPathTemp;
+};
+static const char* TDirSyncPatchListener_getOldPathByNewPath(TDirSyncPatchListener* self,const char* newPath){
+    const size_t newPathLen=strlen(newPath);
+    const size_t newDirRootLen=self->newDirRoot->size();
+    assert(newPathLen>=newDirRootLen);
+    assert(0==memcmp(newPath,self->newDirRoot->c_str(),newDirRootLen));
+    self->oldPathTemp.assign(self->oldManifest->rootPath);
+    self->oldPathTemp.insert(self->oldPathTemp.end(),newPath+newDirRootLen,newPath+newPathLen);
+    return self->oldPathTemp.c_str();
+}
+static const char* TDirSyncPatchListener_getOldPathByIndex(TDirSyncPatchListener* self,size_t oldIndex){
+    assert(oldIndex<self->oldManifest->pathList.size());
+    return self->oldManifest->pathList[oldIndex].c_str();
+}
+        
 static hpatch_BOOL _dirSyncPatchFinish(IDirSyncPatchListener* listener,hpatch_BOOL isPatchSuccess,
                                        const TNewDataSyncInfo* newSyncInfo,TNewDirOutput* newDirOutput){
+    TDirSyncPatchListener* self=(TDirSyncPatchListener*)listener->patchImport;
+    if (!self->isPatchToNewTempDir) return hpatch_TRUE;
+    
     hpatch_BOOL result=hpatch_TRUE;
+    assert(self->isPatchToNewTempDir);
+    // 1. patch all new to newTempDir
+    // 2. if patch ok then  {
+    //        set execute tags in newTempDir;
+    //        delete file in oldManifest; //WARNING
+    //        delete dir in oldManifest;  //not check
+    //        move all files and dir in newTempDir to oldDir;
+    //        delete newTempDir; }
+    //    if patch error then  {
+    //        delelte all in newTempDir;//not check
+    //        delete newTempDir; }
     if (isPatchSuccess){
-        IDirPatchExecuteList executeList;
-        TNewDirOutput_getExecuteList(newDirOutput,&executeList);
-        result=_dirPatch_setIsExecuteFile(&executeList);
+        {//set execute tags in newTempDir
+            IDirPathList executeList;
+            TNewDirOutput_getExecuteList(newDirOutput,&executeList);
+            if (!_dirPatch_setIsExecuteFile(&executeList))
+                result=hpatch_FALSE;
+        }
+        {//move new to old:
+            IDirPathMove dirPathMove;
+            dirPathMove.importMove=self;
+            dirPathMove.getDstPathBySrcPath=
+                    (IDirPathMove_getDstPathBySrcPath)TDirSyncPatchListener_getOldPathByNewPath;
+            TNewDirOutput_getNewDirPathList(newDirOutput,&dirPathMove.srcPathList);
+            dirPathMove.dstPathList.import=self;
+            dirPathMove.dstPathList.pathCount=self->oldManifest->pathList.size();
+            dirPathMove.dstPathList.getPathNameByIndex=
+                    (IDirPathList_getPathNameByIndex)TDirSyncPatchListener_getOldPathByIndex;
+            if (!_moveNewToOld(&dirPathMove))
+                result=hpatch_FALSE;
+        }
+    }
+    
+    { //remove all temp file and dir
+        IDirPathList newPathList;
+        TNewDirOutput_getNewDirPathList(newDirOutput,&newPathList);
+        deleteAllInPathList(&newPathList);
+    }
+    {//check remove newTempDir result
+        const char* newTempDir=TNewDirOutput_getNewPathRoot(newDirOutput);
+        if (!_isPathNotExist(newTempDir)){
+            result=hpatch_FALSE;
+            fprintf(stderr,"can't delete newTempDir \"");
+            hpatch_printStdErrPath_utf8(newTempDir); fprintf(stderr,"\"  ERROR!\n");
+        }
     }
     return result;
 }
 
-int  sync_patch_2dir(const char* outNewDir,const char* oldPath,bool oldIsDir,
+int  sync_patch_2dir(const char* outNewDir,const char* oldPath,bool isSamePath,bool oldIsDir,
                      const std::vector<std::string>& ignoreOldPathList,
                      const char* newSyncInfoFile,const char* newSyncDataFile_url,
                      TSyncPatchChecksumSet checksumSet,size_t kMaxOpenFileNumber,size_t threadNum){
@@ -582,13 +680,19 @@ int  sync_patch_2dir(const char* outNewDir,const char* oldPath,bool oldIsDir,
     printf("\"\n");
     
     IDirPatchListener     defaultPatchDirlistener={0,_makeNewDir,_copySameFile,_openNewFile,_closeNewFile};
-    IDirSyncPatchListener listener; memset(&listener,0,sizeof(listener));
+    TDirSyncPatchListener listener; memset(&listener,0,sizeof(listener));
     listener.checksumSet=checksumSet;
     listener.findChecksumPlugin=_findChecksumPlugin;
     listener.findDecompressPlugin=_findDecompressPlugin;
     listener.syncInfo=_syncInfo;
+    
+    listener.patchImport=&listener;
+    listener.isPatchToNewTempDir=isSamePath;
+    listener.newDirRoot=&_outNewDir;
+    listener.oldManifest=&oldManifest;
     listener.patchBegin=0;
     listener.patchFinish=_dirSyncPatchFinish;
+    
     _return_check(openNewSyncDataByUrl(&listener,newSyncDataFile_url),
                   kSyncClient_openSyncDataError,"open newSyncData: %s",newSyncDataFile_url);
     int result=sync_patch_fileOrDir2dir(&defaultPatchDirlistener,&listener, outNewDir,oldManifest,

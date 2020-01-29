@@ -40,6 +40,7 @@ int sync_patch_dir2file(ISyncPatchListener* listener,const char* outNewFile,cons
                         const char* newSyncInfoFile,size_t kMaxOpenFileNumber,int threadNum=1);
 
 struct IDirSyncPatchListener:public ISyncPatchListener{
+    void*       patchImport;
     hpatch_BOOL (*patchBegin) (struct IDirSyncPatchListener* listener,
                                const TNewDataSyncInfo* newSyncInfo,TNewDirOutput* newDirOutput);
     hpatch_BOOL (*patchFinish)(struct IDirSyncPatchListener* listener,hpatch_BOOL isPatchSuccess,

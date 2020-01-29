@@ -38,6 +38,8 @@ typedef enum TSyncClient_resultType{
     kSyncClient_newPathTypeError,
     kSyncClient_overwriteNewSyncInfoFileError,
     kSyncClient_overwriteNewPathError,
+    kSyncClient_deleteFileError,
+    kSyncClient_renameFileError,
     kSyncClient_newSyncInfoTypeError,
     kSyncClient_noStrongChecksumPluginError,
     kSyncClient_strongChecksumByteSizeError,
@@ -78,7 +80,7 @@ typedef struct TSyncPatchChecksumSet{
 } TSyncPatchChecksumSet;
 
 typedef struct ISyncInfoListener{
-    void*                 import;
+    void*                 infoImport;
     TSyncPatchChecksumSet checksumSet;
     hpatch_TDecompress* (*findDecompressPlugin)(ISyncInfoListener* listener,const char* compressType);
     hpatch_TChecksum*   (*findChecksumPlugin)  (ISyncInfoListener* listener,const char* strongChecksumType);

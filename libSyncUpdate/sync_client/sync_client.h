@@ -38,6 +38,7 @@ typedef struct TNeedSyncInfo{
 } TNeedSyncInfo;
 
 typedef struct ISyncPatchListener:public ISyncInfoListener{
+    void*                  syncImport;
     //syncInfo can null
     void (*syncInfo)       (ISyncPatchListener* listener,const TNewDataSyncInfo* newSyncInfo,
                             const TNeedSyncInfo* needSyncInfo);
