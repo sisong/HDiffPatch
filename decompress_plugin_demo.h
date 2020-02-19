@@ -145,6 +145,41 @@
         self->d_stream.avail_in=avail_in_back;
         return hpatch_TRUE;
     }
+    static hpatch_BOOL __zlib_do_inflate(hpatch_decompressHandle decompressHandle){
+        _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
+        uInt avail_out_back,avail_in_back;
+        int ret;
+        hpatch_StreamPos_t codeLen=(self->code_end - self->code_begin);
+        if ((self->d_stream.avail_in==0)&&(codeLen>0)) {
+            size_t readLen=self->dec_buf_size;
+            if (readLen>codeLen) readLen=(size_t)codeLen;
+            self->d_stream.next_in=self->dec_buf;
+            if (!self->codeStream->read(self->codeStream,self->code_begin,self->dec_buf,
+                                        self->dec_buf+readLen)) return hpatch_FALSE;//error;
+            self->d_stream.avail_in=(uInt)readLen;
+            self->code_begin+=readLen;
+            codeLen-=readLen;
+        }
+        
+        avail_out_back=self->d_stream.avail_out;
+        avail_in_back=self->d_stream.avail_in;
+        ret=inflate(&self->d_stream,Z_PARTIAL_FLUSH);
+        if (ret==Z_OK){
+            if ((self->d_stream.avail_in==avail_in_back)&&(self->d_stream.avail_out==avail_out_back))
+                return hpatch_FALSE;//error;
+        }else if (ret==Z_STREAM_END){
+            if (self->d_stream.avail_in+codeLen>0){ //next compress node!
+                if (!_zlib_reset_for_next_node(self))
+                    return hpatch_FALSE;//error;
+            }else{//all end
+                if (self->d_stream.avail_out!=0)
+                    return hpatch_FALSE;//error;
+            }
+        }else{
+            return hpatch_FALSE;//error;
+        }
+        return hpatch_TRUE;
+    }
     static hpatch_BOOL _zlib_decompress_part(hpatch_decompressHandle decompressHandle,
                                              unsigned char* out_part_data,unsigned char* out_part_data_end){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
@@ -153,43 +188,21 @@
         self->d_stream.next_out = out_part_data;
         self->d_stream.avail_out =(uInt)(out_part_data_end-out_part_data);
         while (self->d_stream.avail_out>0) {
-            uInt avail_out_back,avail_in_back;
-            int ret;
-            hpatch_StreamPos_t codeLen=(self->code_end - self->code_begin);
-            if ((self->d_stream.avail_in==0)&&(codeLen>0)) {
-                size_t readLen=self->dec_buf_size;
-                if (readLen>codeLen) readLen=(size_t)codeLen;
-                self->d_stream.next_in=self->dec_buf;
-                if (!self->codeStream->read(self->codeStream,self->code_begin,self->dec_buf,
-                                            self->dec_buf+readLen)) return hpatch_FALSE;//error;
-                self->d_stream.avail_in=(uInt)readLen;
-                self->code_begin+=readLen;
-                codeLen-=readLen;
-            }
-            
-            avail_out_back=self->d_stream.avail_out;
-            avail_in_back=self->d_stream.avail_in;
-            ret=inflate(&self->d_stream,Z_PARTIAL_FLUSH);
-            if (ret==Z_OK){
-                if ((self->d_stream.avail_in==avail_in_back)&&(self->d_stream.avail_out==avail_out_back))
-                    return hpatch_FALSE;//error;
-            }else if (ret==Z_STREAM_END){
-                if (self->d_stream.avail_in+codeLen>0){ //next compress node!
-                    if (!_zlib_reset_for_next_node(self))
-                        return hpatch_FALSE;//error;
-                }else{//all end
-                    if (self->d_stream.avail_out!=0)
-                        return hpatch_FALSE;//error;
-                }
-            }else{
-                return hpatch_FALSE;//error;
-            }
+            if (!__zlib_do_inflate(self))
+                hpatch_FALSE;//error;
         }
         return hpatch_TRUE;
     }
     static hpatch_inline int _zlib_is_decompress_finish(const hpatch_TDecompress* decompressPlugin,
                                                         hpatch_decompressHandle decompressHandle){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
+        while (self->code_begin!=self->code_end){ //for end tag code
+            unsigned char _empty;
+            self->d_stream.next_out = &_empty;
+            self->d_stream.avail_out=0;
+            if (!__zlib_do_inflate(self))
+                hpatch_FALSE;//error;
+        }
         return   (self->code_begin==self->code_end)
                 &(self->d_stream.avail_in==0)
                 &(self->d_stream.avail_out==0);
