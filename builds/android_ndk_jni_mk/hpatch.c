@@ -14,5 +14,5 @@
 int hpatchz(const char *oldFileName,const char *diffFileName,
             const char *outNewFileName, size_t cacheMemory){
     return hpatch(oldFileName,diffFileName,outNewFileName,
-                  hpatch_FALSE,hpatch_FALSE,cacheMemory,0,0);
+                  hpatch_FALSE,cacheMemory,0,0);
 }

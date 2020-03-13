@@ -54,6 +54,13 @@
 		D68E13542190761100E1D5D5 /* fse.h in Headers */ = {isa = PBXBuildFile; fileRef = D68E13262190761000E1D5D5 /* fse.h */; };
 		D68E13552190761100E1D5D5 /* zstd_internal.h in Headers */ = {isa = PBXBuildFile; fileRef = D68E13272190761000E1D5D5 /* zstd_internal.h */; };
 		D68E13562190761100E1D5D5 /* error_private.c in Sources */ = {isa = PBXBuildFile; fileRef = D68E13282190761000E1D5D5 /* error_private.c */; };
+		D6E401292404EFD1006DCC68 /* zstd_cwksp.h in Headers */ = {isa = PBXBuildFile; fileRef = D6E401222404EFD1006DCC68 /* zstd_cwksp.h */; };
+		D6E4012A2404EFD1006DCC68 /* zstd_compress_literals.h in Headers */ = {isa = PBXBuildFile; fileRef = D6E401232404EFD1006DCC68 /* zstd_compress_literals.h */; };
+		D6E4012B2404EFD1006DCC68 /* zstd_compress_literals.c in Sources */ = {isa = PBXBuildFile; fileRef = D6E401242404EFD1006DCC68 /* zstd_compress_literals.c */; };
+		D6E4012C2404EFD1006DCC68 /* zstd_compress_superblock.h in Headers */ = {isa = PBXBuildFile; fileRef = D6E401252404EFD1006DCC68 /* zstd_compress_superblock.h */; };
+		D6E4012D2404EFD1006DCC68 /* zstd_compress_superblock.c in Sources */ = {isa = PBXBuildFile; fileRef = D6E401262404EFD1006DCC68 /* zstd_compress_superblock.c */; };
+		D6E4012E2404EFD1006DCC68 /* zstd_compress_sequences.c in Sources */ = {isa = PBXBuildFile; fileRef = D6E401272404EFD1006DCC68 /* zstd_compress_sequences.c */; };
+		D6E4012F2404EFD1006DCC68 /* zstd_compress_sequences.h in Headers */ = {isa = PBXBuildFile; fileRef = D6E401282404EFD1006DCC68 /* zstd_compress_sequences.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -105,6 +112,13 @@
 		D68E13262190761000E1D5D5 /* fse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fse.h; sourceTree = "<group>"; };
 		D68E13272190761000E1D5D5 /* zstd_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zstd_internal.h; sourceTree = "<group>"; };
 		D68E13282190761000E1D5D5 /* error_private.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = error_private.c; sourceTree = "<group>"; };
+		D6E401222404EFD1006DCC68 /* zstd_cwksp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zstd_cwksp.h; sourceTree = "<group>"; };
+		D6E401232404EFD1006DCC68 /* zstd_compress_literals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zstd_compress_literals.h; sourceTree = "<group>"; };
+		D6E401242404EFD1006DCC68 /* zstd_compress_literals.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zstd_compress_literals.c; sourceTree = "<group>"; };
+		D6E401252404EFD1006DCC68 /* zstd_compress_superblock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zstd_compress_superblock.h; sourceTree = "<group>"; };
+		D6E401262404EFD1006DCC68 /* zstd_compress_superblock.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zstd_compress_superblock.c; sourceTree = "<group>"; };
+		D6E401272404EFD1006DCC68 /* zstd_compress_sequences.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zstd_compress_sequences.c; sourceTree = "<group>"; };
+		D6E401282404EFD1006DCC68 /* zstd_compress_sequences.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zstd_compress_sequences.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -155,6 +169,13 @@
 		D68E13002190761000E1D5D5 /* compress */ = {
 			isa = PBXGroup;
 			children = (
+				D6E401242404EFD1006DCC68 /* zstd_compress_literals.c */,
+				D6E401232404EFD1006DCC68 /* zstd_compress_literals.h */,
+				D6E401272404EFD1006DCC68 /* zstd_compress_sequences.c */,
+				D6E401282404EFD1006DCC68 /* zstd_compress_sequences.h */,
+				D6E401262404EFD1006DCC68 /* zstd_compress_superblock.c */,
+				D6E401252404EFD1006DCC68 /* zstd_compress_superblock.h */,
+				D6E401222404EFD1006DCC68 /* zstd_cwksp.h */,
 				D68E13012190761000E1D5D5 /* zstd_compress_internal.h */,
 				D68E13022190761000E1D5D5 /* hist.h */,
 				D68E13032190761000E1D5D5 /* zstd_ldm.h */,
@@ -220,6 +241,7 @@
 				D68E133B2190761100E1D5D5 /* zstd_double_fast.h in Headers */,
 				D68E13432190761100E1D5D5 /* debug.h in Headers */,
 				D68E13312190761100E1D5D5 /* hist.h in Headers */,
+				D6E401292404EFD1006DCC68 /* zstd_cwksp.h in Headers */,
 				D68E132B2190761100E1D5D5 /* zstd_decompress_block.h in Headers */,
 				D68E132C2190761100E1D5D5 /* zstd_decompress_internal.h in Headers */,
 				D68E134D2190761100E1D5D5 /* cpu.h in Headers */,
@@ -227,12 +249,15 @@
 				D68E13482190761100E1D5D5 /* error_private.h in Headers */,
 				D68E133D2190761100E1D5D5 /* zstdmt_compress.h in Headers */,
 				D68E13322190761100E1D5D5 /* zstd_ldm.h in Headers */,
+				D6E4012A2404EFD1006DCC68 /* zstd_compress_literals.h in Headers */,
 				D68E13472190761100E1D5D5 /* threading.h in Headers */,
 				D68E13372190761100E1D5D5 /* zstd_opt.h in Headers */,
 				D68E134E2190761100E1D5D5 /* zstd_errors.h in Headers */,
 				D68E132E2190761100E1D5D5 /* zstd_ddict.h in Headers */,
 				D68E13452190761100E1D5D5 /* compiler.h in Headers */,
 				D68E13332190761100E1D5D5 /* zstd_lazy.h in Headers */,
+				D6E4012F2404EFD1006DCC68 /* zstd_compress_sequences.h in Headers */,
+				D6E4012C2404EFD1006DCC68 /* zstd_compress_superblock.h in Headers */,
 				D65B8E352090C88F00DBBEEE /* zstd.h in Headers */,
 				D68E13512190761100E1D5D5 /* mem.h in Headers */,
 				D68E13302190761100E1D5D5 /* zstd_compress_internal.h in Headers */,
@@ -282,6 +307,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = D64988F91F5F970F000FCC24;
@@ -303,8 +329,10 @@
 				D68E13342190761100E1D5D5 /* zstdmt_compress.c in Sources */,
 				D68E132A2190761100E1D5D5 /* huf_decompress.c in Sources */,
 				D68E13492190761100E1D5D5 /* fse_decompress.c in Sources */,
+				D6E4012D2404EFD1006DCC68 /* zstd_compress_superblock.c in Sources */,
 				D68E13362190761100E1D5D5 /* zstd_fast.c in Sources */,
 				D68E13382190761100E1D5D5 /* zstd_ldm.c in Sources */,
+				D6E4012E2404EFD1006DCC68 /* zstd_compress_sequences.c in Sources */,
 				D68E133C2190761100E1D5D5 /* zstd_lazy.c in Sources */,
 				D68E134B2190761100E1D5D5 /* xxhash.c in Sources */,
 				D68E13562190761100E1D5D5 /* error_private.c in Sources */,
@@ -318,6 +346,7 @@
 				D68E134A2190761100E1D5D5 /* debug.c in Sources */,
 				D68E13462190761100E1D5D5 /* entropy_common.c in Sources */,
 				D68E13402190761100E1D5D5 /* fse_compress.c in Sources */,
+				D6E4012B2404EFD1006DCC68 /* zstd_compress_literals.c in Sources */,
 				D68E13292190761100E1D5D5 /* zstd_ddict.c in Sources */,
 				D68E133F2190761100E1D5D5 /* zstd_opt.c in Sources */,
 				D68E132F2190761100E1D5D5 /* zstd_decompress_block.c in Sources */,

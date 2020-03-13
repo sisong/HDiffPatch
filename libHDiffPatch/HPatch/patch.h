@@ -42,15 +42,9 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
                   const unsigned char* oldData,const unsigned char* oldData_end,
                   const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
 
-//default once I/O (read/write) max byte size
-#ifndef hpatch_kStreamCacheSize
-#define hpatch_kStreamCacheSize  (1024)
-#endif
-
 //patch by stream , used (hpatch_kStreamCacheSize*7 stack memory) for I/O cache
 //  serializedDiff create by create_diff()
 //  if use patch_stream_with_cache(), can passing more memory for I/O cache
-//  recommended load oldData in memory(and use mem_as_hStreamInput()),random access faster
 hpatch_BOOL patch_stream(const hpatch_TStreamOutput* out_newData,
                          const hpatch_TStreamInput*  oldData,
                          const hpatch_TStreamInput*  serializedDiff);
@@ -78,17 +72,16 @@ hpatch_inline static hpatch_BOOL
     }
 
     
-//patch with decompress plugin, used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*4 used memory)
+//patch with decompress plugin, used (hpatch_kStreamCacheSize*5 stack memory) + (decompress memory*4)
 //  compressedDiff create by create_compressed_diff() or create_compressed_diff_stream()
 //  decompressPlugin can null when no compressed data in compressedDiff
 //  if use patch_decompress_with_cache(), can passing larger memory cache to optimize speed;
-//   or recommended load oldData in memory(and use mem_as_hStreamInput()) to optimize speed.
 hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
                              const hpatch_TStreamInput*  oldData,
                              const hpatch_TStreamInput*  compressedDiff,
                              hpatch_TDecompress* decompressPlugin);
 
-    
+
 //ON: for patch_decompress_with_cache(), preparatory load part of oldData into cache,
 //  cache memory size (temp_cache_end-temp_cache) the larger the better for large oldData file
 #ifndef _IS_NEED_CACHE_OLD_BY_COVERS

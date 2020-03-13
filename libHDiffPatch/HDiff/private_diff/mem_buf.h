@@ -37,8 +37,11 @@ namespace hdiff_private{
         inline explicit TAutoMem(size_t size=0) :_data(0),_data_end(0){ realloc(size); }
         inline ~TAutoMem(){ clear(); }
         inline unsigned char* data(){ return _data; }
+        inline const unsigned char* data()const{ return _data; }
         inline unsigned char* data_end(){ return _data_end; }
+        inline const unsigned char* data_end()const{ return _data_end; }
         inline size_t size()const{ return (size_t)(_data_end-_data); }
+        inline bool empty()const{ return (_data_end==_data); }
         inline void clear(){ if (_data) { free(_data); _data=0; _data_end=0; } }
         inline void realloc(size_t newSize){
             if (newSize!=size()){
@@ -49,6 +52,12 @@ namespace hdiff_private{
                     _data_end=_data+newSize;
                 }
             }
+        }
+        inline void reduceSize(size_t reserveSize){
+            if (reserveSize<=size())
+                _data_end=_data+reserveSize;
+            else
+                throw std::runtime_error("TAutoMem::reduceSize() error!");
         }
     private:
         unsigned char*  _data;

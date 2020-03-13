@@ -1,5 +1,5 @@
-// dir_patch_types.h
-// dir patch
+// dir_patch_tools.h
+// hdiffz dir patch
 //
 /*
  The MIT License (MIT)
@@ -26,36 +26,28 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef DirPatch_dir_patch_types_h
-#define DirPatch_dir_patch_types_h
-#include "../../libHDiffPatch/HPatch/patch_types.h"
+#ifndef DirPatch_dir_patch_tools_h
+#define DirPatch_dir_patch_tools_h
+#include "dir_patch_types.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+#include "../../libHDiffPatch/HPatch/patch_private.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
+    void formatDirTagForLoad(char* utf8_path,char* utf8_pathEnd);
+    hpatch_BOOL clipCStrsTo(const char* cstrs,const char* cstrsEnd,
+                            const char** out_cstrList,size_t cstrCount);
+    hpatch_BOOL readListTo(TStreamCacheClip* sclip,hpatch_StreamPos_t* out_list,size_t count);
+    hpatch_BOOL readIncListTo(TStreamCacheClip* sclip,size_t* out_list,
+                              size_t count,size_t check_endValue);
     
-#ifndef _IS_NEED_DIR_DIFF_PATCH
-#   define _IS_NEED_DIR_DIFF_PATCH  1
-#endif
+    //return path end pos
+    char* setPath(char* out_path,char* out_pathBufEnd,const char* fileName);
+    char* setDirPath(char* out_path,char* out_pathBufEnd,const char* dirName);
 
-#if (_IS_NEED_DIR_DIFF_PATCH)
-#   define kMaxOpenFileNumber_limit_min          4
-#   define kMaxOpenFileNumber_default_min        8 //must >= limit_min
-#   define kMaxOpenFileNumber_default_diff      48
-#   define kMaxOpenFileNumber_default_patch     24
-#endif
-
-#ifdef _WIN32
-static const char kPatch_dirSeparator = '\\';
-#else
-static const char kPatch_dirSeparator = '/';
-#endif
-static const char kPatch_dirSeparator_saved = '/';
-
-static hpatch_inline  //align upper
-hpatch_StreamPos_t toAlignRangeSize(hpatch_StreamPos_t rangeSize,size_t kAlignSize)
-        { return (rangeSize+kAlignSize-1)/kAlignSize*kAlignSize; }
-
+    
 #ifdef __cplusplus
 }
 #endif
-#endif //DirPatch_dir_patch_types_h
+#endif
+#endif //DirPatch_dir_patch_tools_h

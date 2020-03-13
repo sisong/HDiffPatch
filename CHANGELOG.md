@@ -4,7 +4,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v3.0.8](https://github.com/sisong/HDiffPatch/tree/v3.0.8) - 2020-01-01
 ### Added
-* patch demo for Android, out lib file libhpatchz.so; 
+* patch demo for Android, out lib file libhpatchz.so;
 
 ## [v3.0.7](https://github.com/sisong/HDiffPatch/tree/v3.0.7) - 2019-12-19
 ### Fixed
@@ -18,6 +18,10 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 ## [v3.0.5](https://github.com/sisong/HDiffPatch/tree/v3.0.5) - 2019-09-18
 ### Fixed
 * Fix a directory patch bug when changed file's sumSize >=4GB and run as 32bit app;
+
+## [v3.0.4](https://github.com/sisong/HDiffPatch/tree/v3.0.4) - 2019-09-06
+### Fixed
+* Fix dir_patch can't remove some files bug when patch to same dir on Windows operating system;
 
 ## [v3.0.0](https://github.com/sisong/HDiffPatch/tree/v3.0.0) - 2019-03-01
 ### Added

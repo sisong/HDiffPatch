@@ -53,6 +53,7 @@ typedef struct hpatch_TNewStream{
     const hpatch_TStreamOutput* stream;
     hpatch_BOOL             isFinish;
 //private:
+    size_t                  kAlignSize;
     size_t                  _pathCount;
     const size_t*           _newRefList;
     size_t                  _newRefCount;
@@ -74,7 +75,8 @@ void        hpatch_TNewStream_init(hpatch_TNewStream* self) { memset(self,0,size
 hpatch_BOOL hpatch_TNewStream_open(hpatch_TNewStream* self,hpatch_INewStreamListener* listener,
                                    hpatch_StreamPos_t newRefDataSize,size_t newPathCount,
                                    const size_t* newRefList,size_t newRefCount,
-                                   const hpatch_TSameFilePair* samePairList,size_t samePairCount);
+                                   const hpatch_TSameFilePair* samePairList,size_t samePairCount,
+                                   size_t kAlignSize);
 hpatch_BOOL hpatch_TNewStream_closeFileHandles(hpatch_TNewStream* self);
 hpatch_BOOL hpatch_TNewStream_close(hpatch_TNewStream* self);
 

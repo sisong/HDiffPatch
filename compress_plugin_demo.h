@@ -198,8 +198,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     }
 
     static hpatch_StreamPos_t _zlib_compress(const hdiff_TCompress* compressPlugin,
-                                             const hdiff_TStreamOutput* out_code,
-                                             const hdiff_TStreamInput*  in_data){
+                                             const hpatch_TStreamOutput* out_code,
+                                             const hpatch_TStreamInput*  in_data){
         const TCompressPlugin_zlib* plugin=(const TCompressPlugin_zlib*)compressPlugin;
         hpatch_StreamPos_t result=0; //writedPos
         hpatch_StreamPos_t readFromPos=0;
@@ -301,8 +301,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         return codeLen+(isAdding?1:0);
     }
     static hpatch_StreamPos_t _pzlib_compress(const hdiff_TCompress* compressPlugin,
-                                              const hdiff_TStreamOutput* out_code,
-                                              const hdiff_TStreamInput*  in_data){
+                                              const hpatch_TStreamOutput* out_code,
+                                              const hpatch_TStreamInput*  in_data){
         TCompressPlugin_pzlib* plugin=(TCompressPlugin_pzlib*)compressPlugin;
         const size_t blockSize=(plugin->base.compress_level>1)?
                     1024*128*(plugin->base.compress_level-1):1024*128;
@@ -333,8 +333,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         int             compress_level; //0..9
     };
     static hpatch_StreamPos_t _bz2_compress(const hdiff_TCompress* compressPlugin,
-                                            const hdiff_TStreamOutput* out_code,
-                                            const hdiff_TStreamInput*  in_data){
+                                            const hpatch_TStreamOutput* out_code,
+                                            const hpatch_TStreamInput*  in_data){
         const TCompressPlugin_bz2* plugin=(const TCompressPlugin_bz2*)compressPlugin;
         hpatch_StreamPos_t result=0;
         const char*        errAt="";
@@ -431,8 +431,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         return codeLen;
     }
     static hpatch_StreamPos_t _pbz2_compress(const hdiff_TCompress* compressPlugin,
-                                             const hdiff_TStreamOutput* out_code,
-                                             const hdiff_TStreamInput*  in_data){
+                                             const hpatch_TStreamOutput* out_code,
+                                             const hpatch_TStreamInput*  in_data){
         TCompressPlugin_pbz2* plugin=(TCompressPlugin_pbz2*)compressPlugin;
         const size_t blockSize=plugin->base.compress_level*100000;
         if ((plugin->thread_num<=1)||(plugin->base.compress_level==0)
@@ -455,8 +455,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 
 #if (defined _CompressPlugin_lzma)||(defined _CompressPlugin_lzma2)
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "LzmaEnc.h" // "lzma/C/LzmaEnc.h" http://www.7-zip.org/sdk.html
-//    https://github.com/sisong/lzma/tree/pthread  support multi-thread compile in macos and linux
+#   include "LzmaEnc.h" // "lzma/C/LzmaEnc.h" https://github.com/sisong/lzma
 #   ifdef _CompressPlugin_lzma2
 #       include "Lzma2Enc.h"
 #   endif
@@ -471,7 +470,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     
     struct __lzma_SeqOutStream_t{
         ISeqOutStream               base;
-        const hdiff_TStreamOutput*  out_code;
+        const hpatch_TStreamOutput* out_code;
         hpatch_StreamPos_t          writeToPos;
         int                         isCanceled;
     };
@@ -489,7 +488,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     }
     struct __lzma_SeqInStream_t{
         ISeqInStream                base;
-        const hdiff_TStreamInput*   in_data;
+        const hpatch_TStreamInput*  in_data;
         hpatch_StreamPos_t          readFromPos;
     };
     static SRes __lzma_SeqInStream_Read(const ISeqInStream *p, void *buf, size_t *size){
@@ -524,8 +523,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         return threadNum;
     }
     static hpatch_StreamPos_t _lzma_compress(const hdiff_TCompress* compressPlugin,
-                                             const hdiff_TStreamOutput* out_code,
-                                             const hdiff_TStreamInput*  in_data){
+                                             const hpatch_TStreamOutput* out_code,
+                                             const hpatch_TStreamInput*  in_data){
         const TCompressPlugin_lzma* plugin=(const TCompressPlugin_lzma*)compressPlugin;
         struct __lzma_SeqOutStream_t outStream={{__lzma_SeqOutStream_Write},out_code,0,0};
         struct __lzma_SeqInStream_t  inStream={{__lzma_SeqInStream_Read},in_data,0};
@@ -605,8 +604,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         return threadNum;
     }
     static hpatch_StreamPos_t _lzma2_compress(const hdiff_TCompress* compressPlugin,
-                                              const hdiff_TStreamOutput* out_code,
-                                              const hdiff_TStreamInput*  in_data){
+                                              const hpatch_TStreamOutput* out_code,
+                                              const hpatch_TStreamInput*  in_data){
         const TCompressPlugin_lzma2* plugin=(const TCompressPlugin_lzma2*)compressPlugin;
         struct __lzma_SeqOutStream_t outStream={{__lzma_SeqOutStream_Write},out_code,0,0};
         struct __lzma_SeqInStream_t  inStream={{__lzma_SeqInStream_Read},in_data,0};
@@ -691,8 +690,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         _stream_out_code_write(out_code,isCanceled,writePos,_temp_buf4,4); \
     }
     static hpatch_StreamPos_t _lz4_compress(const hdiff_TCompress* compressPlugin,
-                                            const hdiff_TStreamOutput* out_code,
-                                            const hdiff_TStreamInput*  in_data){
+                                            const hpatch_TStreamOutput* out_code,
+                                            const hpatch_TStreamInput*  in_data){
         const TCompressPlugin_lz4* plugin=(const TCompressPlugin_lz4*)compressPlugin;
         const int kLZ4DefaultAcceleration=50-(plugin->compress_level-1);
         hpatch_StreamPos_t  result=0;
@@ -750,8 +749,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     }
 
     static hpatch_StreamPos_t _lz4hc_compress(const hdiff_TCompress* compressPlugin,
-                                              const hdiff_TStreamOutput* out_code,
-                                              const hdiff_TStreamInput*  in_data){
+                                              const hpatch_TStreamOutput* out_code,
+                                              const hpatch_TStreamInput*  in_data){
         const TCompressPlugin_lz4hc* plugin=(const TCompressPlugin_lz4hc*)compressPlugin;
         hpatch_StreamPos_t  result=0;
         const char*         errAt="";
@@ -825,8 +824,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         int             compress_level; //0..22
     };
     static hpatch_StreamPos_t _zstd_compress(const hdiff_TCompress* compressPlugin,
-                                             const hdiff_TStreamOutput* out_code,
-                                             const hdiff_TStreamInput*  in_data){
+                                             const hpatch_TStreamOutput* out_code,
+                                             const hpatch_TStreamInput*  in_data){
         const TCompressPlugin_zstd* plugin=(const TCompressPlugin_zstd*)compressPlugin;
         hpatch_StreamPos_t  result=0;
         const char*         errAt="";

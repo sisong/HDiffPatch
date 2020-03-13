@@ -121,12 +121,16 @@ unsigned char* _TStreamCacheClip_readData(TStreamCacheClip* sclip,size_t readSiz
     return result;
 }
 
+hpatch_BOOL _TStreamCacheClip_readDataTo(TStreamCacheClip* sclip,
+                                         unsigned char* out_buf,unsigned char* bufEnd);
+
 hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,
                                                 hpatch_StreamPos_t* result,const int kTagBit);
-    
+hpatch_BOOL _TStreamCacheClip_readUInt(TStreamCacheClip* sclip,hpatch_StreamPos_t* result,size_t uintSize);
+
 hpatch_BOOL _TStreamCacheClip_readType_end(TStreamCacheClip* sclip,unsigned char endTag,
                                            char out_type[hpatch_kMaxPluginTypeLength+1]);
-        
+
         
     typedef struct _TDecompressInputSteram{
         hpatch_TStreamInput         IInputSteram;

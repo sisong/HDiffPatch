@@ -7,17 +7,18 @@
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) 
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 
-a C\C++ library and command-line tools for binary data Diff & Patch; fast and create small delta/differential; support large files and directory(folder) and limit memory requires both diff & patch.    
+a C\C++ library and command-line tools for Diff & Patch between binary files or directories(folder); cross-platform; fast and create small delta/differential; support large files and limit memory requires when diff & patch.   
    
 ( update Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )   
 ( NOTE: This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
    
 ---
 ## Releases/Binaries
-[Download from last release](https://github.com/sisong/HDiffPatch/releases) : Command line app for Windows , Linux , MacOS; and .so .java for Android.   
+[Download from latest release](https://github.com/sisong/HDiffPatch/releases) : Command line app for Windows, Linux, MacOS; and .so patch lib for Android.   
 
 ## diff command line usage:   
-diff    usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
+diff     usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
+compress usage: **hdiffz** [-c-...]  **"" newPath outDiffFile**   
 test    usage: **hdiffz**    -t     **oldPath newPath testDiffFile**   
 resave  usage: **hdiffz** [-c-...]  **diffFile outDiffFile**   
 get  manifest: **hdiffz** [-g#...] [-C-checksumType] **inputPath -M#outManifestTxtFile**   
@@ -110,11 +111,11 @@ special options:
    
 ## patch command line usage:   
 patch usage: **hpatchz** [options] **oldPath diffFile outNewPath**   
+uncompress usage: **hpatchz** [options] **"" diffFile outNewPath**   
 create  SFX: **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractArchive**   
 run     SFX: **selfExtractArchive** [options] **oldPath -X outNewPath**   
-extract SFX: **selfExtractArchive**    (same as: selfExtractArchive -f "" -X "./")
+extract SFX: **selfExtractArchive**   (same as: selfExtractArchive -f "" -X "./")
 ```
-  ( if oldPath is empty input parameter "" )
 memory options:
   -m  oldPath all loaded into Memory;
       requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.
@@ -222,6 +223,8 @@ Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      1
 ```
    
 ## HDiffPatch vs xdelta:
+system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
+   (purge file cache before every test)
 ```
 HDiffPatch2.4 hdiffz run by: -s-128 -c-bzip2-9 oldFile newFile outDiffFile
               hpatchz run by: -s-4m oldFile diffFile outNewFile

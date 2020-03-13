@@ -50,8 +50,8 @@ extern "C" {
     
     hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
                                                 int threadNum,size_t blockSize,
-                                                const hdiff_TStreamOutput* out_code,
-                                                const hdiff_TStreamInput*  in_data);
+                                                const hpatch_TStreamOutput* out_code,
+                                                const hpatch_TStreamInput*  in_data);
 #ifdef __cplusplus
 }
 #endif

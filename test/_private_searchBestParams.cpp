@@ -166,9 +166,9 @@ void doDiff(TDiffInfo& di){
     }
     
     di.diffSize=_compress_diff(di,0,0);
-    di.zipSize=_compress_diff(di,&zlibCompressPlugin,&zlibDecompressPlugin);
-    di.bz2Size=_compress_diff(di,&bz2CompressPlugin,&bz2DecompressPlugin);
-    di.lzmaSize=_compress_diff(di,&lzmaCompressPlugin,&lzmaDecompressPlugin);
+    di.zipSize=_compress_diff(di,&zlibCompressPlugin.base,&zlibDecompressPlugin);
+    di.bz2Size=_compress_diff(di,&bz2CompressPlugin.base,&bz2DecompressPlugin);
+    di.lzmaSize=_compress_diff(di,&lzmaCompressPlugin.base,&lzmaDecompressPlugin);
 }
 
 static std::string rToStr(double R){

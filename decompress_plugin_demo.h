@@ -318,7 +318,7 @@
 
 #if (defined _CompressPlugin_lzma) || (defined _CompressPlugin_lzma2)
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "LzmaDec.h" // "lzma/C/LzmaDec.h" http://www.7-zip.org/sdk.html  https://github.com/sisong/lzma
+#   include "LzmaDec.h" // "lzma/C/LzmaDec.h" https://github.com/sisong/lzma
 #   ifdef _CompressPlugin_lzma2
 #       include "Lzma2Dec.h"
 #   endif

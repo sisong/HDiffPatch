@@ -43,7 +43,7 @@
 #else
 #   if (_IS_USED_MULTITHREAD>0)
 #       if ( (!(defined _IS_USED_WIN32THREAD)) && (defined _WIN32) )
-#           define  _IS_USED_WIN32THREAD    1
+#           define  _IS_USED_WIN32THREAD        1
 #       else
 #           if ( (!(defined _IS_USED_CPP11THREAD)) && (__cplusplus >= 201103L) )
 #               define  _IS_USED_CPP11THREAD    1

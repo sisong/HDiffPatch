@@ -67,7 +67,15 @@ typedef hpatch_uint64_t  hpatch_StreamPos_t;
 typedef int hpatch_BOOL;
 #define     hpatch_FALSE    0
 #define     hpatch_TRUE     ((hpatch_BOOL)(!hpatch_FALSE))
-
+   
+//PRIu64 for printf type hpatch_StreamPos_t
+#ifndef PRIu64
+#   ifdef _MSC_VER
+#       define PRIu64 "I64u"
+#   else
+#       define PRIu64 "llu"
+#   endif
+#endif
     
 #define _hpatch_align_type_lower(uint_type,p,align2pow) (((uint_type)(p)) & (~(uint_type)((align2pow)-1)))
 #define _hpatch_align_lower(p,align2pow) _hpatch_align_type_lower(size_t,p,align2pow)
@@ -96,7 +104,13 @@ typedef int hpatch_BOOL;
                                        const unsigned char* data,const unsigned char* data_end);
     } hpatch_TStreamOutput;
     
+    //default once I/O (read/write) max byte size
+    #ifndef hpatch_kStreamCacheSize
+    #   define hpatch_kStreamCacheSize  (1024)
+    #endif
 
+    #define hpatch_kFileIOBufBetterSize  (1024*64)
+    
     #define hpatch_kMaxPluginTypeLength   259
     
     typedef struct hpatch_compressedDiffInfo{
@@ -129,23 +143,9 @@ typedef int hpatch_BOOL;
     void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
                               unsigned char* mem,unsigned char* mem_end);
     
-    static hpatch_inline
     hpatch_BOOL hpatch_deccompress_mem(hpatch_TDecompress* decompressPlugin,
                                        const unsigned char* code,const unsigned char* code_end,
-                                       unsigned char* out_data,unsigned char* out_data_end){
-        hpatch_decompressHandle dec=0;
-        hpatch_BOOL result,colose_rt;
-        hpatch_TStreamInput  codeStream;
-        mem_as_hStreamInput(&codeStream,code,code_end);
-        dec=decompressPlugin->open(decompressPlugin,(out_data_end-out_data),
-                                   &codeStream,0,codeStream.streamSize);
-        if (dec==0) return hpatch_FALSE;
-        result=decompressPlugin->decompress_part(dec,out_data,out_data_end);
-        colose_rt=decompressPlugin->close(decompressPlugin,dec);
-        assert(colose_rt);
-        return result;
-    }
-    
+                                       unsigned char* out_data,unsigned char* out_data_end);
     
     typedef struct TStreamInputClip{
         hpatch_TStreamInput         base;
