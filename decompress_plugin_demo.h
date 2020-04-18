@@ -189,7 +189,7 @@
         self->d_stream.avail_out =(uInt)(out_part_data_end-out_part_data);
         while (self->d_stream.avail_out>0) {
             if (!__zlib_do_inflate(self))
-                hpatch_FALSE;//error;
+                return hpatch_FALSE;//error;
         }
         return hpatch_TRUE;
     }
@@ -201,7 +201,7 @@
             self->d_stream.next_out = &_empty;
             self->d_stream.avail_out=0;
             if (!__zlib_do_inflate(self))
-                hpatch_FALSE;//error;
+                return hpatch_FALSE;//error;
         }
         return   (self->code_begin==self->code_end)
                 &(self->d_stream.avail_in==0)

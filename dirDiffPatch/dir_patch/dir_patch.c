@@ -309,7 +309,7 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
     const _TDirDiffHead* head=&self->dirDiffHead;
     const size_t         pathSumSize=head->oldPathSumSize+head->newPathSumSize;
     TStreamCacheClip        headStream;
-    _TDecompressInputSteram decompresser;
+    _TDecompressInputStream decompresser;
     TByte  temp_cache[hpatch_kStreamCacheSize];
     decompresser.decompressHandle=0;
     assert(self->_decompressPlugin==0);
@@ -657,7 +657,7 @@ hpatch_BOOL TDirOldDataChecksum_append(TDirOldDataChecksum* self,unsigned char* 
     }
     
     if (!self->_isOpened){
-        if ((appendSize>0)&&(dataSize<hpatch_kMaxPluginTypeLength*3+hpatch_kMaxPackedUIntBytes*15)){
+        if ((appendSize>0)&&(dataSize<(hpatch_kMaxPluginTypeLength+1)*3+hpatch_kMaxPackedUIntBytes*15)){
             *out_isAppendContinue=hpatch_TRUE;
             return hpatch_TRUE;//need more diffData
         }

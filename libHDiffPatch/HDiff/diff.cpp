@@ -413,7 +413,7 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
     
     
     static void do_compress(std::vector<TByte>& out_code,const std::vector<TByte>& data,
-                            const hdiff_TCompress* compressPlugin){
+                            const hdiff_TCompress* compressPlugin,bool isMustCompress=false){
         out_code.clear();
         if (!compressPlugin) return;
         if (data.empty()) return;
@@ -424,7 +424,7 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
         TByte* out_code0=&out_code[0];
         size_t codeSize=hdiff_compress_mem(compressPlugin,out_code0,out_code0+out_code.size(),
                                            data0,data0+data.size());
-        if ((codeSize>0)&&(codeSize<data.size()))
+        if ((codeSize>0)&&(isMustCompress||(codeSize<data.size())))
             out_code.resize(codeSize); //ok
         else
             out_code.clear();//error or cancel
@@ -439,9 +439,9 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
     }
     
     template<class T>
-    static void _outType(std::vector<TByte>& out_data,T* compressPlugin){
+    static void _outType(std::vector<TByte>& out_data,T* compressPlugin,const char* versionType=kHDiffVersionType){
         //type version
-        pushCStr(out_data,kHDiffVersionType);
+        pushCStr(out_data,versionType);
         pushCStr(out_data,"&");
         {//compressType
             const char* compressType="";
