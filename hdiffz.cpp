@@ -132,8 +132,8 @@ static void printUsage(){
            "special options:\n"
 #if (_IS_USED_MULTITHREAD)
            "  -p-parallelThreadNumber\n"
-           "    if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
-           "    DEFAULT -p-4; requires more memory!\n"
+           "      if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
+           "      DEFAULT -p-4; requires more memory!\n"
 #endif
            "  -c-compressType[-compressLevel]\n"
            "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"

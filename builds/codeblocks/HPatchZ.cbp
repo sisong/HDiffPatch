@@ -24,8 +24,9 @@
 					<Add option="-fomit-frame-pointer" />
 					<Add option="-Os" />
 					<Add option="-Wno-error=format-security" />
-					<Add option="-fvisibility=hidden -fvisibility-inlines-hidden" />
+					<Add option="-fvisibility=hidden" />
 					<Add option="-ffunction-sections -fdata-sections" />
+					<Add option="-ffat-lto-objects -flto" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -42,8 +43,9 @@
 					<Add option="-Os" />
 					<Add option="-m32" />
 					<Add option="-Wno-error=format-security" />
-					<Add option="-fvisibility=hidden -fvisibility-inlines-hidden" />
+					<Add option="-fvisibility=hidden" />
 					<Add option="-ffunction-sections -fdata-sections" />
+					<Add option="-ffat-lto-objects -flto" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />

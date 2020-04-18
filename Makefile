@@ -50,8 +50,9 @@ endif
 
 
 DEF_FLAGS := \
-    -O3 -DNDEBUG -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
-    -D_IS_NEED_ORIGINAL=1 \
+    -Os -DNDEBUG -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
+    -Wno-error=format-security -fvisibility=hidden -fvisibility-inlines-hidden \
+    -ffunction-sections -fdata-sections -ffat-lto-objects -flto \
     -D_IS_NEED_ALL_CompressPlugin=0 \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \
     -D_CompressPlugin_zlib  \

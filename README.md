@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v3.0.9-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v3.0.10-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -38,8 +38,8 @@ memory options:
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
 special options:
   -p-parallelThreadNumber
-    if parallelThreadNumber>1 then open multi-thread Parallel mode;
-    DEFAULT -p-4; requires more and more memory!
+      if parallelThreadNumber>1 then open multi-thread Parallel mode;
+      DEFAULT -p-4; requires more and more memory!
   -c-compressType[-compressLevel]
       set outDiffFile Compress type & level, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
