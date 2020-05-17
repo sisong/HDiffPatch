@@ -43,5 +43,20 @@ void bytesRLE_save(std::vector<unsigned char>& out_code,
 void bytesRLE_save(std::vector<unsigned char>& out_ctrlBuf,std::vector<unsigned char>& out_codeBuf,
                    const unsigned char* src,const unsigned char* src_end,int rle_parameter);
 
+    
+    struct TSangileStreamRLE0{
+        std::vector<unsigned char>  fixed_code;
+        std::vector<unsigned char>  uncompressData;
+        size_t                      len0;
+        inline TSangileStreamRLE0():len0(0){}
+        size_t curCodeSize() const;
+        size_t maxCodeSize(const unsigned char* appendData,const unsigned char* appendData_end) const;
+        void append(const unsigned char* appendData,const unsigned char* appendData_end);
+        void finishAppend();
+        inline void clear() { fixed_code.clear(); uncompressData.clear(); len0=0; }
+    };
+    
+void sangile_stream_bytesRLE0(std::vector<unsigned char>& out_buf,const unsigned char* src,const unsigned char* src_end);
+    
 }//namespace hdiff_private
 #endif //__BYTES_RLE_H_
