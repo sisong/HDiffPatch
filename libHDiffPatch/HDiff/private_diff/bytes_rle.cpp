@@ -134,16 +134,6 @@ void bytesRLE_save(std::vector<TByte>& out_code,
         }
     }
     
-    size_t TSangileStreamRLE0::curCodeSize() const{
-        size_t fixedLen=this->fixed_code.size();
-        size_t curLenv=this->uncompressData.size();
-        if ((fixedLen==0)||(len0>0))
-            fixedLen+= hpatch_packUInt_size(len0);
-        if (curLenv>0)
-            fixedLen += hpatch_packUInt_size(curLenv) + curLenv;
-        return fixedLen;
-    }
-    
     size_t TSangileStreamRLE0::maxCodeSize(const unsigned char* appendData,const unsigned char* appendData_end) const{
         TLastType lastType=getLastType(*this);
         size_t curLen0=this->len0;

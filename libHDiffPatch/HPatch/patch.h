@@ -159,7 +159,8 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
     } hpatch_singleCompressedDiffInfo;
     
     hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_diffInfo,
-                                            const hpatch_TStreamInput* singleCompressedDiff);
+                                            const hpatch_TStreamInput*  singleCompressedDiff,
+                                            hpatch_StreamPos_t          diffHead_pos);
     
     hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData,          //sequential write
                                              const hpatch_TStreamInput*  oldData,              //random read
@@ -167,7 +168,7 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
                                              hpatch_StreamPos_t          diffData_pos,
                                              hpatch_StreamPos_t          uncompressedSize,
                                              hpatch_TDecompress*         decompressPlugin,
-                                             hpatch_StreamPos_t coverCount,size_t stepMemSize,
+                                             hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                              unsigned char* temp_cache,unsigned char* temp_cache_end);
     
     
@@ -185,7 +186,7 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
                                          const hpatch_TStreamInput*   oldData,              //random read
                                          const hpatch_TStreamInput*   uncompressedDiffData, //sequential read
                                          hpatch_StreamPos_t           diffData_pos,
-                                         hpatch_StreamPos_t coverCount,size_t stepMemSize,
+                                         hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                          unsigned char* temp_cache,unsigned char* temp_cache_end);
 
 

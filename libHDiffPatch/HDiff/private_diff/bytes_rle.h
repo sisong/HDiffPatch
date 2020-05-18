@@ -49,7 +49,7 @@ void bytesRLE_save(std::vector<unsigned char>& out_ctrlBuf,std::vector<unsigned 
         std::vector<unsigned char>  uncompressData;
         size_t                      len0;
         inline TSangileStreamRLE0():len0(0){}
-        size_t curCodeSize() const;
+        inline size_t curCodeSize() const { return maxCodeSize(0,0); }
         size_t maxCodeSize(const unsigned char* appendData,const unsigned char* appendData_end) const;
         void append(const unsigned char* appendData,const unsigned char* appendData_end);
         void finishAppend();

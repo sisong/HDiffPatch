@@ -615,8 +615,8 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
         TInt lastNewEnd=0;
         TInt curNewDiff=0;
         std::vector<TByte> step_bufCover;
-        std::vector<TByte> step_bufData;
         TSangileStreamRLE0 step_bufRle;
+        std::vector<TByte> step_bufData;
         TUInt i=0;
         while ( i<covers.size()) {
             const size_t step_bufCover_backSize=step_bufCover.size();
@@ -633,35 +633,31 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
             packUInt(step_bufCover,(TUInt)backNewLen); //save inc_newPos
             packUInt(step_bufCover,cover.length);
             
-            const TUInt step_bufRleNeedSize=step_bufRle.maxCodeSize(subDiff,subDiff+cover.length);
-            const TUInt curMaxNeedSize = step_bufCover.size() + step_bufRleNeedSize
-                        + hpatch_packUInt_size(step_bufCover.size())+hpatch_packUInt_size(step_bufRleNeedSize);
+            const TUInt curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(subDiff,subDiff+cover.length);
             if (curMaxNeedSize<=stepMemSize){ //append
+                step_bufRle.append(subDiff,subDiff+cover.length);
                 if (backNewLen>0){
                     const TByte* newDataDiff=diff.newDataDiff.data()+curNewDiff;
                     pushBack(step_bufData,newDataDiff,newDataDiff+backNewLen);
                     curNewDiff+=backNewLen;
                 }
-                step_bufRle.append(subDiff,subDiff+cover.length);
 
                 //next i
                 lastOldEnd=cover.oldPos+cover.length;//! +length
                 lastNewEnd=cover.newPos+cover.length;
                 ++i;
             }else{
-                if (step_bufCover_backSize+step_bufRle.curCodeSize()+hpatch_kMaxPackedUIntBytes*2>=(stepMemSize/2)){//flush step
+                if (step_bufCover_backSize+step_bufRle.curCodeSize()>=(stepMemSize/2)){//flush step
                     step_bufCover.resize(step_bufCover_backSize);
                     _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle);
                     continue;  // old i!
-                }else{ //clip cover data!
+                }else{ //clip one cover to two cover
                     TOldCover& cover_l=covers[i];
                     TUInt clen=cover_l.length;
                     while (1) {
                         clen=clen*3/4;
                         check(clen>0); // stepMemSize error
-                        const TUInt _step_bufRleNeedSize=step_bufRle.maxCodeSize(subDiff,subDiff+clen);
-                        const TUInt _curMaxNeedSize = step_bufCover.size() + _step_bufRleNeedSize
-                                + hpatch_packUInt_size(step_bufCover.size())+hpatch_packUInt_size(_step_bufRleNeedSize);
+                        const TUInt _curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(subDiff,subDiff+clen);
                         if (_curMaxNeedSize<=stepMemSize)
                             break;
                     }

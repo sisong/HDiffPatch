@@ -50,9 +50,9 @@
 #   define  _SAFE_CHECK_DO(code)    do{ code; }while(0)
 #endif
 
-#define _hpatch_FALSE   hpatch_FALSE
-//hpatch_uint __debug_check_false_x=0; //for debug
-//#define _hpatch_FALSE (1/__debug_check_false_x)
+//#define _hpatch_FALSE   hpatch_FALSE
+hpatch_uint __debug_check_false_x=0; //for debug
+#define _hpatch_FALSE (1/__debug_check_false_x)
 
 typedef unsigned char TByte;
 
@@ -529,17 +529,20 @@ hpatch_BOOL _TStreamCacheClip_readUInt(TStreamCacheClip* sclip,hpatch_StreamPos_
 }
 
 hpatch_BOOL _TStreamCacheClip_readDataTo(TStreamCacheClip* sclip,TByte* out_buf,TByte* bufEnd){
-    const hpatch_size_t maxReadLen=sclip->cacheEnd;
-    while (out_buf<bufEnd) {
-        const TByte* pdata;
-        hpatch_size_t readLen=bufEnd-out_buf;
-        if (readLen>maxReadLen) readLen=maxReadLen;
-        pdata=_TStreamCacheClip_readData(sclip,readLen);
-        if (pdata==0) return hpatch_FALSE;
-        memcpy(out_buf,pdata,readLen);
-        out_buf+=readLen;
+    hpatch_size_t readLen=_TStreamCacheClip_cachedSize(sclip);
+    hpatch_size_t outLen=bufEnd-out_buf;
+    if (readLen>=outLen)
+        readLen=outLen;
+    memcpy(out_buf,&sclip->cacheBuf[sclip->cacheBegin],readLen);
+    sclip->cacheBegin+=readLen;
+    out_buf+=readLen;
+    outLen-=readLen;
+    if (outLen){
+        if (!sclip->srcStream->read(sclip->srcStream,sclip->streamPos,
+                                    out_buf,bufEnd)) return _hpatch_FALSE;
+        sclip->streamPos+=outLen;
     }
-    return out_buf==bufEnd;
+    return hpatch_TRUE;
 }
 
     static hpatch_BOOL _decompress_read(const hpatch_TStreamInput* stream,
@@ -1920,30 +1923,32 @@ hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData
                                          hpatch_StreamPos_t          diffData_pos,
                                          hpatch_StreamPos_t          uncompressedSize,
                                          hpatch_TDecompress*         decompressPlugin,
-                                         hpatch_StreamPos_t coverCount,size_t stepMemSize,
+                                         hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                          unsigned char* temp_cache,unsigned char* temp_cache_end){
     hpatch_BOOL result;
     hpatch_TUncompresser_t uncompressedStream;
     memset(&uncompressedStream,0,sizeof(uncompressedStream));
     if (decompressPlugin){
-        compressed_stream_as_uncompressed(&uncompressedStream,uncompressedSize,decompressPlugin,
-                                          compressedDiffData,diffData_pos,compressedDiffData->streamSize);
+        if (!compressed_stream_as_uncompressed(&uncompressedStream,uncompressedSize,decompressPlugin,compressedDiffData,
+                                               diffData_pos,compressedDiffData->streamSize)) return _hpatch_FALSE;
         compressedDiffData=&uncompressedStream.base;
         diffData_pos=0;
     }
     result=patch_single_stream_diff(out_newData,oldData,compressedDiffData,diffData_pos,
                                     coverCount,stepMemSize,temp_cache,temp_cache_end);
-    close_compressed_stream_as_uncompressed(&uncompressedStream);
+    if (decompressPlugin)
+        close_compressed_stream_as_uncompressed(&uncompressedStream);
     return result;
 }
 
 
 hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_diffInfo,
-                                        const hpatch_TStreamInput* singleCompressedDiff){
+                                        const hpatch_TStreamInput* singleCompressedDiff,
+                                        hpatch_StreamPos_t         diffHead_pos){
     TStreamCacheClip  _diffHeadClip;
     TStreamCacheClip* diffHeadClip=&_diffHeadClip;
     TByte             temp_cache[hpatch_kStreamCacheSize];
-    _TStreamCacheClip_init(&_diffHeadClip,singleCompressedDiff,0,singleCompressedDiff->streamSize,
+    _TStreamCacheClip_init(&_diffHeadClip,singleCompressedDiff,diffHead_pos,singleCompressedDiff->streamSize,
                            temp_cache,hpatch_kStreamCacheSize);
     {//type
         const char* kVersionType="HDIFFSF20";
@@ -1961,7 +1966,7 @@ hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_dif
     _clip_unpackUIntTo(&out_diffInfo->stepMemSize,diffHeadClip);
     _clip_unpackUIntTo(&out_diffInfo->uncompressedSize,diffHeadClip);
     _clip_unpackUIntTo(&out_diffInfo->compressedSize,diffHeadClip);
-    out_diffInfo->diffDataPos=_TStreamCacheClip_readPosOfSrcStream(diffHeadClip);
+    out_diffInfo->diffDataPos=_TStreamCacheClip_readPosOfSrcStream(diffHeadClip)-diffHead_pos;
     return hpatch_TRUE;
 }
 
@@ -1985,7 +1990,6 @@ hpatch_BOOL compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompress
     self->base.streamImport=self;
     self->base.streamSize=uncompressedSize;
     self->base.read=_TUncompresser_read;
-    self->base._private_reserved=0;
     return hpatch_TRUE;
 }
 
@@ -1997,13 +2001,158 @@ void close_compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompresse
     self->_decompressHandle=0;
 }
 
+typedef struct{
+    const unsigned char* code;
+    const unsigned char* code_end;
+    hpatch_StreamPos_t   len0;
+    hpatch_size_t        lenv;
+    hpatch_BOOL          isNeedDecode0;
+} rle0_decoder_t;
+
+static void _rle0_decoder_init(rle0_decoder_t* self,const unsigned char* code,const unsigned char* code_end){
+    self->code=code;
+    self->code_end=code_end;
+    self->len0=0;
+    self->lenv=0;
+    self->isNeedDecode0=hpatch_TRUE;
+}
+
+static hpatch_BOOL _rle0_decoder_add(rle0_decoder_t* self,TByte* out_data,hpatch_size_t decodeSize){
+    while (1) {
+        if (self->len0){
+        _0_process:
+            if (self->len0>=decodeSize){
+                self->len0-=decodeSize;
+                return hpatch_TRUE;
+            }else{
+                decodeSize-=self->len0;
+                out_data+=self->len0;
+                self->len0=0;
+                goto _decode_v_process;
+            }
+        }
+        
+        if (self->lenv){
+        _v_process:
+            if (self->lenv>=decodeSize){
+                addData(out_data,self->code,decodeSize);
+                self->code+=decodeSize;
+                self->lenv-=decodeSize;
+                return hpatch_TRUE;
+            }else{
+                addData(out_data,self->code,self->lenv);
+                out_data+=self->lenv;
+                decodeSize-=self->lenv;
+                self->code+=self->lenv;
+                self->lenv=0;
+                goto _decode_0_process;
+            }
+        }
+        
+        assert(decodeSize>0);
+        if (self->isNeedDecode0){
+        _decode_0_process:
+            self->isNeedDecode0=hpatch_FALSE;
+            if (!hpatch_unpackUInt(&self->code,self->code_end,&self->len0)) return _hpatch_FALSE;
+            goto _0_process;
+        }else{
+            hpatch_StreamPos_t lenv;
+        _decode_v_process:
+            self->isNeedDecode0=hpatch_TRUE;
+            if (!hpatch_unpackUInt(&self->code,self->code_end,&lenv)) return _hpatch_FALSE;
+            if (lenv>self->code_end-self->code) return _hpatch_FALSE;
+            self->lenv=(hpatch_size_t)lenv;
+            goto _v_process;
+        }
+    }
+}
+
+static  hpatch_BOOL _patch_add_old_by_rle0(const hpatch_TStreamOutput* out_newData,
+                                   hpatch_StreamPos_t writeToPos,rle0_decoder_t* rle0_decoder,
+                                   const hpatch_TStreamInput* old,hpatch_StreamPos_t oldPos,
+                                   hpatch_StreamPos_t addLength,TByte* aCache,hpatch_size_t aCacheSize){
+    while (addLength>0){
+        hpatch_size_t decodeStep=aCacheSize;
+        if (decodeStep>addLength)
+            decodeStep=(hpatch_size_t)addLength;
+        if (!old->read(old,oldPos,aCache,aCache+decodeStep)) return _hpatch_FALSE;
+        if (!_rle0_decoder_add(rle0_decoder,aCache,decodeStep)) return _hpatch_FALSE;
+        if (!out_newData->write(out_newData,writeToPos,aCache,aCache+decodeStep)) return _hpatch_FALSE;
+        oldPos+=decodeStep;
+        writeToPos+=decodeStep;
+        addLength-=decodeStep;
+    }
+    return hpatch_TRUE;
+}
+
 
 hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,
                                      const hpatch_TStreamInput*   oldData,
                                      const hpatch_TStreamInput*   uncompressedDiffData,
                                      hpatch_StreamPos_t           diffData_pos,
-                                     hpatch_StreamPos_t coverCount,size_t stepMemSize,
+                                     hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                      unsigned char* temp_cache,unsigned char* temp_cache_end){
-    
-    return _hpatch_FALSE;
+    unsigned char*      step_cache=temp_cache;
+    hpatch_StreamPos_t  lastOldEnd=0;
+    hpatch_StreamPos_t  lastNewEnd=0;
+    hpatch_size_t       cache_size;
+    TStreamCacheClip    inClip;
+    const hpatch_size_t cache_count=2;
+    if (temp_cache_end-temp_cache<stepMemSize+hpatch_kStreamCacheSize*cache_count) return _hpatch_FALSE;
+    temp_cache+=stepMemSize;
+    cache_size=(temp_cache_end-temp_cache)/cache_count;
+    _TStreamCacheClip_init(&inClip,uncompressedDiffData,diffData_pos,uncompressedDiffData->streamSize,
+                           temp_cache,cache_size);
+    temp_cache+=cache_size;
+    while (coverCount) {//step loop
+        const unsigned char* covers_cache     = step_cache;
+        const unsigned char* covers_cache_end;
+        rle0_decoder_t       rle0_decoder;
+        {//read step info
+            hpatch_StreamPos_t bufCover_size;
+            hpatch_StreamPos_t bufRle_size;
+            _clip_unpackUIntTo(&bufCover_size,&inClip);
+            _clip_unpackUIntTo(&bufRle_size,&inClip);
+            if (bufCover_size+bufRle_size>stepMemSize) return _hpatch_FALSE;
+            if (!_TStreamCacheClip_readDataTo(&inClip,step_cache,step_cache+bufCover_size+bufRle_size)) return _hpatch_FALSE;
+            covers_cache_end=covers_cache+bufCover_size;
+            _rle0_decoder_init(&rle0_decoder,covers_cache_end,covers_cache_end+bufRle_size);
+        }
+        while (covers_cache!=covers_cache_end) {// cover loop
+            hpatch_StreamPos_t oldPos;
+            hpatch_StreamPos_t newPos;
+            hpatch_StreamPos_t coverLen;
+            {//read cover
+                hpatch_BOOL inc_oldPos_sign;
+                if (covers_cache==covers_cache_end) return _hpatch_FALSE;
+                inc_oldPos_sign=(*covers_cache)>>7;
+                if (!hpatch_unpackUIntWithTag(&covers_cache,covers_cache_end,&oldPos,1)) return _hpatch_FALSE;
+                if (inc_oldPos_sign==0)
+                    oldPos+=lastOldEnd;
+                else
+                    oldPos=lastOldEnd-oldPos;
+                if (!hpatch_unpackUInt(&covers_cache,covers_cache_end,&newPos)) return _hpatch_FALSE;
+                newPos+=lastNewEnd;
+                if (!hpatch_unpackUInt(&covers_cache,covers_cache_end,&coverLen)) return _hpatch_FALSE;
+            }
+            
+            if (newPos>lastNewEnd){
+                if (!_patch_copy_diff(out_newData,lastNewEnd,&inClip,newPos-lastNewEnd)) return _hpatch_FALSE;
+            }
+            
+            --coverCount;
+            if (coverLen>0){
+                if (!_patch_add_old_by_rle0(out_newData,newPos,&rle0_decoder,
+                                            oldData,oldPos,coverLen,temp_cache,cache_size)) return _hpatch_FALSE;
+                lastOldEnd=oldPos+coverLen;
+                lastNewEnd=newPos+coverLen;
+            }else{
+                if (coverCount!=0) return _hpatch_FALSE;
+            }
+        }
+    }
+    if (_TStreamCacheClip_isFinish(&inClip)&(coverCount==0))
+        return hpatch_TRUE;
+    else
+        return _hpatch_FALSE;
 }
