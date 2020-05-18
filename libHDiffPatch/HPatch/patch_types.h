@@ -186,7 +186,8 @@ extern "C" {
     hpatch_uint hpatch_packUIntWithTag_size(hpatch_StreamPos_t uValue,const hpatch_uint kTagBit);
     #define hpatch_packUInt(out_code,out_code_end,uValue) \
                 hpatch_packUIntWithTag(out_code,out_code_end,uValue,0,0)
-
+    #define hpatch_packUInt_size(uValue) hpatch_packUIntWithTag_size(uValue,0)
+    
     hpatch_BOOL hpatch_unpackUIntWithTag(const unsigned char** src_code,const unsigned char* src_code_end,
                                          hpatch_StreamPos_t* result,const hpatch_uint kTagBit);
     #define hpatch_unpackUInt(src_code,src_code_end,result) \

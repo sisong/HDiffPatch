@@ -127,8 +127,8 @@ private:
     const hpatch_StreamPos_t    _src_begin;
     const hpatch_StreamPos_t    _src_end;
     hpatch_TDecompress*         _decompressPlugin;
-    hpatch_StreamPos_t          _read_uncompress_pos;
     hpatch_decompressHandle     _decompressHandle;
+    hpatch_StreamPos_t          _read_uncompress_pos;
     void closeDecompressHandle();
     void openDecompressHandle();
     static hpatch_BOOL _clip_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,

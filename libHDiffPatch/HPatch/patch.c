@@ -1912,3 +1912,98 @@ hpatch_BOOL hpatch_coverList_open_compressedDiff(hpatch_TCoverList* out_coverLis
     return hpatch_TRUE;
 }
 
+//
+
+hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData,
+                                         const hpatch_TStreamInput*  oldData,
+                                         const hpatch_TStreamInput*  compressedDiffData,
+                                         hpatch_StreamPos_t          diffData_pos,
+                                         hpatch_StreamPos_t          uncompressedSize,
+                                         hpatch_TDecompress*         decompressPlugin,
+                                         hpatch_StreamPos_t coverCount,size_t stepMemSize,
+                                         unsigned char* temp_cache,unsigned char* temp_cache_end){
+    hpatch_BOOL result;
+    hpatch_TUncompresser_t uncompressedStream;
+    memset(&uncompressedStream,0,sizeof(uncompressedStream));
+    if (decompressPlugin){
+        compressed_stream_as_uncompressed(&uncompressedStream,uncompressedSize,decompressPlugin,
+                                          compressedDiffData,diffData_pos,compressedDiffData->streamSize);
+        compressedDiffData=&uncompressedStream.base;
+        diffData_pos=0;
+    }
+    result=patch_single_stream_diff(out_newData,oldData,compressedDiffData,diffData_pos,
+                                    coverCount,stepMemSize,temp_cache,temp_cache_end);
+    close_compressed_stream_as_uncompressed(&uncompressedStream);
+    return result;
+}
+
+
+hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_diffInfo,
+                                        const hpatch_TStreamInput* singleCompressedDiff){
+    TStreamCacheClip  _diffHeadClip;
+    TStreamCacheClip* diffHeadClip=&_diffHeadClip;
+    TByte             temp_cache[hpatch_kStreamCacheSize];
+    _TStreamCacheClip_init(&_diffHeadClip,singleCompressedDiff,0,singleCompressedDiff->streamSize,
+                           temp_cache,hpatch_kStreamCacheSize);
+    {//type
+        const char* kVersionType="HDIFFSF20";
+        char* tempType=out_diffInfo->compressType;
+        if (!_TStreamCacheClip_readType_end(diffHeadClip,'&',tempType)) return _hpatch_FALSE;
+        if (0!=strcmp(tempType,kVersionType)) return _hpatch_FALSE;
+    }
+    {//read compressType
+        if (!_TStreamCacheClip_readType_end(diffHeadClip,'\0',
+                                            out_diffInfo->compressType)) return _hpatch_FALSE;
+    }
+    _clip_unpackUIntTo(&out_diffInfo->newDataSize,diffHeadClip);
+    _clip_unpackUIntTo(&out_diffInfo->oldDataSize,diffHeadClip);
+    _clip_unpackUIntTo(&out_diffInfo->coverCount,diffHeadClip);
+    _clip_unpackUIntTo(&out_diffInfo->stepMemSize,diffHeadClip);
+    _clip_unpackUIntTo(&out_diffInfo->uncompressedSize,diffHeadClip);
+    _clip_unpackUIntTo(&out_diffInfo->compressedSize,diffHeadClip);
+    out_diffInfo->diffDataPos=_TStreamCacheClip_readPosOfSrcStream(diffHeadClip);
+    return hpatch_TRUE;
+}
+
+static hpatch_BOOL _TUncompresser_read(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                       unsigned char* out_data,unsigned char* out_data_end){
+    hpatch_TUncompresser_t* self=(hpatch_TUncompresser_t*)stream->streamImport;
+    return self->_decompressPlugin->decompress_part(self->_decompressHandle,out_data,out_data_end);
+}
+
+hpatch_BOOL compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompressedStream,hpatch_StreamPos_t uncompressedSize,
+                                              hpatch_TDecompress* decompressPlugin,const hpatch_TStreamInput* compressedStream,
+                                              hpatch_StreamPos_t compressed_pos,hpatch_StreamPos_t compressed_end){
+    hpatch_TUncompresser_t* self=uncompressedStream;
+    assert(decompressPlugin!=0);
+    assert(self->_decompressHandle==0);
+    self->_decompressHandle=decompressPlugin->open(decompressPlugin,uncompressedSize,compressedStream,
+                                                   compressed_pos,compressed_end);
+    if (self->_decompressHandle==0) return _hpatch_FALSE;
+    self->_decompressPlugin=decompressPlugin;
+    
+    self->base.streamImport=self;
+    self->base.streamSize=uncompressedSize;
+    self->base.read=_TUncompresser_read;
+    self->base._private_reserved=0;
+    return hpatch_TRUE;
+}
+
+void close_compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompressedStream){
+    hpatch_TUncompresser_t* self=uncompressedStream;
+    if (self==0) return;
+    if (self->_decompressHandle==0) return;
+    self->_decompressPlugin->close(self->_decompressPlugin,self->_decompressHandle);
+    self->_decompressHandle=0;
+}
+
+
+hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,
+                                     const hpatch_TStreamInput*   oldData,
+                                     const hpatch_TStreamInput*   uncompressedDiffData,
+                                     hpatch_StreamPos_t           diffData_pos,
+                                     hpatch_StreamPos_t coverCount,size_t stepMemSize,
+                                     unsigned char* temp_cache,unsigned char* temp_cache_end){
+    
+    return _hpatch_FALSE;
+}

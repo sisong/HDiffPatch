@@ -586,18 +586,29 @@ bool check_compressed_diff(const TByte* newData,const TByte* newData_end,
 
 
 static void _flush_step_code(std::vector<TByte> &buf, std::vector<TByte> &step_bufCover, std::vector<TByte> &step_bufData,
-                             hdiff_private::TSangileStreamRLE0 &step_bufRle,int isInStepMemSize) {
+                             hdiff_private::TSangileStreamRLE0 &step_bufRle) {
     step_bufRle.finishAppend();
-    TUInt curSavedSize=step_bufCover.size()+step_bufRle.curCodeSize()+step_bufData.size();
-    packUIntWithTag(buf,curSavedSize,isInStepMemSize,1); //general saved data
+    packUInt(buf,step_bufCover.size()); //general saved data
+    packUInt(buf,step_bufRle.curCodeSize());
     pushBack(buf,step_bufCover);            step_bufCover.clear();
     pushBack(buf,step_bufRle.fixed_code);   step_bufRle.clear();
     pushBack(buf,step_bufData);             step_bufData.clear();
 }
 
-static void serialize_single_compressed_diff(const TDiffData& diff,std::vector<TByte>& out_diff,
+static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>& out_diff,
                                              const hdiff_TCompress* compressPlugin,size_t stepMemSize){
-    const TUInt coverCount=(TUInt)diff.covers.size();
+    check(stepMemSize>=hpatch_kStreamCacheSize);
+    std::vector<TOldCover>& covers=diff.covers;
+    const TUInt newDataSize=(TUInt)(diff.newData_end-diff.newData);
+    if (covers.empty()){
+        covers.push_back(TOldCover(0,newDataSize,0));
+    }else{
+        const TOldCover& back=covers[covers.size()-1];
+        if (back.newPos+back.length<newDataSize){
+            covers.push_back(TOldCover(back.oldPos+back.length,newDataSize,0));
+        }
+    }
+    
     std::vector<TByte> buf;
     {
         TInt lastOldEnd=0;
@@ -607,10 +618,10 @@ static void serialize_single_compressed_diff(const TDiffData& diff,std::vector<T
         std::vector<TByte> step_bufData;
         TSangileStreamRLE0 step_bufRle;
         TUInt i=0;
-        while ( i<coverCount) {
+        while ( i<covers.size()) {
             const size_t step_bufCover_backSize=step_bufCover.size();
             
-            const TOldCover& cover=diff.covers[i];
+            const TOldCover& cover=covers[i];
             const TByte* subDiff=diff.newDataSubDiff.data()+cover.newPos;
             if (cover.oldPos>=lastOldEnd){ //save inc_oldPos
                 packUIntWithTag(step_bufCover,(TUInt)(cover.oldPos-lastOldEnd), 0, 1);
@@ -622,58 +633,64 @@ static void serialize_single_compressed_diff(const TDiffData& diff,std::vector<T
             packUInt(step_bufCover,(TUInt)backNewLen); //save inc_newPos
             packUInt(step_bufCover,cover.length);
             
-            TUInt curMaxNeedSize = step_bufCover.size() + step_bufData.size()+backNewLen
-                                + step_bufRle.maxCodeSize(subDiff,subDiff+cover.length) ;
-            
-            if (curMaxNeedSize+hpatch_packUIntWithTag_size(curMaxNeedSize,1)<=stepMemSize){ //append
+            const TUInt step_bufRleNeedSize=step_bufRle.maxCodeSize(subDiff,subDiff+cover.length);
+            const TUInt curMaxNeedSize = step_bufCover.size() + step_bufRleNeedSize
+                        + hpatch_packUInt_size(step_bufCover.size())+hpatch_packUInt_size(step_bufRleNeedSize);
+            if (curMaxNeedSize<=stepMemSize){ //append
                 if (backNewLen>0){
                     const TByte* newDataDiff=diff.newDataDiff.data()+curNewDiff;
                     pushBack(step_bufData,newDataDiff,newDataDiff+backNewLen);
                     curNewDiff+=backNewLen;
                 }
                 step_bufRle.append(subDiff,subDiff+cover.length);
+
+                //next i
+                lastOldEnd=cover.oldPos+cover.length;//! +length
+                lastNewEnd=cover.newPos+cover.length;
+                ++i;
             }else{
-                if (step_bufCover_backSize>0){//flush step
+                if (step_bufCover_backSize+step_bufRle.curCodeSize()+hpatch_kMaxPackedUIntBytes*2>=(stepMemSize/2)){//flush step
                     step_bufCover.resize(step_bufCover_backSize);
-                    _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle,0);
+                    _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle);
                     continue;  // old i!
                 }else{ //clip cover data!
-                    if (backNewLen>0){
-                        const TByte* newDataDiff=diff.newDataDiff.data()+curNewDiff;
-                        pushBack(step_bufData,newDataDiff,newDataDiff+backNewLen);
-                        curNewDiff+=backNewLen;
+                    TOldCover& cover_l=covers[i];
+                    TUInt clen=cover_l.length;
+                    while (1) {
+                        clen=clen*3/4;
+                        check(clen>0); // stepMemSize error
+                        const TUInt _step_bufRleNeedSize=step_bufRle.maxCodeSize(subDiff,subDiff+clen);
+                        const TUInt _curMaxNeedSize = step_bufCover.size() + _step_bufRleNeedSize
+                                + hpatch_packUInt_size(step_bufCover.size())+hpatch_packUInt_size(_step_bufRleNeedSize);
+                        if (_curMaxNeedSize<=stepMemSize)
+                            break;
                     }
-                    step_bufRle.append(subDiff,subDiff+cover.length);
-                    _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle,1);
+                    TOldCover cover_r=cover_l;
+                    cover_l.length=clen;
+                    cover_r.length-=clen;
+                    cover_r.oldPos+=clen;
+                    cover_r.newPos+=clen;
+                    covers.insert(covers.begin()+(i+1),cover_r);
+                    
+                    step_bufCover.resize(step_bufCover_backSize);
+                    continue;  // old i!
                 }
             }
-            
-            //next i
-            lastOldEnd=cover.oldPos+cover.length;//! +length
-            lastNewEnd=cover.newPos+cover.length;
-            ++i;
         }
+        check(diff.newDataDiff.size()==curNewDiff);
         if (!step_bufCover.empty())
-            _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle,0);
-        
-        TInt backNewLen=(diff.newData_end-diff.newData)-lastNewEnd;
-        assert(backNewLen==((TInt)diff.newDataDiff.size()-curNewDiff));
-        if (backNewLen>0){
-            const TByte* newDataDiff=diff.newDataDiff.data()+curNewDiff;
-            pushBack(buf,newDataDiff,newDataDiff+backNewLen);
-            curNewDiff+=backNewLen;
-        }
+            _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle);
     }
     
     std::vector<TByte> compress_buf;
     do_compress(compress_buf,buf,compressPlugin);
     
     _outType(out_diff,compress_buf.empty()?0:compressPlugin,kHDiffSFVersionType);
-    const TUInt newDataSize=(TUInt)(diff.newData_end-diff.newData);
     const TUInt oldDataSize=(TUInt)(diff.oldData_end-diff.oldData);
     packUInt(out_diff, newDataSize);
     packUInt(out_diff, oldDataSize);
-    packUInt(out_diff, coverCount);
+    packUInt(out_diff, covers.size());
+    packUInt(out_diff, stepMemSize);
     packUInt(out_diff, (TUInt)buf.size());
     packUInt(out_diff, (TUInt)compress_buf.size());
     

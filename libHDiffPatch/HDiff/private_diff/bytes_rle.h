@@ -56,7 +56,5 @@ void bytesRLE_save(std::vector<unsigned char>& out_ctrlBuf,std::vector<unsigned 
         inline void clear() { fixed_code.clear(); uncompressData.clear(); len0=0; }
     };
     
-void sangile_stream_bytesRLE0(std::vector<unsigned char>& out_buf,const unsigned char* src,const unsigned char* src_end);
-    
 }//namespace hdiff_private
 #endif //__BYTES_RLE_H_

@@ -70,7 +70,7 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                   const hpatch_TStreamInput*  compressed_diff,
                                   hpatch_TDecompress* decompressPlugin);
 
-const size_t kDefaultStepMemSize =1024*1024;
+const size_t kDefaultStepMemSize =1024*256;
 void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                    const unsigned char* oldData,const unsigned char* oldData_end,
                                    std::vector<unsigned char>& out_diff, const hdiff_TCompress* compressPlugin=0,

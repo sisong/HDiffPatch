@@ -144,6 +144,51 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
                                        result=coverList->ICovers->close(coverList->ICovers);
                                        hpatch_coverList_init(coverList); } return result; }
 
+    
+//
+    
+    typedef struct{
+        hpatch_StreamPos_t  newDataSize;
+        hpatch_StreamPos_t  oldDataSize;
+        hpatch_StreamPos_t  uncompressedSize;
+        hpatch_StreamPos_t  compressedSize;
+        hpatch_StreamPos_t  diffDataPos;
+        hpatch_StreamPos_t  coverCount;
+        hpatch_StreamPos_t  stepMemSize;
+        char                compressType[hpatch_kMaxPluginTypeLength+1]; //ascii cstring
+    } hpatch_singleCompressedDiffInfo;
+    
+    hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_diffInfo,
+                                            const hpatch_TStreamInput* singleCompressedDiff);
+    
+    hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData,          //sequential write
+                                             const hpatch_TStreamInput*  oldData,              //random read
+                                             const hpatch_TStreamInput*  compressedDiffData,   //sequential read
+                                             hpatch_StreamPos_t          diffData_pos,
+                                             hpatch_StreamPos_t          uncompressedSize,
+                                             hpatch_TDecompress*         decompressPlugin,
+                                             hpatch_StreamPos_t coverCount,size_t stepMemSize,
+                                             unsigned char* temp_cache,unsigned char* temp_cache_end);
+    
+    
+    typedef struct{
+        hpatch_TStreamInput     base;
+        hpatch_TDecompress*     _decompressPlugin;
+        hpatch_decompressHandle _decompressHandle;
+    } hpatch_TUncompresser_t;
+    hpatch_BOOL compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompressedStream,hpatch_StreamPos_t uncompressedSize,
+                                                  hpatch_TDecompress* decompressPlugin,const hpatch_TStreamInput* compressedStream,
+                                                  hpatch_StreamPos_t compressed_pos,hpatch_StreamPos_t compressed_end);
+    void close_compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompressedStream);
+
+    hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,          //sequential write
+                                         const hpatch_TStreamInput*   oldData,              //random read
+                                         const hpatch_TStreamInput*   uncompressedDiffData, //sequential read
+                                         hpatch_StreamPos_t           diffData_pos,
+                                         hpatch_StreamPos_t coverCount,size_t stepMemSize,
+                                         unsigned char* temp_cache,unsigned char* temp_cache_end);
+
+
 #ifdef __cplusplus
 }
 #endif

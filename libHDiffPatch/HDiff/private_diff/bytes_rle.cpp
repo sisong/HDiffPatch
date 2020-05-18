@@ -119,44 +119,6 @@ void bytesRLE_save(std::vector<TByte>& out_code,
     pushBack(out_code,codeBuf);
 }
 
-
-
-void sangile_stream_bytesRLE0(std::vector<TByte>& out_ctrlBuf,std::vector<TByte>& out_codeBuf,
-                              const unsigned char* src,const unsigned char* src_end){
-    const TByte* notSame=src;
-    while (src!=src_end) {
-        //find equal length
-        TByte value=*src;
-        if (value==0){
-            const TUInt sameCount=rle_getEqualEnd(src+1,src_end,0)-src;
-            {
-                packUInt(out_ctrlBuf,src-notSame);
-                pushBack(out_codeBuf,notSame,src);
-            }
-            packUInt(out_ctrlBuf,sameCount);
-            src+=sameCount;
-            notSame=src;
-        }else{
-            src++;
-        }
-    }
-    if (notSame!=src){
-        packUInt(out_ctrlBuf,src-notSame);
-        pushBack(out_codeBuf,notSame,src);
-    }
-}
-    
-    
-    void sangile_stream_bytesRLE0(std::vector<TByte>& out_buf,const unsigned char* src,const unsigned char* src_end){
-        std::vector<TByte> ctrlBuf;
-        std::vector<TByte> codeBuf;
-        
-        sangile_stream_bytesRLE0(ctrlBuf,codeBuf,src,src_end);
-        packUInt(out_buf,(TUInt)ctrlBuf.size());
-        pushBack(out_buf,ctrlBuf);
-        pushBack(out_buf,codeBuf);
-    }
-    
     
     enum TLastType{
         lastType_0,
@@ -176,14 +138,13 @@ void sangile_stream_bytesRLE0(std::vector<TByte>& out_ctrlBuf,std::vector<TByte>
         size_t fixedLen=this->fixed_code.size();
         size_t curLenv=this->uncompressData.size();
         if ((fixedLen==0)||(len0>0))
-            fixedLen+= hpatch_packUIntWithTag_size(len0,0);
+            fixedLen+= hpatch_packUInt_size(len0);
         if (curLenv>0)
-            fixedLen += hpatch_packUIntWithTag_size(curLenv,0) + curLenv;
+            fixedLen += hpatch_packUInt_size(curLenv) + curLenv;
         return fixedLen;
     }
     
     size_t TSangileStreamRLE0::maxCodeSize(const unsigned char* appendData,const unsigned char* appendData_end) const{
-        assert(appendData<appendData_end);
         TLastType lastType=getLastType(*this);
         size_t curLen0=this->len0;
         size_t curLenv=this->uncompressData.size();
@@ -191,14 +152,14 @@ void sangile_stream_bytesRLE0(std::vector<TByte>& out_ctrlBuf,std::vector<TByte>
         while (appendData!=appendData_end) {
             if (*appendData==0){
                 if (lastType==lastType_v){
-                    fixedLen += hpatch_packUIntWithTag_size(curLenv,0) + curLenv;
+                    fixedLen += hpatch_packUInt_size(curLenv) + curLenv;
                     curLenv = 0;
                 }
                 ++curLen0;
                 lastType=lastType_0;
             }else{
                 if (lastType==lastType_0){
-                    fixedLen += hpatch_packUIntWithTag_size(curLen0,0);
+                    fixedLen += hpatch_packUInt_size(curLen0);
                     curLen0 = 0;
                 }
                 ++curLenv;
@@ -207,9 +168,9 @@ void sangile_stream_bytesRLE0(std::vector<TByte>& out_ctrlBuf,std::vector<TByte>
             ++appendData;
         }
         if (curLenv>0)
-            fixedLen += hpatch_packUIntWithTag_size(curLenv,0) + curLenv;
+            fixedLen += hpatch_packUInt_size(curLenv) + curLenv;
         if (curLen0>0)
-            fixedLen += hpatch_packUIntWithTag_size(curLen0,0);
+            fixedLen += hpatch_packUInt_size(curLen0);
         return fixedLen;
     }
     
@@ -224,7 +185,6 @@ void sangile_stream_bytesRLE0(std::vector<TByte>& out_ctrlBuf,std::vector<TByte>
     }
     
     void TSangileStreamRLE0::append(const unsigned char* appendData,const unsigned char* appendData_end){
-        assert(appendData<appendData_end);
         TLastType lastType=getLastType(*this);
         while (appendData!=appendData_end) {
             if (*appendData==0){
