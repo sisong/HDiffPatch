@@ -43,6 +43,9 @@ void bytesRLE_save(std::vector<unsigned char>& out_code,
 void bytesRLE_save(std::vector<unsigned char>& out_ctrlBuf,std::vector<unsigned char>& out_codeBuf,
                    const unsigned char* src,const unsigned char* src_end,int rle_parameter);
 
+#ifndef kMaxBytesRle0Len
+    static const size_t kMaxBytesRle0Len =(uint32_t)(((uint32_t)1<<31)-1);
+#endif
     
     struct TSangileStreamRLE0{
         std::vector<unsigned char>  fixed_code;

@@ -165,11 +165,23 @@ void bytesRLE_save(std::vector<TByte>& out_code,
     }
     
     inline void _out_uncompressData(TSangileStreamRLE0& self){
-        packUInt(self.fixed_code, self.uncompressData.size());
-        pushBack(self.fixed_code, self.uncompressData);
+        size_t saved=0;
+        while (self.uncompressData.size()-saved>kMaxBytesRle0Len){
+            packUInt(self.fixed_code, kMaxBytesRle0Len);
+            pushBack(self.fixed_code, self.uncompressData.data()+saved,self.uncompressData.data()+saved+kMaxBytesRle0Len);
+            packUInt(self.fixed_code,0);
+            saved+=kMaxBytesRle0Len;
+        }
+        packUInt(self.fixed_code, self.uncompressData.size()-saved);
+        pushBack(self.fixed_code, self.uncompressData.data()+saved,self.uncompressData.data()+self.uncompressData.size());
         self.uncompressData.clear();
     }
     inline void _out_0Data(TSangileStreamRLE0& self){
+        while (self.len0>kMaxBytesRle0Len){
+            packUInt(self.fixed_code,kMaxBytesRle0Len);
+            self.len0-=kMaxBytesRle0Len;
+            packUInt(self.fixed_code,0);
+        }
         packUInt(self.fixed_code, self.len0);
         self.len0=0;
     }

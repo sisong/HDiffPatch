@@ -2004,9 +2004,9 @@ void close_compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompresse
 typedef struct{
     const unsigned char* code;
     const unsigned char* code_end;
-    hpatch_StreamPos_t   len0;
-    hpatch_size_t        lenv;
-    hpatch_BOOL          isNeedDecode0;
+    hpatch_size_t   len0;
+    hpatch_size_t   lenv;
+    hpatch_BOOL     isNeedDecode0;
 } rle0_decoder_t;
 
 static void _rle0_decoder_init(rle0_decoder_t* self,const unsigned char* code,const unsigned char* code_end){
@@ -2018,52 +2018,53 @@ static void _rle0_decoder_init(rle0_decoder_t* self,const unsigned char* code,co
 }
 
 static hpatch_BOOL _rle0_decoder_add(rle0_decoder_t* self,TByte* out_data,hpatch_size_t decodeSize){
-    while (1) {
-        if (self->len0){
-        _0_process:
-            if (self->len0>=decodeSize){
-                self->len0-=decodeSize;
-                return hpatch_TRUE;
-            }else{
-                decodeSize-=self->len0;
-                out_data+=self->len0;
-                self->len0=0;
-                goto _decode_v_process;
-            }
-        }
-        
-        if (self->lenv){
-        _v_process:
-            if (self->lenv>=decodeSize){
-                addData(out_data,self->code,decodeSize);
-                self->code+=decodeSize;
-                self->lenv-=decodeSize;
-                return hpatch_TRUE;
-            }else{
-                addData(out_data,self->code,self->lenv);
-                out_data+=self->lenv;
-                decodeSize-=self->lenv;
-                self->code+=self->lenv;
-                self->lenv=0;
-                goto _decode_0_process;
-            }
-        }
-        
-        assert(decodeSize>0);
-        if (self->isNeedDecode0){
-        _decode_0_process:
-            self->isNeedDecode0=hpatch_FALSE;
-            if (!hpatch_unpackUInt(&self->code,self->code_end,&self->len0)) return _hpatch_FALSE;
-            goto _0_process;
+    if (self->len0){
+    _0_process:
+        if (self->len0>=decodeSize){
+            self->len0-=decodeSize;
+            return hpatch_TRUE;
         }else{
-            hpatch_StreamPos_t lenv;
-        _decode_v_process:
-            self->isNeedDecode0=hpatch_TRUE;
-            if (!hpatch_unpackUInt(&self->code,self->code_end,&lenv)) return _hpatch_FALSE;
-            if (lenv>self->code_end-self->code) return _hpatch_FALSE;
-            self->lenv=(hpatch_size_t)lenv;
-            goto _v_process;
+            decodeSize-=self->len0;
+            out_data+=self->len0;
+            self->len0=0;
+            goto _decode_v_process;
         }
+    }
+    
+    if (self->lenv){
+    _v_process:
+        if (self->lenv>=decodeSize){
+            addData(out_data,self->code,decodeSize);
+            self->code+=decodeSize;
+            self->lenv-=decodeSize;
+            return hpatch_TRUE;
+        }else{
+            addData(out_data,self->code,self->lenv);
+            out_data+=self->lenv;
+            decodeSize-=self->lenv;
+            self->code+=self->lenv;
+            self->lenv=0;
+            goto _decode_0_process;
+        }
+    }
+    
+    assert(decodeSize>0);
+    if (self->isNeedDecode0){
+        hpatch_StreamPos_t len0;
+    _decode_0_process:
+        self->isNeedDecode0=hpatch_FALSE;
+        if (!hpatch_unpackUInt(&self->code,self->code_end,&len0)) return _hpatch_FALSE;
+        if (len0!=(hpatch_size_t)len0) return _hpatch_FALSE;
+        self->len0=(hpatch_size_t)len0;
+        goto _0_process;
+    }else{
+        hpatch_StreamPos_t lenv;
+    _decode_v_process:
+        self->isNeedDecode0=hpatch_TRUE;
+        if (!hpatch_unpackUInt(&self->code,self->code_end,&lenv)) return _hpatch_FALSE;
+        if (lenv>self->code_end-self->code) return _hpatch_FALSE;
+        self->lenv=(hpatch_size_t)lenv;
+        goto _v_process;
     }
 }
 
