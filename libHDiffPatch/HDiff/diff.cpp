@@ -267,14 +267,13 @@ static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
     }
     covers.resize(insertIndex);
 }
-
     
+    typedef size_t TFixedFloatSmooth; //定点数.
+    static const TFixedFloatSmooth kFixedFloatSmooth_base=1024;//定点数小数点位置.
+
     //得到可以扩展位置的长度.
-    static TInt getCanExtendLength(TInt oldPos,TInt newPos,int inc,
-                                   TInt newPos_min,TInt lastNewEnd,const TDiffData& diff){
-        typedef size_t TFixedFloatSmooth; //定点数.
-        static const TFixedFloatSmooth kFixedFloatSmooth_base=1024;//定点数小数点位置.
-        static const TFixedFloatSmooth kExtendMinSameRatio=474; //0.40--0.55
+    static TInt getCanExtendLength(TInt oldPos,TInt newPos,int inc,TInt newPos_min,TInt lastNewEnd,
+                                   const TDiffData& diff,const TFixedFloatSmooth kExtendMinSameRatio){
         static const unsigned int kSmoothLength=4;
 
         TFixedFloatSmooth curBestSameRatio=0;
@@ -303,7 +302,7 @@ static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
     }
 
 //尝试延长覆盖区域.
-static void extend_cover(TDiffData& diff){
+static void extend_cover(TDiffData& diff,const TFixedFloatSmooth kExtendMinSameRatio){
     std::vector<TOldCover>&  covers=diff.covers;
 
     TInt lastNewEnd=0;
@@ -314,7 +313,7 @@ static void extend_cover(TDiffData& diff){
         TOldCover& curCover=covers[i];
         //向前延伸.
         TInt extendLength_front=getCanExtendLength(curCover.oldPos-1,curCover.newPos-1,
-                                                   -1,lastNewEnd,newPos_next,diff);
+                                                   -1,lastNewEnd,newPos_next,diff,kExtendMinSameRatio);
         if (extendLength_front>0){
             curCover.oldPos-=extendLength_front;
             curCover.newPos-=extendLength_front;
@@ -323,7 +322,7 @@ static void extend_cover(TDiffData& diff){
         //向后延伸.
         TInt extendLength_back=getCanExtendLength(curCover.oldPos+curCover.length,
                                                   curCover.newPos+curCover.length,
-                                                  1,lastNewEnd,newPos_next,diff);
+                                                  1,lastNewEnd,newPos_next,diff,kExtendMinSameRatio);
         if (extendLength_back>0){
             curCover.length+=extendLength_back;
         }
@@ -536,9 +535,12 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
     sstring=0;
     _sstring_default.clear();
     
-    extend_cover(diff);//先尝试扩展.
+    TFixedFloatSmooth kExtendMinSameRatio=kMinSingleMatchScore*36+254;
+    if  (kExtendMinSameRatio<200) kExtendMinSameRatio=200;
+    
+    extend_cover(diff,kExtendMinSameRatio);//先尝试扩展.
     select_cover(diff,kMinSingleMatchScore);
-    extend_cover(diff);//select_cover会删除一些覆盖线,所以重新扩展.
+    extend_cover(diff,kExtendMinSameRatio);//select_cover会删除一些覆盖线,所以重新扩展.
     sub_cover(diff);
 }
     
@@ -696,7 +698,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
 void create_single_compressed_diff(const TByte* newData,const TByte* newData_end,
                                    const TByte* oldData,const TByte* oldData_end,
                                    std::vector<unsigned char>& out_diff,ICoverLinesListener* listener,const hdiff_TCompress* compressPlugin,
-                                   int kMinSingleMatchScore,size_t stepMemSize){
+                                   int kMinSingleMatchScore,size_t patchStepMemSize){
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
     if (listener){
@@ -708,7 +710,7 @@ void create_single_compressed_diff(const TByte* newData,const TByte* newData_end
         }
         listener->coverLines(listener,temp_covers.data(),temp_covers.size());
     }
-    serialize_single_compressed_diff(diff,out_diff,compressPlugin,stepMemSize);
+    serialize_single_compressed_diff(diff,out_diff,compressPlugin,patchStepMemSize);
 }
 
 

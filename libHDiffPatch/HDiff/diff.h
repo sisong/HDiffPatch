@@ -77,7 +77,7 @@ const size_t kDefaultStepMemSize =1024*256;
 void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                    const unsigned char* oldData,const unsigned char* oldData_end,
                                    std::vector<unsigned char>& out_diff,ICoverLinesListener* listener,const hdiff_TCompress* compressPlugin=0,
-                                   int kMinSingleMatchScore=kMinSingleMatchScore_default,size_t stepMemSize=kDefaultStepMemSize);
+                                   int kMinSingleMatchScore=kMinSingleMatchScore_default,size_t patchStepMemSize=kDefaultStepMemSize);
 
 
 //diff by stream:
