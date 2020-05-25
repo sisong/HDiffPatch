@@ -40,6 +40,7 @@
 
 #include "libHDiffPatch/HDiff/diff_types.h"
 #include "compress_parallel.h"
+#include <stdio.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -50,8 +51,9 @@ extern "C" {
 #   define kDefaultCompressThreadNumber     1
 #endif
 
-
-#define kCompressBufSize (1024*32)
+#ifndef kCompressBufSize
+#   define kCompressBufSize (1024*32)
+#endif
 #ifndef _IsNeedIncludeDefaultCompressHead
 #   define _IsNeedIncludeDefaultCompressHead 1
 #endif
@@ -107,14 +109,14 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
 #endif
-    struct TCompressPlugin_zlib{
+    typedef struct{
         hdiff_TCompress base;
         int             compress_level; //0..9
         int             mem_level;
         signed char     windowBits;
         hpatch_BOOL     isNeedSaveWindowBits;
-    };
-    typedef struct _zlib_TCompress{
+    } TCompressPlugin_zlib;
+    typedef struct{
         const hpatch_TStreamOutput* out_code;
         unsigned char*  c_buf;
         size_t          c_buf_size;

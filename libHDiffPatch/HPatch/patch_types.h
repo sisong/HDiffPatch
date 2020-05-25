@@ -170,7 +170,7 @@ extern "C" {
                                        const unsigned char* code,const unsigned char* code_end,
                                        unsigned char* out_data,unsigned char* out_data_end);
     
-    typedef struct TStreamInputClip{
+    typedef struct{
         hpatch_TStreamInput         base;
         const hpatch_TStreamInput*  srcStream;
         hpatch_StreamPos_t          clipBeginPos;
@@ -178,7 +178,15 @@ extern "C" {
     //clip srcStream from clipBeginPos to clipEndPos as a new StreamInput;
     void TStreamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  srcStream,
                                hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos);
-    
+    typedef struct{
+        hpatch_TStreamOutput        base;
+        const hpatch_TStreamOutput* srcStream;
+        hpatch_StreamPos_t          clipBeginPos;
+    } TStreamOutputClip;
+    //clip srcStream from clipBeginPos to clipEndPos as a new StreamInput;
+    void TStreamOutputClip_init(TStreamOutputClip* self,const hpatch_TStreamOutput*  srcStream,
+                                hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos);
+
     
     #define  hpatch_kMaxPackedUIntBytes ((sizeof(hpatch_StreamPos_t)*8+6)/7+1)
     hpatch_BOOL hpatch_packUIntWithTag(unsigned char** out_code,unsigned char* out_code_end,

@@ -50,9 +50,9 @@
 #   define  _SAFE_CHECK_DO(code)    do{ code; }while(0)
 #endif
 
-//#define _hpatch_FALSE   hpatch_FALSE
-hpatch_uint __debug_check_false_x=0; //for debug
-#define _hpatch_FALSE (1/__debug_check_false_x)
+#define _hpatch_FALSE   hpatch_FALSE
+//hpatch_uint __debug_check_false_x=0; //for debug
+//#define _hpatch_FALSE (1/__debug_check_false_x)
 
 typedef unsigned char TByte;
 
@@ -427,6 +427,31 @@ void TStreamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  sr
     self->base.streamSize=clipEndPos-clipBeginPos;
     self->base.read=_TStreamInputClip_read;
 }
+
+    static hpatch_BOOL _TStreamOutputClip_write(const hpatch_TStreamOutput* stream,
+                                                hpatch_StreamPos_t writePos,
+                                                const unsigned char* data,const unsigned char* data_end){
+    TStreamOutputClip* self=(TStreamOutputClip*)stream->streamImport;
+#ifdef __RUN_MEM_SAFE_CHECK
+    if (writePos+(data_end-data)>self->base.streamSize) return _hpatch_FALSE;
+#endif
+    return self->srcStream->write(self->srcStream,writePos+self->clipBeginPos,data,data_end);
+}
+
+void TStreamOutputClip_init(TStreamOutputClip* self,const hpatch_TStreamOutput*  srcStream,
+                            hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos){
+    assert(self!=0);
+    assert(srcStream!=0);
+    assert(clipBeginPos<=clipEndPos);
+    assert(clipEndPos<=srcStream->streamSize);
+    self->srcStream=srcStream;
+    self->clipBeginPos=clipBeginPos;
+    self->base.streamImport=self;
+    self->base.streamSize=clipEndPos-clipBeginPos;
+    ((TStreamInputClip*)self)->base.read=_TStreamInputClip_read;
+    self->base.write=_TStreamOutputClip_write;
+}
+
 
 
 //assert(hpatch_kStreamCacheSize>=hpatch_kMaxPluginTypeLength+1);

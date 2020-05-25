@@ -44,11 +44,11 @@ extern "C"
         //return the max compressed size, if input dataSize data;
         hpatch_StreamPos_t (*maxCompressedSize)(hpatch_StreamPos_t dataSize);
         //return support threadNumber
-        int          (*setParallelThreadNumber)(hdiff_TCompress* compressPlugin,int threadNum);
+        int          (*setParallelThreadNumber)(struct hdiff_TCompress* compressPlugin,int threadNum);
         //compress data to out_code; return compressed size, if error or not need compress then return 0;
         //if out_code->write() return hdiff_stream_kCancelCompress(error) then return 0;
         //if memory I/O can use hdiff_compress_mem()
-        hpatch_StreamPos_t          (*compress)(const hdiff_TCompress* compressPlugin,
+        hpatch_StreamPos_t          (*compress)(const struct hdiff_TCompress* compressPlugin,
                                                 const hpatch_TStreamOutput*   out_code,
                                                 const hpatch_TStreamInput*    in_data);
     } hdiff_TCompress;
