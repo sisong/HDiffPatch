@@ -588,18 +588,22 @@ bool check_compressed_diff(const TByte* newData,const TByte* newData_end,
 
 
 static void _flush_step_code(std::vector<TByte> &buf, std::vector<TByte> &step_bufCover, std::vector<TByte> &step_bufData,
-                             hdiff_private::TSangileStreamRLE0 &step_bufRle) {
+                             hdiff_private::TSangileStreamRLE0 &step_bufRle,size_t& curMaxStepMemSize) {
     step_bufRle.finishAppend();
     packUInt(buf,step_bufCover.size()); //general saved data
     packUInt(buf,step_bufRle.curCodeSize());
+    size_t bufSize_back=buf.size();
     pushBack(buf,step_bufCover);            step_bufCover.clear();
     pushBack(buf,step_bufRle.fixed_code);   step_bufRle.clear();
+    size_t curStepMemSize=buf.size()-bufSize_back;
     pushBack(buf,step_bufData);             step_bufData.clear();
+    if (curMaxStepMemSize<curStepMemSize)
+        curMaxStepMemSize=curStepMemSize;
 }
 
-static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>& out_diff,
-                                             const hdiff_TCompress* compressPlugin,size_t stepMemSize){
-    check(stepMemSize>=hpatch_kStreamCacheSize);
+static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>& out_diff,hpatch_StreamPos_t oldDataSize,
+                                             const hdiff_TCompress* compressPlugin,size_t patchStepMemSize){
+    check(patchStepMemSize>=hpatch_kStreamCacheSize);
     std::vector<TOldCover>& covers=diff.covers;
     const TUInt newDataSize=(TUInt)(diff.newData_end-diff.newData);
     if (covers.empty()){
@@ -610,7 +614,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
             covers.push_back(TOldCover(back.oldPos+back.length,newDataSize,0));
         }
     }
-    
+    size_t curMaxStepMemSize=0;
     std::vector<TByte> buf;
     {
         TInt lastOldEnd=0;
@@ -636,7 +640,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
             packUInt(step_bufCover,cover.length);
             
             const TUInt curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(subDiff,subDiff+cover.length);
-            if (curMaxNeedSize<=stepMemSize){ //append
+            if (curMaxNeedSize<=patchStepMemSize){ //append
                 step_bufRle.append(subDiff,subDiff+cover.length);
                 if (backNewLen>0){
                     const TByte* newDataDiff=diff.newDataDiff.data()+curNewDiff;
@@ -649,9 +653,9 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
                 lastNewEnd=cover.newPos+cover.length;
                 ++i;
             }else{
-                if (step_bufCover_backSize+step_bufRle.curCodeSize()>=(stepMemSize/2)){//flush step
+                if (step_bufCover_backSize+step_bufRle.curCodeSize()>=(patchStepMemSize/2)){//flush step
                     step_bufCover.resize(step_bufCover_backSize);
-                    _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle);
+                    _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle,curMaxStepMemSize);
                     continue;  // old i!
                 }else{ //clip one cover to two cover
                     TOldCover& cover_l=covers[i];
@@ -660,7 +664,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
                         clen=clen*3/4;
                         check(clen>0); // stepMemSize error
                         const TUInt _curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(subDiff,subDiff+clen);
-                        if (_curMaxNeedSize<=stepMemSize)
+                        if (_curMaxNeedSize<=patchStepMemSize)
                             break;
                     }
                     TOldCover cover_r=cover_l;
@@ -677,18 +681,18 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
         }
         check(diff.newDataDiff.size()==curNewDiff);
         if (!step_bufCover.empty())
-            _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle);
+            _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle,curMaxStepMemSize);
     }
+    assert(curMaxStepMemSize<=patchStepMemSize);
     
     std::vector<TByte> compress_buf;
     do_compress(compress_buf,buf,compressPlugin);
     
     _outType(out_diff,compress_buf.empty()?0:compressPlugin,kHDiffSFVersionType);
-    const TUInt oldDataSize=(TUInt)(diff.oldData_end-diff.oldData);
     packUInt(out_diff, newDataSize);
     packUInt(out_diff, oldDataSize);
     packUInt(out_diff, covers.size());
-    packUInt(out_diff, stepMemSize);
+    packUInt(out_diff, curMaxStepMemSize);
     packUInt(out_diff, (TUInt)buf.size());
     packUInt(out_diff, (TUInt)compress_buf.size());
     
@@ -701,16 +705,19 @@ void create_single_compressed_diff(const TByte* newData,const TByte* newData_end
                                    int kMinSingleMatchScore,size_t patchStepMemSize){
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
+    hpatch_StreamPos_t oldDataSize=(size_t)(diff.oldData_end-diff.oldData);
     if (listener){
-        std::vector<hpatch_TCover> temp_covers(diff.covers.size());
+        std::vector<hpatch_TCover> _covers(diff.covers.size());
         for (size_t i=0; i<diff.covers.size(); ++i) {
-            temp_covers[i].oldPos=diff.covers[i].oldPos;
-            temp_covers[i].newPos=diff.covers[i].newPos;
-            temp_covers[i].length=diff.covers[i].length;
+            _covers[i].oldPos=diff.covers[i].oldPos;
+            _covers[i].newPos=diff.covers[i].newPos;
+            _covers[i].length=diff.covers[i].length;
         }
-        listener->coverLines(listener,temp_covers.data(),temp_covers.size());
+        listener->coverLines(listener,_covers.data(),_covers.size(),&oldDataSize);
+        for (size_t i=0; i<diff.covers.size(); ++i)
+            diff.covers[i].oldPos=(TInt)_covers[i].oldPos;
     }
-    serialize_single_compressed_diff(diff,out_diff,compressPlugin,patchStepMemSize);
+    serialize_single_compressed_diff(diff,out_diff,oldDataSize,compressPlugin,patchStepMemSize);
 }
 
 

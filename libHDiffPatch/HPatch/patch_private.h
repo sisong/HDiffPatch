@@ -97,7 +97,7 @@ void _TStreamCacheClip_init(TStreamCacheClip* sclip,const hpatch_TStreamInput* s
             (  (hpatch_StreamPos_t)((sclip)->streamPos_end-(sclip)->streamPos)  \
                 + (hpatch_StreamPos_t)_TStreamCacheClip_cachedSize(sclip)  )
 #define _TStreamCacheClip_readPosOfSrcStream(sclip) ( \
-            (sclip)->srcStream->streamSize - _TStreamCacheClip_streamSize(sclip) )
+            (sclip)->streamPos - _TStreamCacheClip_cachedSize(sclip) )
     
 hpatch_BOOL _TStreamCacheClip_updateCache(TStreamCacheClip* sclip);
     
