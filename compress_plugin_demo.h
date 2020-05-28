@@ -45,10 +45,12 @@
 extern "C" {
 #endif
 
+#ifndef kDefaultCompressThreadNumber
 #if (_IS_USED_MULTITHREAD)
 #   define kDefaultCompressThreadNumber     4
 #else
 #   define kDefaultCompressThreadNumber     1
+#endif
 #endif
 
 #ifndef kCompressBufSize
@@ -116,7 +118,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         signed char     windowBits;
         hpatch_BOOL     isNeedSaveWindowBits;
     } TCompressPlugin_zlib;
-    typedef struct{
+    typedef struct _zlib_TCompress{
         const hpatch_TStreamOutput* out_code;
         unsigned char*  c_buf;
         size_t          c_buf_size;
@@ -246,11 +248,11 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     
 #   if (_IS_USED_MULTITHREAD)
     //pzlib
-    struct TCompressPlugin_pzlib{
+    typedef struct {
         TCompressPlugin_zlib base;
         int                  thread_num; // 1..
         hdiff_TParallelCompress pc;
-    };
+    } TCompressPlugin_pzlib;
     static int _pzlib_setThreadNum(hdiff_TCompress* compressPlugin,int threadNum){
         TCompressPlugin_pzlib* plugin=(TCompressPlugin_pzlib*)compressPlugin;
         plugin->thread_num=threadNum;
@@ -330,10 +332,10 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "bzlib.h" // http://www.bzip.org/  https://github.com/sisong/bzip2
 #endif
-    struct TCompressPlugin_bz2{
+    typedef struct{
         hdiff_TCompress base;
         int             compress_level; //0..9
-    };
+    } TCompressPlugin_bz2;
     static hpatch_StreamPos_t _bz2_compress(const hdiff_TCompress* compressPlugin,
                                             const hpatch_TStreamOutput* out_code,
                                             const hpatch_TStreamInput*  in_data){
@@ -404,11 +406,11 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     
 #   if (_IS_USED_MULTITHREAD)
     //pbz2
-    struct TCompressPlugin_pbz2{
+    typedef struct{
         TCompressPlugin_bz2     base;
         int                     thread_num; // 1..
         hdiff_TParallelCompress pc;
-    };
+    } TCompressPlugin_pbz2;
     static int _pbz2_setThreadNum(hdiff_TCompress* compressPlugin,int threadNum){
         TCompressPlugin_pbz2* plugin=(TCompressPlugin_pbz2*)compressPlugin;
         plugin->thread_num=threadNum;
@@ -512,12 +514,12 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 #endif
     
 #ifdef  _CompressPlugin_lzma
-    struct TCompressPlugin_lzma{
+    typedef struct{
         hdiff_TCompress base;
         int             compress_level; //0..9
         UInt32          dict_size;      //patch decompress need 4*lzma_dictSize memroy
         int             thread_num;     //1..2
-    };
+    } TCompressPlugin_lzma;
     static int _lzma_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
         TCompressPlugin_lzma* plugin=(TCompressPlugin_lzma*)compressPlugin;
         if (threadNum>2) threadNum=2;

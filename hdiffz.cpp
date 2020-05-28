@@ -561,7 +561,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
 
 #define _THREAD_NUMBER_NULL     0
 #define _THREAD_NUMBER_MIN      1
-#define _THREAD_NUMBER_DEFUALT  kDefualtCompressThreadNumber
+#define _THREAD_NUMBER_DEFUALT  kDefaultCompressThreadNumber
 #define _THREAD_NUMBER_MAX      (1<<8)
 
 int hdiff_cmd_line(int argc, const char * argv[]){

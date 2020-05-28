@@ -749,12 +749,16 @@ void create_single_compressed_diff(const TByte* newData,const TByte* newData_end
         }
         hpatch_StreamPos_t newDataSize=(size_t)(diff.newData_end-diff.newData);
         hpatch_StreamPos_t oldDataSize=(size_t)(diff.oldData_end-diff.oldData);
-        listener->coverLines(listener,_covers.data(),_covers.size(),&newDataSize,&oldDataSize);
+        size_t coverCount=_covers.size();
+        listener->coverLines(listener,_covers.data(),&coverCount,&newDataSize,&oldDataSize);
+        assert(coverCount<=_covers.size());
+        diff.covers.resize(coverCount);
         diff.newData_end=diff.newData+newDataSize;
         diff.oldData_end=diff.oldData+oldDataSize;
         for (size_t i=0; i<diff.covers.size(); ++i){
-            diff.covers[i].newPos=(TInt)_covers[i].newPos;
             diff.covers[i].oldPos=(TInt)_covers[i].oldPos;
+            diff.covers[i].newPos=(TInt)_covers[i].newPos;
+            diff.covers[i].length=(TInt)_covers[i].length;
         }
     }
     sub_cover(diff);
