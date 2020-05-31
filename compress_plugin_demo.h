@@ -117,6 +117,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         int             mem_level;
         signed char     windowBits;
         hpatch_BOOL     isNeedSaveWindowBits;
+        int             strategy;
     } TCompressPlugin_zlib;
     typedef struct _zlib_TCompress{
         const hpatch_TStreamOutput* out_code;
@@ -145,7 +146,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         self->c_stream.next_out = (Bytef*)_mem_buf;
         self->c_stream.avail_out = (uInt)_mem_buf_size;
         if (Z_OK!=deflateInit2(&self->c_stream,compressLevel,Z_DEFLATED,
-                               plugin->windowBits,compressMemLevel,Z_DEFAULT_STRATEGY))
+                               plugin->windowBits,compressMemLevel,plugin->strategy))
             return 0;
         return self;
     }
@@ -244,7 +245,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     _def_fun_compressType(_zlib_compressType,"zlib");
     static const TCompressPlugin_zlib zlibCompressPlugin={
         {_zlib_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_zlib_compress},
-            9,MAX_MEM_LEVEL,-MAX_WBITS,hpatch_TRUE};
+            9,8,-MAX_WBITS,hpatch_TRUE,Z_DEFAULT_STRATEGY};
     
 #   if (_IS_USED_MULTITHREAD)
     //pzlib
@@ -322,7 +323,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     _def_fun_compressType(_pzlib_compressType,"pzlib");
     static const TCompressPlugin_pzlib pzlibCompressPlugin={
         { {_pzlib_compressType,_default_maxCompressedSize,_pzlib_setThreadNum,_pzlib_compress},
-            6,MAX_MEM_LEVEL,-MAX_WBITS,hpatch_TRUE},
+            6,8,-MAX_WBITS,hpatch_TRUE,Z_DEFAULT_STRATEGY},
         kDefaultCompressThreadNumber ,{0,_default_maxCompressedSize,_pzlib_openBlockCompressor,
             _pzlib_closeBlockCompressor,_pzlib_compressBlock} };
 #   endif // _IS_USED_MULTITHREAD
