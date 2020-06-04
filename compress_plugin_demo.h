@@ -153,7 +153,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     static int _zlib_compress_close_by(const hdiff_TCompress* compressPlugin,_zlib_TCompress* self){
         int result=1;//true;
         if (!self) return result;
-        if (self->c_stream.total_in!=0){
+        if (self->c_stream.state!=0){
             int ret=deflateEnd(&self->c_stream);
             result=(Z_OK==ret);
         }

@@ -183,7 +183,7 @@ hpatch_BOOL hpatch_deccompress_mem(hpatch_TDecompress* decompressPlugin,
     mem_as_hStreamInput(&codeStream,code,code_end);
     dec=decompressPlugin->open(decompressPlugin,(out_data_end-out_data),
                                &codeStream,0,codeStream.streamSize);
-    if (dec==0) return hpatch_FALSE;
+    if (dec==0) return _hpatch_FALSE;
     result=decompressPlugin->decompress_part(dec,out_data,out_data_end);
     colose_rt=decompressPlugin->close(decompressPlugin,dec);
     assert(colose_rt);
@@ -507,7 +507,7 @@ hpatch_BOOL _TStreamCacheClip_skipData(TStreamCacheClip* sclip,hpatch_StreamPos_
             _TStreamCacheClip_skipData_noCheck(sclip,len);
             skipLongSize-=len;
         }else{
-            return hpatch_FALSE;
+            return _hpatch_FALSE;
         }
     }
     return hpatch_TRUE;

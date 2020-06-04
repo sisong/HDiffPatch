@@ -131,7 +131,7 @@
                                                  _zlib_TDecompress* self){
         hpatch_BOOL result=hpatch_TRUE;
         if (!self) return result;
-        if (self->dec_buf!=0){
+        if (self->d_stream.state!=0){
             _close_check(Z_OK==inflateEnd(&self->d_stream));
         }
         memset(self,0,sizeof(_zlib_TDecompress));
