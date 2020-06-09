@@ -29,7 +29,7 @@
 
 #ifndef __BYTES_RLE_H_
 #define __BYTES_RLE_H_
-
+#include <string.h>
 #include <vector>
 namespace hdiff_private{
 
@@ -44,7 +44,7 @@ void bytesRLE_save(std::vector<unsigned char>& out_ctrlBuf,std::vector<unsigned 
                    const unsigned char* src,const unsigned char* src_end,int rle_parameter);
 
 #ifndef kMaxBytesRle0Len
-    static const size_t kMaxBytesRle0Len =(uint32_t)(((uint32_t)1<<31)-1);
+    static const size_t kMaxBytesRle0Len =(size_t)(((size_t)1<<31)-1);
 #endif
     
     struct TSangileStreamRLE0{

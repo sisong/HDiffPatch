@@ -645,7 +645,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
         covers.push_back(TOldCover(0,newDataSize,0));
     }else{
         const TOldCover& back=covers[covers.size()-1];
-        if (back.newPos+back.length<newDataSize){
+        if ((TUInt)back.newPos+(TUInt)back.length<newDataSize){
             covers.push_back(TOldCover(back.oldPos+back.length,newDataSize,0));
         }
     }
@@ -654,7 +654,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
     {
         TInt lastOldEnd=0;
         TInt lastNewEnd=0;
-        TInt curNewDiff=0;
+        TUInt curNewDiff=0;
         std::vector<TByte> step_bufCover;
         TSangileStreamRLE0 step_bufRle;
         std::vector<TByte> step_bufData;

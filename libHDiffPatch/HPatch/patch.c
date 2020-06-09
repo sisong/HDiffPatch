@@ -2087,7 +2087,7 @@ static hpatch_BOOL _rle0_decoder_add(rle0_decoder_t* self,TByte* out_data,hpatch
     _decode_v_process:
         self->isNeedDecode0=hpatch_TRUE;
         if (!hpatch_unpackUInt(&self->code,self->code_end,&lenv)) return _hpatch_FALSE;
-        if (lenv>self->code_end-self->code) return _hpatch_FALSE;
+        if (lenv>(size_t)(self->code_end-self->code)) return _hpatch_FALSE;
         self->lenv=(hpatch_size_t)lenv;
         goto _v_process;
     }
@@ -2134,11 +2134,12 @@ static hpatch_BOOL TOutStreamCache_flush(TOutStreamCache* self){
 
 static hpatch_BOOL TOutStreamCache_write(TOutStreamCache* self,const TByte* data,hpatch_size_t dataSize){
     while (dataSize>0) {
+        hpatch_size_t copyLen;
         hpatch_size_t curSize=self->cacheCur;
         if ((dataSize>=self->cacheEnd)&&(curSize==0)){
             return _TOutStreamCache_write(self,data,dataSize);
         }
-        hpatch_size_t copyLen=self->cacheEnd-curSize;
+        copyLen=self->cacheEnd-curSize;
         copyLen=(copyLen<=dataSize)?copyLen:dataSize;
         memcpy(self->cacheBuf+curSize,data,copyLen);
         self->cacheCur=curSize+copyLen;
@@ -2198,7 +2199,7 @@ hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,
     TStreamCacheClip    inClip;
     TOutStreamCache     outCache;
     const hpatch_size_t cache_count=3;
-    if (temp_cache_end-temp_cache<stepMemSize+hpatch_kStreamCacheSize*cache_count) return _hpatch_FALSE;
+    if ((size_t)(temp_cache_end-temp_cache)<stepMemSize+hpatch_kStreamCacheSize*cache_count) return _hpatch_FALSE;
     temp_cache+=stepMemSize;
     cache_size=(temp_cache_end-temp_cache)/cache_count;
     _TStreamCacheClip_init(&inClip,uncompressedDiffData,diffData_pos,uncompressedDiffData->streamSize,
