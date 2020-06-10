@@ -2114,7 +2114,7 @@ static hpatch_inline hpatch_BOOL TOutStreamCache_isFinish(const TOutStreamCache*
     return self->writeToPos==self->dstStream->streamSize;
 }
 
-static hpatch_BOOL _TOutStreamCache_write(TOutStreamCache* self,const TByte* data,hpatch_size_t dataSize){
+static hpatch_inline hpatch_BOOL _TOutStreamCache_write(TOutStreamCache* self,const TByte* data,hpatch_size_t dataSize){
     if (!self->dstStream->write(self->dstStream,self->writeToPos,data,data+dataSize))
         return _hpatch_FALSE;
     self->writeToPos+=dataSize;
@@ -2124,9 +2124,8 @@ static hpatch_BOOL _TOutStreamCache_write(TOutStreamCache* self,const TByte* dat
 static hpatch_BOOL TOutStreamCache_flush(TOutStreamCache* self){
     hpatch_size_t curSize=self->cacheCur;
     if (curSize>0){
-        if (!self->dstStream->write(self->dstStream,self->writeToPos,self->cacheBuf,self->cacheBuf+curSize))
+        if (!_TOutStreamCache_write(self,self->cacheBuf,curSize))
             return _hpatch_FALSE;
-        self->writeToPos+=curSize;
         self->cacheCur=0;
     }
     return hpatch_TRUE;
@@ -2169,9 +2168,9 @@ static  hpatch_BOOL _patch_copy_diff_by_outCache(TOutStreamCache* outCache,TStre
     return hpatch_TRUE;
 }
 
-static  hpatch_BOOL _patch_add_old_by_rle0(TOutStreamCache* outCache,rle0_decoder_t* rle0_decoder,
-                                           const hpatch_TStreamInput* old,hpatch_StreamPos_t oldPos,
-                                           hpatch_StreamPos_t addLength,TByte* aCache,hpatch_size_t aCacheSize){
+static  hpatch_BOOL _patch_add_old_with_rle0(TOutStreamCache* outCache,rle0_decoder_t* rle0_decoder,
+                                             const hpatch_TStreamInput* old,hpatch_StreamPos_t oldPos,
+                                             hpatch_StreamPos_t addLength,TByte* aCache,hpatch_size_t aCacheSize){
     while (addLength>0){
         hpatch_size_t decodeStep=aCacheSize;
         if (decodeStep>addLength)
@@ -2244,8 +2243,8 @@ hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,
             
             --coverCount;
             if (coverLen>0){
-                if (!_patch_add_old_by_rle0(&outCache,&rle0_decoder,oldData,oldPos,coverLen,
-                                            temp_cache,cache_size)) return _hpatch_FALSE;
+                if (!_patch_add_old_with_rle0(&outCache,&rle0_decoder,oldData,oldPos,coverLen,
+                                              temp_cache,cache_size)) return _hpatch_FALSE;
                 lastOldEnd=oldPos+coverLen;
                 lastNewEnd=newPos+coverLen;
             }else{
