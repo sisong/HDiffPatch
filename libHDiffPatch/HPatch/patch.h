@@ -42,7 +42,7 @@ hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
                   const unsigned char* oldData,const unsigned char* oldData_end,
                   const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
 
-//patch by stream , used (hpatch_kStreamCacheSize*7 stack memory) for I/O cache
+//patch by stream , used (hpatch_kStreamCacheSize*8 stack memory) for I/O cache
 //  serializedDiff create by create_diff()
 //  if use patch_stream_with_cache(), can passing more memory for I/O cache
 hpatch_BOOL patch_stream(const hpatch_TStreamOutput* out_newData,
@@ -72,7 +72,7 @@ hpatch_inline static hpatch_BOOL
     }
 
     
-//patch with decompress plugin, used (hpatch_kStreamCacheSize*5 stack memory) + (decompress memory*4)
+//patch with decompress plugin, used (hpatch_kStreamCacheSize*6 stack memory) + (decompress memory*4)
 //  compressedDiff create by create_compressed_diff() or create_compressed_diff_stream()
 //  decompressPlugin can null when no compressed data in compressedDiff
 //  if use patch_decompress_with_cache(), can passing larger memory cache to optimize speed;
@@ -96,17 +96,6 @@ hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,
                                         const hpatch_TStreamInput*  compressedDiff,
                                         hpatch_TDecompress* decompressPlugin,
                                         unsigned char* temp_cache,unsigned char* temp_cache_end);
-
-//patch_decompress_repeat_out DEPRECATED
-//  will be remove in a future release version
-//see patch_decompress(), used (hpatch_kStreamCacheSize*5 stack memory) + (decompress*2 used memory)
-//  write newData twice and read newData once,slower than patch_decompress,but memroy requires to be halved.
-//  recommended used in limited memory environment
-hpatch_BOOL patch_decompress_repeat_out(const hpatch_TStreamOutput* repeat_out_newData,
-                                        hpatch_TStreamInput*        in_newData,//streamSize can set 0
-                                        const hpatch_TStreamInput*  oldData,
-                                        const hpatch_TStreamInput*  compressedDiff,
-                                        hpatch_TDecompress*         decompressPlugin);
 
 //see patch_decompress()
 hpatch_inline static hpatch_BOOL

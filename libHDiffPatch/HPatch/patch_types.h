@@ -126,7 +126,7 @@ extern "C" {
     
     //default once I/O (read/write) max byte size
     #ifndef hpatch_kStreamCacheSize
-    #   define hpatch_kStreamCacheSize      1024
+    #   define hpatch_kStreamCacheSize      (1024*4)
     #endif
     #ifndef hpatch_kFileIOBufBetterSize
     #   define hpatch_kFileIOBufBetterSize  (1024*64)
