@@ -26,6 +26,8 @@
  OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#pragma warning( disable : 4706)
+
 #ifndef compress_detect_h
 #define compress_detect_h
 #include <stddef.h> //for size_t
