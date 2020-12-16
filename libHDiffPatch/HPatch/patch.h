@@ -36,24 +36,26 @@ extern "C" {
 
 //  all patch*() functions do not allocate memory
 
-//generate newData by patch(oldData + diff)
+//generate newData by patch(oldData + serializedDiff)
 //  serializedDiff create by create_diff()
 hpatch_BOOL patch(unsigned char* out_newData,unsigned char* out_newData_end,
                   const unsigned char* oldData,const unsigned char* oldData_end,
                   const unsigned char* serializedDiff,const unsigned char* serializedDiff_end);
 
-//patch by stream , used (hpatch_kStreamCacheSize*8 stack memory) for I/O cache
+//patch by stream, see patch()
+//  used (hpatch_kStreamCacheSize*8 stack memory) for I/O cache
+//  if use patch_stream_with_cache(), can passing more memory for I/O cache to optimize speed
 //  serializedDiff create by create_diff()
-//  if use patch_stream_with_cache(), can passing more memory for I/O cache
-hpatch_BOOL patch_stream(const hpatch_TStreamOutput* out_newData,
-                         const hpatch_TStreamInput*  oldData,
-                         const hpatch_TStreamInput*  serializedDiff);
+hpatch_BOOL patch_stream(const hpatch_TStreamOutput* out_newData,       //sequential write
+                         const hpatch_TStreamInput*  oldData,           //random read
+                         const hpatch_TStreamInput*  serializedDiff);   //random read
 
 //see patch_stream()
-//  limit (temp_cache_end-temp_cache)>=2048
-hpatch_BOOL patch_stream_with_cache(const hpatch_TStreamOutput* out_newData,
-                                    const hpatch_TStreamInput*  oldData,
-                                    const hpatch_TStreamInput*  serializedDiff,
+//  can passing more memory for I/O cache to optimize speed
+//  note: (temp_cache_end-temp_cache)>=2048
+hpatch_BOOL patch_stream_with_cache(const hpatch_TStreamOutput* out_newData,    //sequential write
+                                    const hpatch_TStreamInput*  oldData,        //random read
+                                    const hpatch_TStreamInput*  serializedDiff, //random read
                                     unsigned char* temp_cache,unsigned char* temp_cache_end);
 
 
@@ -72,13 +74,14 @@ hpatch_inline static hpatch_BOOL
     }
 
     
-//patch with decompress plugin, used (hpatch_kStreamCacheSize*6 stack memory) + (decompress memory*4)
+//patch with decompress plugin
+//  used (hpatch_kStreamCacheSize*6 stack memory) + (decompress memory*4)
 //  compressedDiff create by create_compressed_diff() or create_compressed_diff_stream()
 //  decompressPlugin can null when no compressed data in compressedDiff
-//  if use patch_decompress_with_cache(), can passing larger memory cache to optimize speed;
-hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
-                             const hpatch_TStreamInput*  oldData,
-                             const hpatch_TStreamInput*  compressedDiff,
+//  if use patch_decompress_with_cache(), can passing larger memory cache to optimize speed
+hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,       //sequential write
+                             const hpatch_TStreamInput*  oldData,           //random read
+                             const hpatch_TStreamInput*  compressedDiff,    //random read
                              hpatch_TDecompress* decompressPlugin);
 
 
@@ -89,11 +92,11 @@ hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
 #endif
 
 //see patch_decompress()
-//  use larger memory cache to optimize speed
-//  limit (temp_cache_end-temp_cache)>=2048
-hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,
-                                        const hpatch_TStreamInput*  oldData,
-                                        const hpatch_TStreamInput*  compressedDiff,
+//  can passing larger memory cache to optimize speed
+//  note: (temp_cache_end-temp_cache)>=2048
+hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,    //sequential write
+                                        const hpatch_TStreamInput*  oldData,        //random read
+                                        const hpatch_TStreamInput*  compressedDiff, //random read
                                         hpatch_TDecompress* decompressPlugin,
                                         unsigned char* temp_cache,unsigned char* temp_cache_end);
 
@@ -148,13 +151,20 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
     } hpatch_singleCompressedDiffInfo;
     
     hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_diffInfo,
-                                            const hpatch_TStreamInput*  singleCompressedDiff,
-                                            hpatch_StreamPos_t          diffHead_pos);
+                                            const hpatch_TStreamInput*  singleCompressedDiff,   //sequential read
+                                            hpatch_StreamPos_t diffInfo_pos/*default 0, begin pos in singleCompressedDiff*/);
     
+	//patch with diffData, the diffData saved as single compressed stream
+	//	used (stepMemSize memory) + (I/O cache memory) + (decompress memory*1)
+	//	note: (I/O cache memory) >= hpatch_kStreamCacheSize*3
+	//  temp_cache_end-temp_cache == stepMemSize + (I/O cache memory)
+	//  singleCompressedDiff create by create_single_compressed_diff()
+	//  decompressPlugin can null when no compressed data in singleCompressedDiff
+	//  same as call compressed_stream_as_uncompressed() + patch_single_stream_diff()
     hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData,          //sequential write
                                              const hpatch_TStreamInput*  oldData,              //random read
-                                             const hpatch_TStreamInput*  compressedDiffData,   //sequential read
-                                             hpatch_StreamPos_t          diffData_pos,
+                                             const hpatch_TStreamInput*  singleCompressedDiff, //sequential read
+                                             hpatch_StreamPos_t          diffData_pos, //begin pos in singleCompressedDiff
                                              hpatch_StreamPos_t          uncompressedSize,
                                              hpatch_TDecompress*         decompressPlugin,
                                              hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
@@ -174,7 +184,7 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
     hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,          //sequential write
                                          const hpatch_TStreamInput*   oldData,              //random read
                                          const hpatch_TStreamInput*   uncompressedDiffData, //sequential read
-                                         hpatch_StreamPos_t           diffData_pos,
+                                         hpatch_StreamPos_t           diffData_pos, //begin pos in uncompressedDiffData
                                          hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                          unsigned char* temp_cache,unsigned char* temp_cache_end);
 

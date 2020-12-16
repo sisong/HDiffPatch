@@ -1935,7 +1935,7 @@ hpatch_BOOL hpatch_coverList_open_compressedDiff(hpatch_TCoverList* out_coverLis
 
 hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData,
                                          const hpatch_TStreamInput*  oldData,
-                                         const hpatch_TStreamInput*  compressedDiffData,
+                                         const hpatch_TStreamInput*  singleCompressedDiff,
                                          hpatch_StreamPos_t          diffData_pos,
                                          hpatch_StreamPos_t          uncompressedSize,
                                          hpatch_TDecompress*         decompressPlugin,
@@ -1945,12 +1945,12 @@ hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData
     hpatch_TUncompresser_t uncompressedStream;
     memset(&uncompressedStream,0,sizeof(uncompressedStream));
     if (decompressPlugin){
-        if (!compressed_stream_as_uncompressed(&uncompressedStream,uncompressedSize,decompressPlugin,compressedDiffData,
-                                               diffData_pos,compressedDiffData->streamSize)) return _hpatch_FALSE;
-        compressedDiffData=&uncompressedStream.base;
+        if (!compressed_stream_as_uncompressed(&uncompressedStream,uncompressedSize,decompressPlugin,singleCompressedDiff,
+                                               diffData_pos,singleCompressedDiff->streamSize)) return _hpatch_FALSE;
+        singleCompressedDiff=&uncompressedStream.base;
         diffData_pos=0;
     }
-    result=patch_single_stream_diff(out_newData,oldData,compressedDiffData,diffData_pos,
+    result=patch_single_stream_diff(out_newData,oldData,singleCompressedDiff,diffData_pos,
                                     coverCount,stepMemSize,temp_cache,temp_cache_end);
     if (decompressPlugin)
         close_compressed_stream_as_uncompressed(&uncompressedStream);
@@ -1960,11 +1960,11 @@ hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData
 
 hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_diffInfo,
                                         const hpatch_TStreamInput* singleCompressedDiff,
-                                        hpatch_StreamPos_t         diffHead_pos){
+                                        hpatch_StreamPos_t         diffInfo_pos){
     TStreamCacheClip  _diffHeadClip;
     TStreamCacheClip* diffHeadClip=&_diffHeadClip;
     TByte             temp_cache[hpatch_kStreamCacheSize];
-    _TStreamCacheClip_init(&_diffHeadClip,singleCompressedDiff,diffHead_pos,singleCompressedDiff->streamSize,
+    _TStreamCacheClip_init(&_diffHeadClip,singleCompressedDiff,diffInfo_pos,singleCompressedDiff->streamSize,
                            temp_cache,hpatch_kStreamCacheSize);
     {//type
         const char* kVersionType="HDIFFSF20";
@@ -1982,7 +1982,7 @@ hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_dif
     _clip_unpackUIntTo(&out_diffInfo->stepMemSize,diffHeadClip);
     _clip_unpackUIntTo(&out_diffInfo->uncompressedSize,diffHeadClip);
     _clip_unpackUIntTo(&out_diffInfo->compressedSize,diffHeadClip);
-    out_diffInfo->diffDataPos=_TStreamCacheClip_readPosOfSrcStream(diffHeadClip)-diffHead_pos;
+    out_diffInfo->diffDataPos=_TStreamCacheClip_readPosOfSrcStream(diffHeadClip)-diffInfo_pos;
     return hpatch_TRUE;
 }
 

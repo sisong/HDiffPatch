@@ -124,7 +124,7 @@ extern "C" {
                                        const unsigned char* data,const unsigned char* data_end);
     } hpatch_TStreamOutput;
     
-    //default once I/O (read/write) max byte size
+    //default once I/O (read/write) byte size
     #ifndef hpatch_kStreamCacheSize
     #   define hpatch_kStreamCacheSize      (1024*4)
     #endif

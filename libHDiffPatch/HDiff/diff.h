@@ -75,6 +75,9 @@ struct ICoverLinesListener {
                        hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
 };
 const size_t kDefaultStepMemSize =1024*256;
+
+//create a diffData between oldData and newData, the diffData saved as single compressed stream
+//  still under development!
 void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                    const unsigned char* oldData,const unsigned char* oldData_end,
                                    std::vector<unsigned char>& out_diff,ICoverLinesListener* listener,
