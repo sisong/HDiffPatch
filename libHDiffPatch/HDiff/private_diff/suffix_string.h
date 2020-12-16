@@ -79,8 +79,8 @@ private:
 private:
     const void*         m_cached_SA_begin;
     const void*         m_cached_SA_end;
-    const void*         m_cached1char_range[256*2];
-    void**              m_cached2char_range;//[256*256*2]
+    const void*         m_cached1char_range[256+1];
+    void**              m_cached2char_range;//[256*256+1]
     typedef TInt (*t_lower_bound_func)(const void* rbegin,const void* rend,
                                        const TChar* str,const TChar* str_end,
                                        const TChar* src_begin,const TChar* src_end,

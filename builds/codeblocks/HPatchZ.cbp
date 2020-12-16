@@ -22,10 +22,15 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-fomit-frame-pointer" />
-					<Add option="-O3" />
+					<Add option="-Os" />
+					<Add option="-Wno-error=format-security" />
+					<Add option="-fvisibility=hidden" />
+					<Add option="-ffunction-sections -fdata-sections" />
+					<Add option="-ffat-lto-objects -flto" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add option="-Wl,--gc-sections" />
 				</Linker>
 			</Target>
 			<Target title="Release_x86">
@@ -34,20 +39,25 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-march=i386" />
 					<Add option="-fomit-frame-pointer" />
-					<Add option="-O3" />
+					<Add option="-Os" />
 					<Add option="-m32" />
+					<Add option="-Wno-error=format-security" />
+					<Add option="-fvisibility=hidden" />
+					<Add option="-ffunction-sections -fdata-sections" />
+					<Add option="-ffat-lto-objects -flto" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
 					<Add option="-m32" />
+					<Add option="-Wl,--gc-sections" />
 				</Linker>
 			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-D_LARGEFILE_SOURCE" />
 			<Add option="-D_FILE_OFFSET_BITS=64" />
 			<Add directory="../../../lzma/C/" />
 		</Compiler>
@@ -105,6 +115,12 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../dirDiffPatch/dir_patch/dir_patch.h" />
+		<Unit filename="../../dirDiffPatch/dir_patch/dir_patch_tools.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/new_dir_output.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../dirDiffPatch/dir_patch/new_stream.c">
 			<Option compilerVar="CC" />
 		</Unit>

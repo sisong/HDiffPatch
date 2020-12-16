@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D61DE5472344D16900F6FCCF /* dir_diff_tools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */; };
+		D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */ = {isa = PBXBuildFile; fileRef = D621352123DC521F00EC4FA4 /* new_dir_output.c */; };
 		D6241AE221DE47D200E2846A /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AE021DE47D200E2846A /* new_stream.c */; };
 		D64989831F600C27000FCC24 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64989821F600C27000FCC24 /* liblzma.a */; };
 		D67D3BDC21CBCD5D0050632A /* dir_diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BD521CBCD5D0050632A /* dir_diff.cpp */; };
@@ -27,6 +29,8 @@
 		D69EECE0220C49DE001EF085 /* parallel_import.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D69EECDD220C49DE001EF085 /* parallel_import.cpp */; };
 		D6B240B021E5C21300993A81 /* res_handle_limit.c in Sources */ = {isa = PBXBuildFile; fileRef = D6B240AE21E5C21300993A81 /* res_handle_limit.c */; };
 		D6BF3A5D21E97A0B00833537 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5C21E97A0A00833537 /* file_for_patch.c */; };
+		D6C9A98E23CBF37D00AC50F8 /* dir_manifest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A98C23CBF37D00AC50F8 /* dir_manifest.cpp */; };
+		D6C9A9AC23D04F3900AC50F8 /* dir_patch_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A9AA23D04F3900AC50F8 /* dir_patch_tools.c */; };
 		D6DD68E01F4015A900A1B22B /* digest_matcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */; };
 		D6DD68E31F40163200A1B22B /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D6DD68E21F40163200A1B22B /* adler_roll.c */; };
 		D6EE505D1F287234002854A2 /* compress_detect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6EE505B1F287234002854A2 /* compress_detect.cpp */; };
@@ -45,6 +49,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _dir_ignore.h; path = ../../_dir_ignore.h; sourceTree = "<group>"; };
+		D61DE52D234391CF00F6FCCF /* dir_diff_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_diff_tools.h; sourceTree = "<group>"; };
+		D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_diff_tools.cpp; sourceTree = "<group>"; };
+		D621352123DC521F00EC4FA4 /* new_dir_output.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_dir_output.c; sourceTree = "<group>"; };
+		D621352223DC521F00EC4FA4 /* new_dir_output.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_dir_output.h; sourceTree = "<group>"; };
 		D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = file_for_dirDiff.h; sourceTree = "<group>"; };
 		D6241AE021DE47D200E2846A /* new_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_stream.c; sourceTree = "<group>"; };
 		D6241AE121DE47D200E2846A /* new_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_stream.h; sourceTree = "<group>"; };
@@ -101,6 +110,10 @@
 		D6BF3A6121EDD5A000833537 /* dir_patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_private.h; sourceTree = "<group>"; };
 		D6BF3A6421EE17EB00833537 /* checksum_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = checksum_plugin_demo.h; path = ../../checksum_plugin_demo.h; sourceTree = "<group>"; };
 		D6BF3A6521EE18BB00833537 /* checksum_plugin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = checksum_plugin.h; sourceTree = "<group>"; };
+		D6C9A98C23CBF37D00AC50F8 /* dir_manifest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_manifest.cpp; sourceTree = "<group>"; };
+		D6C9A98D23CBF37D00AC50F8 /* dir_manifest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_manifest.h; sourceTree = "<group>"; };
+		D6C9A9AA23D04F3900AC50F8 /* dir_patch_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dir_patch_tools.c; sourceTree = "<group>"; };
+		D6C9A9AB23D04F3900AC50F8 /* dir_patch_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_tools.h; sourceTree = "<group>"; };
 		D6DD68DE1F4015A900A1B22B /* digest_matcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = digest_matcher.cpp; sourceTree = "<group>"; };
 		D6DD68DF1F4015A900A1B22B /* digest_matcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = digest_matcher.h; sourceTree = "<group>"; };
 		D6DD68E11F40163200A1B22B /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = adler_roll.h; sourceTree = "<group>"; };
@@ -140,9 +153,13 @@
 		D67D3BD621CBCD5D0050632A /* dir_diff */ = {
 			isa = PBXGroup;
 			children = (
-				D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */,
+				D6C9A98C23CBF37D00AC50F8 /* dir_manifest.cpp */,
+				D6C9A98D23CBF37D00AC50F8 /* dir_manifest.h */,
 				D67D3BD521CBCD5D0050632A /* dir_diff.cpp */,
 				D67D3BDB21CBCD5D0050632A /* dir_diff.h */,
+				D6241ADF21DDA11500E2846A /* file_for_dirDiff.h */,
+				D61DE52D234391CF00F6FCCF /* dir_diff_tools.h */,
+				D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */,
 			);
 			path = dir_diff;
 			sourceTree = "<group>";
@@ -158,6 +175,10 @@
 				D67D3BD821CBCD5D0050632A /* ref_stream.h */,
 				D67D3BD921CBCD5D0050632A /* ref_stream.c */,
 				D6BF3A6121EDD5A000833537 /* dir_patch_private.h */,
+				D6C9A9AB23D04F3900AC50F8 /* dir_patch_tools.h */,
+				D6C9A9AA23D04F3900AC50F8 /* dir_patch_tools.c */,
+				D621352123DC521F00EC4FA4 /* new_dir_output.c */,
+				D621352223DC521F00EC4FA4 /* new_dir_output.h */,
 				D67D3BDF21D11DF70050632A /* dir_patch.h */,
 				D67D3BE021D11DF70050632A /* dir_patch.c */,
 			);
@@ -177,6 +198,7 @@
 				D6BF3A6421EE17EB00833537 /* checksum_plugin_demo.h */,
 				D6BF3A5C21E97A0A00833537 /* file_for_patch.c */,
 				D68CD8FF1F45D22C00A61337 /* file_for_patch.h */,
+				D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */,
 				D6367E4E21A65CB20032B717 /* _atosize.h */,
 				D6367E4D21A65CB20032B717 /* _clock_for_demo.h */,
 				D690AB9B1F20792A0089DC57 /* hdiffz.cpp */,
@@ -324,7 +346,7 @@
 		D690AB891F2078A40089DC57 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0930;
+				LastUpgradeCheck = 1030;
 				ORGANIZATIONNAME = housisong;
 				TargetAttributes = {
 					D690AB901F2078A40089DC57 = {
@@ -335,10 +357,11 @@
 			};
 			buildConfigurationList = D690AB8C1F2078A40089DC57 /* Build configuration list for PBXProject "hdiffz" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = D690AB881F2078A40089DC57;
 			productRefGroup = D690AB921F2078A40089DC57 /* Products */;
@@ -355,10 +378,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D6C9A9AC23D04F3900AC50F8 /* dir_patch_tools.c in Sources */,
+				D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */,
 				D69EECD9220BD8E2001EF085 /* compress_parallel.cpp in Sources */,
 				D6BF3A5D21E97A0B00833537 /* file_for_patch.c in Sources */,
 				D67D3BDC21CBCD5D0050632A /* dir_diff.cpp in Sources */,
 				D67D3BE121D11DF70050632A /* dir_patch.c in Sources */,
+				D6C9A98E23CBF37D00AC50F8 /* dir_manifest.cpp in Sources */,
 				D6EE505D1F287234002854A2 /* compress_detect.cpp in Sources */,
 				D6DD68E01F4015A900A1B22B /* digest_matcher.cpp in Sources */,
 				D6241AE221DE47D200E2846A /* new_stream.c in Sources */,
@@ -368,6 +394,7 @@
 				D690ABB81F2079E80089DC57 /* bytes_rle.cpp in Sources */,
 				D690ABBB1F2079E80089DC57 /* suffix_string.cpp in Sources */,
 				D67D3BDD21CBCD5D0050632A /* ref_stream.c in Sources */,
+				D61DE5472344D16900F6FCCF /* dir_diff_tools.cpp in Sources */,
 				D69EECDF220C49DE001EF085 /* parallel_channel.cpp in Sources */,
 				D690ABB71F2079E80089DC57 /* diff.cpp in Sources */,
 				D690ABBA1F2079E80089DC57 /* divsufsort64.c in Sources */,
@@ -385,6 +412,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
@@ -434,7 +462,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -446,6 +474,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
@@ -480,7 +509,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = fast;
+				GCC_OPTIMIZATION_LEVEL = s;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -492,7 +521,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 				VALID_ARCHS = x86_64;

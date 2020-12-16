@@ -19,6 +19,8 @@
 		D6BD9BCE17578601004886DE /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BD9BCA17578601004886DE /* patch.c */; };
 		D6BF3A5721E8CDC300833537 /* res_handle_limit.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5621E8CDC300833537 /* res_handle_limit.c */; };
 		D6BF3A5921E95F4200833537 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5821E95F4200833537 /* file_for_patch.c */; };
+		D6C9A9A623D03F4B00AC50F8 /* dir_patch_tools.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A9A423D03F4B00AC50F8 /* dir_patch_tools.c */; };
+		D6C9A9AF23D3CC2500AC50F8 /* new_dir_output.c in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A9AD23D3CC2500AC50F8 /* new_dir_output.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -64,6 +66,11 @@
 		D6BF3A5621E8CDC300833537 /* res_handle_limit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = res_handle_limit.c; sourceTree = "<group>"; };
 		D6BF3A5821E95F4200833537 /* file_for_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_for_patch.c; path = ../../file_for_patch.c; sourceTree = "<group>"; };
 		D6BF3A6221EDD5A900833537 /* dir_patch_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_private.h; sourceTree = "<group>"; };
+		D6C9A9A323D03F4B00AC50F8 /* dir_patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_types.h; sourceTree = "<group>"; };
+		D6C9A9A423D03F4B00AC50F8 /* dir_patch_tools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dir_patch_tools.c; sourceTree = "<group>"; };
+		D6C9A9A523D03F4B00AC50F8 /* dir_patch_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_tools.h; sourceTree = "<group>"; };
+		D6C9A9AD23D3CC2500AC50F8 /* new_dir_output.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_dir_output.c; sourceTree = "<group>"; };
+		D6C9A9AE23D3CC2500AC50F8 /* new_dir_output.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_dir_output.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -136,6 +143,11 @@
 				D67D3BF121D3C5870050632A /* ref_stream.c */,
 				D67D3BF321D3C5870050632A /* ref_stream.h */,
 				D6BF3A6221EDD5A900833537 /* dir_patch_private.h */,
+				D6C9A9A323D03F4B00AC50F8 /* dir_patch_types.h */,
+				D6C9A9A423D03F4B00AC50F8 /* dir_patch_tools.c */,
+				D6C9A9A523D03F4B00AC50F8 /* dir_patch_tools.h */,
+				D6C9A9AD23D3CC2500AC50F8 /* new_dir_output.c */,
+				D6C9A9AE23D3CC2500AC50F8 /* new_dir_output.h */,
 				D67D3BF021D3C5870050632A /* dir_patch.h */,
 				D67D3BF221D3C5870050632A /* dir_patch.c */,
 			);
@@ -191,15 +203,16 @@
 		D6553CAB165FA1A9009D4C44 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1000;
+				LastUpgradeCheck = 1030;
 				ORGANIZATIONNAME = HouSisong;
 			};
 			buildConfigurationList = D6553CAE165FA1A9009D4C44 /* Build configuration list for PBXProject "hpatchz" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = D6553CAA165FA1A9009D4C44;
 			productRefGroup = D6553CB4165FA1A9009D4C44 /* Products */;
@@ -217,6 +230,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6241AD321DC6C0F00E2846A /* LzmaDec.c in Sources */,
+				D6C9A9AF23D3CC2500AC50F8 /* new_dir_output.c in Sources */,
 				D69EECD5220A8F2B001EF085 /* Lzma2Dec.c in Sources */,
 				D6BD9BCE17578601004886DE /* patch.c in Sources */,
 				D67D3BF421D3C5870050632A /* ref_stream.c in Sources */,
@@ -226,6 +240,7 @@
 				D6BF3A5921E95F4200833537 /* file_for_patch.c in Sources */,
 				D6BAF70321F2F61B00C30C0A /* adler_roll.c in Sources */,
 				D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */,
+				D6C9A9A623D03F4B00AC50F8 /* dir_patch_tools.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -236,6 +251,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -279,7 +295,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				VALID_ARCHS = x86_64;
@@ -290,6 +306,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -316,7 +333,7 @@
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = fast;
+				GCC_OPTIMIZATION_LEVEL = s;
 				GCC_PREPROCESSOR_DEFINITIONS = NDEBUG;
 				GCC_STRICT_ALIASING = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -330,7 +347,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				SDKROOT = macosx;
 				VALID_ARCHS = x86_64;
 			};

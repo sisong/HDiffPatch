@@ -55,8 +55,8 @@ struct TWorkData{
     hdiff_TParallelCompress*        pc;
     size_t                          blockSize;
     size_t                          threadMemSize;
-    const hdiff_TStreamOutput*      out_code;
-    const hdiff_TStreamInput*       in_data;
+    const hpatch_TStreamOutput*     out_code;
+    const hpatch_TStreamInput*      in_data;
     
     bool                            isInError;
     hpatch_StreamPos_t              inDataPos;
@@ -128,8 +128,8 @@ void _threadRunCallBack(int threadIndex,void* _workData){
 
 hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
                                             int threadNum,size_t blockSize,
-                                            const hdiff_TStreamOutput* out_code,
-                                            const hdiff_TStreamInput*  in_data){
+                                            const hpatch_TStreamOutput* out_code,
+                                            const hpatch_TStreamInput*  in_data){
     assert(blockSize>0);
     assert(threadNum>0);
     if (threadNum<1) threadNum=1;
@@ -157,8 +157,8 @@ hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
         for (int t=0;t<threadNum; ++t) //wait all thread end
             workData.chanForWorkEnd.accept(true);
         return workData.isInError?0:workData.outCodePos;
-    } catch (const std::exception& err) {
-        fprintf(stderr,"parallel_compress_blocks run error! %s\n",err.what());
+    } catch (const std::exception& e) {
+        fprintf(stderr,"parallel_compress_blocks run error! %s\n",e.what());
         return 0; //error
     }
 }

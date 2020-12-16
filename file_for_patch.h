@@ -64,17 +64,15 @@ typedef unsigned char TByte;
 #define hpatch_kFileIOBestMaxSize  (1<<20)
 #define hpatch_kPathMaxSize  (1024*2)
     
-#ifdef _WIN32
-    static const char kPatch_dirSeparator = '\\';
-#else
-    static const char kPatch_dirSeparator = '/';
-#endif
-    static const char kPatch_dirSeparator_saved = '/';
-    
 hpatch_inline static
 hpatch_BOOL hpatch_getIsDirName(const char* path_utf8){
     size_t len=strlen(path_utf8);
     return (len>0)&&(path_utf8[len-1]==kPatch_dirSeparator);
+}
+
+hpatch_inline static const char* findUntilEnd(const char* str,char c){
+    const char* result=strchr(str,c);
+    return (result!=0)?result:(str+strlen(str));
 }
 
 
@@ -85,14 +83,6 @@ hpatch_BOOL hpatch_getIsDirName(const char* path_utf8){
         if ((len>0)&&(src_path[len-1]==kPatch_dirSeparator)) --len; /* without '/' */\
         memcpy(dst_path,src_path,len); \
         dst_path[len]='\0';  } /* safe */
-
-#ifndef PRIu64
-#   ifdef _MSC_VER
-#       define PRIu64 "I64u"
-#   else
-#       define PRIu64 "llu"
-#   endif
-#endif
 
 
 #ifdef _WIN32
@@ -188,7 +178,21 @@ hpatch_BOOL hpatch_getPathStat(const char* path_utf8,hpatch_TPathType* out_type,
         return _hpatch_getPathStat_noEndDirSeparator(path,out_type,out_fileSize,0);
     }
 }
-
+hpatch_inline static
+hpatch_BOOL hpatch_isPathNotExist(const char* pathName){
+    hpatch_TPathType type;
+    if (pathName==0) return hpatch_FALSE;
+    if (!hpatch_getPathStat(pathName,&type,0)) return hpatch_FALSE;
+    return (kPathType_notExist==type);
+}
+hpatch_inline static
+hpatch_BOOL hpatch_isPathExist(const char* pathName){
+    hpatch_TPathType type;
+    if (pathName==0) return hpatch_FALSE;
+    if (!hpatch_getPathStat(pathName,&type,0)) return hpatch_FALSE;
+    return (kPathType_notExist!=type);
+}
+    
 hpatch_BOOL hpatch_getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end);
 hpatch_BOOL hpatch_renamePath(const char* oldPath_utf8,const char* newPath_utf8);
 hpatch_BOOL hpatch_removeFile(const char* fileName_utf8);
@@ -236,7 +240,7 @@ static void hpatch_TFileStreamOutput_init(hpatch_TFileStreamOutput* self){
     memset(self,0,sizeof(hpatch_TFileStreamOutput));
 }
 hpatch_BOOL hpatch_TFileStreamOutput_open(hpatch_TFileStreamOutput* self,const char* fileName_utf8,
-                                   hpatch_StreamPos_t max_file_length);
+                                          hpatch_StreamPos_t max_file_length);
 hpatch_inline static
 void hpatch_TFileStreamOutput_setRandomOut(hpatch_TFileStreamOutput* self,hpatch_BOOL is_random_out){
     self->is_random_out=is_random_out;
@@ -245,6 +249,10 @@ void hpatch_TFileStreamOutput_setRandomOut(hpatch_TFileStreamOutput* self,hpatch
 hpatch_BOOL hpatch_TFileStreamOutput_flush(hpatch_TFileStreamOutput* self);
 hpatch_BOOL hpatch_TFileStreamOutput_close(hpatch_TFileStreamOutput* self);
 
+hpatch_BOOL hpatch_TFileStreamOutput_reopen(hpatch_TFileStreamOutput* self,const char* fileName_utf8,
+                                            hpatch_StreamPos_t max_file_length);
+//hpatch_BOOL hpatch_TFileStreamOutput_truncate(hpatch_TFileStreamOutput* self,hpatch_StreamPos_t new_file_length);
+    
 #ifdef __cplusplus
 }
 #endif

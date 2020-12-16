@@ -1,5 +1,6 @@
-//checksum_plugin.h
-//  checksum plugin type
+// dir_patch_tools.h
+// hdiffz dir patch
+//
 /*
  The MIT License (MIT)
  Copyright (c) 2018-2019 HouSisong
@@ -25,28 +26,28 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef HPatch_checksum_plugin_h
-#define HPatch_checksum_plugin_h
-#include "patch_types.h"
+#ifndef DirPatch_dir_patch_tools_h
+#define DirPatch_dir_patch_tools_h
+#include "dir_patch_types.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+#include "../../libHDiffPatch/HPatch/patch_private.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
+    void formatDirTagForLoad(char* utf8_path,char* utf8_pathEnd);
+    hpatch_BOOL clipCStrsTo(const char* cstrs,const char* cstrsEnd,
+                            const char** out_cstrList,size_t cstrCount);
+    hpatch_BOOL readListTo(TStreamCacheClip* sclip,hpatch_StreamPos_t* out_list,size_t count);
+    hpatch_BOOL readIncListTo(TStreamCacheClip* sclip,size_t* out_list,
+                              size_t count,size_t check_endValue);
     
-    typedef void*  hpatch_checksumHandle;
-    typedef struct hpatch_TChecksum{
-        //return type tag; strlen(result)<=hpatch_kMaxPluginTypeLength; (Note:result lifetime)
-        const char*   (*checksumType)(void); //ascii cstring,cannot contain '&'
-        hpatch_size_t (*checksumByteSize)(void); //result<=hpatch_kStreamCacheSize
-        hpatch_checksumHandle (*open)(struct hpatch_TChecksum* plugin);
-        void                 (*close)(struct hpatch_TChecksum* plugin,hpatch_checksumHandle handle);
-        void                 (*begin)(hpatch_checksumHandle handle);
-        void                (*append)(hpatch_checksumHandle handle,
-                                      const unsigned char* part_data,const unsigned char* part_data_end);
-        void                   (*end)(hpatch_checksumHandle handle,
-                                      unsigned char* checksum,unsigned char* checksum_end);
-    } hpatch_TChecksum;
+    //return path end pos
+    char* setPath(char* out_path,char* out_pathBufEnd,const char* fileName);
+    char* setDirPath(char* out_path,char* out_pathBufEnd,const char* dirName);
+
     
 #ifdef __cplusplus
 }
 #endif
 #endif
+#endif //DirPatch_dir_patch_tools_h

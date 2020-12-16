@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v3.0.9-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v3.1.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -7,17 +7,43 @@
 [![Build Status](https://travis-ci.org/sisong/HDiffPatch.svg?branch=master)](https://travis-ci.org/sisong/HDiffPatch) 
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 
-a C\C++ library and command-line tools for binary data Diff & Patch; fast and create small delta/differential; support large files and directory(folder) and limit memory requires both diff & patch.    
+a C\C++ library and command-line tools for Diff & Patch between binary files or directories(folder); cross-platform; run fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
    
 ( update Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )   
 ( NOTE: This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
    
 ---
 ## Releases/Binaries
-[Download from last release](https://github.com/sisong/HDiffPatch/releases) : Command line app for Windows , Linux , MacOS; and .so .java for Android.   
+[Download from latest release](https://github.com/sisong/HDiffPatch/releases) : Command line app for Windows, Linux, MacOS; and .so patch lib for Android.     
+( release files build by projects in path `HDiffPatch/builds` )   
 
+## Builds
+`$ cd <dir>/HDiffPatch`
+if on linux or macos, try : `$ make LZMA=0`     
+or    
+```
+$ git clone https://github.com/sisong/lzma.git ../lzma
+$ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ make MT=1 MD5=1
+```    
+   
+if on windows, befor compile by `Visual Studio` 
+```
+$ git clone https://github.com/sisong/lzma.git   ../lzma
+$ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone https://github.com/sisong/zlib.git   ../zlib
+$ git clone https://github.com/sisong/bzip2.git   ../bzip2
+```
+   
+build libhpatchz.so for android:   
+* install Android NDK
+* `$ cd <dir>/HDiffPatch/builds/android_ndk_jni_mk`
+* `$ build_libs.sh`   (or `$ build_libs.bat`) 
+* import file `com/github/sisong/HPatch.java` (path `HDiffPatch/builds/android_ndk_jni_mk/java/`), java code can call the patch function in libhpatchz.so
+   
 ## diff command line usage:   
-diff    usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
+diff     usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
+compress usage: **hdiffz** [-c-...]  **"" newPath outDiffFile**   
 test    usage: **hdiffz**    -t     **oldPath newPath testDiffFile**   
 resave  usage: **hdiffz** [-c-...]  **diffFile outDiffFile**   
 get  manifest: **hdiffz** [-g#...] [-C-checksumType] **inputPath -M#outManifestTxtFile**   
@@ -37,8 +63,8 @@ memory options:
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
 special options:
   -p-parallelThreadNumber
-    if parallelThreadNumber>1 then open multi-thread Parallel mode;
-    DEFAULT -p-4; requires more and more memory!
+      if parallelThreadNumber>1 then open multi-thread Parallel mode;
+      DEFAULT -p-4; requires more and more memory!
   -c-compressType[-compressLevel]
       set outDiffFile Compress type & level, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
@@ -110,11 +136,11 @@ special options:
    
 ## patch command line usage:   
 patch usage: **hpatchz** [options] **oldPath diffFile outNewPath**   
+uncompress usage: **hpatchz** [options] **"" diffFile outNewPath**   
 create  SFX: **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractArchive**   
 run     SFX: **selfExtractArchive** [options] **oldPath -X outNewPath**   
-extract SFX: **selfExtractArchive**    (same as: selfExtractArchive -f "" -X "./")
+extract SFX: **selfExtractArchive**   (same as: selfExtractArchive -f "" -X "./")
 ```
-  ( if oldPath is empty input parameter "" )
 memory options:
   -m  oldPath all loaded into Memory;
       requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.
@@ -222,6 +248,8 @@ Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      1
 ```
    
 ## HDiffPatch vs xdelta:
+system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
+   (purge file cache before every test)
 ```
 HDiffPatch2.4 hdiffz run by: -s-128 -c-bzip2-9 oldFile newFile outDiffFile
               hpatchz run by: -s-4m oldFile diffFile outNewFile

@@ -29,16 +29,33 @@
 #ifndef DirPatch_dir_patch_types_h
 #define DirPatch_dir_patch_types_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
-
+#ifdef __cplusplus
+extern "C" {
+#endif
+    
 #ifndef _IS_NEED_DIR_DIFF_PATCH
 #   define _IS_NEED_DIR_DIFF_PATCH  1
 #endif
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#   define kMaxOpenFileNumber_limit_min          3
+#   define kMaxOpenFileNumber_limit_min          4
 #   define kMaxOpenFileNumber_default_min        8 //must >= limit_min
 #   define kMaxOpenFileNumber_default_diff      48
 #   define kMaxOpenFileNumber_default_patch     24
 #endif
 
+#ifdef _WIN32
+static const char kPatch_dirSeparator = '\\';
+#else
+static const char kPatch_dirSeparator = '/';
+#endif
+static const char kPatch_dirSeparator_saved = '/';
+
+static hpatch_inline  //align upper
+hpatch_StreamPos_t toAlignRangeSize(hpatch_StreamPos_t rangeSize,size_t kAlignSize)
+        { return (rangeSize+kAlignSize-1)/kAlignSize*kAlignSize; }
+
+#ifdef __cplusplus
+}
+#endif
 #endif //DirPatch_dir_patch_types_h

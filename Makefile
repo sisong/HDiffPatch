@@ -1,20 +1,23 @@
 # args
-LZMA     := 1
 DIR_DIFF := 1
+MT       := 1
+LZMA     := 1
 MD5      := 0
-MT       := 0
 
 
 HPATCH_OBJ := \
     libHDiffPatch/HPatch/patch.o \
-    file_for_patch.o \
-    dirDiffPatch/dir_patch/dir_patch.o
+    file_for_patch.o
+
 ifeq ($(DIR_DIFF),0)
 else
   HPATCH_OBJ += \
+    dirDiffPatch/dir_patch/dir_patch.o \
     dirDiffPatch/dir_patch/res_handle_limit.o \
     dirDiffPatch/dir_patch/ref_stream.o \
     dirDiffPatch/dir_patch/new_stream.o \
+    dirDiffPatch/dir_patch/dir_patch_tools.o \
+    dirDiffPatch/dir_patch/new_dir_output.o \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o
 endif
 
@@ -33,7 +36,9 @@ HDIFF_OBJ := \
 ifeq ($(DIR_DIFF),0)
 else
   HDIFF_OBJ += \
-    dirDiffPatch/dir_diff/dir_diff.o
+    dirDiffPatch/dir_diff/dir_diff.o \
+    dirDiffPatch/dir_diff/dir_diff_tools.o \
+    dirDiffPatch/dir_diff/dir_manifest.o
 endif
 ifeq ($(MT),0)
 else
@@ -45,8 +50,7 @@ endif
 
 
 DEF_FLAGS := \
-    -O3 -DNDEBUG -D_FILE_OFFSET_BITS=64 \
-    -D_IS_NEED_ORIGINAL=1 \
+    -Os -DNDEBUG -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
     -D_IS_NEED_ALL_CompressPlugin=0 \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \
     -D_CompressPlugin_zlib  \
@@ -115,18 +119,18 @@ ifeq ($(LZMA),0)
   LZMA_DEC_OBJ :=
   LZMA_OBJ     :=
   lzmaLib      :
-else
+else  
   LZMA_DEC_OBJ := 'LzmaDec.o' 'Lzma2Dec.o' 
   LZMA_OBJ     := 'LzFind.o' 'LzmaEnc.o' 'Lzma2Enc.o' $(LZMA_DEC_OBJ)
   LZMA_SRC     := '../lzma/C/LzFind.c' '../lzma/C/LzmaDec.c' '../lzma/C/LzmaEnc.c' \
 		     '../lzma/C/Lzma2Dec.c' '../lzma/C/Lzma2Enc.c'
   ifeq ($(MT),0)  
-  else  # download from https://github.com/sisong/lzma/tree/pthread
+  else  
     LZMA_OBJ += 'LzFindMt.o' 'MtCoder.o' 'MtDec.o' 'ThreadsP.o'
     LZMA_SRC += '../lzma/C/LzFindMt.c' '../lzma/C/MtCoder.c' \
 		   '../lzma/C/MtDec.c' '../lzma/C/ThreadsP.c' 
   endif
-  lzmaLib: # https://www.7-zip.org/sdk.html  https://github.com/sisong/lzma
+  lzmaLib: # https://github.com/sisong/lzma
 	$(CC) -c $(CFLAGS) $(LZMA_SRC)
 endif
 

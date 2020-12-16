@@ -43,7 +43,7 @@
 #else
 #   if (_IS_USED_MULTITHREAD>0)
 #       if ( (!(defined _IS_USED_WIN32THREAD)) && (defined _WIN32) )
-#           define  _IS_USED_WIN32THREAD    1
+#           define  _IS_USED_WIN32THREAD        1
 #       else
 #           if ( (!(defined _IS_USED_CPP11THREAD)) && (__cplusplus >= 201103L) )
 #               define  _IS_USED_CPP11THREAD    1
@@ -71,9 +71,9 @@
 #   define TLockerBox           void  /*  used std::unique_lock<std::mutex>  */
 #   define _TLockerBox_name     std::unique_lock<std::mutex>
 #else
-    struct TLockerBox {
+    typedef struct{
         HLocker locker;
-    };
+    } TLockerBox;
 #endif
     HCondvar    condvar_new(void);
     void        condvar_delete(HCondvar cond);
@@ -81,12 +81,12 @@
     void        condvar_signal(HCondvar cond);
     void        condvar_broadcast(HCondvar cond);
 
-    void this_thread_yield();
+    void this_thread_yield(void);
 
     //parallel run
     typedef void (*TThreadRunCallBackProc)(int threadIndex,void* workData);
     void  thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
-                          int isUseThisThread,int threadIndexStart=0);
+                          int isUseThisThread,int threadIndexStart);
 
 #endif //_IS_USED_MULTITHREAD
 #endif //parallel_import_h

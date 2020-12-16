@@ -44,21 +44,21 @@ extern "C"
         //return the max compressed size, if input dataSize data;
         hpatch_StreamPos_t (*maxCompressedSize)(hpatch_StreamPos_t dataSize);
         //return support threadNumber
-        int          (*setParallelThreadNumber)(hdiff_TCompress* compressPlugin,int threadNum);
+        int          (*setParallelThreadNumber)(struct hdiff_TCompress* compressPlugin,int threadNum);
         //compress data to out_code; return compressed size, if error or not need compress then return 0;
         //if out_code->write() return hdiff_stream_kCancelCompress(error) then return 0;
         //if memory I/O can use hdiff_compress_mem()
-        hpatch_StreamPos_t          (*compress)(const hdiff_TCompress* compressPlugin,
-                                                const hdiff_TStreamOutput*   out_code,
-                                                const hdiff_TStreamInput*    in_data);
+        hpatch_StreamPos_t          (*compress)(const struct hdiff_TCompress* compressPlugin,
+                                                const hpatch_TStreamOutput*   out_code,
+                                                const hpatch_TStreamInput*    in_data);
     } hdiff_TCompress;
     
     static hpatch_inline
     size_t hdiff_compress_mem(const hdiff_TCompress* compressPlugin,
                               unsigned char* out_code,unsigned char* out_code_end,
                               const unsigned char* data,const unsigned char* data_end){
-        hdiff_TStreamOutput  codeStream;
-        hdiff_TStreamInput   dataStream;
+        hpatch_TStreamOutput codeStream;
+        hpatch_TStreamInput  dataStream;
         mem_as_hStreamOutput(&codeStream,out_code,out_code_end);
         mem_as_hStreamInput(&dataStream,data,data_end);
         hpatch_StreamPos_t codeLen=compressPlugin->compress(compressPlugin,&codeStream,&dataStream);

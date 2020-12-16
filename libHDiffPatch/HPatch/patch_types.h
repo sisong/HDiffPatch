@@ -29,7 +29,7 @@
 #ifndef HPatch_patch_types_h
 #define HPatch_patch_types_h
 
-#include <string.h> //for size_t memset memcpy
+#include <string.h> //for size_t memset memcpy memmove
 #include <assert.h>
 
 #ifdef __cplusplus
@@ -37,41 +37,69 @@ extern "C" {
 #endif
 
 #define HDIFFPATCH_VERSION_MAJOR    3
-#define HDIFFPATCH_VERSION_MINOR    0
-#define HDIFFPATCH_VERSION_RELEASE  9
+#define HDIFFPATCH_VERSION_MINOR    1
+#define HDIFFPATCH_VERSION_RELEASE  0
 
 #define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
 #define _HDIFFPATCH_QUOTE(str) #str
 #define _HDIFFPATCH_EXPAND_AND_QUOTE(str) _HDIFFPATCH_QUOTE(str)
 #define HDIFFPATCH_VERSION_STRING   _HDIFFPATCH_EXPAND_AND_QUOTE(_HDIFFPATCH_VERSION)
 
+#ifndef hpatch_int
+    typedef int                 hpatch_int;
+#endif
+#ifndef hpatch_uint
+    typedef unsigned int        hpatch_uint;
+#endif
+#ifndef hpatch_size_t
+    typedef size_t              hpatch_size_t;
+#endif
+#ifndef hpatch_uint32_t
 #ifdef _MSC_VER
 #   if (_MSC_VER >= 1300)
     typedef unsigned __int32    hpatch_uint32_t;
 #   else
     typedef unsigned int        hpatch_uint32_t;
 #   endif
-    typedef unsigned __int64    hpatch_uint64_t;
 #else
     typedef unsigned int        hpatch_uint32_t;
+#endif
+#endif
+#ifndef hpatch_uint64_t
+#ifdef _MSC_VER
+    typedef unsigned __int64    hpatch_uint64_t;
+#else
     typedef unsigned long long  hpatch_uint64_t;
 #endif
-typedef hpatch_uint64_t  hpatch_StreamPos_t;
+#endif
+#ifndef hpatch_StreamPos_t
+    typedef hpatch_uint64_t     hpatch_StreamPos_t; // file size type
+#endif
+
+#ifndef hpatch_BOOL
+    typedef int                 hpatch_BOOL;
+#endif
+#define     hpatch_FALSE    0
+#define     hpatch_TRUE     ((hpatch_BOOL)(!hpatch_FALSE))
     
 #ifdef _MSC_VER
 #   define hpatch_inline _inline
 #else
 #   define hpatch_inline inline
 #endif
-    
-typedef int hpatch_BOOL;
-#define     hpatch_FALSE    0
-#define     hpatch_TRUE     ((hpatch_BOOL)(!hpatch_FALSE))
 
+//PRIu64 for printf type hpatch_StreamPos_t
+#ifndef PRIu64
+#   ifdef _MSC_VER
+#       define PRIu64 "I64u"
+#   else
+#       define PRIu64 "llu"
+#   endif
+#endif
     
 #define _hpatch_align_type_lower(uint_type,p,align2pow) (((uint_type)(p)) & (~(uint_type)((align2pow)-1)))
-#define _hpatch_align_lower(p,align2pow) _hpatch_align_type_lower(size_t,p,align2pow)
-#define _hpatch_align_upper(p,align2pow) _hpatch_align_lower(((size_t)(p))+((align2pow)-1),align2pow)
+#define _hpatch_align_lower(p,align2pow) _hpatch_align_type_lower(hpatch_size_t,p,align2pow)
+#define _hpatch_align_upper(p,align2pow) _hpatch_align_lower(((hpatch_size_t)(p))+((align2pow)-1),align2pow)
     
     typedef void* hpatch_TStreamInputHandle;
     typedef void* hpatch_TStreamOutputHandle;
@@ -96,13 +124,22 @@ typedef int hpatch_BOOL;
                                        const unsigned char* data,const unsigned char* data_end);
     } hpatch_TStreamOutput;
     
-
-    #define hpatch_kMaxPluginTypeLength   259
+    //default once I/O (read/write) byte size
+    #ifndef hpatch_kStreamCacheSize
+    #   define hpatch_kStreamCacheSize      (1024*4)
+    #endif
+    #ifndef hpatch_kFileIOBufBetterSize
+    #   define hpatch_kFileIOBufBetterSize  (1024*64)
+    #endif
     
+    #ifndef hpatch_kMaxPluginTypeLength
+    #   define hpatch_kMaxPluginTypeLength   259
+    #endif
+
     typedef struct hpatch_compressedDiffInfo{
         hpatch_StreamPos_t  newDataSize;
         hpatch_StreamPos_t  oldDataSize;
-        int                 compressedCount;//need open hpatch_decompressHandle number
+        hpatch_uint         compressedCount;//need open hpatch_decompressHandle number
         char                compressType[hpatch_kMaxPluginTypeLength+1]; //ascii cstring 
     } hpatch_compressedDiffInfo;
     
@@ -129,25 +166,11 @@ typedef int hpatch_BOOL;
     void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
                               unsigned char* mem,unsigned char* mem_end);
     
-    static hpatch_inline
     hpatch_BOOL hpatch_deccompress_mem(hpatch_TDecompress* decompressPlugin,
                                        const unsigned char* code,const unsigned char* code_end,
-                                       unsigned char* out_data,unsigned char* out_data_end){
-        hpatch_decompressHandle dec=0;
-        hpatch_BOOL result,colose_rt;
-        hpatch_TStreamInput  codeStream;
-        mem_as_hStreamInput(&codeStream,code,code_end);
-        dec=decompressPlugin->open(decompressPlugin,(out_data_end-out_data),
-                                   &codeStream,0,codeStream.streamSize);
-        if (dec==0) return hpatch_FALSE;
-        result=decompressPlugin->decompress_part(dec,out_data,out_data_end);
-        colose_rt=decompressPlugin->close(decompressPlugin,dec);
-        assert(colose_rt);
-        return result;
-    }
+                                       unsigned char* out_data,unsigned char* out_data_end);
     
-    
-    typedef struct TStreamInputClip{
+    typedef struct{
         hpatch_TStreamInput         base;
         const hpatch_TStreamInput*  srcStream;
         hpatch_StreamPos_t          clipBeginPos;
@@ -155,17 +178,26 @@ typedef int hpatch_BOOL;
     //clip srcStream from clipBeginPos to clipEndPos as a new StreamInput;
     void TStreamInputClip_init(TStreamInputClip* self,const hpatch_TStreamInput*  srcStream,
                                hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos);
-    
+    typedef struct{
+        hpatch_TStreamOutput        base;
+        const hpatch_TStreamOutput* srcStream;
+        hpatch_StreamPos_t          clipBeginPos;
+    } TStreamOutputClip;
+    //clip srcStream from clipBeginPos to clipEndPos as a new StreamInput;
+    void TStreamOutputClip_init(TStreamOutputClip* self,const hpatch_TStreamOutput*  srcStream,
+                                hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos);
+
     
     #define  hpatch_kMaxPackedUIntBytes ((sizeof(hpatch_StreamPos_t)*8+6)/7+1)
     hpatch_BOOL hpatch_packUIntWithTag(unsigned char** out_code,unsigned char* out_code_end,
-                                       hpatch_StreamPos_t uValue,unsigned int highTag,const unsigned int kTagBit);
-    unsigned int hpatch_packUIntWithTag_size(hpatch_StreamPos_t uValue,const unsigned int kTagBit);
+                                       hpatch_StreamPos_t uValue,hpatch_uint highTag,const hpatch_uint kTagBit);
+    hpatch_uint hpatch_packUIntWithTag_size(hpatch_StreamPos_t uValue,const hpatch_uint kTagBit);
     #define hpatch_packUInt(out_code,out_code_end,uValue) \
                 hpatch_packUIntWithTag(out_code,out_code_end,uValue,0,0)
-
+    #define hpatch_packUInt_size(uValue) hpatch_packUIntWithTag_size(uValue,0)
+    
     hpatch_BOOL hpatch_unpackUIntWithTag(const unsigned char** src_code,const unsigned char* src_code_end,
-                                         hpatch_StreamPos_t* result,const unsigned int kTagBit);
+                                         hpatch_StreamPos_t* result,const hpatch_uint kTagBit);
     #define hpatch_unpackUInt(src_code,src_code_end,result) \
                 hpatch_unpackUIntWithTag(src_code,src_code_end,result,0)
 

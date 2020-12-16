@@ -39,7 +39,9 @@
 #include <stdio.h>  //fprintf
 #include "libHDiffPatch/HPatch/patch_types.h"
 
-#define kDecompressBufSize (1024*16)
+#ifndef kDecompressBufSize
+#   define kDecompressBufSize (1024*16)
+#endif
 #ifndef _IsNeedIncludeDefaultCompressHead
 #   define _IsNeedIncludeDefaultCompressHead 1
 #endif
@@ -111,11 +113,25 @@
             free(_mem_buf);
         return self;
     }
+    static hpatch_decompressHandle  _zlib_decompress_open_deflate(hpatch_TDecompress* decompressPlugin,
+                                                                  hpatch_StreamPos_t dataSize,
+                                                                  const hpatch_TStreamInput* codeStream,
+                                                                  hpatch_StreamPos_t code_begin,
+                                                                  hpatch_StreamPos_t code_end){
+        _zlib_TDecompress* self=0;
+        unsigned char* _mem_buf=(unsigned char*)malloc(sizeof(_zlib_TDecompress)+kDecompressBufSize);
+        if (!_mem_buf) return 0;
+        self=_zlib_decompress_open_by(decompressPlugin,codeStream,code_begin,code_end,0,
+                                      _mem_buf,sizeof(_zlib_TDecompress)+kDecompressBufSize);
+        if (!self)
+            free(_mem_buf);
+        return self;
+    }
     static hpatch_BOOL _zlib_decompress_close_by(struct hpatch_TDecompress* decompressPlugin,
                                                  _zlib_TDecompress* self){
         hpatch_BOOL result=hpatch_TRUE;
         if (!self) return result;
-        if (self->dec_buf!=0){
+        if (self->d_stream.state!=0){
             _close_check(Z_OK==inflateEnd(&self->d_stream));
         }
         memset(self,0,sizeof(_zlib_TDecompress));
@@ -189,7 +205,7 @@
         self->d_stream.avail_out =(uInt)(out_part_data_end-out_part_data);
         while (self->d_stream.avail_out>0) {
             if (!__zlib_do_inflate(self))
-                hpatch_FALSE;//error;
+                return hpatch_FALSE;//error;
         }
         return hpatch_TRUE;
     }
@@ -201,13 +217,15 @@
             self->d_stream.next_out = &_empty;
             self->d_stream.avail_out=0;
             if (!__zlib_do_inflate(self))
-                hpatch_FALSE;//error;
+                return hpatch_FALSE;//error;
         }
         return   (self->code_begin==self->code_end)
                 &(self->d_stream.avail_in==0)
                 &(self->d_stream.avail_out==0);
     }
     static hpatch_TDecompress zlibDecompressPlugin={_zlib_is_can_open,_zlib_decompress_open,
+                                                    _zlib_decompress_close,_zlib_decompress_part};
+    static hpatch_TDecompress zlibDecompressPlugin_deflate={_zlib_is_can_open,_zlib_decompress_open_deflate,
                                                     _zlib_decompress_close,_zlib_decompress_part};
 #endif//_CompressPlugin_zlib
     
@@ -318,7 +336,7 @@
 
 #if (defined _CompressPlugin_lzma) || (defined _CompressPlugin_lzma2)
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "LzmaDec.h" // "lzma/C/LzmaDec.h" http://www.7-zip.org/sdk.html  https://github.com/sisong/lzma
+#   include "LzmaDec.h" // "lzma/C/LzmaDec.h" https://github.com/sisong/lzma
 #   ifdef _CompressPlugin_lzma2
 #       include "Lzma2Dec.h"
 #   endif

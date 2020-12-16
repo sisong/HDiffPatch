@@ -21,10 +21,15 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-O3" />
+					<Add option="-Os" />
+					<Add option="-Wno-error=format-security" />
+					<Add option="-fvisibility=hidden -fvisibility-inlines-hidden" />
+					<Add option="-ffunction-sections -fdata-sections" />
+					<Add option="-ffat-lto-objects -flto" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add option="-Wl,--gc-sections" />
 				</Linker>
 			</Target>
 			<Target title="Release_x86">
@@ -33,20 +38,27 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-march=i386" />
-					<Add option="-O3" />
+					<Add option="-march=i586" />
+					<Add option="-Os" />
 					<Add option="-m32" />
+					<Add option="-Wno-error=format-security" />
+					<Add option="-fvisibility=hidden -fvisibility-inlines-hidden" />
+					<Add option="-ffunction-sections -fdata-sections" />
+					<Add option="-ffat-lto-objects -flto" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
 					<Add option="-m32" />
+					<Add option="-Wl,--gc-sections" />
 				</Linker>
 			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-D_LARGEFILE_SOURCE" />
 			<Add option="-D_FILE_OFFSET_BITS=64" />
+			<Add option="-D_IS_USED_PTHREAD=1" />
 			<Add directory="../../../lzma/C/" />
 		</Compiler>
 		<Linker>
@@ -145,10 +157,18 @@
 		<Unit filename="../../compress_parallel.h" />
 		<Unit filename="../../dirDiffPatch/dir_diff/dir_diff.cpp" />
 		<Unit filename="../../dirDiffPatch/dir_diff/dir_diff.h" />
+		<Unit filename="../../dirDiffPatch/dir_diff/dir_diff_tools.cpp" />
+		<Unit filename="../../dirDiffPatch/dir_diff/dir_manifest.cpp" />
 		<Unit filename="../../dirDiffPatch/dir_patch/dir_patch.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../dirDiffPatch/dir_patch/dir_patch.h" />
+		<Unit filename="../../dirDiffPatch/dir_patch/dir_patch_tools.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../dirDiffPatch/dir_patch/new_dir_output.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../dirDiffPatch/dir_patch/new_stream.c">
 			<Option compilerVar="CC" />
 		</Unit>

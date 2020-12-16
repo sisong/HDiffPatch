@@ -144,7 +144,7 @@ namespace {
     inline static const T* _lower_bound(const T* rbegin,const T* rend,
                                         const TChar* str,const TChar* str_end,
                                         const TChar* src_begin,const TChar* src_end,
-                                        size_t min_eq){
+                                        size_t min_eq=0){
 #ifdef _SA_MATCHBY_STD_LOWER_BOUND
         return std::lower_bound<const T*,StringToken,const TSuffixString_compare&>
                     (rbegin,rend,StringToken(str,str_end),TSuffixString_compare(src_begin,src_end));
@@ -203,15 +203,12 @@ namespace {
                                 const T** range){
         TChar str[1];
         const T* pos=SA_begin;
-        for (int c=0;c<255;++c){
-            //c string is [c0]
-            range[c*2+0]=pos;
-            str[0]=(TChar)(c+1);
-            pos=_lower_bound(pos,SA_end,str,str+1,src_begin,src_end,0);//[c+1]
-            range[c*2+1]=pos;
+        for (size_t c=0;c<256;++c){
+            str[0]=(TChar)(c);
+            pos=_lower_bound(pos,SA_end,str,str+1,src_begin,src_end);
+            range[c]=pos;
         }
-        range[255*2+0]=pos;
-        range[255*2+1]=SA_end;
+        range[256]=SA_end;
     }
 
     
@@ -222,35 +219,15 @@ namespace {
         TChar str[2];
         str[0]=0;
         str[1]=0;
-        const T* pos=_lower_bound(SA_begin,SA_end,str,str+2,src_begin,src_end,0);//[0,0]
-        for (int cc=0;cc<256*256-1;++cc){
-            int c0=cc>>8;
-            int c1=cc&(256-1);
+        const T* pos=SA_begin;
+        for (size_t cc=0;cc<256*256;++cc){
             //cc is [c0,c1]
-            range[cc*2+0]=pos;//lower_bound
-            if (c1<255){
-                str[0]=(TChar)c0;
-                str[1]=(TChar)(c1+1);
-                pos=_lower_bound(pos,SA_end,str,str+2,src_begin,src_end,0);//[c0,c1+1]
-                range[cc*2+1]=pos;//upper_bound (== next cc lower_bound)
-            }else{//c1==255
-                TChar c_head=TChar(c0+1);
-                str[0]=c_head;
-                pos=_lower_bound(pos,SA_end,str,str+1,src_begin,src_end,0);//[c0+1]
-                range[cc*2+1]=pos;//upper_bound
-                while (pos!=SA_end) { //[c0+1,0] next cc lower_bound
-                    T sIndex=*pos;
-                    const TChar* ss=src_begin+sIndex;
-                    assert(ss!=src_end);
-                    if ( (src_end-ss>1) || ((*ss)>c_head) )
-                        break;
-                    ++pos;
-                }
-            }
-            //assert(range[cc*2+1]-range[cc*2+0]>=0);
+            str[0]=(TChar)(cc>>8);
+            str[1]=(TChar)(cc&255);
+            pos=_lower_bound(pos,SA_end,str,str+2,src_begin,src_end);
+            range[cc]=pos;
         }
-        range[(256*256-1)*2+0]=pos;
-        range[(256*256-1)*2+1]=SA_end;
+        range[256*256]=SA_end;
     }
 
 }//end namespace
@@ -305,14 +282,12 @@ TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
     
     TInt str_len=str_end-str;
     if ((str_len>=2)&(m_cached2char_range!=0)){
-        int c0=str[0];
-        int c1=str[1];
-        int cc=c1+(c0<<8);
-        return m_lower_bound(m_cached2char_range[cc*2+0],m_cached2char_range[cc*2+1],
+        size_t cc=((size_t)str[1]) | (((size_t)str[0])<<8);
+        return m_lower_bound(m_cached2char_range[cc],m_cached2char_range[cc+1],
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,2);
     }else if (str_len>0) {
-        TInt c=str[0];
-        return m_lower_bound(m_cached1char_range[c*2+0],m_cached1char_range[c*2+1],
+        size_t c=str[0];
+        return m_lower_bound(m_cached1char_range[c],m_cached1char_range[c+1],
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,1);
     }else{
         return 0;
@@ -324,7 +299,7 @@ void TSuffixString::clear_cache(){
         delete []m_cached2char_range;
         m_cached2char_range=0;
     }
-    memset(&m_cached1char_range[0],0,sizeof(void*)*256*2);
+    memset(&m_cached1char_range[0],0,sizeof(void*)*(256+1));
     m_cached_SA_begin=0;
     m_cached_SA_end=0;
     m_lower_bound=(t_lower_bound_func)_lower_bound_TInt32;//safe
@@ -335,8 +310,8 @@ void TSuffixString::build_cache(){
     
     const size_t kUsedCacheMinSASize =2*(1<<20); //当字符串较大时再启用大缓存表.
     if (SASize()>kUsedCacheMinSASize){
-        m_cached2char_range=new void*[256*256*2];
-        memset(m_cached2char_range,0,sizeof(void*)*256*256*2);
+        m_cached2char_range=new void*[256*256+1];
+        memset(m_cached2char_range,0,sizeof(void*)*(256*256+1));
     }
     
     if (isUseLargeSA()){

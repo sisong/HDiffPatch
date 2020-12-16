@@ -62,7 +62,7 @@ private:
     hpatch_StreamPos_t          lastOldEnd;
     hpatch_StreamPos_t          lastNewEnd;
     hpatch_StreamPos_t          _readFromPos_back;
-    enum { kCodeBufSize = 1024*64 };
+    enum { kCodeBufSize = hpatch_kFileIOBufBetterSize };
     
     static hpatch_BOOL _read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                              unsigned char* out_data,unsigned char* out_data_end);
@@ -106,7 +106,7 @@ struct TDiffStream{
 private:
     const hpatch_TStreamOutput*  out_diff;
     hpatch_StreamPos_t     writePos;
-    enum{ kBufSize=1024*64 };
+    enum{ kBufSize=hpatch_kFileIOBufBetterSize };
     TAutoMem               _temp_mem;
     
     void _packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize);
@@ -127,8 +127,8 @@ private:
     const hpatch_StreamPos_t    _src_begin;
     const hpatch_StreamPos_t    _src_end;
     hpatch_TDecompress*         _decompressPlugin;
-    hpatch_StreamPos_t          _read_uncompress_pos;
     hpatch_decompressHandle     _decompressHandle;
+    hpatch_StreamPos_t          _read_uncompress_pos;
     void closeDecompressHandle();
     void openDecompressHandle();
     static hpatch_BOOL _clip_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,

@@ -67,15 +67,16 @@ namespace {
 
     inline static const TByte* rle_getEqualEnd(const TByte* cur,const TByte* src_end,TByte value){
         while (cur!=src_end) {
-            if (*cur!=value)
+            if (*cur==value)
+                ++cur;
+            else
                 return cur;
-            ++cur;
         }
         return src_end;
     }
     
 }//end namespace
-
+    
     void bytesRLE_save(std::vector<TByte>& out_ctrlBuf,std::vector<TByte>& out_codeBuf,
                        const TByte* src,const TByte* src_end,int rle_parameter){
         assert(rle_parameter>=kRle_bestSize);
@@ -114,8 +115,99 @@ void bytesRLE_save(std::vector<TByte>& out_code,
 
     bytesRLE_save(ctrlBuf,codeBuf,src,src_end,rle_parameter);
     packUInt(out_code,(TUInt)ctrlBuf.size());
-    out_code.insert(out_code.end(),ctrlBuf.begin(),ctrlBuf.end());
-    out_code.insert(out_code.end(),codeBuf.begin(),codeBuf.end());
+    pushBack(out_code,ctrlBuf);
+    pushBack(out_code,codeBuf);
 }
 
+    
+    enum TLastType{
+        lastType_0,
+        lastType_v,
+    };
+    
+    inline TLastType getLastType(const TSangileStreamRLE0& self){
+        if (!self.uncompressData.empty()){
+            assert(self.len0==0);
+            return lastType_v;
+        }else{
+            return lastType_0;
+        }
+    }
+    
+    size_t TSangileStreamRLE0::maxCodeSize(const unsigned char* appendData,const unsigned char* appendData_end) const{
+        TLastType lastType=getLastType(*this);
+        size_t curLen0=this->len0;
+        size_t curLenv=this->uncompressData.size();
+        size_t fixedLen=this->fixed_code.size();
+        while (appendData!=appendData_end) {
+            if (*appendData==0){
+                if (lastType==lastType_v){
+                    fixedLen += hpatch_packUInt_size(curLenv) + curLenv;
+                    curLenv = 0;
+                }
+                ++curLen0;
+                lastType=lastType_0;
+            }else{
+                if (lastType==lastType_0){
+                    fixedLen += hpatch_packUInt_size(curLen0);
+                    curLen0 = 0;
+                }
+                ++curLenv;
+                lastType=lastType_v;
+            }
+            ++appendData;
+        }
+        if (curLenv>0)
+            fixedLen += hpatch_packUInt_size(curLenv) + curLenv;
+        if (curLen0>0)
+            fixedLen += hpatch_packUInt_size(curLen0);
+        return fixedLen;
+    }
+    
+    inline void _out_uncompressData(TSangileStreamRLE0& self){
+        size_t saved=0;
+        while (self.uncompressData.size()-saved>kMaxBytesRle0Len){
+            packUInt(self.fixed_code, kMaxBytesRle0Len);
+            pushBack(self.fixed_code, self.uncompressData.data()+saved,self.uncompressData.data()+saved+kMaxBytesRle0Len);
+            packUInt(self.fixed_code,0);
+            saved+=kMaxBytesRle0Len;
+        }
+        packUInt(self.fixed_code, self.uncompressData.size()-saved);
+        pushBack(self.fixed_code, self.uncompressData.data()+saved,self.uncompressData.data()+self.uncompressData.size());
+        self.uncompressData.clear();
+    }
+    inline void _out_0Data(TSangileStreamRLE0& self){
+        while (self.len0>kMaxBytesRle0Len){
+            packUInt(self.fixed_code,kMaxBytesRle0Len);
+            self.len0-=kMaxBytesRle0Len;
+            packUInt(self.fixed_code,0);
+        }
+        packUInt(self.fixed_code, self.len0);
+        self.len0=0;
+    }
+    
+    void TSangileStreamRLE0::append(const unsigned char* appendData,const unsigned char* appendData_end){
+        TLastType lastType=getLastType(*this);
+        while (appendData!=appendData_end) {
+            if (*appendData==0){
+                if (lastType==lastType_v)
+                    _out_uncompressData(*this);
+                ++len0;
+                lastType=lastType_0;
+            }else{
+                if (lastType==lastType_0)
+                    _out_0Data(*this);
+                uncompressData.push_back(*appendData);
+                lastType=lastType_v;
+            }
+            ++appendData;
+        }
+    }
+    
+    void TSangileStreamRLE0::finishAppend(){
+        if ((fixed_code.empty())||(len0>0))
+            _out_0Data(*this);
+        if (!uncompressData.empty())
+            _out_uncompressData(*this);
+    }
 }//namespace hdiff_private

@@ -303,7 +303,7 @@ TStreamClip::TStreamClip(const hpatch_TStreamInput* stream,
                          hpatch_StreamPos_t clipBeginPos,hpatch_StreamPos_t clipEndPos,
                          hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressSize)
 :_src(stream),_src_begin(clipBeginPos),_src_end(clipEndPos),
-_decompressPlugin(decompressPlugin),_read_uncompress_pos(0),_decompressHandle(0){
+_decompressPlugin(decompressPlugin),_decompressHandle(0),_read_uncompress_pos(0){
     assert(clipBeginPos<=clipEndPos);
     assert(clipEndPos<=stream->streamSize);
     if ((uncompressSize==0)&&(decompressPlugin==0))
