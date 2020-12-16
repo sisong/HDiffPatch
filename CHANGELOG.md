@@ -2,6 +2,14 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v3.1.0](https://github.com/sisong/HDiffPatch/tree/v3.1.0) - 2020-12-16
+### Added
+* add a memory cache for patch to newStream, can reduce write I/O times;
+* add create_single_compressed_diff()&patch_single_compressed_diff() , preview, still under development! diffData saved as single compressed stream, for optimize decompress memory when patch;
+### Removed
+*  cmdline remove option "-o", no Original diff, you can continue to call patch()|patch_stream() yourself;  
+*  remove patch_decompress_repeat_out(), you need use patch_decompress*() to replace it;
+
 ## [v3.0.8](https://github.com/sisong/HDiffPatch/tree/v3.0.8) - 2020-01-01
 ### Added
 * patch demo for Android, out lib file libhpatchz.so;
