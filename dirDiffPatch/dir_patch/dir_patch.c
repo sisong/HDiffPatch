@@ -87,7 +87,7 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_
         char* tempType=out_info->hdiffInfo.compressType;
         if (!_TStreamCacheClip_readType_end(headClip,'&',tempType)) return result;//unsupport type, not error
         if (0!=strcmp(tempType,kVersionType)) return result;//unsupport type, not error
-        out_info->isDirDiff=hpatch_TRUE; //type ok, continure
+        out_info->isDirDiff=hpatch_TRUE; //type ok, continue
     }
     //read compressType
     check(_TStreamCacheClip_readType_end(headClip,'&',savedCompressType));
