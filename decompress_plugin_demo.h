@@ -34,6 +34,7 @@
 //  lzma2DecompressPlugin;
 //  lz4DecompressPlugin;
 //  zstdDecompressPlugin;
+//  brotliDecompressPlugin;
 
 #include <stdlib.h> //malloc free
 #include <stdio.h>  //fprintf
@@ -723,7 +724,7 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         while (out_part_data<out_part_data_end) {
             size_t dataLen=(self->s_output.pos-self->data_begin);
             if (dataLen>0){
-                if (dataLen>(out_part_data_end-out_part_data))
+                if (dataLen>(size_t)(out_part_data_end-out_part_data))
                     dataLen=(out_part_data_end-out_part_data);
                 memcpy(out_part_data,(const unsigned char*)self->s_output.dst+self->data_begin,dataLen);
                 out_part_data+=dataLen;
@@ -732,19 +733,21 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
                 size_t ret;
                 if (self->s_input.pos==self->s_input.size) {
                     self->s_input.pos=0;
-                    if (self->s_input.size>self->code_end-self->code_begin){
+                    if (self->s_input.size>self->code_end-self->code_begin)
                         self->s_input.size=(size_t)(self->code_end-self->code_begin);
-                        if (self->s_input.size==0) return hpatch_FALSE;
+
+                    if (self->s_input.size>0){
+                        if (!self->codeStream->read(self->codeStream,self->code_begin,(unsigned char*)self->s_input.src,
+                                                    (unsigned char*)self->s_input.src+self->s_input.size))
+                            return hpatch_FALSE;
+                        self->code_begin+=self->s_input.size;
                     }
-                    if (!self->codeStream->read(self->codeStream,self->code_begin,(unsigned char*)self->s_input.src,
-                                                (unsigned char*)self->s_input.src+self->s_input.size))
-                        return hpatch_FALSE;
-                    self->code_begin+=self->s_input.size;
                 }
                 self->s_output.pos=0;
                 self->data_begin=0;
                 ret=ZSTD_decompressStream(self->s,&self->s_output,&self->s_input);
                 if (ZSTD_isError(ret)) return hpatch_FALSE;
+                if (self->s_output.pos==self->data_begin) return hpatch_FALSE;
             }
         }
         return hpatch_TRUE;
@@ -752,5 +755,113 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
     static hpatch_TDecompress zstdDecompressPlugin={_zstd_is_can_open,_zstd_open,
                                                     _zstd_close,_zstd_decompress_part};
 #endif//_CompressPlugin_zstd
+
+
+#ifdef  _CompressPlugin_brotli
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "brotli/decode.h" // "brotli/c/include/brotli/decode.h" https://github.com/google/brotli
+#endif
+    typedef struct _brotli_TDecompress{
+        const struct hpatch_TStreamInput* codeStream;
+        hpatch_StreamPos_t code_begin;
+        hpatch_StreamPos_t code_end;
+        
+        unsigned char*        input;
+        unsigned char*        output;
+        size_t                available_in;
+        size_t                available_out;
+        const unsigned char*  next_in;
+        unsigned char*        next_out;
+        unsigned char*        data_begin;
+        BrotliDecoderState* s;
+        unsigned char       buf[1];
+    } _brotli_TDecompress;
+    static hpatch_BOOL _brotli_is_can_open(const char* compressType){
+        return (0==strcmp(compressType,"brotli"));
+    }
+    static hpatch_decompressHandle  _brotli_open(hpatch_TDecompress* decompressPlugin,
+                                                 hpatch_StreamPos_t dataSize,
+                                                 const hpatch_TStreamInput* codeStream,
+                                                 hpatch_StreamPos_t code_begin,
+                                                 hpatch_StreamPos_t code_end){
+        const size_t kBufSize=kDecompressBufSize;
+        _brotli_TDecompress* self=0;
+        assert(code_begin<code_end);
+        self=(_brotli_TDecompress*)malloc(sizeof(_brotli_TDecompress)+kBufSize*2);
+        if (!self) return 0;
+        memset(self,0,sizeof(_brotli_TDecompress));
+        self->codeStream=codeStream;
+        self->code_begin=code_begin;
+        self->input=self->buf;
+        self->output=self->buf+kBufSize;
+        self->code_end=code_end;
+        self->available_in = 0;
+        self->next_in = 0;
+        self->available_out = (self->output-self->input);
+        self->next_out  =self->output;
+        self->data_begin=self->output;
+        
+        self->s = BrotliDecoderCreateInstance(0,0,0);
+        if (!self->s){ free(self); return 0; }
+        if (!BrotliDecoderSetParameter(self->s, BROTLI_DECODER_PARAM_LARGE_WINDOW, 1u))
+            { BrotliDecoderDestroyInstance(self->s); free(self); return 0; }
+        return self;
+    }
+    static hpatch_BOOL _brotli_close(struct hpatch_TDecompress* decompressPlugin,
+                                     hpatch_decompressHandle decompressHandle){
+        _brotli_TDecompress* self=(_brotli_TDecompress*)decompressHandle;
+        if (!self) return hpatch_TRUE;
+        BrotliDecoderDestroyInstance(self->s);
+        free(self);
+        return hpatch_TRUE;
+    }
+    static hpatch_BOOL _brotli_decompress_part(hpatch_decompressHandle decompressHandle,
+                                               unsigned char* out_part_data,unsigned char* out_part_data_end){
+        _brotli_TDecompress* self=(_brotli_TDecompress*)decompressHandle;
+        while (out_part_data<out_part_data_end) {
+            size_t dataLen=(self->next_out-self->data_begin);
+            if (dataLen>0){
+                if (dataLen>(size_t)(out_part_data_end-out_part_data))
+                    dataLen=(out_part_data_end-out_part_data);
+                memcpy(out_part_data,self->data_begin,dataLen);
+                out_part_data+=dataLen;
+                self->data_begin+=dataLen;
+            }else{
+                BrotliDecoderResult ret;
+                if (self->available_in==0) {
+                    self->available_in=(self->output-self->input);
+                    if (self->available_in>self->code_end-self->code_begin)
+                        self->available_in=(size_t)(self->code_end-self->code_begin);
+                    if (self->available_in>0){
+                        if (!self->codeStream->read(self->codeStream,self->code_begin,(unsigned char*)self->input,
+                                                    self->input+self->available_in))
+                            return hpatch_FALSE;
+                        self->code_begin+=self->available_in;
+                    }
+                    self->next_in=self->input;
+                }
+                self->available_out = (self->output-self->input);
+                self->next_out  =self->output;
+                self->data_begin=self->output;
+                ret=BrotliDecoderDecompressStream(self->s,&self->available_in,&self->next_in,
+                                                  &self->available_out,&self->next_out, 0);
+                switch (ret){
+                    case BROTLI_DECODER_RESULT_SUCCESS:
+                    case BROTLI_DECODER_RESULT_NEEDS_MORE_OUTPUT: {
+                        if (self->next_out==self->data_begin) return hpatch_FALSE;
+                    } break;  
+                    case BROTLI_DECODER_RESULT_NEEDS_MORE_INPUT: {
+                        if (self->code_end==self->code_begin) return hpatch_FALSE;
+                    } break;            
+                    default:
+                        return hpatch_FALSE;
+                }
+            }
+        }
+        return hpatch_TRUE;
+    }
+    static hpatch_TDecompress brotliDecompressPlugin={_brotli_is_can_open,_brotli_open,
+                                                      _brotli_close,_brotli_decompress_part};
+#endif//_CompressPlugin_brotli
 
 #endif

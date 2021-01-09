@@ -398,7 +398,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             default: {
                 _options_check(hpatch_FALSE,"-?");
             } break;
-        }//swich
+        }//switch
     }
     
     if (isOutputHelp==_kNULL_VALUE)

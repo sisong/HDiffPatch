@@ -37,6 +37,7 @@
 //  lz4CompressPlugin
 //  lz4hcCompressPlugin
 //  zstdCompressPlugin
+//  brotliCompressPlugin
 
 #include "libHDiffPatch/HDiff/diff_types.h"
 #include "compress_parallel.h"
@@ -898,6 +899,108 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     static TCompressPlugin_zstd zstdCompressPlugin={
         {_zstd_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_zstd_compress}, 20};
 #endif//_CompressPlugin_zstd
+
+
+#ifdef  _CompressPlugin_brotli
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "brotli/encode.h" // "brotli/c/include/brotli/encode.h" https://github.com/google/brotli
+#endif
+    struct TCompressPlugin_brotli{
+        hdiff_TCompress base;
+        int             compress_level; //0..11
+        int             window_bits;  // 10..30
+    };
+    static hpatch_StreamPos_t _brotli_compress(const hdiff_TCompress* compressPlugin,
+                                               const hpatch_TStreamOutput* out_code,
+                                               const hpatch_TStreamInput*  in_data){
+        const TCompressPlugin_brotli* plugin=(const TCompressPlugin_brotli*)compressPlugin;
+        hpatch_StreamPos_t  result=0;
+        const char*         errAt="";
+        BrotliEncoderState* s=0;
+        hpatch_StreamPos_t  readFromPos=0;
+        int                 outStream_isCanceled=0;
+        uint8_t*        _temp_buf=0;
+        const size_t    kBufSize=kCompressBufSize;
+        uint8_t*        input;
+        uint8_t*        output;
+        size_t          available_in;
+        size_t          available_out;
+        const uint8_t*  next_in;
+        uint8_t*        next_out;
+        
+        _temp_buf=(uint8_t*)malloc(kBufSize*2);
+        if (!_temp_buf) _compress_error_return("memory alloc");
+        input=_temp_buf;
+        output=_temp_buf+kBufSize;
+        available_in=0;
+        available_out=kBufSize;
+        next_out=output;
+        next_in=input;
+
+        if (!s) s=BrotliEncoderCreateInstance(0,0,0);
+        if (!s) _compress_error_return("BrotliEncoderCreateInstance()");
+        if (!BrotliEncoderSetParameter(s,BROTLI_PARAM_QUALITY,plugin->compress_level))
+            _compress_error_return("BrotliEncoderSetParameter()");
+        {
+            uint32_t lgwin = plugin->window_bits;
+            if (in_data->streamSize >= 0) {
+                #define BROTLI_WINDOW_GAP 16
+                #define BROTLI_MAX_BACKWARD_LIMIT(W) (((size_t)1 << (W)) - BROTLI_WINDOW_GAP)
+                while (BROTLI_MAX_BACKWARD_LIMIT(lgwin-1) >= in_data->streamSize) {
+                    --lgwin;
+                    if (lgwin == BROTLI_MIN_WINDOW_BITS) break;
+                }
+            }
+            if (lgwin > BROTLI_MAX_WINDOW_BITS)
+                BrotliEncoderSetParameter(s, BROTLI_PARAM_LARGE_WINDOW, 1u);
+            BrotliEncoderSetParameter(s, BROTLI_PARAM_LGWIN, lgwin);
+        }
+        if (in_data->streamSize > 0) {
+            uint32_t size_hint = in_data->streamSize < (1 << 30) ?
+                (uint32_t)in_data->streamSize : (1u << 30);
+            BrotliEncoderSetParameter(s, BROTLI_PARAM_SIZE_HINT, size_hint);
+        }
+        
+        while (1) {
+            int s_isFinished;
+            if ((available_in==0)&&(readFromPos<in_data->streamSize)){
+                available_in=kBufSize;
+                if (available_in>(in_data->streamSize-readFromPos))
+                    available_in=(size_t)(in_data->streamSize-readFromPos);
+                if (!in_data->read(in_data,readFromPos,input,input+available_in))
+                    _compress_error_return("in_data->read()");
+                readFromPos+=available_in;
+                next_in=input;
+            }
+
+            if (!BrotliEncoderCompressStream(s,
+                (readFromPos==in_data->streamSize) ? BROTLI_OPERATION_FINISH : BROTLI_OPERATION_PROCESS,
+                &available_in, &next_in, &available_out, &next_out, 0))
+                    _compress_error_return("BrotliEncoderCompressStream()");
+
+            s_isFinished=BrotliEncoderIsFinished(s);
+            if ((available_out == 0)||s_isFinished) {                
+                _stream_out_code_write(out_code,outStream_isCanceled,result,
+                                       output,kBufSize-available_out);
+                next_out=output;
+                available_out=kBufSize;
+            }
+
+            if (s_isFinished)
+                break;
+        }
+    clear:
+#if (!IS_REUSE_compress_handle)
+        BrotliEncoderDestroyInstance(s);
+#endif
+        _check_compress_result(result,outStream_isCanceled,"_brotli_compress()",errAt);
+        if (_temp_buf) free(_temp_buf);
+        return result;
+    }
+    _def_fun_compressType(_brotli_compressType,"brotli");
+    static TCompressPlugin_brotli brotliCompressPlugin={
+        {_brotli_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_brotli_compress}, 9,24};
+#endif//_CompressPlugin_brotli
 
 #ifdef __cplusplus
 }
