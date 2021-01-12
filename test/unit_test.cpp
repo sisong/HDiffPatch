@@ -53,6 +53,8 @@ const long kRandTestCount=20000;
 //#define _CompressPlugin_lz4
 //#define _CompressPlugin_lz4hc
 //#define _CompressPlugin_zstd
+//#define _CompressPlugin_brotli
+//#define _CompressPlugin_lzham
 
 #define IS_NOTICE_compress_canceled 0 //for test, close compress fail notice
 #define IS_REUSE_compress_handle    1 //for test, must in single thread
@@ -91,6 +93,14 @@ const long kRandTestCount=20000;
 #ifdef  _CompressPlugin_zstd
     const hdiff_TCompress* compressPlugin=&zstdCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&zstdDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_brotli
+    const hdiff_TCompress* compressPlugin=&brotliCompressPlugin.base;
+    hpatch_TDecompress* decompressPlugin=&brotliDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_lzham
+    const hdiff_TCompress* compressPlugin=&lzhamCompressPlugin.base;
+    hpatch_TDecompress* decompressPlugin=&lzhamDecompressPlugin;
 #endif
 
 int testCompress(const char* str,const char* error_tag){

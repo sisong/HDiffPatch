@@ -34,6 +34,8 @@
 //  lzma2DecompressPlugin;
 //  lz4DecompressPlugin;
 //  zstdDecompressPlugin;
+//  brotliDecompressPlugin;
+//  lzhamDecompressPlugin;
 
 #include <stdlib.h> //malloc free
 #include <stdio.h>  //fprintf
@@ -60,7 +62,7 @@
         unsigned char*  dec_buf;
         size_t          dec_buf_size;
         z_stream        d_stream;
-        signed char     window_bits;
+        signed char     windowBits;
     } _zlib_TDecompress;
     static hpatch_BOOL _zlib_is_can_open(const char* compressType){
         return (0==strcmp(compressType,"zlib"))||(0==strcmp(compressType,"pzlib"));
@@ -93,9 +95,9 @@
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
-        self->window_bits=kWindowBits;
+        self->windowBits=kWindowBits;
         
-        ret = inflateInit2(&self->d_stream,self->window_bits);
+        ret = inflateInit2(&self->d_stream,self->windowBits);
         if (ret!=Z_OK) return 0;
         return self;
     }
@@ -152,7 +154,7 @@
         unsigned int avail_in_back=self->d_stream.avail_in;
         //reset
         //if (Z_OK!=inflateEnd(&self->d_stream)) return hpatch_FALSE;
-        //if (Z_OK!=inflateInit2(&self->d_stream,self->window_bits)) return hpatch_FALSE;
+        //if (Z_OK!=inflateInit2(&self->d_stream,self->windowBits)) return hpatch_FALSE;
         if (Z_OK!=inflateReset(&self->d_stream)) return hpatch_FALSE;
         //restore
         self->d_stream.next_out=next_out_back;
@@ -723,7 +725,7 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         while (out_part_data<out_part_data_end) {
             size_t dataLen=(self->s_output.pos-self->data_begin);
             if (dataLen>0){
-                if (dataLen>(out_part_data_end-out_part_data))
+                if (dataLen>(size_t)(out_part_data_end-out_part_data))
                     dataLen=(out_part_data_end-out_part_data);
                 memcpy(out_part_data,(const unsigned char*)self->s_output.dst+self->data_begin,dataLen);
                 out_part_data+=dataLen;
@@ -732,19 +734,21 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
                 size_t ret;
                 if (self->s_input.pos==self->s_input.size) {
                     self->s_input.pos=0;
-                    if (self->s_input.size>self->code_end-self->code_begin){
+                    if (self->s_input.size>self->code_end-self->code_begin)
                         self->s_input.size=(size_t)(self->code_end-self->code_begin);
-                        if (self->s_input.size==0) return hpatch_FALSE;
+
+                    if (self->s_input.size>0){
+                        if (!self->codeStream->read(self->codeStream,self->code_begin,(unsigned char*)self->s_input.src,
+                                                    (unsigned char*)self->s_input.src+self->s_input.size))
+                            return hpatch_FALSE;
+                        self->code_begin+=self->s_input.size;
                     }
-                    if (!self->codeStream->read(self->codeStream,self->code_begin,(unsigned char*)self->s_input.src,
-                                                (unsigned char*)self->s_input.src+self->s_input.size))
-                        return hpatch_FALSE;
-                    self->code_begin+=self->s_input.size;
                 }
                 self->s_output.pos=0;
                 self->data_begin=0;
                 ret=ZSTD_decompressStream(self->s,&self->s_output,&self->s_input);
                 if (ZSTD_isError(ret)) return hpatch_FALSE;
+                if (self->s_output.pos==self->data_begin) return hpatch_FALSE;
             }
         }
         return hpatch_TRUE;
@@ -752,5 +756,240 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
     static hpatch_TDecompress zstdDecompressPlugin={_zstd_is_can_open,_zstd_open,
                                                     _zstd_close,_zstd_decompress_part};
 #endif//_CompressPlugin_zstd
+
+
+#ifdef  _CompressPlugin_brotli
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "brotli/decode.h" // "brotli/c/include/brotli/decode.h" https://github.com/google/brotli
+#endif
+    typedef struct _brotli_TDecompress{
+        const struct hpatch_TStreamInput* codeStream;
+        hpatch_StreamPos_t code_begin;
+        hpatch_StreamPos_t code_end;
+        
+        unsigned char*        input;
+        unsigned char*        output;
+        size_t                available_in;
+        size_t                available_out;
+        const unsigned char*  next_in;
+        unsigned char*        next_out;
+        unsigned char*        data_begin;
+        BrotliDecoderState* s;
+        unsigned char       buf[1];
+    } _brotli_TDecompress;
+    static hpatch_BOOL _brotli_is_can_open(const char* compressType){
+        return (0==strcmp(compressType,"brotli"));
+    }
+    static hpatch_decompressHandle  _brotli_open(hpatch_TDecompress* decompressPlugin,
+                                                 hpatch_StreamPos_t dataSize,
+                                                 const hpatch_TStreamInput* codeStream,
+                                                 hpatch_StreamPos_t code_begin,
+                                                 hpatch_StreamPos_t code_end){
+        const size_t kBufSize=kDecompressBufSize;
+        _brotli_TDecompress* self=0;
+        assert(code_begin<code_end);
+        self=(_brotli_TDecompress*)malloc(sizeof(_brotli_TDecompress)+kBufSize*2);
+        if (!self) return 0;
+        memset(self,0,sizeof(_brotli_TDecompress));
+        self->codeStream=codeStream;
+        self->code_begin=code_begin;
+        self->input=self->buf;
+        self->output=self->buf+kBufSize;
+        self->code_end=code_end;
+        self->available_in = 0;
+        self->next_in = 0;
+        self->available_out = (self->output-self->input);
+        self->next_out  =self->output;
+        self->data_begin=self->output;
+        
+        self->s = BrotliDecoderCreateInstance(0,0,0);
+        if (!self->s){ free(self); return 0; }
+        if (!BrotliDecoderSetParameter(self->s, BROTLI_DECODER_PARAM_LARGE_WINDOW, 1u))
+            { BrotliDecoderDestroyInstance(self->s); free(self); return 0; }
+        return self;
+    }
+    static hpatch_BOOL _brotli_close(struct hpatch_TDecompress* decompressPlugin,
+                                     hpatch_decompressHandle decompressHandle){
+        _brotli_TDecompress* self=(_brotli_TDecompress*)decompressHandle;
+        if (!self) return hpatch_TRUE;
+        BrotliDecoderDestroyInstance(self->s);
+        free(self);
+        return hpatch_TRUE;
+    }
+    static hpatch_BOOL _brotli_decompress_part(hpatch_decompressHandle decompressHandle,
+                                               unsigned char* out_part_data,unsigned char* out_part_data_end){
+        _brotli_TDecompress* self=(_brotli_TDecompress*)decompressHandle;
+        while (out_part_data<out_part_data_end) {
+            size_t dataLen=(self->next_out-self->data_begin);
+            if (dataLen>0){
+                if (dataLen>(size_t)(out_part_data_end-out_part_data))
+                    dataLen=(out_part_data_end-out_part_data);
+                memcpy(out_part_data,self->data_begin,dataLen);
+                out_part_data+=dataLen;
+                self->data_begin+=dataLen;
+            }else{
+                BrotliDecoderResult ret;
+                if (self->available_in==0) {
+                    self->available_in=(self->output-self->input);
+                    if (self->available_in>self->code_end-self->code_begin)
+                        self->available_in=(size_t)(self->code_end-self->code_begin);
+                    if (self->available_in>0){
+                        if (!self->codeStream->read(self->codeStream,self->code_begin,(unsigned char*)self->input,
+                                                    self->input+self->available_in))
+                            return hpatch_FALSE;
+                        self->code_begin+=self->available_in;
+                    }
+                    self->next_in=self->input;
+                }
+                self->available_out = (self->output-self->input);
+                self->next_out  =self->output;
+                self->data_begin=self->output;
+                ret=BrotliDecoderDecompressStream(self->s,&self->available_in,&self->next_in,
+                                                  &self->available_out,&self->next_out, 0);
+                switch (ret){
+                    case BROTLI_DECODER_RESULT_SUCCESS:
+                    case BROTLI_DECODER_RESULT_NEEDS_MORE_OUTPUT: {
+                        if (self->next_out==self->data_begin) return hpatch_FALSE;
+                    } break;  
+                    case BROTLI_DECODER_RESULT_NEEDS_MORE_INPUT: {
+                        if (self->code_end==self->code_begin) return hpatch_FALSE;
+                    } break;            
+                    default:
+                        return hpatch_FALSE;
+                }
+            }
+        }
+        return hpatch_TRUE;
+    }
+    static hpatch_TDecompress brotliDecompressPlugin={_brotli_is_can_open,_brotli_open,
+                                                      _brotli_close,_brotli_decompress_part};
+#endif//_CompressPlugin_brotli
+
+
+#ifdef  _CompressPlugin_lzham
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "lzham.h" // "lzham_codec/include/lzham.h" https://github.com/richgel999/lzham_codec
+#endif
+    typedef struct _lzham_TDecompress{
+        const struct hpatch_TStreamInput* codeStream;
+        hpatch_StreamPos_t code_begin;
+        hpatch_StreamPos_t code_end;
+        
+        unsigned char*        input;
+        unsigned char*        output;
+        size_t                available_in;
+        size_t                available_out;
+        const unsigned char*  next_in;
+        unsigned char*        next_out;
+        unsigned char*        data_begin;
+        lzham_decompress_state_ptr s;
+        unsigned char       buf[1];
+    } _lzham_TDecompress;
+    static hpatch_BOOL _lzham_is_can_open(const char* compressType){
+        return (0==strcmp(compressType,"lzham"));
+    }
+    static hpatch_decompressHandle  _lzham_open(hpatch_TDecompress* decompressPlugin,
+                                                hpatch_StreamPos_t dataSize,
+                                                const hpatch_TStreamInput* codeStream,
+                                                hpatch_StreamPos_t code_begin,
+                                                hpatch_StreamPos_t code_end){
+        const size_t kBufSize=kDecompressBufSize;
+        lzham_decompress_params params;
+        unsigned char  dict_bits;
+        _lzham_TDecompress* self=0;
+        assert(code_begin<code_end);
+        {//load head
+            if (code_end-code_begin<1) return 0;
+            if (!codeStream->read(codeStream,code_begin,&dict_bits,(&dict_bits)+1))
+                return 0;
+            ++code_begin;
+        }
+
+        self=(_lzham_TDecompress*)malloc(sizeof(_lzham_TDecompress)+kBufSize*2);
+        if (!self) return 0;
+        memset(self,0,sizeof(_lzham_TDecompress));
+        self->codeStream=codeStream;
+        self->code_begin=code_begin;
+        self->input=self->buf;
+        self->output=self->buf+kBufSize;
+        self->code_end=code_end;
+        self->available_in = 0;
+        self->next_in = 0;
+        self->available_out = (self->output-self->input);
+        self->next_out  =self->output;
+        self->data_begin=self->output;
+
+        memset(&params, 0, sizeof(params));
+        params.m_struct_size = sizeof(params);
+        params.m_dict_size_log2 = dict_bits;
+
+        self->s = lzham_decompress_init(&params);
+        if (!self->s){ free(self); return 0; }
+
+        return self;
+    }
+    static hpatch_BOOL _lzham_close(struct hpatch_TDecompress* decompressPlugin,
+                                    hpatch_decompressHandle decompressHandle){
+        _lzham_TDecompress* self=(_lzham_TDecompress*)decompressHandle;
+        if (!self) return hpatch_TRUE;
+        lzham_decompress_deinit(self->s);
+        free(self);
+        return hpatch_TRUE;
+    }
+    static hpatch_BOOL _lzham_decompress_part(hpatch_decompressHandle decompressHandle,
+                                               unsigned char* out_part_data,unsigned char* out_part_data_end){
+        _lzham_TDecompress* self=(_lzham_TDecompress*)decompressHandle;
+        while (out_part_data<out_part_data_end) {
+            size_t dataLen=(self->next_out-self->data_begin);
+            if (dataLen>0){
+                if (dataLen>(size_t)(out_part_data_end-out_part_data))
+                    dataLen=(out_part_data_end-out_part_data);
+                memcpy(out_part_data,self->data_begin,dataLen);
+                out_part_data+=dataLen;
+                self->data_begin+=dataLen;
+            }else{
+                lzham_decompress_status_t ret;
+                if (self->available_in==0) {
+                    self->available_in=(self->output-self->input);
+                    if (self->available_in>self->code_end-self->code_begin)
+                        self->available_in=(size_t)(self->code_end-self->code_begin);
+                    if (self->available_in>0){
+                        if (!self->codeStream->read(self->codeStream,self->code_begin,(unsigned char*)self->input,
+                                                    self->input+self->available_in))
+                            return hpatch_FALSE;
+                        self->code_begin+=self->available_in;
+                    }
+                    self->next_in=self->input;
+                }
+                {
+                    size_t available_in_back=self->available_in;
+                    self->available_out = (self->output-self->input);
+                    ret=lzham_decompress(self->s,self->next_in,&self->available_in,
+                                         self->output,&self->available_out,(self->code_begin==self->code_end));
+                    self->next_out=self->output+self->available_out;
+                    self->next_in+=self->available_in;
+                    self->available_in=available_in_back-self->available_in;
+                    self->available_out=(self->output-self->input) - self->available_out;
+                    self->data_begin=self->output;
+                }
+                switch (ret){
+                    case LZHAM_DECOMP_STATUS_SUCCESS:
+                    case LZHAM_DECOMP_STATUS_HAS_MORE_OUTPUT:
+                    case LZHAM_DECOMP_STATUS_NOT_FINISHED: {
+                        if (self->next_out==self->data_begin) return hpatch_FALSE;
+                    } break;
+                    case LZHAM_DECOMP_STATUS_NEEDS_MORE_INPUT: {
+                        if (self->code_end==self->code_begin) return hpatch_FALSE;
+                    } break;            
+                    default:
+                        return hpatch_FALSE;
+                }
+            }
+        }
+        return hpatch_TRUE;
+    }
+    static hpatch_TDecompress lzhamDecompressPlugin={_lzham_is_can_open,_lzham_open,
+                                                     _lzham_close,_lzham_decompress_part};
+#endif//_CompressPlugin_lzham
 
 #endif
