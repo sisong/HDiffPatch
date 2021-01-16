@@ -140,12 +140,13 @@ hpatch_BOOL hpatch_unpackUIntWithTag(const TByte** src_code,const TByte* src_cod
     static hpatch_BOOL _read_mem_stream(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                                         unsigned char* out_data,unsigned char* out_data_end){
         const unsigned char* src=(const unsigned char*)stream->streamImport;
-        if (readFromPos+(out_data_end-out_data)<=stream->streamSize){
-            memcpy(out_data,src+readFromPos,out_data_end-out_data);
-            return hpatch_TRUE;
-        }else{
-            return _hpatch_FALSE;
-        }
+        hpatch_size_t readLen=out_data_end-out_data;
+#ifdef __RUN_MEM_SAFE_CHECK
+        if (readFromPos>stream->streamSize) return _hpatch_FALSE;
+        if (readLen>(hpatch_StreamPos_t)(stream->streamSize-readFromPos)) return _hpatch_FALSE;
+#endif
+        memcpy(out_data,src+readFromPos,readLen);
+        return hpatch_TRUE;
     }
 void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
                          const unsigned char* mem,const unsigned char* mem_end){
@@ -157,12 +158,13 @@ void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
     static hpatch_BOOL _write_mem_stream(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                          const unsigned char* data,const unsigned char* data_end){
         unsigned char* out_dst=(unsigned char*)stream->streamImport;
-        if (writeToPos+(data_end-data)<=stream->streamSize){
-            memcpy(out_dst+writeToPos,data,data_end-data);
-            return hpatch_TRUE;
-        }else{
-            return _hpatch_FALSE;
-        }
+        hpatch_size_t writeLen=data_end-data;
+#ifdef __RUN_MEM_SAFE_CHECK
+        if (writeToPos>stream->streamSize) return _hpatch_FALSE;
+        if (writeLen>(hpatch_StreamPos_t)(stream->streamSize-writeToPos)) return _hpatch_FALSE;
+#endif
+        memcpy(out_dst+writeToPos,data,writeLen);
+        return hpatch_TRUE;
     }
     typedef hpatch_BOOL (*_read_mem_stream_t)(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
                                               unsigned char* out_data,unsigned char* out_data_end);
@@ -2159,7 +2161,11 @@ hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,
             }
             
             --coverCount;
-            if (coverLen>0){
+            if (coverLen){
+                #ifdef __RUN_MEM_SAFE_CHECK
+                    if (oldPos>oldData->streamSize) return _hpatch_FALSE;
+                    if (coverLen>(hpatch_StreamPos_t)(oldData->streamSize-oldPos)) return _hpatch_FALSE;
+                #endif
                 if (!_patch_add_old_with_rle0(&outCache,&rle0_decoder,oldData,oldPos,coverLen,
                                               temp_cache,cache_size)) return _hpatch_FALSE;
                 lastOldEnd=oldPos+coverLen;
