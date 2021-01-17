@@ -40,6 +40,7 @@ struct CHLocker{
 
 #if (_IS_USED_CPP11THREAD)
 #   include <thread>
+#   include <mutex>
     struct CAutoLocker:public _TLockerBox_name {
         inline CAutoLocker(HLocker _locker)
             :_TLockerBox_name(*(std::mutex*)_locker){ }

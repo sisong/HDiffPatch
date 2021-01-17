@@ -40,6 +40,7 @@
 #endif
 #if (_IS_USED_CPP11THREAD)
 #   include <thread>
+#   include <mutex>
 #endif
 #if (_IS_USED_WIN32THREAD)
 #   include "windows.h"
@@ -356,6 +357,8 @@ void thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* wor
             if (rt==0){
                 delete pt;
                 _check(rt!=0,"_thread_create");
+            } else {
+                CloseHandle(rt);    
             }
         }
     }
