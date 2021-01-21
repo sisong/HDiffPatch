@@ -41,6 +41,7 @@
 #if (_IS_USED_CPP11THREAD)
 #   include <thread>
 #   include <mutex>
+#   include <condition_variable>
 #endif
 #if (_IS_USED_WIN32THREAD)
 #   include "windows.h"
