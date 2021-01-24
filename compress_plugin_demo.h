@@ -829,6 +829,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     struct TCompressPlugin_zstd{
         hdiff_TCompress base;
         int             compress_level; //0..22
+        int             dict_bits;  // 10..(30 or 31)
     };
     static hpatch_StreamPos_t _zstd_compress(const hdiff_TCompress* compressPlugin,
                                              const hpatch_TStreamOutput* out_code,
@@ -846,8 +847,9 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 #endif
         hpatch_StreamPos_t  readFromPos=0;
         int                 outStream_isCanceled=0;
+        int                 dict_bits;
         size_t              ret;
-        
+
         s_input.size=ZSTD_CStreamInSize();
         s_output.size=ZSTD_CStreamOutSize();
         _temp_buf=(unsigned char*)malloc(s_input.size+s_output.size);
@@ -859,6 +861,15 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         if (!s) _compress_error_return("ZSTD_createCStream()");
         ret=ZSTD_initCStream(s,plugin->compress_level);
         if (ZSTD_isError(ret)) _compress_error_return("ZSTD_initCStream()");
+        
+        #define _ZSTD_WINDOWLOG_MIN 10
+        dict_bits=plugin->dict_bits;
+         while (((((hpatch_StreamPos_t)1)<<(dict_bits-1)) >= in_data->streamSize)
+                &&((dict_bits-1)>=_ZSTD_WINDOWLOG_MIN)) {
+            --dict_bits;
+        }
+        ret=ZSTD_CCtx_setParameter(s, ZSTD_c_windowLog,plugin->dict_bits);
+        if (ZSTD_isError(ret)) _compress_error_return("ZSTD_CCtx_setParameter()");
         
         while (readFromPos<in_data->streamSize) {
             s_input.pos=0;
@@ -898,7 +909,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     }
     _def_fun_compressType(_zstd_compressType,"zstd");
     static TCompressPlugin_zstd zstdCompressPlugin={
-        {_zstd_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_zstd_compress}, 20};
+        {_zstd_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_zstd_compress},
+        20,24};
 #endif//_CompressPlugin_zstd
 
 
@@ -1007,7 +1019,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     struct TCompressPlugin_lzham{
         hdiff_TCompress base;
         int             compress_level; //0..5
-        int             dict_bits;  // 15.. 26 or 29
+        int             dict_bits;  // 15..(26 or 29)
         int             thread_num; //1..(64?)
     };
 
