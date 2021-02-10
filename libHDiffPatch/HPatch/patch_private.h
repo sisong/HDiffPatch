@@ -143,6 +143,22 @@ hpatch_BOOL getStreamClip(TStreamCacheClip* out_clip,_TDecompressInputStream* ou
                           const hpatch_TStreamInput* stream,hpatch_StreamPos_t* pCurStreamPos,
                           hpatch_TDecompress* decompressPlugin,unsigned char* aCache,hpatch_size_t cacheSize);
     
+
+#define _TDiffToSingleStream_kBufSize hpatch_kStreamCacheSize
+typedef struct {
+    hpatch_TStreamInput         base;
+    const hpatch_TStreamInput*  diffStream;
+    hpatch_StreamPos_t          readedSize;
+    hpatch_size_t               cachedBufBegin;
+    hpatch_BOOL                 isInSingleStream;
+    unsigned char               buf[_TDiffToSingleStream_kBufSize];
+} TDiffToSingleStream;
+
+void TDiffToSingleStream_init(TDiffToSingleStream* self,const hpatch_TStreamInput* diffStream);
+hpatch_inline static 
+void TDiffToSingleStream_setInSingleStream(TDiffToSingleStream* self,hpatch_StreamPos_t singleStreamPos){
+    self->isInSingleStream=hpatch_TRUE; }
+
 #ifdef __cplusplus
 }
 #endif

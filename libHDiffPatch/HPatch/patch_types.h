@@ -216,6 +216,35 @@ extern "C" {
         hpatch_BOOL                    (*close)(struct hpatch_TCovers* covers);
     } hpatch_TCovers;
     
+    
+    typedef struct{
+        hpatch_StreamPos_t  newDataSize;
+        hpatch_StreamPos_t  oldDataSize;
+        hpatch_StreamPos_t  uncompressedSize;
+        hpatch_StreamPos_t  compressedSize;
+        hpatch_StreamPos_t  diffDataPos;
+        hpatch_StreamPos_t  coverCount;
+        hpatch_StreamPos_t  stepMemSize;
+        char                compressType[hpatch_kMaxPluginTypeLength+1]; //ascii cstring
+    } hpatch_singleCompressedDiffInfo;
+    
+    typedef struct sspatch_listener_t{ 
+        void*         import;   
+        hpatch_BOOL (*onDiffInfo)(struct sspatch_listener_t* listener,
+                                  const hpatch_singleCompressedDiffInfo* info,
+                                  hpatch_TDecompress** out_decompressPlugin,//find decompressPlugin by info->compressType
+                                  unsigned char** out_temp_cache,    //*out_temp_cacheEnd-*out_temp_cache == info->stepMemSize + (I/O cache memory)
+                                  unsigned char** out_temp_cacheEnd);//  note: (I/O cache memory) >= hpatch_kStreamCacheSize*3
+        void        (*onPatchFinish)(struct sspatch_listener_t* listener, //onPatchFinish can null
+                                     unsigned char* temp_cache, unsigned char* temp_cacheEnd);
+    } sspatch_listener_t;
+
+    typedef struct{
+        hpatch_TStreamInput     base;
+        hpatch_TDecompress*     _decompressPlugin;
+        hpatch_decompressHandle _decompressHandle;
+    } hpatch_TUncompresser_t;
+    
 #ifdef __cplusplus
 }
 #endif

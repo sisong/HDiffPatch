@@ -731,6 +731,10 @@ int hpatch(const char* oldFileName,const char* diffFileName,
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+    hpatch_BOOL isSingleStreamDiff=hpatch_FALSE;
+    hpatch_singleCompressedDiffInfo sdiffInfo;
+#endif
     hpatch_TDecompress*  decompressPlugin=0;
     hpatch_TFileStreamOutput    newData;
     hpatch_TFileStreamInput     diffData;
@@ -771,7 +775,20 @@ int hpatch(const char* oldFileName,const char* diffFileName,
         hpatch_compressedDiffInfo diffInfo;
         if (!getCompressedDiffInfo(&diffInfo,&diffData.base)){
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
-            check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+            if (getSingleCompressedDiffInfo(&sdiffInfo,&diffData.base,0)){
+                memcpy(diffInfo.compressType,sdiffInfo.compressType,strlen(sdiffInfo.compressType)+1);
+                diffInfo.compressedCount=(sdiffInfo.compressType[0]!='\0')?1:0;
+                diffInfo.newDataSize=sdiffInfo.newDataSize;
+                diffInfo.oldDataSize=sdiffInfo.oldDataSize;
+                patchCacheSize+=(size_t)sdiffInfo.stepMemSize;
+                if (patchCacheSize<sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3)
+                    patchCacheSize=sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3;
+                isSingleStreamDiff=hpatch_TRUE;
+                printf("patch single compressed stream diffData!\n");
+            }else
+#endif
+                check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
             fprintf(stderr,"oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 " ERROR!\n",
@@ -791,9 +808,16 @@ int hpatch(const char* oldFileName,const char* diffFileName,
     
     temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,poldData->streamSize, &temp_cache_size);
     check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory");
-
-    patch_result=patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
-                                             temp_cache,temp_cache+temp_cache_size);
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+    if (isSingleStreamDiff){
+        check(temp_cache_size>=sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3,HPATCH_MEM_ERROR,"alloc cache memory");
+        patch_result=patch_single_compressed_diff(&newData.base,poldData,&diffData.base,sdiffInfo.diffDataPos,
+                                                  sdiffInfo.uncompressedSize,decompressPlugin,sdiffInfo.coverCount,
+                                                  sdiffInfo.stepMemSize,temp_cache,temp_cache+temp_cache_size);
+    }else
+#endif
+        patch_result=patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
+                                                 temp_cache,temp_cache+temp_cache_size);
     if (!patch_result){
         check(!oldData.fileError,HPATCH_FILEREAD_ERROR,"oldFile read");
         check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"diffFile read");
