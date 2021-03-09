@@ -765,6 +765,37 @@ void create_single_compressed_diff(const TByte* newData,const TByte* newData_end
     serialize_single_compressed_diff(diff,out_diff,compressPlugin,patchStepMemSize);
 }
 
+static hpatch_BOOL _check_single_onDiffInfo(struct sspatch_listener_t* listener,
+                                            const hpatch_singleCompressedDiffInfo* info,
+                                            hpatch_TDecompress** out_decompressPlugin,
+                                            unsigned char** out_temp_cache,
+                                            unsigned char** out_temp_cacheEnd){
+    size_t memSize=(size_t)(info->stepMemSize+hpatch_kStreamCacheSize*3);
+    *out_temp_cache=(unsigned char*)malloc(memSize);
+    *out_temp_cacheEnd=(*out_temp_cache)+memSize;   
+    *out_decompressPlugin=(hpatch_TDecompress*)listener->import;
+    return hpatch_TRUE;
+}
+static void _check_single_onPatchFinish(struct sspatch_listener_t* listener,
+                                        unsigned char* temp_cache, unsigned char* temp_cacheEnd){
+    if (temp_cache) free(temp_cache);
+}
+
+bool check_single_compressed_diff(const TByte* newData,const TByte* newData_end,
+                                  const TByte* oldData,const TByte* oldData_end,
+                                  const TByte* diff,const TByte* diff_end,
+                                  hpatch_TDecompress* decompressPlugin){
+    sspatch_listener_t listener={0};
+    listener.import=decompressPlugin;
+    listener.onDiffInfo=_check_single_onDiffInfo;
+    listener.onPatchFinish=_check_single_onPatchFinish;
+    TAutoMem updateNewData(newData_end-newData);
+    TByte* updateNew0=updateNewData.data();
+    if (!patch_single_stream_by_mem(&listener,updateNew0,updateNew0+updateNewData.size(),
+                                    oldData,oldData_end,diff,diff_end)) return false;
+    return (0==memcmp(updateNew0,newData,updateNewData.size()));
+}
+
 
 #define _test(value) { if (!(value)) { fprintf(stderr,"patch check "#value" error!\n");  return hpatch_FALSE; } }
 

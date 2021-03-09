@@ -137,24 +137,49 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
                                        hpatch_coverList_init(coverList); } return result; }
 
     
-//
-    
-    typedef struct{
-        hpatch_StreamPos_t  newDataSize;
-        hpatch_StreamPos_t  oldDataSize;
-        hpatch_StreamPos_t  uncompressedSize;
-        hpatch_StreamPos_t  compressedSize;
-        hpatch_StreamPos_t  diffDataPos;
-        hpatch_StreamPos_t  coverCount;
-        hpatch_StreamPos_t  stepMemSize;
-        char                compressType[hpatch_kMaxPluginTypeLength+1]; //ascii cstring
-    } hpatch_singleCompressedDiffInfo;
+//patch single diffStream
+ 
+	//patch with singleCompressedDiff by a listener
+	//	used (stepMemSize memory) + (I/O cache memory) + (decompress memory*1)
+    //  every byte in singleCompressedDiff will only be read once in order
+	//  singleCompressedDiff create by create_single_compressed_diff()
+    //  you can download&patch diffData at the same time, without saving it to disk
+	//  same as call getSingleCompressedDiffInfo() + listener->onDiffInfo() + patch_single_compressed_diff()
+    hpatch_BOOL patch_single_stream_by(sspatch_listener_t* listener, //call back when got diffInfo
+                                       const hpatch_TStreamOutput* out_newData,          //sequential write
+                                       const hpatch_TStreamInput*  oldData,              //random read
+                                       const hpatch_TStreamInput*  singleCompressedDiff, //sequential read every byte
+                                       hpatch_StreamPos_t  diffInfo_pos //default 0, begin pos in singleCompressedDiff
+                                       );
+    static hpatch_inline hpatch_BOOL 
+        patch_single_stream_by_mem(sspatch_listener_t* listener,
+                                   unsigned char* out_newData,unsigned char* out_newData_end,
+                                   const unsigned char* oldData,const unsigned char* oldData_end,
+                                   const unsigned char* diff,const unsigned char* diff_end){
+            hpatch_TStreamOutput out_newStream;
+            hpatch_TStreamInput  oldStream;
+            hpatch_TStreamInput  diffStream;
+            mem_as_hStreamOutput(&out_newStream,out_newData,out_newData_end);
+            mem_as_hStreamInput(&oldStream,oldData,oldData_end);
+            mem_as_hStreamInput(&diffStream,diff,diff_end);
+            return patch_single_stream_by(listener,&out_newStream,&oldStream,&diffStream,0);
+        }
     
     hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_diffInfo,
                                             const hpatch_TStreamInput*  singleCompressedDiff,   //sequential read
                                             hpatch_StreamPos_t diffInfo_pos/*default 0, begin pos in singleCompressedDiff*/);
+
+    hpatch_inline static hpatch_BOOL
+        getSingleCompressedDiffInfo_mem(hpatch_singleCompressedDiffInfo* out_diffInfo,
+                                        const unsigned char* singleCompressedDiff,
+                                        const unsigned char* singleCompressedDiff_end){
+            hpatch_TStreamInput  diffStream;
+            mem_as_hStreamInput(&diffStream,singleCompressedDiff,singleCompressedDiff_end);
+            return getSingleCompressedDiffInfo(out_diffInfo,&diffStream,0);            
+        }
     
-	//patch with diffData, the diffData saved as single compressed stream
+   
+	//patch with singleCompressedDiff
 	//	used (stepMemSize memory) + (I/O cache memory) + (decompress memory*1)
 	//	note: (I/O cache memory) >= hpatch_kStreamCacheSize*3
 	//  temp_cache_end-temp_cache == stepMemSize + (I/O cache memory)
@@ -170,12 +195,6 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
                                              hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                              unsigned char* temp_cache,unsigned char* temp_cache_end);
     
-    
-    typedef struct{
-        hpatch_TStreamInput     base;
-        hpatch_TDecompress*     _decompressPlugin;
-        hpatch_decompressHandle _decompressHandle;
-    } hpatch_TUncompresser_t;
     hpatch_BOOL compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompressedStream,hpatch_StreamPos_t uncompressedSize,
                                                   hpatch_TDecompress* decompressPlugin,const hpatch_TStreamInput* compressedStream,
                                                   hpatch_StreamPos_t compressed_pos,hpatch_StreamPos_t compressed_end);
