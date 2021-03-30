@@ -63,13 +63,15 @@
 #   define _CompressPlugin_zlib  // memroy requires less
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma  // better compresser
-#   define _CompressPlugin_lzma2 // better compresser / muti-thread compresser
+#   define _CompressPlugin_lzma2 // better compresser
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
-#   define _CompressPlugin_lz4   // faster compresser/decompresser
+#   define _CompressPlugin_lz4   // faster compresser / faster decompresser
 #   define _CompressPlugin_lz4hc // faster decompresser
 #   define _CompressPlugin_zstd  // better compresser / faster decompresser
+#   define _CompressPlugin_brotli// better compresser / faster decompresser
+#   define _CompressPlugin_lzham // better compresser / decompress faster than lzma2
 #endif
 
 #include "compress_plugin_demo.h"
@@ -188,6 +190,20 @@ static void printUsage(){
 #ifdef _CompressPlugin_zstd
            "        -c-zstd[-{0..22}[-dictBits]]    DEFAULT level 20\n"
            "            dictBits can 10--31, DEFAULT 24.\n"
+#   if (_IS_USED_MULTITHREAD)
+           "            support run by multi-thread parallel, fast!\n"
+#   endif
+#endif
+#ifdef _CompressPlugin_brotli
+           "        -c-brotli[-{0..11}[-dictBits]]  DEFAULT level 9\n"
+           "            dictBits can 10--30, DEFAULT 24.\n"
+#endif
+#ifdef _CompressPlugin_lzham
+           "        -c-lzham[-{0..5}[-dictBits]]    DEFAULT level 4\n"
+           "            dictBits can 15--29, DEFAULT 24.\n"
+#   if (_IS_USED_MULTITHREAD)
+           "            support run by multi-thread parallel, fast!\n"
+#   endif
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumType\n"
@@ -371,6 +387,12 @@ static hpatch_BOOL findDecompress(hpatch_TDecompress** out_decompressPlugin,cons
 #ifdef  _CompressPlugin_zstd
     _trySetDecompress(out_decompressPlugin,compressType,&zstdDecompressPlugin);
 #endif
+#ifdef  _CompressPlugin_brotli
+    _trySetDecompress(out_decompressPlugin,compressType,&brotliDecompressPlugin);
+#endif
+#ifdef  _CompressPlugin_lzham
+    _trySetDecompress(out_decompressPlugin,compressType,&lzhamDecompressPlugin);
+#endif
     return 0!=*out_decompressPlugin;
 }
 
@@ -471,7 +493,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     size_t       dictSize=0;
     const size_t defaultDictSize=(1<<20)*8;
 #endif
-#if (defined _CompressPlugin_zstd)
+#if (defined _CompressPlugin_zstd)||(defined _CompressPlugin_brotli)||(defined _CompressPlugin_lzham)
     size_t       dictBits=0;
     const size_t defaultDictBits=20+4;
 #endif
@@ -563,6 +585,28 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
          _zstdCompressPlugin.dict_bits = (int)dictBits;
          *out_compressPlugin=&_zstdCompressPlugin.base;
          *out_decompressPlugin=&zstdDecompressPlugin;  }
+#endif
+#ifdef _CompressPlugin_brotli
+    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"brotli",0,
+                                      &compressLevel,0,11,9, &dictBits,10,
+                                      30,defaultDictBits),"-c-brotli-?");
+     if ((isMatchedType)&&(0==strcmp(isMatchedType,"brotli"))){
+         static TCompressPlugin_brotli _brotliCompressPlugin=brotliCompressPlugin;
+         _brotliCompressPlugin.compress_level=(int)compressLevel;
+         _brotliCompressPlugin.dict_bits = (int)dictBits;
+         *out_compressPlugin=&_brotliCompressPlugin.base;
+         *out_decompressPlugin=&brotliDecompressPlugin;  }
+#endif
+#ifdef _CompressPlugin_lzham
+    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lzham",0,
+                                      &compressLevel,0,5,4, &dictBits,15,
+                                      (sizeof(size_t)<=4)?26:29,defaultDictBits),"-c-lzham-?");
+     if ((isMatchedType)&&(0==strcmp(isMatchedType,"lzham"))){
+         static TCompressPlugin_lzham _lzhamCompressPlugin=lzhamCompressPlugin;
+         _lzhamCompressPlugin.compress_level=(int)compressLevel;
+         _lzhamCompressPlugin.dict_bits = (int)dictBits;
+         *out_compressPlugin=&_lzhamCompressPlugin.base;
+         *out_decompressPlugin=&lzhamDecompressPlugin;  }
 #endif
     _options_check((*out_compressPlugin!=0)&&(*out_decompressPlugin!=0),"-c-?");
     return HDIFF_SUCCESS;
