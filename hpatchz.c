@@ -66,6 +66,8 @@
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_lz4 // || _CompressPlugin_lz4hc
 #   define _CompressPlugin_zstd
+#   define _CompressPlugin_brotli
+#   define _CompressPlugin_lzham
 #endif
 
 #include "decompress_plugin_demo.h"
@@ -641,6 +643,14 @@ static hpatch_BOOL getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo
 #ifdef  _CompressPlugin_zstd
         if ((!decompressPlugin)&&zstdDecompressPlugin.is_can_open(diffInfo->compressType))
             decompressPlugin=&zstdDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_brotli
+        if ((!decompressPlugin)&&brotliDecompressPlugin.is_can_open(diffInfo->compressType))
+            decompressPlugin=&brotliDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_lzham
+        if ((!decompressPlugin)&&lzhamDecompressPlugin.is_can_open(diffInfo->compressType))
+            decompressPlugin=&lzhamDecompressPlugin;
 #endif
     }
     if (!decompressPlugin){

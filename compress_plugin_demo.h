@@ -830,7 +830,15 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         hdiff_TCompress base;
         int             compress_level; //0..22
         int             dict_bits;  // 10..(30 or 31)
+        int             thread_num;     //1..(200?)
     };
+    static int _zstd_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
+        TCompressPlugin_zstd* plugin=(TCompressPlugin_zstd*)compressPlugin;
+        #define ZSTDMT_NBWORKERS_MAX 200
+        if (threadNum>ZSTDMT_NBWORKERS_MAX) threadNum=ZSTDMT_NBWORKERS_MAX;
+        plugin->thread_num=threadNum;
+        return threadNum;
+    }
     static hpatch_StreamPos_t _zstd_compress(const hdiff_TCompress* compressPlugin,
                                              const hpatch_TStreamOutput* out_code,
                                              const hpatch_TStreamInput*  in_data){
@@ -869,7 +877,11 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
             --dict_bits;
         }
         ret=ZSTD_CCtx_setParameter(s, ZSTD_c_windowLog,plugin->dict_bits);
-        if (ZSTD_isError(ret)) _compress_error_return("ZSTD_CCtx_setParameter()");
+        if (ZSTD_isError(ret)) _compress_error_return("ZSTD_CCtx_setParameter(,ZSTD_c_windowLog)");
+        if (plugin->thread_num>1){
+            ret=ZSTD_CCtx_setParameter(s, ZSTD_c_nbWorkers,plugin->thread_num);
+            //if (ZSTD_isError(ret)) printf("  (NOTICE: zstd unsupport multi-threading, warning.)\n");
+        }
         
         while (readFromPos<in_data->streamSize) {
             s_input.pos=0;
@@ -909,8 +921,8 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     }
     _def_fun_compressType(_zstd_compressType,"zstd");
     static TCompressPlugin_zstd zstdCompressPlugin={
-        {_zstd_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_zstd_compress},
-        20,24};
+        {_zstd_compressType,_default_maxCompressedSize,_zstd_setThreadNumber,_zstd_compress},
+        20,24,kDefaultCompressThreadNumber};
 #endif//_CompressPlugin_zstd
 
 
