@@ -9,8 +9,10 @@
 
 a C\C++ library and command-line tools for Diff & Patch between binary files or directories(folder); cross-platform; run fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
    
-( update Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )   
 ( NOTE: This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
+( update Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)!    
+ but ApkDiffPath can't be used in the Android app store, because it requires re-signing apk;   
+[sfpatcher](https://github.com/sisong/sfpatcher) like [archive-patcher](https://github.com/google/archive-patcher), is designed for Android app store, but patch is much faster than archive-patcher. )   
    
 ---
 ## Releases/Binaries
@@ -18,8 +20,9 @@ a C\C++ library and command-line tools for Diff & Patch between binary files or 
 ( release files build by projects in path `HDiffPatch/builds` )   
 
 ## Builds
-`$ cd <dir>/HDiffPatch`
-if on linux or macos, try : `$ make LZMA=0`     
+`$ cd <dir>/HDiffPatch`   
+if on linux or macos, try :   
+`$ make LZMA=0`   
 or    
 ```
 $ git clone https://github.com/sisong/lzma.git ../lzma
@@ -27,7 +30,7 @@ $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ make MT=1 MD5=1
 ```    
    
-if on windows, befor compile by `Visual Studio` 
+if on windows, befor compile `builds/vc/HDiffPatch.sln` by `Visual Studio` 
 ```
 $ git clone https://github.com/sisong/lzma.git   ../lzma
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
@@ -38,8 +41,8 @@ $ git clone https://github.com/sisong/bzip2.git   ../bzip2
 build libhpatchz.so for android:   
 * install Android NDK
 * `$ cd <dir>/HDiffPatch/builds/android_ndk_jni_mk`
-* `$ build_libs.sh`   (or `$ build_libs.bat`) 
-* import file `com/github/sisong/HPatch.java` (path `HDiffPatch/builds/android_ndk_jni_mk/java/`), java code can call the patch function in libhpatchz.so
+* `$ build_libs.sh`   (or `$ build_libs.bat`, then got \*.so files)
+* import file `com/github/sisong/HPatch.java` (from `HDiffPatch/builds/android_ndk_jni_mk/java/`) & .so files, java code can call the patch function in libhpatchz.so
    
 ## diff command line usage:   
 diff     usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
