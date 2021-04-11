@@ -773,7 +773,7 @@ static hpatch_BOOL _check_single_onDiffInfo(struct sspatch_listener_t* listener,
     size_t memSize=(size_t)(info->stepMemSize+hpatch_kStreamCacheSize*3);
     *out_temp_cache=(unsigned char*)malloc(memSize);
     *out_temp_cacheEnd=(*out_temp_cache)+memSize;   
-    *out_decompressPlugin=(hpatch_TDecompress*)listener->import;
+    *out_decompressPlugin=(info->compressType[0]=='\0')?0:(hpatch_TDecompress*)listener->import;
     return hpatch_TRUE;
 }
 static void _check_single_onPatchFinish(struct sspatch_listener_t* listener,
