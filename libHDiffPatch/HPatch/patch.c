@@ -2254,7 +2254,7 @@ hpatch_BOOL patch_single_stream_by(sspatch_listener_t* listener,
                                    const hpatch_TStreamInput*  oldData,
                                    const hpatch_TStreamInput*  singleCompressedDiff, 
                                    hpatch_StreamPos_t  diffInfo_pos){
-    hpatch_BOOL result;
+    hpatch_BOOL result=hpatch_TRUE;
     hpatch_TDecompress*     decompressPlugin=0;
     unsigned char*          temp_cache=0;
     unsigned char*          temp_cacheEnd=0;
@@ -2279,13 +2279,19 @@ hpatch_BOOL patch_single_stream_by(sspatch_listener_t* listener,
 
     if (!listener->onDiffInfo(listener,&diffInfo,&decompressPlugin,&temp_cache,&temp_cacheEnd))
         return _hpatch_FALSE;
+
     if ((temp_cache==0)||(temp_cache>=temp_cacheEnd))
-        return _hpatch_FALSE;
-    result=(diffInfo.compressType[0]=='\0')?(decompressPlugin==0):(decompressPlugin!=0);
-    result=result&&patch_single_compressed_diff(out_newData,oldData,singleCompressedDiff,
-                                                diffInfo.diffDataPos,diffInfo.uncompressedSize,
-                                                decompressPlugin,diffInfo.coverCount,
-                                                (size_t)diffInfo.stepMemSize,temp_cache,temp_cacheEnd);
+        result=_hpatch_FALSE;
+    if (diffInfo.compressType[0]=='\0')
+        decompressPlugin=0;
+    else
+        result=result&&(decompressPlugin!=0);
+    if (result){
+        result=patch_single_compressed_diff(out_newData,oldData,singleCompressedDiff,
+                                            diffInfo.diffDataPos,diffInfo.uncompressedSize,
+                                            decompressPlugin,diffInfo.coverCount,
+                                            (size_t)diffInfo.stepMemSize,temp_cache,temp_cacheEnd);
+    }
     if (listener->onPatchFinish)
         listener->onPatchFinish(listener,temp_cache,temp_cacheEnd);
     return result;
