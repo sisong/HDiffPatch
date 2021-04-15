@@ -295,6 +295,21 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
 #define _kNULL_VALUE    (-1)
 #define _kNULL_SIZE     (~(size_t)0)
 
+#define _isSwapToPatchTag(tag) (0==strcmp("--patch",tag))
+
+int isSwapToPatchMode(int argc,const char* argv[]){
+    int i;
+    for (i=1;i<argc;++i){
+        if (_isSwapToPatchTag(argv[i]))
+            return hpatch_TRUE;
+    }
+#if (_IS_NEED_SFX)
+    if (getDiffDataOffertInSfx(0,0))
+        return hpatch_TRUE;
+#endif
+    return hpatch_FALSE;
+}
+
 int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isLoadOldAll=_kNULL_VALUE;
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
@@ -318,6 +333,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     for (i=1; i<argc; ++i) {
         const char* op=argv[i];
         _options_check(op!=0,"?");
+        if (_isSwapToPatchTag(op))
+            continue;
         if (op[0]!='-'){
             hpatch_BOOL isEmpty=(strlen(op)==0);
             _options_check(arg_values_size<kMax_arg_values_size,"input count");
@@ -1213,8 +1230,8 @@ hpatch_BOOL getDiffDataOffertInSfx(hpatch_StreamPos_t* out_diffDataOffert,hpatch
     }
     if (diffSize==(~(hpatch_uint64_t)0)) return hpatch_FALSE;
     
-    *out_diffDataOffert=diffOff;
-    *out_diffDataSize=diffSize;
+    if (out_diffDataOffert) *out_diffDataOffert=diffOff;
+    if (out_diffDataSize) *out_diffDataSize=diffSize;
     return hpatch_TRUE;
 }
 

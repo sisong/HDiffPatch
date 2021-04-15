@@ -41,6 +41,7 @@
 #include "_atosize.h"
 #include "file_for_patch.h"
 #include "libHDiffPatch/HDiff/private_diff/mem_buf.h"
+#include "hdiffz_import_patch.h"
 
 #include "_dir_ignore.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -278,6 +279,8 @@ static void printUsage(){
            "  -f  Force overwrite, ignore write path already exists;\n"
            "      DEFAULT (no -f) not overwrite and then return error;\n"
            "      if used -f and write path is exist directory, will always return error.\n"
+           "  --patch\n"
+           "      swap to hpatchz mode.\n"
            "  -h or -?\n"
            "      output Help info (this usage).\n"
            "  -v  output Version info.\n\n"
@@ -331,6 +334,11 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
 int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                  const hdiff_TCompress* compressPlugin);
 
+#define _checkPatchMode(_argc,_argv)            \
+    if (isSwapToPatchMode(_argc,_argv)){        \
+        printf("hdiffz swap to hpatchz mode.\n\n"); \
+        return hpatch_cmd_line(_argc,_argv);    \
+    }
 
 #if (_IS_NEED_MAIN)
 #   if (_IS_USED_WIN32_UTF8_WAPI)
@@ -340,10 +348,12 @@ int wmain(int argc,wchar_t* argv_w[]){
     if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,_mem.size()))
         return HDIFF_OPTIONS_ERROR;
     SetDefaultStringLocale();
+    _checkPatchMode(argc,(const char**)argv_utf8);
     return hdiff_cmd_line(argc,(const char**)argv_utf8);
 }
 #   else
 int main(int argc,char* argv[]){
+    _checkPatchMode(argc,(const char**)argv);
     return  hdiff_cmd_line(argc,(const char**)argv);
 }
 #   endif

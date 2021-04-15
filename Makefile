@@ -23,6 +23,7 @@ endif
 
 
 HDIFF_OBJ := \
+    hdiffz_import_patch.o \
     libHDiffPatch/HDiff/diff.o \
     libHDiffPatch/HDiff/private_diff/bytes_rle.o \
     libHDiffPatch/HDiff/private_diff/suffix_string.o \

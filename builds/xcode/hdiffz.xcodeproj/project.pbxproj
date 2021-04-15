@@ -16,6 +16,7 @@
 		D67D3BE121D11DF70050632A /* dir_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BE021D11DF70050632A /* dir_patch.c */; };
 		D68CD8F21F4426B100A61337 /* stream_serialize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D68CD8F01F4426B100A61337 /* stream_serialize.cpp */; };
 		D690AB9C1F20792A0089DC57 /* hdiffz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690AB9B1F20792A0089DC57 /* hdiffz.cpp */; };
+		D690AB9C1F20792A0089DC57 /* hdiffz_import_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D690AB9B1F20792A0089DC57 /* hdiffz_import_patch.c */; };
 		D690ABB71F2079E80089DC57 /* diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA01F2079E80089DC57 /* diff.cpp */; };
 		D690ABB81F2079E80089DC57 /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA31F2079E80089DC57 /* bytes_rle.cpp */; };
 		D690ABB91F2079E80089DC57 /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA71F2079E80089DC57 /* divsufsort.c */; };
@@ -74,6 +75,7 @@
 		D68CD8FF1F45D22C00A61337 /* file_for_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file_for_patch.h; path = ../../file_for_patch.h; sourceTree = "<group>"; };
 		D690AB911F2078A40089DC57 /* hdiffz */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hdiffz; sourceTree = BUILT_PRODUCTS_DIR; };
 		D690AB9B1F20792A0089DC57 /* hdiffz.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hdiffz.cpp; path = ../../hdiffz.cpp; sourceTree = "<group>"; };
+		D690AB9B1F20792A0089DC57 /* hdiffz_import_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hdiffz_import_patch.c; path = ../../hdiffz_import_patch.c; sourceTree = "<group>"; };
 		D690ABA01F2079E80089DC57 /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
 		D690ABA11F2079E80089DC57 /* diff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diff.h; sourceTree = "<group>"; };
 		D690ABA31F2079E80089DC57 /* bytes_rle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bytes_rle.cpp; sourceTree = "<group>"; };
@@ -202,6 +204,7 @@
 				D6367E4E21A65CB20032B717 /* _atosize.h */,
 				D6367E4D21A65CB20032B717 /* _clock_for_demo.h */,
 				D690AB9B1F20792A0089DC57 /* hdiffz.cpp */,
+				D690AB9B1F20792A0089DC57 /* hdiffz_import_patch.c */,
 				D690AB921F2078A40089DC57 /* Products */,
 				D690ABBD1F20832E0089DC57 /* Frameworks */,
 			);
@@ -400,6 +403,7 @@
 				D690ABBA1F2079E80089DC57 /* divsufsort64.c in Sources */,
 				D690ABB91F2079E80089DC57 /* divsufsort.c in Sources */,
 				D690AB9C1F20792A0089DC57 /* hdiffz.cpp in Sources */,
+				D690AB9C1F20792A0089DC57 /* hdiffz_import_patch.c in Sources */,
 				D68CD8F21F4426B100A61337 /* stream_serialize.cpp in Sources */,
 				D6DD68E31F40163200A1B22B /* adler_roll.c in Sources */,
 			);
