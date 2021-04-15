@@ -74,7 +74,9 @@ struct ICoverLinesListener {
     void (*coverLines)(ICoverLinesListener* listener,hpatch_TCover* out_covers,size_t* coverCount,
                        hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
 };
-const size_t kDefaultStepMemSize =1024*256;
+
+
+static const size_t kDefaultStepMemSize =1024*256;
 
 //create a diffData between oldData and newData, the diffData saved as single compressed stream
 //  still under development!

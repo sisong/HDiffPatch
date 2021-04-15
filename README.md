@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v3.1.2-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v3.1.3-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -129,9 +129,8 @@ special options:
   -f  Force overwrite, ignore write path already exists;
       DEFAULT (no -f) not overwrite and then return error;
       if used -f and write path is exist directory, will always return error.
-  -o  DEPRECATED; Original diff, unsupport run with -s -c -C -D;
-      compatible with "diff_demo.cpp",
-      diffFile must patch by "patch_demo.c" or "hpatchz -o ..."
+  --patch
+      swap to hpatchz mode.
   -h or -?
       output Help info (this usage).
   -v  output Version info.
@@ -175,8 +174,6 @@ special options:
         if patch output file, will always return error;
         if patch output directory, will overwrite, but not delete
           needless existing files in directory.
-  -o  DEPRECATED; Original patch; compatible with "patch_demo.c",
-      diffFile must created by "diff_demo.cpp" or "hdiffz -o ..."
   -h or -?
       output Help info (this usage).
   -v  output Version info.
