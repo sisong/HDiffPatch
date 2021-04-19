@@ -38,30 +38,32 @@ public:
     
     inline void addCover(const TCover& cover){
         if (m_is32) {
-            m_covers_limit.push_back((hpatch_uint32_t)cover.oldPos);
-            m_covers_limit.push_back((hpatch_uint32_t)cover.newPos);
-            m_covers_limit.push_back((hpatch_uint32_t)cover.length);
+            hpatch_TCover32 c32;
+            c32.oldPos=(hpatch_uint32_t)cover.oldPos;
+            c32.newPos=(hpatch_uint32_t)cover.newPos;
+            c32.length=(hpatch_uint32_t)cover.length;
+            m_covers_limit.push_back(c32);
         }else{
             m_covers_larger.push_back(cover);
         }
     }
     
     inline size_t coverCount()const{
-        return m_is32?(m_covers_limit.size()/3):m_covers_larger.size();
+        return m_is32?m_covers_limit.size():m_covers_larger.size();
     }
     
     inline void covers(size_t index,TCover* out_cover)const{
         if (m_is32) {
-            size_t i=index*3;
-            out_cover->oldPos=m_covers_limit[i  ];
-            out_cover->newPos=m_covers_limit[i+1];
-            out_cover->length=m_covers_limit[i+2];
+            const hpatch_TCover32& c32=m_covers_limit[index];
+            out_cover->oldPos=c32.oldPos;
+            out_cover->newPos=c32.newPos;
+            out_cover->length=c32.length;
         }else{
             *out_cover=m_covers_larger[index];
         }
     }
 private:
-    std::vector<hpatch_uint32_t>    m_covers_limit;
+    std::vector<hpatch_TCover32>    m_covers_limit;
     std::vector<TCover>             m_covers_larger;
     const  bool                     m_is32;
 };

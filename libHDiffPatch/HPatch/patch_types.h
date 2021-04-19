@@ -207,6 +207,11 @@ extern "C" {
         hpatch_StreamPos_t newPos;
         hpatch_StreamPos_t length;
     } hpatch_TCover;
+    typedef struct hpatch_TCover32{
+        hpatch_uint32_t oldPos;
+        hpatch_uint32_t newPos;
+        hpatch_uint32_t length;
+    } hpatch_TCover32;
 
     typedef struct hpatch_TCovers{
         hpatch_StreamPos_t (*leave_cover_count)(const struct hpatch_TCovers* covers);
