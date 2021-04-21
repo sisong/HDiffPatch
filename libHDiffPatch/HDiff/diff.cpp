@@ -227,9 +227,6 @@ static void search_cover(TDiffData& diff,const TSuffixString& sstring){
     }
 }
 
-static void research_cover(TDiffData& diff,const TSuffixString& sstring,ICoverLinesListener* listener){
-    //todo:
-}
 
 //选择合适的覆盖线,去掉不合适的.
 static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
@@ -241,7 +238,7 @@ static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
     const TInt coverSize_old=(TInt)covers.size();
     TInt insertIndex=0;
     for (TInt i=0;i<coverSize_old;++i){
-        if (covers[i].oldPos<0) continue;//处理已经del的.
+        if (covers[i].length<=0) continue;//处理已经del的.
         bool isNeedSave=false;
         if (!isNeedSave){//向前合并可能.
             if ((insertIndex>0)&&(covers[insertIndex-1].isCanLink(covers[i])))
@@ -251,7 +248,7 @@ static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
             for (TInt j=i+1;j<coverSize_old; ++j) {
                 if (!covers[i].isCanLink(covers[j])) break;
                 covers[i].Link(covers[j]);
-                covers[j].oldPos=-1;//del
+                covers[j].length=0;//del
             }
         }
         if (!isNeedSave){//单覆盖是否保留.
@@ -556,6 +553,35 @@ static void dispose_cover(TDiffData& diff,int kMinSingleMatchScore){
     extend_cover(diff,kExtendMinSameRatio);//select_cover会删除一些覆盖线,所以重新扩展.
 }
     
+struct TDiffResearchCover:public IDiffResearchCover{
+    TDiffResearchCover(TDiffData& diff_,const TSuffixString& sstring_)
+        :diff(diff_),sstring(sstring_){ researchCover=_researchCover; }
+
+    inline void doResearchCover(struct IDiffSearchCoverListener* listener,
+                               size_t limitCoverIndex,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen){
+        diff.covers[limitCoverIndex].length=0; //del
+
+    }
+
+    static void _researchCover(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,
+                               size_t limitCoverIndex,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen){
+        TDiffResearchCover* self=(TDiffResearchCover*)diffi;
+        self->doResearchCover(listener,limitCoverIndex,hitPos,hitLen);
+    }
+    void researchFinish(){
+        size_t insert=0;
+        for (size_t i=0;i<diff.covers.size();++i){
+            if (diff.covers[i].length>0)
+                diff.covers[insert++]=diff.covers[i];
+        }
+        diff.covers.resize(insert);
+    }
+
+    TDiffData& diff;
+    const TSuffixString& sstring;
+};
+  
+
 static void get_diff(const TByte* newData,const TByte* newData_end,
                      const TByte* oldData,const TByte* oldData_end,
                      TDiffData&   out_diff,int kMinSingleMatchScore,
@@ -578,8 +604,10 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
         search_cover(diff,*sstring);
         dispose_cover(diff,kMinSingleMatchScore);
         if (listener&&listener->search_cover_limit&&
-            listener->search_cover_limit(listener,&diff.covers,isCover32)){
-            research_cover(diff,*sstring,listener);
+                listener->search_cover_limit(listener,diff.covers.data(),diff.covers.size(),isCover32)){
+            TDiffResearchCover diffResearchCover(diff,*sstring);
+            listener->research_cover(listener,&diffResearchCover,diff.covers.data(),diff.covers.size(),isCover32);
+            diffResearchCover.researchFinish();
         }
         sstring=0;
         _sstring_default.clear();
@@ -588,7 +616,11 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
     if (listener&&listener->search_cover_finish){
         hpatch_StreamPos_t newDataSize=(size_t)(diff.newData_end-diff.newData);
         hpatch_StreamPos_t oldDataSize=(size_t)(diff.oldData_end-diff.oldData);
-        listener->search_cover_finish(listener,&diff.covers,isCover32,&newDataSize,&oldDataSize);
+        size_t newCoverCount=diff.covers.size();
+        listener->search_cover_finish(listener,diff.covers.data(),&newCoverCount,isCover32,
+                                      &newDataSize,&oldDataSize);
+        check(newCoverCount<=diff.covers.size());
+        diff.covers.resize(newCoverCount);
         diff.newData_end=diff.newData+(size_t)newDataSize;
         diff.oldData_end=diff.oldData+(size_t)oldDataSize;
     }

@@ -70,12 +70,6 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                   const hpatch_TStreamInput*  compressed_diff,
                                   hpatch_TDecompress* decompressPlugin);
 
-struct ICoverLinesListener {
-    bool (*search_cover_limit)(ICoverLinesListener* listener,const void* out_vector_covers,bool isCover32);
-    void (*search_cover_finish)(ICoverLinesListener* listener,void* out_vector_covers,bool isCover32,
-                                hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
-};
-
 
 static const size_t kDefaultStepMemSize =1024*256;
 
