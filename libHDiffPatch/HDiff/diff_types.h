@@ -69,7 +69,9 @@ extern "C"
     
     struct IDiffSearchCoverListener{
         bool (*limitCover)(struct IDiffSearchCoverListener* listener,const hpatch_TCover* cover,
-                           size_t* out_limit_front,size_t* out_limit_back);
+                           hpatch_StreamPos_t* out_leaveLen,hpatch_StreamPos_t* out_hitLen);
+        void (*limitCover_front)(struct IDiffSearchCoverListener* listener,
+                                 const hpatch_TCover* front_cover,hpatch_StreamPos_t* out_leaveLen);
     };
     struct IDiffResearchCover{
         void (*researchCover)(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,
