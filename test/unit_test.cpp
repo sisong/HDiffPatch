@@ -157,28 +157,59 @@ static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
     return true;
 }
 
+enum TDiffType{
+    kDiffO,
+    kDiffZ,
+    kDiffS,
+};
+static const size_t kDiffTypeCount=kDiffS+1;
 
 #ifdef _AttackPacth_ON
+
+hpatch_BOOL _sspatch_onDiffInfo(struct sspatch_listener_t* listener,
+                                const hpatch_singleCompressedDiffInfo* info,
+                                hpatch_TDecompress** out_decompressPlugin,
+                                unsigned char** out_temp_cache,
+                                unsigned char** out_temp_cacheEnd){
+    size_t temp_cache_size=info->stepMemSize+hpatch_kStreamCacheSize*3;
+    static std::vector<TByte> _buf;
+    if (_buf.size()<temp_cache_size)
+        _buf.resize(temp_cache_size);
+    unsigned char* temp_cache=_buf.data();
+    *out_temp_cache=temp_cache;
+    *out_temp_cacheEnd=temp_cache+temp_cache_size;
+    *out_decompressPlugin=decompressPlugin;
+    return hpatch_TRUE;
+}
+
 long attackPacth(TByte* out_newData,TByte* out_newData_end,
                         const TByte* oldData,const TByte* oldData_end,
                         const TByte* diffData,const TByte* diffData_end,
-                        const char* error_tag,bool isDiffz){
-    if (isDiffz){
-        patch_decompress_mem(out_newData,out_newData_end,oldData,oldData_end,
-                             diffData,diffData_end,decompressPlugin);
-    }else{
-        hpatch_BOOL rt0=patch(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
-        hpatch_BOOL rt1=_patch_mem_stream(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
-        if (rt0!=rt1){
-            printf("\n attackPacth error!!! tag:%s\n",error_tag);
-            return 1;
-        }
+                        const char* error_tag,TDiffType diffType){
+    switch (diffType){
+        case kDiffO: {
+            hpatch_BOOL rt0=patch(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
+            hpatch_BOOL rt1=_patch_mem_stream(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
+            if (rt0!=rt1){
+                printf("\n attackPacth error!!! tag:%s\n",error_tag);
+                return 1;
+            }
+        } break;
+        case kDiffZ: {
+            patch_decompress_mem(out_newData,out_newData_end,oldData,oldData_end,
+                                 diffData,diffData_end,decompressPlugin);
+        } break;
+        case kDiffS: {
+            sspatch_listener_t listener={0,_sspatch_onDiffInfo,0};
+            patch_single_stream_by_mem(&listener,out_newData,out_newData_end,oldData,oldData_end,
+                                       diffData,diffData_end);
+        } break;
     }
     return 0;
 }
 
 long attackPacth(TInt newSize,const TByte* oldData,const TByte* oldData_end,
-                 const TByte* _diffData,const TByte* _diffData_end,int seed,bool isDiffz){
+                 const TByte* _diffData,const TByte* _diffData_end,int seed,TDiffType diffType){
     char tag[250]="\0";
     srand(seed);
     const long kLoopCount=1000;
@@ -198,7 +229,7 @@ long attackPacth(TInt newSize,const TByte* oldData,const TByte* oldData_end,
             for (long r=0; r<randCount; ++r){
                 diffData[rand()%diffSize]=rand();
             }
-            exceptionCount+=attackPacth(newData,newData_end,oldData,oldData_end,diffData,diffData_end,tag,isDiffz);
+            exceptionCount+=attackPacth(newData,newData_end,oldData,oldData_end,diffData,diffData_end,tag,diffType);
         }
         return exceptionCount;
     } catch (...) {
@@ -236,9 +267,43 @@ struct TVectorStreamOutput:public hpatch_TStreamOutput{
 };
 
 long test(const TByte* newData,const TByte* newData_end,
-          const TByte* oldData,const TByte* oldData_end,const char* tag,size_t* out_diffSize=0){
+          const TByte* oldData,const TByte* oldData_end,const char* tag,hpatch_StreamPos_t* out_diffSizes){
     printf("%s newSize:%ld oldSize:%ld ",tag, (long)(newData_end-newData), (long)(oldData_end-oldData));
     long result=0;
+    {//test diffs
+        std::vector<TByte> diffData;
+        create_single_compressed_diff(newData,newData_end,oldData,oldData_end,diffData,compressPlugin);
+        if (out_diffSizes) out_diffSizes[kDiffS]+=diffData.size();
+        if (!check_single_compressed_diff(newData,newData_end,oldData,oldData_end,
+                                          diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
+            printf("\n diffs error!!! tag:%s\n",tag);
+            ++result;
+        }else{
+            printf(" diffs:%ld", (long)(diffData.size()));
+#ifdef _AttackPacth_ON
+            long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
+                                            diffData.data(),diffData.data()+diffData.size(),rand(),kDiffS);
+            if (exceptionCount>0) return exceptionCount;
+#endif
+        }
+    }
+    {//test diffz
+        std::vector<TByte> diffData;
+        create_compressed_diff(newData,newData_end,oldData,oldData_end,diffData,compressPlugin);
+        if (out_diffSizes) out_diffSizes[kDiffZ]+=diffData.size();
+        if (!check_compressed_diff(newData,newData_end,oldData,oldData_end,
+                                   diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
+            printf("\n diffz error!!! tag:%s\n",tag);
+            ++result;
+        }else{
+            printf(" diffz:%ld", (long)(diffData.size()));
+#ifdef _AttackPacth_ON
+            long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
+                                            diffData.data(),diffData.data()+diffData.size(),rand(),kDiffZ);
+            if (exceptionCount>0) return exceptionCount;
+#endif
+        }
+    }
     {//test diffz stream
         std::vector<TByte> diffData;
         struct hpatch_TStreamInput  newStream;
@@ -256,26 +321,10 @@ long test(const TByte* newData,const TByte* newData_end,
             printf("\n diffz stream error!!! tag:%s\n",tag);
             ++result;
         }else{
-            printf(" diffzStream:%ld", (long)(diffData.size()));
+            printf(" diffz stream:%ld", (long)(diffData.size()));
 #ifdef _AttackPacth_ON
             long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
-                                            diffData.data(),diffData.data()+diffData.size(),rand(),true);
-            if (exceptionCount>0) return exceptionCount;
-#endif
-        }
-    }
-    {//test diffz
-        std::vector<TByte> diffData;
-        create_compressed_diff(newData,newData_end,oldData,oldData_end,diffData,compressPlugin);
-        if (!check_compressed_diff(newData,newData_end,oldData,oldData_end,
-                                   diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
-            printf("\n diffz error!!! tag:%s\n",tag);
-            ++result;
-        }else{
-            printf(" diffz:%ld", (long)(diffData.size()));
-#ifdef _AttackPacth_ON
-            long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
-                                            diffData.data(),diffData.data()+diffData.size(),rand(),true);
+                                            diffData.data(),diffData.data()+diffData.size(),rand(),kDiffZ);
             if (exceptionCount>0) return exceptionCount;
 #endif
         }
@@ -283,18 +332,17 @@ long test(const TByte* newData,const TByte* newData_end,
     {//test diff
         std::vector<TByte> diffData;
         create_diff(newData,newData_end,oldData,oldData_end, diffData);
-        if (out_diffSize!=0)
-            *out_diffSize=diffData.size();
+        if (out_diffSizes) out_diffSizes[kDiffO]+=diffData.size();
         if ((!check_diff(newData,newData_end,oldData,oldData_end,diffData.data(),diffData.data()+diffData.size()))
             ||(!check_diff_stream(newData,newData_end,oldData,oldData_end,
                                   diffData.data(),diffData.data()+diffData.size())) ){
-            printf("\n  error!!! tag:%s\n",tag);
+            printf("\n diffo error!!! tag:%s\n",tag);
             ++result;
         }else{
-            printf(" diff:%ld\n", (long)(diffData.size()));
+            printf(" diffo:%ld\n", (long)(diffData.size()));
 #ifdef _AttackPacth_ON
             long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
-                                            diffData.data(),diffData.data()+diffData.size(),rand(),false);
+                                            diffData.data(),diffData.data()+diffData.size(),rand(),kDiffO);
             if (exceptionCount>0) return exceptionCount;
 #endif
         }
@@ -307,7 +355,7 @@ long test(const TByte* newData,const TByte* newData_end,
 static inline long test(const char* newStr,const char* oldStr,const char* error_tag){
     const TByte* newData=(const TByte*)newStr;
     const TByte* oldData=(const TByte*)oldStr;
-    return test(newData,newData+strlen(newStr),oldData,oldData+strlen(oldStr),error_tag);
+    return test(newData,newData+strlen(newStr),oldData,oldData+strlen(oldStr),error_tag,0);
 }
 
 
@@ -352,7 +400,7 @@ int main(int argc, const char * argv[]){
         const char* _strData14="a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1";
         const TByte* data14=(const TByte*)_strData14;
         const size_t dataSize=strlen(_strData14);
-        size_t diffSize14=0;
+        hpatch_StreamPos_t diffSize14=0;
         errorCount+=test(data14, data14+dataSize,data14, data14+dataSize, "14",&diffSize14);
         if (diffSize14>=dataSize){
             ++errorCount;
@@ -367,9 +415,9 @@ int main(int argc, const char * argv[]){
     for (int i=0; i<kRandTestCount; ++i)
         seeds[i]=rand();
 
-    double sumNewSize=0;
-    double sumOldSize=0;
-    double sumDiffSize=0;
+    hpatch_StreamPos_t sumNewSize=0;
+    hpatch_StreamPos_t sumOldSize=0;
+    hpatch_StreamPos_t sumDiffSizes[kDiffTypeCount]={0};
     std::vector<TByte> _newData;
     std::vector<TByte> _oldData;
     for (TInt i=0; i<kRandTestCount; ++i) {
@@ -401,15 +449,14 @@ int main(int argc, const char * argv[]){
             const TInt newPos=(newSize-length==0)?0:(TInt)(rand()*(1.0/RAND_MAX)*(newSize-length));
             memcpy(&newData[0]+newPos, &oldData[0]+oldPos, length);
         }
-        size_t diffSize=0;
-        errorCount+=test(&newData[0],&newData[0]+newSize,&oldData[0],&oldData[0]+oldSize,tag,&diffSize);
+        errorCount+=test(&newData[0],&newData[0]+newSize,&oldData[0],&oldData[0]+oldSize,tag,sumDiffSizes);
         sumNewSize+=newSize;
         sumOldSize+=oldSize;
-        sumDiffSize+=diffSize;
     }
 
     printf("\nchecked:%ld  errorCount:%ld\n",kRandTestCount,errorCount);
-    printf("newSize:100%% oldSize:%2.2f%% diffSize:%2.2f%%\n",sumOldSize*100.0/sumNewSize,sumDiffSize*100.0/sumNewSize);
+    printf("newSize:100%% oldSize:%2.2f%% diffOsize:%2.2f%% diffZsize:%2.2f%% diffSsize:%2.2f%%\n",
+            sumOldSize*100.0/sumNewSize,sumDiffSizes[kDiffO]*100.0/sumNewSize,sumDiffSizes[kDiffZ]*100.0/sumNewSize,sumDiffSizes[kDiffS]*100.0/sumNewSize);
     clock_t time2=clock();
     printf("\nrun time:%.1f s\n",(time2-time1)*(1.0/CLOCKS_PER_SEC));
 

@@ -982,9 +982,9 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
 
 void create_single_compressed_diff(const TByte* newData,const TByte* newData_end,
                                    const TByte* oldData,const TByte* oldData_end,
-                                   std::vector<unsigned char>& out_diff,ICoverLinesListener* listener,
-                                   const hdiff_TCompress* compressPlugin,
-                                   int kMinSingleMatchScore,size_t patchStepMemSize){
+                                   std::vector<unsigned char>& out_diff,
+                                   const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore,
+                                   size_t patchStepMemSize,ICoverLinesListener* listener){
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,0,listener);
     serialize_single_compressed_diff(diff,out_diff,compressPlugin,patchStepMemSize);

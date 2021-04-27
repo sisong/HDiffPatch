@@ -1086,7 +1086,7 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
             if (isSingleStreamDiff){
                 printf("create single compressed stream diffData!\n");
                 create_single_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                              outDiffData,0,compressPlugin,(int)matchScore,singleStreamStepSize);
+                                              outDiffData,compressPlugin,(int)matchScore,singleStreamStepSize);
             }else
 #endif
             create_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
