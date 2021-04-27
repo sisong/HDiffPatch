@@ -520,7 +520,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     typedef struct{
         hdiff_TCompress base;
         int             compress_level; //0..9
-        UInt32          dict_size;      //patch decompress need 4*lzma_dictSize memroy
+        UInt32          dict_size;      //patch decompress need 4*lzma_dictSize memory
         int             thread_num;     //1..2
     } TCompressPlugin_lzma;
     static int _lzma_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
@@ -601,7 +601,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     struct TCompressPlugin_lzma2{
         hdiff_TCompress base;
         int             compress_level; //0..9
-        UInt32          dict_size;      //patch decompress need 4*lzma_dictSize memroy
+        UInt32          dict_size;      //patch decompress need 4*lzma_dictSize memory
         int             thread_num;     //1..(64?)
     };
     static int _lzma2_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
@@ -708,7 +708,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         LZ4_stream_t*       s=0;
         hpatch_StreamPos_t  readFromPos=0;
         int                 outStream_isCanceled=0;
-        int  kLz4CompressBufSize =1024*510; //patch decompress need 4*2*0.5MB memroy
+        int  kLz4CompressBufSize =1024*510; //patch decompress need 4*2*0.5MB memory
         int  code_buf_size;
         if ((size_t)kLz4CompressBufSize>in_data->streamSize)
             kLz4CompressBufSize=(int)in_data->streamSize;
@@ -766,7 +766,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         LZ4_streamHC_t*     s=0;
         hpatch_StreamPos_t  readFromPos=0;
         int                 outStream_isCanceled=0;
-        int  kLz4CompressBufSize =1024*510; //patch decompress need 4*2*0.5MB memroy
+        int  kLz4CompressBufSize =1024*510; //patch decompress need 4*2*0.5MB memory
         int  code_buf_size;
         if ((size_t)kLz4CompressBufSize>in_data->streamSize)
             kLz4CompressBufSize=(int)in_data->streamSize;

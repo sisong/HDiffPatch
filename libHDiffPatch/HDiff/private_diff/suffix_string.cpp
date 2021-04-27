@@ -165,7 +165,11 @@ namespace {
                     ++vs;
                     ++ss;
                     ++eq_len;
-                    continue;
+                    const int kMaxCmpLength_forLimitRangeDiff=1024*8; 
+                    if (eq_len<kMaxCmpLength_forLimitRangeDiff)
+                        continue;
+                    else
+                        return mid;
                 }else{
                     is_less=(sub<0);
                     break;

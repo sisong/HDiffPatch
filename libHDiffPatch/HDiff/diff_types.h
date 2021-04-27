@@ -74,8 +74,8 @@ extern "C"
                                  const hpatch_TCover* front_cover,hpatch_StreamPos_t* out_leaveLen);
     };
     struct IDiffResearchCover{
-        void (*researchCover)(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,
-                              size_t limitCoverIndex,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen);
+        void (*researchCover)(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,size_t limitCoverIndex,
+                              hpatch_StreamPos_t endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen);
     };
     struct ICoverLinesListener {
         bool (*search_cover_limit)(ICoverLinesListener* listener,const void* pcovers,size_t coverCount,bool isCover32);

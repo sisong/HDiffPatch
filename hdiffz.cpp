@@ -61,7 +61,7 @@
 #endif
 #if (_IS_NEED_DEFAULT_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
-#   define _CompressPlugin_zlib  // memroy requires less
+#   define _CompressPlugin_zlib  // memory requires less
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma  // better compresser
 #   define _CompressPlugin_lzma2 // better compresser

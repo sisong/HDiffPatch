@@ -121,6 +121,8 @@ struct TDiffLimit{
     IDiffSearchCoverListener* listener;
     size_t      newPos;
     size_t      newEnd;
+    size_t      recoverOldPos;
+    size_t      recoverOldEnd;
     TCompressDetect& nocover_detect;
     TCompressDetect& cover_detect;
     TOldCover        lastCover_back;
@@ -131,8 +133,10 @@ struct TDiffLimit{
 static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
                          const TByte* newData,const TByte* newData_end,
                          TInt curNewPos,TDiffLimit* diffLimit=0){
-    const TInt kMaxMatchDeepForLimit =32;
+    const TInt kMaxMatchDeepForLimit=6;
     const TInt matchDeep = diffLimit?kMaxMatchDeepForLimit:2;
+    const TInt kLimitOldPos=(TInt)(diffLimit?diffLimit->recoverOldPos:0);
+    const TInt kLimitOldEnd=(TInt)(diffLimit?diffLimit->recoverOldEnd:sstring.SASize());
     TInt sai=sstring.lower_bound(newData,newData_end);
     
     const TByte* src_begin=sstring.src_begin();
@@ -150,16 +154,20 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
         TInt i = sai + (1-(mdi&1)*2) * ((mdi+1)/2);
         if ((i<0)|(i>=(src_end-src_begin))) continue;
         TInt curOldPos=sstring.SA(i);
+        if (diffLimit){
+            if ((curOldPos>=kLimitOldPos)&(curOldPos<kLimitOldEnd))
+                continue;
+        }
         TInt curLength=getEqualLength(newData,newData_end,src_begin+curOldPos,src_end);
         if (curLength>bestLength){
             if (diffLimit){
-                hpatch_TCover cover={curOldPos,curNewPos,curLength};
+                hpatch_TCover cover={(size_t)curOldPos,(size_t)curNewPos,(size_t)curLength};
                 hpatch_StreamPos_t hitPos;
                 diffLimit->listener->limitCover(diffLimit->listener,&cover,&hitPos,0);
-                if (hitPos<=bestLength)
+                if (hitPos<=(size_t)bestLength)
                     continue;
                 else
-                    curLength=hitPos;
+                    curLength=(TInt)hitPos;
             }
             bestLength = curLength;
             bestOldPos= curOldPos;
@@ -199,8 +207,8 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     if (linkOldPos+matchCover.length>(diff.oldData_end-diff.oldData))
         return false;
     if (diffLimit){
-        hpatch_TCover cover={lastCover.oldPos+lastCover.length,lastCover.newPos+lastCover.length,
-                             linkSpaceLength+matchCover.length};
+        hpatch_TCover cover={(size_t)(lastCover.oldPos+lastCover.length),(size_t)(lastCover.newPos+lastCover.length),
+                             (size_t)(linkSpaceLength+matchCover.length)};
         if (!diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0))
             return false;
     }
@@ -236,7 +244,7 @@ static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const 
     if ((linkOldPos<0)||(linkOldPos+lastCover.length>(diff.oldData_end-diff.oldData)))
         return;
     if (diffLimit){
-        hpatch_TCover cover={linkOldPos,lastCover.newPos,lastCover.length};
+        hpatch_TCover cover={ (size_t)linkOldPos,(size_t)lastCover.newPos,(size_t)lastCover.length};
         if (!diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0))
             return;
     }
@@ -303,8 +311,8 @@ static void _select_cover(std::vector<TOldCover>& covers,const TDiffData& diff,i
             if ((insertIndex>0)&&(covers[insertIndex-1].isCanLink(covers[i]))){
                 if (diffLimit){
                     const TOldCover& fc=covers[insertIndex-1];
-                    hpatch_TCover cover={fc.oldPos+fc.length,fc.newPos+fc.length,
-                                         fc.linkSpaceLength(covers[i])};
+                    hpatch_TCover cover={(size_t)(fc.oldPos+fc.length),(size_t)(fc.newPos+fc.length),
+                                         (size_t)fc.linkSpaceLength(covers[i])};
                     if (diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0)){
                         isCanLink=true;
                         isNeedSave=true;
@@ -320,8 +328,8 @@ static void _select_cover(std::vector<TOldCover>& covers,const TDiffData& diff,i
                 if (!covers[i].isCanLink(covers[j])) break;
                 if (diffLimit){
                     const TOldCover& fc=covers[i];
-                    hpatch_TCover cover={fc.oldPos+fc.length,fc.newPos+fc.length,
-                                         fc.linkSpaceLength(covers[j])};
+                    hpatch_TCover cover={(size_t)(fc.oldPos+fc.length),(size_t)(fc.newPos+fc.length),
+                                         (size_t)fc.linkSpaceLength(covers[j])};
                     if (diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0)){
                         covers[i].Link(covers[j]);
                         covers[j].length=0;//del
@@ -422,20 +430,22 @@ static void extend_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
         if (diffLimit){
             TInt limit_front=std::min(curCover.newPos-lastNewEnd,curCover.oldPos);
             if (limit_front>0){
-                hpatch_TCover cover={curCover.oldPos-limit_front,curCover.newPos-limit_front,limit_front};
+                hpatch_TCover cover={(size_t)(curCover.oldPos-limit_front),
+                                     (size_t)(curCover.newPos-limit_front),(size_t)limit_front};
                 hpatch_StreamPos_t lenLimit;
                 diffLimit->listener->limitCover_front(diffLimit->listener,&cover,&lenLimit);
-                lastNewEnd=curCover.newPos-lenLimit;
+                lastNewEnd=curCover.newPos-(TInt)lenLimit;
             }
 
             TInt limit_back=newPos_next-(curCover.newPos+curCover.length);
             if ((curCover.oldPos+curCover.length)+limit_back>(diff.oldData_end-diff.oldData))
                 limit_back=(diff.oldData_end-diff.oldData)-(curCover.oldPos+curCover.length);
             if (limit_back>0){
-                hpatch_TCover cover={curCover.oldPos+curCover.length,curCover.newPos+curCover.length,limit_back};
+                hpatch_TCover cover={(size_t)(curCover.oldPos+curCover.length),
+                                     (size_t)(curCover.newPos+curCover.length),(size_t)limit_back};
                 hpatch_StreamPos_t lenLimit;
                 diffLimit->listener->limitCover(diffLimit->listener,&cover,&lenLimit,0);
-                newPos_next=(curCover.newPos+curCover.length)+lenLimit;
+                newPos_next=(curCover.newPos+curCover.length)+ (TInt)lenLimit;
             }
         }
         //向前延伸.
@@ -680,59 +690,60 @@ static void dispose_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
 
 struct TDiffResearchCover:public IDiffResearchCover{
     TDiffResearchCover(TDiffData& diff_,const TSuffixString& sstring_,int kMinSingleMatchScore_)
-        :diff(diff_),sstring(sstring_),kMinSingleMatchScore(kMinSingleMatchScore_){ researchCover=_researchCover; }
+        :diff(diff_),sstring(sstring_),kMinSingleMatchScore(kMinSingleMatchScore_),
+        limitCoverHitEndPos_back(0){ researchCover=_researchCover; }
 
-    void _researchRange(IDiffSearchCoverListener* listener,size_t reNewPos,size_t reNewEnd,
-                        TOldCover& lastCover_back){
-        TDiffLimit diffLimit={listener,reNewPos,reNewEnd,nocover_detect,cover_detect,lastCover_back};
-        search_cover(curCovers,diff,sstring,&diffLimit);
+    void _researchRange(TDiffLimit* diffLimit){
+        search_cover(curCovers,diff,sstring,diffLimit);
+          if (curCovers.empty()) return;
+        dispose_cover(curCovers,diff,kMinSingleMatchScore,diffLimit);
         if (curCovers.empty()) return;
-        dispose_cover(curCovers,diff,kMinSingleMatchScore,&diffLimit);
-        if (curCovers.empty()) return;
-        lastCover_back=curCovers.back();
         reCovers.insert(reCovers.end(),curCovers.begin(),curCovers.end());
         curCovers.clear();
     }
-    inline void doResearchCover(IDiffSearchCoverListener* listener,
-                               size_t limitCoverIndex,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen){
-        const size_t kBetterCoverLen=1024;
-        TOldCover lastCover_back={0,0,0};
-        if (limitCoverIndex>0)
-            lastCover_back=diff.covers[limitCoverIndex-1];
-        if ((!reCovers.empty())&&(reCovers.back().newPos>lastCover_back.newPos))
-            lastCover_back=reCovers.back();
 
-        TOldCover& cover=diff.covers[limitCoverIndex];
-        while (true){
-            if (hitPos>=kBetterCoverLen){
-                lastCover_back.oldPos=cover.oldPos;
-                lastCover_back.newPos=cover.newPos;
-                lastCover_back.length=hitPos;
-                reCovers.push_back(lastCover_back);
-                cover.oldPos+=hitPos;
-                cover.newPos+=hitPos;
-                cover.length-=hitPos;
-                if (cover.length==0) 
-                    break;
-            }
-            if (cover.length-hitLen<=kBetterCoverLen)
-                hitLen=cover.length;
-            //if (hitLen>=1024) ("research cover:%4dk\n",(int)((hitLen+512)/1024));
-            _researchRange(listener,cover.newPos,cover.newPos+hitLen,lastCover_back);
-            cover.oldPos+=hitLen;
-            cover.newPos+=hitLen;
-            cover.length-=hitLen;
-            if (cover.length==0)
-                break;
-            hpatch_TCover hcover={cover.oldPos,cover.newPos,cover.length};
-            listener->limitCover(listener,&hcover,&hitPos,&hitLen);
+    inline void endResearchCover(){
+        if (limitCoverHitEndPos_back!=0){
+            TOldCover& cover=diff.covers[limitCoverIndex_back];
+            cover.oldPos+=(TInt)limitCoverHitEndPos_back;
+            cover.newPos+=(TInt)limitCoverHitEndPos_back;
+            cover.length-=(TInt)limitCoverHitEndPos_back;
+            limitCoverHitEndPos_back=0;
         }
     }
+    inline void doResearchCover(IDiffSearchCoverListener* listener,size_t limitCoverIndex,
+                                hpatch_StreamPos_t endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen){
+        if (limitCoverIndex_back!=limitCoverIndex){
+            endResearchCover();
+            limitCoverIndex_back=limitCoverIndex;
+        }
+        limitCoverHitEndPos_back=hitPos+hitLen;
+        
+        const TOldCover& cover=diff.covers[limitCoverIndex];
+        TOldCover lastCover_back(0,0,0);
+        if (endPosBack<hitPos){
+            lastCover_back.oldPos=cover.oldPos+(TInt)endPosBack;
+            lastCover_back.newPos=cover.newPos+(TInt)endPosBack;
+            lastCover_back.length=(TInt)(hitPos-endPosBack);
+            reCovers.push_back(lastCover_back);
+        }else {
+            assert(endPosBack==hitPos);
+            if (limitCoverIndex>0)
+                lastCover_back=diff.covers[limitCoverIndex-1];
+            if ((!reCovers.empty())&&(reCovers.back().newPos>lastCover_back.newPos))
+                lastCover_back=reCovers.back();
+        }
 
-    static void _researchCover(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,
-                               size_t limitCoverIndex,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen){
+        TDiffLimit diffLimit={listener,cover.newPos+(size_t)hitPos,cover.newPos+(size_t)(hitPos+hitLen),
+                              cover.oldPos+(size_t)hitPos,cover.oldPos+(size_t)(hitPos+hitLen),   
+                              nocover_detect,cover_detect,lastCover_back};
+        _researchRange(&diffLimit);
+    }
+
+    static void _researchCover(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,size_t limitCoverIndex,
+                               hpatch_StreamPos_t endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen){
         TDiffResearchCover* self=(TDiffResearchCover*)diffi;
-        self->doResearchCover(listener,limitCoverIndex,hitPos,hitLen);
+        self->doResearchCover(listener,limitCoverIndex,endPosBack,hitPos,hitLen);
     }
     struct _cmp_by_newPos_t{
         template<class TCover>
@@ -740,6 +751,7 @@ struct TDiffResearchCover:public IDiffResearchCover{
     };
     
     void researchFinish(){
+        endResearchCover();
         size_t insert=0;
         for (size_t i=0;i<diff.covers.size();++i){
             if (diff.covers[i].length>0)
@@ -747,7 +759,6 @@ struct TDiffResearchCover:public IDiffResearchCover{
         }
         diff.covers.resize(insert);
         diff.covers.insert(diff.covers.end(),reCovers.begin(),reCovers.end());
-        reCovers.clear();
         std::inplace_merge(diff.covers.begin(),diff.covers.begin()+insert,
                            diff.covers.end(),_cmp_by_newPos_t());
     }
@@ -757,6 +768,8 @@ struct TDiffResearchCover:public IDiffResearchCover{
     int                     kMinSingleMatchScore;
     std::vector<TOldCover>  reCovers;
     std::vector<TOldCover>  curCovers;
+    size_t                  limitCoverIndex_back;
+    hpatch_StreamPos_t      limitCoverHitEndPos_back;
     TCompressDetect  nocover_detect;
     TCompressDetect  cover_detect;
 };
