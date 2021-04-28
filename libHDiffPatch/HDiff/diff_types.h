@@ -65,6 +65,25 @@ extern "C"
         if (codeLen!=(size_t)codeLen) return 0; //error
         return (size_t)codeLen;
     }
+
+    
+    struct IDiffSearchCoverListener{
+        bool (*limitCover)(struct IDiffSearchCoverListener* listener,const hpatch_TCover* cover,
+                           hpatch_StreamPos_t* out_leaveLen,hpatch_StreamPos_t* out_hitLen);
+        void (*limitCover_front)(struct IDiffSearchCoverListener* listener,
+                                 const hpatch_TCover* front_cover,hpatch_StreamPos_t* out_leaveLen);
+    };
+    struct IDiffResearchCover{
+        void (*researchCover)(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,size_t limitCoverIndex,
+                              hpatch_StreamPos_t endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen);
+    };
+    struct ICoverLinesListener {
+        bool (*search_cover_limit)(ICoverLinesListener* listener,const void* pcovers,size_t coverCount,bool isCover32);
+        void (*research_cover)(ICoverLinesListener* listener,IDiffResearchCover* diffi,const void* pcovers,size_t coverCount,bool isCover32);
+        void (*search_cover_finish)(ICoverLinesListener* listener,void* pcovers,size_t* pcoverCount,bool isCover32,
+                                    hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
+    };
+
     
 #ifdef __cplusplus
 }

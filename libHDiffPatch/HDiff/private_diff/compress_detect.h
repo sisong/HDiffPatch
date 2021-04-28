@@ -77,6 +77,7 @@ private:
     int             m_lastPopChar;
     hpatch_uint32_t m_cacheBegin;
     hpatch_uint32_t m_cacheEnd;
+    void clear();
     void _add_rle(const unsigned char* d,size_t n);
     size_t _cost_rle(const unsigned char* d,size_t n)const;
 };

@@ -70,11 +70,6 @@ bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                   const hpatch_TStreamInput*  compressed_diff,
                                   hpatch_TDecompress* decompressPlugin);
 
-struct ICoverLinesListener {
-    void (*coverLines)(ICoverLinesListener* listener,hpatch_TCover* out_covers,size_t* coverCount,
-                       hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
-};
-
 
 static const size_t kDefaultStepMemSize =1024*256;
 
@@ -82,9 +77,9 @@ static const size_t kDefaultStepMemSize =1024*256;
 //  still under development!
 void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                    const unsigned char* oldData,const unsigned char* oldData_end,
-                                   std::vector<unsigned char>& out_diff,ICoverLinesListener* listener=0,
-                                   const hdiff_TCompress* compressPlugin=0,int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                                   size_t patchStepMemSize=kDefaultStepMemSize,bool _is_test_search_cover_by_stream=false);
+                                   std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin=0,
+                                   int kMinSingleMatchScore=kMinSingleMatchScore_default,
+                                   size_t patchStepMemSize=kDefaultStepMemSize,ICoverLinesListener* listener=0);
 bool check_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                   const unsigned char* oldData,const unsigned char* oldData_end,
                                   const unsigned char* diff,const unsigned char* diff_end,

@@ -193,7 +193,9 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
                                              hpatch_StreamPos_t          uncompressedSize,
                                              hpatch_TDecompress*         decompressPlugin,
                                              hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
-                                             unsigned char* temp_cache,unsigned char* temp_cache_end);
+                                             unsigned char* temp_cache,unsigned char* temp_cache_end,
+                                             sspatch_coversListener_t* coversListener //default NULL, call by on got covers
+                                             );
     
     hpatch_BOOL compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompressedStream,hpatch_StreamPos_t uncompressedSize,
                                                   hpatch_TDecompress* decompressPlugin,const hpatch_TStreamInput* compressedStream,
@@ -205,7 +207,9 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
                                          const hpatch_TStreamInput*   uncompressedDiffData, //sequential read
                                          hpatch_StreamPos_t           diffData_pos, //begin pos in uncompressedDiffData
                                          hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
-                                         unsigned char* temp_cache,unsigned char* temp_cache_end);
+                                         unsigned char* temp_cache,unsigned char* temp_cache_end,
+                                         sspatch_coversListener_t* coversListener //default NULL, call by on got covers
+                                         );
 
 
 #ifdef __cplusplus

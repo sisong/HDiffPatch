@@ -55,6 +55,9 @@ static const char* kHDiffSFVersionType="HDIFFSF20";
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
 
+static const int kMinMatchLen = 5; //最小搜寻相等长度。
+static const int kMinMatchScore = 2; //最小搜寻覆盖收益.
+
 namespace{
     
     typedef unsigned char TByte;
@@ -114,22 +117,65 @@ static TInt getEqualLength(const TByte* x,const TByte* x_end,
     return maxEqLen;
 }
 
+struct TDiffLimit{
+    IDiffSearchCoverListener* listener;
+    size_t      newPos;
+    size_t      newEnd;
+    size_t      recoverOldPos;
+    size_t      recoverOldEnd;
+    TCompressDetect& nocover_detect;
+    TCompressDetect& cover_detect;
+    TOldCover        lastCover_back;
+};
+
+ 
 //得到最长的一个匹配长度和其位置.
 static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
-                         const TByte* newData,const TByte* newData_end){
+                         const TByte* newData,const TByte* newData_end,
+                         TInt curNewPos,TDiffLimit* diffLimit=0){
+    const TInt kMaxMatchDeepForLimit=6;
+    const TInt matchDeep = diffLimit?kMaxMatchDeepForLimit:2;
+    const TInt kLimitOldPos=(TInt)(diffLimit?diffLimit->recoverOldPos:0);
+    const TInt kLimitOldEnd=(TInt)(diffLimit?diffLimit->recoverOldEnd:sstring.SASize());
     TInt sai=sstring.lower_bound(newData,newData_end);
     
     const TByte* src_begin=sstring.src_begin();
     const TByte* src_end=sstring.src_end();
-    TInt bestLength=-1;
+    TInt bestLength= kMinMatchLen -1;
     TInt bestOldPos=-1;
-    for (TInt i=sai-1; i<=sai; ++i) {
-        if ((i<0)||(i>=(src_end-src_begin))) continue;
+    bool leftOk = false;
+    bool rightOk = false;
+    for (TInt mdi= 0; mdi< matchDeep; ++mdi) {
+        if (mdi&1){
+            if (rightOk) continue;
+        } else {
+            if (leftOk) continue;
+        }
+        TInt i = sai + (1-(mdi&1)*2) * ((mdi+1)/2);
+        if ((i<0)|(i>=(src_end-src_begin))) continue;
         TInt curOldPos=sstring.SA(i);
+        if (diffLimit){
+            if ((curOldPos>=kLimitOldPos)&(curOldPos<kLimitOldEnd))
+                continue;
+        }
         TInt curLength=getEqualLength(newData,newData_end,src_begin+curOldPos,src_end);
         if (curLength>bestLength){
-            bestLength=curLength;
-            bestOldPos=curOldPos;
+            if (diffLimit){
+                hpatch_TCover cover={(size_t)curOldPos,(size_t)curNewPos,(size_t)curLength};
+                hpatch_StreamPos_t hitPos;
+                diffLimit->listener->limitCover(diffLimit->listener,&cover,&hitPos,0);
+                if (hitPos<=(size_t)bestLength)
+                    continue;
+                else
+                    curLength=(TInt)hitPos;
+            }
+            bestLength = curLength;
+            bestOldPos= curOldPos;
+        }
+        if (mdi&1){
+            rightOk=true; if (leftOk) break;
+        } else {
+            leftOk=true; if (rightOk) break;
         }
     }
     *out_pos=bestOldPos;
@@ -146,36 +192,41 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
     }
     
     //粗略估算 区域内当作覆盖时的可能存储成本.
-    inline static bool checkGetCoverCost(TInt* out_cost,TInt newPos,TInt oldPos,
-                                         TInt length,const TDiffData& diff){
-        if ((oldPos<0)||(oldPos+length>(diff.oldData_end-diff.oldData)))
-            return false;
-        *out_cost=(TInt)getRegionRleCost(diff.newData+newPos,length,diff.oldData+oldPos);
-        return true;
-    }
     inline static TInt getCoverCost(const TOldCover& cover,const TDiffData& diff){
         return (TInt)getRegionRleCost(diff.newData+cover.newPos,cover.length,diff.oldData+cover.oldPos);
     }
     
 //尝试延长lastCover来完全代替matchCover;
-static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const TDiffData& diff){
+static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const TDiffData& diff,TDiffLimit* diffLimit){
     if (lastCover.length<=0) return false;
     const TInt linkSpaceLength=(matchCover.newPos-(lastCover.newPos+lastCover.length));
-    if ((linkSpaceLength>kMaxLinkSpaceLength)||(matchCover.newPos==0))
+    assert(linkSpaceLength>=0);
+    if (linkSpaceLength>kMaxLinkSpaceLength)
         return false;
+    TInt linkOldPos=lastCover.oldPos+lastCover.length+linkSpaceLength;
+    if (linkOldPos+matchCover.length>(diff.oldData_end-diff.oldData))
+        return false;
+    if (diffLimit){
+        hpatch_TCover cover={(size_t)(lastCover.oldPos+lastCover.length),(size_t)(lastCover.newPos+lastCover.length),
+                             (size_t)(linkSpaceLength+matchCover.length)};
+        if (!diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0))
+            return false;
+    }
     if (lastCover.isCollinear(matchCover)){//已经共线;
         lastCover.Link(matchCover);
         return true;
     }
-    TInt linkOldPos=lastCover.oldPos+lastCover.length+linkSpaceLength;
     TInt matchCost=getCoverCtrlCost(matchCover,lastCover);
-    TInt lastLinkCost;
-    if (!checkGetCoverCost(&lastLinkCost,matchCover.newPos,linkOldPos,matchCover.length,diff)) return false;
+    TInt lastLinkCost=(TInt)getRegionRleCost(diff.newData+matchCover.newPos,matchCover.length,diff.oldData+linkOldPos);
     if (lastLinkCost>matchCost)
         return false;
     TInt len=lastCover.length+linkSpaceLength+(matchCover.length*2/3);//扩展大部分,剩下的可能扩展留给extend_cover.
     len+=getEqualLength(diff.newData+lastCover.newPos+len,diff.newData_end,
                         diff.oldData+lastCover.oldPos+len,diff.oldData_end);
+    if (diffLimit){
+        TInt limitLen=diffLimit->newEnd-lastCover.newPos;
+        len=len<limitLen?len:limitLen;
+    }
     while ((len>0) && (diff.newData[lastCover.newPos+len-1]
                        !=diff.oldData[lastCover.oldPos+len-1])) {
         --len;
@@ -185,69 +236,111 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
 }
     
 //尝试设置lastCover为matchCover所在直线的延长线,实现共线(增加合并可能等);
-static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const TDiffData& diff){
+static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const TDiffData& diff,TDiffLimit* diffLimit){
     if (lastCover.length<=0) return;
     if (lastCover.isCollinear(matchCover)) return; //已经共线;
+    
     TInt linkOldPos=matchCover.oldPos-(matchCover.newPos-lastCover.newPos);
+    if ((linkOldPos<0)||(linkOldPos+lastCover.length>(diff.oldData_end-diff.oldData)))
+        return;
+    if (diffLimit){
+        hpatch_TCover cover={ (size_t)linkOldPos,(size_t)lastCover.newPos,(size_t)lastCover.length};
+        if (!diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0))
+            return;
+    }
     TInt lastCost=getCoverCost(lastCover,diff);
-    TInt matchLinkCost;
-    if (!checkGetCoverCost(&matchLinkCost,lastCover.newPos,linkOldPos,lastCover.length,diff)) return;
+    TInt matchLinkCost=(TInt)getRegionRleCost(diff.newData+lastCover.newPos,lastCover.length,diff.oldData+linkOldPos);
     if (lastCost>=matchLinkCost)
         lastCover.oldPos=linkOldPos;
 }
 
+
 //寻找合适的覆盖线.
-static void search_cover(TDiffData& diff,const TSuffixString& sstring){
+static void search_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
+                         const TSuffixString& sstring,TDiffLimit* diffLimit=0){
     if (sstring.SASize()<=0) return;
-    static const int kMinMatchScore = 2; //最小搜寻覆盖收益.
-    const TInt maxSearchNewPos=(diff.newData_end-diff.newData)-kMinMatchScore;
-    TInt newPos=0;
+    TInt newPos=diffLimit?diffLimit->newPos:0;
+    const TInt newEnd=diffLimit?diffLimit->newEnd:(diff.newData_end-diff.newData);
+    if (newEnd-newPos<=kMinMatchLen) return;
+    const TInt maxSearchNewPos=newEnd-kMinMatchLen;
+
     TOldCover lastCover(0,0,0);
     while (newPos<=maxSearchNewPos) {
         TInt matchOldPos=0;
-        TInt matchEqLength=getBestMatch(&matchOldPos,sstring,diff.newData+newPos,diff.newData_end);
+        TInt matchEqLength=getBestMatch(&matchOldPos,sstring,diff.newData+newPos,diff.newData+newEnd,newPos,diffLimit);
+        if (matchEqLength<kMinMatchLen){
+            ++newPos;
+            continue;
+        }
         TOldCover matchCover(matchOldPos,newPos,matchEqLength);
         if (matchEqLength-getCoverCtrlCost(matchCover,lastCover)<kMinMatchScore){
             ++newPos;//下一个需要匹配的字符串(逐位置匹配速度会比较慢).
             continue;
         }//else matched
         
-        if (tryLinkExtend(lastCover,matchCover,diff)){//use link
-            if (diff.covers.empty())
-                diff.covers.push_back(lastCover);
+        if (tryLinkExtend(lastCover,matchCover,diff,diffLimit)){//use link
+            if (covers.empty())
+                covers.push_back(lastCover);
             else
-                diff.covers.back()=lastCover;
+                covers.back()=lastCover;
         }else{ //use match
-            if (!diff.covers.empty())//尝试共线;
-                tryCollinear(diff.covers.back(),matchCover,diff);
-            diff.covers.push_back(matchCover);
+            if (!covers.empty())//尝试共线;
+                tryCollinear(covers.back(),matchCover,diff,diffLimit);
+            covers.push_back(matchCover);
         }
-        lastCover=diff.covers.back();
+        lastCover=covers.back();
         newPos=std::max(newPos+1,lastCover.newPos+lastCover.length);//选出的cover不允许重叠,这可能不是最优策略;
     }
 }
 
-//选择合适的覆盖线,去掉不合适的.
-static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
-    std::vector<TOldCover>&  covers=diff.covers;
-    TCompressDetect  nocover_detect;
-    TCompressDetect  cover_detect;
 
+//选择合适的覆盖线,去掉不合适的.
+static void _select_cover(std::vector<TOldCover>& covers,const TDiffData& diff,int kMinSingleMatchScore,
+                          TCompressDetect& nocover_detect,TCompressDetect& cover_detect,TDiffLimit* diffLimit){
+    
     TOldCover lastCover(0,0,0);
+    if (diffLimit)
+        lastCover=diffLimit->lastCover_back;
     const TInt coverSize_old=(TInt)covers.size();
     TInt insertIndex=0;
     for (TInt i=0;i<coverSize_old;++i){
-        if (covers[i].oldPos<0) continue;//处理已经del的.
+        if (covers[i].length<=0) continue;//处理已经del的.
         bool isNeedSave=false;
+        bool isCanLink=false;
         if (!isNeedSave){//向前合并可能.
-            if ((insertIndex>0)&&(covers[insertIndex-1].isCanLink(covers[i])))
-                isNeedSave=true;
+            if ((insertIndex>0)&&(covers[insertIndex-1].isCanLink(covers[i]))){
+                if (diffLimit){
+                    const TOldCover& fc=covers[insertIndex-1];
+                    hpatch_TCover cover={(size_t)(fc.oldPos+fc.length),(size_t)(fc.newPos+fc.length),
+                                         (size_t)fc.linkSpaceLength(covers[i])};
+                    if (diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0)){
+                        isCanLink=true;
+                        isNeedSave=true;
+                    }
+                }else{
+                    isCanLink=true;
+                    isNeedSave=true;
+                }
+            }
         }
         if (i+1<coverSize_old){//查询向后合并可能link
             for (TInt j=i+1;j<coverSize_old; ++j) {
                 if (!covers[i].isCanLink(covers[j])) break;
-                covers[i].Link(covers[j]);
-                covers[j].oldPos=-1;//del
+                if (diffLimit){
+                    const TOldCover& fc=covers[i];
+                    hpatch_TCover cover={(size_t)(fc.oldPos+fc.length),(size_t)(fc.newPos+fc.length),
+                                         (size_t)fc.linkSpaceLength(covers[j])};
+                    if (diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0)){
+                        covers[i].Link(covers[j]);
+                        covers[j].length=0;//del
+                    }else{
+                        break;
+                    }
+                }else{
+                    covers[i].Link(covers[j]);
+                    covers[j].length=0;//del
+                }
+
             }
         }
         if (!isNeedSave){//单覆盖是否保留.
@@ -259,7 +352,7 @@ static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
         }
         
         if (isNeedSave){
-            if ((insertIndex>0)&&(covers[insertIndex-1].isCanLink(covers[i]))){//link合并.
+            if (isCanLink){//link合并.
                 covers[insertIndex-1].Link(covers[i]);
                 cover_detect.add_chars(diff.newData+lastCover.newPos+lastCover.length,
                                        covers[insertIndex-1].length-lastCover.length,
@@ -276,6 +369,18 @@ static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
     }
     covers.resize(insertIndex);
 }
+
+static void select_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
+                         int kMinSingleMatchScore,TDiffLimit* diffLimit=0){
+    if (diffLimit==0){
+        TCompressDetect  nocover_detect;
+        TCompressDetect  cover_detect;
+        _select_cover(covers,diff,kMinSingleMatchScore,nocover_detect,cover_detect,0);
+    }else{
+        _select_cover(covers,diff,kMinSingleMatchScore,diffLimit->nocover_detect,diffLimit->cover_detect,diffLimit);
+    }
+}
+
     
     typedef size_t TFixedFloatSmooth; //定点数.
     static const TFixedFloatSmooth kFixedFloatSmooth_base=1024;//定点数小数点位置.
@@ -311,15 +416,38 @@ static void select_cover(TDiffData& diff,int kMinSingleMatchScore){
     }
 
 //尝试延长覆盖区域.
-static void extend_cover(TDiffData& diff,const TFixedFloatSmooth kExtendMinSameRatio){
-    std::vector<TOldCover>&  covers=diff.covers;
-
-    TInt lastNewEnd=0;
+static void extend_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
+                         const TFixedFloatSmooth kExtendMinSameRatio,TDiffLimit* diffLimit=0){
+    const size_t kNoLimitLen=~(size_t)0;
+    TInt lastNewEnd=diffLimit?diffLimit->newPos:0;
     for (TInt i=0; i<(TInt)covers.size(); ++i) {
-        TInt newPos_next=(TInt)(diff.newData_end-diff.newData);
+        TInt newPos_next;
         if (i+1<(TInt)covers.size())
             newPos_next=covers[i+1].newPos;
+        else
+            newPos_next=diffLimit?diffLimit->newEnd:(TInt)(diff.newData_end-diff.newData);
         TOldCover& curCover=covers[i];
+        if (diffLimit){
+            TInt limit_front=std::min(curCover.newPos-lastNewEnd,curCover.oldPos);
+            if (limit_front>0){
+                hpatch_TCover cover={(size_t)(curCover.oldPos-limit_front),
+                                     (size_t)(curCover.newPos-limit_front),(size_t)limit_front};
+                hpatch_StreamPos_t lenLimit;
+                diffLimit->listener->limitCover_front(diffLimit->listener,&cover,&lenLimit);
+                lastNewEnd=curCover.newPos-(TInt)lenLimit;
+            }
+
+            TInt limit_back=newPos_next-(curCover.newPos+curCover.length);
+            if ((curCover.oldPos+curCover.length)+limit_back>(diff.oldData_end-diff.oldData))
+                limit_back=(diff.oldData_end-diff.oldData)-(curCover.oldPos+curCover.length);
+            if (limit_back>0){
+                hpatch_TCover cover={(size_t)(curCover.oldPos+curCover.length),
+                                     (size_t)(curCover.newPos+curCover.length),(size_t)limit_back};
+                hpatch_StreamPos_t lenLimit;
+                diffLimit->listener->limitCover(diffLimit->listener,&cover,&lenLimit,0);
+                newPos_next=(curCover.newPos+curCover.length)+ (TInt)lenLimit;
+            }
+        }
         //向前延伸.
         TInt extendLength_front=getCanExtendLength(curCover.oldPos-1,curCover.newPos-1,
                                                    -1,lastNewEnd,newPos_next,diff,kExtendMinSameRatio);
@@ -353,6 +481,15 @@ static void extend_cover(TDiffData& diff,const TFixedFloatSmooth kExtendMinSameR
         check(cover.oldPos+cover.length<=oldSize);
     }
 
+    template<class _TCovers,class _TInt>
+    static void assert_covers_safe(const _TCovers& covers,size_t coverCount,_TInt newSize,_TInt oldSize){
+        _TInt lastNewEnd=0;
+        for (size_t i=0;i<coverCount;++i){
+            assert_cover_safe(covers[i],lastNewEnd,newSize,oldSize);
+            lastNewEnd=covers[i].newPos+covers[i].length;
+        }
+    }
+
 //用覆盖线得到差异数据.
 static void sub_cover(TDiffData& diff){
     std::vector<TOldCover>& covers=diff.covers;
@@ -367,8 +504,6 @@ static void sub_cover(TDiffData& diff){
     
     TInt lastNewEnd=0;
     for (TInt i=0;i<(TInt)covers.size();++i){
-        assert_cover_safe(covers[i],lastNewEnd,
-                          diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
         const TInt newPos=covers[i].newPos;
         if (newPos>lastNewEnd)
             pushBack(diff.newDataDiff,newData+lastNewEnd,newData+newPos);
@@ -541,12 +676,109 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
             outCover->length=(TInt)cover.length;
         }
     }
+
+static void dispose_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
+                         int kMinSingleMatchScore,TDiffLimit* diffLimit=0){
+    TFixedFloatSmooth kExtendMinSameRatio=kMinSingleMatchScore*36+254;
+    if  (kExtendMinSameRatio<200) kExtendMinSameRatio=200;
+    if (kExtendMinSameRatio>800) kExtendMinSameRatio=800;
+
+    extend_cover(covers,diff,kExtendMinSameRatio,diffLimit);//先尝试扩展.
+    select_cover(covers,diff,kMinSingleMatchScore,diffLimit);
+    extend_cover(covers,diff,kExtendMinSameRatio,diffLimit);//select_cover会删除一些覆盖线,所以重新扩展.
+}
+
+struct TDiffResearchCover:public IDiffResearchCover{
+    TDiffResearchCover(TDiffData& diff_,const TSuffixString& sstring_,int kMinSingleMatchScore_)
+        :diff(diff_),sstring(sstring_),kMinSingleMatchScore(kMinSingleMatchScore_),
+        limitCoverHitEndPos_back(0){ researchCover=_researchCover; }
+
+    void _researchRange(TDiffLimit* diffLimit){
+        search_cover(curCovers,diff,sstring,diffLimit);
+          if (curCovers.empty()) return;
+        dispose_cover(curCovers,diff,kMinSingleMatchScore,diffLimit);
+        if (curCovers.empty()) return;
+        reCovers.insert(reCovers.end(),curCovers.begin(),curCovers.end());
+        curCovers.clear();
+    }
+
+    inline void endResearchCover(){
+        if (limitCoverHitEndPos_back!=0){
+            TOldCover& cover=diff.covers[limitCoverIndex_back];
+            cover.oldPos+=(TInt)limitCoverHitEndPos_back;
+            cover.newPos+=(TInt)limitCoverHitEndPos_back;
+            cover.length-=(TInt)limitCoverHitEndPos_back;
+            limitCoverHitEndPos_back=0;
+        }
+    }
+    inline void doResearchCover(IDiffSearchCoverListener* listener,size_t limitCoverIndex,
+                                hpatch_StreamPos_t endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen){
+        if (limitCoverIndex_back!=limitCoverIndex){
+            endResearchCover();
+            limitCoverIndex_back=limitCoverIndex;
+        }
+        limitCoverHitEndPos_back=hitPos+hitLen;
+        
+        const TOldCover& cover=diff.covers[limitCoverIndex];
+        TOldCover lastCover_back(0,0,0);
+        if (endPosBack<hitPos){
+            lastCover_back.oldPos=cover.oldPos+(TInt)endPosBack;
+            lastCover_back.newPos=cover.newPos+(TInt)endPosBack;
+            lastCover_back.length=(TInt)(hitPos-endPosBack);
+            reCovers.push_back(lastCover_back);
+        }else {
+            assert(endPosBack==hitPos);
+            if (limitCoverIndex>0)
+                lastCover_back=diff.covers[limitCoverIndex-1];
+            if ((!reCovers.empty())&&(reCovers.back().newPos>lastCover_back.newPos))
+                lastCover_back=reCovers.back();
+        }
+
+        TDiffLimit diffLimit={listener,cover.newPos+(size_t)hitPos,cover.newPos+(size_t)(hitPos+hitLen),
+                              cover.oldPos+(size_t)hitPos,cover.oldPos+(size_t)(hitPos+hitLen),   
+                              nocover_detect,cover_detect,lastCover_back};
+        _researchRange(&diffLimit);
+    }
+
+    static void _researchCover(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,size_t limitCoverIndex,
+                               hpatch_StreamPos_t endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen){
+        TDiffResearchCover* self=(TDiffResearchCover*)diffi;
+        self->doResearchCover(listener,limitCoverIndex,endPosBack,hitPos,hitLen);
+    }
+    struct _cmp_by_newPos_t{
+        template<class TCover>
+        inline bool operator()(const TCover& x,const TCover& y){ return x.newPos<y.newPos; }
+    };
     
+    void researchFinish(){
+        endResearchCover();
+        size_t insert=0;
+        for (size_t i=0;i<diff.covers.size();++i){
+            if (diff.covers[i].length>0)
+                diff.covers[insert++]=diff.covers[i];
+        }
+        diff.covers.resize(insert);
+        diff.covers.insert(diff.covers.end(),reCovers.begin(),reCovers.end());
+        std::inplace_merge(diff.covers.begin(),diff.covers.begin()+insert,
+                           diff.covers.end(),_cmp_by_newPos_t());
+    }
+
+    TDiffData&              diff;
+    const TSuffixString&    sstring;
+    int                     kMinSingleMatchScore;
+    std::vector<TOldCover>  reCovers;
+    std::vector<TOldCover>  curCovers;
+    size_t                  limitCoverIndex_back;
+    hpatch_StreamPos_t      limitCoverHitEndPos_back;
+    TCompressDetect  nocover_detect;
+    TCompressDetect  cover_detect;
+};
+  
+
 static void get_diff(const TByte* newData,const TByte* newData_end,
                      const TByte* oldData,const TByte* oldData_end,
                      TDiffData&   out_diff,int kMinSingleMatchScore,
-                     const TSuffixString* sstring=0, bool isDoSubCover=true,
-                     bool _is_search_cover_by_stream=false){
+                     const TSuffixString* sstring=0,ICoverLinesListener* listener=0){
     assert(newData<=newData_end);
     assert(oldData<=oldData_end);
     TDiffData& diff=out_diff;
@@ -555,27 +787,41 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
     diff.oldData=oldData;
     diff.oldData_end=oldData_end;
     
-    if (_is_search_cover_by_stream){
-        search_cover_by_stream(diff,8,true);
-    }else{
+    const bool isCover32=sizeof(*diff.covers.data())==sizeof(hpatch_TCover32);
+    if (!isCover32) 
+        assert(sizeof(*diff.covers.data())==sizeof(hpatch_TCover));
+    {
         TSuffixString _sstring_default(0,0);
         if (sstring==0){
             _sstring_default.resetSuffixString(oldData,oldData_end);
             sstring=&_sstring_default;
         }
-        search_cover(diff,*sstring);
+        search_cover(diff.covers,diff,*sstring);
+        dispose_cover(diff.covers,diff,kMinSingleMatchScore);
+        if (listener&&listener->search_cover_limit&&
+                listener->search_cover_limit(listener,diff.covers.data(),diff.covers.size(),isCover32)){
+            TDiffResearchCover diffResearchCover(diff,*sstring,kMinSingleMatchScore);
+            listener->research_cover(listener,&diffResearchCover,diff.covers.data(),diff.covers.size(),isCover32);
+            diffResearchCover.researchFinish();
+        }
         sstring=0;
         _sstring_default.clear();
     }
-    
-    TFixedFloatSmooth kExtendMinSameRatio=kMinSingleMatchScore*36+254;
-    if  (kExtendMinSameRatio<200) kExtendMinSameRatio=200;
-    if (kExtendMinSameRatio>800) kExtendMinSameRatio=800;
-    
-    extend_cover(diff,kExtendMinSameRatio);//先尝试扩展.
-    select_cover(diff,kMinSingleMatchScore);
-    extend_cover(diff,kExtendMinSameRatio);//select_cover会删除一些覆盖线,所以重新扩展.
-    if (isDoSubCover) sub_cover(diff);
+
+    if (listener&&listener->search_cover_finish){
+        hpatch_StreamPos_t newDataSize=(size_t)(diff.newData_end-diff.newData);
+        hpatch_StreamPos_t oldDataSize=(size_t)(diff.oldData_end-diff.oldData);
+        size_t newCoverCount=diff.covers.size();
+        listener->search_cover_finish(listener,diff.covers.data(),&newCoverCount,isCover32,
+                                      &newDataSize,&oldDataSize);
+        check(newCoverCount<=diff.covers.size());
+        diff.covers.resize(newCoverCount);
+        diff.newData_end=diff.newData+(size_t)newDataSize;
+        diff.oldData_end=diff.oldData+(size_t)oldDataSize;
+    }
+    assert_covers_safe(diff.covers,diff.covers.size(),
+                       diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
+    sub_cover(diff);
 }
     
 }//end namespace
@@ -736,32 +982,11 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
 
 void create_single_compressed_diff(const TByte* newData,const TByte* newData_end,
                                    const TByte* oldData,const TByte* oldData_end,
-                                   std::vector<unsigned char>& out_diff,ICoverLinesListener* listener,const hdiff_TCompress* compressPlugin,
-                                   int kMinSingleMatchScore,size_t patchStepMemSize,bool _is_search_cover_by_stream){
+                                   std::vector<unsigned char>& out_diff,
+                                   const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore,
+                                   size_t patchStepMemSize,ICoverLinesListener* listener){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,0,false,_is_search_cover_by_stream);
-    if (listener){
-        std::vector<hpatch_TCover> _covers(diff.covers.size());
-        for (size_t i=0; i<diff.covers.size(); ++i) {
-            _covers[i].oldPos=diff.covers[i].oldPos;
-            _covers[i].newPos=diff.covers[i].newPos;
-            _covers[i].length=diff.covers[i].length;
-        }
-        hpatch_StreamPos_t newDataSize=(size_t)(diff.newData_end-diff.newData);
-        hpatch_StreamPos_t oldDataSize=(size_t)(diff.oldData_end-diff.oldData);
-        size_t coverCount=_covers.size();
-        listener->coverLines(listener,_covers.data(),&coverCount,&newDataSize,&oldDataSize);
-        assert(coverCount<=_covers.size());
-        diff.covers.resize(coverCount);
-        diff.newData_end=diff.newData+newDataSize;
-        diff.oldData_end=diff.oldData+oldDataSize;
-        for (size_t i=0; i<diff.covers.size(); ++i){
-            diff.covers[i].oldPos=(TInt)_covers[i].oldPos;
-            diff.covers[i].newPos=(TInt)_covers[i].newPos;
-            diff.covers[i].length=(TInt)_covers[i].length;
-        }
-    }
-    sub_cover(diff);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,0,listener);
     serialize_single_compressed_diff(diff,out_diff,compressPlugin,patchStepMemSize);
 }
 

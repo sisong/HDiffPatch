@@ -53,7 +53,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v2.4.1](https://github.com/sisong/HDiffPatch/tree/v2.4.1) - 2018-08-14
 ### Fixed
-* Fix a memroy bug in zlibCompressPlugin when diff;
+* Fix a memory bug in zlibCompressPlugin when diff;
 ### Added
 * Add CI(travis-ci.org) for this repository;
 
@@ -101,7 +101,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v1.2.2](https://github.com/sisong/HDiffPatch/tree/v1.2.2) - 2017-07-17
 ### Fixed
-* Fix a memroy bug when diff (never encountered, maybe happen);
+* Fix a memory bug when diff (never encountered, maybe happen);
 
 ## [v1.2.0](https://github.com/sisong/HDiffPatch/tree/v1.2.0) - 2017-07-02
 ### Changed

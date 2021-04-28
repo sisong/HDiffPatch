@@ -74,12 +74,19 @@ size_t getRegionRleCost(const unsigned char* d,size_t n,const unsigned char* sub
 }
 
 static const size_t kCacheSize=(1<<19);
-TCompressDetect::TCompressDetect()
-:m_table(0),m_lastChar(-1),
-m_lastPopChar(-1),m_cacheBegin(0),m_cacheEnd(0){
+TCompressDetect::TCompressDetect():m_table(0){
     m_mem.realloc(sizeof(TCharConvTable)+kCacheSize);
     m_table=(TCharConvTable*)m_mem.data();
-    memset(m_table,0,sizeof(TCharConvTable));
+    m_lastChar=0; //for clear TCharConvTable
+    clear();
+}
+void TCompressDetect::clear(){
+    if (m_lastChar>=0)
+        memset(m_table,0,sizeof(TCharConvTable));
+    m_lastChar=-1;
+    m_lastPopChar=-1;
+    m_cacheBegin=0;
+    m_cacheEnd=0;
 }
 TCompressDetect::~TCompressDetect(){
 }
@@ -158,6 +165,13 @@ static const size_t _kBufSize=1024;
 
 
 void TCompressDetect::add_chars(const unsigned char* d,size_t n,const unsigned char* sub){
+    if (n>kCacheSize+sizeof(TCharConvTable)){
+        clear();
+        size_t skip_n=n-kCacheSize;
+        n=kCacheSize;
+        d+=skip_n;
+        if (sub) sub+=skip_n;
+    }
     by_step(this->_add_rle);
 }
 

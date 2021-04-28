@@ -61,7 +61,7 @@
 #endif
 #if (_IS_NEED_DEFAULT_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
-#   define _CompressPlugin_zlib  // memroy requires less
+#   define _CompressPlugin_zlib  // memory requires less
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma  // better compresser
 #   define _CompressPlugin_lzma2 // better compresser
@@ -1086,7 +1086,7 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
             if (isSingleStreamDiff){
                 printf("create single compressed stream diffData!\n");
                 create_single_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                              outDiffData,0,compressPlugin,(int)matchScore,singleStreamStepSize);
+                                              outDiffData,compressPlugin,(int)matchScore,singleStreamStepSize);
             }else
 #endif
             create_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),

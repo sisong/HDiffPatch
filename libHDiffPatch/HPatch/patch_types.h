@@ -38,7 +38,7 @@ extern "C" {
 
 #define HDIFFPATCH_VERSION_MAJOR    3
 #define HDIFFPATCH_VERSION_MINOR    1
-#define HDIFFPATCH_VERSION_RELEASE  3
+#define HDIFFPATCH_VERSION_RELEASE  4
 
 #define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
 #define _HDIFFPATCH_QUOTE(str) #str
@@ -207,6 +207,11 @@ extern "C" {
         hpatch_StreamPos_t newPos;
         hpatch_StreamPos_t length;
     } hpatch_TCover;
+    typedef struct hpatch_TCover32{
+        hpatch_uint32_t oldPos;
+        hpatch_uint32_t newPos;
+        hpatch_uint32_t length;
+    } hpatch_TCover32;
 
     typedef struct hpatch_TCovers{
         hpatch_StreamPos_t (*leave_cover_count)(const struct hpatch_TCovers* covers);
@@ -244,6 +249,28 @@ extern "C" {
         hpatch_TDecompress*     _decompressPlugin;
         hpatch_decompressHandle _decompressHandle;
     } hpatch_TUncompresser_t;
+
+    typedef struct sspatch_coversListener_t{
+        void*         import;
+        void        (*onStepCoversReset)(struct sspatch_coversListener_t* listener,hpatch_StreamPos_t leaveCoverCount);//can NULL, data(in covers_cache) will invalid
+        void        (*onStepCovers)(struct sspatch_coversListener_t* listener,
+                                    const unsigned char* covers_cache,const unsigned char* covers_cacheEnd);
+    } sspatch_coversListener_t;
+    
+    typedef struct{
+        const unsigned char* covers_cache;
+        const unsigned char* covers_cacheEnd;
+        hpatch_StreamPos_t   lastOldEnd;
+        hpatch_StreamPos_t   lastNewEnd;
+        hpatch_TCover        cover;
+    } sspatch_covers_t;
+
+    hpatch_inline static void sspatch_covers_init(sspatch_covers_t* self) { memset(self,0,sizeof(*self)); }
+    hpatch_inline static void sspatch_covers_setCoversCache(sspatch_covers_t* self,const unsigned char* covers_cache,const unsigned char* covers_cacheEnd){
+                                    self->covers_cache=covers_cache; self->covers_cacheEnd=covers_cacheEnd; }
+    hpatch_inline static hpatch_BOOL sspatch_covers_isHaveNextCover(const sspatch_covers_t* self) { return (self->covers_cache!=(self)->covers_cacheEnd); }
+
+    hpatch_BOOL sspatch_covers_nextCover(sspatch_covers_t* self);
     
 #ifdef __cplusplus
 }
