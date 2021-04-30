@@ -163,7 +163,7 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
             if (diffLimit){
                 hpatch_TCover cover={(size_t)curOldPos,(size_t)curNewPos,(size_t)curLength};
                 hpatch_StreamPos_t hitPos;
-                diffLimit->listener->limitCover(diffLimit->listener,&cover,&hitPos,0);
+                diffLimit->listener->limitCover(diffLimit->listener,&cover,&hitPos);
                 if (hitPos<=(size_t)bestLength)
                     continue;
                 else
@@ -206,16 +206,19 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     TInt linkOldPos=lastCover.oldPos+lastCover.length+linkSpaceLength;
     if (linkOldPos+matchCover.length>(diff.oldData_end-diff.oldData))
         return false;
+    const bool isCollinear=lastCover.isCollinear(matchCover);
     if (diffLimit){
-        hpatch_TCover cover={(size_t)(lastCover.oldPos+lastCover.length),(size_t)(lastCover.newPos+lastCover.length),
-                             (size_t)(linkSpaceLength+matchCover.length)};
-        if (!diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0))
+        size_t cnewPos=lastCover.newPos+lastCover.length;
+        hpatch_TCover cover={(size_t)(lastCover.oldPos+lastCover.length),cnewPos,
+                             (size_t)(linkSpaceLength+(isCollinear?0:matchCover.length))};
+        if (!diffLimit->listener->limitCover(diffLimit->listener,&cover,0))
             return false;
     }
-    if (lastCover.isCollinear(matchCover)){//已经共线;
+    if (isCollinear){//已经共线;
         lastCover.Link(matchCover);
         return true;
     }
+
     TInt matchCost=getCoverCtrlCost(matchCover,lastCover);
     TInt lastLinkCost=(TInt)getRegionRleCost(diff.newData+matchCover.newPos,matchCover.length,diff.oldData+linkOldPos);
     if (lastLinkCost>matchCost)
@@ -226,6 +229,14 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     if (diffLimit){
         TInt limitLen=diffLimit->newEnd-lastCover.newPos;
         len=len<limitLen?len:limitLen;
+        TInt safeLen=lastCover.length+linkSpaceLength+matchCover.length;
+        if (len>safeLen){
+            hpatch_TCover cover={(size_t)(lastCover.oldPos+safeLen),(size_t)(lastCover.newPos+safeLen),
+                                 (size_t)(len-safeLen)};
+            hpatch_StreamPos_t hitPos;
+            diffLimit->listener->limitCover(diffLimit->listener,&cover,&hitPos);
+            len=(TInt)(safeLen+hitPos);
+        }
     }
     while ((len>0) && (diff.newData[lastCover.newPos+len-1]
                        !=diff.oldData[lastCover.oldPos+len-1])) {
@@ -245,7 +256,7 @@ static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const 
         return;
     if (diffLimit){
         hpatch_TCover cover={ (size_t)linkOldPos,(size_t)lastCover.newPos,(size_t)lastCover.length};
-        if (!diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0))
+        if (!diffLimit->listener->limitCover(diffLimit->listener,&cover,0))
             return;
     }
     TInt lastCost=getCoverCost(lastCover,diff);
@@ -313,7 +324,7 @@ static void _select_cover(std::vector<TOldCover>& covers,const TDiffData& diff,i
                     const TOldCover& fc=covers[insertIndex-1];
                     hpatch_TCover cover={(size_t)(fc.oldPos+fc.length),(size_t)(fc.newPos+fc.length),
                                          (size_t)fc.linkSpaceLength(covers[i])};
-                    if (diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0)){
+                    if (diffLimit->listener->limitCover(diffLimit->listener,&cover,0)){
                         isCanLink=true;
                         isNeedSave=true;
                     }
@@ -330,7 +341,7 @@ static void _select_cover(std::vector<TOldCover>& covers,const TDiffData& diff,i
                     const TOldCover& fc=covers[i];
                     hpatch_TCover cover={(size_t)(fc.oldPos+fc.length),(size_t)(fc.newPos+fc.length),
                                          (size_t)fc.linkSpaceLength(covers[j])};
-                    if (diffLimit->listener->limitCover(diffLimit->listener,&cover,0,0)){
+                    if (diffLimit->listener->limitCover(diffLimit->listener,&cover,0)){
                         covers[i].Link(covers[j]);
                         covers[j].length=0;//del
                     }else{
@@ -444,7 +455,7 @@ static void extend_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
                 hpatch_TCover cover={(size_t)(curCover.oldPos+curCover.length),
                                      (size_t)(curCover.newPos+curCover.length),(size_t)limit_back};
                 hpatch_StreamPos_t lenLimit;
-                diffLimit->listener->limitCover(diffLimit->listener,&cover,&lenLimit,0);
+                diffLimit->listener->limitCover(diffLimit->listener,&cover,&lenLimit);
                 newPos_next=(curCover.newPos+curCover.length)+ (TInt)lenLimit;
             }
         }
