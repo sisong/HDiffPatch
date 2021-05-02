@@ -227,8 +227,8 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 }
 
 
-TDiffStream::TDiffStream(const hpatch_TStreamOutput* _out_diff)
-:out_diff(_out_diff),writePos(0){
+TDiffStream::TDiffStream(const hpatch_TStreamOutput* _out_diff,hpatch_StreamPos_t out_diff_curPos)
+:out_diff(_out_diff),writePos(out_diff_curPos){
     _temp_mem.realloc(kBufSize);
 }
 

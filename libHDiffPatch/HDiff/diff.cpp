@@ -1186,7 +1186,8 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
 void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
                             hpatch_TDecompress*         decompressPlugin,
                             const hpatch_TStreamOutput* out_diff,
-                            const hdiff_TCompress*      compressPlugin){
+                            const hdiff_TCompress*      compressPlugin,
+                            hpatch_StreamPos_t          out_diff_curPos){
     _THDiffzHead              head;
     hpatch_compressedDiffInfo diffInfo;
     assert(in_diff!=0);
@@ -1205,7 +1206,7 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
         }
     }
     
-    TDiffStream outDiff(out_diff);
+    TDiffStream outDiff(out_diff,out_diff_curPos);
     {//type
         std::vector<TByte> out_type;
         _outType(out_type,compressPlugin);
@@ -1257,5 +1258,42 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
                          isCompressed?decompressPlugin:0,head.newDataDiff_size);
         outDiff.pushStream(&clip,compressPlugin,compress_newDataDiff_sizePos);
         diffPos0+=bufSize;
+    }
+}
+
+
+void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
+                                   hpatch_TDecompress*         decompressPlugin,
+                                   const hpatch_singleCompressedDiffInfo* diffInfo,
+                                   const hpatch_TStreamOutput* out_diff,
+                                   const hdiff_TCompress*      compressPlugin,
+                                   hpatch_StreamPos_t          out_diff_curPos){
+    assert(diffInfo!=0);
+    const bool isCompressed=(diffInfo->compressedSize>0);
+    if (isCompressed){ //check
+        checki(diffInfo->compressedSize+diffInfo->diffDataPos==in_diff->streamSize,
+               "resave_single_compressed_diff() diffInfo error!");
+        checki((decompressPlugin!=0)&&(decompressPlugin->is_can_open(diffInfo->compressType)),
+               "resave_single_compressed_diff() decompressPlugin error!");
+    }
+
+    TDiffStream outDiff(out_diff,out_diff_curPos);
+    {//type & head
+        std::vector<TByte> outBuf;
+        _outType(outBuf, isCompressed?0:compressPlugin,kHDiffSFVersionType);
+        packUInt(outBuf, diffInfo->newDataSize);
+        packUInt(outBuf, diffInfo->oldDataSize);
+        packUInt(outBuf, diffInfo->coverCount);
+        packUInt(outBuf, diffInfo->stepMemSize);
+        packUInt(outBuf, diffInfo->uncompressedSize);
+        outDiff.pushBack(outBuf.data(),outBuf.size());
+        //no compressedSize
+    }
+    TPlaceholder compressedSize_pos=
+        outDiff.packUInt_pos(compressPlugin?diffInfo->uncompressedSize:0);//compressedSize
+    {//save single stream data
+        TStreamClip clip(in_diff,diffInfo->diffDataPos,in_diff->streamSize,
+                         isCompressed?decompressPlugin:0,diffInfo->uncompressedSize);
+        outDiff.pushStream(&clip,compressPlugin,compressedSize_pos);
     }
 }
