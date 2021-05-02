@@ -1264,14 +1264,20 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
 
 void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
                                    hpatch_TDecompress*         decompressPlugin,
-                                   const hpatch_singleCompressedDiffInfo* diffInfo,
                                    const hpatch_TStreamOutput* out_diff,
                                    const hdiff_TCompress*      compressPlugin,
+                                   const hpatch_singleCompressedDiffInfo* diffInfo,
+                                   hpatch_StreamPos_t          in_diff_curPos,
                                    hpatch_StreamPos_t          out_diff_curPos){
-    assert(diffInfo!=0);
+    hpatch_singleCompressedDiffInfo _diffInfo;
+    if (diffInfo==0){
+        checki(getSingleCompressedDiffInfo(&_diffInfo,in_diff,in_diff_curPos),
+               "getSingleCompressedDiffInfo() return fail!");
+        diffInfo=&_diffInfo;
+    }
     const bool isCompressed=(diffInfo->compressedSize>0);
     if (isCompressed){ //check
-        checki(diffInfo->compressedSize+diffInfo->diffDataPos==in_diff->streamSize,
+        checki(diffInfo->compressedSize+(in_diff_curPos+diffInfo->diffDataPos)==in_diff->streamSize,
                "resave_single_compressed_diff() diffInfo error!");
         checki((decompressPlugin!=0)&&(decompressPlugin->is_can_open(diffInfo->compressType)),
                "resave_single_compressed_diff() decompressPlugin error!");
@@ -1280,7 +1286,7 @@ void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
     TDiffStream outDiff(out_diff,out_diff_curPos);
     {//type & head
         std::vector<TByte> outBuf;
-        _outType(outBuf, isCompressed?0:compressPlugin,kHDiffSFVersionType);
+        _outType(outBuf, compressPlugin,kHDiffSFVersionType);
         packUInt(outBuf, diffInfo->newDataSize);
         packUInt(outBuf, diffInfo->oldDataSize);
         packUInt(outBuf, diffInfo->coverCount);
@@ -1289,11 +1295,10 @@ void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
         outDiff.pushBack(outBuf.data(),outBuf.size());
         //no compressedSize
     }
-    TPlaceholder compressedSize_pos=
-        outDiff.packUInt_pos(compressPlugin?diffInfo->uncompressedSize:0);//compressedSize
     {//save single stream data
-        TStreamClip clip(in_diff,diffInfo->diffDataPos,in_diff->streamSize,
+        TStreamClip clip(in_diff,diffInfo->diffDataPos+in_diff_curPos,in_diff->streamSize,
                          isCompressed?decompressPlugin:0,diffInfo->uncompressedSize);
+        TPlaceholder compressedSize_pos=outDiff.packUInt_pos(compressPlugin?diffInfo->uncompressedSize:0);
         outDiff.pushStream(&clip,compressPlugin,compressedSize_pos);
     }
 }

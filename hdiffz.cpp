@@ -1357,8 +1357,8 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 #endif
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
         if (isSingleDiff){
-            resave_single_compressed_diff(&diffData_in.base,decompressPlugin,&singleDiffInfo,
-                                          &diffData_out.base,compressPlugin);
+            resave_single_compressed_diff(&diffData_in.base,decompressPlugin,
+                                          &diffData_out.base,compressPlugin,&singleDiffInfo);
         }else
 #endif
         {

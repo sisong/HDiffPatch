@@ -111,9 +111,10 @@ bool check_single_compressed_diff(const unsigned char* newData,const unsigned ch
 
 void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
                                    hpatch_TDecompress*         decompressPlugin,
-                                   const hpatch_singleCompressedDiffInfo* diffInfo,
                                    const hpatch_TStreamOutput* out_diff,
                                    const hdiff_TCompress*      compressPlugin,
+                                   const hpatch_singleCompressedDiffInfo* diffInfo=0,
+                                   hpatch_StreamPos_t          in_diff_curPos=0,
                                    hpatch_StreamPos_t          out_diff_curPos=0);
 
 #endif
