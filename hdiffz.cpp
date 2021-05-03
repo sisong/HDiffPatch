@@ -370,6 +370,18 @@ static hpatch_BOOL _getIsCompressedDiffFile(const char* diffFileName){
     return result;
 }
 
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+static hpatch_BOOL _getIsSingleStreamDiffFile(const char* diffFileName){
+    hpatch_TFileStreamInput diffData;
+    hpatch_TFileStreamInput_init(&diffData);
+    if (!hpatch_TFileStreamInput_open(&diffData,diffFileName)) return hpatch_FALSE;
+    hpatch_singleCompressedDiffInfo diffInfo;
+    hpatch_BOOL result=getSingleCompressedDiffInfo(&diffInfo,&diffData.base,0);
+    if (!hpatch_TFileStreamInput_close(&diffData)) return hpatch_FALSE;
+    return result;
+}
+#endif
+
 static void _trySetDecompress(hpatch_TDecompress** out_decompressPlugin,const char* compressType,
                             hpatch_TDecompress* testDecompressPlugin){
     if ((*out_decompressPlugin)!=0) return;
@@ -994,6 +1006,9 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #if (_IS_NEED_DIR_DIFF_PATCH)
         isDiffFile=isDiffFile || getIsDirDiffFile(diffFileName);
 #endif
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+        isDiffFile=isDiffFile || _getIsSingleStreamDiffFile(diffFileName);
+#endif
         _return_check(isDiffFile,HDIFF_RESAVE_DIFFINFO_ERROR,"can't resave, input file is not diffFile");
         if (!isForceOverwrite){
             hpatch_TPathType   outDiffFileType;
@@ -1254,7 +1269,12 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
     
     int result=HDIFF_SUCCESS;
     hpatch_BOOL  _isInClear=hpatch_FALSE;
-    hpatch_BOOL  isDirDiff=false;
+    hpatch_BOOL  isDirDiff=hpatch_FALSE;
+    hpatch_BOOL  isSingleDiff=hpatch_FALSE;
+    hpatch_compressedDiffInfo diffInfo;
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+    hpatch_singleCompressedDiffInfo singleDiffInfo;
+#endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
     std::string  dirCompressType;
     TDirDiffInfo dirDiffInfo;
@@ -1270,19 +1290,27 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 #if (_IS_NEED_DIR_DIFF_PATCH)
     check(getDirDiffInfo(&diffData_in.base,&dirDiffInfo),HDIFF_OPENREAD_ERROR,"read diffFile");
     isDirDiff=dirDiffInfo.isDirDiff;
+    if (isDirDiff){
+        diffInfo=dirDiffInfo.hdiffInfo;
+        diffInfo.compressedCount+=dirDiffInfo.dirDataIsCompressed?1:0;
+        printf("  resave as dir diffFile \n");
+    }else
 #endif
-    { //decompressPlugin
-        hpatch_compressedDiffInfo diffInfo;
-#if (_IS_NEED_DIR_DIFF_PATCH)
-        if (isDirDiff){
-            diffInfo=dirDiffInfo.hdiffInfo;
-            diffInfo.compressedCount+=dirDiffInfo.dirDataIsCompressed?1:0;
-        }else
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+    if (getSingleCompressedDiffInfo(&singleDiffInfo,&diffData_in.base,0)){
+        isSingleDiff=hpatch_TRUE;
+        diffInfo.newDataSize=singleDiffInfo.newDataSize;
+        diffInfo.oldDataSize=singleDiffInfo.oldDataSize;
+        diffInfo.compressedCount=(singleDiffInfo.compressedSize>0)?1:0;
+        memcpy(diffInfo.compressType,singleDiffInfo.compressType,strlen(singleDiffInfo.compressType)+1);
+        printf("  resave as single stream diffFile \n");
+    }else
 #endif
-        if (!getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
-            check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile");
-            check(hpatch_FALSE,HDIFF_RESAVE_DIFFINFO_ERROR,"is hdiff file? get diff info");
-        }
+    if (!getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
+        check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile");
+        check(hpatch_FALSE,HDIFF_RESAVE_DIFFINFO_ERROR,"is hdiff file? get diff info");
+    }
+    {//decompressPlugin
         findDecompress(&decompressPlugin,diffInfo.compressType);
         if (decompressPlugin==0){
             if (diffInfo.compressedCount>0){
@@ -1294,14 +1322,13 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                 decompressPlugin=0;
             }
         }else{
-            printf("resave %s with decompress plugin: \"%s\" (need decompress %d)\n",(isDirDiff?"dirDiffFile":"diffFile"),diffInfo.compressType,diffInfo.compressedCount);
+            printf("resave diffFile with decompress plugin: \"%s\" (need decompress %d)\n",diffInfo.compressType,diffInfo.compressedCount);
         }
     }
     {
         const char* compressType="";
         if (compressPlugin) compressType=compressPlugin->compressType();
-        printf("resave %s with compress plugin: \"%s\"\n",
-               (isDirDiff?"dirDiffFile":"diffFile"),compressType);
+        printf("resave diffFile with compress plugin: \"%s\"\n",compressType);
     }
 #if (_IS_NEED_DIR_DIFF_PATCH)
     if (isDirDiff){ //checksumPlugin
@@ -1312,9 +1339,11 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                   "found checksum plugin not same as dirDiffFile used: \""+dirDiffInfo.checksumType+"\"\n");
         }
         printf("resave dirDiffFile with checksum plugin: \"%s\"\n",dirDiffInfo.checksumType);
+    }else{
+        _options_check(checksumPlugin==0,"-C now only support dir diff");
     }
 #endif
-    
+
     check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,~(hpatch_StreamPos_t)0),HDIFF_OPENWRITE_ERROR,
           "open out diffFile");
     hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
@@ -1326,10 +1355,13 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                            &diffData_out.base,compressPlugin,checksumPlugin);
         }else
 #endif
-        {
-#if (_IS_NEED_DIR_DIFF_PATCH)
-            _options_check(checksumPlugin==0,"-C now only support dir diff, unsupport diff");
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+        if (isSingleDiff){
+            resave_single_compressed_diff(&diffData_in.base,decompressPlugin,
+                                          &diffData_out.base,compressPlugin,&singleDiffInfo);
+        }else
 #endif
+        {
             resave_compressed_diff(&diffData_in.base,decompressPlugin,
                                    &diffData_out.base,compressPlugin);
         }

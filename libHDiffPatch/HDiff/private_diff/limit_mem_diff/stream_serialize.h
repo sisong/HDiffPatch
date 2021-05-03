@@ -85,7 +85,8 @@ private:
 };
 
 struct TDiffStream{
-    explicit TDiffStream(const hpatch_TStreamOutput* _out_diff);
+    explicit TDiffStream(const hpatch_TStreamOutput* _out_diff,
+                         hpatch_StreamPos_t out_diff_curPos=0);
     ~TDiffStream();
     
     void pushBack(const unsigned char* src,size_t n);
