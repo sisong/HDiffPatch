@@ -2276,11 +2276,12 @@ void TDiffToSingleStream_init(TDiffToSingleStream* self,const hpatch_TStreamInpu
     self->isInSingleStream=hpatch_FALSE;
 }
 
-hpatch_BOOL patch_single_stream_by(sspatch_listener_t* listener,
-                                   const hpatch_TStreamOutput* __out_newData,
-                                   const hpatch_TStreamInput*  oldData,
-                                   const hpatch_TStreamInput*  singleCompressedDiff, 
-                                   hpatch_StreamPos_t  diffInfo_pos){
+hpatch_BOOL patch_single_stream(sspatch_listener_t* listener,
+                                const hpatch_TStreamOutput* __out_newData,
+                                const hpatch_TStreamInput*  oldData,
+                                const hpatch_TStreamInput*  singleCompressedDiff, 
+                                hpatch_StreamPos_t  diffInfo_pos,
+                                sspatch_coversListener_t* coversListener){
     hpatch_BOOL result=hpatch_TRUE;
     hpatch_TDecompress*     decompressPlugin=0;
     unsigned char*          temp_cache=0;
@@ -2317,7 +2318,7 @@ hpatch_BOOL patch_single_stream_by(sspatch_listener_t* listener,
         result=patch_single_compressed_diff(out_newData,oldData,singleCompressedDiff,
                                             diffInfo.diffDataPos,diffInfo.uncompressedSize,
                                             decompressPlugin,diffInfo.coverCount,
-                                            (size_t)diffInfo.stepMemSize,temp_cache,temp_cacheEnd,0);
+                                            (size_t)diffInfo.stepMemSize,temp_cache,temp_cacheEnd,coversListener);
     }
     if (listener->onPatchFinish)
         listener->onPatchFinish(listener,temp_cache,temp_cacheEnd);

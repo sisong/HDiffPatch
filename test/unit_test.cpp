@@ -201,8 +201,8 @@ long attackPacth(TByte* out_newData,TByte* out_newData_end,
         } break;
         case kDiffS: {
             sspatch_listener_t listener={0,_sspatch_onDiffInfo,0};
-            patch_single_stream_by_mem(&listener,out_newData,out_newData_end,oldData,oldData_end,
-                                       diffData,diffData_end);
+            patch_single_stream_mem(&listener,out_newData,out_newData_end,oldData,oldData_end,
+                                    diffData,diffData_end);
         } break;
     }
     return 0;

@@ -47,10 +47,14 @@ void create_diff(const unsigned char* newData,const unsigned char* newData_end,
 bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
                 const unsigned char* oldData,const unsigned char* oldData_end,
                 const unsigned char* diff,const unsigned char* diff_end);
+bool check_diff(const hpatch_TStreamInput*  newData,
+                const hpatch_TStreamInput*  oldData,
+                const hpatch_TStreamInput*  diff);
 
 
 
-//create a compressed diffData between oldData and newData
+
+//create a compressed diff data between oldData and newData
 //  out_diff compressed by compressPlugin
 //  kMinSingleMatchScore: default 6, bin: 0--4  text: 4--9
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
@@ -58,19 +62,8 @@ void create_compressed_diff(const unsigned char* newData,const unsigned char* ne
                             std::vector<unsigned char>& out_diff,
                             const hdiff_TCompress* compressPlugin=0,
                             int kMinSingleMatchScore=kMinSingleMatchScore_default);
-//return patch_decompress(oldData+diff)==newData?
-bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
-                           const unsigned char* oldData,const unsigned char* oldData_end,
-                           const unsigned char* diff,const unsigned char* diff_end,
-                           hpatch_TDecompress* decompressPlugin);
 
-//see check_compressed_diff
-bool check_compressed_diff_stream(const hpatch_TStreamInput*  newData,
-                                  const hpatch_TStreamInput*  oldData,
-                                  const hpatch_TStreamInput*  compressed_diff,
-                                  hpatch_TDecompress* decompressPlugin);
-
-//diff by stream:
+//create a compressed diff data by stream:
 //  can control memory requires and run speed by different kMatchBlockSize value,
 //      but out_diff size is larger than create_compressed_diff()
 //  recommended used in limited environment or support large file
@@ -85,6 +78,17 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hdiff_TCompress* compressPlugin=0,
                                    size_t kMatchBlockSize=kMatchBlockSize_default);
 
+//return patch_decompress(oldData+diff)==newData?
+bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
+                           const unsigned char* oldData,const unsigned char* oldData_end,
+                           const unsigned char* diff,const unsigned char* diff_end,
+                           hpatch_TDecompress* decompressPlugin);
+bool check_compressed_diff(const hpatch_TStreamInput*  newData,
+                           const hpatch_TStreamInput*  oldData,
+                           const hpatch_TStreamInput*  compressed_diff,
+                           hpatch_TDecompress* decompressPlugin);
+// check_compressed_diff_stream rename to check_compressed_diff
+
 //resave compressed_diff
 //  decompress in_diff and recompress to out_diff
 //  throw std::runtime_error when input file error or I/O error,etc.
@@ -95,20 +99,31 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
                             hpatch_StreamPos_t          out_diff_curPos=0);
 
 
+
+
 static const size_t kDefaultStepMemSize =1024*256;
 
-//create a diffData between oldData and newData, the diffData saved as single compressed stream
+//create a diff data between oldData and newData, the diff data saved as single compressed stream
 //  still under development!
 void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                    const unsigned char* oldData,const unsigned char* oldData_end,
                                    std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin=0,
                                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                    size_t patchStepMemSize=kDefaultStepMemSize,ICoverLinesListener* listener=0);
+
+//return patch_single_*(oldData+diff)==newData?
 bool check_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                   const unsigned char* oldData,const unsigned char* oldData_end,
                                   const unsigned char* diff,const unsigned char* diff_end,
                                   hpatch_TDecompress* decompressPlugin);
+bool check_single_compressed_diff(const hpatch_TStreamInput* newData,
+                                  const hpatch_TStreamInput* oldData,
+                                  const hpatch_TStreamInput* diff,
+                                  hpatch_TDecompress* decompressPlugin);
 
+//resave single_compressed_diff
+//  decompress in_diff and recompress to out_diff
+//  throw std::runtime_error when input file error or I/O error,etc.
 void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
                                    hpatch_TDecompress*         decompressPlugin,
                                    const hpatch_TStreamOutput* out_diff,

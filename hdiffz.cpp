@@ -1215,8 +1215,7 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
             check(findDecompress(&saved_decompressPlugin,diffinfo.compressType),
                   HDIFF_PATCH_ERROR,"diff data saved compress type");
         }
-        check(check_compressed_diff_stream(&newData.base,&oldData.base,
-                                           &diffData_in.base,saved_decompressPlugin),
+        check(check_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin),
               HDIFF_PATCH_ERROR,"patch check diff data");
         printf("patch   time: %.3f s\n",(clock_s()-patch_time0));
         printf("  patch check diff data ok!\n");
