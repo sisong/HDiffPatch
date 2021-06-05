@@ -100,7 +100,6 @@ struct TDiffData{
     const TByte*            oldData_end;
     std::vector<TOldCover>  covers;         //选出的覆盖线.
     std::vector<TByte>      newDataDiff;    //集中储存newData中没有被覆盖线覆盖住的字节数据.
-    std::vector<TByte>      newDataSubDiff; //newData中的每个数值减去对应的cover线条的oldData数值和newDataDiff的数值.
 };
 
 
@@ -501,15 +500,78 @@ static void extend_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
         }
     }
 
+    
+    struct TNewDataSubDiffStream:public hpatch_TStreamInput{
+        size_t curReadPos;
+        size_t nextCoveri;
+        size_t curDataLen;
+        const TDiffData& diff;
+        const TByte* oldData;
+        inline explicit TNewDataSubDiffStream(const TDiffData& _diff)
+        :diff(_diff){
+            initRead();
+            streamImport=this;
+            streamSize=diff.newData_end-diff.newData;
+            read=_read;
+        }
+        inline ~TNewDataSubDiffStream(){ assert(curReadPos==streamSize); }
+        inline void initRead(){
+            curReadPos=0;
+            nextCoveri=0;
+            curDataLen=0;
+        }
+        inline void readTo(unsigned char* out_data,unsigned char* out_data_end){
+            size_t readLen=out_data_end-out_data;
+            while (readLen>0){
+                if (curDataLen==0){
+                    if (nextCoveri<diff.covers.size()){
+                        const TOldCover& cover=diff.covers[nextCoveri];
+                        if ((size_t)cover.newPos>curReadPos){
+                            curDataLen=cover.newPos-curReadPos;
+                            oldData=0;
+                        }else{
+                            assert(cover.newPos==curReadPos);
+                            curDataLen=cover.length;
+                            oldData=diff.oldData+cover.oldPos;
+                            ++nextCoveri;
+                        }
+                    }else{
+                        curDataLen=streamSize-curReadPos;
+                        oldData=0;
+                    }
+                }
+                size_t len=std::min(curDataLen,readLen);
+                if (oldData!=0){
+                    const TByte* newData=diff.newData+curReadPos;
+                    for (size_t i=0;i<len;i++){
+                        out_data[i]=newData[i]-oldData[i];
+                    }
+                }else{
+                    memset(out_data,0,len);
+                }
+                if (oldData) oldData+=len;
+                curReadPos+=len;
+                curDataLen-=len;
+                out_data+=len;
+                readLen-=len;
+            }
+        }
+        static hpatch_BOOL _read(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                 unsigned char* out_data,unsigned char* out_data_end){
+            TNewDataSubDiffStream* self=(TNewDataSubDiffStream*)stream->streamImport;
+            if (readFromPos==0) self->initRead();
+            if (readFromPos!=self->curReadPos) return hpatch_FALSE;
+            assert(readFromPos+(size_t)(out_data_end-out_data)<=self->streamSize);
+            self->readTo(out_data,out_data_end);
+            return hpatch_TRUE;
+        }
+    };
+
 //用覆盖线得到差异数据.
 static void sub_cover(TDiffData& diff){
     std::vector<TOldCover>& covers=diff.covers;
     const TByte*            newData=diff.newData;
     const TByte*            oldData=diff.oldData;
-
-    diff.newDataSubDiff.resize(0);
-    diff.newDataSubDiff.resize(diff.newData_end-diff.newData,0);
-    TByte*  newDataSubDiff=diff.newDataSubDiff.data();
     diff.newDataDiff.resize(0);
     diff.newDataDiff.reserve((diff.newData_end-diff.newData)>>2);
     
@@ -518,10 +580,7 @@ static void sub_cover(TDiffData& diff){
         const TInt newPos=covers[i].newPos;
         if (newPos>lastNewEnd)
             pushBack(diff.newDataDiff,newData+lastNewEnd,newData+newPos);
-        const TInt oldPos=covers[i].oldPos;
         const TInt length=covers[i].length;
-        for (TInt si=0; si<length;++si)
-            newDataSubDiff[si+newPos]=(newData[si+newPos]-oldData[si+oldPos]);
         lastNewEnd=newPos+length;
     }
     if (lastNewEnd<diff.newData_end-newData)
@@ -561,9 +620,8 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
     pushBack(out_diff,inc_oldPos_buf);
     pushBack(out_diff,diff.newDataDiff);
     
-    const TByte* newDataSubDiff=diff.newDataSubDiff.data();
-    bytesRLE_save(out_diff,newDataSubDiff,
-                  newDataSubDiff+diff.newDataSubDiff.size(),kRle_bestSize);
+    TNewDataSubDiffStream newDataSubDiff(diff);
+    bytesRLE_save(out_diff,&newDataSubDiff,kRle_bestSize);
 }
     
     
@@ -634,9 +692,8 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     
     std::vector<TByte> rle_ctrlBuf;
     std::vector<TByte> rle_codeBuf;
-    const TByte* newDataSubDiff=diff.newDataSubDiff.data();
-    bytesRLE_save(rle_ctrlBuf,rle_codeBuf,newDataSubDiff,
-                  newDataSubDiff+diff.newDataSubDiff.size(),kRle_bestSize);
+    TNewDataSubDiffStream newDataSubDiff(diff);
+    bytesRLE_save(rle_ctrlBuf,rle_codeBuf,&newDataSubDiff,kRle_bestSize);
     
     std::vector<TByte> compress_cover_buf;
     std::vector<TByte> compress_rle_ctrlBuf;
@@ -871,6 +928,31 @@ static void _flush_step_code(std::vector<TByte> &buf, std::vector<TByte> &step_b
         curMaxStepMemSize=curStepMemSize;
 }
 
+
+    struct TNewDataSubDiffCoverStream:public hpatch_TStreamInput{
+        const TByte* newData;
+        const TByte* oldData;
+        inline explicit TNewDataSubDiffCoverStream(const TDiffData& diff,const TOldCover& cover){
+            streamImport=this;
+            streamSize=cover.length;
+            read=_read;
+            newData=diff.newData+cover.newPos;
+            oldData=diff.oldData+cover.oldPos;
+        }
+        static hpatch_BOOL _read(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                 unsigned char* out_data,unsigned char* out_data_end){
+            TNewDataSubDiffCoverStream* self=(TNewDataSubDiffCoverStream*)stream->streamImport;
+            size_t len=out_data_end-out_data;
+            assert(readFromPos+len<=self->streamSize);
+            const TByte* newData=self->newData+readFromPos;
+            const TByte* oldData=self->oldData+readFromPos;
+            for (size_t i=0;i<len;i++){
+                out_data[i]=newData[i]-oldData[i];
+            }
+            return hpatch_TRUE;
+        }
+    };
+
 static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>& out_diff,
                                              const hdiff_TCompress* compressPlugin,size_t patchStepMemSize){
     check(patchStepMemSize>=hpatch_kStreamCacheSize);
@@ -899,7 +981,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
             const size_t step_bufCover_backSize=step_bufCover.size();
             
             const TOldCover& cover=covers[i];
-            const TByte* subDiff=diff.newDataSubDiff.data()+cover.newPos;
+            TNewDataSubDiffCoverStream subDiff(diff,cover);
             if (cover.oldPos>=lastOldEnd){ //save inc_oldPos
                 packUIntWithTag(step_bufCover,(TUInt)(cover.oldPos-lastOldEnd), 0, 1);
             }else{
@@ -910,9 +992,9 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
             packUInt(step_bufCover,(TUInt)backNewLen); //save inc_newPos
             packUInt(step_bufCover,cover.length);
             
-            const TUInt curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(subDiff,subDiff+cover.length);
+            const TUInt curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(&subDiff);
             if (curMaxNeedSize<=patchStepMemSize){ //append
-                step_bufRle.append(subDiff,subDiff+cover.length);
+                step_bufRle.append(&subDiff);
                 if (backNewLen>0){
                     const TByte* newDataDiff=diff.newDataDiff.data()+curNewDiff;
                     pushBack(step_bufData,newDataDiff,newDataDiff+backNewLen);
@@ -934,7 +1016,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
                     while (1) {
                         clen=clen*3/4;
                         check(clen>0); // stepMemSize error
-                        const TUInt _curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(subDiff,subDiff+clen);
+                        const TUInt _curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(&subDiff);
                         if (_curMaxNeedSize<=patchStepMemSize)
                             break;
                     }

@@ -44,13 +44,14 @@ void bytesRLE_save(std::vector<unsigned char>& out_code,
                    const unsigned char* src,const unsigned char* src_end,
                    int rle_parameter=kRle_default);
 void bytesRLE_save(std::vector<unsigned char>& out_code,
-                   const hpatch_TStreamInput* src,int rle_parameter=kRle_default);
+                   const hpatch_TStreamInput* src,//sequential read
+                   int rle_parameter=kRle_default);
 
 void bytesRLE_save(std::vector<unsigned char>& out_ctrlBuf,std::vector<unsigned char>& out_codeBuf,
                    const unsigned char* src,const unsigned char* src_end,int rle_parameter);
-
 void bytesRLE_save(std::vector<unsigned char>& out_ctrlBuf,std::vector<unsigned char>& out_codeBuf,
-                   const hpatch_TStreamInput* src,int rle_parameter);
+                   const hpatch_TStreamInput* src,//sequential read
+                   int rle_parameter);
     
     struct TSingleStreamRLE0{
         std::vector<unsigned char>  fixed_code;
@@ -59,9 +60,9 @@ void bytesRLE_save(std::vector<unsigned char>& out_ctrlBuf,std::vector<unsigned 
         inline TSingleStreamRLE0():len0(0){}
         inline size_t curCodeSize() const { return maxCodeSize(0,0); }
         size_t maxCodeSize(const unsigned char* appendData,const unsigned char* appendData_end) const;
-        size_t maxCodeSize(const hpatch_TStreamInput* appendData) const;
+        size_t maxCodeSize(const hpatch_TStreamInput* appendData) const;//sequential read
         void append(const unsigned char* appendData,const unsigned char* appendData_end);
-        void append(const hpatch_TStreamInput* appendData);
+        void append(const hpatch_TStreamInput* appendData);//sequential read
         void finishAppend();
         inline void clear() { fixed_code.clear(); uncompressData.clear(); len0=0; }
     };
