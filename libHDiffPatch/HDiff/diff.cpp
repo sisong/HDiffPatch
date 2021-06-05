@@ -858,7 +858,7 @@ void create_compressed_diff(const TByte* newData,const TByte* newData_end,
 
 
 static void _flush_step_code(std::vector<TByte> &buf, std::vector<TByte> &step_bufCover, std::vector<TByte> &step_bufData,
-                             hdiff_private::TSangileStreamRLE0 &step_bufRle,size_t& curMaxStepMemSize) {
+                             hdiff_private::TSingleStreamRLE0 &step_bufRle,size_t& curMaxStepMemSize) {
     step_bufRle.finishAppend();
     packUInt(buf,step_bufCover.size()); //general saved data
     packUInt(buf,step_bufRle.curCodeSize());
@@ -892,7 +892,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
         TInt lastNewEnd=0;
         TUInt curNewDiff=0;
         std::vector<TByte> step_bufCover;
-        TSangileStreamRLE0 step_bufRle;
+        TSingleStreamRLE0 step_bufRle;
         std::vector<TByte> step_bufData;
         TUInt i=0;
         while ( i<covers.size()) {
