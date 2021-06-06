@@ -810,7 +810,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,
                 diffInfo.oldDataSize=sdiffInfo.oldDataSize;
                 patchCacheSize+=(size_t)sdiffInfo.stepMemSize;
                 if (patchCacheSize<sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3)
-                    patchCacheSize=sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3;
+                    patchCacheSize=(size_t)sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3;
                 isSingleStreamDiff=hpatch_TRUE;
                 printf("patch single compressed stream diffData!\n");
             }else
@@ -840,7 +840,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,
         check(temp_cache_size>=sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3,HPATCH_MEM_ERROR,"alloc cache memory");
         patch_result=patch_single_compressed_diff(&newData.base,poldData,&diffData.base,sdiffInfo.diffDataPos,
                                                   sdiffInfo.uncompressedSize,decompressPlugin,sdiffInfo.coverCount,
-                                                  sdiffInfo.stepMemSize,temp_cache,temp_cache+temp_cache_size,0);
+                                                  (size_t)sdiffInfo.stepMemSize,temp_cache,temp_cache+temp_cache_size,0);
     }else
 #endif
         patch_result=patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,

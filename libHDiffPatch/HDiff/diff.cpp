@@ -99,7 +99,6 @@ struct TDiffData{
     const TByte*            oldData;
     const TByte*            oldData_end;
     std::vector<TOldCover>  covers;         //选出的覆盖线.
-    std::vector<TByte>      newDataDiff;    //集中储存newData中没有被覆盖线覆盖住的字节数据.
 };
 
 
@@ -536,7 +535,7 @@ static void extend_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
                             ++nextCoveri;
                         }
                     }else{
-                        curDataLen=streamSize-curReadPos;
+                        curDataLen=(size_t)(streamSize-curReadPos);
                         oldData=0;
                     }
                 }
@@ -567,26 +566,6 @@ static void extend_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
         }
     };
 
-//用覆盖线得到差异数据.
-static void sub_cover(TDiffData& diff){
-    std::vector<TOldCover>& covers=diff.covers;
-    const TByte*            newData=diff.newData;
-    const TByte*            oldData=diff.oldData;
-    diff.newDataDiff.resize(0);
-    diff.newDataDiff.reserve((diff.newData_end-diff.newData)>>2);
-    
-    TInt lastNewEnd=0;
-    for (TInt i=0;i<(TInt)covers.size();++i){
-        const TInt newPos=covers[i].newPos;
-        if (newPos>lastNewEnd)
-            pushBack(diff.newDataDiff,newData+lastNewEnd,newData+newPos);
-        const TInt length=covers[i].length;
-        lastNewEnd=newPos+length;
-    }
-    if (lastNewEnd<diff.newData_end-newData)
-        pushBack(diff.newDataDiff,newData+lastNewEnd,diff.newData_end);
-}
-
 //diff结果序列化输出.
 static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
     const TUInt coverCount=(TUInt)diff.covers.size();
@@ -609,42 +588,63 @@ static void serialize_diff(const TDiffData& diff,std::vector<TByte>& out_diff){
             lastNewEnd=diff.covers[i].newPos+diff.covers[i].length;
         }
     }
+    
+    const TCovers _covers((void*)diff.covers.data(),diff.covers.size(),
+                          sizeof(*diff.covers.data())==sizeof(hpatch_TCover32));
+    hpatch_TStreamInput _newDataStream;
+    mem_as_hStreamInput(&_newDataStream,diff.newData,diff.newData_end);
+    const hpatch_StreamPos_t newDataDiff_size=TNewDataDiffStream::getDataSize(_covers, _newDataStream.streamSize);
+    TNewDataDiffStream newDataDiffStream(_covers,&_newDataStream,newDataDiff_size);
 
     packUInt(out_diff, (TUInt)coverCount);
     packUInt(out_diff, (TUInt)length_buf.size());
     packUInt(out_diff, (TUInt)inc_newPos_buf.size());
     packUInt(out_diff, (TUInt)inc_oldPos_buf.size());
-    packUInt(out_diff, (TUInt)diff.newDataDiff.size());
+    packUInt(out_diff, (TUInt)newDataDiff_size);
     pushBack(out_diff,length_buf);
     pushBack(out_diff,inc_newPos_buf);
     pushBack(out_diff,inc_oldPos_buf);
-    pushBack(out_diff,diff.newDataDiff);
+    pushBack(out_diff,&newDataDiffStream);
     
     TNewDataSubDiffStream newDataSubDiff(diff);
     bytesRLE_save(out_diff,&newDataSubDiff,kRle_bestSize);
 }
     
     
-    static void do_compress(std::vector<TByte>& out_code,const std::vector<TByte>& data,
+    static void do_compress(std::vector<TByte>& out_code,const hpatch_TStreamInput* data,
                             const hdiff_TCompress* compressPlugin,bool isMustCompress=false){
         out_code.clear();
         if (!compressPlugin) return;
-        if (data.empty()) return;
-        hpatch_StreamPos_t maxCodeSize=compressPlugin->maxCompressedSize(data.size());
-        if ((maxCodeSize<=data.size())||(maxCodeSize!=(size_t)maxCodeSize)) return; //error
+        if (data->streamSize==0) return;
+        hpatch_StreamPos_t maxCodeSize=compressPlugin->maxCompressedSize(data->streamSize);
+        if ((maxCodeSize<=data->streamSize)||(maxCodeSize!=(size_t)maxCodeSize)) return; //error
         out_code.resize((size_t)maxCodeSize);
-        const TByte* data0=&data[0];
-        TByte* out_code0=&out_code[0];
-        size_t codeSize=hdiff_compress_mem(compressPlugin,out_code0,out_code0+out_code.size(),
-                                           data0,data0+data.size());
-        if ((codeSize>0)&&(isMustCompress||(codeSize<data.size())))
-            out_code.resize(codeSize); //ok
+        hpatch_TStreamOutput codeStream;
+        mem_as_hStreamOutput(&codeStream,out_code.data(),out_code.data()+out_code.size());
+        hpatch_StreamPos_t codeSize=compressPlugin->compress(compressPlugin,&codeStream,data);
+        if ((codeSize>0)&&(isMustCompress||(codeSize<data->streamSize)))
+            out_code.resize((size_t)codeSize); //ok
         else
             out_code.clear();//error or cancel
     }
+    static inline void do_compress(std::vector<TByte>& out_code,const std::vector<TByte>& data,
+                            const hdiff_TCompress* compressPlugin,bool isMustCompress=false){
+        hpatch_TStreamInput dataStream;
+        mem_as_hStreamInput(&dataStream,data.data(),data.data()+data.size());
+        do_compress(out_code,&dataStream,compressPlugin,isMustCompress);
+    }
+    
     inline static void pushCompressCode(std::vector<TByte>& out_diff,
                                         const std::vector<TByte>& compress_code,
                                         const std::vector<TByte>& data){
+        if (compress_code.empty())
+            pushBack(out_diff,data);
+        else
+            pushBack(out_diff,compress_code);
+    }
+    inline static void pushCompressCode(std::vector<TByte>& out_diff,
+                                        const std::vector<TByte>& compress_code,
+                                        const hpatch_TStreamInput* data){
         if (compress_code.empty())
             pushBack(out_diff,data);
         else
@@ -702,11 +702,18 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     do_compress(compress_cover_buf,cover_buf,compressPlugin);
     do_compress(compress_rle_ctrlBuf,rle_ctrlBuf,compressPlugin);
     do_compress(compress_rle_codeBuf,rle_codeBuf,compressPlugin);
-    do_compress(compress_newDataDiff,diff.newDataDiff,compressPlugin);
+    
+    const TCovers _covers((void*)diff.covers.data(),diff.covers.size(),
+                          sizeof(*diff.covers.data())==sizeof(hpatch_TCover32));
+    hpatch_TStreamInput _newDataStream;
+    mem_as_hStreamInput(&_newDataStream,diff.newData,diff.newData_end);
+    const hpatch_StreamPos_t newDataDiff_size=TNewDataDiffStream::getDataSize(_covers, _newDataStream.streamSize);
+    TNewDataDiffStream newDataDiffStream(_covers,&_newDataStream,newDataDiff_size);
+    do_compress(compress_newDataDiff,&newDataDiffStream,compressPlugin);
 
     _outType(out_diff,compressPlugin);
-    const TUInt newDataSize=(TUInt)(diff.newData_end-diff.newData);
-    const TUInt oldDataSize=(TUInt)(diff.oldData_end-diff.oldData);
+    const TUInt newDataSize=(size_t)(diff.newData_end-diff.newData);
+    const TUInt oldDataSize=(size_t)(diff.oldData_end-diff.oldData);
     packUInt(out_diff, newDataSize);
     packUInt(out_diff, oldDataSize);
     packUInt(out_diff, coverCount);
@@ -716,13 +723,13 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     packUInt(out_diff, (TUInt)compress_rle_ctrlBuf.size());
     packUInt(out_diff, (TUInt)rle_codeBuf.size());
     packUInt(out_diff, (TUInt)compress_rle_codeBuf.size());
-    packUInt(out_diff, (TUInt)diff.newDataDiff.size());
+    packUInt(out_diff, (TUInt)newDataDiff_size);
     packUInt(out_diff, (TUInt)compress_newDataDiff.size());
-    
+            
     pushCompressCode(out_diff,compress_cover_buf,cover_buf);
     pushCompressCode(out_diff,compress_rle_ctrlBuf,rle_ctrlBuf);
     pushCompressCode(out_diff,compress_rle_codeBuf,rle_codeBuf);
-    pushCompressCode(out_diff,compress_newDataDiff,diff.newDataDiff);
+    pushCompressCode(out_diff,compress_newDataDiff,&newDataDiffStream);
 }
     
     static void search_cover_by_stream(TDiffData& diff,size_t kMatchBlockSize,bool isSkipSameRange){
@@ -730,7 +737,7 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
         mem_as_hStreamInput(&oldData,diff.oldData,diff.oldData_end);
         hdiff_TStreamInput newData;
         mem_as_hStreamInput(&newData,diff.newData,diff.newData_end);
-        TCovers covers(oldData.streamSize,newData.streamSize);
+        TCoversBuf covers(oldData.streamSize,newData.streamSize);
         getCovers_by_stream(&newData,&oldData,kMatchBlockSize,isSkipSameRange,covers);
        
         size_t coverCount=covers.coverCount();
@@ -889,7 +896,6 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
     }
     assert_covers_safe(diff.covers,diff.covers.size(),
                        diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
-    sub_cover(diff);
 }
     
 }//end namespace
@@ -996,7 +1002,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
             if (curMaxNeedSize<=patchStepMemSize){ //append
                 step_bufRle.append(&subDiff);
                 if (backNewLen>0){
-                    const TByte* newDataDiff=diff.newDataDiff.data()+curNewDiff;
+                    const TByte* newDataDiff=diff.newData+lastNewEnd;
                     pushBack(step_bufData,newDataDiff,newDataDiff+backNewLen);
                     curNewDiff+=backNewLen;
                 }
@@ -1032,7 +1038,6 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
                 }
             }
         }
-        check(diff.newDataDiff.size()==curNewDiff);
         if (!step_bufCover.empty())
             _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle,curMaxStepMemSize);
     }
@@ -1299,7 +1304,7 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamOutput* out_diff,
                                    const hdiff_TCompress* compressPlugin,size_t kMatchBlockSize){
     const bool isSkipSameRange=(compressPlugin!=0);
-    TCovers covers(oldData->streamSize,newData->streamSize);
+    TCoversBuf covers(oldData->streamSize,newData->streamSize);
     getCovers_by_stream(newData,oldData,kMatchBlockSize,isSkipSameRange,covers);
     stream_serialize(newData,oldData->streamSize,out_diff,compressPlugin,covers);
 }
