@@ -938,12 +938,13 @@ static void _flush_step_code(std::vector<TByte> &buf, std::vector<TByte> &step_b
     struct TNewDataSubDiffCoverStream:public hpatch_TStreamInput{
         const TByte* newData;
         const TByte* oldData;
-        inline explicit TNewDataSubDiffCoverStream(const TDiffData& diff,const TOldCover& cover){
+        template<class TCoverType>
+        inline explicit TNewDataSubDiffCoverStream(const TDiffData& diff,const TCoverType& cover){
             streamImport=this;
             streamSize=cover.length;
             read=_read;
-            newData=diff.newData+cover.newPos;
-            oldData=diff.oldData+cover.oldPos;
+            newData=diff.newData+(size_t)cover.newPos;
+            oldData=diff.oldData+(size_t)cover.oldPos;
         }
         static hpatch_BOOL _read(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                                  unsigned char* out_data,unsigned char* out_data_end){
@@ -959,34 +960,53 @@ static void _flush_step_code(std::vector<TByte> &buf, std::vector<TByte> &step_b
         }
     };
 
-static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>& out_diff,
+static void serialize_single_compressed_diff(const TDiffData& diff,const TCovers& covers,std::vector<TByte>& out_diff,
                                              const hdiff_TCompress* compressPlugin,size_t patchStepMemSize){
     check(patchStepMemSize>=hpatch_kStreamCacheSize);
-    std::vector<TOldCover>& covers=diff.covers;
     const TUInt newDataSize=(TUInt)(diff.newData_end-diff.newData);
     const TUInt oldDataSize=(TUInt)(diff.oldData_end-diff.oldData);
-    if (covers.empty()){
-        covers.push_back(TOldCover(0,newDataSize,0));
+    size_t coverCount=covers.coverCount();
+    bool isHaveLastCover=false;
+    TCover lastCover;
+    if (coverCount==0){
+        isHaveLastCover=true;
+        lastCover=TCover{0,newDataSize,0};
     }else{
-        const TOldCover& back=covers[covers.size()-1];
-        if ((TUInt)back.newPos+(TUInt)back.length<newDataSize){
-            covers.push_back(TOldCover(back.oldPos+back.length,newDataSize,0));
+        TCover back;
+        covers.covers(coverCount-1,&back);
+        if (back.newPos+back.length<newDataSize){
+            isHaveLastCover=true;
+            lastCover=TCover{back.oldPos+back.length,newDataSize,0};
         }
     }
+    if (isHaveLastCover) ++coverCount;
     size_t curMaxStepMemSize=0;
     std::vector<TByte> buf;
     {
-        TInt lastOldEnd=0;
-        TInt lastNewEnd=0;
+        TUInt lastOldEnd=0;
+        TUInt lastNewEnd=0;
         TUInt curNewDiff=0;
         std::vector<TByte> step_bufCover;
         TSingleStreamRLE0 step_bufRle;
         std::vector<TByte> step_bufData;
+        bool isHaveLeftCover=false;
+        bool isHaveRightCover=false;
+        TCover leftCover;
+        TCover rightCover;
         TUInt i=0;
-        while ( i<covers.size()) {
+        const TCover* pCurCover=0;
+        while (true) {
+            TCover cover;
+            if (pCurCover==0){
+                if (isHaveLeftCover)      { isHaveLeftCover=false;  pCurCover=&leftCover;  }
+                else if (isHaveRightCover){ isHaveRightCover=false; pCurCover=&rightCover; }
+                else if (i<covers.coverCount()) { covers.covers(i++,&cover); pCurCover=&cover; }
+                else if (isHaveLastCover) { isHaveLastCover=false;  pCurCover=&lastCover;  }
+                else{ break; } //end while
+            }
+            cover=*pCurCover;
             const size_t step_bufCover_backSize=step_bufCover.size();
-            
-            const TOldCover& cover=covers[i];
+
             TNewDataSubDiffCoverStream subDiff(diff,cover);
             if (cover.oldPos>=lastOldEnd){ //save inc_oldPos
                 packUIntWithTag(step_bufCover,(TUInt)(cover.oldPos-lastOldEnd), 0, 1);
@@ -1007,34 +1027,38 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
                     curNewDiff+=backNewLen;
                 }
 
-                //next i
                 lastOldEnd=cover.oldPos+cover.length;//! +length
                 lastNewEnd=cover.newPos+cover.length;
-                ++i;
+                pCurCover=0; // next 
             }else{
                 if (step_bufCover_backSize+step_bufRle.curCodeSize()>=(patchStepMemSize/2)){//flush step
                     step_bufCover.resize(step_bufCover_backSize);
                     _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle,curMaxStepMemSize);
-                    continue;  // old i!
+                    continue;  // pCurCover!
                 }else{ //clip one cover to two cover
-                    TOldCover& cover_l=covers[i];
-                    TUInt clen=cover_l.length;
+                    check((!isHaveLeftCover)&&(!isHaveRightCover));
+                    isHaveLeftCover=true;
+                    isHaveRightCover=true;
+                    leftCover=cover;
+                    rightCover=cover;
+                    TUInt clen=cover.length;
                     while (1) {
                         clen=clen*3/4;
+                        subDiff.streamSize=clen;
                         check(clen>0); // stepMemSize error
                         const TUInt _curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(&subDiff);
                         if (_curMaxNeedSize<=patchStepMemSize)
                             break;
                     }
-                    TOldCover cover_r=cover_l;
-                    cover_l.length=clen;
-                    cover_r.length-=clen;
-                    cover_r.oldPos+=clen;
-                    cover_r.newPos+=clen;
-                    covers.insert(covers.begin()+(i+1),cover_r);
+                    leftCover.length=clen;
+                    rightCover.length-=clen;
+                    rightCover.oldPos+=clen;
+                    rightCover.newPos+=clen;
                     
                     step_bufCover.resize(step_bufCover_backSize);
-                    continue;  // old i!
+                    ++coverCount;
+                    pCurCover=0;
+                    continue;  // leftCover
                 }
             }
         }
@@ -1049,7 +1073,7 @@ static void serialize_single_compressed_diff(TDiffData& diff,std::vector<TByte>&
     _outType(out_diff,compress_buf.empty()?0:compressPlugin,kHDiffSFVersionType);
     packUInt(out_diff, newDataSize);
     packUInt(out_diff, oldDataSize);
-    packUInt(out_diff, covers.size());
+    packUInt(out_diff, coverCount);
     packUInt(out_diff, curMaxStepMemSize);
     packUInt(out_diff, (TUInt)buf.size());
     packUInt(out_diff, (TUInt)compress_buf.size());
@@ -1064,7 +1088,9 @@ void create_single_compressed_diff(const TByte* newData,const TByte* newData_end
                                    size_t patchStepMemSize,ICoverLinesListener* listener){
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,0,listener);
-    serialize_single_compressed_diff(diff,out_diff,compressPlugin,patchStepMemSize);
+    const TCovers _covers((void*)diff.covers.data(),diff.covers.size(),
+                          sizeof(*diff.covers.data())==sizeof(hpatch_TCover32));
+    serialize_single_compressed_diff(diff,_covers,out_diff,compressPlugin,patchStepMemSize);
 }
 
 
