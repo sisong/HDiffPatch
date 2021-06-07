@@ -38,6 +38,8 @@
 #include "math.h"
 #include "../libHDiffPatch/HDiff/diff.h"
 #include "../libHDiffPatch/HPatch/patch.h"
+#include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
+using namespace hdiff_private;
 typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
@@ -239,33 +241,6 @@ long attackPacth(TInt newSize,const TByte* oldData,const TByte* oldData_end,
 }
 #endif
 
-struct TVectorStreamOutput:public hpatch_TStreamOutput{
-    explicit TVectorStreamOutput(std::vector<TByte>& _dst):dst(_dst){
-        this->streamImport=this;
-        this->streamSize=~(hpatch_StreamPos_t)0;
-        this->read_writed=0;
-        this->write=_write;
-    }
-    static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,
-                              const hpatch_StreamPos_t writeToPos,
-                              const unsigned char* data,const unsigned char* data_end){
-        TVectorStreamOutput* self=(TVectorStreamOutput*)stream->streamImport;
-        std::vector<TByte>& dst=self->dst;
-        size_t writeLen=(size_t)(data_end-data);
-        if (writeToPos>dst.size()) return false;
-        if  (dst.size()==writeToPos){
-            dst.insert(dst.end(),data,data_end);
-        }else{
-            if (writeToPos+writeLen!=(size_t)(writeToPos+writeLen)) return false;
-            if (dst.size()<writeToPos+writeLen)
-                dst.resize((size_t)(writeToPos+writeLen));
-            memcpy(&dst[(size_t)writeToPos],data,writeLen);
-        }
-        return true;
-    }
-    std::vector<TByte>& dst;
-};
-
 long test(const TByte* newData,const TByte* newData_end,
           const TByte* oldData,const TByte* oldData_end,const char* tag,hpatch_StreamPos_t* out_diffSizes){
     printf("%s newSize:%ld oldSize:%ld ",tag, (long)(newData_end-newData), (long)(oldData_end-oldData));
@@ -308,7 +283,7 @@ long test(const TByte* newData,const TByte* newData_end,
         std::vector<TByte> diffData;
         struct hpatch_TStreamInput  newStream;
         struct hpatch_TStreamInput  oldStream;
-        TVectorStreamOutput out_diffStream(diffData);
+        TVectorAsStreamOutput out_diffStream(diffData);
         mem_as_hStreamInput(&newStream,newData,newData_end);
         mem_as_hStreamInput(&oldStream,oldData,oldData_end);
 

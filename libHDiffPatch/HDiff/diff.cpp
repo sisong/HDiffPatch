@@ -919,144 +919,25 @@ void create_compressed_diff(const TByte* newData,const TByte* newData_end,
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 
-
-static void _flush_step_code(std::vector<TByte> &buf, std::vector<TByte> &step_bufCover, std::vector<TByte> &step_bufData,
-                             hdiff_private::TSingleStreamRLE0 &step_bufRle,size_t& curMaxStepMemSize) {
-    step_bufRle.finishAppend();
-    packUInt(buf,step_bufCover.size()); //general saved data
-    packUInt(buf,step_bufRle.curCodeSize());
-    size_t bufSize_back=buf.size();
-    pushBack(buf,step_bufCover);            step_bufCover.clear();
-    pushBack(buf,step_bufRle.fixed_code);   step_bufRle.clear();
-    size_t curStepMemSize=buf.size()-bufSize_back;
-    pushBack(buf,step_bufData);             step_bufData.clear();
-    if (curMaxStepMemSize<curStepMemSize)
-        curMaxStepMemSize=curStepMemSize;
-}
-
 static void serialize_single_compressed_diff(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                                             const TCovers& covers,std::vector<TByte>& out_diff,
+                                             const TCovers& covers, const hpatch_TStreamOutput* out_diff,
                                              const hdiff_TCompress* compressPlugin,size_t patchStepMemSize){
     check(patchStepMemSize>=hpatch_kStreamCacheSize);
-    const hpatch_StreamPos_t newDataSize=newStream->streamSize;
-    const hpatch_StreamPos_t oldDataSize=oldStream->streamSize;
-    TNewDataSubDiffCoverStream subDiff(newStream,oldStream);
-    TNewDataDiffStream newDataDiff(covers,newStream);
-    hpatch_StreamPos_t newDataDiffReadPos=0;
-
-    size_t coverCount=covers.coverCount();
-    bool isHaveLastCover=false;
-    TCover lastCover;
-    if (coverCount==0){
-        isHaveLastCover=true;
-        lastCover=TCover{0,newDataSize,0};
-    }else{
-        TCover back;
-        covers.covers(coverCount-1,&back);
-        if (back.newPos+back.length<newDataSize){
-            isHaveLastCover=true;
-            lastCover=TCover{back.oldPos+back.length,newDataSize,0};
-        }
+    TStepStream stepStream(newStream,oldStream,covers,patchStepMemSize);
+    
+    TDiffStream outDiff(out_diff);
+    {//type
+        std::vector<TByte> out_type;
+        _outType(out_type,compressPlugin,kHDiffSFVersionType);
+        outDiff.pushBack(out_type.data(),out_type.size());
     }
-    if (isHaveLastCover) ++coverCount;
-    size_t curMaxStepMemSize=0;
-    std::vector<TByte> buf;
-    {
-        hpatch_StreamPos_t lastOldEnd=0;
-        hpatch_StreamPos_t lastNewEnd=0;
-        std::vector<TByte> step_bufCover;
-        TSingleStreamRLE0  step_bufRle;
-        std::vector<TByte> step_bufData;
-        bool isHaveLeftCover=false;
-        bool isHaveRightCover=false;
-        TCover leftCover;
-        TCover rightCover;
-        size_t i=0;
-        const TCover* pCurCover=0;
-        while (true) {
-            TCover cover;
-            if (pCurCover==0){
-                if (isHaveLeftCover)      { isHaveLeftCover=false;  pCurCover=&leftCover;  }
-                else if (isHaveRightCover){ isHaveRightCover=false; pCurCover=&rightCover; }
-                else if (i<covers.coverCount()) { covers.covers(i++,&cover); pCurCover=&cover; }
-                else if (isHaveLastCover) { isHaveLastCover=false;  pCurCover=&lastCover;  }
-                else{ break; } //end while
-            }
-            cover=*pCurCover;
-            const size_t step_bufCover_backSize=step_bufCover.size();
-
-            subDiff.resetCover(cover);
-            if (cover.oldPos>=lastOldEnd){ //save inc_oldPos
-                packUIntWithTag(step_bufCover,(hpatch_StreamPos_t)(cover.oldPos-lastOldEnd), 0, 1);
-            }else{
-                packUIntWithTag(step_bufCover,(hpatch_StreamPos_t)(lastOldEnd-cover.oldPos), 1, 1);//sub safe
-            }
-            hpatch_StreamPos_t backNewLen=cover.newPos-lastNewEnd;
-            packUInt(step_bufCover,backNewLen); //save inc_newPos
-            packUInt(step_bufCover,cover.length);
-            
-            const hpatch_StreamPos_t curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(&subDiff);
-            if (curMaxNeedSize<=patchStepMemSize){ //append
-                step_bufRle.append(&subDiff);
-                if (backNewLen>0){
-                    TStreamClip clip(&newDataDiff,newDataDiffReadPos,newDataDiffReadPos+backNewLen);
-                    pushBack(step_bufData,&clip);
-                    newDataDiffReadPos+=backNewLen;
-                }
-
-                lastOldEnd=cover.oldPos+cover.length;//! +length
-                lastNewEnd=cover.newPos+cover.length;
-                pCurCover=0; // next 
-            }else{
-                if (step_bufCover_backSize+step_bufRle.curCodeSize()>=(patchStepMemSize/2)){//flush step
-                    step_bufCover.resize(step_bufCover_backSize);
-                    _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle,curMaxStepMemSize);
-                    continue;  // pCurCover!
-                }else{ //clip one cover to two cover
-                    check((!isHaveLeftCover)&&(!isHaveRightCover));
-                    isHaveLeftCover=true;
-                    isHaveRightCover=true;
-                    leftCover=cover;
-                    rightCover=cover;
-                    hpatch_StreamPos_t clen=cover.length;
-                    while (1) {
-                        clen=clen*3/4;
-                        subDiff.streamSize=clen;
-                        check(clen>0); // stepMemSize error
-                        const hpatch_StreamPos_t _curMaxNeedSize = step_bufCover.size() + step_bufRle.maxCodeSize(&subDiff);
-                        if (_curMaxNeedSize<=patchStepMemSize)
-                            break;
-                    }
-                    leftCover.length=clen;
-                    rightCover.length-=clen;
-                    rightCover.oldPos+=clen;
-                    rightCover.newPos+=clen;
-                    
-                    step_bufCover.resize(step_bufCover_backSize);
-                    ++coverCount;
-                    pCurCover=0;
-                    continue;  // leftCover
-                }
-            }
-        }
-        if (!step_bufCover.empty())
-            _flush_step_code(buf,step_bufCover,step_bufData,step_bufRle,curMaxStepMemSize);
-    }
-    assert(curMaxStepMemSize<=patchStepMemSize);
-    assert(newDataDiffReadPos==newDataDiff.streamSize);
-    
-    std::vector<TByte> compress_buf;
-    do_compress(compress_buf,buf,compressPlugin);
-    
-    _outType(out_diff,compress_buf.empty()?0:compressPlugin,kHDiffSFVersionType);
-    packUInt(out_diff, newDataSize);
-    packUInt(out_diff, oldDataSize);
-    packUInt(out_diff, coverCount);
-    packUInt(out_diff, curMaxStepMemSize);
-    packUInt(out_diff, buf.size());
-    packUInt(out_diff, compress_buf.size());
-    
-    pushCompressCode(out_diff,compress_buf,buf);
+    outDiff.packUInt(newStream->streamSize);
+    outDiff.packUInt(oldStream->streamSize);
+    outDiff.packUInt(stepStream.getCoverCount());
+    outDiff.packUInt(stepStream.getMaxStepMemSize());
+    outDiff.packUInt(stepStream.streamSize);
+    TPlaceholder compressed_sizePos=outDiff.packUInt_pos(compressPlugin?stepStream.streamSize:0);
+    outDiff.pushStream(&stepStream,compressPlugin,compressed_sizePos);
 }
 
 void create_single_compressed_diff(const TByte* newData,const TByte* newData_end,
@@ -1073,7 +954,9 @@ void create_single_compressed_diff(const TByte* newData,const TByte* newData_end
     mem_as_hStreamInput(&_oldStream,diff.oldData,diff.oldData_end);
     const TCovers _covers((void*)diff.covers.data(),diff.covers.size(),
                           sizeof(*diff.covers.data())==sizeof(hpatch_TCover32));
-    serialize_single_compressed_diff(&_newStream,&_oldStream,_covers,out_diff,compressPlugin,patchStepMemSize);
+    TVectorAsStreamOutput outDiffStream(out_diff);
+    serialize_single_compressed_diff(&_newStream,&_oldStream,_covers,
+                                     &outDiffStream,compressPlugin,patchStepMemSize);
 }
 
 
