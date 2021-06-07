@@ -71,6 +71,7 @@ private:
 struct TNewDataDiffStream:public hpatch_TStreamInput{
     TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
                        hpatch_StreamPos_t newDataDiff_size);
+    TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData);
     static hpatch_StreamPos_t getDataSize(const TCovers& covers,hpatch_StreamPos_t newDataSize);
 private:
     const TCovers&              covers;
@@ -80,6 +81,30 @@ private:
     hpatch_StreamPos_t          lastNewEnd;
     size_t                      readedCoverCount;
     hpatch_StreamPos_t          _readFromPos_back;
+    static hpatch_BOOL _read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                             unsigned char* out_data,unsigned char* out_data_end);
+};
+
+struct TNewDataSubDiffCoverStream:public hpatch_TStreamInput{
+    TNewDataSubDiffCoverStream(const hpatch_TStreamInput* _newStream,
+                               const hpatch_TStreamInput* _oldStream);
+    void resetCover(const TCover& _cover) { cover=_cover; initRead(); }
+private:
+    enum { kSubDiffCacheSize = hpatch_kFileIOBufBetterSize };
+    hpatch_StreamPos_t curReadNewPos;
+    hpatch_StreamPos_t curReadOldPos;
+    hpatch_StreamPos_t inStreamLen;
+    hpatch_StreamPos_t curReadPos;
+    size_t curDataLen;
+    const hpatch_TStreamInput* newStream;
+    const hpatch_TStreamInput* oldStream;
+    TCover cover;
+    unsigned char* newData;
+    unsigned char* oldData;
+    TAutoMem _cache;
+    void initRead();
+    hpatch_BOOL _updateCache();
+    hpatch_BOOL readTo(unsigned char* out_data,unsigned char* out_data_end);
     static hpatch_BOOL _read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                              unsigned char* out_data,unsigned char* out_data_end);
 };

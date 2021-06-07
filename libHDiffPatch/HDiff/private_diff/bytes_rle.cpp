@@ -186,8 +186,8 @@ void bytesRLE_save(std::vector<TByte>& out_code,const hpatch_TStreamInput* src,i
     }
 
 
-    static void _maxCodeSize(TLastType& lastType,size_t& curLen0,size_t& curLenv,size_t& fixedLen,
-                             const unsigned char* appendData,const unsigned char* appendData_end){
+    static void _maxCodeSize(TLastType& lastType,hpatch_StreamPos_t& curLen0,hpatch_StreamPos_t& curLenv,
+                             hpatch_StreamPos_t& fixedLen,const unsigned char* appendData,const unsigned char* appendData_end){
         while (appendData!=appendData_end) {
             if (*appendData==0){
                 if (lastType==lastType_v){
@@ -207,7 +207,8 @@ void bytesRLE_save(std::vector<TByte>& out_code,const hpatch_TStreamInput* src,i
             ++appendData;
         }
     }
-    static void _maxCodeSize_end(TLastType& lastType,size_t& curLen0,size_t& curLenv,size_t& fixedLen){
+    static void _maxCodeSize_end(TLastType& lastType,hpatch_StreamPos_t& curLen0,
+                                 hpatch_StreamPos_t& curLenv,hpatch_StreamPos_t& fixedLen){
         if (curLenv>0){
             fixedLen += hpatch_packUInt_size(curLenv) + curLenv;
             curLenv=0;
@@ -218,21 +219,21 @@ void bytesRLE_save(std::vector<TByte>& out_code,const hpatch_TStreamInput* src,i
         }
     }
     
-    size_t TSingleStreamRLE0::maxCodeSize(const unsigned char* appendData,const unsigned char* appendData_end) const{
+    hpatch_StreamPos_t TSingleStreamRLE0::maxCodeSize(const unsigned char* appendData,const unsigned char* appendData_end) const{
         TLastType lastType=getLastType(*this);
-        size_t curLen0=this->len0;
-        size_t curLenv=this->uncompressData.size();
-        size_t fixedLen=this->fixed_code.size();
+        hpatch_StreamPos_t curLen0=this->len0;
+        hpatch_StreamPos_t curLenv=this->uncompressData.size();
+        hpatch_StreamPos_t fixedLen=this->fixed_code.size();
         _maxCodeSize(lastType,curLen0,curLenv,fixedLen,appendData,appendData_end);
         _maxCodeSize_end(lastType,curLen0,curLenv,fixedLen);
         return fixedLen;
     }
 
-    size_t TSingleStreamRLE0::maxCodeSize(const hpatch_TStreamInput* appendData) const{
+    hpatch_StreamPos_t TSingleStreamRLE0::maxCodeSize(const hpatch_TStreamInput* appendData) const{
         TLastType lastType=getLastType(*this);
-        size_t curLen0=this->len0;
-        size_t curLenv=this->uncompressData.size();
-        size_t fixedLen=this->fixed_code.size();
+        hpatch_StreamPos_t curLen0=this->len0;
+        hpatch_StreamPos_t curLenv=this->uncompressData.size();
+        hpatch_StreamPos_t fixedLen=this->fixed_code.size();
         
         TByte buf[kStepSize];
         hpatch_StreamPos_t readPos=0;

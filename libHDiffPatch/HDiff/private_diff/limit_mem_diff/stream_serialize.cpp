@@ -158,6 +158,8 @@ hpatch_StreamPos_t TCoversStream::getDataSize(const TCovers& covers){
 
 
 
+TNewDataDiffStream::TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData)
+ :TNewDataDiffStream(_covers,_newData,getDataSize(_covers,_newData->streamSize)){}
 TNewDataDiffStream::TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
                                        hpatch_StreamPos_t newDataDiff_size)
 :covers(_covers),newData(_newData),curNewPos(0),curNewPos_end(0),
@@ -225,6 +227,75 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
     newDataDiff_size+=(hpatch_StreamPos_t)(newDataSize-lastNewEnd);
     return newDataDiff_size;
 }
+
+TNewDataSubDiffCoverStream::TNewDataSubDiffCoverStream(const hpatch_TStreamInput* _newStream,
+                                                       const hpatch_TStreamInput* _oldStream)
+:newStream(_newStream),oldStream(_oldStream),_cache(kSubDiffCacheSize*2){
+    cover=TCover{0,0,0};
+    streamImport=this;
+    read=_read;
+    initRead();
+}
+
+void TNewDataSubDiffCoverStream::initRead(){
+    streamSize=cover.length;
+    curReadNewPos=cover.newPos;
+    curReadOldPos=cover.oldPos;
+    inStreamLen=cover.length;
+    curReadPos=0;
+    curDataLen=0;
+}
+
+hpatch_BOOL TNewDataSubDiffCoverStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                              unsigned char* out_data,unsigned char* out_data_end){
+    TNewDataSubDiffCoverStream* self=(TNewDataSubDiffCoverStream*)stream->streamImport;
+    if (readFromPos!=self->curReadPos){
+        if (readFromPos!=0) return hpatch_FALSE;
+        self->initRead();
+    }
+    self->curReadPos+=(size_t)(out_data_end-out_data);
+    if (self->curReadPos>self->streamSize) return hpatch_FALSE;
+    return self->readTo(out_data,out_data_end);
+}
+
+hpatch_BOOL TNewDataSubDiffCoverStream::readTo(unsigned char* out_data,unsigned char* out_data_end){
+    size_t readLen=out_data_end-out_data;
+    while (readLen>0){
+        if (curDataLen==0){
+            if (!_updateCache()) return hpatch_FALSE;
+        }
+        size_t len=std::min(curDataLen,readLen);
+        for (size_t i=0;i<len;i++)
+            out_data[i]=newData[i]-oldData[i];
+        oldData+=len;
+        newData+=len;
+        curDataLen-=len;
+        out_data+=len;
+        readLen-=len;
+    }
+    return hpatch_TRUE;
+}
+
+hpatch_BOOL TNewDataSubDiffCoverStream::_updateCache(){
+    assert(curDataLen==0);
+    if (inStreamLen==0) return hpatch_FALSE;
+    newData=_cache.data();
+    oldData=_cache.data()+kSubDiffCacheSize;
+
+    size_t len=kSubDiffCacheSize;
+    if (len>inStreamLen)
+        len=inStreamLen;
+    if (!newStream->read(newStream,curReadNewPos,newData,newData+len))
+        return hpatch_FALSE;
+    if (!oldStream->read(oldStream,curReadOldPos,oldData,oldData+len))
+        return hpatch_FALSE;
+    curReadNewPos+=len;
+    curReadOldPos+=len;
+    curDataLen=len;
+    inStreamLen-=len;
+    return hpatch_TRUE;
+}
+
 
 
 TDiffStream::TDiffStream(const hpatch_TStreamOutput* _out_diff,hpatch_StreamPos_t out_diff_curPos)
