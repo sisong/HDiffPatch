@@ -162,9 +162,11 @@ static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
 enum TDiffType{
     kDiffO,
     kDiffZ,
+    kDiffZs,
     kDiffS,
+    kDiffSs,
 };
-static const size_t kDiffTypeCount=kDiffS+1;
+static const size_t kDiffTypeCount=kDiffSs+1;
 
 #ifdef _AttackPacth_ON
 
@@ -262,6 +264,30 @@ long test(const TByte* newData,const TByte* newData_end,
 #endif
         }
     }
+    {//test diffs stream
+        std::vector<TByte> diffData;
+        struct hpatch_TStreamInput  newStream;
+        struct hpatch_TStreamInput  oldStream;
+        TVectorAsStreamOutput out_diffStream(diffData);
+        mem_as_hStreamInput(&newStream,newData,newData_end);
+        mem_as_hStreamInput(&oldStream,oldData,oldData_end);
+
+        create_single_compressed_diff_stream(&newStream,&oldStream,&out_diffStream,compressPlugin,1<<4);
+        if (out_diffSizes) out_diffSizes[kDiffSs]+=diffData.size();
+        struct hpatch_TStreamInput in_diffStream;
+        mem_as_hStreamInput(&in_diffStream,diffData.data(),diffData.data()+diffData.size());
+        if (!check_single_compressed_diff(&newStream,&oldStream,&in_diffStream,decompressPlugin)){
+            printf("\n diffs stream error!!! tag:%s\n",tag);
+            ++result;
+        }else{
+            printf(" diffs stream:%ld", (long)(diffData.size()));
+#ifdef _AttackPacth_ON
+            long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
+                                            diffData.data(),diffData.data()+diffData.size(),rand(),kDiffS);
+            if (exceptionCount>0) return exceptionCount;
+#endif
+        }
+    }
     {//test diffz
         std::vector<TByte> diffData;
         create_compressed_diff(newData,newData_end,oldData,oldData_end,diffData,compressPlugin);
@@ -288,11 +314,10 @@ long test(const TByte* newData,const TByte* newData_end,
         mem_as_hStreamInput(&oldStream,oldData,oldData_end);
 
         create_compressed_diff_stream(&newStream,&oldStream,&out_diffStream,compressPlugin,1<<4);
-        
+        if (out_diffSizes) out_diffSizes[kDiffZs]+=diffData.size();
         struct hpatch_TStreamInput in_diffStream;
         mem_as_hStreamInput(&in_diffStream,diffData.data(),diffData.data()+diffData.size());
-        if (!check_compressed_diff(newData,newData_end,oldData,oldData_end,
-                                   diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
+        if (!check_compressed_diff(&newStream,&oldStream,&in_diffStream,decompressPlugin)){
             printf("\n diffz stream error!!! tag:%s\n",tag);
             ++result;
         }else{
@@ -430,8 +455,10 @@ int main(int argc, const char * argv[]){
     }
 
     printf("\nchecked:%ld  errorCount:%ld\n",kRandTestCount,errorCount);
-    printf("newSize:100%% oldSize:%2.2f%% diffOsize:%2.2f%% diffZsize:%2.2f%% diffSsize:%2.2f%%\n",
-            sumOldSize*100.0/sumNewSize,sumDiffSizes[kDiffO]*100.0/sumNewSize,sumDiffSizes[kDiffZ]*100.0/sumNewSize,sumDiffSizes[kDiffS]*100.0/sumNewSize);
+    printf("newSize:100%% oldSize:%2.2f%% diffOsize:%2.2f%% diffZsize:%2.2f%%(s:%2.2f%%) diffSsize:%2.2f%%(s:%2.2f%%)\n",
+            sumOldSize*100.0/sumNewSize,sumDiffSizes[kDiffO]*100.0/sumNewSize,
+            sumDiffSizes[kDiffZ]*100.0/sumNewSize,sumDiffSizes[kDiffZs]*100.0/sumNewSize,
+            sumDiffSizes[kDiffS]*100.0/sumNewSize,sumDiffSizes[kDiffSs]*100.0/sumNewSize);
     clock_t time2=clock();
     printf("\nrun time:%.1f s\n",(time2-time1)*(1.0/CLOCKS_PER_SEC));
 

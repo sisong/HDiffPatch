@@ -110,6 +110,21 @@ void create_single_compressed_diff(const unsigned char* newData,const unsigned c
                                    std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin=0,
                                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                    size_t patchStepMemSize=kDefaultStepMemSize,ICoverLinesListener* listener=0);
+//create single compressed diff data by stream:
+//  can control memory requires and run speed by different kMatchBlockSize value,
+//      but out_diff size is larger than create_single_compressed_diff()
+//  recommended used in limited environment or support large file
+//  kMatchBlockSize: recommended (1<<4)--(1<<14)
+//    if increase kMatchBlockSize then run faster and require less memory, but out_diff size increase
+//  NOTICE: out_diff->write()'s writeToPos may be back to update headData!
+//  throw std::runtime_error when I/O error,etc.
+void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,
+                                          const hpatch_TStreamInput*  oldData,
+                                          const hpatch_TStreamOutput* out_diff,
+                                          const hdiff_TCompress* compressPlugin=0,
+                                          size_t kMatchBlockSize=kMatchBlockSize_default,
+                                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
+                                          size_t patchStepMemSize=kDefaultStepMemSize);
 
 //return patch_single_*(oldData+diff)==newData?
 bool check_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,

@@ -53,8 +53,8 @@ struct TCovers{
 
 class TCoversBuf:public TCovers{
 public:
-    inline TCoversBuf(hpatch_StreamPos_t oldSize,hpatch_StreamPos_t newSize)
-    :TCovers(0,0,(oldSize|newSize)<((hpatch_StreamPos_t)1<<32)){}
+    inline TCoversBuf(hpatch_StreamPos_t dataSize0,hpatch_StreamPos_t dataSize1)
+    :TCovers(0,0,(dataSize0|dataSize1)<((hpatch_StreamPos_t)1<<32)){}
 
     virtual void addCover(const TCover& cover){
         ++_coverCount;
