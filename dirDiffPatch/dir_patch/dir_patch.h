@@ -46,6 +46,10 @@ typedef struct TDirDiffInfo{
     hpatch_BOOL                 dirDataIsCompressed;
     //compressType saved in hdiffInfo
     hpatch_compressedDiffInfo   hdiffInfo;
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+    hpatch_BOOL         isSingleCompressedDiff;
+    hpatch_singleCompressedDiffInfo sdiffInfo;
+#endif
     hpatch_StreamPos_t          externDataOffset;
     hpatch_StreamPos_t          externDataSize;
     hpatch_StreamPos_t          checksumOffset;

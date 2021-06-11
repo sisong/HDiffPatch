@@ -123,7 +123,6 @@ void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                           const hpatch_TStreamOutput* out_diff,
                                           const hdiff_TCompress* compressPlugin=0,
                                           size_t kMatchBlockSize=kMatchBlockSize_default,
-                                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                           size_t patchStepMemSize=kDefaultStepMemSize);
 
 //return patch_single_*(oldData+diff)==newData?

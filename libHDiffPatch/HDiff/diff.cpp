@@ -971,8 +971,7 @@ void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                           const hpatch_TStreamInput*  oldData,
                                           const hpatch_TStreamOutput* out_diff,
                                           const hdiff_TCompress* compressPlugin,
-                                          size_t kMatchBlockSize,int kMinSingleMatchScore,
-                                          size_t patchStepMemSize){
+                                          size_t kMatchBlockSize,size_t patchStepMemSize){
     const bool isSkipSameRange=(compressPlugin!=0);
     TCoversBuf covers(newData->streamSize,oldData->streamSize);
     getCovers_by_stream(newData,oldData,kMatchBlockSize,isSkipSameRange,covers);

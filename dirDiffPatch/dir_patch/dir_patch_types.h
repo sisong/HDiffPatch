@@ -36,6 +36,10 @@ extern "C" {
 #ifndef _IS_NEED_DIR_DIFF_PATCH
 #   define _IS_NEED_DIR_DIFF_PATCH  1
 #endif
+#ifndef _IS_NEED_SINGLE_STREAM_DIFF
+#   define _IS_NEED_SINGLE_STREAM_DIFF 1
+#endif
+
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #   define kMaxOpenFileNumber_limit_min          4
