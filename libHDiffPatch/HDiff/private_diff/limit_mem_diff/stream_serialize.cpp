@@ -173,17 +173,17 @@ hpatch_StreamPos_t TCoversStream::getDataSize(const TCovers& covers){
     return cover_buf_size;
 }
 
-
-
-TNewDataDiffStream::TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData)
- :TNewDataDiffStream(_covers,_newData,getDataSize(_covers,_newData->streamSize)){}
-TNewDataDiffStream::TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
-                                       hpatch_StreamPos_t newDataDiff_size)
-:covers(_covers),newData(_newData),curNewPos(0),curNewPos_end(0),
-lastNewEnd(0),readedCoverCount(0),_readFromPos_back(0){
+void TNewDataDiffStream::_init(const hpatch_TStreamInput* _newData,hpatch_StreamPos_t newDataDiff_size){
+    newData=_newData;
+    curNewPos=0;
+    curNewPos_end=0;
+    lastNewEnd=0;
+    readedCoverCount=0;
+    _readFromPos_back=0;
     this->streamImport=this;
     this->streamSize=newDataDiff_size;
     this->read=_read;
+    this->_private_reserved=0;
 }
 
 hpatch_BOOL TNewDataDiffStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
@@ -248,7 +248,7 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 TNewDataSubDiffCoverStream::TNewDataSubDiffCoverStream(const hpatch_TStreamInput* _newStream,
                                                        const hpatch_TStreamInput* _oldStream)
 :newStream(_newStream),oldStream(_oldStream),_cache(kSubDiffCacheSize*2){
-    cover=TCover{0,0,0};
+    setCover(cover,0,0,0);
     streamImport=this;
     read=_read;
     newData=_cache.data();
@@ -380,13 +380,13 @@ void TStepStream::beginStep(){
     isHaveLastCover=false;
     if (curCoverCount==0){
         isHaveLastCover=true;
-        lastCover=TCover{0,newDataSize,0};
+        setCover(lastCover,0,newDataSize,0);
     }else{
         TCover back;
         covers.covers(curCoverCount-1,&back);
         if (back.newPos+back.length<newDataSize){
             isHaveLastCover=true;
-            lastCover=TCover{back.oldPos+back.length,newDataSize,0};
+            setCover(lastCover,back.oldPos+back.length,newDataSize,0);
         }
     }
     if (isHaveLastCover) ++curCoverCount;

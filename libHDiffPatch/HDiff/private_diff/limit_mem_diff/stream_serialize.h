@@ -55,11 +55,13 @@ private:
 };
 
 struct TNewDataDiffStream:public hpatch_TStreamInput{
-    TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
-                       hpatch_StreamPos_t newDataDiff_size);
-    TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData);
+    inline TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
+                              hpatch_StreamPos_t newDataDiff_size):covers(_covers) { _init(_newData,newDataDiff_size); }
+    inline TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData)
+        :covers(_covers) { _init(_newData,getDataSize(_covers,_newData->streamSize)); }
     static hpatch_StreamPos_t getDataSize(const TCovers& covers,hpatch_StreamPos_t newDataSize);
 private:
+    void _init(const hpatch_TStreamInput* _newData,hpatch_StreamPos_t newDataDiff_size);
     const TCovers&              covers;
     const hpatch_TStreamInput*  newData;
     hpatch_StreamPos_t          curNewPos;

@@ -547,7 +547,7 @@ hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_
     hpatch_TStreamInput _cacheOldData;
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
     if (self->dirDiffInfo.isSingleCompressedDiff)
-        patchCacheSize_min+=self->dirDiffInfo.sdiffInfo.stepMemSize;
+        patchCacheSize_min+=(size_t)self->dirDiffInfo.sdiffInfo.stepMemSize;
 #endif
     if (self->_checksumSet.isCheck_oldRefData){
         if ((size_t)(temp_cache_end-temp_cache)>=oldData->streamSize+patchCacheSize_min){

@@ -669,7 +669,7 @@ bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const
     size_t      temp_cache_size=hpatch_kFileIOBufBetterSize*4;
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
     if (dirDiffInfo->isSingleCompressedDiff)
-        temp_cache_size+=dirDiffInfo->sdiffInfo.stepMemSize;
+        temp_cache_size+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
 #endif
     TAutoMem    p_temp_mem(temp_cache_size);
     TByte*      temp_cache=p_temp_mem.data();

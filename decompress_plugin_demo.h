@@ -708,6 +708,9 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         if (!self->s){ free(self); return 0; }
         ret=ZSTD_initDStream(self->s);
         if (ZSTD_isError(ret)) { ZSTD_freeDStream(self->s); free(self); return 0; }
+        #define _ZSTD_WINDOWLOG_MAX ((sizeof(size_t)<=4)?30:31)
+        ret=ZSTD_DCtx_setParameter(self->s,ZSTD_d_windowLogMax,_ZSTD_WINDOWLOG_MAX);
+        //if (ZSTD_isError(ret)) { printf("WARNING: ZSTD_DCtx_setMaxWindowSize() error!"); }
         return self;
     }
     static hpatch_BOOL _zstd_close(struct hpatch_TDecompress* decompressPlugin,

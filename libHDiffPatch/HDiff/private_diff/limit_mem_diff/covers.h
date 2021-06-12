@@ -31,6 +31,9 @@
 namespace hdiff_private{
 typedef hpatch_TCover   TCover;
 
+static inline void setCover(TCover& cover,hpatch_StreamPos_t oldPos,hpatch_StreamPos_t newPos,hpatch_StreamPos_t length) {
+                                          cover.oldPos=oldPos; cover.newPos=newPos; cover.length=length; }
+
 struct TCovers{
     void*       _covers;
     size_t      _coverCount;

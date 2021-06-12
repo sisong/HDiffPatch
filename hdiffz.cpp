@@ -604,7 +604,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
 #ifdef _CompressPlugin_zstd
     _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zstd",0,
                                       &compressLevel,0,22,20, &dictBits,10,
-                                      (sizeof(size_t)<=4)?30:31,defaultDictBits),"-c-zstd-?");
+                                      _ZSTD_WINDOWLOG_MAX,defaultDictBits),"-c-zstd-?");
      if ((isMatchedType)&&(0==strcmp(isMatchedType,"zstd"))){
          static TCompressPlugin_zstd _zstdCompressPlugin=zstdCompressPlugin;
          _zstdCompressPlugin.compress_level=(int)compressLevel;
@@ -1226,7 +1226,7 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
                 if (!getCompressedDiffInfo(&diffinfo,&diffData_in.base)){
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
                     hpatch_singleCompressedDiffInfo sdiffInfo;
-                    if (getSingleCompressedDiffInfo(&sdiffInfo,&diffData_in.base)){
+                    if (getSingleCompressedDiffInfo(&sdiffInfo,&diffData_in.base,0)){
                         memcpy(diffinfo.compressType,sdiffInfo.compressType,strlen(sdiffInfo.compressType)+1);
                         isSingleStreamDiff=hpatch_TRUE;
                         if (!isDiff)

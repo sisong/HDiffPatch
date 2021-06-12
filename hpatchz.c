@@ -984,8 +984,8 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         size_t mustAppendMemSize=0;
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
         if (dirDiffInfo->isSingleCompressedDiff){
-            mustAppendMemSize+=dirDiffInfo->sdiffInfo.stepMemSize;
-            min_temp_cache_size+=dirDiffInfo->sdiffInfo.stepMemSize;
+            mustAppendMemSize+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
+            min_temp_cache_size+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
         }
 #endif
         p_temp_mem=getPatchMemCache(isLoadOldAll,patchCacheSize,mustAppendMemSize,
