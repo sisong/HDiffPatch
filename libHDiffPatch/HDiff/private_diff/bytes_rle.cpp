@@ -177,44 +177,101 @@ void bytesRLE_save(std::vector<TByte>& out_code,const hpatch_TStreamInput* src,i
     };
     
     inline TLastType getLastType(const TSingleStreamRLE0& self){
-        if (!self.uncompressData.empty()){
+        if (self.uncompressData.empty()){
+            return lastType_same;
+        }else{
             assert(self.len0==0);
             return lastType_v;
-        }else{
-            return lastType_same;
         }
+    }
+    
+    inline void _out_uncompressData(TSingleStreamRLE0& self){
+        size_t saved=0;
+        while (self.uncompressData.size()-saved>kMaxBytesRleLen){
+            packUInt(self.fixed_code, kMaxBytesRleLen);
+            pushBack(self.fixed_code, self.uncompressData.data()+saved,self.uncompressData.data()+saved+kMaxBytesRleLen);
+            packUInt(self.fixed_code,0);
+            saved+=kMaxBytesRleLen;
+        }
+        packUInt(self.fixed_code, self.uncompressData.size()-saved);
+        pushBack(self.fixed_code, self.uncompressData.data()+saved,self.uncompressData.data()+self.uncompressData.size());
+        self.uncompressData.clear();
+    }
+    inline hpatch_StreamPos_t _out_uncompressData_codeSize(hpatch_StreamPos_t dataSize){
+        hpatch_StreamPos_t codeSize=0;
+        hpatch_StreamPos_t saved=0;
+        while (dataSize-saved>kMaxBytesRleLen){
+            codeSize+=hpatch_packUInt_size(kMaxBytesRleLen);
+            codeSize+=kMaxBytesRleLen;
+            codeSize+=hpatch_packUInt_size(0);
+            saved+=kMaxBytesRleLen;
+        }
+        codeSize+=hpatch_packUInt_size(dataSize-saved);
+        codeSize+=(hpatch_StreamPos_t)(dataSize-saved);
+        return codeSize;
+    }
+
+    inline void _out_0Data(TSingleStreamRLE0& self){
+        hpatch_StreamPos_t saved=0;
+        while (self.len0-saved>kMaxBytesRleLen){
+            packUInt(self.fixed_code,kMaxBytesRleLen);
+            packUInt(self.fixed_code,0);
+            saved+=kMaxBytesRleLen;
+        }
+        packUInt(self.fixed_code,(hpatch_StreamPos_t)(self.len0-saved));
+        self.len0=0;
+    }
+    inline hpatch_StreamPos_t _out_0Data_codeSize(hpatch_StreamPos_t len0){
+        hpatch_StreamPos_t codeSize=0;
+        hpatch_StreamPos_t saved=0;
+        while (len0-saved>kMaxBytesRleLen){
+            codeSize+=hpatch_packUInt_size(kMaxBytesRleLen);
+            codeSize+=hpatch_packUInt_size(0);
+            saved+=kMaxBytesRleLen;
+        }
+        codeSize+=hpatch_packUInt_size((hpatch_StreamPos_t)(len0-saved));
+        return codeSize;
     }
 
 
     static void _maxCodeSize(TLastType& lastType,hpatch_StreamPos_t& curLen0,hpatch_StreamPos_t& curLenv,
                              hpatch_StreamPos_t& fixedLen,const unsigned char* appendData,const unsigned char* appendData_end){
         while (appendData!=appendData_end) {
-            if (*appendData==0){
+            unsigned char v;
+            size_t sLen0=0;
+            do {
+                v=*appendData++;
+                if (0==v)
+                    ++sLen0;
+                else
+                    break;
+            }while (appendData!=appendData_end);
+            if (sLen0>0){
                 if (lastType==lastType_v){
-                    fixedLen += hpatch_packUInt_size(curLenv) + curLenv;
+                    fixedLen += _out_uncompressData_codeSize(curLenv);
                     curLenv = 0;
                 }
-                ++curLen0;
+                curLen0+=sLen0;
                 lastType=lastType_same;
-            }else{
-                if (lastType==lastType_same){
-                    fixedLen += hpatch_packUInt_size(curLen0);
-                    curLen0 = 0;
-                }
-                ++curLenv;
-                lastType=lastType_v;
+                if (v==0)
+                    break;//appendData==appendData_end
             }
-            ++appendData;
+            if (lastType==lastType_same){
+                fixedLen += _out_0Data_codeSize(curLen0);
+                curLen0 = 0;
+            }
+            ++curLenv;
+            lastType=lastType_v;
         }
     }
     static void _maxCodeSize_end(TLastType& lastType,hpatch_StreamPos_t& curLen0,
                                  hpatch_StreamPos_t& curLenv,hpatch_StreamPos_t& fixedLen){
         if (curLenv>0){
-            fixedLen += hpatch_packUInt_size(curLenv) + curLenv;
+            fixedLen += _out_uncompressData_codeSize(curLenv);
             curLenv=0;
         }
         if (curLen0>0){
-            fixedLen += hpatch_packUInt_size(curLen0);
+            fixedLen += _out_0Data_codeSize(curLen0);
             curLen0=0;
         }
     }
@@ -225,6 +282,22 @@ void bytesRLE_save(std::vector<TByte>& out_code,const hpatch_TStreamInput* src,i
         hpatch_StreamPos_t curLenv=this->uncompressData.size();
         hpatch_StreamPos_t fixedLen=this->fixed_code.size();
         _maxCodeSize(lastType,curLen0,curLenv,fixedLen,appendData,appendData_end);
+        _maxCodeSize_end(lastType,curLen0,curLenv,fixedLen);
+        return fixedLen;
+    }
+    
+    hpatch_StreamPos_t TSingleStreamRLE0::maxCodeSizeByZeroLen(hpatch_StreamPos_t appendZeroLen) const{
+        hpatch_StreamPos_t fixedLen=this->fixed_code.size();
+        if (appendZeroLen==0) return fixedLen;
+        TLastType lastType=getLastType(*this);
+        hpatch_StreamPos_t curLen0=this->len0;
+        hpatch_StreamPos_t curLenv=this->uncompressData.size();
+        curLen0+=appendZeroLen;
+        if (lastType==lastType_v){
+            fixedLen += _out_uncompressData_codeSize(curLenv);
+            curLenv = 0;
+        }
+        lastType=lastType_same;
         _maxCodeSize_end(lastType,curLen0,curLenv,fixedLen);
         return fixedLen;
     }
@@ -250,43 +323,40 @@ void bytesRLE_save(std::vector<TByte>& out_code,const hpatch_TStreamInput* src,i
         return fixedLen;
     }
     
-    inline void _out_uncompressData(TSingleStreamRLE0& self){
-        size_t saved=0;
-        while (self.uncompressData.size()-saved>kMaxBytesRleLen){
-            packUInt(self.fixed_code, kMaxBytesRleLen);
-            pushBack(self.fixed_code, self.uncompressData.data()+saved,self.uncompressData.data()+saved+kMaxBytesRleLen);
-            packUInt(self.fixed_code,0);
-            saved+=kMaxBytesRleLen;
-        }
-        packUInt(self.fixed_code, self.uncompressData.size()-saved);
-        pushBack(self.fixed_code, self.uncompressData.data()+saved,self.uncompressData.data()+self.uncompressData.size());
-        self.uncompressData.clear();
-    }
-    inline void _out_0Data(TSingleStreamRLE0& self){
-        while (self.len0>kMaxBytesRleLen){
-            packUInt(self.fixed_code,kMaxBytesRleLen);
-            self.len0-=kMaxBytesRleLen;
-            packUInt(self.fixed_code,0);
-        }
-        packUInt(self.fixed_code, self.len0);
-        self.len0=0;
-    }
     
+    void TSingleStreamRLE0::appendByZeroLen(hpatch_StreamPos_t appendZeroLen){
+        if (appendZeroLen){
+            TLastType lastType=getLastType(*this);
+            if (lastType==lastType_v)
+                _out_uncompressData(*this);
+            len0+=appendZeroLen;
+        }
+    }
+
     void TSingleStreamRLE0::append(const unsigned char* appendData,const unsigned char* appendData_end){
         TLastType lastType=getLastType(*this);
         while (appendData!=appendData_end) {
-            if (*appendData==0){
+            unsigned char v;
+            size_t sLen0=0;
+            do {
+                v=*appendData++;
+                if (0==v)
+                    ++sLen0;
+                else
+                    break;
+            }while (appendData!=appendData_end);
+            if (sLen0>0){
                 if (lastType==lastType_v)
                     _out_uncompressData(*this);
-                ++len0;
+                len0+=sLen0;
                 lastType=lastType_same;
-            }else{
-                if (lastType==lastType_same)
-                    _out_0Data(*this);
-                uncompressData.push_back(*appendData);
-                lastType=lastType_v;
+                if (v==0)
+                    break;//appendData==appendData_end
             }
-            ++appendData;
+            if (lastType==lastType_same)
+                _out_0Data(*this);
+            uncompressData.push_back(v);
+            lastType=lastType_v;
         }
     }
     

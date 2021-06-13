@@ -928,10 +928,10 @@ void create_compressed_diff(const TByte* newData,const TByte* newData_end,
 }
 
 static void serialize_single_compressed_diff(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                                             const TCovers& covers, const hpatch_TStreamOutput* out_diff,
+                                             bool isZeroSubDiff,const TCovers& covers,const hpatch_TStreamOutput* out_diff,
                                              const hdiff_TCompress* compressPlugin,size_t patchStepMemSize){
     check(patchStepMemSize>=hpatch_kStreamCacheSize);
-    TStepStream stepStream(newStream,oldStream,covers,patchStepMemSize);
+    TStepStream stepStream(newStream,oldStream,isZeroSubDiff,covers,patchStepMemSize);
     
     TDiffStream outDiff(out_diff);
     {//type
@@ -963,7 +963,7 @@ void create_single_compressed_diff(const TByte* newData,const TByte* newData_end
     const TCovers _covers((void*)diff.covers.data(),diff.covers.size(),
                           sizeof(*diff.covers.data())==sizeof(hpatch_TCover32));
     TVectorAsStreamOutput outDiffStream(out_diff);
-    serialize_single_compressed_diff(&_newStream,&_oldStream,_covers,
+    serialize_single_compressed_diff(&_newStream,&_oldStream,false,_covers,
                                      &outDiffStream,compressPlugin,patchStepMemSize);
 }
 
@@ -975,7 +975,8 @@ void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,
     const bool isSkipSameRange=(compressPlugin!=0);
     TCoversBuf covers(newData->streamSize,oldData->streamSize);
     getCovers_by_stream(newData,oldData,kMatchBlockSize,isSkipSameRange,covers);
-    serialize_single_compressed_diff(newData,oldData,covers,out_diff,compressPlugin,patchStepMemSize);
+    serialize_single_compressed_diff(newData,oldData,true,covers,
+                                     out_diff,compressPlugin,patchStepMemSize);
 }
 
 

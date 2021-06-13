@@ -75,9 +75,10 @@ private:
 
 struct TNewDataSubDiffCoverStream:public hpatch_TStreamInput{
     TNewDataSubDiffCoverStream(const hpatch_TStreamInput* _newStream,
-                               const hpatch_TStreamInput* _oldStream);
+                               const hpatch_TStreamInput* _oldStream,bool _isZeroSubDiff);
     void resetCover(const TCover& _cover);
     void resetCoverLen(hpatch_StreamPos_t coverLen);
+    const bool isZeroSubDiff;
 private:
     enum { kSubDiffCacheSize = hpatch_kFileIOBufBetterSize*4 };
     hpatch_StreamPos_t inStreamLen;
@@ -97,7 +98,7 @@ private:
 
 struct TStepStream:public hpatch_TStreamInput{
     TStepStream(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                const TCovers& covers,size_t patchStepMemSize);
+                bool isZeroSubDiff,const TCovers& covers,size_t patchStepMemSize);
     inline size_t getCoverCount()const{ return endCoverCount; }
     inline size_t getMaxStepMemSize()const{ return endMaxStepMemSize; }
 private:
@@ -126,7 +127,8 @@ private:
     TCover  cover;
     const TCover* pCurCover;
     bool    isInInit;
-    hpatch_StreamPos_t  sumBufSize;
+    hpatch_StreamPos_t  sumBufSize_forInit;
+    hpatch_StreamPos_t  step_bufCover_size;
     std::vector<unsigned char> buf;
     hpatch_StreamPos_t readFromPosBack;
     size_t             readBufPos;
