@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v3.1.5-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.0.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -22,20 +22,22 @@ a C\C++ library and command-line tools for Diff & Patch between binary files or 
 ## Builds
 `$ cd <dir>/HDiffPatch`   
 if on linux or macos, try :   
-`$ make LZMA=0`   
+`$ make LZMA=0 ZSTD=0 MD5=0`   
 or    
 ```
-$ git clone https://github.com/sisong/lzma.git ../lzma
+$ git clone https://github.com/sisong/lzma.git   ../lzma
+$ git clone https://github.com/facebook/zstd.git ../zstd
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
-$ make MT=1 MD5=1
+$ make
 ```    
    
 if on windows, befor compile `builds/vc/HDiffPatch.sln` by `Visual Studio` 
 ```
 $ git clone https://github.com/sisong/lzma.git   ../lzma
+$ git clone https://github.com/facebook/zstd.git ../zstd
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/zlib.git   ../zlib
-$ git clone https://github.com/sisong/bzip2.git   ../bzip2
+$ git clone https://github.com/sisong/bzip2.git  ../bzip2
 ```
    
 build libhpatchz.so for android:   
@@ -65,9 +67,13 @@ memory options:
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
 special options:
+  -SD[-stepSize]
+      create single compressed diffData, only need one decompress buffer
+      when patch, and support step by step patching when step by step downloading!
+      stepSize>=(1024*4), DEFAULT -SD-256k, recommended 64k,2m etc...
   -p-parallelThreadNumber
       if parallelThreadNumber>1 then open multi-thread Parallel mode;
-      DEFAULT -p-4; requires more and more memory!
+      DEFAULT -p-4; requires more memory!
   -c-compressType[-compressLevel]
       set outDiffFile Compress type & level, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
@@ -77,7 +83,7 @@ special options:
         -c-pzlib[-{1..9}]               DEFAULT level 6
             support run by multi-thread parallel, fast!
             WARNING: code not compatible with it compressed by -c-zlib!
-              and code size may be larger than if it compressed by -c-zlib. 
+              and code size may be larger than if it compressed by -c-zlib.
         -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9
         -c-pbzip2[-{1..9}]              (or -pbz2) DEFAULT level 8
             support run by multi-thread parallel, fast!
@@ -90,9 +96,11 @@ special options:
             dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m
             support run by multi-thread parallel, fast!
             WARNING: code not compatible with it compressed by -c-lzma!
+        -c-zstd[-{0..22}[-dictBits]]    DEFAULT level 20
+            dictBits can 10--31, DEFAULT 24.
+            support run by multi-thread parallel, fast!
   -C-checksumType
       set outDiffFile Checksum type for directory diff, DEFAULT -C-fadler64;
-      (if need checksum for diff between two files, add -D)
       support checksum type:
         -C-no                   no checksum
         -C-crc32
@@ -115,17 +123,17 @@ special options:
       in general, new ignore list should is empty;
   -M#outManifestTxtFile
       create a Manifest file for inputPath; it is a text file, saved infos of
-      all files and directoriy list in inputPath; this file while be used in 
+      all files and directoriy list in inputPath; this file while be used in
       manifest diff, support re-checksum data by manifest diff;
       can be used to protect historical versions be modified!
   -M-old#oldManifestFile
       oldManifestFile is created from oldPath; if no oldPath not need -M-old;
   -M-new#newManifestFile
       newManifestFile is created from newPath;
-  -D  force run Directory diff between two files; DEFAULT (no -D) run 
+  -D  force run Directory diff between two files; DEFAULT (no -D) run
       directory diff need oldPath or newPath is directory.
   -d  Diff only, do't run patch check, DEFAULT run patch check.
-  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? 
+  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ?
   -f  Force overwrite, ignore write path already exists;
       DEFAULT (no -f) not overwrite and then return error;
       if used -f and write path is exist directory, will always return error.
@@ -144,12 +152,17 @@ run     SFX: **selfExtractArchive** [options] **oldPath -X outNewPath**
 extract SFX: **selfExtractArchive**   (same as: selfExtractArchive -f "" -X "./")
 ```
 memory options:
-  -m  oldPath all loaded into Memory;
-      requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.
-  -s[-cacheSize] 
+  -s[-cacheSize]
       DEFAULT -s-64m; oldPath loaded as Stream;
-      requires (cacheSize+ 4*decompress stream size)+O(1) bytes of memory;
       cacheSize can like 262144 or 256k or 512m or 2g etc....
+      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory;
+      if diffFile is single compressed diffData, then requires
+        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
+        see: hdiffz -SD-stepSize option.
+  -m  oldPath all loaded into Memory;
+      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory;
+      if diffFile is single compressed diffData, then requires
+        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory.
 special options:
   -C-checksumSets
       set Checksum data for directory patch, DEFAULT -C-new-copy;
@@ -181,29 +194,37 @@ special options:
    
 ---
 ## library API usage:
-
-*  **create_diff**(newData,oldData,out diffData);
-   
+all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDiffPatch/HPatch/patch.h`   
+**dir_diff()** & **dir patch** in: `dirDiffPatch/dir_diff/dir_diff.h` & `dirDiffPatch/dir_patch/dir_patch.h`   
+### manual:
+* **create diff**(in newData,in oldData,out diffData);
    release the diffData for update oldData.  
-   `note:` create_diff() out **uncompressed** diffData;     
-    you can compressed it by yourself or use **create_compressed_diff()**/patch_decompress() create **compressed** diffData;   
-    if your file size very large or request faster and less memory requires, you can use **create_compressed_diff_stream()**/patch_decompress(). 
-   
-*  bool **patch**(out newData,oldData,diffData);
-   
+* **patch**(out newData,in oldData,in diffData);
    ok , get the newData. 
+### v1 API, uncompressed diffData:
+* **create_diff()**
+* **patch()**
+* **patch_stream()**
+* **patch_stream_with_cache()**
+### v2 API, compressed diffData:
+* **create_compressed_diff()**
+* **create_compressed_diff_stream()**
+* **resave_compressed_diff()**
+* **patch_decompress()**
+* **patch_decompress_with_cache()**
+* **patch_decompress_mem()**
+### v3 API, **diff**&**patch** between directories(folder):
+* **dir_diff()**
+* **TDirPatcher_\*** functions with **struct TDirPatcher()**
+### v4 API, single compressed diffData:
+* **create_single_compressed_diff()**
+* **create_single_compressed_diff_stream()**
+* **resave_single_compressed_diff()**
+* **patch_single_stream()**
+* **patch_single_stream_mem()**
+* **patch_single_compressed_diff()**
+* **patch_single_stream_diff()**
 
----
-*  **patch()** runs in O(oldSize+newSize) time , and requires (oldSize+newSize+diffSize)+O(1) bytes of memory;     
-   **patch_stream()** requires O(1) bytes of memory;   
-   **patch_decompress()** requires (4\*decompress stream size)+O(1) bytes of memory.   
-   
-   **create_diff()** & **create_compressed_diff()** runs in O(oldSize+newSize) time , and if oldSize \< 2G Byte then requires oldSize\*5+newSize+O(1) bytes of memory; if oldSize \>= 2G Byte then requires oldSize\*9+newSize+O(1) bytes of memory;  
-   **create_compressed_diff_stream()** requires O(oldSize\*16/kMatchBlockSize+kMatchBlockSize\*5) bytes of memory.
-
----
-*  **dir_diff()** & **dir patch APIs** read source code;   
-   
 ---
 ## HDiffPatch vs BsDiff:
 system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   

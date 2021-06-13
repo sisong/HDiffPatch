@@ -83,7 +83,7 @@ hpatch_inline static hpatch_BOOL
     }
     
 //patch with decompress plugin
-//  used (hpatch_kStreamCacheSize*6 stack memory) + (decompress memory*4)
+//  used (hpatch_kStreamCacheSize*6 stack memory) + (decompress buffer*4)
 //  compressedDiff create by create_compressed_diff() or create_compressed_diff_stream()
 //  decompressPlugin can null when no compressed data in compressedDiff
 //  if use patch_decompress_with_cache(), can passing larger memory cache to optimize speed
@@ -147,7 +147,7 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
 
 
 //patch singleCompressedDiff with listener
-//	used (stepMemSize memory) + (I/O cache memory) + (decompress memory*1)
+//	used (stepMemSize memory) + (I/O cache memory) + (decompress buffer*1)
 //  every byte in singleCompressedDiff will only be read once in order
 //  singleCompressedDiff create by create_single_compressed_diff()
 //  you can download&patch diffData at the same time, without saving it to disk
@@ -192,7 +192,7 @@ hpatch_inline static hpatch_BOOL
     }
 
 //patch singleCompressedDiff with diffInfo
-//	used (stepMemSize memory) + (I/O cache memory) + (decompress memory*1)
+//	used (stepMemSize memory) + (I/O cache memory) + (decompress buffer*1)
 //	note: (I/O cache memory) >= hpatch_kStreamCacheSize*3
 //  temp_cache_end-temp_cache == stepMemSize + (I/O cache memory)
 //  singleCompressedDiff create by create_single_compressed_diff()

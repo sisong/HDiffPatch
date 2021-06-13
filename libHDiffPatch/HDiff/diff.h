@@ -103,7 +103,7 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
 
 static const size_t kDefaultStepMemSize =1024*256;
 
-//create a diff data between oldData and newData, the diff data saved as single compressed stream
+//create a diff data between oldData and newData, the diffData saved as single compressed stream
 //  still under development!
 void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                    const unsigned char* oldData,const unsigned char* oldData_end,

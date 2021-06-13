@@ -121,12 +121,17 @@ static void printUsage(){
 #endif
            "  if oldPath is empty input parameter \"\"\n"
            "memory options:\n"
-           "  -m  oldPath all loaded into Memory;\n"
-           "      requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.\n"
            "  -s[-cacheSize] \n"
            "      DEFAULT -s-64m; oldPath loaded as Stream;\n"
-           "      requires (cacheSize+ 4*decompress stream size)+O(1) bytes of memory;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc....\n"
+           "      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory;\n"
+           "      if diffFile is single compressed diffData, then requires\n"
+           "        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;\n"
+           "        see: hdiffz -SD-stepSize option.\n"
+           "  -m  oldPath all loaded into Memory;\n"
+           "      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory;\n"
+           "      if diffFile is single compressed diffData, then requires\n"
+           "        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory.\n"
            "special options:\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumSets\n"
@@ -815,7 +820,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,
                 if (patchCacheSize<sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3)
                     patchCacheSize=(size_t)sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3;
                 isSingleStreamDiff=hpatch_TRUE;
-                printf("patch single compressed stream diffData!\n");
+                printf("patch single compressed diffData!\n");
             }else
 #endif
                 check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");

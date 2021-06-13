@@ -138,7 +138,7 @@ static void printUsage(){
            "special options:\n"
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
            "  -SD[-stepSize]\n"
-           "      create single compressed stream diffData, only need one decompress memory\n"
+           "      create single compressed diffData, only need one decompress buffer\n"
            "      when patch, and support step by step patching when step by step downloading!\n"
            "      stepSize>=" _HDIFFPATCH_EXPAND_AND_QUOTE(hpatch_kStreamCacheSize) ", DEFAULT -SD-256k, recommended 64k,2m etc...\n"
 #endif
@@ -1101,7 +1101,7 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
         try {
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
             if (isSingleStreamDiff){
-                printf("create single compressed stream diffData!\n");
+                printf("create single compressed diffData!\n");
                 create_single_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
                                               outDiffData,compressPlugin,(int)matchScore,singleStreamStepSize);
             }else
@@ -1139,7 +1139,7 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
                         memcpy(diffinfo.compressType,sdiffInfo.compressType,strlen(sdiffInfo.compressType)+1);
                         isSingleStreamDiff=hpatch_TRUE;
                         if (!isDiff)
-                            printf("test single compressed stream diffData!\n");
+                            printf("test single compressed diffData!\n");
                     }else
 #endif
                         check(hpatch_FALSE,HDIFF_PATCH_ERROR,"get diff info");
@@ -1196,7 +1196,7 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
         try{
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
             if (isSingleStreamDiff){
-                printf("create single compressed stream diffData!\n");
+                printf("create single compressed diffData!\n");
                 create_single_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
                                                      compressPlugin,matchBlockSize,singleStreamStepSize);
             }else
@@ -1230,7 +1230,7 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
                         memcpy(diffinfo.compressType,sdiffInfo.compressType,strlen(sdiffInfo.compressType)+1);
                         isSingleStreamDiff=hpatch_TRUE;
                         if (!isDiff)
-                            printf("test single compressed stream diffData!\n");
+                            printf("test single compressed diffData!\n");
                     }else
 #endif
                         check(hpatch_FALSE,HDIFF_PATCH_ERROR,"get diff info");
