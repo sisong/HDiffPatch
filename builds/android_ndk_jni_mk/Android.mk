@@ -13,6 +13,9 @@ else
   LZMA_PATH  := $(LOCAL_PATH)/../../../lzma/C/
   Lzma_Files := $(LZMA_PATH)/LzmaDec.c  \
                 $(LZMA_PATH)/Lzma2Dec.c
+ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+  Lzma_Files += $(LOCAL_PATH)/../../../lzma/Asm/arm64/LzmaDecOpt.S
+ endif
 endif
 
 HDP_PATH  := $(LOCAL_PATH)/../../
@@ -28,6 +31,9 @@ ifeq ($(LZMA),0)
 else
   DEF_FLAGS += -D_7ZIP_ST -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 \
                -I$(LZMA_PATH)
+ ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+  DEF_FLAGS += -D_LZMA_DEC_OPT 
+ endif
 endif
 
 LOCAL_SRC_FILES  := $(Src_Files) $(Lzma_Files) $(Hdp_Files)
