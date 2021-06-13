@@ -105,6 +105,7 @@ special options:
         -C-no                   no checksum
         -C-crc32
         -C-fadler64             DEFAULT
+        -C-md5
   -n-maxOpenFileNumber
       limit Number of open files at same time when stream directory diff;
       maxOpenFileNumber>=8, DEFAULT -n-48, the best limit value by different
