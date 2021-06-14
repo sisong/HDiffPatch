@@ -351,12 +351,14 @@ void TStepStream::initStream(){
     endCoverCount=curCoverCount;
     endMaxStepMemSize=curMaxStepMemSize;
     beginStep();
-    assert(buf.empty());
+    //assert(buf.empty());
 }
 
 hpatch_BOOL TStepStream::readTo(unsigned char* out_data,unsigned char* out_data_end){
     while (out_data!=out_data_end){
         if (readBufPos==buf.size()){
+            buf.clear();
+            readBufPos=0;
             while (doStep()) { 
                 if (!buf.empty()) 
                 break; 
@@ -376,7 +378,10 @@ hpatch_BOOL TStepStream::readTo(unsigned char* out_data,unsigned char* out_data_
 hpatch_BOOL TStepStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                                unsigned char* out_data,unsigned char* out_data_end){
     TStepStream* self=(TStepStream*)stream->streamImport;
-    check(readFromPos==self->readFromPosBack);
+    if (readFromPos!=self->readFromPosBack){
+        check(readFromPos==0);
+        self->beginStep();
+    }
     self->readFromPosBack+=(size_t)(out_data_end-out_data);
     return self->readTo(out_data,out_data_end);
 }
@@ -400,6 +405,7 @@ void TStepStream::beginStep(){
     if (isHaveLastCover) ++curCoverCount;
 
     buf.clear();
+    readBufPos=0;
     curMaxStepMemSize=0;
     lastOldEnd=0;
     lastNewEnd=0;

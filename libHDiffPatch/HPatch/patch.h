@@ -203,6 +203,7 @@ hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData
                                          const hpatch_TStreamInput*  singleCompressedDiff, //sequential read
                                          hpatch_StreamPos_t          diffData_pos, //diffData begin pos in singleCompressedDiff
                                          hpatch_StreamPos_t          uncompressedSize,
+                                         hpatch_StreamPos_t          compressedSize,
                                          hpatch_TDecompress*         decompressPlugin,
                                          hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                          unsigned char* temp_cache,unsigned char* temp_cache_end,

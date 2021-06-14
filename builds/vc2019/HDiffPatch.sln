@@ -1,5 +1,7 @@
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31402.337
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hdiffz", "hdiffz.vcxproj", "{63934A83-25F5-4161-B19D-DFBAB1C257F1}"
 	ProjectSection(ProjectDependencies) = postProject
 		{16415855-B9F4-4A5D-A096-C3380CFC6008} = {16415855-B9F4-4A5D-A096-C3380CFC6008}
@@ -11,6 +13,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hpatchz", "hpatchz.vcxproj"
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "unitTest", "unitTest.vcxproj", "{EF32F56D-E3CF-4D51-BCCC-9184E13ED0AD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{35ED7715-6B17-4225-8171-C954968D8F8C} = {35ED7715-6B17-4225-8171-C954968D8F8C}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zstd", "zstd.vcxproj", "{16415855-B9F4-4A5D-A096-C3380CFC6008}"
 EndProject
@@ -113,5 +118,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C607FBBC-78A7-4BD3-A48A-9B562DA11F4D}
 	EndGlobalSection
 EndGlobal

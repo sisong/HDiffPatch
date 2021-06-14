@@ -175,10 +175,10 @@ hpatch_BOOL _sspatch_onDiffInfo(struct sspatch_listener_t* listener,
                                 hpatch_TDecompress** out_decompressPlugin,
                                 unsigned char** out_temp_cache,
                                 unsigned char** out_temp_cacheEnd){
-    size_t temp_cache_size=info->stepMemSize+hpatch_kStreamCacheSize*3;
-    static std::vector<TByte> _buf;
+    size_t temp_cache_size=info->stepMemSize+hpatch_kFileIOBufBetterSize*3;
+    static TAutoMem _buf;
     if (_buf.size()<temp_cache_size)
-        _buf.resize(temp_cache_size);
+        _buf.realloc(temp_cache_size);
     unsigned char* temp_cache=_buf.data();
     *out_temp_cache=temp_cache;
     *out_temp_cacheEnd=temp_cache+temp_cache_size;
@@ -206,7 +206,7 @@ long attackPacth(TByte* out_newData,TByte* out_newData_end,
         case kDiffS: {
             sspatch_listener_t listener={0,_sspatch_onDiffInfo,0};
             patch_single_stream_mem(&listener,out_newData,out_newData_end,oldData,oldData_end,
-                                    diffData,diffData_end);
+                                    diffData,diffData_end,0);
         } break;
     }
     return 0;

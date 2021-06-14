@@ -570,8 +570,8 @@ hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_
         hpatch_singleCompressedDiffInfo* sdiffInfo=&self->dirDiffInfo.sdiffInfo;
         check(((size_t)(temp_cache_end-temp_cache))>=sdiffInfo->stepMemSize+hpatch_kStreamCacheSize*3);
         check(patch_single_compressed_diff(out_newData,oldData,&hdiffData.base,sdiffInfo->diffDataPos,
-                                           sdiffInfo->uncompressedSize,self->_decompressPlugin,sdiffInfo->coverCount,
-                                           (size_t)sdiffInfo->stepMemSize,temp_cache,temp_cache_end,0));
+                                           sdiffInfo->uncompressedSize,sdiffInfo->compressedSize,self->_decompressPlugin,
+                                           sdiffInfo->coverCount,(size_t)sdiffInfo->stepMemSize,temp_cache,temp_cache_end,0));
     }else
 #endif
     check(patch_decompress_with_cache(out_newData,oldData,&hdiffData.base,
