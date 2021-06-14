@@ -47,7 +47,9 @@ struct IDirDiffListener{
 
 void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
               const TManifest& newManifest,const hpatch_TStreamOutput* outDiffStream,
-              bool isLoadAll,size_t matchValue,const hdiff_TCompress* compressPlugin,
+              bool isLoadAll,size_t matchValue,
+              hpatch_BOOL isSingleStreamDiff,size_t singleStreamStepSize,
+              const hdiff_TCompress* compressPlugin,
               hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber);
 bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const TManifest& newManifest,
                    const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,

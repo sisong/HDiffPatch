@@ -33,6 +33,23 @@
 #define check(value) checki(value,"check "#value" error!")
 
 namespace hdiff_private{
+
+struct TCompressedStream:public hpatch_TStreamOutput{
+    TCompressedStream(const hpatch_TStreamOutput*  _out_code,
+                      hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize,
+                      const hpatch_TStreamInput*   _in_stream);
+    inline bool  is_overLimit()const { return _is_overLimit; }
+private:
+    const hpatch_TStreamOutput*  out_code;
+    hpatch_StreamPos_t           out_pos;
+    hpatch_StreamPos_t           out_posLimitEnd;
+    const hpatch_TStreamInput*   in_stream;
+    hpatch_StreamPos_t           _writeToPos_back;
+    bool                         _is_overLimit;
+    static hpatch_BOOL _write_code(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                   const unsigned char* data,const unsigned char* data_end);
+};
+
 TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,
                                      hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize,
                                      const hpatch_TStreamInput*   _in_stream)
@@ -156,15 +173,17 @@ hpatch_StreamPos_t TCoversStream::getDataSize(const TCovers& covers){
     return cover_buf_size;
 }
 
-
-
-TNewDataDiffStream::TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
-                                       hpatch_StreamPos_t newDataDiff_size)
-:covers(_covers),newData(_newData),curNewPos(0),curNewPos_end(0),
-lastNewEnd(0),readedCoverCount(0),_readFromPos_back(0){
+void TNewDataDiffStream::_init(const hpatch_TStreamInput* _newData,hpatch_StreamPos_t newDataDiff_size){
+    newData=_newData;
+    curNewPos=0;
+    curNewPos_end=0;
+    lastNewEnd=0;
+    readedCoverCount=0;
+    _readFromPos_back=0;
     this->streamImport=this;
     this->streamSize=newDataDiff_size;
     this->read=_read;
+    this->_private_reserved=0;
 }
 
 hpatch_BOOL TNewDataDiffStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
@@ -224,6 +243,305 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
     assert(newDataSize>=lastNewEnd);
     newDataDiff_size+=(hpatch_StreamPos_t)(newDataSize-lastNewEnd);
     return newDataDiff_size;
+}
+
+TNewDataSubDiffCoverStream::TNewDataSubDiffCoverStream(const hpatch_TStreamInput* _newStream,
+                                                       const hpatch_TStreamInput* _oldStream,
+                                                       bool _isZeroSubDiff)
+:newStream(_newStream),oldStream(_oldStream),isZeroSubDiff(_isZeroSubDiff),
+_cache(_isZeroSubDiff?0:kSubDiffCacheSize*2),newData(0),oldData(0){
+    setCover(cover,0,0,0);
+    streamImport=this;
+    read=_read;
+    if (!isZeroSubDiff){
+        newData=_cache.data();
+        oldData=_cache.data()+kSubDiffCacheSize;
+    }
+    initRead();
+}
+
+void TNewDataSubDiffCoverStream::initRead(){
+    streamSize=cover.length;
+    inStreamLen=cover.length;
+    curDataLen=0;
+}
+
+void TNewDataSubDiffCoverStream::resetCover(const TCover& _cover){
+    cover=_cover;
+    initRead();
+}
+void TNewDataSubDiffCoverStream::resetCoverLen(hpatch_StreamPos_t coverLen){
+    const hpatch_StreamPos_t skipLen=cover.length-(curDataLen+inStreamLen);
+    if (coverLen<=skipLen){ // all cache data invalid
+        cover.length=coverLen;
+        initRead();
+    }else{
+        if (coverLen<skipLen+curDataLen)
+            curDataLen=(size_t)(coverLen-skipLen);
+        inStreamLen=coverLen-(skipLen+curDataLen);
+        cover.length=coverLen;
+        streamSize=coverLen;
+    }
+}
+
+hpatch_BOOL TNewDataSubDiffCoverStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                              unsigned char* out_data,unsigned char* out_data_end){
+    TNewDataSubDiffCoverStream* self=(TNewDataSubDiffCoverStream*)stream->streamImport;
+    if (self->isZeroSubDiff){
+        memset(out_data,0,out_data_end-out_data);
+        return hpatch_TRUE;
+    }
+    return self->readTo(readFromPos,out_data,out_data_end);
+}
+
+hpatch_BOOL TNewDataSubDiffCoverStream::readTo(hpatch_StreamPos_t readFromPos,
+                                               unsigned char* out_data,unsigned char* out_data_end){
+    // newStream:[       |                                          |              ]
+    //              cover.newPos                        cover.newPos+cover.length
+    // _cache:           |  skipLen  [  curDataLen  ]  inStreamLen  |
+    //                                          |
+    //                                     readFromPos   
+    while (out_data!=out_data_end){
+        hpatch_StreamPos_t skipLen=cover.length-(curDataLen+inStreamLen);
+        if ((readFromPos<skipLen)||(readFromPos>=(skipLen+curDataLen))){
+            if (!_updateCache(readFromPos)) return hpatch_FALSE;
+            skipLen=cover.length-(curDataLen+inStreamLen);
+        }
+        size_t srcPos=(size_t)(readFromPos-skipLen);
+        size_t len=std::min((size_t)(curDataLen-srcPos),(size_t)(out_data_end-out_data));
+        for (size_t i=0;i<len;i++)
+            out_data[i]=newData[srcPos+i]-oldData[srcPos+i];
+        readFromPos+=len;
+        out_data+=len;
+    }
+    return hpatch_TRUE;
+}
+
+hpatch_BOOL TNewDataSubDiffCoverStream::_updateCache(hpatch_StreamPos_t readFromPos){
+    assert(readFromPos<cover.length);
+    curDataLen=kSubDiffCacheSize;
+    if (curDataLen+readFromPos>cover.length)
+        curDataLen=(size_t)(cover.length-readFromPos);
+    inStreamLen=cover.length-(curDataLen+readFromPos);
+    if (!newStream->read(newStream,cover.newPos+readFromPos,newData,newData+curDataLen))
+        return hpatch_FALSE;
+    if (!oldStream->read(oldStream,cover.oldPos+readFromPos,oldData,oldData+curDataLen))
+        return hpatch_FALSE;
+    return hpatch_TRUE;
+}
+
+
+TStepStream::TStepStream(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
+                         bool isZeroSubDiff,const TCovers& _covers,size_t _patchStepMemSize)
+:subDiff(newStream,oldStream,isZeroSubDiff),newDataDiff(_covers,newStream),
+covers(_covers),patchStepMemSize(_patchStepMemSize),newDataSize(newStream->streamSize),
+readFromPosBack(0),readBufPos(0){
+    initStream();
+    streamImport=this;
+    read=_read;
+    streamSize=sumBufSize_forInit;
+}
+
+void TStepStream::initStream(){
+    isInInit=true;
+    sumBufSize_forInit=0;
+    beginStep();
+    while(doStep()) { }
+    isInInit=false;
+    endCoverCount=curCoverCount;
+    endMaxStepMemSize=curMaxStepMemSize;
+    beginStep();
+    //assert(buf.empty());
+}
+
+hpatch_BOOL TStepStream::readTo(unsigned char* out_data,unsigned char* out_data_end){
+    while (out_data!=out_data_end){
+        if (readBufPos==buf.size()){
+            buf.clear();
+            readBufPos=0;
+            while (doStep()) { 
+                if (!buf.empty()) 
+                break; 
+            }
+            check(!buf.empty());
+        }
+        size_t len=out_data_end-out_data;
+        if (readBufPos+len>buf.size())
+            len=buf.size()-readBufPos;
+        memcpy(out_data,buf.data()+readBufPos,len);
+        readBufPos+=len;
+        out_data+=len;
+    }
+    return hpatch_TRUE;
+}
+
+hpatch_BOOL TStepStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                               unsigned char* out_data,unsigned char* out_data_end){
+    TStepStream* self=(TStepStream*)stream->streamImport;
+    if (readFromPos!=self->readFromPosBack){
+        check(readFromPos==0);
+        self->beginStep();
+    }
+    self->readFromPosBack+=(size_t)(out_data_end-out_data);
+    return self->readTo(out_data,out_data_end);
+}
+
+void TStepStream::beginStep(){
+    curCoverCount=covers.coverCount();
+    isHaveLeftCover=false;
+    isHaveRightCover=false;
+    isHaveLastCover=false;
+    if (curCoverCount==0){
+        isHaveLastCover=true;
+        setCover(lastCover,0,newDataSize,0);
+    }else{
+        TCover back;
+        covers.covers(curCoverCount-1,&back);
+        if (back.newPos+back.length<newDataSize){
+            isHaveLastCover=true;
+            setCover(lastCover,back.oldPos+back.length,newDataSize,0);
+        }
+    }
+    if (isHaveLastCover) ++curCoverCount;
+
+    buf.clear();
+    readBufPos=0;
+    curMaxStepMemSize=0;
+    lastOldEnd=0;
+    lastNewEnd=0;
+    step_bufCover.clear();
+    step_bufCover_size=0;
+    step_bufRle.clear();
+    step_dataDiffSize=0;
+    newDataDiffReadPos=0;
+    cur_i=0;
+    pCurCover=0;
+}
+
+bool TStepStream::doStep(){
+    if (pCurCover==0){
+        if (isHaveLeftCover)      { isHaveLeftCover=false;  pCurCover=&leftCover;  }
+        else if (isHaveRightCover){ isHaveRightCover=false; pCurCover=&rightCover; }
+        else if (cur_i<covers.coverCount()) { covers.covers(cur_i++,&cover); pCurCover=&cover; }
+        else if (isHaveLastCover) { isHaveLastCover=false;  pCurCover=&lastCover;  }
+        else if (step_bufCover_size>0){ _last_flush_step(); return true; }
+        else { return false; } //end while
+    }
+    cover=*pCurCover;
+    const size_t step_bufCover_backSize=step_bufCover_size;
+
+    hpatch_StreamPos_t backNewLen=cover.newPos-lastNewEnd;
+    if (cover.oldPos>=lastOldEnd){ //save inc_oldPos
+        if (isInInit)
+            step_bufCover_size+=hpatch_packUIntWithTag_size((hpatch_StreamPos_t)(cover.oldPos-lastOldEnd), 1);
+        else 
+            packUIntWithTag(step_bufCover,(hpatch_StreamPos_t)(cover.oldPos-lastOldEnd), 0, 1);
+    }else{
+        if (isInInit)
+            step_bufCover_size+=hpatch_packUIntWithTag_size((hpatch_StreamPos_t)(lastOldEnd-cover.oldPos), 1);
+        else
+            packUIntWithTag(step_bufCover,(hpatch_StreamPos_t)(lastOldEnd-cover.oldPos), 1, 1);//sub safe
+    }
+    if (isInInit){
+        step_bufCover_size+=hpatch_packUInt_size(backNewLen)+hpatch_packUInt_size(cover.length);
+    }else{
+        packUInt(step_bufCover,backNewLen); //save inc_newPos
+        packUInt(step_bufCover,cover.length);
+        step_bufCover_size=step_bufCover.size();
+    }
+    
+    subDiff.resetCover(cover);
+    const hpatch_StreamPos_t curMaxNeedSize = step_bufCover_size +
+            (subDiff.isZeroSubDiff?step_bufRle.maxCodeSizeByZeroLen(subDiff.streamSize):step_bufRle.maxCodeSize(&subDiff));
+    if (curMaxNeedSize<=patchStepMemSize){ //append
+        if (subDiff.isZeroSubDiff)
+            step_bufRle.appendByZeroLen(subDiff.streamSize);
+        else
+            step_bufRle.append(&subDiff);
+        if (backNewLen>0){
+            newDataDiffReadPos+=backNewLen;
+            step_dataDiffSize+=backNewLen;
+        }
+
+        lastOldEnd=cover.oldPos+cover.length;//! +length
+        lastNewEnd=cover.newPos+cover.length;
+        pCurCover=0; // next 
+        return true;
+    }else{
+        if (step_bufCover_backSize+step_bufRle.curCodeSize()>=(patchStepMemSize/2)){//flush step
+            step_bufCover_size=step_bufCover_backSize;
+            if (!isInInit) step_bufCover.resize(step_bufCover_backSize);
+            
+            TStreamClip step_dataDiff(&newDataDiff,newDataDiffReadPos-step_dataDiffSize,newDataDiffReadPos);
+            step_dataDiffSize=0;
+            _flush_step_code(&step_dataDiff);
+            return true;  // pCurCover!
+        }else{ //clip one cover to two cover
+            check((!isHaveLeftCover)&&(!isHaveRightCover));
+            isHaveLeftCover=true;
+            isHaveRightCover=true;
+            leftCover=cover;
+            rightCover=cover;
+            hpatch_StreamPos_t clen=cover.length;
+            while (1) {
+                clen=clen*3/4;
+                subDiff.resetCoverLen(clen);
+                check(clen>0); // stepMemSize error
+                const hpatch_StreamPos_t _curMaxNeedSize = step_bufCover_size +
+                    (subDiff.isZeroSubDiff?step_bufRle.maxCodeSizeByZeroLen(subDiff.streamSize):step_bufRle.maxCodeSize(&subDiff));
+                if (_curMaxNeedSize<=patchStepMemSize)
+                    break;
+            }
+            leftCover.length=clen;
+            rightCover.length-=clen;
+            rightCover.oldPos+=clen;
+            rightCover.newPos+=clen;
+
+            step_bufCover_size=step_bufCover_backSize;
+            if (!isInInit) step_bufCover.resize(step_bufCover_backSize);
+            ++curCoverCount;
+            pCurCover=0;
+            return true;  // leftCover
+        }
+    }
+}
+
+void TStepStream::_last_flush_step(){
+    if (step_bufCover_size>0){
+        TStreamClip step_dataDiff(&newDataDiff,newDataDiffReadPos-step_dataDiffSize,newDataDiffReadPos);
+        step_dataDiffSize=0;
+        _flush_step_code(&step_dataDiff);
+    }else{
+        assert(step_dataDiffSize==0);
+    }
+    assert(curMaxStepMemSize<=patchStepMemSize);
+    assert(newDataDiffReadPos==newDataDiff.streamSize);
+}
+
+void TStepStream::_flush_step_code(const hpatch_TStreamInput* step_dataDiff) {
+    step_bufRle.finishAppend();
+    const size_t curStepMemSize=step_bufCover_size+step_bufRle.fixed_code.size();
+    if (curMaxStepMemSize<curStepMemSize)
+        curMaxStepMemSize=curStepMemSize;
+    if (isInInit){
+        assert(buf.empty());
+        sumBufSize_forInit+=hpatch_packUInt_size(step_bufCover_size) +
+                            hpatch_packUInt_size(step_bufRle.curCodeSize())+
+                            curStepMemSize + step_dataDiff->streamSize;
+    }else{
+        //step head
+        assert(step_bufCover_size==step_bufCover.size());
+        packUInt(buf,step_bufCover.size());
+        packUInt(buf,step_bufRle.curCodeSize());
+        //step cache data
+        pushBack(buf,step_bufCover);            
+        pushBack(buf,step_bufRle.fixed_code);   
+        //step data
+        pushBack(buf,step_dataDiff);
+    }
+    step_bufCover_size=0;
+    step_bufCover.clear();
+    step_bufRle.clear();
 }
 
 

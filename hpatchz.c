@@ -44,6 +44,9 @@
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
 #endif
+#ifndef _IS_NEED_SINGLE_STREAM_DIFF
+#   define _IS_NEED_SINGLE_STREAM_DIFF 1
+#endif
 #ifndef _IS_NEED_SFX
 #   define _IS_NEED_SFX 1
 #endif
@@ -61,11 +64,11 @@
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma
 #   define _CompressPlugin_lzma2
+#   define _CompressPlugin_zstd
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_lz4 // || _CompressPlugin_lz4hc
-#   define _CompressPlugin_zstd
 #   define _CompressPlugin_brotli
 #   define _CompressPlugin_lzham
 #endif
@@ -118,12 +121,17 @@ static void printUsage(){
 #endif
            "  if oldPath is empty input parameter \"\"\n"
            "memory options:\n"
-           "  -m  oldPath all loaded into Memory;\n"
-           "      requires (oldFileSize+ 4*decompress stream size)+O(1) bytes of memory.\n"
            "  -s[-cacheSize] \n"
            "      DEFAULT -s-64m; oldPath loaded as Stream;\n"
-           "      requires (cacheSize+ 4*decompress stream size)+O(1) bytes of memory;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc....\n"
+           "      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory;\n"
+           "      if diffFile is single compressed diffData, then requires\n"
+           "        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;\n"
+           "        see: hdiffz -SD-stepSize option.\n"
+           "  -m  oldPath all loaded into Memory;\n"
+           "      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory;\n"
+           "      if diffFile is single compressed diffData, then requires\n"
+           "        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory.\n"
            "special options:\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumSets\n"
@@ -723,7 +731,7 @@ static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char
 
 #define _free_mem(p) { if (p) { free(p); p=0; } }
 
-static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
+static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t mustAppendMemSize,
                                hpatch_StreamPos_t oldDataSize,size_t* out_memCacheSize){
     TByte* temp_cache=0;
     size_t temp_cache_size;
@@ -743,11 +751,11 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
             temp_cache_size=(size_t)(oldDataSize+kPatchCacheSize_bestmin);
     }
     while (!temp_cache) {
-        temp_cache=(TByte*)malloc(temp_cache_size);
+        temp_cache=(TByte*)malloc(mustAppendMemSize+temp_cache_size);
         if ((!temp_cache)&&(temp_cache_size>=kPatchCacheSize_min*2))
             temp_cache_size>>=1;
     }
-    *out_memCacheSize=(temp_cache)?temp_cache_size:0;
+    *out_memCacheSize=(temp_cache)?(mustAppendMemSize+temp_cache_size):0;
     return temp_cache;
 }
 
@@ -810,9 +818,9 @@ int hpatch(const char* oldFileName,const char* diffFileName,
                 diffInfo.oldDataSize=sdiffInfo.oldDataSize;
                 patchCacheSize+=(size_t)sdiffInfo.stepMemSize;
                 if (patchCacheSize<sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3)
-                    patchCacheSize=sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3;
+                    patchCacheSize=(size_t)sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3;
                 isSingleStreamDiff=hpatch_TRUE;
-                printf("patch single compressed stream diffData!\n");
+                printf("patch single compressed diffData!\n");
             }else
 #endif
                 check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");
@@ -833,14 +841,14 @@ int hpatch(const char* oldFileName,const char* diffFileName,
     printf("oldDataSize : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
     
-    temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,poldData->streamSize, &temp_cache_size);
+    temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,0,poldData->streamSize, &temp_cache_size);
     check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory");
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
     if (isSingleStreamDiff){
         check(temp_cache_size>=sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3,HPATCH_MEM_ERROR,"alloc cache memory");
         patch_result=patch_single_compressed_diff(&newData.base,poldData,&diffData.base,sdiffInfo.diffDataPos,
-                                                  sdiffInfo.uncompressedSize,decompressPlugin,sdiffInfo.coverCount,
-                                                  sdiffInfo.stepMemSize,temp_cache,temp_cache+temp_cache_size,0);
+                                                  sdiffInfo.uncompressedSize,sdiffInfo.compressedSize,decompressPlugin,
+                                                  sdiffInfo.coverCount,(size_t)sdiffInfo.stepMemSize,temp_cache,temp_cache+temp_cache_size,0);
     }else
 #endif
         patch_result=patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
@@ -882,6 +890,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     TByte*               p_temp_mem=0;
     TByte*               temp_cache=0;
     size_t               temp_cache_size;
+    size_t               min_temp_cache_size=kPatchCacheSize_min;
     const hpatch_TStreamInput*  oldStream=0;
     const hpatch_TStreamOutput* newStream=0;
     hpatch_TFileStreamInput_init(&diffData);
@@ -977,12 +986,20 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
                dirDiffInfo->hdiffInfo.newDataSize+head->sameFileSize);
     }
     {//mem cache
-        p_temp_mem=getPatchMemCache(isLoadOldAll,patchCacheSize,dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
+        size_t mustAppendMemSize=0;
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+        if (dirDiffInfo->isSingleCompressedDiff){
+            mustAppendMemSize+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
+            min_temp_cache_size+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
+        }
+#endif
+        p_temp_mem=getPatchMemCache(isLoadOldAll,patchCacheSize,mustAppendMemSize,
+                                    dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
         check(p_temp_mem,HPATCH_MEM_ERROR,"alloc cache memory");
         temp_cache=p_temp_mem;
     }
     {//old data
-        if (temp_cache_size>=dirDiffInfo->hdiffInfo.oldDataSize+kPatchCacheSize_min){
+        if (temp_cache_size>=dirDiffInfo->hdiffInfo.oldDataSize+min_temp_cache_size){
             // all old while auto cache by patch; not need open old files at same time
             kMaxOpenFileNumber=kMaxOpenFileNumber_limit_min;
         }

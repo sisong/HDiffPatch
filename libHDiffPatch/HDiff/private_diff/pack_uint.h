@@ -61,7 +61,23 @@ inline static void pushBack(std::vector<unsigned char>& out_buf,
 inline static void pushBack(std::vector<unsigned char>& out_buf,const std::vector<unsigned char>& data){
     out_buf.insert(out_buf.end(),data.begin(),data.end());
 }
-    
+
+static void pushBack(std::vector<unsigned char>& out_buf,const hpatch_TStreamInput* data){
+    const size_t kStepSize=hpatch_kStreamCacheSize*4;
+    unsigned char buf[kStepSize];
+    out_buf.reserve(out_buf.size()+(size_t)data->streamSize);
+    hpatch_StreamPos_t curPos=0;
+    while (curPos<data->streamSize){
+        size_t len=kStepSize;
+        if (curPos+len>data->streamSize)
+            len=(size_t)(data->streamSize-curPos);
+        if (!data->read(data,curPos,buf,buf+len))
+            throw std::runtime_error("pushBack() data->read() error!");
+        pushBack(out_buf,buf,len);
+        curPos+=len;
+    }
+}
+
     
 template <class TUInt> inline static
 void pushUInt(std::vector<unsigned char>& out_buf,TUInt v){

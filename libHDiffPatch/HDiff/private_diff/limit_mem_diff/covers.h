@@ -31,41 +31,51 @@
 namespace hdiff_private{
 typedef hpatch_TCover   TCover;
 
-class TCovers{
+static inline void setCover(TCover& cover,hpatch_StreamPos_t oldPos,hpatch_StreamPos_t newPos,hpatch_StreamPos_t length) {
+                                          cover.oldPos=oldPos; cover.newPos=newPos; cover.length=length; }
+
+struct TCovers{
+    void*       _covers;
+    size_t      _coverCount;
+    bool        _isCover32;
+    inline TCovers(void* covers,size_t coverCount,bool isCover32)
+    :_covers(covers),_coverCount(coverCount),_isCover32(isCover32){}
+    inline size_t coverCount()const{ return _coverCount; }
+    inline void covers(size_t index,TCover* out_cover)const{
+        if (_isCover32) {
+            const hpatch_TCover32& c32=((const hpatch_TCover32*)_covers)[index];
+            out_cover->oldPos=c32.oldPos;
+            out_cover->newPos=c32.newPos;
+            out_cover->length=c32.length;
+        }else{
+            *out_cover=((const hpatch_TCover*)_covers)[index];
+        }
+    }
+    virtual void addCover(const TCover& cover){} //default unsupport
+};
+
+class TCoversBuf:public TCovers{
 public:
-    inline TCovers(hpatch_StreamPos_t oldSize,hpatch_StreamPos_t newSize)
-    :m_is32((oldSize|newSize)<((hpatch_StreamPos_t)1<<32)){ }
-    
-    inline void addCover(const TCover& cover){
-        if (m_is32) {
+    inline TCoversBuf(hpatch_StreamPos_t dataSize0,hpatch_StreamPos_t dataSize1)
+    :TCovers(0,0,(dataSize0|dataSize1)<((hpatch_StreamPos_t)1<<32)){}
+
+    virtual void addCover(const TCover& cover){
+        ++_coverCount;
+        if (_isCover32) {
             hpatch_TCover32 c32;
             c32.oldPos=(hpatch_uint32_t)cover.oldPos;
             c32.newPos=(hpatch_uint32_t)cover.newPos;
             c32.length=(hpatch_uint32_t)cover.length;
             m_covers_limit.push_back(c32);
+            _covers=m_covers_limit.data();
         }else{
             m_covers_larger.push_back(cover);
-        }
-    }
-    
-    inline size_t coverCount()const{
-        return m_is32?m_covers_limit.size():m_covers_larger.size();
-    }
-    
-    inline void covers(size_t index,TCover* out_cover)const{
-        if (m_is32) {
-            const hpatch_TCover32& c32=m_covers_limit[index];
-            out_cover->oldPos=c32.oldPos;
-            out_cover->newPos=c32.newPos;
-            out_cover->length=c32.length;
-        }else{
-            *out_cover=m_covers_larger[index];
+            _covers=m_covers_larger.data();
         }
     }
 private:
     std::vector<hpatch_TCover32>    m_covers_limit;
     std::vector<TCover>             m_covers_larger;
-    const  bool                     m_is32;
 };
 
 }//namespace hdiff_private

@@ -872,11 +872,11 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         
         #define _ZSTD_WINDOWLOG_MIN 10
         dict_bits=plugin->dict_bits;
-         while (((((hpatch_StreamPos_t)1)<<(dict_bits-1)) >= in_data->streamSize)
+        while (((((hpatch_StreamPos_t)1)<<(dict_bits-1)) >= in_data->streamSize)
                 &&((dict_bits-1)>=_ZSTD_WINDOWLOG_MIN)) {
             --dict_bits;
         }
-        ret=ZSTD_CCtx_setParameter(s, ZSTD_c_windowLog,plugin->dict_bits);
+        ret=ZSTD_CCtx_setParameter(s, ZSTD_c_windowLog,dict_bits);
         if (ZSTD_isError(ret)) _compress_error_return("ZSTD_CCtx_setParameter(,ZSTD_c_windowLog)");
         if (plugin->thread_num>1){
             ret=ZSTD_CCtx_setParameter(s, ZSTD_c_nbWorkers,plugin->thread_num);

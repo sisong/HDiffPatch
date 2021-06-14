@@ -59,7 +59,11 @@
 			<Add option="-D_LARGEFILE_SOURCE" />
 			<Add option="-D_FILE_OFFSET_BITS=64" />
 			<Add option="-D_IS_USED_PTHREAD=1" />
+			<Add option="-D_ChecksumPlugin_md5" />
+			<Add option="-DZSTD_MULTITHREAD=1" />
 			<Add directory="../../../lzma/C/" />
+			<Add directory="../../../zstd/lib" />
+			<Add directory="../../../libmd5" />
 		</Compiler>
 		<Linker>
 			<Add library="pthread" />
@@ -86,6 +90,10 @@
 		<Unit filename="../../../bzip2/randtable.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../libmd5/md5.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../libmd5/md5.h" />
 		<Unit filename="../../../lzma/C/Alloc.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -116,7 +124,7 @@
 		<Unit filename="../../../lzma/C/MtDec.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../lzma/C/ThreadsP.c">
+		<Unit filename="../../../lzma/C/Threads.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/adler32.c">
@@ -153,6 +161,111 @@
 		<Unit filename="../../../zlib/zutil.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../zstd/lib/common/bitstream.h" />
+		<Unit filename="../../../zstd/lib/common/compiler.h" />
+		<Unit filename="../../../zstd/lib/common/cpu.h" />
+		<Unit filename="../../../zstd/lib/common/debug.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/common/debug.h" />
+		<Unit filename="../../../zstd/lib/common/entropy_common.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/common/error_private.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/common/error_private.h" />
+		<Unit filename="../../../zstd/lib/common/fse.h" />
+		<Unit filename="../../../zstd/lib/common/fse_decompress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/common/huf.h" />
+		<Unit filename="../../../zstd/lib/common/mem.h" />
+		<Unit filename="../../../zstd/lib/common/pool.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/common/pool.h" />
+		<Unit filename="../../../zstd/lib/common/threading.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/common/threading.h" />
+		<Unit filename="../../../zstd/lib/common/xxhash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/common/xxhash.h" />
+		<Unit filename="../../../zstd/lib/common/zstd_common.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/common/zstd_deps.h" />
+		<Unit filename="../../../zstd/lib/common/zstd_internal.h" />
+		<Unit filename="../../../zstd/lib/common/zstd_trace.h" />
+		<Unit filename="../../../zstd/lib/compress/fse_compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/hist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/hist.h" />
+		<Unit filename="../../../zstd/lib/compress/huf_compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_compress_internal.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_compress_literals.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_compress_literals.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_compress_sequences.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_compress_sequences.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_compress_superblock.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_compress_superblock.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_cwksp.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_double_fast.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_double_fast.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_fast.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_fast.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_lazy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_lazy.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_ldm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_ldm.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_ldm_geartab.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_opt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstd_opt.h" />
+		<Unit filename="../../../zstd/lib/compress/zstdmt_compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/compress/zstdmt_compress.h" />
+		<Unit filename="../../../zstd/lib/decompress/huf_decompress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/decompress/zstd_ddict.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/decompress/zstd_ddict.h" />
+		<Unit filename="../../../zstd/lib/decompress/zstd_decompress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_block.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_block.h" />
+		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_internal.h" />
 		<Unit filename="../../compress_parallel.cpp" />
 		<Unit filename="../../compress_parallel.h" />
 		<Unit filename="../../dirDiffPatch/dir_diff/dir_diff.cpp" />

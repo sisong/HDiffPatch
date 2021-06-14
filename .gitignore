@@ -21,3 +21,4 @@ builds/android_ndk_jni_mk/obj
 builds/vc/ipch/
 *.opensdf
 *.sdf
+*.ipch

@@ -17,17 +17,15 @@ matrix:
     - os: osx
       osx_image: xcode9.4
 script:
-- make LZMA=0
+- make LZMA=0 ZSTD=0 MD5=0
 - make clean
-- git clone https://github.com/sisong/lzma.git ../lzma
-- make DIR_DIFF=0
+- git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
+- git clone -b v1.5.0 --depth=1 https://github.com/facebook/zstd.git ../zstd
+- git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+- make DIR_DIFF=0 MT=0
 - make clean
 - make
-- make clean
-- cd ../HDiffPatch
-- git clone https://github.com/sisong/libmd5.git ../libmd5
-- make MT=1 MD5=1
-- if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hdiffz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
-- if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
-- if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme unitTest -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
+- # if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hdiffz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
+- # if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
+- # if [[ $TRAVIS_OS_NAME == osx ]]; then xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme unitTest -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin; fi
 
