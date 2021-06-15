@@ -462,19 +462,28 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         check(oldRefStream.stream->read(oldRefStream.stream,0,oldData,
                                         oldData+oldRefStream.stream->streamSize),"read old file error!");
         resLimit.close(); //close files
-        std::vector<TByte> out_diff;
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
         if (isSingleStreamDiff){
+            TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
             create_single_compressed_diff(newData,newData+newRefStream.stream->streamSize,
                                           oldData,oldData+oldRefStream.stream->streamSize,
-                                          out_diff,compressPlugin,(int)matchValue,singleStreamStepSize);
+                                          &ofStream,compressPlugin,(int)matchValue,singleStreamStepSize);
+            diffDataSize=ofStream.outSize;
+            if (checksumByteSize>0){
+                assert(outDiffStream->read_writed!=0);
+                diffChecksum.append((const hpatch_TStreamInput*)outDiffStream,
+                                    writeToPos,writeToPos+diffDataSize);
+            }
         }else
 #endif
-        create_compressed_diff(newData,newData+newRefStream.stream->streamSize,
-                               oldData,oldData+oldRefStream.stream->streamSize,
-                               out_diff,compressPlugin,(int)matchValue);
-        diffDataSize=out_diff.size();
-        _pushv(out_diff);
+        {
+            std::vector<TByte> out_diff;
+            create_compressed_diff(newData,newData+newRefStream.stream->streamSize,
+                                   oldData,oldData+oldRefStream.stream->streamSize,
+                                   out_diff,compressPlugin,(int)matchValue);
+            diffDataSize=out_diff.size();
+            _pushv(out_diff);
+        }
     }else{
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
@@ -483,8 +492,10 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
                                                  compressPlugin,matchValue,singleStreamStepSize);
         }else
 #endif
-        create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                      compressPlugin,matchValue);
+        {
+            create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
+                                          compressPlugin,matchValue);
+        }
         diffDataSize=ofStream.outSize;
         if (checksumByteSize>0){
             assert(outDiffStream->read_writed!=0);
@@ -810,7 +821,9 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
             resave_single_compressed_diff(&clip,decompressPlugin,&ofStream,compressPlugin,&singleDiffInfo);
         }else
 #endif
-        resave_compressed_diff(&clip,decompressPlugin,&ofStream,compressPlugin);
+        {
+            resave_compressed_diff(&clip,decompressPlugin,&ofStream,compressPlugin);
+        }
         writeToPos+=ofStream.outSize;
     }
     if (checksumByteSize>0){// update dirdiff checksum

@@ -153,7 +153,7 @@ private:
     const TCover* pCurCover;
     bool    isInInit;
     hpatch_StreamPos_t  sumBufSize_forInit;
-    hpatch_StreamPos_t  step_bufCover_size;
+    size_t              step_bufCover_size;
     std::vector<unsigned char> step_buf;
     TStreamClip                step_dataDiff;
     hpatch_StreamPos_t readFromPosBack;

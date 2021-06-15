@@ -851,8 +851,10 @@ int hpatch(const char* oldFileName,const char* diffFileName,
                                                   sdiffInfo.coverCount,(size_t)sdiffInfo.stepMemSize,temp_cache,temp_cache+temp_cache_size,0);
     }else
 #endif
+    {
         patch_result=patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
                                                  temp_cache,temp_cache+temp_cache_size);
+    }
     if (!patch_result){
         check(!oldData.fileError,HPATCH_FILEREAD_ERROR,"oldFile read");
         check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"diffFile read");

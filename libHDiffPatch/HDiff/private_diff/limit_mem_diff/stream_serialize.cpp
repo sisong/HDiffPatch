@@ -370,7 +370,7 @@ hpatch_BOOL TStepStream::readTo(unsigned char* out_data,unsigned char* out_data_
         }
         size_t len=out_data_end-out_data;
         if (readBufPos+len>stepDataLen)
-            len=stepDataLen-readBufPos;
+            len=(size_t)(stepDataLen-readBufPos);
         if (readBufPos<step_buf.size()){//copy data from step_buf
             size_t clen=len;
             if (readBufPos+clen>step_buf.size())

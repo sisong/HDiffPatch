@@ -1090,6 +1090,10 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
     double diff_time0=clock_s();
     int    result=HDIFF_SUCCESS;
     int    _isInClear=hpatch_FALSE;
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+    hpatch_TFileStreamOutput diffData_out;
+    hpatch_TFileStreamOutput_init(&diffData_out);   
+#endif
     hdiff_private::TAutoMem oldMem(0);
     hdiff_private::TAutoMem newMem(0);
     check(readFileAll(oldMem,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
@@ -1097,26 +1101,40 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
     printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            (hpatch_StreamPos_t)oldMem.size(),(hpatch_StreamPos_t)newMem.size());
     if (isDiff){
-        std::vector<TByte> outDiffData;
-        try {
+        hpatch_StreamPos_t outDiffDataSize=0;
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
-            if (isSingleStreamDiff){
-                printf("create single compressed diffData!\n");
+        if (isSingleStreamDiff){
+            check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,~(hpatch_StreamPos_t)0),
+                  HDIFF_OPENWRITE_ERROR,"open out diffFile");
+            hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
+            try {
                 create_single_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                              outDiffData,compressPlugin,(int)matchScore,singleStreamStepSize);
-            }else
+                                              &diffData_out.base,compressPlugin,(int)matchScore,singleStreamStepSize);
+                diffData_out.base.streamSize=diffData_out.out_length;
+            }catch(const std::exception& e){
+                check(!diffData_out.fileError,HDIFF_OPENWRITE_ERROR,"write diffFile");
+                check(false,HDIFF_DIFF_ERROR,"diff run error: "+e.what());
+            }
+            outDiffDataSize=diffData_out.out_length;
+            check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+        }else
 #endif
-            create_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                   outDiffData,compressPlugin,(int)matchScore);
-        }catch(const std::exception& e){
-            check(false,HDIFF_DIFF_ERROR,"diff run an error: "+e.what());
+        {
+            std::vector<TByte> outDiffData;
+            try {
+                create_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
+                                       outDiffData,compressPlugin,(int)matchScore);
+            }catch(const std::exception& e){
+                check(false,HDIFF_DIFF_ERROR,"diff run error: "+e.what());
+            }
+            check(writeFileAll(outDiffData.data(),outDiffData.size(),outDiffFileName),
+                HDIFF_OPENWRITE_ERROR,"open write diffFile");
+            outDiffDataSize=outDiffData.size();
+            outDiffData.clear();
         }
-        printf("diffDataSize: %" PRIu64 "\n",(hpatch_StreamPos_t)outDiffData.size());
-        check(writeFileAll(outDiffData.data(),outDiffData.size(),outDiffFileName),
-              HDIFF_OPENWRITE_ERROR,"open write diffFile");
+        printf("diffDataSize: %" PRIu64 "\n",outDiffDataSize);
         printf("diff    time: %.3f s\n",(clock_s()-diff_time0));
         printf("  out diff file ok!\n");
-        outDiffData.clear();
     }
     if (isPatchCheck){
         isSingleStreamDiff=hpatch_FALSE;
@@ -1153,8 +1171,10 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
                                                     diffMem.data(),diffMem.data_end(),saved_decompressPlugin);
             }else
 #endif
+            {
                 diffrt=check_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
                                              diffMem.data(),diffMem.data_end(),saved_decompressPlugin);
+            }
         }
         check(diffrt,HDIFF_PATCH_ERROR,"patch check diff data");
         printf("patch   time: %.3f s\n",(clock_s()-patch_time0));
@@ -1162,6 +1182,9 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
     }
 clear:
     _isInClear=hpatch_TRUE;
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+    check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
+#endif
     return result;
 }
 
@@ -1196,13 +1219,14 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
         try{
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
             if (isSingleStreamDiff){
-                printf("create single compressed diffData!\n");
                 create_single_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
                                                      compressPlugin,matchBlockSize,singleStreamStepSize);
             }else
 #endif
-            create_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
-                                          compressPlugin,matchBlockSize);
+            {
+                create_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
+                                              compressPlugin,matchBlockSize);
+            }
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             check(false,HDIFF_DIFF_ERROR,"stream diff run an error: "+e.what());
@@ -1243,7 +1267,9 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
                 diffrt=check_single_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
             }else
 #endif
+            {
                 diffrt=check_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
+            }
         }
         check(diffrt,HDIFF_PATCH_ERROR,"patch check diff data");
         printf("patch   time: %.3f s\n",(clock_s()-patch_time0));
@@ -1272,6 +1298,8 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
         const char* compressType="";
         if (compressPlugin) compressType=compressPlugin->compressType();
         printf("hdiffz run with compress plugin: \"%s\"\n",compressType);
+        if (isSingleStreamDiff)
+            printf("create single compressed diffData!\n");
     }
     
     int exitCode;

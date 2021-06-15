@@ -953,6 +953,16 @@ void create_single_compressed_diff(const TByte* newData,const TByte* newData_end
                                    std::vector<unsigned char>& out_diff,
                                    const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore,
                                    size_t patchStepMemSize,ICoverLinesListener* listener){
+    TVectorAsStreamOutput outDiffStream(out_diff);
+    create_single_compressed_diff(newData,newData_end,oldData,oldData_end,&outDiffStream,
+                                  compressPlugin,kMinSingleMatchScore,patchStepMemSize,listener);
+}
+
+void create_single_compressed_diff(const TByte* newData,const TByte* newData_end,
+                                   const TByte* oldData,const TByte* oldData_end,
+                                   const hpatch_TStreamOutput* out_diff,
+                                   const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore,
+                                   size_t patchStepMemSize,ICoverLinesListener* listener){
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,0,listener);
 
@@ -962,9 +972,8 @@ void create_single_compressed_diff(const TByte* newData,const TByte* newData_end
     mem_as_hStreamInput(&_oldStream,diff.oldData,diff.oldData_end);
     const TCovers _covers((void*)diff.covers.data(),diff.covers.size(),
                           sizeof(*diff.covers.data())==sizeof(hpatch_TCover32));
-    TVectorAsStreamOutput outDiffStream(out_diff);
     serialize_single_compressed_diff(&_newStream,&_oldStream,false,_covers,
-                                     &outDiffStream,compressPlugin,patchStepMemSize);
+                                     out_diff,compressPlugin,patchStepMemSize);
 }
 
 void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,

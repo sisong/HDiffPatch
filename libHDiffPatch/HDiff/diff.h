@@ -104,10 +104,16 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
 static const size_t kDefaultStepMemSize =1024*256;
 
 //create a diff data between oldData and newData, the diffData saved as single compressed stream
-//  still under development!
+//  kMinSingleMatchScore: default 6, bin: 0--4  text: 4--9
+//  patchStepMemSize>=hpatch_kStreamCacheSize, default 256k, recommended 64k,2m etc...
 void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                    const unsigned char* oldData,const unsigned char* oldData_end,
                                    std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin=0,
+                                   int kMinSingleMatchScore=kMinSingleMatchScore_default,
+                                   size_t patchStepMemSize=kDefaultStepMemSize,ICoverLinesListener* listener=0);
+void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
+                                   const unsigned char* oldData,const unsigned char* oldData_end,
+                                   const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin=0,
                                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                    size_t patchStepMemSize=kDefaultStepMemSize,ICoverLinesListener* listener=0);
 //create single compressed diff data by stream:
