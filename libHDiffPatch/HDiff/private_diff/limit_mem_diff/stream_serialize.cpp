@@ -397,7 +397,7 @@ hpatch_BOOL TStepStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPo
         check(readFromPos==0);
         self->beginStep();
     }
-    self->readFromPosBack+=(size_t)(out_data_end-out_data);
+    self->readFromPosBack=readFromPos+(size_t)(out_data_end-out_data);
     return self->readTo(out_data,out_data_end);
 }
 
