@@ -42,7 +42,6 @@ public:
     ~_CChannel_import(){
         close();
         while (true) { //wait all thread exit
-            if (_waitingCount==0) break;
             {
                 CAutoLocker locker(_locker);
                 if (_waitingCount==0) break;
@@ -67,7 +66,6 @@ public:
     bool is_can_fast_send(bool isWait){
         if (_maxDataCount<0) return true;
         if (_maxDataCount==0) return false;
-        if (_isClosed) return false;
 
         CAutoLocker locker(_locker);
         while (true) {
@@ -85,7 +83,6 @@ public:
 
     bool send(TChanData data,bool isWait){
         assert(data!=0);
-        if (_isClosed) return false;
         {
             CAutoLocker locker(_locker);
             while (true) {
@@ -112,7 +109,6 @@ public:
 
         //wait accepted
         while (true) { //wait _dataList empty
-            if (_isClosed) break;
             {
                 CAutoLocker locker(_locker);
                 if (_isClosed) break;
