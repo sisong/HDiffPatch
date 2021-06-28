@@ -4,7 +4,7 @@
 /*
  This is the HDiffPatch copyright.
 
- Copyright (c) 2012-2019 HouSisong All Rights Reserved.
+ Copyright (c) 2012-2021 HouSisong All Rights Reserved.
 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -86,7 +86,7 @@
 #endif
 #if (_IS_NEED_DEFAULT_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
-#   define _ChecksumPlugin_crc32    // =  32 bit effective  //need zlib
+#   define _ChecksumPlugin_crc32    //    32 bit effective  //need zlib
 #   define _ChecksumPlugin_fadler64 // ?  63 bit effective
 #endif
 #if (_IS_NEED_ALL_ChecksumPlugin)
@@ -95,9 +95,9 @@
 #   define _ChecksumPlugin_adler64  // ?  30 bit effective
 #   define _ChecksumPlugin_fadler32 // ~  32 bit effective
 #   define _ChecksumPlugin_fadler128// ?  81 bit effective
-#   define _ChecksumPlugin_md5      // ? 128 bit effective
+#   define _ChecksumPlugin_md5      //   128 bit
+#   define _ChecksumPlugin_blake3   //   256 bit
 #endif
-
 
 #include "checksum_plugin_demo.h"
 #endif
@@ -695,37 +695,44 @@ static hpatch_BOOL getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo
 }
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
-static void _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType,
-                            hpatch_TChecksum* testChecksumPlugin){
-    if ((*out_checksumPlugin)!=0) return;
-    if (0==strcmp(checksumType,testChecksumPlugin->checksumType()))
-        *out_checksumPlugin=testChecksumPlugin;
+static inline hpatch_BOOL _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType,
+                                          hpatch_TChecksum* testChecksumPlugin){
+    assert(0==*out_checksumPlugin);
+    if (0!=strcmp(checksumType,testChecksumPlugin->checksumType())) return hpatch_FALSE;
+    *out_checksumPlugin=testChecksumPlugin;
+    return hpatch_TRUE;
 }
+#define __setChecksum(_checksumPlugin) \
+    if (_trySetChecksum(out_checksumPlugin,checksumType,_checksumPlugin)) return hpatch_TRUE;
+
 static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType){
     *out_checksumPlugin=0;
     if (strlen(checksumType)==0) return hpatch_TRUE;
 #ifdef _ChecksumPlugin_crc32
-    _trySetChecksum(out_checksumPlugin,checksumType,&crc32ChecksumPlugin);
+    __setChecksum(&crc32ChecksumPlugin);
 #endif
 #ifdef _ChecksumPlugin_adler32
-    _trySetChecksum(out_checksumPlugin,checksumType,&adler32ChecksumPlugin);
+    __setChecksum(&adler32ChecksumPlugin);
 #endif
 #ifdef _ChecksumPlugin_adler64
-    _trySetChecksum(out_checksumPlugin,checksumType,&adler64ChecksumPlugin);
+    __setChecksum(&adler64ChecksumPlugin);
 #endif
 #ifdef _ChecksumPlugin_fadler32
-    _trySetChecksum(out_checksumPlugin,checksumType,&fadler32ChecksumPlugin);
+    __setChecksum(&fadler32ChecksumPlugin);
 #endif
 #ifdef _ChecksumPlugin_fadler64
-    _trySetChecksum(out_checksumPlugin,checksumType,&fadler64ChecksumPlugin);
+    __setChecksum(&fadler64ChecksumPlugin);
 #endif
 #ifdef _ChecksumPlugin_fadler128
-    _trySetChecksum(out_checksumPlugin,checksumType,&fadler128ChecksumPlugin);
+    __setChecksum(&fadler128ChecksumPlugin);
 #endif
 #ifdef _ChecksumPlugin_md5
-    _trySetChecksum(out_checksumPlugin,checksumType,&md5ChecksumPlugin);
+    __setChecksum(&md5ChecksumPlugin);
 #endif
-    return (0!=*out_checksumPlugin);
+#ifdef _ChecksumPlugin_blake3
+    __setChecksum(&blake3ChecksumPlugin);
+#endif
+    return hpatch_FALSE;
 }
 #endif
 

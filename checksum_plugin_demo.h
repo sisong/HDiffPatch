@@ -2,7 +2,7 @@
 //  checksum plugin demo for HDiffz\HPatchz
 /*
  The MIT License (MIT)
- Copyright (c) 2018-2019 HouSisong
+ Copyright (c) 2018-2021 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -35,6 +35,7 @@
 //  fadler64ChecksumPlugin
 //  fadler128ChecksumPlugin
 //  md5ChecksumPlugin
+//  blake3ChecksumPlugin
 
 #include "libHDiffPatch/HPatch/checksum_plugin.h"
 
@@ -340,5 +341,40 @@ static hpatch_TChecksum md5ChecksumPlugin={ _md5_checksumType,_md5_checksumByteS
                                             _md5_close,_md5_begin,_md5_append,_md5_end};
 #endif//_ChecksumPlugin_md5
 
+#ifdef  _ChecksumPlugin_blake3
+#if (_IsNeedIncludeDefaultChecksumHead)
+#   include "blake3.h" // https://github.com/BLAKE3-team/BLAKE3
+#endif
+static const char* _blake3_checksumType(void){
+    static const char* type="blake3";
+    return type;
+}
+static size_t _blake3_checksumByteSize(void){
+    return BLAKE3_OUT_LEN;
+}
+static hpatch_checksumHandle _blake3_open(hpatch_TChecksum* plugin){
+    return malloc(sizeof(blake3_hasher));
+}
+static void _blake3_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
+    if (handle) free(handle);
+}
+static void  _blake3_begin(hpatch_checksumHandle handle){
+    blake3_hasher* ps=(blake3_hasher*)handle;
+    blake3_hasher_init(ps);
+}
+static void _blake3_append(hpatch_checksumHandle handle,
+                           const unsigned char* part_data,const unsigned char* part_data_end){
+    blake3_hasher* ps=(blake3_hasher*)handle;
+    blake3_hasher_update(ps,part_data,(size_t)(part_data_end-part_data));
+}
+static void _blake3_end(hpatch_checksumHandle handle,
+                        unsigned char* checksum,unsigned char* checksum_end){
+    blake3_hasher* ps=(blake3_hasher*)handle;
+    assert(BLAKE3_OUT_LEN==checksum_end-checksum);
+    blake3_hasher_finalize(ps,checksum,(size_t)(checksum_end-checksum));
+}
+static hpatch_TChecksum blake3ChecksumPlugin={ _blake3_checksumType,_blake3_checksumByteSize,_blake3_open,
+                                               _blake3_close,_blake3_begin,_blake3_append,_blake3_end};
+#endif//_ChecksumPlugin_blake3
 
 #endif
