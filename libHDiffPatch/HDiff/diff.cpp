@@ -427,7 +427,6 @@ static void select_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
 //尝试延长覆盖区域.
 static void extend_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
                          const TFixedFloatSmooth kExtendMinSameRatio,TDiffLimit* diffLimit=0){
-    const size_t kNoLimitLen=~(size_t)0;
     TInt lastNewEnd=diffLimit?diffLimit->newPos:0;
     for (TInt i=0; i<(TInt)covers.size(); ++i) {
         TInt newPos_next;
@@ -535,7 +534,7 @@ static void extend_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
                             curDataLen=cover.newPos-curReadPos;
                             oldData=0;
                         }else{
-                            assert(cover.newPos==curReadPos);
+                            assert((size_t)cover.newPos==curReadPos);
                             curDataLen=cover.length;
                             oldData=diff.oldData+cover.oldPos;
                             ++nextCoveri;

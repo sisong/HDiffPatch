@@ -71,7 +71,7 @@ namespace {
         const size_t kRleMinSameSize;
         inline explicit TStreamRLE(std::vector<unsigned char>& _ctrlBuf,
                                    std::vector<unsigned char>& _codeBuf,int rle_parameter)
-        :ctrlBuf(_ctrlBuf),codeBuf(_codeBuf),
+        :ctrlBuf(_ctrlBuf),codeBuf(_codeBuf),sameCur(0),
         sameCount(0),notSameCount(0),kRleMinSameSize(rle_parameter+1){
             assert((rle_parameter>=kRle_bestSize)&&(rle_parameter<=kRle_bestUnRleSpeed)); }
         void append(const unsigned char* appendData,const unsigned char* appendData_end){

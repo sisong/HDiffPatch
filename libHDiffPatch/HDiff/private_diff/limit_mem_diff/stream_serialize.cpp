@@ -248,8 +248,8 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 TNewDataSubDiffCoverStream::TNewDataSubDiffCoverStream(const hpatch_TStreamInput* _newStream,
                                                        const hpatch_TStreamInput* _oldStream,
                                                        bool _isZeroSubDiff)
-:newStream(_newStream),oldStream(_oldStream),isZeroSubDiff(_isZeroSubDiff),
-_cache(_isZeroSubDiff?0:kSubDiffCacheSize*2),newData(0),oldData(0){
+:isZeroSubDiff(_isZeroSubDiff),newStream(_newStream),oldStream(_oldStream),
+newData(0),oldData(0),_cache(_isZeroSubDiff?0:kSubDiffCacheSize*2){
     setCover(cover,0,0,0);
     streamImport=this;
     read=_read;

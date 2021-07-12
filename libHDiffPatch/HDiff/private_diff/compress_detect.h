@@ -25,8 +25,9 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
 */
-
+#ifdef _MSC_VER
 #pragma warning( disable : 4706)
+#endif
 
 #ifndef compress_detect_h
 #define compress_detect_h
