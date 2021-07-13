@@ -64,11 +64,11 @@ namespace {
         TInt L0=(TInt)(str0End-str0);
         TInt L1=(TInt)(str1End-str1);
     #ifdef _SA_SORTBY_STD_SORT
-        const int kMaxCmpLength=1024*4; //警告:这是一个特殊的处理手段,用以避免_suffixString_create在使用std::sort时
+        const int kMaxCmpLength_sort=1024*4; //警告:这是一个特殊的处理手段,用以避免_suffixString_create在使用std::sort时
                                         //  某些情况退化到O(n*n)复杂度(运行时间无法接受),设置最大比较长度从而控制算法在
-                                        //  O(kMaxCmpLength*n)复杂度以内,这时排序的结果并不是标准的后缀数组;
-        if (L0>kMaxCmpLength) L0=kMaxCmpLength;
-        if (L1>kMaxCmpLength) L1=kMaxCmpLength;
+                                        //  O(kMaxCmpLength_sort*n)复杂度以内,这时排序的结果并不是标准的后缀数组;
+        if (L0>kMaxCmpLength_sort) L0=kMaxCmpLength_sort;
+        if (L1>kMaxCmpLength_sort) L1=kMaxCmpLength_sort;
     #endif
         TInt LMin;
         if (L0<L1) LMin=L0; else LMin=L1;
@@ -166,7 +166,7 @@ namespace {
                     ++ss;
                     ++eq_len;
                     const int kMaxCmpLength_forLimitRangeDiff=1024*8; 
-                    if (eq_len<kMaxCmpLength_forLimitRangeDiff)
+                    if (eq_len<kMaxCmpLength_forLimitRangeDiff) //only for optimize limitRange match speed
                         continue;
                     else
                         return mid;
@@ -219,7 +219,7 @@ namespace {
     template<class T>
     static void _build_range(const T* SA_begin,const T* SA_end,
                              const TChar* src_begin,const TChar* src_end,
-                             const T** range){
+                             T* range){
         TChar str[2];
         str[0]=0;
         str[1]=0;
@@ -229,9 +229,9 @@ namespace {
             str[0]=(TChar)(cc>>8);
             str[1]=(TChar)(cc&255);
             pos=_lower_bound(pos,SA_end,str,str+2,src_begin,src_end);
-            range[cc]=pos;
+            range[cc]=(T)(pos-SA_begin);
         }
-        range[256*256]=SA_end;
+        range[256*256]=(T)(SA_end-SA_begin);
     }
 
 }//end namespace
@@ -269,25 +269,30 @@ void TSuffixString::resetSuffixString(const TChar* src_begin,const TChar* src_en
     m_src_begin=src_begin;
     m_src_end=src_end;
     if (isUseLargeSA()){
-        m_SA_limit.clear();
+        std::vector<TInt32> _tmp_m;
+        m_SA_limit.swap(_tmp_m);
         _suffixString_create(m_src_begin,m_src_end,m_SA_large);
     }else{
         assert(sizeof(TInt32)==4);
-        m_SA_large.clear();
+        std::vector<TInt> _tmp_g;
+        m_SA_large.swap(_tmp_g);
         _suffixString_create(m_src_begin,m_src_end,m_SA_limit);
     }
     build_cache();
 }
 
+#define _cached2(ix) (TChar*)m_cached_SA_begin+(isLarge? \
+        ((size_t*)m_cached2char_range)[ix]*sizeof(size_t) : ((TInt32*)m_cached2char_range)[ix]*sizeof(TInt32) )
+
 TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
     //not use any cached range table
     //return m_lower_bound(m_cached_SA_begin,m_cached_SA_end,
     //                     str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,0);
-    
     TInt str_len=str_end-str;
     if ((str_len>=2)&(m_cached2char_range!=0)){
+        bool isLarge=isUseLargeSA();
         size_t cc=((size_t)str[1]) | (((size_t)str[0])<<8);
-        return m_lower_bound(m_cached2char_range[cc],m_cached2char_range[cc+1],
+        return m_lower_bound(_cached2(cc),_cached2(cc+1),
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,2);
     }else if (str_len>0) {
         size_t c=str[0];
@@ -300,7 +305,7 @@ TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
 
 void TSuffixString::clear_cache(){
     if (m_cached2char_range){
-        delete []m_cached2char_range;
+        delete [](TChar*)m_cached2char_range;
         m_cached2char_range=0;
     }
     memset(&m_cached1char_range[0],0,sizeof(void*)*(256+1));
@@ -314,8 +319,7 @@ void TSuffixString::build_cache(){
     
     const size_t kUsedCacheMinSASize =2*(1<<20); //当字符串较大时再启用大缓存表.
     if (SASize()>kUsedCacheMinSASize){
-        m_cached2char_range=new void*[256*256+1];
-        memset(m_cached2char_range,0,sizeof(void*)*(256*256+1));
+        m_cached2char_range=new TChar[(256*256+1)*(isUseLargeSA()?sizeof(size_t):sizeof(TInt32))];
     }
     
     if (isUseLargeSA()){
@@ -327,7 +331,7 @@ void TSuffixString::build_cache(){
                         m_src_begin,m_src_end,(const TInt**)&m_cached1char_range[0]);
         if (m_cached2char_range){
             _build_range((TInt*)m_cached_SA_begin,(TInt*)m_cached_SA_end,
-                         m_src_begin,m_src_end,(const TInt**)&m_cached2char_range[0]);
+                         m_src_begin,m_src_end,(TInt*)m_cached2char_range);
         }
     }else{
         m_lower_bound=(t_lower_bound_func)_lower_bound_TInt32;
@@ -338,7 +342,7 @@ void TSuffixString::build_cache(){
                         m_src_begin,m_src_end,(const TInt32**)&m_cached1char_range[0]);
         if (m_cached2char_range){
             _build_range((TInt32*)m_cached_SA_begin,(TInt32*)m_cached_SA_end,
-                         m_src_begin,m_src_end,(const TInt32**)&m_cached2char_range[0]);
+                         m_src_begin,m_src_end,(TInt32*)m_cached2char_range);
         }
     }
 }
