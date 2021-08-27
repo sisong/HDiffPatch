@@ -220,12 +220,36 @@ hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName){
 }
 
 
+#if defined(ANDROID) && (__ANDROID_API__ < 24)
+static off64_t _import_lseek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
+    off64_t oldPos;
+    int fd;
+    if (feof(file))
+        rewind(file);
+    setbuf(file,NULL);
+    fd = fileno(file);
+    if (fd<0) return -1;
+    return lseek64(fd,seekPos,whence);
+}
+#endif
+
 hpatch_inline static
 hpatch_BOOL _import_fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_pos){
 #ifdef _MSC_VER
     __int64 fpos=_ftelli64(file);
 #else
+# ifdef ANDROID
+    off64_t fpos;
+#  if __ANDROID_API__ >= 24
+    fpos=ftello64(file);
+#  else
+    fpos=ftello(file);
+    if ((fpos<0)&&(sizeof(off_t)<=4))
+        fpos=_import_lseek64(file,0,SEEK_CUR); //!!! _import_lseek64 unsafe if cur pos not at begin or end!
+#  endif
+# else
     off_t fpos=ftello(file);
+# endif
 #endif
     hpatch_BOOL result=(fpos>=0);
     if (result) *out_pos=fpos;
@@ -235,13 +259,18 @@ hpatch_BOOL _import_fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_po
 hpatch_inline static
 hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
 #ifdef _MSC_VER
-    int ret=_fseeki64(file,seekPos,whence);
-#else
-    off_t fpos=seekPos;
-    if ((fpos<0)||((hpatch_StreamPos_t)fpos!=seekPos)) return hpatch_FALSE;
-    int ret=fseeko(file,fpos,whence);
+    return _fseeki64(file,seekPos,whence)==0;
 #endif
-    return (ret==0);
+# ifdef ANDROID
+#  if __ANDROID_API__ >= 24
+    return fseeko64(file,seekPos,whence)==0;
+#  else
+    if (((long long)seekPos)==((int)seekPos)) return fseek(file,(int)seekPos,whence)==0;
+    else if (whence==SEEK_CUR) return hpatch_FALSE; //!!! _import_lseek64 unsafe if whence==SEEK_CUR
+    else return _import_lseek64(file,seekPos,whence)>=0;
+#  endif
+# endif
+    return fseeko(file,seekPos,whence)==0;
 }
 
 
@@ -443,6 +472,7 @@ hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self){
         }
         if (writeToPos!=self->m_fpos){
             if (self->is_random_out){
+                if (!_import_fileFlush(self->m_file)) _fileError_return; //for lseek64 safe
                 if (!_import_fileSeek64(self->m_file,writeToPos,SEEK_SET)) _fileError_return;
                 self->m_fpos=writeToPos;
             }else{
