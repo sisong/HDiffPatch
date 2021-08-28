@@ -31,10 +31,8 @@
 namespace hdiff_private{
 
     hpatch_StreamPos_t getFileSize(const std::string& fileName){
-        hpatch_TPathType   type;
         hpatch_StreamPos_t fileSize;
-        checkv(hpatch_getPathStat(fileName.c_str(),&type,&fileSize));
-        checkv(type==kPathType_file);
+        checkv(hpatch_getFileSize(fileName.c_str(),&fileSize));
         return fileSize;
     }
     

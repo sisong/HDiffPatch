@@ -192,6 +192,13 @@ hpatch_BOOL hpatch_isPathExist(const char* pathName){
     if (!hpatch_getPathStat(pathName,&type,0)) return hpatch_FALSE;
     return (kPathType_notExist!=type);
 }
+
+hpatch_inline static
+hpatch_BOOL  hpatch_getFileSize(const char* fileName_utf8,hpatch_StreamPos_t* out_fileSize){
+    hpatch_TPathType   type;
+    if (!hpatch_getPathStat(fileName_utf8,&type,out_fileSize)) return hpatch_FALSE;
+    return (type==kPathType_file);
+}
     
 hpatch_BOOL hpatch_getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end);
 hpatch_BOOL hpatch_renamePath(const char* oldPath_utf8,const char* newPath_utf8);

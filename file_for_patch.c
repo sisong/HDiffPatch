@@ -234,33 +234,10 @@ static off64_t _import_lseek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos
 #endif
 
 hpatch_inline static
-hpatch_BOOL _import_fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_pos){
-#ifdef _MSC_VER
-    __int64 fpos=_ftelli64(file);
-#else
-# ifdef ANDROID
-    off64_t fpos;
-#  if __ANDROID_API__ >= 24
-    fpos=ftello64(file);
-#  else
-    fpos=ftello(file);
-    if ((fpos<0)&&(sizeof(off_t)<=4))
-        fpos=_import_lseek64(file,0,SEEK_CUR); //!!! _import_lseek64 unsafe if cur pos not at begin or end!
-#  endif
-# else
-    off_t fpos=ftello(file);
-# endif
-#endif
-    hpatch_BOOL result=(fpos>=0);
-    if (result) *out_pos=fpos;
-    return result;
-}
-
-hpatch_inline static
 hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
 #ifdef _MSC_VER
     return _fseeki64(file,seekPos,whence)==0;
-#endif
+#else
 # ifdef ANDROID
 #  if __ANDROID_API__ >= 24
     return fseeko64(file,seekPos,whence)==0;
@@ -269,8 +246,10 @@ hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos
     else if (whence==SEEK_CUR) return hpatch_FALSE; //!!! _import_lseek64 unsafe if whence==SEEK_CUR
     else return _import_lseek64(file,seekPos,whence)>=0;
 #  endif
-# endif
+# else
     return fseeko(file,seekPos,whence)==0;
+# endif
+#endif
 }
 
 
@@ -366,15 +345,11 @@ hpatch_BOOL _import_fileOpenRead(const char* fileName_utf8,hpatch_FileHandle* ou
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
+    if (out_fileLength!=0){
+        if (!hpatch_getFileSize(fileName_utf8,out_fileLength)) _file_error(file);
+    }
     file=_import_fileOpenByMode(fileName_utf8,_kFileReadMode);
     if (file==0) _file_error(file);
-    if (out_fileLength!=0){
-        hpatch_StreamPos_t file_length=0;
-        if (!_import_fileSeek64(file,0,SEEK_END)) _file_error(file);
-        if (!_import_fileTell64(file,&file_length)) _file_error(file);
-        if (!_import_fileSeek64(file,0,SEEK_SET)) _file_error(file);
-        *out_fileLength=file_length;
-    }
     *out_fileHandle=file;
     return hpatch_TRUE;
 }
@@ -394,14 +369,12 @@ hpatch_BOOL _import_fileReopenWrite(const char* fileName_utf8,hpatch_FileHandle*
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
+    if (out_curFileWritePos!=0){
+        if (!hpatch_getFileSize(fileName_utf8,out_curFileWritePos)) _file_error(file);
+    }
     file=_import_fileOpenByMode(fileName_utf8,_kFileReadWriteMode);
     if (file==0) _file_error(file);
     if (!_import_fileSeek64(file,0,SEEK_END)) _file_error(file);
-    if (out_curFileWritePos!=0){
-        hpatch_StreamPos_t file_length=0;
-        if (!_import_fileTell64(file,&file_length)) _file_error(file);
-        *out_curFileWritePos=file_length;
-    }
     *out_fileHandle=file;
     return hpatch_TRUE;
 }
