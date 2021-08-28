@@ -96,6 +96,13 @@ extern "C" {
 #       define PRIu64 "llu"
 #   endif
 #endif
+
+#ifdef ANDROID
+#   include <android/log.h>
+#   define LOG_ERR(...) __android_log_print(ANDROID_LOG_ERROR, "hpatch", __VA_ARGS__)
+#else
+#   define LOG_ERR(...) fprintf(stderr,__VA_ARGS__)
+#endif
     
 #define _hpatch_align_type_lower(uint_type,p,align2pow) (((uint_type)(p)) & (~(uint_type)((align2pow)-1)))
 #define _hpatch_align_lower(p,align2pow) _hpatch_align_type_lower(hpatch_size_t,p,align2pow)

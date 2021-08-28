@@ -48,7 +48,7 @@
 #   define _IsNeedIncludeDefaultCompressHead 1
 #endif
 
-#define _close_check(value) { if (!(value)) { fprintf(stderr,"check "#value " ERROR!\n"); result=hpatch_FALSE; } }
+#define _close_check(value) { if (!(value)) { LOG_ERR("check "#value " ERROR!\n"); result=hpatch_FALSE; } }
 
 #ifdef  _CompressPlugin_zlib
 #if (_IsNeedIncludeDefaultCompressHead)

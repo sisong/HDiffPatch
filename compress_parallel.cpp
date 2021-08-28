@@ -72,7 +72,7 @@ struct TWorkData{
 
 void _threadRunCallBack(int threadIndex,void* _workData){
     #define _check_br(value){ \
-        if (!(value)) { fprintf(stderr,"parallel_compress_blocks() check "#value" error!\n"); \
+        if (!(value)) { LOG_ERR("parallel_compress_blocks() check "#value" error!\n"); \
         wd.isInError=true; wd.chanForWaitWrite.close(); wd.chanForWorkEnd.close(); break; } }
     TWorkData& wd=*(TWorkData*)_workData;
     hdiff_compressBlockHandle cbhandle=wd.blockCompressors[threadIndex].handle;
@@ -158,7 +158,7 @@ hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
             workData.chanForWorkEnd.accept(true);
         return workData.isInError?0:workData.outCodePos;
     } catch (const std::exception& e) {
-        fprintf(stderr,"parallel_compress_blocks run error! %s\n",e.what());
+        LOG_ERR("parallel_compress_blocks run error! %s\n",e.what());
         return 0; //error
     }
 }

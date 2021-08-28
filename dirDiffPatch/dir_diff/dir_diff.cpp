@@ -514,7 +514,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     #undef _pushv
 }
 
-#define _test(value) { if (!(value)) { fprintf(stderr,"DirPatch check "#value" error!\n");  return hpatch_FALSE; } }
+#define _test(value) { if (!(value)) { LOG_ERR("DirPatch check "#value" error!\n");  return hpatch_FALSE; } }
 
 struct CDirPatchListener:public IDirPatchListener{
     explicit CDirPatchListener(const std::string& newRootDir,
@@ -700,7 +700,7 @@ bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const
 #undef _test
 
 
-#define _check(value) { if (!(value)) { fprintf(stderr,"dirOldDataChecksum check "#value" error!\n"); \
+#define _check(value) { if (!(value)) { LOG_ERR("dirOldDataChecksum check "#value" error!\n"); \
                             result= hpatch_FALSE; goto clear; } }
 hpatch_BOOL check_dirOldDataChecksum(const char* oldPath,hpatch_TStreamInput* diffData,
                                      hpatch_TDecompress *decompressPlugin,hpatch_TChecksum *checksumPlugin){

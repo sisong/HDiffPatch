@@ -149,11 +149,11 @@ int hpatch_printStdErrPath_utf8(const char* pathTxt_utf8){
     wchar_t pathTxt_w[hpatch_kPathMaxSize];
     int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,hpatch_kPathMaxSize);
     if (wsize>0)
-        return fprintf(stderr,"%ls",pathTxt_w);
+        return LOG_ERR("%ls",pathTxt_w);
     else //view unknow
-        return fprintf(stderr,"%s",pathTxt_utf8);
+        return LOG_ERR("%s",pathTxt_utf8);
 #else
-    return fprintf(stderr,"%s",pathTxt_utf8);
+    return LOG_ERR("%s",pathTxt_utf8);
 #endif
 }
     
