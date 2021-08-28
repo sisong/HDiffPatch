@@ -35,7 +35,7 @@
 
 #define TUInt hpatch_StreamPos_t
 
-#define  check(value) { if (!(value)){ fprintf(stderr,"check "#value" error!\n");  \
+#define  check(value) { if (!(value)){ LOG_ERR("check "#value" error!\n");  \
                                        result=hpatch_FALSE; goto clear; } }
 
 static hpatch_BOOL _TDirPatcher_copyFile(const char* oldFileName_utf8,const char* newFileName_utf8,

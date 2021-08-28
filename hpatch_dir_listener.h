@@ -151,8 +151,8 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
                 hpatch_removeFile(dstPath);//overwrite
                 if (!hpatch_moveFile(srcPath,dstPath)){//move src to dst
                     result=hpatch_FALSE;
-                    fprintf(stderr,"can't move new file to oldDirectory \"");
-                    hpatch_printStdErrPath_utf8(srcPath); fprintf(stderr,"\"  ERROR!\n");
+                    LOG_ERR("can't move new file to oldDirectory \"");
+                    hpatch_printStdErrPath_utf8(srcPath); LOG_ERR("\"  ERROR!\n");
                     continue;
                 }
             }
@@ -214,14 +214,14 @@ static hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPa
             if (TDirPatcher_oldSameRefCount(dirPatcher,sameIndex)>1){//copy old to new
                 if (!TDirPatcher_copyFile(oldPath,newPath,0)){
                     result=hpatch_FALSE;
-                    fprintf(stderr,"can't copy new file to newTempDir from same old file \"");
-                    hpatch_printStdErrPath_utf8(newPath); fprintf(stderr,"\"  ERROR!\n");
+                    LOG_ERR("can't copy new file to newTempDir from same old file \"");
+                    hpatch_printStdErrPath_utf8(newPath); LOG_ERR("\"  ERROR!\n");
                 }
             }else{
                 if (!hpatch_moveFile(oldPath,newPath)){//move old to new
                     result=hpatch_FALSE;
-                    fprintf(stderr,"can't move new file to newTempDir from same old file \"");
-                    hpatch_printStdErrPath_utf8(newPath); fprintf(stderr,"\"  ERROR!\n");
+                    LOG_ERR("can't move new file to newTempDir from same old file \"");
+                    hpatch_printStdErrPath_utf8(newPath); LOG_ERR("\"  ERROR!\n");
                 }
             }
             TDirPatcher_decOldSameRefCount(dirPatcher,sameIndex);
@@ -257,8 +257,8 @@ static hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPa
         const char* newTempDir=TDirPatcher_getNewPathRoot(dirPatcher);
         if (!hpatch_isPathNotExist(newTempDir)){
             result=hpatch_FALSE;
-            fprintf(stderr,"can't delete newTempDir \"");
-            hpatch_printStdErrPath_utf8(newTempDir); fprintf(stderr,"\"  ERROR!\n");
+            LOG_ERR("can't delete newTempDir \"");
+            hpatch_printStdErrPath_utf8(newTempDir); LOG_ERR("\"  ERROR!\n");
         }
     }
     return result;

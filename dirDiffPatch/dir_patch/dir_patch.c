@@ -38,7 +38,7 @@ static const char* kVersionType="HDIFF19";
 
 #define TUInt hpatch_StreamPos_t
 
-#define  check(value) { if (!(value)){ fprintf(stderr,"check "#value" error!\n");  \
+#define  check(value) { if (!(value)){ LOG_ERR("check "#value" error!\n");  \
                                        result=hpatch_FALSE; goto clear; } }
 
 #define unpackUIntTo(puint,sclip) \

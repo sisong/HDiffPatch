@@ -520,7 +520,7 @@ static bool _tryGetCompressSet(const char** isMatchedType,const char* ptype,cons
 }
 
 #define _options_check(value,errorInfo){ \
-    if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n\n"); printUsage(); return HDIFF_OPTIONS_ERROR; } }
+    if (!(value)) { LOG_ERR("options " errorInfo " ERROR!\n\n"); printUsage(); return HDIFF_OPTIONS_ERROR; } }
 
 static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
                              hpatch_TDecompress** out_decompressPlugin,
@@ -651,7 +651,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
 }
 
 #define _return_check(value,exitCode,errorInfo){ \
-    if (!(value)) { fprintf(stderr,errorInfo " ERROR!\n"); return exitCode; } }
+    if (!(value)) { LOG_ERR(errorInfo " ERROR!\n"); return exitCode; } }
 
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
 #define _kNULL_SIZE     (~(size_t)0)

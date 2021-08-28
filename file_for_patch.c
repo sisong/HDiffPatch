@@ -220,28 +220,36 @@ hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName){
 }
 
 
-hpatch_inline static
-hpatch_BOOL _import_fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* out_pos){
-#ifdef _MSC_VER
-    __int64 fpos=_ftelli64(file);
-#else
-    off_t fpos=ftello(file);
-#endif
-    hpatch_BOOL result=(fpos>=0);
-    if (result) *out_pos=fpos;
-    return result;
+#if defined(ANDROID) && (__ANDROID_API__ < 24)
+static off64_t _import_lseek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
+    off64_t oldPos;
+    int fd;
+    if (feof(file))
+        rewind(file);
+    setbuf(file,NULL);
+    fd = fileno(file);
+    if (fd<0) return -1;
+    return lseek64(fd,seekPos,whence);
 }
+#endif
 
 hpatch_inline static
-hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
+hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos){
+    const int whence=SEEK_SET;
 #ifdef _MSC_VER
-    int ret=_fseeki64(file,seekPos,whence);
+    return _fseeki64(file,seekPos,whence)==0;
 #else
-    off_t fpos=seekPos;
-    if ((fpos<0)||((hpatch_StreamPos_t)fpos!=seekPos)) return hpatch_FALSE;
-    int ret=fseeko(file,fpos,whence);
+# ifdef ANDROID
+#  if __ANDROID_API__ >= 24
+    return fseeko64(file,seekPos,whence)==0;
+#  else
+    if (((long long)seekPos)==((int)seekPos)) return fseek(file,(int)seekPos,whence)==0;
+    else return _import_lseek64(file,seekPos,whence)>=0;
+#  endif
+# else
+    return fseeko(file,seekPos,whence)==0;
+# endif
 #endif
-    return (ret==0);
 }
 
 
@@ -337,15 +345,11 @@ hpatch_BOOL _import_fileOpenRead(const char* fileName_utf8,hpatch_FileHandle* ou
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
+    if (out_fileLength!=0){
+        if (!hpatch_getFileSize(fileName_utf8,out_fileLength)) _file_error(file);
+    }
     file=_import_fileOpenByMode(fileName_utf8,_kFileReadMode);
     if (file==0) _file_error(file);
-    if (out_fileLength!=0){
-        hpatch_StreamPos_t file_length=0;
-        if (!_import_fileSeek64(file,0,SEEK_END)) _file_error(file);
-        if (!_import_fileTell64(file,&file_length)) _file_error(file);
-        if (!_import_fileSeek64(file,0,SEEK_SET)) _file_error(file);
-        *out_fileLength=file_length;
-    }
     *out_fileHandle=file;
     return hpatch_TRUE;
 }
@@ -363,16 +367,14 @@ hpatch_BOOL _import_fileOpenCreateOrReWrite(const char* fileName_utf8,hpatch_Fil
 hpatch_BOOL _import_fileReopenWrite(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle,
                                     hpatch_StreamPos_t* out_curFileWritePos){
     hpatch_FileHandle file=0;
+    hpatch_StreamPos_t curFileSize=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) _file_error(file);
+    if (!hpatch_getFileSize(fileName_utf8,&curFileSize)) _file_error(file);
+    if (out_curFileWritePos!=0) *out_curFileWritePos=curFileSize;
     file=_import_fileOpenByMode(fileName_utf8,_kFileReadWriteMode);
     if (file==0) _file_error(file);
-    if (!_import_fileSeek64(file,0,SEEK_END)) _file_error(file);
-    if (out_curFileWritePos!=0){
-        hpatch_StreamPos_t file_length=0;
-        if (!_import_fileTell64(file,&file_length)) _file_error(file);
-        *out_curFileWritePos=file_length;
-    }
+    if (!_import_fileSeek64(file,curFileSize)) _file_error(file);
     *out_fileHandle=file;
     return hpatch_TRUE;
 }
@@ -394,7 +396,7 @@ hpatch_BOOL _import_fileReopenWrite(const char* fileName_utf8,hpatch_FileHandle*
         if ((readLen>self->base.streamSize)
             ||(readFromPos>self->base.streamSize-readLen)) _fileError_return;
         if (self->m_fpos!=readFromPos+self->m_offset){
-            if (!_import_fileSeek64(self->m_file,readFromPos+self->m_offset,SEEK_SET)) _fileError_return;
+            if (!_import_fileSeek64(self->m_file,readFromPos+self->m_offset)) _fileError_return;
         }
         if (!_import_fileRead(self->m_file,out_data,out_data+readLen)) _fileError_return;
         self->m_fpos=readFromPos+self->m_offset+readLen;
@@ -443,7 +445,8 @@ hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self){
         }
         if (writeToPos!=self->m_fpos){
             if (self->is_random_out){
-                if (!_import_fileSeek64(self->m_file,writeToPos,SEEK_SET)) _fileError_return;
+                if (!_import_fileFlush(self->m_file)) _fileError_return; //for lseek64 safe
+                if (!_import_fileSeek64(self->m_file,writeToPos)) _fileError_return;
                 self->m_fpos=writeToPos;
             }else{
                 _fileError_return;

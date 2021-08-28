@@ -289,10 +289,10 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
 #endif
 
 #define _return_check(value,exitCode,errorInfo){ \
-    if (!(value)) { fprintf(stderr,errorInfo " ERROR!\n"); return exitCode; } }
+    if (!(value)) { LOG_ERR(errorInfo " ERROR!\n"); return exitCode; } }
 
 #define _options_check(value,errorInfo){ \
-    if (!(value)) { fprintf(stderr,"options " errorInfo " ERROR!\n\n"); \
+    if (!(value)) { LOG_ERR("options " errorInfo " ERROR!\n\n"); \
         printUsage(); return HPATCH_OPTIONS_ERROR; } }
 
 #define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
@@ -637,7 +637,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #define  check_on_error(errorType) { \
     if (result==HPATCH_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define  check(value,errorType,errorInfo) { \
-    if (!(value)){ fprintf(stderr,errorInfo " ERROR!\n"); check_on_error(errorType); } }
+    if (!(value)){ LOG_ERR(errorInfo " ERROR!\n"); check_on_error(errorType); } }
 
 
 static hpatch_BOOL getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
@@ -695,8 +695,9 @@ static hpatch_BOOL getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo
 }
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
-static inline hpatch_BOOL _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType,
-                                          hpatch_TChecksum* testChecksumPlugin){
+static hpatch_inline 
+hpatch_BOOL _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType,
+                            hpatch_TChecksum* testChecksumPlugin){
     assert(0==*out_checksumPlugin);
     if (0!=strcmp(checksumType,testChecksumPlugin->checksumType())) return hpatch_FALSE;
     *out_checksumPlugin=testChecksumPlugin;
@@ -833,12 +834,12 @@ int hpatch(const char* oldFileName,const char* diffFileName,
                 check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
-            fprintf(stderr,"oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 " ERROR!\n",
+            LOG_ERR("oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 " ERROR!\n",
                     poldData->streamSize,diffInfo.oldDataSize);
             check_on_error(HPATCH_FILEDATA_ERROR);
         }
         if(!getDecompressPlugin(&diffInfo,&decompressPlugin)){
-            fprintf(stderr,"can not decompress \"%s\" data ERROR!\n",diffInfo.compressType);
+            LOG_ERR("can not decompress \"%s\" data ERROR!\n",diffInfo.compressType);
             check_on_error(HPATCH_COMPRESSTYPE_ERROR);
         }
         savedNewSize=diffInfo.newDataSize;
@@ -869,7 +870,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,
         check(hpatch_FALSE,HPATCH_PATCH_ERROR,"patch run");
     }
     if (newData.out_length!=newData.base.streamSize){
-        fprintf(stderr,"out newFile dataSize %" PRIu64 " != diffFile saved newDataSize %" PRIu64 " ERROR!\n",
+        LOG_ERR("out newFile dataSize %" PRIu64 " != diffFile saved newDataSize %" PRIu64 " ERROR!\n",
                newData.out_length,newData.base.streamSize);
         check_on_error(HPATCH_FILEDATA_ERROR);
     }
@@ -950,7 +951,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         hdiffInfo=dirDiffInfo->hdiffInfo;
         hdiffInfo.compressedCount+=(dirDiffInfo->dirDataIsCompressed)?1:0;
         if(!getDecompressPlugin(&hdiffInfo,&decompressPlugin)){
-            fprintf(stderr,"can not decompress \"%s\" data ERROR!\n",hdiffInfo.compressType);
+            LOG_ERR("can not decompress \"%s\" data ERROR!\n",hdiffInfo.compressType);
             check_on_error(HPATCH_COMPRESSTYPE_ERROR);
         }
         //load dir data
@@ -969,7 +970,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
                 printf("  NOTE: no checksum saved in diffFile,can not do checksum\n");
             }else{
                 if (!findChecksum(&checksumSet->checksumPlugin,dirDiffInfo->checksumType)){
-                    fprintf(stderr,"not found checksumType \"%s\" ERROR!\n",dirDiffInfo->checksumType);
+                    LOG_ERR("not found checksumType \"%s\" ERROR!\n",dirDiffInfo->checksumType);
                     check_on_error(DIRPATCH_CHECKSUMTYPE_ERROR);
                 }
                 printf("hpatchz run with checksum plugin: \"%s\" (need checksum %d)\n",

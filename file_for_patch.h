@@ -149,11 +149,11 @@ int hpatch_printStdErrPath_utf8(const char* pathTxt_utf8){
     wchar_t pathTxt_w[hpatch_kPathMaxSize];
     int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,hpatch_kPathMaxSize);
     if (wsize>0)
-        return fprintf(stderr,"%ls",pathTxt_w);
+        return LOG_ERR("%ls",pathTxt_w);
     else //view unknow
-        return fprintf(stderr,"%s",pathTxt_utf8);
+        return LOG_ERR("%s",pathTxt_utf8);
 #else
-    return fprintf(stderr,"%s",pathTxt_utf8);
+    return LOG_ERR("%s",pathTxt_utf8);
 #endif
 }
     
@@ -191,6 +191,13 @@ hpatch_BOOL hpatch_isPathExist(const char* pathName){
     if (pathName==0) return hpatch_FALSE;
     if (!hpatch_getPathStat(pathName,&type,0)) return hpatch_FALSE;
     return (kPathType_notExist!=type);
+}
+
+hpatch_inline static
+hpatch_BOOL  hpatch_getFileSize(const char* fileName_utf8,hpatch_StreamPos_t* out_fileSize){
+    hpatch_TPathType   type;
+    if (!hpatch_getPathStat(fileName_utf8,&type,out_fileSize)) return hpatch_FALSE;
+    return (type==kPathType_file);
 }
     
 hpatch_BOOL hpatch_getTempPathName(const char* path_utf8,char* out_tempPath_utf8,char* out_tempPath_end);
