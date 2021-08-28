@@ -990,7 +990,7 @@ void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,
 
 
 
-    #define _test(value) { if (!(value)) { fprintf(stderr,"patch check "#value" error!\n");  return hpatch_FALSE; } }
+    #define _test(value) { if (!(value)) { LOG_ERR("patch check "#value" error!\n");  return hpatch_FALSE; } }
 
     struct _TCheckOutNewDataStream:public hpatch_TStreamOutput{
         explicit _TCheckOutNewDataStream(const hpatch_TStreamInput*  _newData,

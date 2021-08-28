@@ -38,7 +38,7 @@ extern "C" {
 
 #define HDIFFPATCH_VERSION_MAJOR    4
 #define HDIFFPATCH_VERSION_MINOR    0
-#define HDIFFPATCH_VERSION_RELEASE  5
+#define HDIFFPATCH_VERSION_RELEASE  6
 
 #define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
 #define _HDIFFPATCH_QUOTE(str) #str
@@ -95,6 +95,13 @@ extern "C" {
 #   else
 #       define PRIu64 "llu"
 #   endif
+#endif
+
+#ifdef ANDROID
+#   include <android/log.h>
+#   define LOG_ERR(...) __android_log_print(ANDROID_LOG_ERROR, "hpatch", __VA_ARGS__)
+#else
+#   define LOG_ERR(...) fprintf(stderr,__VA_ARGS__)
 #endif
     
 #define _hpatch_align_type_lower(uint_type,p,align2pow) (((uint_type)(p)) & (~(uint_type)((align2pow)-1)))
