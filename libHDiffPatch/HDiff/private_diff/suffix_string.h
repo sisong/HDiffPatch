@@ -31,6 +31,14 @@
 #define __SUFFIX_STRING_H_
 #include <vector>
 #include <stddef.h> //for ptrdiff_t,size_t
+#if (_SSTRING_FAST_MATCH>0)
+#   if (_SSTRING_FAST_MATCH<2)
+#       error must _SSTRING_FAST_MATCH>=2!
+#   endif
+#   include "limit_mem_diff/bloom_filter.h"
+#   include "limit_mem_diff/adler_roll.h"
+#endif
+
 #if defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
 #   include <stdint.h> //for int32_t
 namespace hdiff_private{
@@ -41,6 +49,25 @@ namespace hdiff_private{
 #   else
     typedef signed int     int32_t;
 #   endif
+#endif
+
+#if (_SSTRING_FAST_MATCH>0)
+class TFastMatchForSString{
+public:
+    typedef uint32_t      THash;
+    typedef unsigned char TChar;
+    enum { kFMMinStrSize=_SSTRING_FAST_MATCH };
+
+    inline TFastMatchForSString(){}
+    void buildMatchCache(const TChar* src_begin,const TChar* src_end);
+
+    static inline THash getHash(const TChar* datas) { return fast_adler32_start(datas,kFMMinStrSize); }
+
+    inline bool isHit(THash h) const { return bf.is_hit(h); }
+private:
+    TBloomFilter<size_t>  bf;
+    static inline THash rollHash(THash h,const TChar* cur) { return fast_adler32_roll(h,kFMMinStrSize,cur[-kFMMinStrSize],cur[0]); }
+};
 #endif
 
 class TSuffixString{
@@ -66,7 +93,7 @@ public:
         else
             return (TInt)m_SA_limit[i];
     }
-    TInt lower_bound(const TChar* str,const TChar* str_end)const;//return index in SA
+    TInt lower_bound(const TChar* str,const TChar* str_end)const;//return index in SA; must str_end-str>=2 !
 private:
     const TChar*        m_src_begin;//原字符串.
     const TChar*        m_src_end;
@@ -77,10 +104,14 @@ private:
         return (sizeof(TInt)>sizeof(TInt32)) && (SASize()>kLimitSASize);
     }
 private:
+    // all cache for lower_bound speed
+#if (_SSTRING_FAST_MATCH>0)
+    TFastMatchForSString    m_fastMatch; //a big memroy cache & build slow
+#endif
     const void*         m_cached_SA_begin;
     const void*         m_cached_SA_end;
     const void*         m_cached1char_range[256+1];
-    void**              m_cached2char_range;//[256*256+1]
+    void*               m_cached2char_range;//[256*256+1]
     typedef TInt (*t_lower_bound_func)(const void* rbegin,const void* rend,
                                        const TChar* str,const TChar* str_end,
                                        const TChar* src_begin,const TChar* src_end,

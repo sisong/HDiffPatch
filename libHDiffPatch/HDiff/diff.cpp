@@ -55,7 +55,11 @@ static const char* kHDiffSFVersionType="HDIFFSF20";
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
 
-static const int kMinMatchLen = 5; //最小搜寻相等长度。
+#if (_SSTRING_FAST_MATCH>0)
+static const int kMinMatchLen   = (_SSTRING_FAST_MATCH>5)?_SSTRING_FAST_MATCH:5;
+#else
+static const int kMinMatchLen   = 5; //最小搜寻相等长度。
+#endif
 static const int kMinMatchScore = 2; //最小搜寻覆盖收益.
 
 namespace{
@@ -427,7 +431,6 @@ static void select_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
 //尝试延长覆盖区域.
 static void extend_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
                          const TFixedFloatSmooth kExtendMinSameRatio,TDiffLimit* diffLimit=0){
-    const size_t kNoLimitLen=~(size_t)0;
     TInt lastNewEnd=diffLimit?diffLimit->newPos:0;
     for (TInt i=0; i<(TInt)covers.size(); ++i) {
         TInt newPos_next;
@@ -535,7 +538,7 @@ static void extend_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
                             curDataLen=cover.newPos-curReadPos;
                             oldData=0;
                         }else{
-                            assert(cover.newPos==curReadPos);
+                            assert((size_t)cover.newPos==curReadPos);
                             curDataLen=cover.length;
                             oldData=diff.oldData+cover.oldPos;
                             ++nextCoveri;

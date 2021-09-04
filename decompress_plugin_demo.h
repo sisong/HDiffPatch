@@ -181,7 +181,7 @@
         
         avail_out_back=self->d_stream.avail_out;
         avail_in_back=self->d_stream.avail_in;
-        ret=inflate(&self->d_stream,Z_PARTIAL_FLUSH);
+        ret=inflate(&self->d_stream,Z_NO_FLUSH);
         if (ret==Z_OK){
             if ((self->d_stream.avail_in==avail_in_back)&&(self->d_stream.avail_out==avail_out_back))
                 return hpatch_FALSE;//error;
