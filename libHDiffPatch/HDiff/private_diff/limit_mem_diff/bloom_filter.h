@@ -79,10 +79,12 @@ private:
 template <class T>
 class TBloomFilter{
 public:
+    enum { kZoomMin=1, kZoomBig=32 };
+
     inline TBloomFilter():m_bitSetMask(0){}
-    void init(size_t dataCount){
+    void init(size_t dataCount,size_t zoom = kZoomBig){
         ++dataCount;
-        m_bitSetMask=getMask(dataCount);//mask is 2^N-1
+        m_bitSetMask=getMask(dataCount,zoom);//mask is 2^N-1
         m_bitSet.clear(m_bitSetMask+1);
     }
     inline void insert(T data){
@@ -98,10 +100,11 @@ public:
 private:
     TBitSet   m_bitSet;
     size_t    m_bitSetMask;
-    enum { kZoom=32 };
-    static size_t getMask(size_t dataCount){
-        size_t bitSize=dataCount*kZoom;
-        if ((bitSize/kZoom)!=dataCount)
+    static size_t getMask(size_t dataCount,size_t zoom){
+        if (zoom<kZoomMin)
+            throw std::runtime_error("TBloomFilter::getMask() zoom too small error!");
+        size_t bitSize=dataCount*zoom;
+        if ((bitSize/zoom)!=dataCount)
             throw std::runtime_error("TBloomFilter::getMask() bitSize too large error!");
         unsigned int bit=10;
         while ( (((size_t)1<<bit)<bitSize) && (bit<sizeof(size_t)*8-1) )

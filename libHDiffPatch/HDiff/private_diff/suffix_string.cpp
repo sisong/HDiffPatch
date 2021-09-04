@@ -238,14 +238,12 @@ namespace {
 
 
 TSuffixString::TSuffixString()
-:m_src_begin(0),m_src_end(0),
- m_cached2char_range(0){
+:m_src_begin(0),m_src_end(0),m_cached2char_range(0){
      clear_cache();
 }
 
 TSuffixString::TSuffixString(const TChar* src_begin,const TChar* src_end)
-:m_src_begin(0),m_src_end(0),
-m_cached2char_range(0){
+:m_src_begin(0),m_src_end(0),m_cached2char_range(0){
     clear_cache();
     resetSuffixString(src_begin,src_end);
 }
@@ -288,13 +286,20 @@ TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
     //not use any cached range table
     //return m_lower_bound(m_cached_SA_begin,m_cached_SA_end,
     //                     str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,0);
-    TInt str_len=str_end-str;
-    if ((str_len>=2)&(m_cached2char_range!=0)){
-        bool isLarge=isUseLargeSA();
+#if (_SSTRING_FAST_MATCH>0)
+    if (!m_fastMatch.isHit(TFastMatchForSString::getHash(str)))
+        return 0;
+    #define kMinStrLen _SSTRING_FAST_MATCH
+#else
+    //assert(str_end-str>=2);
+    #define kMinStrLen 2
+#endif
+    if ((kMinStrLen>=2)&(m_cached2char_range!=0)){
         size_t cc=((size_t)str[1]) | (((size_t)str[0])<<8);
+        const bool isLarge=isUseLargeSA();
         return m_lower_bound(_cached2(cc),_cached2(cc+1),
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,2);
-    }else if (str_len>0) {
+    }else if (kMinStrLen>0){
         size_t c=str[0];
         return m_lower_bound(m_cached1char_range[c],m_cached1char_range[c+1],
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,1);
@@ -304,6 +309,9 @@ TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
 }
 
 void TSuffixString::clear_cache(){
+#if (_SSTRING_FAST_MATCH>0)
+    m_fastMatch.buildMatchCache(0,0);
+#endif
     if (m_cached2char_range){
         delete [](TChar*)m_cached2char_range;
         m_cached2char_range=0;
@@ -316,7 +324,9 @@ void TSuffixString::clear_cache(){
 
 void TSuffixString::build_cache(){
     clear_cache();
-    
+#if (_SSTRING_FAST_MATCH>0)
+    m_fastMatch.buildMatchCache(m_src_begin,m_src_end);
+#endif
     const size_t kUsedCacheMinSASize =2*(1<<20); //当字符串较大时再启用大缓存表.
     if (SASize()>kUsedCacheMinSASize){
         m_cached2char_range=new TChar[(256*256+1)*(isUseLargeSA()?sizeof(size_t):sizeof(TInt32))];
@@ -346,5 +356,28 @@ void TSuffixString::build_cache(){
         }
     }
 }
+
+
+#if (_SSTRING_FAST_MATCH>0)
+    void TFastMatchForSString::buildMatchCache(const TChar* src_begin,const TChar* src_end){
+        size_t srcSize=src_end-src_begin;
+        if (srcSize>=kFMMinStrSize){
+            #define kZoom 4
+            bf.init(srcSize,kZoom);
+            const TChar* cur = src_begin;
+            THash h = getHash(cur);
+            cur += kFMMinStrSize;
+            do {
+                bf.insert(h);
+                if (cur<src_end)
+                    h = rollHash(h,cur++);
+                else
+                    break;
+            } while (true);
+        }else{
+            bf.init(0,1);
+        }
+    }
+#endif
     
 }//namespace hdiff_private

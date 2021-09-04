@@ -55,7 +55,11 @@ static const char* kHDiffSFVersionType="HDIFFSF20";
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
 
-static const int kMinMatchLen = 5; //最小搜寻相等长度。
+#if (_SSTRING_FAST_MATCH>0)
+static const int kMinMatchLen   = (_SSTRING_FAST_MATCH>5)?_SSTRING_FAST_MATCH:5;
+#else
+static const int kMinMatchLen   = 5; //最小搜寻相等长度。
+#endif
 static const int kMinMatchScore = 2; //最小搜寻覆盖收益.
 
 namespace{
