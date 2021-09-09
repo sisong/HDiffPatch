@@ -310,7 +310,7 @@ TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
 
 void TSuffixString::clear_cache(){
 #if (_SSTRING_FAST_MATCH>0)
-    m_fastMatch.buildMatchCache(0,0);
+    m_fastMatch.clear();
 #endif
     if (m_cached2char_range){
         delete [](TChar*)m_cached2char_range;
@@ -360,22 +360,24 @@ void TSuffixString::build_cache(){
 
 #if (_SSTRING_FAST_MATCH>0)
     void TFastMatchForSString::buildMatchCache(const TChar* src_begin,const TChar* src_end){
+        #define kFMZoom 4  //ctrl memory size & match speed
         size_t srcSize=src_end-src_begin;
         if (srcSize>=kFMMinStrSize){
-            #define kZoom 4
-            bf.init(srcSize,kZoom);
+            bf.init(srcSize-(kFMMinStrSize-1),kFMZoom); //alloc large memory
             const TChar* cur = src_begin;
             THash h = getHash(cur);
             cur += kFMMinStrSize;
             do {
-                bf.insert(h);
+                bf.insert(h);  //random write slow
                 if (cur<src_end)
                     h = rollHash(h,cur++);
                 else
                     break;
             } while (true);
-        }else{
-            bf.init(0,1);
+        }else if ((srcSize>0)||(src_begin!=0))
+            bf.init(0,kFMZoom);
+        else{
+            bf.clear();
         }
     }
 #endif

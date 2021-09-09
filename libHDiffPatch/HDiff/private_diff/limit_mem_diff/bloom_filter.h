@@ -39,7 +39,7 @@ public:
     inline ~TBitSet(){ clear(0); }
     
     inline void set(size_t bitIndex){
-        assert(bitIndex<m_bitSize);
+        //assert(bitIndex<m_bitSize);
         m_bits[bitIndex>>kBaseShr] |= ((base_t)1<<(bitIndex&kBaseMask));
     }
     inline bool is_hit(size_t bitIndex)const{
@@ -47,7 +47,7 @@ public:
         return 0!=(m_bits[bitIndex>>kBaseShr] & ((base_t)1<<(bitIndex&kBaseMask)));
     }
     
-    inline size_t size()const{return m_bitSize; }
+    inline size_t bitSize()const{return m_bitSize; }
     
     void clear(size_t newBitSize){
         size_t count=bitSizeToCount(newBitSize);
@@ -79,14 +79,15 @@ private:
 template <class T>
 class TBloomFilter{
 public:
-    enum { kZoomMin=1, kZoomBig=32 };
+    enum { kZoomMin=3, kZoomBig=32 };
 
     inline TBloomFilter():m_bitSetMask(0){}
+    inline void clear(){ m_bitSet.clear(0); }
     void init(size_t dataCount,size_t zoom = kZoomBig){
-        ++dataCount;
         m_bitSetMask=getMask(dataCount,zoom);//mask is 2^N-1
         m_bitSet.clear(m_bitSetMask+1);
     }
+    inline size_t bitSize()const{ return m_bitSet.bitSize(); }
     inline void insert(T data){
         m_bitSet.set(hash0(data));
         m_bitSet.set(hash1(data));

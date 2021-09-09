@@ -59,6 +59,7 @@ public:
     enum { kFMMinStrSize=_SSTRING_FAST_MATCH };
 
     inline TFastMatchForSString(){}
+    inline void clear(){ bf.clear(); }
     void buildMatchCache(const TChar* src_begin,const TChar* src_end);
 
     static inline THash getHash(const TChar* datas) { return fast_adler32_start(datas,kFMMinStrSize); }
@@ -106,7 +107,7 @@ private:
 private:
     // all cache for lower_bound speed
 #if (_SSTRING_FAST_MATCH>0)
-    TFastMatchForSString    m_fastMatch; //a big memroy cache & build slow
+    TFastMatchForSString    m_fastMatch; //a big memory cache & build slow
 #endif
     const void*         m_cached_SA_begin;
     const void*         m_cached_SA_end;

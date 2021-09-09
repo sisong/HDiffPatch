@@ -43,12 +43,6 @@
 #include "private_diff/limit_mem_diff/stream_serialize.h"
 using namespace hdiff_private;
 
-static void getCovers_by_stream(const hpatch_TStreamInput*  newData,
-                                const hpatch_TStreamInput*  oldData,
-                                size_t kMatchBlockSize,bool kIsSkipSameRange,
-                                TCoversBuf& out_covers);
-
-
 static const char* kHDiffVersionType  ="HDIFF13";
 static const char* kHDiffSFVersionType="HDIFFSF20";
 
@@ -741,25 +735,6 @@ static void serialize_compressed_diff(const TDiffData& diff,std::vector<TByte>& 
     pushCompressCode(out_diff,compress_newDataDiff,&newDataDiffStream);
 }
     
-    static void search_cover_by_stream(TDiffData& diff,size_t kMatchBlockSize,bool isSkipSameRange){
-        hdiff_TStreamInput oldData;
-        mem_as_hStreamInput(&oldData,diff.oldData,diff.oldData_end);
-        hdiff_TStreamInput newData;
-        mem_as_hStreamInput(&newData,diff.newData,diff.newData_end);
-        TCoversBuf covers(newData.streamSize,oldData.streamSize);
-        getCovers_by_stream(&newData,&oldData,kMatchBlockSize,isSkipSameRange,covers);
-       
-        size_t coverCount=covers.coverCount();
-        diff.covers.resize(coverCount);
-        TOldCover* outCover=diff.covers.data();
-        for (size_t i=0;i<coverCount;++i,++outCover){
-            TCover cover;
-            covers.covers(i,&cover);
-            outCover->oldPos=(TInt)cover.oldPos;
-            outCover->newPos=(TInt)cover.newPos;
-            outCover->length=(TInt)cover.length;
-        }
-    }
 
 static void dispose_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
                          int kMinSingleMatchScore,TDiffLimit* diffLimit=0){
@@ -875,7 +850,7 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
     if (!isCover32) 
         assert(sizeof(*diff.covers.data())==sizeof(hpatch_TCover));
     {
-        TSuffixString _sstring_default(0,0);
+        TSuffixString _sstring_default;
         if (sstring==0){
             _sstring_default.resetSuffixString(oldData,oldData_end);
             sstring=&_sstring_default;
@@ -923,10 +898,10 @@ void create_diff(const TByte* newData,const TByte* newData_end,
 
 void create_compressed_diff(const TByte* newData,const TByte* newData_end,
                             const TByte* oldData,const TByte* oldData_end,
-                            std::vector<TByte>& out_diff,
-                            const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore){
+                            std::vector<TByte>& out_diff,const hdiff_TCompress* compressPlugin,
+                            int kMinSingleMatchScore,ICoverLinesListener* listener){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,0,listener);
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 
@@ -986,7 +961,7 @@ void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                           size_t kMatchBlockSize,size_t patchStepMemSize){
     const bool isSkipSameRange=(compressPlugin!=0);
     TCoversBuf covers(newData->streamSize,oldData->streamSize);
-    getCovers_by_stream(newData,oldData,kMatchBlockSize,isSkipSameRange,covers);
+    get_match_covers_by_stream(newData,oldData,&covers,kMatchBlockSize,isSkipSameRange);
     serialize_single_compressed_diff(newData,oldData,true,covers,
                                      out_diff,compressPlugin,patchStepMemSize);
 }
@@ -1148,20 +1123,24 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
 
 
 //======================
-#include "private_diff/limit_mem_diff/digest_matcher.h"
-#include "private_diff/limit_mem_diff/stream_serialize.h"
 
-static void getCovers_by_stream(const hpatch_TStreamInput*  newData,
-                                const hpatch_TStreamInput*  oldData,
-                                size_t kMatchBlockSize,bool kIsSkipSameRange,
-                                TCoversBuf& out_covers){
-    {
-        TDigestMatcher matcher(oldData,kMatchBlockSize,kIsSkipSameRange);
-        matcher.search_cover(newData,&out_covers);
-        assert_covers_safe(out_covers,newData->streamSize,oldData->streamSize);
-    }
+void get_match_covers_by_stream(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
+                                hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange){
+    assert(out_covers->push_cover!=0);
+    TDigestMatcher matcher(oldData,kMatchBlockSize,kIsSkipSameRange);
+    matcher.search_cover(newData,out_covers);
     //todo: + extend_cover_stream ?
 }
+void get_match_covers_by_stream(const unsigned char* newData,const unsigned char* newData_end,
+                                const unsigned char* oldData,const unsigned char* oldData_end,
+                                hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange){
+        hdiff_TStreamInput oldData_stream;
+        mem_as_hStreamInput(&oldData_stream,oldData,oldData_end);
+        hdiff_TStreamInput newData_stream;
+        mem_as_hStreamInput(&newData_stream,newData,newData_end);
+        get_match_covers_by_stream(&newData_stream,&oldData_stream,out_covers,kMatchBlockSize,kIsSkipSameRange);
+}
+
 
 static void stream_serialize(const hpatch_TStreamInput*  newData,
                              hpatch_StreamPos_t          oldDataSize,
@@ -1220,7 +1199,7 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hdiff_TCompress* compressPlugin,size_t kMatchBlockSize){
     const bool isSkipSameRange=(compressPlugin!=0);
     TCoversBuf covers(newData->streamSize,oldData->streamSize);
-    getCovers_by_stream(newData,oldData,kMatchBlockSize,isSkipSameRange,covers);
+    get_match_covers_by_stream(newData,oldData,&covers,kMatchBlockSize,isSkipSameRange);
     stream_serialize(newData,oldData->streamSize,out_diff,compressPlugin,covers);
 }
 

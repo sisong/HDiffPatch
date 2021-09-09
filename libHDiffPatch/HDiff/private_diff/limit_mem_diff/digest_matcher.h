@@ -63,7 +63,7 @@ class TDigestMatcher{
 public:
     //throw std::runtime_error when data->read error or kMatchBlockSize error;
     TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize,bool kIsSkipSameRange);
-    void search_cover(const hpatch_TStreamInput* newData,TCovers* out_covers);
+    void search_cover(const hpatch_TStreamInput* newData,hpatch_TOutputCovers* out_covers);
     ~TDigestMatcher();
 private:
     const hpatch_TStreamInput*  m_oldData;
