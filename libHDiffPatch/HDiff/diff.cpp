@@ -29,7 +29,7 @@
 #include "diff.h"
 #include <string.h> //strlen memcmp
 #include <stdio.h>  //fprintf
-#include <algorithm> //std::max
+#include <algorithm> //std::max std::sort
 #include <vector>
 #include "private_diff/suffix_string.h"
 #include "private_diff/bytes_rle.h"
@@ -804,10 +804,6 @@ struct TDiffResearchCover:public IDiffResearchCover{
         TDiffResearchCover* self=(TDiffResearchCover*)diffi;
         self->doResearchCover(listener,limitCoverIndex,endPosBack,hitPos,hitLen);
     }
-    struct _cmp_by_newPos_t{
-        template<class TCover>
-        inline bool operator()(const TCover& x,const TCover& y){ return x.newPos<y.newPos; }
-    };
     
     void researchFinish(){
         endResearchCover();
@@ -819,7 +815,7 @@ struct TDiffResearchCover:public IDiffResearchCover{
         diff.covers.resize(insert);
         diff.covers.insert(diff.covers.end(),reCovers.begin(),reCovers.end());
         std::inplace_merge(diff.covers.begin(),diff.covers.begin()+insert,
-                           diff.covers.end(),_cmp_by_newPos_t());
+                           diff.covers.end(),cover_cmp_by_new_t<TOldCover>());
     }
 
     TDiffData&              diff;
@@ -831,6 +827,38 @@ struct TDiffResearchCover:public IDiffResearchCover{
     hpatch_StreamPos_t      limitCoverHitEndPos_back;
     TCompressDetect  nocover_detect;
     TCompressDetect  cover_detect;
+};
+
+struct TDiffClipCover:public IDiffClipCover{
+    inline TDiffClipCover(std::vector<TOldCover>& _covers)
+    :covers(_covers){
+        clipCover=_clipCover;
+        clipCover_finish=_clipCover_finish;
+    }
+    static void _clipCover(IDiffClipCover* diffi,size_t coverIndex,hpatch_StreamPos_t clipLen){
+        TDiffClipCover* self=(TDiffClipCover*)diffi;
+        TOldCover& cover=self->covers[coverIndex];
+        self->clipedCovers.push_back(TOldCover(cover.oldPos,cover.newPos,(TInt)clipLen));
+        cover.oldPos+=(TInt)clipLen;
+        cover.newPos+=(TInt)clipLen;
+        cover.length-=(TInt)clipLen;
+    }
+    static void _clipCover_finish(IDiffClipCover* diffi){
+        TDiffClipCover* self=(TDiffClipCover*)diffi;
+        self->_clipCover_finish();
+    }
+    void _clipCover_finish(){
+        //todo: del small cover
+        size_t insert=clipedCovers.size();
+        std::sort(clipedCovers.begin(),clipedCovers.end(),cover_cmp_by_new_t<TOldCover>());
+        covers.resize(insert);
+        covers.insert(covers.end(),clipedCovers.begin(),clipedCovers.end());
+        clipedCovers.clear();
+        std::inplace_merge(covers.begin(),covers.begin()+insert,
+                           covers.end(),cover_cmp_by_new_t<TOldCover>());
+    }
+    std::vector<TOldCover>& covers;
+    std::vector<TOldCover>  clipedCovers;
 };
   
 
@@ -867,7 +895,10 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
         sstring=0;
         _sstring_default.clear();
     }
-
+    if (listener&&listener->clip_cover){
+        TDiffClipCover diffClipCover(diff.covers);
+        listener->clip_cover(listener,&diffClipCover,diff.covers.data(),diff.covers.size(),isCover32);
+    }
     if (listener&&listener->search_cover_finish){
         hpatch_StreamPos_t newDataSize=(size_t)(diff.newData_end-diff.newData);
         hpatch_StreamPos_t oldDataSize=(size_t)(diff.oldData_end-diff.oldData);
