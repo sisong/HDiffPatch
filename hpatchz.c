@@ -244,7 +244,7 @@ int wmain(int argc,wchar_t* argv_w[]){
     if (!_wFileNames_to_utf8((const wchar_t**)argv_w,argc,argv_utf8,sizeof(argv_utf8)))
         return HPATCH_OPTIONS_ERROR;
     SetDefaultStringLocale();
-    return hpatch_cmd_line(argc,argv_utf8);
+    return hpatch_cmd_line(argc,(const char**)argv_utf8);
 }
 #   else
 int main(int argc, const char * argv[]){
