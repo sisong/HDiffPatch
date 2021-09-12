@@ -772,10 +772,11 @@ static void dispose_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
     extend_cover(covers,diff,kExtendMinSameRatio,diffLimit);//select_cover会删除一些覆盖线,所以重新扩展.
 }
 
+static const hpatch_StreamPos_t _kNullCoverHitEndPos =~(hpatch_StreamPos_t)0;
 struct TDiffResearchCover:public IDiffResearchCover{
     TDiffResearchCover(TDiffData& diff_,const TSuffixString& sstring_,int kMinSingleMatchScore_)
         :diff(diff_),sstring(sstring_),kMinSingleMatchScore(kMinSingleMatchScore_),
-        limitCoverHitEndPos_back(0){ researchCover=_researchCover; }
+        limitCoverIndex_back(~(size_t)0),limitCoverHitEndPos_back(_kNullCoverHitEndPos){ researchCover=_researchCover; }
 
     void _researchRange(TDiffLimit* diffLimit){
         search_cover(curCovers,diff,sstring,diffLimit);
@@ -787,20 +788,19 @@ struct TDiffResearchCover:public IDiffResearchCover{
     }
 
     inline void endResearchCover(){
-        if (limitCoverHitEndPos_back!=0){
+        if (limitCoverHitEndPos_back!=_kNullCoverHitEndPos){
             TOldCover& cover=diff.covers[limitCoverIndex_back];
             cover.oldPos+=(TInt)limitCoverHitEndPos_back;
             cover.newPos+=(TInt)limitCoverHitEndPos_back;
             cover.length-=(TInt)limitCoverHitEndPos_back;
-            limitCoverHitEndPos_back=0;
+            limitCoverHitEndPos_back=_kNullCoverHitEndPos;
         }
     }
     inline void doResearchCover(IDiffSearchCoverListener* listener,size_t limitCoverIndex,
                                 hpatch_StreamPos_t endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen){
-        if (limitCoverIndex_back!=limitCoverIndex){
+        if (limitCoverIndex_back!=limitCoverIndex)
             endResearchCover();
-            limitCoverIndex_back=limitCoverIndex;
-        }
+        limitCoverIndex_back=limitCoverIndex;
         limitCoverHitEndPos_back=hitPos+hitLen;
         
         const TOldCover& cover=diff.covers[limitCoverIndex];
