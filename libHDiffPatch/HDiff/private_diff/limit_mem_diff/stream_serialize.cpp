@@ -36,14 +36,12 @@ namespace hdiff_private{
 
 struct TCompressedStream:public hpatch_TStreamOutput{
     TCompressedStream(const hpatch_TStreamOutput*  _out_code,
-                      hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize,
-                      const hpatch_TStreamInput*   _in_stream);
+                      hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize);
     inline bool  is_overLimit()const { return _is_overLimit; }
 private:
     const hpatch_TStreamOutput*  out_code;
     hpatch_StreamPos_t           out_pos;
     hpatch_StreamPos_t           out_posLimitEnd;
-    const hpatch_TStreamInput*   in_stream;
     hpatch_StreamPos_t           _writeToPos_back;
     bool                         _is_overLimit;
     static hpatch_BOOL _write_code(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
@@ -51,10 +49,9 @@ private:
 };
 
 TCompressedStream::TCompressedStream(const hpatch_TStreamOutput*  _out_code,
-                                     hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize,
-                                     const hpatch_TStreamInput*   _in_stream)
+                                     hpatch_StreamPos_t _writePos,hpatch_StreamPos_t _kLimitOutCodeSize)
 :out_code(_out_code),out_pos(_writePos),out_posLimitEnd(_writePos+_kLimitOutCodeSize),
-in_stream(_in_stream),_writeToPos_back(0),_is_overLimit(false){
+_writeToPos_back(0),_is_overLimit(false){
     this->streamImport=this;
     this->streamSize=0;
     this->read_writed=0;
@@ -617,7 +614,7 @@ void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
                              const TPlaceholder& update_compress_sizePos){
     if ((compressPlugin)&&(stream->streamSize>0)){
         hpatch_StreamPos_t kLimitOutCodeSize=stream->streamSize-1;
-        TCompressedStream  out_stream(out_diff,writePos,kLimitOutCodeSize,stream);
+        TCompressedStream  out_stream(out_diff,writePos,kLimitOutCodeSize);
         hpatch_StreamPos_t compressed_size=
                                 compressPlugin->compress(compressPlugin,&out_stream,stream);
         if (out_stream.is_overLimit()||(compressed_size==0)||(compressed_size>kLimitOutCodeSize)){
