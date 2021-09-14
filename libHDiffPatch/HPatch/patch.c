@@ -1957,21 +1957,23 @@ hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData
                                          sspatch_coversListener_t* coversListener){
     hpatch_BOOL result;
     hpatch_TUncompresser_t uncompressedStream;
+    hpatch_StreamPos_t diffData_posEnd;
     memset(&uncompressedStream,0,sizeof(uncompressedStream));
     if (compressedSize==0){
         decompressPlugin=0;
     }else{
         if (decompressPlugin==0) return _hpatch_FALSE;
     }
-    if ((decompressPlugin?compressedSize:uncompressedSize)+diffData_pos
-            !=singleCompressedDiff->streamSize) return _hpatch_FALSE;
+    diffData_posEnd=(decompressPlugin?compressedSize:uncompressedSize)+diffData_pos;
+    if (diffData_posEnd>singleCompressedDiff->streamSize) return _hpatch_FALSE;
     if (decompressPlugin){
         if (!compressed_stream_as_uncompressed(&uncompressedStream,uncompressedSize,decompressPlugin,singleCompressedDiff,
-                                               diffData_pos,singleCompressedDiff->streamSize)) return _hpatch_FALSE;
+                                               diffData_pos,diffData_posEnd)) return _hpatch_FALSE;
         singleCompressedDiff=&uncompressedStream.base;
         diffData_pos=0;
+        diffData_posEnd=singleCompressedDiff->streamSize;
     }
-    result=patch_single_stream_diff(out_newData,oldData,singleCompressedDiff,diffData_pos,
+    result=patch_single_stream_diff(out_newData,oldData,singleCompressedDiff,diffData_pos,diffData_posEnd,
                                     coverCount,stepMemSize,temp_cache,temp_cache_end,coversListener);
     if (decompressPlugin)
         close_compressed_stream_as_uncompressed(&uncompressedStream);
@@ -2147,6 +2149,7 @@ hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,
                                      const hpatch_TStreamInput*   oldData,
                                      const hpatch_TStreamInput*   uncompressedDiffData,
                                      hpatch_StreamPos_t           diffData_pos,
+                                     hpatch_StreamPos_t           diffData_posEnd,
                                      hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                      unsigned char* temp_cache,unsigned char* temp_cache_end,
                                      sspatch_coversListener_t* coversListener){
@@ -2155,13 +2158,14 @@ hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,
     TStreamCacheClip    inClip;
     TOutStreamCache     outCache;
     sspatch_covers_t    covers;
+    assert(diffData_posEnd<=uncompressedDiffData->streamSize);
     sspatch_covers_init(&covers);
     if (coversListener) assert(coversListener->onStepCovers);
     {//cache
         if ((size_t)(temp_cache_end-temp_cache)<stepMemSize+hpatch_kStreamCacheSize*_kCacheSgCount) return _hpatch_FALSE;
         temp_cache+=stepMemSize;
         cache_size=(temp_cache_end-temp_cache)/_kCacheSgCount;
-        _TStreamCacheClip_init(&inClip,uncompressedDiffData,diffData_pos,uncompressedDiffData->streamSize,
+        _TStreamCacheClip_init(&inClip,uncompressedDiffData,diffData_pos,diffData_posEnd,
                                temp_cache,cache_size);
         temp_cache+=cache_size;
         TOutStreamCache_init(&outCache,out_newData,temp_cache+cache_size,cache_size);

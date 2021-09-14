@@ -219,6 +219,7 @@ hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,  
                                      const hpatch_TStreamInput*   oldData,              //random read
                                      const hpatch_TStreamInput*   uncompressedDiffData, //sequential read
                                      hpatch_StreamPos_t           diffData_pos,//diffData begin pos in uncompressedDiffData
+                                     hpatch_StreamPos_t           diffData_posEnd,//diffData end pos in uncompressedDiffData
                                      hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                      unsigned char* temp_cache,unsigned char* temp_cache_end,
                                      sspatch_coversListener_t* coversListener);
