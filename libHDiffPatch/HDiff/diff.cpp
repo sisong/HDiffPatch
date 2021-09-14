@@ -829,36 +829,38 @@ struct TDiffResearchCover:public IDiffResearchCover{
     TCompressDetect  cover_detect;
 };
 
-struct TDiffClipCover:public IDiffClipCover{
-    inline TDiffClipCover(std::vector<TOldCover>& _covers)
+struct TDiffInsertCover:public IDiffInsertCover{
+    inline TDiffInsertCover(std::vector<TOldCover>& _covers)
     :covers(_covers){
-        clipCover=_clipCover;
-        clipCover_finish=_clipCover_finish;
+        insertCover=_insertCover;
     }
-    static void _clipCover(IDiffClipCover* diffi,size_t coverIndex,hpatch_StreamPos_t clipLen){
-        TDiffClipCover* self=(TDiffClipCover*)diffi;
-        TOldCover& cover=self->covers[coverIndex];
-        self->clipedCovers.push_back(TOldCover(cover.oldPos,cover.newPos,(TInt)clipLen));
-        cover.oldPos+=(TInt)clipLen;
-        cover.newPos+=(TInt)clipLen;
-        cover.length-=(TInt)clipLen;
+    static void* _insertCover(IDiffInsertCover* diffi,const void* pInsertCovers,size_t insertCoverCount,bool insertIsCover32){
+        TDiffInsertCover* self=(TDiffInsertCover*)diffi;
+        return self->_insertCover(pInsertCovers,insertCoverCount,insertIsCover32);
     }
-    static void _clipCover_finish(IDiffClipCover* diffi){
-        TDiffClipCover* self=(TDiffClipCover*)diffi;
-        self->_clipCover_finish();
-    }
-    void _clipCover_finish(){
-        //todo: del small cover
-        size_t insert=clipedCovers.size();
-        std::sort(clipedCovers.begin(),clipedCovers.end(),cover_cmp_by_new_t<TOldCover>());
-        covers.resize(insert);
-        covers.insert(covers.end(),clipedCovers.begin(),clipedCovers.end());
-        clipedCovers.clear();
-        std::inplace_merge(covers.begin(),covers.begin()+insert,
-                           covers.end(),cover_cmp_by_new_t<TOldCover>());
+    void* _insertCover(const void* pInsertCovers,size_t insertCoverCount,bool insertIsCover32){
+        const bool isCover32=sizeof(*covers.data())==sizeof(hpatch_TCover32);
+        if (insertIsCover32==isCover32){
+            covers.insert(covers.end(),(const TOldCover*)pInsertCovers,
+                          ((const TOldCover*)pInsertCovers)+insertCoverCount);
+        }else{
+            size_t oldSize=covers.size();
+            covers.resize(oldSize +insertCoverCount);
+            for (size_t i=0;i<insertCoverCount;i++){
+                if (insertIsCover32){
+                    const hpatch_TCover32& s=((const hpatch_TCover32*)pInsertCovers)[i];
+                    TOldCover c={s.oldPos,s.newPos,s.length};
+                    covers[oldSize+i]=c;
+                }else{
+                    const hpatch_TCover& s=((const hpatch_TCover*)pInsertCovers)[i];
+                    TOldCover c={(TInt)s.oldPos,(TInt)s.newPos,(TInt)s.length};
+                    covers[oldSize+i]=c;
+                }
+            }
+        }
+        return covers.data();
     }
     std::vector<TOldCover>& covers;
-    std::vector<TOldCover>  clipedCovers;
 };
   
 
@@ -895,9 +897,15 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
         sstring=0;
         _sstring_default.clear();
     }
-    if (listener&&listener->clip_cover){
-        TDiffClipCover diffClipCover(diff.covers);
-        listener->clip_cover(listener,&diffClipCover,diff.covers.data(),diff.covers.size(),isCover32);
+    if (listener&&listener->insert_cover){
+        TDiffInsertCover diffInsertCover(diff.covers);
+        hpatch_StreamPos_t newDataSize=(size_t)(diff.newData_end-diff.newData);
+        hpatch_StreamPos_t oldDataSize=(size_t)(diff.oldData_end-diff.oldData);
+        listener->insert_cover(listener,&diffInsertCover,diff.covers.data(),diff.covers.size(),isCover32,
+                               &newDataSize,&oldDataSize);
+        diff.newData_end=diff.newData+(size_t)newDataSize;
+        diff.oldData_end=diff.oldData+(size_t)oldDataSize;
+        assert_covers_safe(diff.covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
     }
     if (listener&&listener->search_cover_finish){
         hpatch_StreamPos_t newDataSize=(size_t)(diff.newData_end-diff.newData);

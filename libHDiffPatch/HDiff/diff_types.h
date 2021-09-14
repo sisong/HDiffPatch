@@ -91,14 +91,14 @@ extern "C"
         void (*researchCover)(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,size_t limitCoverIndex,
                               hpatch_StreamPos_t endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen);
     };
-    struct IDiffClipCover{
-        void (*clipCover)(IDiffClipCover* diffi,size_t coverIndex,hpatch_StreamPos_t clipLen);
-        void (*clipCover_finish)(IDiffClipCover* diffi);
+    struct IDiffInsertCover{
+        void* (*insertCover)(IDiffInsertCover* diffi,const void* pInsertCovers,size_t insertCoverCount,bool insertIsCover32);
     };
     struct ICoverLinesListener {
         bool (*search_cover_limit)(ICoverLinesListener* listener,const void* pcovers,size_t coverCount,bool isCover32);
         void (*research_cover)(ICoverLinesListener* listener,IDiffResearchCover* diffi,const void* pcovers,size_t coverCount,bool isCover32);
-        void (*clip_cover)(ICoverLinesListener* listener,IDiffClipCover* diffi,const void* pcovers,size_t coverCount,bool isCover32);
+        void (*insert_cover)(ICoverLinesListener* listener,IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32,
+                             hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
         void (*search_cover_finish)(ICoverLinesListener* listener,void* pcovers,size_t* pcoverCount,bool isCover32,
                                     hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
     };
