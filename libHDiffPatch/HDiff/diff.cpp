@@ -849,12 +849,10 @@ struct TDiffInsertCover:public IDiffInsertCover{
             for (size_t i=0;i<insertCoverCount;i++){
                 if (insertIsCover32){
                     const hpatch_TCover32& s=((const hpatch_TCover32*)pInsertCovers)[i];
-                    TOldCover c={s.oldPos,s.newPos,s.length};
-                    covers[oldSize+i]=c;
+                    covers[oldSize+i]=TOldCover((TInt)s.oldPos,(TInt)s.newPos,(TInt)s.length);
                 }else{
                     const hpatch_TCover& s=((const hpatch_TCover*)pInsertCovers)[i];
-                    TOldCover c={(TInt)s.oldPos,(TInt)s.newPos,(TInt)s.length};
-                    covers[oldSize+i]=c;
+                    covers[oldSize+i]=TOldCover((TInt)s.oldPos,(TInt)s.newPos,(TInt)s.length);
                 }
             }
         }
