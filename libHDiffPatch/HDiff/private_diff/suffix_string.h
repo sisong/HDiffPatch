@@ -31,6 +31,9 @@
 #define __SUFFIX_STRING_H_
 #include <vector>
 #include <stddef.h> //for ptrdiff_t,size_t
+#ifndef _SSTRING_FAST_MATCH
+#   define _SSTRING_FAST_MATCH 5
+#endif
 #if (_SSTRING_FAST_MATCH>0)
 #   if (_SSTRING_FAST_MATCH<2)
 #       error must _SSTRING_FAST_MATCH>=2!
@@ -76,11 +79,11 @@ public:
     typedef ptrdiff_t     TInt;
     typedef int32_t       TInt32;
     typedef unsigned char TChar;
-    TSuffixString();
+    TSuffixString(bool isUsedFastMatch=false);
     ~TSuffixString();
     
     //throw std::runtime_error when create SA error
-    TSuffixString(const TChar* src_begin,const TChar* src_end);
+    TSuffixString(const TChar* src_begin,const TChar* src_end,bool isUsedFastMatch=false);
     void resetSuffixString(const TChar* src_begin,const TChar* src_end);
 
     inline const TChar* src_begin()const{ return m_src_begin; }
@@ -106,6 +109,7 @@ private:
     }
 private:
     // all cache for lower_bound speed
+    const bool              m_isUsedFastMatch;
 #if (_SSTRING_FAST_MATCH>0)
     TFastMatchForSString    m_fastMatch; //a big memory cache & build slow
 #endif

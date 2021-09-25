@@ -38,10 +38,12 @@ static const int kMinSingleMatchScore_default = 6;
 //       or create_single_compressed_diff() create compressed diff data
 //  recommended always use create_single_compressed_diff() replace create_diff()
 //  kMinSingleMatchScore: default 6, bin: 0--4  text: 4--9
+//  isUsedBigCacheForMatch: big cache max used O(oldSize) memory, match speed faster, but build big cache slow 
 void create_diff(const unsigned char* newData,const unsigned char* newData_end,
                  const unsigned char* oldData,const unsigned char* oldData_end,
                  std::vector<unsigned char>& out_diff,
-                 int kMinSingleMatchScore=kMinSingleMatchScore_default);
+                 int kMinSingleMatchScore=kMinSingleMatchScore_default,
+                 bool isUsedBigCacheForMatch=false);
 
 //return patch(oldData+diff)==newData?
 bool check_diff(const unsigned char* newData,const unsigned char* newData_end,
@@ -58,11 +60,13 @@ bool check_diff(const hpatch_TStreamInput*  newData,
 //  out_diff compressed by compressPlugin
 //  recommended always use create_single_compressed_diff() replace create_compressed_diff()
 //  kMinSingleMatchScore: default 6, bin: 0--4  text: 4--9
+//  isUsedBigCacheForMatch: big cache max used O(oldSize) memory, match speed faster, but build big cache slow 
 void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                             const unsigned char* oldData,const unsigned char* oldData_end,
                             std::vector<unsigned char>& out_diff,
                             const hdiff_TCompress* compressPlugin=0,
                             int kMinSingleMatchScore=kMinSingleMatchScore_default,
+                            bool isUsedBigCacheForMatch=false,
                             ICoverLinesListener* listener=0);
 
 //create a compressed diff data by stream:
@@ -109,16 +113,21 @@ static const size_t kDefaultStepMemSize =1024*256;
 //create a diff data between oldData and newData, the diffData saved as single compressed stream
 //  kMinSingleMatchScore: default 6, bin: 0--4  text: 4--9
 //  patchStepMemSize>=hpatch_kStreamCacheSize, default 256k, recommended 64k,2m etc...
+//  isUsedBigCacheForMatch: big cache max used O(oldSize) memory, match speed faster, but build big cache slow 
 void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                    const unsigned char* oldData,const unsigned char* oldData_end,
                                    std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin=0,
                                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                                   size_t patchStepMemSize=kDefaultStepMemSize,ICoverLinesListener* listener=0);
+                                   size_t patchStepMemSize=kDefaultStepMemSize,
+                                   bool isUsedBigCacheForMatch=false,
+                                   ICoverLinesListener* listener=0);
 void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                    const unsigned char* oldData,const unsigned char* oldData_end,
                                    const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin=0,
                                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                                   size_t patchStepMemSize=kDefaultStepMemSize,ICoverLinesListener* listener=0);
+                                   size_t patchStepMemSize=kDefaultStepMemSize,
+                                   bool isUsedBigCacheForMatch=false,
+                                   ICoverLinesListener* listener=0);
 //create single compressed diff data by stream:
 //  can control memory requires and run speed by different kMatchBlockSize value,
 //      but out_diff size is larger than create_single_compressed_diff()
@@ -157,10 +166,10 @@ void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
 
 
 //same as create?compressed_diff_stream(), but not serialize diffData, only got covers
-void get_match_covers_by_stream(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                                hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange=false);
-void get_match_covers_by_stream(const unsigned char* newData,const unsigned char* newData_end,
-                                const unsigned char* oldData,const unsigned char* oldData_end,
-                                hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange=false);
+void get_match_covers_by_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
+                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange=false);
+void get_match_covers_by_block(const unsigned char* newData,const unsigned char* newData_end,
+                               const unsigned char* oldData,const unsigned char* oldData_end,
+                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange=false);
 
 #endif

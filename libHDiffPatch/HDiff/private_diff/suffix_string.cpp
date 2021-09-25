@@ -237,13 +237,13 @@ namespace {
 }//end namespace
 
 
-TSuffixString::TSuffixString()
-:m_src_begin(0),m_src_end(0),m_cached2char_range(0){
+TSuffixString::TSuffixString(bool isUsedFastMatch)
+:m_src_begin(0),m_src_end(0),m_isUsedFastMatch(isUsedFastMatch),m_cached2char_range(0){
      clear_cache();
 }
 
-TSuffixString::TSuffixString(const TChar* src_begin,const TChar* src_end)
-:m_src_begin(0),m_src_end(0),m_cached2char_range(0){
+TSuffixString::TSuffixString(const TChar* src_begin,const TChar* src_end,bool isUsedFastMatch)
+:m_src_begin(0),m_src_end(0),m_isUsedFastMatch(isUsedFastMatch),m_cached2char_range(0){
     clear_cache();
     resetSuffixString(src_begin,src_end);
 }
@@ -287,7 +287,7 @@ TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
     //return m_lower_bound(m_cached_SA_begin,m_cached_SA_end,
     //                     str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,0);
 #if (_SSTRING_FAST_MATCH>0)
-    if (!m_fastMatch.isHit(TFastMatchForSString::getHash(str)))
+    if (m_isUsedFastMatch&&(!m_fastMatch.isHit(TFastMatchForSString::getHash(str))))
         return 0;
     #define kMinStrLen _SSTRING_FAST_MATCH
 #else
@@ -310,7 +310,7 @@ TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
 
 void TSuffixString::clear_cache(){
 #if (_SSTRING_FAST_MATCH>0)
-    m_fastMatch.clear();
+    if (m_isUsedFastMatch) m_fastMatch.clear();
 #endif
     if (m_cached2char_range){
         delete [](TChar*)m_cached2char_range;
@@ -325,7 +325,7 @@ void TSuffixString::clear_cache(){
 void TSuffixString::build_cache(){
     clear_cache();
 #if (_SSTRING_FAST_MATCH>0)
-    m_fastMatch.buildMatchCache(m_src_begin,m_src_end);
+    if (m_isUsedFastMatch) m_fastMatch.buildMatchCache(m_src_begin,m_src_end);
 #endif
     const size_t kUsedCacheMinSASize =2*(1<<20); //当字符串较大时再启用大缓存表.
     if (SASize()>kUsedCacheMinSASize){

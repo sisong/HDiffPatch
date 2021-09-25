@@ -865,7 +865,8 @@ struct TDiffInsertCover:public IDiffInsertCover{
 static void get_diff(const TByte* newData,const TByte* newData_end,
                      const TByte* oldData,const TByte* oldData_end,
                      TDiffData&   out_diff,int kMinSingleMatchScore,
-                     const TSuffixString* sstring=0,ICoverLinesListener* listener=0){
+                     bool isUsedBigCacheForMatch,ICoverLinesListener* listener=0,
+                     const TSuffixString* sstring=0){
     assert(newData<=newData_end);
     assert(oldData<=oldData_end);
     TDiffData& diff=out_diff;
@@ -878,7 +879,7 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
     if (!isCover32) 
         assert(sizeof(*diff.covers.data())==sizeof(hpatch_TCover));
     {
-        TSuffixString _sstring_default;
+        TSuffixString _sstring_default(isUsedBigCacheForMatch);
         if (sstring==0){
             _sstring_default.resetSuffixString(oldData,oldData_end);
             sstring=&_sstring_default;
@@ -927,18 +928,20 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
 void create_diff(const TByte* newData,const TByte* newData_end,
                  const TByte* oldData,const TByte* oldData_end,
                  std::vector<TByte>& out_diff,
-                 int kMinSingleMatchScore){
+                 int kMinSingleMatchScore,bool isUsedBigCacheForMatch){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,
+             kMinSingleMatchScore,isUsedBigCacheForMatch);
     serialize_diff(diff,out_diff);
 }
 
 void create_compressed_diff(const TByte* newData,const TByte* newData_end,
                             const TByte* oldData,const TByte* oldData_end,
                             std::vector<TByte>& out_diff,const hdiff_TCompress* compressPlugin,
-                            int kMinSingleMatchScore,ICoverLinesListener* listener){
+                            int kMinSingleMatchScore,bool isUsedBigCacheForMatch,ICoverLinesListener* listener){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,0,listener);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,
+             kMinSingleMatchScore,isUsedBigCacheForMatch,listener);
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 
@@ -967,19 +970,23 @@ void create_single_compressed_diff(const TByte* newData,const TByte* newData_end
                                    const TByte* oldData,const TByte* oldData_end,
                                    std::vector<unsigned char>& out_diff,
                                    const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore,
-                                   size_t patchStepMemSize,ICoverLinesListener* listener){
+                                   size_t patchStepMemSize,bool isUsedBigCacheForMatch,
+                                   ICoverLinesListener* listener){
     TVectorAsStreamOutput outDiffStream(out_diff);
     create_single_compressed_diff(newData,newData_end,oldData,oldData_end,&outDiffStream,
-                                  compressPlugin,kMinSingleMatchScore,patchStepMemSize,listener);
+                                  compressPlugin,kMinSingleMatchScore,patchStepMemSize,
+                                  isUsedBigCacheForMatch,listener);
 }
 
 void create_single_compressed_diff(const TByte* newData,const TByte* newData_end,
                                    const TByte* oldData,const TByte* oldData_end,
                                    const hpatch_TStreamOutput* out_diff,
                                    const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore,
-                                   size_t patchStepMemSize,ICoverLinesListener* listener){
+                                   size_t patchStepMemSize,bool isUsedBigCacheForMatch,
+                                   ICoverLinesListener* listener){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,0,listener);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,
+             kMinSingleMatchScore,isUsedBigCacheForMatch,listener);
 
     hpatch_TStreamInput _newStream;
     hpatch_TStreamInput _oldStream;
@@ -998,7 +1005,7 @@ void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                           size_t kMatchBlockSize,size_t patchStepMemSize){
     const bool isSkipSameRange=(compressPlugin!=0);
     TCoversBuf covers(newData->streamSize,oldData->streamSize);
-    get_match_covers_by_stream(newData,oldData,&covers,kMatchBlockSize,isSkipSameRange);
+    get_match_covers_by_block(newData,oldData,&covers,kMatchBlockSize,isSkipSameRange);
     serialize_single_compressed_diff(newData,oldData,true,covers,
                                      out_diff,compressPlugin,patchStepMemSize);
 }
@@ -1154,28 +1161,29 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
                                              const hdiff_TCompress* compressPlugin,int kMinSingleMatchScore,
                                              const TSuffixString* sstring){
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,sstring);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,
+             kMinSingleMatchScore,false,0,sstring);
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 
 
 //======================
 
-void get_match_covers_by_stream(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                                hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange){
+void get_match_covers_by_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
+                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange){
     assert(out_covers->push_cover!=0);
     TDigestMatcher matcher(oldData,kMatchBlockSize,kIsSkipSameRange);
     matcher.search_cover(newData,out_covers);
     //todo: + extend_cover_stream ?
 }
-void get_match_covers_by_stream(const unsigned char* newData,const unsigned char* newData_end,
-                                const unsigned char* oldData,const unsigned char* oldData_end,
-                                hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange){
-        hdiff_TStreamInput oldData_stream;
-        mem_as_hStreamInput(&oldData_stream,oldData,oldData_end);
-        hdiff_TStreamInput newData_stream;
-        mem_as_hStreamInput(&newData_stream,newData,newData_end);
-        get_match_covers_by_stream(&newData_stream,&oldData_stream,out_covers,kMatchBlockSize,kIsSkipSameRange);
+void get_match_covers_by_block(const unsigned char* newData,const unsigned char* newData_end,
+                               const unsigned char* oldData,const unsigned char* oldData_end,
+                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange){
+    hdiff_TStreamInput oldData_stream;
+    mem_as_hStreamInput(&oldData_stream,oldData,oldData_end);
+    hdiff_TStreamInput newData_stream;
+    mem_as_hStreamInput(&newData_stream,newData,newData_end);
+    get_match_covers_by_block(&newData_stream,&oldData_stream,out_covers,kMatchBlockSize,kIsSkipSameRange);
 }
 
 
@@ -1236,7 +1244,7 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hdiff_TCompress* compressPlugin,size_t kMatchBlockSize){
     const bool isSkipSameRange=(compressPlugin!=0);
     TCoversBuf covers(newData->streamSize,oldData->streamSize);
-    get_match_covers_by_stream(newData,oldData,&covers,kMatchBlockSize,isSkipSameRange);
+    get_match_covers_by_block(newData,oldData,&covers,kMatchBlockSize,isSkipSameRange);
     stream_serialize(newData,oldData->streamSize,out_diff,compressPlugin,covers);
 }
 
