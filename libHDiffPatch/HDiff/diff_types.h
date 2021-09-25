@@ -30,6 +30,20 @@
 #define HDiff_diff_types_h
 #include "../HPatch/patch_types.h"
 
+    template<class TCover>
+    struct cover_cmp_by_new_t{
+        inline bool operator ()(const TCover& x,const TCover& y){ return x.newPos<y.newPos; }
+    };
+    template<class TCover>
+    struct cover_cmp_by_old_t{
+        inline bool operator ()(const TCover& x,const TCover& y){
+            if (x.oldPos!=y.oldPos)
+                return x.oldPos<y.oldPos;
+            else
+                return x.length<y.length;
+        }
+    };
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -77,9 +91,14 @@ extern "C"
         void (*researchCover)(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,size_t limitCoverIndex,
                               hpatch_StreamPos_t endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen);
     };
+    struct IDiffInsertCover{
+        void* (*insertCover)(IDiffInsertCover* diffi,const void* pInsertCovers,size_t insertCoverCount,bool insertIsCover32);
+    };
     struct ICoverLinesListener {
         bool (*search_cover_limit)(ICoverLinesListener* listener,const void* pcovers,size_t coverCount,bool isCover32);
         void (*research_cover)(ICoverLinesListener* listener,IDiffResearchCover* diffi,const void* pcovers,size_t coverCount,bool isCover32);
+        void (*insert_cover)(ICoverLinesListener* listener,IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32,
+                             hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
         void (*search_cover_finish)(ICoverLinesListener* listener,void* pcovers,size_t* pcoverCount,bool isCover32,
                                     hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
     };

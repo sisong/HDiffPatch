@@ -30,7 +30,7 @@ DEF_FLAGS := -Os -D_CompressPlugin_zlib
 ifeq ($(LZMA),0)
 else
   DEF_FLAGS += -D_7ZIP_ST -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 \
-               -I$(LZMA_PATH)
+               -I$(LZMA_PATH) -D_IS_NEED_CACHE_OLD_BY_COVERS=0
  ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
   DEF_FLAGS += -D_LZMA_DEC_OPT 
  endif
