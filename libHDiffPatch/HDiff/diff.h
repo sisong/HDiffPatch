@@ -172,4 +172,15 @@ void get_match_covers_by_block(const unsigned char* newData,const unsigned char*
                                const unsigned char* oldData,const unsigned char* oldData_end,
                                hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange=false);
 
+//same as create?_diff(), but not serialize diffData, only got covers
+void get_match_covers_by_sstring(const unsigned char* newData,const unsigned char* newData_end,
+                                 const unsigned char* oldData,const unsigned char* oldData_end,
+                                 hpatch_TOutputCovers* out_covers,
+                                 int kMinSingleMatchScore=kMinSingleMatchScore_default,
+                                 bool isUsedBigCacheForMatch=false,ICoverLinesListener* listener=0);
+void get_match_covers_by_sstring(const unsigned char* newData,const unsigned char* newData_end,
+                                 const unsigned char* oldData,const unsigned char* oldData_end,
+                                 std::vector<hpatch_TCover_sz>& out_covers,
+                                 int kMinSingleMatchScore=kMinSingleMatchScore_default,
+                                 bool isUsedBigCacheForMatch=false,ICoverLinesListener* listener=0);
 #endif

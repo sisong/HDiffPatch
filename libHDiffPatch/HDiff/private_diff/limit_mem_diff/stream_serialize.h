@@ -54,6 +54,29 @@ private:
                              unsigned char* out_data,unsigned char* out_data_end);
 };
 
+struct TNewDataSubDiffStream_mem:public hpatch_TStreamInput{
+    TNewDataSubDiffStream_mem(const unsigned char* newData,const unsigned char* newData_end,
+                              const unsigned char* oldData,const unsigned char* oldData_end,
+                              const TCovers& _covers,bool _isOnlySubCover=false);
+    inline ~TNewDataSubDiffStream_mem(){ assert(curReadNewPos==streamSize); }
+private:
+    size_t curReadNewPos;
+    size_t curReadPos;
+    size_t nextCoveri;
+    size_t curDataLen;
+    const unsigned char* df_newData;
+    const unsigned char* df_newData_end;
+    const unsigned char* df_oldData;
+    const unsigned char* df_oldData_end;
+    const TCovers& covers;
+    const bool isOnlySubCover;
+    const unsigned char* curOldData;
+    void initRead();
+    void readTo(unsigned char* out_data,unsigned char* out_data_end);
+    static hpatch_BOOL _read(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                             unsigned char* out_data,unsigned char* out_data_end);
+};
+
 struct TNewDataDiffStream:public hpatch_TStreamInput{
     inline TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
                               hpatch_StreamPos_t newDataDiff_size):covers(_covers) { _init(_newData,newDataDiff_size); }
@@ -183,9 +206,14 @@ struct TDiffStream{
     }
     void packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uValue);
     
-    void pushStream(const hpatch_TStreamInput*   stream,
-                    const hdiff_TCompress*       compressPlugin,
-                    const TPlaceholder&          update_compress_sizePos);
+    hpatch_StreamPos_t pushStream(const hpatch_TStreamInput* stream,
+                                  const hdiff_TCompress*     compressPlugin,
+                                  const TPlaceholder&        update_compress_sizePos,
+                                  bool isLimitOutCodeSize=true);
+    hpatch_StreamPos_t pushStream(const hpatch_TStreamInput* stream,
+                                  const hdiff_TCompress*     compressPlugin,
+                                  bool isLimitOutCodeSize=true){
+                TPlaceholder nullPos(0,0); return pushStream(stream,compressPlugin,nullPos,isLimitOutCodeSize); }
     void pushStream(const hpatch_TStreamInput* stream){
                             TPlaceholder nullPos(0,0); pushStream(stream,0,nullPos); }
     hpatch_StreamPos_t getWritedPos()const{ return writePos; }
@@ -226,6 +254,21 @@ struct TVectorAsStreamOutput:public hpatch_TStreamOutput{
         return hpatch_TRUE;
     }
     std::vector<unsigned char>& dst;
+};
+
+
+#define _test_rt(value) { if (!(value)) { LOG_ERR("patch check "#value" error!\n");  return hpatch_FALSE; } }
+
+struct _TCheckOutNewDataStream:public hpatch_TStreamOutput{
+    _TCheckOutNewDataStream(const hpatch_TStreamInput* _newData,unsigned char* _buf,size_t _bufSize);
+    bool isWriteFinish()const{ return writedLen==newData->streamSize; }
+private:
+    const hpatch_TStreamInput*  newData;
+    hpatch_StreamPos_t          writedLen;
+    unsigned char*                      buf;
+    size_t                      bufSize;
+    static hpatch_BOOL _write_check(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                    const unsigned char* data,const unsigned char* data_end);
 };
 
 }//namespace hdiff_private

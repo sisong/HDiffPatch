@@ -219,6 +219,11 @@ extern "C" {
         hpatch_uint32_t newPos;
         hpatch_uint32_t length;
     } hpatch_TCover32;
+    typedef struct hpatch_TCover_sz{
+        size_t oldPos;
+        size_t newPos;
+        size_t length;
+    } hpatch_TCover_sz;
 
     //opened input covers
     typedef struct hpatch_TCovers{
