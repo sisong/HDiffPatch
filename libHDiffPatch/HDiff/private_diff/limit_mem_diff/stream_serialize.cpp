@@ -692,9 +692,9 @@ void TDiffStream::_pushStream(const hpatch_TStreamInput* stream){
 hpatch_StreamPos_t TDiffStream::pushStream(const hpatch_TStreamInput* stream,
                                            const hdiff_TCompress* compressPlugin,
                                            const TPlaceholder& update_compress_sizePos,
-                                           bool isLimitOutCodeSize){
-    if ((compressPlugin)&&(stream->streamSize>0)){
-        hpatch_StreamPos_t kLimitOutCodeSize=isLimitOutCodeSize?(stream->streamSize-1):(~(hpatch_StreamPos_t)0)-writePos;
+                                           bool isMustCompress){
+    if ((compressPlugin)&&(isMustCompress||(stream->streamSize>0))){
+        hpatch_StreamPos_t kLimitOutCodeSize=isMustCompress?compressPlugin->maxCompressedSize(stream->streamSize+1):(stream->streamSize-1);
         TCompressedStream  out_stream(out_diff,writePos,kLimitOutCodeSize);
         hpatch_StreamPos_t compressed_size=
                                 compressPlugin->compress(compressPlugin,&out_stream,stream);
@@ -710,7 +710,10 @@ hpatch_StreamPos_t TDiffStream::pushStream(const hpatch_TStreamInput* stream,
     }else if (stream->streamSize>0){
         _pushStream(stream);
         return stream->streamSize;
+    }else{
+        return 0;
     }
+
 }
 
 void TStreamClip::reset(const hpatch_TStreamInput* stream,
@@ -801,6 +804,24 @@ hpatch_BOOL _TCheckOutNewDataStream::_write_check(const hpatch_TStreamOutput* st
         readPos+=readLen;
     }
     return hpatch_TRUE;
+}
+
+
+void do_compress(std::vector<unsigned char>& out_code,const hpatch_TStreamInput* data,
+                        const hdiff_TCompress* compressPlugin,bool isMustCompress){
+    out_code.clear();
+    if (!compressPlugin) return;
+    if (data->streamSize==0) return;
+    hpatch_StreamPos_t maxCodeSize=compressPlugin->maxCompressedSize(data->streamSize);
+    if ((maxCodeSize<=data->streamSize)||(maxCodeSize!=(size_t)maxCodeSize)) return; //error
+    out_code.resize((size_t)maxCodeSize);
+    hpatch_TStreamOutput codeStream;
+    mem_as_hStreamOutput(&codeStream,out_code.data(),out_code.data()+out_code.size());
+    hpatch_StreamPos_t codeSize=compressPlugin->compress(compressPlugin,&codeStream,data);
+    if ((codeSize>0)&&(isMustCompress||(codeSize<data->streamSize)))
+        out_code.resize((size_t)codeSize); //ok
+    else
+        out_code.clear();//error or cancel
 }
 
 }//namespace hdiff_private

@@ -58,7 +58,7 @@ struct TNewDataSubDiffStream_mem:public hpatch_TStreamInput{
     TNewDataSubDiffStream_mem(const unsigned char* newData,const unsigned char* newData_end,
                               const unsigned char* oldData,const unsigned char* oldData_end,
                               const TCovers& _covers,bool _isOnlySubCover=false);
-    inline ~TNewDataSubDiffStream_mem(){ assert(curReadNewPos==streamSize); }
+    inline ~TNewDataSubDiffStream_mem(){ assert(curReadPos==streamSize); }
 private:
     size_t curReadNewPos;
     size_t curReadPos;
@@ -209,11 +209,11 @@ struct TDiffStream{
     hpatch_StreamPos_t pushStream(const hpatch_TStreamInput* stream,
                                   const hdiff_TCompress*     compressPlugin,
                                   const TPlaceholder&        update_compress_sizePos,
-                                  bool isLimitOutCodeSize=true);
+                                  bool isMustCompress=false);
     hpatch_StreamPos_t pushStream(const hpatch_TStreamInput* stream,
                                   const hdiff_TCompress*     compressPlugin,
-                                  bool isLimitOutCodeSize=true){
-                TPlaceholder nullPos(0,0); return pushStream(stream,compressPlugin,nullPos,isLimitOutCodeSize); }
+                                  bool isMustCompress=false){
+                TPlaceholder nullPos(0,0); return pushStream(stream,compressPlugin,nullPos,isMustCompress); }
     void pushStream(const hpatch_TStreamInput* stream){
                             TPlaceholder nullPos(0,0); pushStream(stream,0,nullPos); }
     hpatch_StreamPos_t getWritedPos()const{ return writePos; }
@@ -270,6 +270,16 @@ private:
     static hpatch_BOOL _write_check(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                     const unsigned char* data,const unsigned char* data_end);
 };
+
+
+void do_compress(std::vector<unsigned char>& out_code,const hpatch_TStreamInput* data,
+                 const hdiff_TCompress* compressPlugin,bool isMustCompress=false);
+static inline void do_compress(std::vector<unsigned char>& out_code,const std::vector<unsigned char>& data,
+                               const hdiff_TCompress* compressPlugin,bool isMustCompress=false){
+    hpatch_TStreamInput dataStream;
+    mem_as_hStreamInput(&dataStream,data.data(),data.data()+data.size());
+    do_compress(out_code,&dataStream,compressPlugin,isMustCompress);
+}
 
 }//namespace hdiff_private
 #endif
