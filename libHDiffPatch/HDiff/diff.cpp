@@ -1069,7 +1069,8 @@ void get_match_covers_by_sstring(const unsigned char* newData,const unsigned cha
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff,
              kMinSingleMatchScore,isUseBigCacheMatch,listener);
-    out_covers.swap(*(std::vector<hpatch_TCover_sz>*)&diff.covers);
+    void* pcovers=&diff.covers;
+    out_covers.swap(*(std::vector<hpatch_TCover_sz>*)pcovers);
 }
 void get_match_covers_by_sstring(const unsigned char* newData,const unsigned char* newData_end,
                                  const unsigned char* oldData,const unsigned char* oldData_end,

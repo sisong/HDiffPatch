@@ -52,7 +52,7 @@ endif
 
 
 DEF_FLAGS := \
-    -Os -DNDEBUG -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
+    -O3 -DNDEBUG -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
     -D_IS_NEED_ALL_CompressPlugin=0 \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \
     -D_CompressPlugin_zlib  \
