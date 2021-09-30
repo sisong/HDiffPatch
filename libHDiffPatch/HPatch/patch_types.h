@@ -38,7 +38,7 @@ extern "C" {
 
 #define HDIFFPATCH_VERSION_MAJOR    4
 #define HDIFFPATCH_VERSION_MINOR    0
-#define HDIFFPATCH_VERSION_RELEASE  8
+#define HDIFFPATCH_VERSION_RELEASE  9
 
 #define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
 #define _HDIFFPATCH_QUOTE(str) #str
@@ -219,6 +219,11 @@ extern "C" {
         hpatch_uint32_t newPos;
         hpatch_uint32_t length;
     } hpatch_TCover32;
+    typedef struct hpatch_TCover_sz{
+        size_t oldPos;
+        size_t newPos;
+        size_t length;
+    } hpatch_TCover_sz;
 
     //opened input covers
     typedef struct hpatch_TCovers{

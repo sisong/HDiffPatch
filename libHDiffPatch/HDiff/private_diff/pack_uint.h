@@ -110,6 +110,7 @@ struct TPlaceholder{
     inline TPlaceholder(hpatch_StreamPos_t _pos,hpatch_StreamPos_t _pos_end)
     :pos(_pos),pos_end(_pos_end){ assert(_pos<=_pos_end); }
     inline hpatch_StreamPos_t size()const{ return pos_end-pos; }
+    inline bool isNullPos()const{ return (pos_end==0)&&(pos_end==pos); }
 };
 
 hpatch_inline static

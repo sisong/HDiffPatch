@@ -242,6 +242,86 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
     return newDataDiff_size;
 }
 
+
+TNewDataSubDiffStream_mem::TNewDataSubDiffStream_mem(const unsigned char* newData,const unsigned char* newData_end,
+                                                     const unsigned char* oldData,const unsigned char* oldData_end,
+                                                     const TCovers& _covers,bool _isOnlySubCover)
+:df_newData(newData),df_newData_end(newData_end),
+    df_oldData(oldData),df_oldData_end(oldData_end),covers(_covers),isOnlySubCover(_isOnlySubCover){
+    initRead();
+    streamImport=this;
+    if (isOnlySubCover){
+        streamSize=0;
+        for (size_t i=0;i<covers.coverCount();++i){
+            hpatch_TCover cover;
+            covers.covers(i,&cover);
+            streamSize+=cover.length;
+        }
+    }else{
+        streamSize=df_newData_end-df_newData;
+    }
+    read=_read;
+}
+void TNewDataSubDiffStream_mem::initRead(){
+    curReadNewPos=0;
+    curReadPos=0;
+    nextCoveri=0;
+    curDataLen=0;
+}
+void TNewDataSubDiffStream_mem::readTo(unsigned char* out_data,unsigned char* out_data_end){
+    size_t readLen=out_data_end-out_data;
+    while (readLen>0){
+        if (curDataLen==0){
+            if (nextCoveri<covers.coverCount()){
+                hpatch_TCover cover;
+                covers.covers(nextCoveri,&cover);
+                if ((size_t)cover.newPos>curReadNewPos){
+                    curDataLen=cover.newPos-curReadNewPos;
+                    curOldData=0;
+                }else{
+                    assert((size_t)cover.newPos==curReadNewPos);
+                    curDataLen=cover.length;
+                    curOldData=df_oldData+cover.oldPos;
+                    ++nextCoveri;
+                }
+            }else{
+                curDataLen=(size_t)(streamSize-curReadNewPos);
+                curOldData=0;
+            }
+        }
+        if ((curOldData==0)&&isOnlySubCover){
+            curReadNewPos+=curDataLen;
+            curDataLen=0;
+            continue;
+        }
+
+        size_t len=std::min(curDataLen,readLen);
+        if (curOldData!=0){
+            const unsigned char* newData=df_newData+curReadNewPos;
+            for (size_t i=0;i<len;i++){
+                out_data[i]=newData[i]-curOldData[i];
+            }
+        }else{
+            memset(out_data,0,len);
+        }
+        if (curOldData) curOldData+=len;
+        curReadNewPos+=len;
+        curDataLen-=len;
+        out_data+=len;
+        readLen-=len;
+    }
+}
+hpatch_BOOL TNewDataSubDiffStream_mem::_read(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                             unsigned char* out_data,unsigned char* out_data_end){
+    TNewDataSubDiffStream_mem* self=(TNewDataSubDiffStream_mem*)stream->streamImport;
+    if (readFromPos==0) self->initRead();
+    if (readFromPos!=self->curReadPos) return hpatch_FALSE;
+    self->curReadPos+=(size_t)(out_data_end-out_data);
+    assert(self->curReadPos<=self->streamSize);
+    self->readTo(out_data,out_data_end);
+    return hpatch_TRUE;
+}
+
 TNewDataSubDiffCoverStream::TNewDataSubDiffCoverStream(const hpatch_TStreamInput* _newStream,
                                                        const hpatch_TStreamInput* _oldStream,
                                                        bool _isZeroSubDiff)
@@ -609,11 +689,12 @@ void TDiffStream::_pushStream(const hpatch_TStreamInput* stream){
     }
 }
 
-void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
-                             const hdiff_TCompress* compressPlugin,
-                             const TPlaceholder& update_compress_sizePos){
-    if ((compressPlugin)&&(stream->streamSize>0)){
-        hpatch_StreamPos_t kLimitOutCodeSize=stream->streamSize-1;
+hpatch_StreamPos_t TDiffStream::pushStream(const hpatch_TStreamInput* stream,
+                                           const hdiff_TCompress* compressPlugin,
+                                           const TPlaceholder& update_compress_sizePos,
+                                           bool isMustCompress){
+    if ((compressPlugin)&&(isMustCompress||(stream->streamSize>0))){
+        hpatch_StreamPos_t kLimitOutCodeSize=isMustCompress?compressPlugin->maxCompressedSize(stream->streamSize+1):(stream->streamSize-1);
         TCompressedStream  out_stream(out_diff,writePos,kLimitOutCodeSize);
         hpatch_StreamPos_t compressed_size=
                                 compressPlugin->compress(compressPlugin,&out_stream,stream);
@@ -623,10 +704,16 @@ void TDiffStream::pushStream(const hpatch_TStreamInput* stream,
         }else{
             writePos+=compressed_size;
         }
-        packUInt_update(update_compress_sizePos,compressed_size);
+        if (!update_compress_sizePos.isNullPos())
+            packUInt_update(update_compress_sizePos,compressed_size);
+        return (compressed_size==0)?stream->streamSize:compressed_size;
     }else if (stream->streamSize>0){
         _pushStream(stream);
+        return stream->streamSize;
+    }else{
+        return 0;
     }
+
 }
 
 void TStreamClip::reset(const hpatch_TStreamInput* stream,
@@ -690,4 +777,51 @@ hpatch_BOOL TStreamClip::_clip_read(const hpatch_TStreamInput* stream,hpatch_Str
     }
 }
     
+
+_TCheckOutNewDataStream::_TCheckOutNewDataStream(const hpatch_TStreamInput*  _newData,
+                                                 unsigned char* _buf,size_t _bufSize)
+:newData(_newData),writedLen(0),buf(_buf),bufSize(_bufSize){
+    streamImport=this;
+    streamSize=newData->streamSize;
+    read_writed=0;
+    write=_write_check;
+}
+
+hpatch_BOOL _TCheckOutNewDataStream::_write_check(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                                  const unsigned char* data,const unsigned char* data_end){
+    _TCheckOutNewDataStream* self=(_TCheckOutNewDataStream*)stream->streamImport;
+    _test_rt(self->writedLen==writeToPos);
+    self->writedLen+=(size_t)(data_end-data);
+    _test_rt(self->writedLen<=self->streamSize);
+    
+    hpatch_StreamPos_t readPos=writeToPos;
+    while (data<data_end) {
+        size_t readLen=(size_t)(data_end-data);
+        if (readLen>self->bufSize) readLen=self->bufSize;
+        _test_rt(self->newData->read(self->newData,readPos,self->buf,self->buf+readLen));
+        _test_rt(0==memcmp(data,self->buf,readLen));
+        data+=readLen;
+        readPos+=readLen;
+    }
+    return hpatch_TRUE;
+}
+
+
+void do_compress(std::vector<unsigned char>& out_code,const hpatch_TStreamInput* data,
+                        const hdiff_TCompress* compressPlugin,bool isMustCompress){
+    out_code.clear();
+    if (!compressPlugin) return;
+    if (data->streamSize==0) return;
+    hpatch_StreamPos_t maxCodeSize=compressPlugin->maxCompressedSize(data->streamSize);
+    if ((maxCodeSize<=data->streamSize)||(maxCodeSize!=(size_t)maxCodeSize)) return; //error
+    out_code.resize((size_t)maxCodeSize);
+    hpatch_TStreamOutput codeStream;
+    mem_as_hStreamOutput(&codeStream,out_code.data(),out_code.data()+out_code.size());
+    hpatch_StreamPos_t codeSize=compressPlugin->compress(compressPlugin,&codeStream,data);
+    if ((codeSize>0)&&(isMustCompress||(codeSize<data->streamSize)))
+        out_code.resize((size_t)codeSize); //ok
+    else
+        out_code.clear();//error or cancel
+}
+
 }//namespace hdiff_private

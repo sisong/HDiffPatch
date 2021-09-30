@@ -289,8 +289,10 @@
         self->d_stream.avail_in=avail_in_back;
         return hpatch_TRUE;
     }
-    static hpatch_BOOL _bz2_decompress_part(hpatch_decompressHandle decompressHandle,
-                                            unsigned char* out_part_data,unsigned char* out_part_data_end){
+
+    static hpatch_BOOL _bz2_decompress_part_(hpatch_decompressHandle decompressHandle,
+                                             unsigned char* out_part_data,unsigned char* out_part_data_end,
+                                             hpatch_BOOL isMustOutData){
         _bz2_TDecompress* self=(_bz2_TDecompress*)decompressHandle;
         assert(out_part_data<=out_part_data_end);
         
@@ -322,8 +324,15 @@
                     if (!_bz2_reset_for_next_node(self))
                         return hpatch_FALSE;//error;
                 }else{//all end
-                    if (self->d_stream.avail_out!=0)
-                        return hpatch_FALSE;//error;
+                    if (self->d_stream.avail_out!=0){
+                        if (isMustOutData){ //fill out 0
+                            memset(self->d_stream.next_out,0,self->d_stream.avail_out);
+                            self->d_stream.next_out+=self->d_stream.avail_out;
+                            self->d_stream.avail_out=0;
+                        }else{
+                            return hpatch_FALSE;//error;
+                        }
+                    }
                 }
             }else{
                 return hpatch_FALSE;//error;
@@ -331,8 +340,21 @@
         }
         return hpatch_TRUE;
     }
+    static hpatch_BOOL _bz2_decompress_part(hpatch_decompressHandle decompressHandle,
+                                            unsigned char* out_part_data,unsigned char* out_part_data_end){
+        return _bz2_decompress_part_(decompressHandle,out_part_data,out_part_data_end,hpatch_FALSE);
+    }
+    static hpatch_BOOL _bz2_decompress_part_unsz(hpatch_decompressHandle decompressHandle,
+                                                 unsigned char* out_part_data,unsigned char* out_part_data_end){
+        return _bz2_decompress_part_(decompressHandle,out_part_data,out_part_data_end,hpatch_TRUE);
+    }
+    
     static hpatch_TDecompress bz2DecompressPlugin={_bz2_is_can_open,_bz2_open,
                                                    _bz2_close,_bz2_decompress_part};
+
+    //unkown uncompress data size
+    static hpatch_TDecompress _bz2DecompressPlugin_unsz={_bz2_is_can_open,_bz2_open,
+                                                         _bz2_close,_bz2_decompress_part_unsz};
 #endif//_CompressPlugin_bz2
 
 
