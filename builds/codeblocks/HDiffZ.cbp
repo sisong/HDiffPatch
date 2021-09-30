@@ -21,7 +21,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-Os" />
+					<Add option="-O3" />
 					<Add option="-Wno-error=format-security" />
 					<Add option="-fvisibility=hidden -fvisibility-inlines-hidden" />
 					<Add option="-ffunction-sections -fdata-sections" />
@@ -39,7 +39,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-march=i586" />
-					<Add option="-Os" />
+					<Add option="-O3" />
 					<Add option="-m32" />
 					<Add option="-Wno-error=format-security" />
 					<Add option="-fvisibility=hidden -fvisibility-inlines-hidden" />

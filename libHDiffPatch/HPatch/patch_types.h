@@ -101,6 +101,7 @@ extern "C" {
 #   include <android/log.h>
 #   define LOG_ERR(...) __android_log_print(ANDROID_LOG_ERROR, "hpatch", __VA_ARGS__)
 #else
+#   include <stdio.h>  //for stderr
 #   define LOG_ERR(...) fprintf(stderr,__VA_ARGS__)
 #endif
     
