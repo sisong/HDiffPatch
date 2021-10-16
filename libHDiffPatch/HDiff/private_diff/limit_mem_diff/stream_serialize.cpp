@@ -28,6 +28,7 @@
 #include <string.h> //memcpy
 #include <stdexcept> //std::runtime_error
 #include "../../diff.h" //for stream type
+#include <algorithm>
 
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
