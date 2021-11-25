@@ -29,6 +29,8 @@
 #ifndef HDiff_diff_types_h
 #define HDiff_diff_types_h
 #include "../HPatch/patch_types.h"
+#include <utility> //std::pair
+namespace hdiff_private{
 
     template<class TCover>
     struct cover_cmp_by_new_t{
@@ -43,6 +45,9 @@
                 return x.length<y.length;
         }
     };
+
+    typedef std::pair<hpatch_StreamPos_t,hpatch_StreamPos_t> TPairRange;
+}
 
 #ifdef __cplusplus
 extern "C"

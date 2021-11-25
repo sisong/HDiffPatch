@@ -266,6 +266,10 @@
 		</Unit>
 		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_block.h" />
 		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_internal.h" />
+		<Unit filename="../../bsdiff_wrapper/bsdiff_wrapper.cpp" />
+		<Unit filename="../../bsdiff_wrapper/bspatch_wrapper.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../compress_parallel.cpp" />
 		<Unit filename="../../compress_parallel.h" />
 		<Unit filename="../../dirDiffPatch/dir_diff/dir_diff.cpp" />
@@ -304,6 +308,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../libHDiffPatch/HDiff/diff.cpp" />
+		<Unit filename="../../libHDiffPatch/HDiff/match_block.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/bytes_rle.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/compress_detect.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.c">
