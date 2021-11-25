@@ -67,10 +67,23 @@ memory options:
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
 special options:
+  -block[-fastMatchBlockSize]
+      must run with -m;
+      set is use fast block match befor slow match, DEFAULT false;
+      fastMatchBlockSize>=4, DEFAULT 4k, recommended 256,1k,64k,1m etc...;
+      if newData similar to oldData then diff speed++ & diff memory--,
+      but small possibility outDiffFile's size+
+  -cache
+      must run with -m;
+      set is use a big cache for slow match, DEFAULT false;
+      if newData not similar to oldData then diff speed++,
+      big cache max used O(oldFileSize) memory, and build slow(diff speed--)
   -SD[-stepSize]
       create single compressed diffData, only need one decompress buffer
       when patch, and support step by step patching when step by step downloading!
       stepSize>=(1024*4), DEFAULT -SD-256k, recommended 64k,2m etc...
+  -BSD
+      create diffFile compatible with bsdiff, unsupport input directory(folder).
   -p-parallelThreadNumber
       if parallelThreadNumber>1 then open multi-thread Parallel mode;
       DEFAULT -p-4; requires more memory!
@@ -156,14 +169,19 @@ memory options:
   -s[-cacheSize]
       DEFAULT -s-64m; oldPath loaded as Stream;
       cacheSize can like 262144 or 256k or 512m or 2g etc....
-      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory;
+      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData, then requires
-        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
+        (cacheSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
         see: hdiffz -SD-stepSize option.
+      if diffFile is bsdiff diffData, then requires
+        (cacheSize + 3*decompress buffer size)+O(1) bytes of memory;
+        see: hdiffz -BSD option.
   -m  oldPath all loaded into Memory;
-      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory;
+      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData, then requires
         (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory.
+      if diffFile is bsdiff diffData, then requires
+        (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.
 special options:
   -C-checksumSets
       set Checksum data for directory patch, DEFAULT -C-new-copy;

@@ -37,6 +37,8 @@
 //  brotliDecompressPlugin;
 //  lzhamDecompressPlugin;
 
+// _bz2DecompressPlugin_unsz support for bspatch_with_cache()
+
 #include <stdlib.h> //malloc free
 #include <stdio.h>  //fprintf
 #include "libHDiffPatch/HPatch/patch_types.h"
