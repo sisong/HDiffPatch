@@ -97,10 +97,16 @@
 		<Unit filename="../../../lzma/C/Alloc.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../lzma/C/CpuArch.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../lzma/C/LzFind.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/LzFindMt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/LzFindOpt.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/Lzma2Dec.c">
