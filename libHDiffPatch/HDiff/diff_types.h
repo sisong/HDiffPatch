@@ -45,8 +45,6 @@ namespace hdiff_private{
                 return x.length<y.length;
         }
     };
-
-    typedef std::pair<hpatch_StreamPos_t,hpatch_StreamPos_t> TPairRange;
 }
 
 #ifdef __cplusplus
