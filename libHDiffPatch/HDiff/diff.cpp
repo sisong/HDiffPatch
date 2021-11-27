@@ -858,6 +858,16 @@ void create_compressed_diff(const TByte* newData,const TByte* newData_end,
     serialize_compressed_diff(diff,out_diff,compressPlugin);
 }
 
+void create_compressed_diff(const TByte* newData,const TByte* newData_end,
+                            const TByte* oldData,const TByte* oldData_end,
+                            const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                            int kMinSingleMatchScore,bool isUseBigCacheMatch,ICoverLinesListener* listener){
+    std::vector<unsigned char> _out_diff;
+    create_compressed_diff(newData,newData_end,oldData,oldData_end,_out_diff,
+                           compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,listener);
+    checki(out_diff->write(out_diff,0,_out_diff.data(),_out_diff.data()+_out_diff.size()),"create_compressed_diff() out_diff->write");
+}
+
 static void serialize_single_compressed_diff(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
                                              bool isZeroSubDiff,const TCovers& covers,const hpatch_TStreamOutput* out_diff,
                                              const hdiff_TCompress* compressPlugin,size_t patchStepMemSize){

@@ -4,8 +4,10 @@ MT       := 1
 LZMA     := 1
 ZSTD     := 1
 MD5      := 1
+BSD      := 1  # support bsdiff&bspatch?
+CL  	 := 0  # clang?
 
-
+HDIFF_OBJ  := 
 HPATCH_OBJ := \
     libHDiffPatch/HPatch/patch.o \
     file_for_patch.o
@@ -21,11 +23,72 @@ else
     dirDiffPatch/dir_patch/new_dir_output.o \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o
 endif
+ifeq ($(BSD),0)
+else
+	HPATCH_OBJ += bsdiff_wrapper/bspatch_wrapper.o
+endif
+MD5_PATH := ../libmd5
+ifeq ($(DIR_DIFF),0)
+else
+  ifeq ($(MD5),0)
+  else # https://sourceforge.net/projects/libmd5-rfc  https://github.com/sisong/libmd5
+	HPATCH_OBJ += $(MD5_PATH)/md5.o
+  endif
+endif
+LZMA_PATH := ../lzma/C
+ifeq ($(LZMA),0)
+else # https://www.7-zip.org  https://github.com/sisong/lzma
+  HPATCH_OBJ += $(LZMA_PATH)/LzmaDec.o \
+  				$(LZMA_PATH)/Lzma2Dec.o 
+  HDIFF_OBJ  += $(LZMA_PATH)/LzFind.o \
+  				$(LZMA_PATH)/LzFindOpt.o \
+  				$(LZMA_PATH)/LzmaEnc.o \
+				$(LZMA_PATH)/Lzma2Enc.o  
+  ifeq ($(MT),0)  
+  else  
+    HDIFF_OBJ+= $(LZMA_PATH)/LzFindMt.o \
+  				$(LZMA_PATH)/MtCoder.o \
+  				$(LZMA_PATH)/MtDec.o \
+				$(LZMA_PATH)/Threads.o
+  endif
+endif
+ZSTD_PATH := ../zstd/lib
+ifeq ($(ZSTD_PATH),0)
+else # # https://github.com/facebook/zstd
+  HPATCH_OBJ += $(ZSTD_PATH)/common/debug.o \
+  				$(ZSTD_PATH)/common/entropy_common.o \
+  				$(ZSTD_PATH)/common/error_private.o \
+  				$(ZSTD_PATH)/common/fse_decompress.o \
+  				$(ZSTD_PATH)/common/xxhash.o \
+  				$(ZSTD_PATH)/common/zstd_common.o \
+  				$(ZSTD_PATH)/decompress/huf_decompress.o \
+  				$(ZSTD_PATH)/decompress/zstd_ddict.o \
+  				$(ZSTD_PATH)/decompress/zstd_decompress.o \
+  				$(ZSTD_PATH)/decompress/zstd_decompress_block.o
+  HDIFF_OBJ  += $(ZSTD_PATH)/compress/fse_compress.o \
+  				$(ZSTD_PATH)/compress/hist.o \
+  				$(ZSTD_PATH)/compress/huf_compress.o \
+  				$(ZSTD_PATH)/compress/zstd_compress.o \
+  				$(ZSTD_PATH)/compress/zstd_compress_literals.o \
+  				$(ZSTD_PATH)/compress/zstd_compress_sequences.o \
+  				$(ZSTD_PATH)/compress/zstd_compress_superblock.o \
+  				$(ZSTD_PATH)/compress/zstd_double_fast.o \
+  				$(ZSTD_PATH)/compress/zstd_fast.o \
+  				$(ZSTD_PATH)/compress/zstd_lazy.o \
+  				$(ZSTD_PATH)/compress/zstd_ldm.o \
+  				$(ZSTD_PATH)/compress/zstd_opt.o
+  ifeq ($(MT),0)
+  else  
+    HDIFF_OBJ+= $(ZSTD_PATH)/common/pool.o \
+				$(ZSTD_PATH)/common/threading.o \
+				$(ZSTD_PATH)/compress/zstdmt_compress.o
+  endif
+endif
 
-
-HDIFF_OBJ := \
+HDIFF_OBJ += \
     hdiffz_import_patch.o \
     libHDiffPatch/HDiff/diff.o \
+    libHDiffPatch/HDiff/match_block.o \
     libHDiffPatch/HDiff/private_diff/bytes_rle.o \
     libHDiffPatch/HDiff/private_diff/suffix_string.o \
     libHDiffPatch/HDiff/private_diff/compress_detect.o \
@@ -35,12 +98,17 @@ HDIFF_OBJ := \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.o \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o \
     $(HPATCH_OBJ)
+
 ifeq ($(DIR_DIFF),0)
 else
   HDIFF_OBJ += \
     dirDiffPatch/dir_diff/dir_diff.o \
     dirDiffPatch/dir_diff/dir_diff_tools.o \
     dirDiffPatch/dir_diff/dir_manifest.o
+endif
+ifeq ($(BSD),0)
+else
+	HDIFF_OBJ += bsdiff_wrapper/bsdiff_wrapper.o
 endif
 ifeq ($(MT),0)
 else
@@ -68,23 +136,23 @@ else
     -D_ChecksumPlugin_fadler64
   ifeq ($(MD5),0)
   else
-    DEF_FLAGS += -D_ChecksumPlugin_md5 -I'../libmd5'
+    DEF_FLAGS += -D_ChecksumPlugin_md5 -I$(MD5_PATH)
   endif
 endif
-
+ifeq ($(BSD),0)
+	DEF_FLAGS += -D_IS_NEED_BSDIFF=0
+else
+	DEF_FLAGS += -D_IS_NEED_BSDIFF=1
+endif
 ifeq ($(LZMA),0)
 else
-  DEF_FLAGS += \
-    -D_CompressPlugin_lzma -I'../lzma/C' \
-    -D_CompressPlugin_lzma2 -I'../lzma/C'
+  DEF_FLAGS += -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 -I$(LZMA_PATH)
 endif
 ifeq ($(ZSTD),0)
 else
   DEF_FLAGS += \
-    -D_CompressPlugin_zstd -I'../zstd/lib' \
-    -D_CompressPlugin_zstd -I'../zstd/lib/common' \
-    -D_CompressPlugin_zstd -I'../zstd/lib/compress' \
-    -D_CompressPlugin_zstd -I'../zstd/lib/decompress'
+    -D_CompressPlugin_zstd  -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common \
+	-I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
 endif
 
 ifeq ($(MT),0)
@@ -104,92 +172,35 @@ ifeq ($(MT),0)
 else
   DIFF_LINK += -lpthread
 endif
+ifeq ($(CL),1)
+  CXX := clang++
+  CC  := clang
+  DIFF_LINK += -lstdc++
+endif
 
 CFLAGS   += $(DEF_FLAGS) 
 CXXFLAGS += $(DEF_FLAGS)
 
 .PHONY: all install clean
 
-all: md5Lib lzmaLib zstdLib libhdiffpatch.a hdiffz hpatchz
-
-ifeq ($(DIR_DIFF),0)
-  MD5_OBJ     :=
-  md5Lib      :
-else
-  ifeq ($(MD5),0)
-    MD5_OBJ     :=
-    md5Lib      :
-  else
-    MD5_OBJ     := 'md5.o'
-    md5Lib      : # https://sourceforge.net/projects/libmd5-rfc  https://github.com/sisong/libmd5
-	$(CC) -c $(CFLAGS) '../libmd5/md5.c'
-  endif
-endif
-
-ifeq ($(LZMA),0)
-  LZMA_DEC_OBJ :=
-  LZMA_OBJ     :=
-  lzmaLib      :
-else  
-  LZMA_DEC_OBJ := 'LzmaDec.o' 'Lzma2Dec.o' 
-  LZMA_OBJ     := 'LzFind.o' 'LzmaEnc.o' 'Lzma2Enc.o' $(LZMA_DEC_OBJ)
-  LZMA_SRC     := '../lzma/C/LzmaDec.c' '../lzma/C/Lzma2Dec.c' \
-		              '../lzma/C/LzFind.c' '../lzma/C/LzmaEnc.c' '../lzma/C/Lzma2Enc.c'
-  ifeq ($(MT),0)  
-  else  
-    LZMA_OBJ += 'LzFindMt.o' 'MtCoder.o' 'MtDec.o' 'Threads.o'
-    LZMA_SRC += '../lzma/C/LzFindMt.c' '../lzma/C/MtCoder.c' \
-		   '../lzma/C/MtDec.c' '../lzma/C/Threads.c' 
-  endif
-  lzmaLib: # https://github.com/sisong/lzma
-	$(CC) -c $(CFLAGS) $(LZMA_SRC)
-endif
-
-ifeq ($(ZSTD),0)
-  ZSTD_DEC_OBJ :=
-  ZSTD_OBJ     :=
-  zstdLib      :
-else  
-  ZSTD_DEC_OBJ := 'debug.o' 'entropy_common.o' 'error_private.o'\
-                  'fse_decompress.o' 'xxhash.o' 'zstd_common.o' \
-                  'huf_decompress.o' 'zstd_ddict.o' \
-                  'zstd_decompress.o' 'zstd_decompress_block.o'
-  ZSTD_OBJ     := 'fse_compress.o' 'hist.o' 'huf_compress.o' \
-                  'zstd_compress.o' 'zstd_compress_literals.o' 'zstd_compress_sequences.o' \
-                  'zstd_compress_superblock.o' 'zstd_double_fast.o' 'zstd_fast.o' \
-                  'zstd_lazy.o' 'zstd_ldm.o' 'zstd_opt.o'  $(ZSTD_DEC_OBJ)
-  ZSTD_SRC     := '../zstd/lib/common/debug.c' '../zstd/lib/common/entropy_common.c' '../zstd/lib/common/error_private.c' \
-                  '../zstd/lib/common/fse_decompress.c' '../zstd/lib/common/xxhash.c' '../zstd/lib/common/zstd_common.c' \
-                  '../zstd/lib/decompress/huf_decompress.c' '../zstd/lib/decompress/zstd_ddict.c' \
-                  '../zstd/lib/decompress/zstd_decompress.c' '../zstd/lib/decompress/zstd_decompress_block.c' \
-                  '../zstd/lib/compress/fse_compress.c' '../zstd/lib/compress/hist.c' '../zstd/lib/compress/huf_compress.c' \
-                  '../zstd/lib/compress/zstd_compress.c' '../zstd/lib/compress/zstd_compress_literals.c' '../zstd/lib/compress/zstd_compress_sequences.c' \
-                  '../zstd/lib/compress/zstd_compress_superblock.c' '../zstd/lib/compress/zstd_double_fast.c' '../zstd/lib/compress/zstd_fast.c' \
-                  '../zstd/lib/compress/zstd_lazy.c' '../zstd/lib/compress/zstd_ldm.c' '../zstd/lib/compress/zstd_opt.c' 
-                  
-  ifeq ($(MT),0)  
-  else  
-    ZSTD_OBJ += 'pool.o' 'threading.o' 'zstdmt_compress.o'
-    ZSTD_SRC += '../zstd/lib/common/pool.c' '../zstd/lib/common/threading.c' '../zstd/lib/compress/zstdmt_compress.c'
-  endif
-  zstdLib: # https://github.com/facebook/zstd
-	$(CC) -c $(CFLAGS) $(ZSTD_SRC)
-endif
+all: libhdiffpatch.a hpatchz hdiffz mostlyclean
 
 libhdiffpatch.a: $(HDIFF_OBJ)
 	$(AR) rcs $@ $^
 
-hdiffz: 
-	$(CXX) hdiffz.cpp libhdiffpatch.a $(MD5_OBJ) $(LZMA_OBJ) $(ZSTD_OBJ) $(CXXFLAGS) $(DIFF_LINK) -o hdiffz
-hpatchz: 
-	$(CC) hpatchz.c $(HPATCH_OBJ) $(MD5_OBJ) $(LZMA_DEC_OBJ) $(ZSTD_DEC_OBJ) $(CFLAGS) $(PATCH_LINK) -o hpatchz
+hpatchz: $(HPATCH_OBJ)
+	$(CC) hpatchz.c $(HPATCH_OBJ) $(CFLAGS) $(PATCH_LINK) -o hpatchz
+hdiffz: libhdiffpatch.a
+	$(CXX) hdiffz.cpp libhdiffpatch.a $(CXXFLAGS) $(DIFF_LINK) -o hdiffz
 
 RM := rm -f
 INSTALL_X := install -m 0755
 INSTALL_BIN := $(DESTDIR)/usr/local/bin
 
+mostlyclean: hpatchz hdiffz
+	$(RM) $(HDIFF_OBJ)
 clean:
-	$(RM) libhdiffpatch.a hdiffz hpatchz $(HDIFF_OBJ) $(MD5_OBJ) $(LZMA_OBJ) $(ZSTD_OBJ)
+	$(RM) libhdiffpatch.a hpatchz hdiffz $(HDIFF_OBJ)
 
 install: all
 	$(INSTALL_X) hdiffz $(INSTALL_BIN)/hdiffz

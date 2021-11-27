@@ -33,6 +33,7 @@
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
 #include "../../libHDiffPatch/HDiff/diff.h"
+#include "../../libHDiffPatch/HDiff/match_block.h"
 #include "../../libHDiffPatch/HPatch/patch.h"
 #include "../dir_patch/dir_patch.h"
 #include "../dir_patch/dir_patch_private.h"
@@ -263,13 +264,11 @@ struct CChecksumCombine:public CChecksum{
 
 void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
               const TManifest& newManifest,const hpatch_TStreamOutput* outDiffStream,
-              bool isLoadAll,size_t matchValue,
-              hpatch_BOOL isSingleStreamDiff,size_t singleStreamStepSize,
-              const hdiff_TCompress* compressPlugin,
-              hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
+              const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,
+              const THDiffSets& hdiffSets,size_t kMaxOpenFileNumber){
     assert(listener!=0);
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
-    if ((checksumPlugin)&&(!isLoadAll)){
+    if ((checksumPlugin)&&(!hdiffSets.isDiffInMem)){
         check((outDiffStream->read_writed!=0),
               "for update checksum, outDiffStream->read_writed can't null error!");
     }
@@ -451,7 +450,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     //diff data
     listener->runHDiffBegin();
     hpatch_StreamPos_t diffDataSize=0;
-    if (isLoadAll){
+    if (hdiffSets.isDiffInMem){
         hpatch_StreamPos_t memSize=newRefStream.stream->streamSize+oldRefStream.stream->streamSize;
         check(memSize==(size_t)memSize,"alloc size overflow error!");
         TAutoMem  mem((size_t)memSize);
@@ -462,39 +461,47 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         check(oldRefStream.stream->read(oldRefStream.stream,0,oldData,
                                         oldData+oldRefStream.stream->streamSize),"read old file error!");
         resLimit.close(); //close files
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-        if (isSingleStreamDiff){
+        if (hdiffSets.isSingleCompressedDiff){
             TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
+          if (hdiffSets.isUseFastMatchBlock)
+            create_single_compressed_diff_block(newData,newData+newRefStream.stream->streamSize,
+                                                oldData,oldData+oldRefStream.stream->streamSize,
+                                                &ofStream,compressPlugin,(int)hdiffSets.matchScore,
+                                                hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch);
+          else
             create_single_compressed_diff(newData,newData+newRefStream.stream->streamSize,
                                           oldData,oldData+oldRefStream.stream->streamSize,
-                                          &ofStream,compressPlugin,(int)matchValue,singleStreamStepSize);
+                                          &ofStream,compressPlugin,(int)hdiffSets.matchScore,
+                                          hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch);
             diffDataSize=ofStream.outSize;
             if (checksumByteSize>0){
                 assert(outDiffStream->read_writed!=0);
                 diffChecksum.append((const hpatch_TStreamInput*)outDiffStream,
                                     writeToPos,writeToPos+diffDataSize);
             }
-        }else
-#endif
-        {
+        }else{
             std::vector<TByte> out_diff;
+          if (hdiffSets.isUseFastMatchBlock)
+            create_compressed_diff_block(newData,newData+newRefStream.stream->streamSize,
+                                         oldData,oldData+oldRefStream.stream->streamSize,
+                                         out_diff,compressPlugin,(int)hdiffSets.matchScore,
+                                         hdiffSets.isUseBigCacheMatch);
+          else
             create_compressed_diff(newData,newData+newRefStream.stream->streamSize,
                                    oldData,oldData+oldRefStream.stream->streamSize,
-                                   out_diff,compressPlugin,(int)matchValue);
+                                   out_diff,compressPlugin,(int)hdiffSets.matchScore,
+                                   hdiffSets.isUseBigCacheMatch);
             diffDataSize=out_diff.size();
             _pushv(out_diff);
         }
     }else{
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-        if (isSingleStreamDiff){
+        if (hdiffSets.isSingleCompressedDiff){
             create_single_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                                 compressPlugin,matchValue,singleStreamStepSize);
-        }else
-#endif
-        {
+                                                 compressPlugin,hdiffSets.matchBlockSize,hdiffSets.patchStepMemSize);
+        }else{
             create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                          compressPlugin,matchValue);
+                                          compressPlugin,hdiffSets.matchBlockSize);
         }
         diffDataSize=ofStream.outSize;
         if (checksumByteSize>0){
@@ -678,10 +685,8 @@ bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const
 
     //mem
     size_t      temp_cache_size=hpatch_kFileIOBufBetterSize*4;
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
     if (dirDiffInfo->isSingleCompressedDiff)
         temp_cache_size+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
-#endif
     TAutoMem    p_temp_mem(temp_cache_size);
     TByte*      temp_cache=p_temp_mem.data();
 
@@ -814,14 +819,11 @@ void resave_dirdiff(const hpatch_TStreamInput* in_diff,hpatch_TDecompress* decom
         TOffsetStreamOutput ofStream(out_diff,writeToPos);
         TStreamClip clip(in_diff,head.hdiffDataOffset,head.hdiffDataOffset+head.hdiffDataSize);
         
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
         hpatch_singleCompressedDiffInfo singleDiffInfo;
         hpatch_BOOL isSingleStreamDiff=getSingleCompressedDiffInfo(&singleDiffInfo,&clip,0);
         if (isSingleStreamDiff){
             resave_single_compressed_diff(&clip,decompressPlugin,&ofStream,compressPlugin,&singleDiffInfo);
-        }else
-#endif
-        {
+        }else{
             resave_compressed_diff(&clip,decompressPlugin,&ofStream,compressPlugin);
         }
         writeToPos+=ofStream.outSize;

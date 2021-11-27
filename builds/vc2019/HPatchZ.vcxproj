@@ -288,6 +288,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\libmd5\md5.c" />
+    <ClCompile Include="..\..\bsdiff_wrapper\bspatch_wrapper.c" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\dir_patch.c" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\dir_patch_tools.c" />
     <ClCompile Include="..\..\dirDiffPatch\dir_patch\new_dir_output.c" />

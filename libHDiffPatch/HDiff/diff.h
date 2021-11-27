@@ -68,6 +68,13 @@ void create_compressed_diff(const unsigned char* newData,const unsigned char* ne
                             int kMinSingleMatchScore=kMinSingleMatchScore_default,
                             bool isUseBigCacheMatch=false,
                             ICoverLinesListener* listener=0);
+void create_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
+                            const unsigned char* oldData,const unsigned char* oldData_end,
+                            const hpatch_TStreamOutput* out_diff,
+                            const hdiff_TCompress* compressPlugin=0,
+                            int kMinSingleMatchScore=kMinSingleMatchScore_default,
+                            bool isUseBigCacheMatch=false,
+                            ICoverLinesListener* listener=0);
 
 //create a compressed diff data by stream:
 //  can control memory requires and run speed by different kMatchBlockSize value,
@@ -79,6 +86,7 @@ void create_compressed_diff(const unsigned char* newData,const unsigned char* ne
 //  NOTICE: out_diff->write()'s writeToPos may be back to update headData!
 //  throw std::runtime_error when I/O error,etc.
 static const size_t kMatchBlockSize_default = (1<<6);
+static const size_t kMatchBlockSize_min=4;
 void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamInput*  oldData,
                                    const hpatch_TStreamOutput* out_diff,
@@ -108,7 +116,7 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
 
 
 
-static const size_t kDefaultStepMemSize =1024*256;
+static const size_t kDefaultPatchStepMemSize =1024*256;
 
 //create a diff data between oldData and newData, the diffData saved as single compressed stream
 //  kMinSingleMatchScore: default 6, bin: 0--4  text: 4--9
@@ -118,14 +126,14 @@ void create_single_compressed_diff(const unsigned char* newData,const unsigned c
                                    const unsigned char* oldData,const unsigned char* oldData_end,
                                    std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin=0,
                                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                                   size_t patchStepMemSize=kDefaultStepMemSize,
+                                   size_t patchStepMemSize=kDefaultPatchStepMemSize,
                                    bool isUseBigCacheMatch=false,
                                    ICoverLinesListener* listener=0);
 void create_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                    const unsigned char* oldData,const unsigned char* oldData_end,
                                    const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin=0,
                                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                                   size_t patchStepMemSize=kDefaultStepMemSize,
+                                   size_t patchStepMemSize=kDefaultPatchStepMemSize,
                                    bool isUseBigCacheMatch=false,
                                    ICoverLinesListener* listener=0);
 //create single compressed diff data by stream:
@@ -141,7 +149,7 @@ void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                           const hpatch_TStreamOutput* out_diff,
                                           const hdiff_TCompress* compressPlugin=0,
                                           size_t kMatchBlockSize=kMatchBlockSize_default,
-                                          size_t patchStepMemSize=kDefaultStepMemSize);
+                                          size_t patchStepMemSize=kDefaultPatchStepMemSize);
 
 //return patch_single_?(oldData+diff)==newData?
 bool check_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,

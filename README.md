@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.0.9-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.1.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -67,10 +67,23 @@ memory options:
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
 special options:
+  -block[-fastMatchBlockSize]
+      must run with -m;
+      set is use fast block match befor slow match, DEFAULT false;
+      fastMatchBlockSize>=4, DEFAULT 4k, recommended 256,1k,64k,1m etc...;
+      if newData similar to oldData then diff speed++ & diff memory--,
+      but small possibility outDiffFile's size+
+  -cache
+      must run with -m;
+      set is use a big cache for slow match, DEFAULT false;
+      if newData not similar to oldData then diff speed++,
+      big cache max used O(oldFileSize) memory, and build slow(diff speed--)
   -SD[-stepSize]
       create single compressed diffData, only need one decompress buffer
       when patch, and support step by step patching when step by step downloading!
       stepSize>=(1024*4), DEFAULT -SD-256k, recommended 64k,2m etc...
+  -BSD
+      create diffFile compatible with bsdiff, unsupport input directory(folder).
   -p-parallelThreadNumber
       if parallelThreadNumber>1 then open multi-thread Parallel mode;
       DEFAULT -p-4; requires more memory!
@@ -156,14 +169,19 @@ memory options:
   -s[-cacheSize]
       DEFAULT -s-64m; oldPath loaded as Stream;
       cacheSize can like 262144 or 256k or 512m or 2g etc....
-      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory;
+      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData, then requires
-        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
+        (cacheSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
         see: hdiffz -SD-stepSize option.
+      if diffFile is bsdiff diffData, then requires
+        (cacheSize + 3*decompress buffer size)+O(1) bytes of memory;
+        see: hdiffz -BSD option.
   -m  oldPath all loaded into Memory;
-      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory;
+      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData, then requires
         (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory.
+      if diffFile is bsdiff diffData, then requires
+        (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.
 special options:
   -C-checksumSets
       set Checksum data for directory patch, DEFAULT -C-new-copy;
@@ -224,102 +242,126 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **patch_single_stream()**
 * **patch_single_stream_mem()**
 * **patch_single_compressed_diff()**
-* **patch_single_stream_diff()**
+* **patch_single_stream_diff()**   
+ v4.1 API, bsdiff wrapper:   
+* **create_bsdiff()**
+* **bspatch_with_cache()**
 
 ---
-## HDiffPatch vs BsDiff:
-system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
-   (purge file cache before every test)
-```
-HDiffPatch2.4 hdiffz run by: -m -c-bzip2-9|-c-lzma-7-4m|-c-zlib-9 oldFile newFile outDiffFile
-              hpatchz run by: -m oldFile diffFile outNewFile
-BsDiff4.3 with bzip2 and all data in memory;
-          (NOTE: when compiling BsDiff4.3-x64, suffix string index type int64 changed to int32, 
-            faster and memory requires to be halved!)   
-=======================================================================================================
-         Program               Uncompressed Compressed Compressed  BsDiff             hdiffz
-(newVersion<--oldVersion)           (tar)     (bzip2)    (lzma)    (bzip2)    (bzip2   lzma     zlib)
--------------------------------------------------------------------------------------------------------
-apache-maven-2.2.1-src <--2.0.11    5150720   1213258    1175464    115723     83935    80997    91921
-httpd_2.4.4-netware-bin <--2.2.24  22612480   4035904    3459747   2192308   1809555  1616435  1938953
-httpd-2.4.4-src <-- 2.2.24         31809536   4775534    4141266   2492534   1882555  1717468  2084843
-Firefox-21.0-mac-en-US.app<--20.0  98740736  39731352   33027837  16454403  15749937 14018095 15417854
-emacs-24.3 <-- 23.4               185528320  42044895   33707445  12892536   9574423  8403235 10964939
-eclipse-java-juno-SR2-macosx
-  -cocoa-x86_64 <--x86_32         178595840 156054144  151542885   1595465   1587747  1561773  1567700
-gcc-src-4.8.0 <--4.7.0            552775680  86438193   64532384  11759496   8433260  7288783  9445004
--------------------------------------------------------------------------------------------------------
-Average Compression                 100.00%    31.76%     28.47%     6.63%     5.58%    5.01%    5.86%
-=======================================================================================================
-
-=======================================================================================================
-   Program   run time(Second)   memory(MB)        run time(Second)              memory(MB)
-               BsDiff hdiffz  BsDiff  hdiffz   BsPatch       hpatchz        BsPatch     hpatchz 
-              (bzip2)(bzip2)  (bzip2)(bzip2)   (bzip2) (bzip2  lzma  zlib)  (bzip2) (bzip2 lzma zlib)
--------------------------------------------------------------------------------------------------------
-apache-maven...  1.3   0.4       42     28       0.09    0.04  0.03  0.02       14      8     7     6
-httpd bin...     8.6   3.0      148    124       0.72    0.36  0.18  0.13       50     24    23    18
-httpd src...    20     5.1      322    233       0.99    0.46  0.24  0.17       78     44    42    37
-Firefox...      94    28        829    582       3.0     2.2   1.2   0.57      198    106   106    94
-emacs...       109    32       1400   1010       4.9     2.3   1.1   0.78      348    174   168   161
-eclipse        100    33       1500   1000       1.5     0.56  0.57  0.50      350    176   174   172
-gcc-src...     366    69       4420   3030       7.9     3.5   2.1   1.85     1020    518   517   504
--------------------------------------------------------------------------------------------------------
-Average        100%   28.9%    100%   71.5%      100%   52.3% 29.9% 21.3%      100%  52.3% 50.3% 45.5%
-=======================================================================================================
-```
+## HDiffPatch vs BsDiff & xdelta:
+case list:
+| |newFile <-- oldFile|newSize|oldSize|
+|----:|:----|----:|----:|
+|1|apache-maven-2.2.1-src.tar <-- apache-maven-2.0.11-src.tar|5150720|4689920|
+|2|httpd_2.4.4-netware-bin.tar <-- httpd_2.2.24-netware-bin.tar|22612480|17059328|
+|3|httpd-2.4.4-src.tar <-- httpd-2.2.24-src.tar|31809536|37365760|
+|4|Firefox-21.0-mac-en-US.app.tar <-- Firefox-20.0-mac-en-US.app.tar|98740736|96340480|
+|5|emacs-24.3.tar <-- emacs-23.4.tar|185528320|166420480|
+|6|eclipse-java-juno-SR2-macosx-cocoa-x86_64.tar <-- eclipse-java-juno-SR2-macosx-cocoa.tar|178595840|178800640|
+|7|gcc-4.8.0.tar <-- gcc-4.7.0.tar|552775680|526745600|
    
-## HDiffPatch vs xdelta:
-system: macOS10.12.6, compiler: xcode8.3.3 x64, CPU: i7 2.5G(turbo3.7G,6MB L3 cache),SSD Disk,Memroy:8G*2 DDR3 1600MHz   
-   (purge file cache before every test)
-```
-HDiffPatch2.4 hdiffz run by: -s-128 -c-bzip2-9 oldFile newFile outDiffFile
-              hpatchz run by: -s-4m oldFile diffFile outNewFile
-xdelta3.1 diff run by: -e -s old_file new_file delta_file   
-          patch run by: -d -s old_file delta_file decoded_new_file
-         (NOTE fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
-           out 14173073B and used 1070MB memory!)
-=======================================================================================================
-   Program              diff       run time(Second)  memory(MB)    patch run time(Second) memory(MB)
-                  xdelta3   hdiffz   xdelta3 hdiffz xdelta3 hdiffz  xdelta3  hpatchz   xdelta3 hpatchz
--------------------------------------------------------------------------------------------------------
-apache-maven...   116265     83408     0.16   0.13     65    11       0.07    0.06        12      6
-httpd bin...     2174098   2077625     1.1    1.2     157    15       0.25    0.65        30      8
-httpd src...     2312990   2034666     1.3    1.7     185    15       0.30    0.91        50      8
-Firefox...      28451567  27504156    16     11       225    16       2.0     4.1        100      8
-emacs...        31655323  12033450    19      9.4     220    33       3.2     4.0         97     10
-eclipse          1590860   1636221     1.5    1.2     207    34       0.46    0.49        77      8 
-gcc-src...     107003829  12305741    56     19       224    79       9.7     9.5        102     11 
-           (fix 14173073)
--------------------------------------------------------------------------------------------------------
-Average           12.18%    7.81%     100%  79.0%     100%  15.5%      100%  169.1%      100%  18.9%
-              (fix 9.78%)
-=======================================================================================================
 
-HDiffPatch2.4 hdiffz run by: -s-64 -c-lzma-7-4m  oldFile newFile outDiffFile
-              hpatchz run by: -s-4m oldFile diffFile outNewFile
-xdelta3.1 diff run by: -S lzma -9 -s old_file new_file delta_file   
-          patch run by: -d -s old_file delta_file decoded_new_file
-          (NOTE fix: xdelta3.1 diff "gcc-src..." fail, add -B 530000000 diff ok,
-            out 11787978B and used 2639MB memory.)
-=======================================================================================================
-   Program              diff       run time(Second)  memory(MB)    patch run time(Second) memory(MB)
-                  xdelta3   hdiffz   xdelta3 hdiffz xdelta3 hdiffz  xdelta3  hpatchz   xdelta3 hpatchz
--------------------------------------------------------------------------------------------------------
-apache-maven...    98434     83668     0.37   0.29    220    24       0.04    0.06         12     5
-httpd bin...     1986880   1776553     2.5    2.9     356    59       0.24    0.52         30     8
-httpd src...     2057118   1794029     3.3    4.2     375    62       0.28    0.78         50     8
-Firefox...      27046727  21882343    27     32       416    76       1.8     2.2         100     9
-emacs...        29392254   9698236    38     32       413    97       3.1     2.9          97     9
-eclipse          1580342   1589045     3.0    1.9     399    76       0.48    0.48         77     6 
-gcc-src...      95991977   9118368   128     44       417   148       8.9     8.6         102    11 
-           (fix 11787978)
--------------------------------------------------------------------------------------------------------
-Average           11.24%    6.44%     100%  88.9%     100%  20.0%      100%  151.1%       100%  17.3%
-              (fix 9.06%)
-=======================================================================================================
-```
-  
+**test PC**: Windows11, CPU Ryzen 5800H, SSD Disk, Memroy 8G*2 DDR4 3200MHz   
+**Program version**: HDiffPatch4.1, BsDiff4.3, xdelta3.1   
+**test Program**:   
+**xdelta** diff with `-e -n -f -s {old} {new} {pat}`   
+**xdelta** patch with `-d -f -s {old} {pat} {new}`   
+**xdelta -B** diff with `-B {oldSize} -e -n -f -s {old} {new} {pat}`   
+**xdelta -B** patch with `-B {oldSize} -d -f -s {old} {pat} {new}`   
+**bsdiff** diff with `{old} {new} {pat}`   
+**bspatch** patch with `{old} {new} {pat}`   
+**hdiffz -BSD** diff with `-m-6 -BSD -block -d -f -p-1 {old} {new} {pat}`   
+**hdiffz -bzip2** diff with `-m-6 -SD -block -d -f -p-1 -c-bzip2-9 {old} {new} {pat}`   
+**hdiffz -zlib** diff with `-m-6 -SD -block -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
+**hdiffz -lzma2** diff with `-m-6 -SD -block -d -f -p-1 -c-lzma-9-16m {old} {new} {pat}`   
+**hdiffz -zstd** diff with `-m-6 -SD -block -d -f -p-1 -c-zstd-20-24 {old} {new} {pat}`   
+**hdiffz -s -zlib** diff with `-s-64 -SD -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
+**hdiffz -s -lzma2** diff with `-s-64 -SD -d -f -p-1 -c-lzma-9-16m {old} {new} {pat}`   
+**hdiffz -s -zstd** diff with `-s-64 -SD -d -f -p-1 -c-zstd-17-24 {old} {new} {pat}`   
+**hpatchz** patch with `-s-256k -f {old} {pat} {new}`   
+   
+**test result average**:
+|Program|compress|diff mem(MB)|speed(MB/S)|patch mem(MB)|max mem(MB)|speed(MB/S)|
+|:----|----:|----:|----:|----:|----:|----:|
+|bzip2|31.76%|
+|lzma2|28.47%|
+|xdelta3 |12.18%|212|6.9|84|98|53.8|
+|xdelta3 -B|7.35%|442|19.5|197|534|174.1|
+|bsdiff |6.63%|1263|2.3|298|1043|119.7|
+|hdiffz -BSD |5.67%|596|15.8|12|14|130.8|
+|hdiffz -bzip2|5.77%|596|17.4|7|7|208.0|
+|hdiffz -zlib|5.93%|596|17.4|4|4|374.2|
+|hdiffz -lzma2|5.02%|597|13.2|12|20|321.4|
+|hdiffz -zstd|5.22%|660|12.3|13|20|382.6|
+|hdiffz -s -zlib|8.13%|44|40.7|4|4|436.3|
+|hdiffz -s -lzma2 |6.39%|119|17.4|13|20|337.3|
+|hdiffz -s -zstd|6.82%|73|24.1|13|20|464.0|
+   
+
+---
+## Test With Apk Files: 
+case list:
+| |newFile <-- oldFile|newSize|oldSize|
+|----:|:----|----:|----:|
+|1|12306_5.2.11.apk <-- 12306_5.1.2.apk| 61120025|66209244|
+|2|alipay10.1.99.apk <-- alipay10.1.95.apk|94178674|90951351|
+|3|alipay10.2.0.apk <-- alipay10.1.99.apk|95803005|94178674|
+|4|baidumaps10.25.0.apk <-- baidumaps10.24.12.apk|95539893|104527191|
+|5|baidumaps10.25.5.apk <-- baidumaps10.25.0.apk|95526276|95539893|
+|6|bilibili6.15.0.apk <-- bilibili6.14.0.apk|74783182|72067209|
+|7|chrome-64-0-3282-137.apk <-- chrome-64-0-3282-123.apk|43879588|43879588|
+|8|chrome-65-0-3325-109.apk <-- chrome-64-0-3282-137.apk|43592997|43879588|
+|9|didi6.0.2.apk <-- didi6.0.0.apk|100866981|91462767|
+|10|firefox68.10.0.apk <-- firefox68.9.0.apk|43543846|43531470|
+|11|firefox68.10.1.apk <-- firefox68.10.0.apk|43542786|43543846|
+|12|google-maps-9-71-0.apk <-- google-maps-9-70-0.apk|50568872|51304768|
+|13|google-maps-9-72-0.apk <-- google-maps-9-71-0.apk|54342938|50568872|
+|14|jd9.0.0.apk <-- jd8.5.12.apk|96891703|94233891|
+|15|jd9.0.8.apk <-- jd9.0.0.apk|97329322|96891703|
+|16|jinianbeigu2_1.12.4.apk <-- jinianbeigu2_1.12.3.apk|171611658|159691189|
+|17|lushichuanshuo19.4.71003.apk <-- lushichuanshuo19.2.69054.apk|93799693|93442621|
+|18|meituan10.9.401.apk <-- meituan10.9.203.apk|88956726|89384406|
+|19|minecraft1.17.30.apk <-- minecraft1.17.20.apk|373025314|370324338|
+|20|minecraft1.18.10.apk <-- minecraft1.17.30.apk|401075178|373025314|
+|21|popcap.pvz2_2.4.84.1010.apk <-- popcap.pvz2_2.4.84.1009.apk|387572492|386842079|
+|22|supercell.clashofclans13.369.3.apk <-- supercell.clashofclans13.180.18.apk|152896934|149011539|
+|23|tangmumaopaoku4.8.0.971.apk <-- tangmumaopaoku4.6.0.913.apk|105486308|104732413|
+|24|taobao9.8.0.apk <-- taobao9.7.2.apk|178734456|176964070|
+|25|taobao9.9.1.apk <-- taobao9.8.0.apk|184437315|178734456|
+|26|tiktok11.5.0.apk <-- tiktok11.3.0.apk|88544106|87075000|
+|27|translate6.9.0.apk <-- translate6.8.0.apk|28171978|28795243|
+|28|translate6.9.1.apk <-- translate6.9.0.apk|31290990|28171978|
+|29|weixin7.0.15.apk <-- weixin7.0.14.apk|148405483|147695111|
+|30|weixin7.0.16.apk <-- weixin7.0.15.apk|158906413|148405483|
+|31|wps12.5.2.apk <-- wps12.5.1.apk|51293286|51136905|
+|32|yuanshichuanqi1.3.608.apk <-- yuanshichuanqi1.3.607.apk|192578139|192577253|
+   
+**changed test Program**:   
+**hdiffz ...** `-m-6` changed to `-m-1 -cache`   
+**hdiffz ...** `-s-64` changed to `-s-16`   
+**hdiffz** added diff with `-m-1 -cache -SD -block -d -f -p-1 {old} {new} {pat}`   
+**hdiffz -s** added diff with `-s-16 -SD -d -f -p-1 {old} {new} {pat}`   
+**sfpatcher -1 -zstd** diff with `-o-1 -c-zstd-21-24 -p-1 -block -cache -d {old} {new} {pat}`, patch with `-lp -p-8 {old} {pat} {new}`   
+( [sfpatcher](https://github.com/sisong/sfpatcher) optimized diff&patch between apk files )  
+
+**test result average**:
+|Program|compress|diff mem(MB)|speed(MB/S)|patch mem(MB)|max mem(MB)|speed(MB/S)|
+|:----|----:|----:|----:|----:|----:|----:|
+|xdelta3 |59.92%|228|2.8|100|101|157.4|
+|xdelta3 -B|59.51%|440|3.0|206|549|154.6|
+|bsdiff |59.76%|1035|1.0|244|752|41.1|
+|hdiffz -BSD |59.50%|524|5.5|13|14|42.6|
+|hdiffz -bzip2|59.54%|524|5.6|7|7|55.7|
+|hdiffz|59.87%|524|7.2|4|4|658.4|
+|hdiffz -zlib|59.10%|524|6.7|4|4|504.9|
+|hdiffz -lzma2|58.67%|537|3.5|20|20|279.8|
+|hdiffz -zstd|58.74%|536|4.1|20|21|596.5|
+|hdiffz -s|60.46%|133|32.5|4|4|679.9|
+|hdiffz -s -zlib|59.52%|133|23.6|4|4|555.8|
+|hdiffz -s -lzma2 |59.02%|210|5.5|20|20|268.4|
+|hdiffz -s -zstd|59.26%|139|8.6|20|20|619.2|
+|sfpatcher -1 -zstd|31.70%|773|2.7|24|29|399.8|
+
 ---
 ## Contact
 housisong@hotmail.com  

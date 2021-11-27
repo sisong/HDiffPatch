@@ -150,6 +150,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\lzma\C\CpuArch.c" />
+    <ClCompile Include="..\..\..\lzma\C\LzFindOpt.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\..\lzma\C\LzmaDec.c" />
     <ClCompile Include="..\..\..\lzma\C\Lzma2Dec.c" />
     <ClCompile Include="..\..\..\lzma\C\Alloc.c" />
@@ -163,6 +168,10 @@
     <ClCompile Include="..\..\..\lzma\C\Threads.c" />
   </ItemGroup>
   <ItemGroup>
+    <MASM Include="..\..\..\lzma\Asm\x86\LzFindOpt.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </MASM>
     <MASM Include="..\..\..\lzma\Asm\x86\LzmaDecOpt.asm">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

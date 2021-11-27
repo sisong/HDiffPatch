@@ -47,6 +47,9 @@
 #ifndef _IS_NEED_SINGLE_STREAM_DIFF
 #   define _IS_NEED_SINGLE_STREAM_DIFF 1
 #endif
+#ifndef _IS_NEED_BSDIFF
+#   define _IS_NEED_BSDIFF 1
+#endif
 #ifndef _IS_NEED_SFX
 #   define _IS_NEED_SFX 1
 #endif
@@ -71,6 +74,13 @@
 #   define _CompressPlugin_lz4 // || _CompressPlugin_lz4hc
 #   define _CompressPlugin_brotli
 #   define _CompressPlugin_lzham
+#endif
+
+#if (_IS_NEED_BSDIFF)
+#   include "bsdiff_wrapper/bspatch_wrapper.h"
+#   ifndef _CompressPlugin_bz2
+#       define _CompressPlugin_bz2  //bsdiff need bz2
+#   endif
 #endif
 
 #include "decompress_plugin_demo.h"
@@ -124,14 +134,23 @@ static void printUsage(){
            "  -s[-cacheSize] \n"
            "      DEFAULT -s-64m; oldPath loaded as Stream;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc....\n"
-           "      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory;\n"
+           "      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.\n"
            "      if diffFile is single compressed diffData, then requires\n"
-           "        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;\n"
+           "        (cacheSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;\n"
            "        see: hdiffz -SD-stepSize option.\n"
+#if (_IS_NEED_BSDIFF)
+           "      if diffFile is bsdiff diffData, then requires\n"
+           "        (cacheSize + 3*decompress buffer size)+O(1) bytes of memory;\n"
+           "        see: hdiffz -BSD option.\n"
+#endif
            "  -m  oldPath all loaded into Memory;\n"
-           "      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory;\n"
+           "      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory.\n"
            "      if diffFile is single compressed diffData, then requires\n"
            "        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory.\n"
+#if (_IS_NEED_BSDIFF)
+           "      if diffFile is bsdiff diffData, then requires\n"
+           "        (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.\n"
+#endif
            "special options:\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumSets\n"
@@ -188,12 +207,15 @@ typedef enum THPatchResult {
     HPATCH_MEM_ERROR,
     HPATCH_HDIFFINFO_ERROR,
     HPATCH_COMPRESSTYPE_ERROR, // 10
-    HPATCH_PATCH_ERROR,
+    HPATCH_HPATCH_ERROR,
     
     HPATCH_PATHTYPE_ERROR, //adding begin v3.0
     HPATCH_TEMPPATH_ERROR,
     HPATCH_DELETEPATH_ERROR,
     HPATCH_RENAMEPATH_ERROR, // 15
+
+    HPATCH_SPATCH_ERROR,
+    HPATCH_BSPATCH_ERROR,
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
     DIRPATCH_DIRDIFFINFO_ERROR=101,
@@ -778,6 +800,10 @@ int hpatch(const char* oldFileName,const char* diffFileName,
     hpatch_BOOL isSingleStreamDiff=hpatch_FALSE;
     hpatch_singleCompressedDiffInfo sdiffInfo;
 #endif
+#if (_IS_NEED_BSDIFF)
+    hpatch_BOOL isBsDiff=hpatch_FALSE;
+    hpatch_BsDiffInfo    bsdiffInfo;
+#endif
     hpatch_TDecompress*  decompressPlugin=0;
     hpatch_TFileStreamOutput    newData;
     hpatch_TFileStreamInput     diffData;
@@ -786,7 +812,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,
     TByte*               temp_cache=0;
     size_t               temp_cache_size;
     hpatch_StreamPos_t   savedNewSize=0;
-    hpatch_BOOL          patch_result;
+    int                  patch_result=HPATCH_SUCCESS;
     hpatch_TFileStreamInput_init(&oldData);
     hpatch_TFileStreamInput_init(&diffData);
     hpatch_TFileStreamOutput_init(&newData);
@@ -831,14 +857,26 @@ int hpatch(const char* oldFileName,const char* diffFileName,
                 printf("patch single compressed diffData!\n");
             }else
 #endif
-                check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? getCompressedDiffInfo()");
+#if (_IS_NEED_BSDIFF)
+            if (getBsDiffInfo(&bsdiffInfo,&diffData.base)){
+                const char* bsCompressType="bz2";
+                decompressPlugin=&_bz2DecompressPlugin_unsz;
+                memcpy(diffInfo.compressType,bsCompressType,strlen(bsCompressType)+1);
+                diffInfo.compressedCount=3;
+                diffInfo.newDataSize=bsdiffInfo.newDataSize;
+                diffInfo.oldDataSize=poldData->streamSize; //not saved oldDataSize
+                isBsDiff=hpatch_TRUE;
+                printf("patch bsdiff diffData!\n");
+            }else
+#endif
+                check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? get diffInfo");
         }
         if (poldData->streamSize!=diffInfo.oldDataSize){
             LOG_ERR("oldFile dataSize %" PRIu64 " != diffFile saved oldDataSize %" PRIu64 " ERROR!\n",
                     poldData->streamSize,diffInfo.oldDataSize);
             check_on_error(HPATCH_FILEDATA_ERROR);
         }
-        if(!getDecompressPlugin(&diffInfo,&decompressPlugin)){
+        if ((decompressPlugin==0)&&(!getDecompressPlugin(&diffInfo,&decompressPlugin))){
             LOG_ERR("can not decompress \"%s\" data ERROR!\n",diffInfo.compressType);
             check_on_error(HPATCH_COMPRESSTYPE_ERROR);
         }
@@ -854,20 +892,29 @@ int hpatch(const char* oldFileName,const char* diffFileName,
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
     if (isSingleStreamDiff){
         check(temp_cache_size>=sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3,HPATCH_MEM_ERROR,"alloc cache memory");
-        patch_result=patch_single_compressed_diff(&newData.base,poldData,&diffData.base,sdiffInfo.diffDataPos,
-                                                  sdiffInfo.uncompressedSize,sdiffInfo.compressedSize,decompressPlugin,
-                                                  sdiffInfo.coverCount,(size_t)sdiffInfo.stepMemSize,temp_cache,temp_cache+temp_cache_size,0);
+        if (!patch_single_compressed_diff(&newData.base,poldData,&diffData.base,sdiffInfo.diffDataPos,
+                                          sdiffInfo.uncompressedSize,sdiffInfo.compressedSize,decompressPlugin,
+                                          sdiffInfo.coverCount,(size_t)sdiffInfo.stepMemSize,temp_cache,temp_cache+temp_cache_size,0))
+            patch_result=HPATCH_SPATCH_ERROR;
+    }else
+#endif
+#if (_IS_NEED_BSDIFF)
+    if (isBsDiff){
+        if (!bspatch_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
+                                temp_cache,temp_cache+temp_cache_size))
+            patch_result=HPATCH_BSPATCH_ERROR;
     }else
 #endif
     {
-        patch_result=patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
-                                                 temp_cache,temp_cache+temp_cache_size);
+        if (!patch_decompress_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
+                                         temp_cache,temp_cache+temp_cache_size))
+            patch_result=HPATCH_HPATCH_ERROR;
     }
-    if (!patch_result){
+    if (patch_result!=HPATCH_SUCCESS){
         check(!oldData.fileError,HPATCH_FILEREAD_ERROR,"oldFile read");
         check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"diffFile read");
         check(!newData.fileError,HPATCH_FILEWRITE_ERROR,"out newFile write");
-        check(hpatch_FALSE,HPATCH_PATCH_ERROR,"patch run");
+        check(hpatch_FALSE,patch_result,"patch run");
     }
     if (newData.out_length!=newData.base.streamSize){
         LOG_ERR("out newFile dataSize %" PRIu64 " != diffFile saved newDataSize %" PRIu64 " ERROR!\n",

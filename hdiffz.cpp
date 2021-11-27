@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <algorithm>  //find search
 #include "libHDiffPatch/HDiff/diff.h"
+#include "libHDiffPatch/HDiff/match_block.h"
 #include "libHDiffPatch/HPatch/patch.h"
 #include "_clock_for_demo.h"
 #include "_atosize.h"
@@ -44,15 +45,13 @@
 #include "hdiffz_import_patch.h"
 
 #include "_dir_ignore.h"
-#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dirDiffPatch/dir_diff/dir_diff.h"
-#endif
 
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
 #endif
-#ifndef _IS_NEED_SINGLE_STREAM_DIFF
-#   define _IS_NEED_SINGLE_STREAM_DIFF 1
+#ifndef _IS_NEED_BSDIFF
+#   define _IS_NEED_BSDIFF 1
 #endif
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
@@ -76,6 +75,14 @@
 #   define _CompressPlugin_lz4hc // faster decompresser
 #   define _CompressPlugin_brotli// better compresser / faster decompresser
 #   define _CompressPlugin_lzham // better compresser / decompress faster than lzma2
+#endif
+
+#if (_IS_NEED_BSDIFF)
+#   include "bsdiff_wrapper/bsdiff_wrapper.h"
+#   include "bsdiff_wrapper/bspatch_wrapper.h"
+#   ifndef _CompressPlugin_bz2
+#       define _CompressPlugin_bz2  //bsdiff need bz2
+#   endif
 #endif
 
 #include "compress_plugin_demo.h"
@@ -136,11 +143,24 @@ static void printUsage(){
            "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;\n"
            "      matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...\n"
            "special options:\n"
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
+           "  -block[-fastMatchBlockSize] \n"
+           "      must run with -m;\n"
+           "      set is use fast block match befor slow match, DEFAULT false;\n"
+           "      fastMatchBlockSize>=4, DEFAULT 4k, recommended 256,1k,64k,1m etc...;\n"
+           "      if newData similar to oldData then diff speed++ & diff memory--,\n"
+           "      but small possibility outDiffFile's size+\n"
+           "  -cache \n"
+           "      must run with -m;\n"
+           "      set is use a big cache for slow match, DEFAULT false;\n"
+           "      if newData not similar to oldData then diff speed++,\n"
+           "      big cache max used O(oldFileSize) memory, and build slow(diff speed--)\n" 
            "  -SD[-stepSize]\n"
            "      create single compressed diffData, only need one decompress buffer\n"
            "      when patch, and support step by step patching when step by step downloading!\n"
            "      stepSize>=" _HDIFFPATCH_EXPAND_AND_QUOTE(hpatch_kStreamCacheSize) ", DEFAULT -SD-256k, recommended 64k,2m etc...\n"
+#if (_IS_NEED_BSDIFF)
+           "  -BSD \n"
+           "      create diffFile compatible with bsdiff, unsupport input directory(folder).\n"
 #endif
 #if (_IS_USED_MULTITHREAD)
            "  -p-parallelThreadNumber\n"
@@ -303,6 +323,7 @@ typedef enum THDiffResult {
     HDIFF_DIFF_ERROR,
     HDIFF_PATCH_ERROR,
     HDIFF_RESAVE_FILEREAD_ERROR,
+    //HDIFF_RESAVE_OPENWRITE_ERROR = HDIFF_OPENWRITE_ERROR
     HDIFF_RESAVE_DIFFINFO_ERROR,
     HDIFF_RESAVE_COMPRESSTYPE_ERROR,
     HDIFF_RESAVE_ERROR,
@@ -318,26 +339,32 @@ typedef enum THDiffResult {
     MANIFEST_CREATE_ERROR,
     MANIFEST_TEST_ERROR,
 } THDiffResult;
+#define HDIFF_RESAVE_OPENWRITE_ERROR HDIFF_OPENWRITE_ERROR
 
 int hdiff_cmd_line(int argc,const char * argv[]);
 
+struct TDiffSets:public THDiffSets{
+    hpatch_BOOL isDoDiff;
+    hpatch_BOOL isDoPatchCheck;
+#if (_IS_NEED_BSDIFF)
+    hpatch_BOOL isBsDiff;
+#endif
+};
+
 #if (_IS_NEED_DIR_DIFF_PATCH)
 int hdiff_dir(const char* oldPath,const char* newPath,const char* outDiffFileName,
-              hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
-              hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
-              hpatch_BOOL isSingleStreamDiff,size_t singleStreamStepSize,
               const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-              hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber,
+              hpatch_TChecksum* checksumPlugin,hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
+              const TDiffSets& diffSets,size_t kMaxOpenFileNumber,
               const std::vector<std::string>& ignorePathListBase,const std::vector<std::string>& ignoreOldPathList,
               const std::vector<std::string>& ignoreNewPathList,
               const std::string& oldManifestFileName,const std::string& newManifestFileName);
 int create_manifest(const char* inputPath,const char* outManifestFileName,
                     hpatch_TChecksum* checksumPlugin,const std::vector<std::string>& ignorePathList);
 #endif
-int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,hpatch_BOOL isDiff,
-          hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
+int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
           const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-          hpatch_BOOL isSingleStreamDiff,size_t singleStreamStepSize);
+          const TDiffSets& diffSets);
 int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                  const hdiff_TCompress* compressPlugin);
 
@@ -377,13 +404,23 @@ static hpatch_BOOL _getIsCompressedDiffFile(const char* diffFileName){
     return result;
 }
 
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
 static hpatch_BOOL _getIsSingleStreamDiffFile(const char* diffFileName){
     hpatch_TFileStreamInput diffData;
     hpatch_TFileStreamInput_init(&diffData);
     if (!hpatch_TFileStreamInput_open(&diffData,diffFileName)) return hpatch_FALSE;
     hpatch_singleCompressedDiffInfo diffInfo;
     hpatch_BOOL result=getSingleCompressedDiffInfo(&diffInfo,&diffData.base,0);
+    if (!hpatch_TFileStreamInput_close(&diffData)) return hpatch_FALSE;
+    return result;
+}
+
+#if (_IS_NEED_BSDIFF)
+static hpatch_BOOL _getIsBsDiffFile(const char* diffFileName){
+    hpatch_TFileStreamInput diffData;
+    hpatch_TFileStreamInput_init(&diffData);
+    if (!hpatch_TFileStreamInput_open(&diffData,diffFileName)) return hpatch_FALSE;
+    hpatch_BsDiffInfo diffInfo;
+    hpatch_BOOL result=getBsDiffInfo(&diffInfo,&diffData.base);
     if (!hpatch_TFileStreamInput_close(&diffData)) return hpatch_FALSE;
     return result;
 }
@@ -662,22 +699,27 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
 #define _THREAD_NUMBER_MAX      (1<<8)
 
 int hdiff_cmd_line(int argc, const char * argv[]){
-    hpatch_BOOL isLoadAll=_kNULL_VALUE;
-    hpatch_BOOL isPatchCheck=_kNULL_VALUE;
-    hpatch_BOOL isDiff=_kNULL_VALUE;
+    TDiffSets diffSets; 
+    memset(&diffSets,0,sizeof(diffSets));
+#if (_IS_NEED_BSDIFF)
+    diffSets.isBsDiff =_kNULL_VALUE;
+#endif
+    diffSets.isDoDiff =_kNULL_VALUE;
+    diffSets.isDoPatchCheck=_kNULL_VALUE;
+    diffSets.isDiffInMem   =_kNULL_VALUE;
+    diffSets.isSingleCompressedDiff =_kNULL_VALUE;
+    diffSets.isUseBigCacheMatch =_kNULL_VALUE;
+    diffSets.isUseFastMatchBlock=_kNULL_VALUE;
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
-    size_t      matchValue=0;
     size_t      threadNum = _THREAD_NUMBER_NULL;
     hdiff_TCompress*        compressPlugin=0;
     hpatch_TDecompress*     decompressPlugin=0;
-    hpatch_BOOL isSingleStreamDiff=_kNULL_VALUE;
-    size_t    singleStreamStepSize=_kNULL_SIZE;
 #if (_IS_NEED_DIR_DIFF_PATCH)
     hpatch_BOOL             isForceRunDirDiff=_kNULL_VALUE;
-    size_t                  kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir diff
+    size_t                  kMaxOpenFileNumber=_kNULL_SIZE; //only used in dir diff by stream
     hpatch_BOOL             isSetChecksum=_kNULL_VALUE;
     hpatch_TChecksum*       checksumPlugin=0;
     std::string             manifestOut;
@@ -707,37 +749,43 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         }
         switch (op[1]) {
             case 'm':{ //diff in memory
-                _options_check((isLoadAll==_kNULL_VALUE)&&((op[2]=='-')||(op[2]=='\0')),"-m");
-                isLoadAll=hpatch_TRUE;
+                _options_check((diffSets.isDiffInMem==_kNULL_VALUE)&&((op[2]=='-')||(op[2]=='\0')),"-m");
+                diffSets.isDiffInMem=hpatch_TRUE;
                 if (op[2]=='-'){
                     const char* pnum=op+3;
-                    _options_check(kmg_to_size(pnum,strlen(pnum),&matchValue),"-m-?");
-                    _options_check((0<=(int)matchValue)&&(matchValue==(size_t)(int)matchValue),"-m-?");
+                    _options_check(kmg_to_size(pnum,strlen(pnum),&diffSets.matchScore),"-m-?");
+                    _options_check((0<=(int)diffSets.matchScore)&&(diffSets.matchScore==(size_t)(int)diffSets.matchScore),"-m-?");
                 }else{
-                    matchValue=kMinSingleMatchScore_default;
+                    diffSets.matchScore=kMinSingleMatchScore_default;
                 }
             } break;
             case 's':{
-                isLoadAll=hpatch_FALSE; //diff by stream
+                diffSets.isDiffInMem=hpatch_FALSE; //diff by stream
                 if (op[2]=='-'){
                     const char* pnum=op+3;
-                    _options_check(kmg_to_size(pnum,strlen(pnum),&matchValue),"-s-?");
+                    _options_check(kmg_to_size(pnum,strlen(pnum),&diffSets.matchBlockSize),"-s-?");
+                    _options_check(kMatchBlockSize_min<=diffSets.matchBlockSize,"-s-?");
                 }else{
-                    matchValue=kMatchBlockSize_default;
+                    diffSets.matchBlockSize=kMatchBlockSize_default;
                 }
             } break;
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
             case 'S':{
-                _options_check((isSingleStreamDiff==_kNULL_VALUE)
+                _options_check((diffSets.isSingleCompressedDiff==_kNULL_VALUE)
                                &&(op[2]=='D')&&((op[3]=='\0')||(op[3]=='-')),"-SD");
-                isSingleStreamDiff=hpatch_TRUE;
+                diffSets.isSingleCompressedDiff=hpatch_TRUE;
                 if (op[3]=='-'){
                     const char* pnum=op+4;
-                    _options_check(kmg_to_size(pnum,strlen(pnum),&singleStreamStepSize),"-SD-?");
-                    _options_check((singleStreamStepSize>=hpatch_kStreamCacheSize),"-SD-?");
+                    _options_check(kmg_to_size(pnum,strlen(pnum),&diffSets.patchStepMemSize),"-SD-?");
+                    _options_check((diffSets.patchStepMemSize>=hpatch_kStreamCacheSize),"-SD-?");
                 }else{
-                    singleStreamStepSize=kDefaultStepMemSize;
+                    diffSets.patchStepMemSize=kDefaultPatchStepMemSize;
                 }
+            } break;
+#if (_IS_NEED_BSDIFF)
+            case 'B':{
+                _options_check((diffSets.isBsDiff==_kNULL_VALUE)
+                               &&(op[2]=='S')&&(op[3]=='D')&&(op[4]=='\0'),"-BSD");
+                diffSets.isBsDiff=hpatch_TRUE;
             } break;
 #endif
             case '?':
@@ -750,16 +798,18 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 isOutputVersion=hpatch_TRUE;
             } break;
             case 't':{
-                _options_check((isPatchCheck==_kNULL_VALUE)&&(op[2]=='\0'),"-t");
-                isPatchCheck=hpatch_TRUE; //test diffFile
+                _options_check((diffSets.isDoDiff==_kNULL_VALUE)&&(diffSets.isDoPatchCheck==_kNULL_VALUE)&&(op[2]=='\0'),"-t -d?");
+                diffSets.isDoDiff=hpatch_FALSE;
+                diffSets.isDoPatchCheck=hpatch_TRUE; //only test diffFile
+            } break;
+            case 'd':{
+                _options_check((diffSets.isDoDiff==_kNULL_VALUE)&&(diffSets.isDoPatchCheck==_kNULL_VALUE)&&(op[2]=='\0'),"-t -d?");
+                diffSets.isDoDiff=hpatch_TRUE; //only diff
+                diffSets.isDoPatchCheck=hpatch_FALSE;
             } break;
             case 'f':{
                 _options_check((isForceOverwrite==_kNULL_VALUE)&&(op[2]=='\0'),"-f");
                 isForceOverwrite=hpatch_TRUE;
-            } break;
-            case 'd':{
-                _options_check((isDiff==_kNULL_VALUE)&&(op[2]=='\0'),"-d");
-                isDiff=hpatch_TRUE; //diff only
             } break;
 #if (_IS_USED_MULTITHREAD)
             case 'p':{
@@ -769,13 +819,34 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 _options_check(threadNum>=_THREAD_NUMBER_MIN,"-p-?");
             } break;
 #endif
+            case 'b':{
+                _options_check((diffSets.isUseFastMatchBlock==_kNULL_VALUE)&&
+                    (op[2]=='l')&&(op[3]=='o')&&(op[4]=='c')&&(op[5]=='k')&&
+                    ((op[6]=='\0')||(op[6]=='-')),"-block?");
+                diffSets.isUseFastMatchBlock=hpatch_TRUE; //use block match 
+                if (op[6]=='-'){
+                    const char* pnum=op+7;
+                    _options_check(kmg_to_size(pnum,strlen(pnum),&diffSets.fastMatchBlockSize),"-block-?");
+                    _options_check(kMatchBlockSize_min<=diffSets.fastMatchBlockSize,"-block-?");
+                }else{
+                    diffSets.fastMatchBlockSize=kDefaultFastMatchBlockSize;
+                }
+            } break;
             case 'c':{
-                _options_check((compressPlugin==0)&&(op[2]=='-'),"-c");
-                const char* ptype=op+3;
-                const char* ptypeEnd=findUntilEnd(ptype,'-');
-                int result=_checkSetCompress(&compressPlugin,&decompressPlugin,ptype,ptypeEnd);
-                if (HDIFF_SUCCESS!=result)
-                    return result;
+                if (op[2]=='-'){
+                    _options_check((compressPlugin==0),"-c-");
+                    const char* ptype=op+3;
+                    const char* ptypeEnd=findUntilEnd(ptype,'-');
+                    int result=_checkSetCompress(&compressPlugin,&decompressPlugin,ptype,ptypeEnd);
+                    if (HDIFF_SUCCESS!=result)
+                        return result;
+                }else if (op[2]=='a'){
+                    _options_check((diffSets.isUseBigCacheMatch==_kNULL_VALUE)&&
+                        (op[3]=='c')&&(op[4]=='h')&&(op[5]=='e')&&(op[6]=='\0'),"-cache?");
+                    diffSets.isUseBigCacheMatch=hpatch_TRUE; //use big cache for match 
+                }else{
+                    _options_check(false,"-c?");
+                }
             } break;
 #if (_IS_NEED_DIR_DIFF_PATCH)
             case 'C':{
@@ -851,8 +922,22 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         if (arg_values.empty())
             return 0; //ok
     }
-    if (isSingleStreamDiff==_kNULL_VALUE)
-        isSingleStreamDiff=hpatch_FALSE;
+    if (diffSets.isSingleCompressedDiff==_kNULL_VALUE)
+        diffSets.isSingleCompressedDiff=hpatch_FALSE;
+#if (_IS_NEED_BSDIFF)
+    if (diffSets.isBsDiff==_kNULL_VALUE)
+        diffSets.isBsDiff=hpatch_FALSE;
+    if (diffSets.isBsDiff){
+        _options_check(!diffSets.isSingleCompressedDiff,"-SD -BSD can only set one");        
+        if (compressPlugin!=0){
+            _options_check(0==strcmp(compressPlugin->compressType(),"bz2"),"bsdiff must run with -c-bz2");
+        }else{
+            static TCompressPlugin_bz2 _bz2CompressPlugin=bz2CompressPlugin;
+            compressPlugin=&_bz2CompressPlugin.base;
+        }
+        decompressPlugin=&_bz2DecompressPlugin_unsz;
+    }
+#endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
     if (kMaxOpenFileNumber==_kNULL_SIZE)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_diff;
@@ -871,24 +956,23 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         isOldPathInputEmpty=hpatch_FALSE;
     _options_check((arg_values.size()==1)||(arg_values.size()==2)||(arg_values.size()==3),"input count");
     if (arg_values.size()==3){ //diff
-        if (isLoadAll==_kNULL_VALUE){
-            isLoadAll=hpatch_TRUE;
-            matchValue=kMinSingleMatchScore_default;
+        if (diffSets.isDiffInMem==_kNULL_VALUE){
+            diffSets.isDiffInMem=hpatch_TRUE;
+            diffSets.matchScore=kMinSingleMatchScore_default;
         }
-        if ((isDiff==hpatch_TRUE)&&(isPatchCheck==_kNULL_VALUE))
-            isPatchCheck=hpatch_FALSE;
-        if ((isDiff==_kNULL_VALUE)&&(isPatchCheck==hpatch_TRUE))
-            isDiff=hpatch_FALSE;
-        if (isDiff==_kNULL_VALUE)
-            isDiff=hpatch_TRUE;
-        if (isPatchCheck==_kNULL_VALUE){
-    #if (defined(_IS_NEED_PATCH_CHECK) && (_IS_NEED_PATCH_CHECK==0))
-            isPatchCheck=hpatch_FALSE;
-    #else
-            isPatchCheck=hpatch_TRUE;
-    #endif
+        if (diffSets.isDoDiff==_kNULL_VALUE)
+            diffSets.isDoDiff=hpatch_TRUE;
+        if (diffSets.isDoPatchCheck==_kNULL_VALUE)
+            diffSets.isDoPatchCheck=hpatch_TRUE;
+        assert(diffSets.isDoDiff||diffSets.isDoPatchCheck);
+        if (diffSets.isUseFastMatchBlock==_kNULL_VALUE)
+            diffSets.isUseFastMatchBlock=hpatch_FALSE;
+        if (diffSets.isUseBigCacheMatch==_kNULL_VALUE)
+            diffSets.isUseBigCacheMatch=hpatch_FALSE;
+        if (!diffSets.isDiffInMem){
+            _options_check(!diffSets.isUseBigCacheMatch, "-cache must run with -m");
+            _options_check(!diffSets.isUseFastMatchBlock,"-block must run with -m");
         }
-        assert(isPatchCheck||isDiff);
         
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (isForceRunDirDiff==_kNULL_VALUE)
@@ -921,15 +1005,22 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             hpatch_TPathType   outDiffFileType;
             _return_check(hpatch_getPathStat(outDiffFileName,&outDiffFileType,0),
                           HDIFF_PATHTYPE_ERROR,"get outDiffFile type");
-            _return_check((outDiffFileType==kPathType_notExist)||(!isDiff),
+            _return_check((outDiffFileType==kPathType_notExist)||(!diffSets.isDoDiff),
                           HDIFF_PATHTYPE_ERROR,"diff outDiffFile already exists, overwrite");
         }
         hpatch_TPathType oldType;
         hpatch_TPathType newType;
         if (isOldPathInputEmpty){
             oldType=kPathType_file;     //as empty file
-            isLoadAll=hpatch_FALSE;     //not need -m, set as -s
-            matchValue=hpatch_kStreamCacheSize; //not used
+#if (_IS_NEED_BSDIFF)
+            if (!diffSets.isBsDiff)
+#endif
+            {
+                diffSets.isDiffInMem=hpatch_FALSE;     //not need -m, set as -s
+                diffSets.matchBlockSize=hpatch_kStreamCacheSize; //not used
+                diffSets.isUseBigCacheMatch=hpatch_FALSE;
+                diffSets.isUseFastMatchBlock=hpatch_FALSE;
+            }
         }else{
             _return_check(hpatch_getPathStat(oldPath,&oldType,0),HDIFF_PATHTYPE_ERROR,"get oldPath type");
             _return_check((oldType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"oldPath not exist");
@@ -960,17 +1051,23 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (isUseDirDiff){
-            return hdiff_dir(oldPath,newPath,outDiffFileName, (kPathType_dir==oldType),
-                             (kPathType_dir==newType), isDiff,isLoadAll,matchValue,isPatchCheck,
-                             isSingleStreamDiff,singleStreamStepSize,
-                             compressPlugin,decompressPlugin,checksumPlugin,kMaxOpenFileNumber,
+#if (_IS_NEED_BSDIFF)
+            _options_check(!diffSets.isBsDiff,"bsdiff unsupport dir diff");
+#endif
+            return hdiff_dir(oldPath,newPath,outDiffFileName,compressPlugin,decompressPlugin,
+                             checksumPlugin,(kPathType_dir==oldType),(kPathType_dir==newType), 
+                             diffSets,kMaxOpenFileNumber,
                              ignorePathList,ignoreOldPathList,ignoreNewPathList,
                              manifestOld,manifestNew);
         }else
 #endif
         {
-            return hdiff(oldPath,newPath,outDiffFileName,isDiff,isLoadAll,matchValue,isPatchCheck,
-                         compressPlugin,decompressPlugin,isSingleStreamDiff,singleStreamStepSize);
+#if (_IS_NEED_BSDIFF)
+            if (!diffSets.isDiffInMem)
+                _options_check(!diffSets.isBsDiff,"bsdiff unsupport run with -s");
+#endif
+            return hdiff(oldPath,newPath,outDiffFileName,
+                         compressPlugin,decompressPlugin,diffSets);
         }
 #if (_IS_NEED_DIR_DIFF_PATCH)
     }else if (!manifestOut.empty()){ //() //create manifest
@@ -1006,9 +1103,12 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #endif
     }else{// (arg_values.size()==2)  //resave
         _options_check(!isOldPathInputEmpty,"can't resave, must input a diffFile");
-        _options_check((isLoadAll==_kNULL_VALUE),"-m or -s unsupport run with resave mode");
-        _options_check((isDiff==_kNULL_VALUE),"-d unsupport run with resave mode");
-        _options_check((isPatchCheck==_kNULL_VALUE),"-t unsupport run with resave mode");
+        _options_check((diffSets.isDiffInMem==_kNULL_VALUE),"-m or -s unsupport run with resave mode");
+        _options_check((diffSets.isDoDiff==_kNULL_VALUE),"-d unsupport run with resave mode");
+        _options_check((diffSets.isDoPatchCheck==_kNULL_VALUE),"-t unsupport run with resave mode");
+#if (_IS_NEED_BSDIFF)
+        _options_check((diffSets.isBsDiff==_kNULL_VALUE),"-BSD unsupport run with resave mode");
+#endif
         
 #if (_IS_NEED_DIR_DIFF_PATCH)
         _options_check((isForceRunDirDiff==_kNULL_VALUE),"-D unsupport run with resave mode");
@@ -1017,11 +1117,12 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         const char* diffFileName   =arg_values[0];
         const char* outDiffFileName=arg_values[1];
         hpatch_BOOL isDiffFile=_getIsCompressedDiffFile(diffFileName);
+        isDiffFile=isDiffFile || _getIsSingleStreamDiffFile(diffFileName);
 #if (_IS_NEED_DIR_DIFF_PATCH)
         isDiffFile=isDiffFile || getIsDirDiffFile(diffFileName);
 #endif
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-        isDiffFile=isDiffFile || _getIsSingleStreamDiffFile(diffFileName);
+#if (_IS_NEED_BSDIFF)
+        isDiffFile=isDiffFile || _getIsBsDiffFile(diffFileName);
 #endif
         _return_check(isDiffFile,HDIFF_RESAVE_DIFFINFO_ERROR,"can't resave, input file is not diffFile");
         if (!isForceOverwrite){
@@ -1080,76 +1181,77 @@ static hpatch_BOOL readFileAll(hdiff_private::TAutoMem& out_mem,const char* file
     return hpatch_TFileStreamInput_close(&file);
 }
 
-#define _check_writeFile(value) { if (!(value)) { hpatch_TFileStreamOutput_close(&file); return hpatch_FALSE; } }
-static hpatch_BOOL writeFileAll(const TByte* pdata,size_t dataSize,const char* outFileName){
-    hpatch_TFileStreamOutput file;
-    hpatch_TFileStreamOutput_init(&file);
-    _check_writeFile(hpatch_TFileStreamOutput_open(&file,outFileName,dataSize));
-    _check_writeFile(file.base.write(&file.base,0,pdata,pdata+dataSize));
-    return hpatch_TFileStreamOutput_close(&file);
-}
-
 #define  _check_on_error(errorType) { \
     if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
 #define check(value,errorType,errorInfo) { \
     std::string erri=std::string()+errorInfo+" ERROR!\n"; \
     if (!(value)){ hpatch_printStdErrPath_utf8(erri.c_str()); _check_on_error(errorType); } }
 
-static int hdiff_mem(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-                     hpatch_BOOL isDiff,size_t matchScore,hpatch_BOOL isPatchCheck,
-                     const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-                     hpatch_BOOL isSingleStreamDiff,size_t singleStreamStepSize){
+static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+                        const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
+                        const TDiffSets& diffSets){
     double diff_time0=clock_s();
     int    result=HDIFF_SUCCESS;
     int    _isInClear=hpatch_FALSE;
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
     hpatch_TFileStreamOutput diffData_out;
-    hpatch_TFileStreamOutput_init(&diffData_out);   
-#endif
+    hpatch_TFileStreamOutput_init(&diffData_out);
     hdiff_private::TAutoMem oldMem(0);
     hdiff_private::TAutoMem newMem(0);
-    check(readFileAll(oldMem,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
+    if (oldFileName&&(strlen(oldFileName)>0))
+        check(readFileAll(oldMem,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
     check(readFileAll(newMem,newFileName),HDIFF_OPENREAD_ERROR,"open newFile");
     printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            (hpatch_StreamPos_t)oldMem.size(),(hpatch_StreamPos_t)newMem.size());
-    if (isDiff){
-        hpatch_StreamPos_t outDiffDataSize=0;
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-        if (isSingleStreamDiff){
-            check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,~(hpatch_StreamPos_t)0),
-                  HDIFF_OPENWRITE_ERROR,"open out diffFile");
-            hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
-            try {
-                create_single_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                              &diffData_out.base,compressPlugin,(int)matchScore,singleStreamStepSize);
-                diffData_out.base.streamSize=diffData_out.out_length;
-            }catch(const std::exception& e){
-                check(!diffData_out.fileError,HDIFF_OPENWRITE_ERROR,"write diffFile");
-                check(false,HDIFF_DIFF_ERROR,"diff run error: "+e.what());
-            }
-            outDiffDataSize=diffData_out.out_length;
-            check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
-        }else
+    if (diffSets.isDoDiff){
+        check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,~(hpatch_StreamPos_t)0),
+                HDIFF_OPENWRITE_ERROR,"open out diffFile");
+        hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
+        try {
+#if (_IS_NEED_BSDIFF)
+            if (diffSets.isBsDiff){
+              if (diffSets.isUseFastMatchBlock)
+                create_bsdiff_block(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),&diffData_out.base,
+                                    compressPlugin,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch,diffSets.fastMatchBlockSize);   
+              else
+                create_bsdiff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),&diffData_out.base,
+                              compressPlugin,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch);     
+            }else
 #endif
-        {
-            std::vector<TByte> outDiffData;
-            try {
+            if (diffSets.isSingleCompressedDiff){
+              if (diffSets.isUseFastMatchBlock)
+                create_single_compressed_diff_block(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
+                                                    &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
+                                                    diffSets.patchStepMemSize,diffSets.isUseBigCacheMatch,diffSets.fastMatchBlockSize);   
+              else
+                create_single_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
+                                              &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
+                                              diffSets.patchStepMemSize,diffSets.isUseBigCacheMatch);        
+            }else{
+              if (diffSets.isUseFastMatchBlock)
+                create_compressed_diff_block(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
+                                             &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
+                                             diffSets.isUseBigCacheMatch,diffSets.fastMatchBlockSize);
+              else
                 create_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                       outDiffData,compressPlugin,(int)matchScore);
-            }catch(const std::exception& e){
-                check(false,HDIFF_DIFF_ERROR,"diff run error: "+e.what());
+                                       &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
+                                       diffSets.isUseBigCacheMatch);
             }
-            check(writeFileAll(outDiffData.data(),outDiffData.size(),outDiffFileName),
-                HDIFF_OPENWRITE_ERROR,"open write diffFile");
-            outDiffDataSize=outDiffData.size();
-            outDiffData.clear();
+            diffData_out.base.streamSize=diffData_out.out_length;
+        }catch(const std::exception& e){
+            check(!diffData_out.fileError,HDIFF_OPENWRITE_ERROR,"write diffFile");
+            check(false,HDIFF_DIFF_ERROR,"diff run error: "+e.what());
         }
+        const hpatch_StreamPos_t outDiffDataSize=diffData_out.base.streamSize;
+        check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
         printf("diffDataSize: %" PRIu64 "\n",outDiffDataSize);
         printf("diff    time: %.3f s\n",(clock_s()-diff_time0));
         printf("  out diff file ok!\n");
     }
-    if (isPatchCheck){
-        isSingleStreamDiff=hpatch_FALSE;
+    if (diffSets.isDoPatchCheck){
+        hpatch_BOOL isSingleCompressedDiff=hpatch_FALSE;
+#if (_IS_NEED_BSDIFF)
+        hpatch_BOOL isBsDiff=hpatch_FALSE;
+#endif
         hdiff_private::TAutoMem diffMem(0);
         double patch_time0=clock_s();
         printf("\nload diffFile for test by patch:\n");
@@ -1157,53 +1259,61 @@ static int hdiff_mem(const char* oldFileName,const char* newFileName,const char*
               HDIFF_OPENREAD_ERROR,"open diffFile for test");
         printf("diffDataSize: %" PRIu64 "\n",(hpatch_StreamPos_t)diffMem.size());
         
-        bool diffrt;
+        hpatch_TDecompress* saved_decompressPlugin=0;
         {
-            hpatch_TDecompress* saved_decompressPlugin=0;
-            {
-                hpatch_compressedDiffInfo diffinfo;
-                if (!getCompressedDiffInfo_mem(&diffinfo,diffMem.data(),diffMem.data_end())){
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-                    hpatch_singleCompressedDiffInfo sdiffInfo;
-                    if (getSingleCompressedDiffInfo_mem(&sdiffInfo,diffMem.data(),diffMem.data_end())){
-                        memcpy(diffinfo.compressType,sdiffInfo.compressType,strlen(sdiffInfo.compressType)+1);
-                        isSingleStreamDiff=hpatch_TRUE;
-                        if (!isDiff)
-                            printf("test single compressed diffData!\n");
-                    }else
+            hpatch_compressedDiffInfo diffinfo;
+            hpatch_singleCompressedDiffInfo sdiffInfo;
+#if (_IS_NEED_BSDIFF)
+            hpatch_BsDiffInfo bsdiffInfo;
 #endif
-                        check(hpatch_FALSE,HDIFF_PATCH_ERROR,"get diff info");
-                }
-                check(findDecompress(&saved_decompressPlugin,diffinfo.compressType),
+            const char* compressType=0;
+            if (getCompressedDiffInfo_mem(&diffinfo,diffMem.data(),diffMem.data_end())){
+                compressType=diffinfo.compressType;
+            }else if (getSingleCompressedDiffInfo_mem(&sdiffInfo,diffMem.data(),diffMem.data_end())){
+                compressType=sdiffInfo.compressType;
+                isSingleCompressedDiff=hpatch_TRUE;
+                if (!diffSets.isDoDiff)
+                    printf("test single compressed diffData!\n");
+#if (_IS_NEED_BSDIFF)
+            }else if (getBsDiffInfo_mem(&bsdiffInfo,diffMem.data(),diffMem.data_end())){
+                saved_decompressPlugin=&_bz2DecompressPlugin_unsz;
+                isBsDiff=hpatch_TRUE;
+                if (!diffSets.isDoDiff)
+                    printf("test bsdiff's diffData!\n");
+#endif
+            }else{
+                check(hpatch_FALSE,HDIFF_PATCH_ERROR,"get diff info");
+            }
+            if (!saved_decompressPlugin)
+                check(findDecompress(&saved_decompressPlugin,compressType),
                       HDIFF_PATCH_ERROR,"diff data saved compress type");
-            }
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-            if (isSingleStreamDiff){
-                diffrt=check_single_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                                    diffMem.data(),diffMem.data_end(),saved_decompressPlugin);
-            }else
-#endif
-            {
-                diffrt=check_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                             diffMem.data(),diffMem.data_end(),saved_decompressPlugin);
-            }
         }
+        
+        bool diffrt;
+        if (isSingleCompressedDiff)
+            diffrt=check_single_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
+                                                diffMem.data(),diffMem.data_end(),saved_decompressPlugin);
+#if (_IS_NEED_BSDIFF)
+        else if (isBsDiff)
+            diffrt=check_bsdiff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
+                                diffMem.data(),diffMem.data_end(),saved_decompressPlugin);
+#endif
+        else
+            diffrt=check_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
+                                         diffMem.data(),diffMem.data_end(),saved_decompressPlugin);
         check(diffrt,HDIFF_PATCH_ERROR,"patch check diff data");
         printf("patch   time: %.3f s\n",(clock_s()-patch_time0));
         printf("  patch check diff data ok!\n");
     }
 clear:
     _isInClear=hpatch_TRUE;
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
     check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
-#endif
     return result;
 }
 
-static int hdiff_stream(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-                        hpatch_BOOL isDiff,size_t matchBlockSize,hpatch_BOOL isPatchCheck,
-                        const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-                        hpatch_BOOL isSingleStreamDiff,size_t singleStreamStepSize){
+static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
+                           const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
+                           const TDiffSets& diffSets){
     double diff_time0=clock_s();
     int result=HDIFF_SUCCESS;
     int _isInClear=hpatch_FALSE;
@@ -1215,74 +1325,72 @@ static int hdiff_stream(const char* oldFileName,const char* newFileName,const ch
     hpatch_TFileStreamInput_init(&newData);
     hpatch_TFileStreamOutput_init(&diffData_out);
     hpatch_TFileStreamInput_init(&diffData_in);
+#if (_IS_NEED_BSDIFF)
+    assert(!diffSets.isBsDiff);
+#endif
     
-    if (0==strcmp(oldFileName,"")){ // isOldPathInputEmpty
-        mem_as_hStreamInput(&oldData.base,0,0);
-    }else{
+    if (oldFileName&&(strlen(oldFileName)>0)){
         check(hpatch_TFileStreamInput_open(&oldData,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
+    }else{
+        mem_as_hStreamInput(&oldData.base,0,0);
     }
     check(hpatch_TFileStreamInput_open(&newData,newFileName),HDIFF_OPENREAD_ERROR,"open newFile");
     printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            oldData.base.streamSize,newData.base.streamSize);
-    if (isDiff){
+    if (diffSets.isDoDiff){
         check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,~(hpatch_StreamPos_t)0),
               HDIFF_OPENWRITE_ERROR,"open out diffFile");
         hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
         try{
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-            if (isSingleStreamDiff){
+            if (diffSets.isSingleCompressedDiff)
                 create_single_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
-                                                     compressPlugin,matchBlockSize,singleStreamStepSize);
-            }else
-#endif
-            {
+                                                     compressPlugin,diffSets.matchBlockSize,diffSets.patchStepMemSize);
+            else
                 create_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
-                                              compressPlugin,matchBlockSize);
-            }
+                                              compressPlugin,diffSets.matchBlockSize);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
+            check(!newData.fileError,HDIFF_OPENREAD_ERROR,"read newFile");
+            check(!oldData.fileError,HDIFF_OPENREAD_ERROR,"read oldFile");
+            check(!diffData_out.fileError,HDIFF_OPENWRITE_ERROR,"write diffFile");
             check(false,HDIFF_DIFF_ERROR,"stream diff run an error: "+e.what());
         }
+        const hpatch_StreamPos_t outDiffDataSize=diffData_out.base.streamSize;
         check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
-        printf("diffDataSize: %" PRIu64 "\n",diffData_out.base.streamSize);
+        printf("diffDataSize: %" PRIu64 "\n",outDiffDataSize);
         printf("diff    time: %.3f s\n",(clock_s()-diff_time0));
         printf("  out diff file ok!\n");
     }
-    if (isPatchCheck){
+    if (diffSets.isDoPatchCheck){
         double patch_time0=clock_s();
         printf("\nload diffFile for test by patch check:\n");
         check(hpatch_TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
         printf("diffDataSize: %" PRIu64 "\n",diffData_in.base.streamSize);
 
-        bool diffrt;
+        hpatch_BOOL isSingleCompressedDiff=hpatch_FALSE;
+        hpatch_TDecompress* saved_decompressPlugin=0;
         {
-            hpatch_TDecompress* saved_decompressPlugin=0;
-            {
-                hpatch_compressedDiffInfo diffinfo;
-                if (!getCompressedDiffInfo(&diffinfo,&diffData_in.base)){
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-                    hpatch_singleCompressedDiffInfo sdiffInfo;
-                    if (getSingleCompressedDiffInfo(&sdiffInfo,&diffData_in.base,0)){
-                        memcpy(diffinfo.compressType,sdiffInfo.compressType,strlen(sdiffInfo.compressType)+1);
-                        isSingleStreamDiff=hpatch_TRUE;
-                        if (!isDiff)
-                            printf("test single compressed diffData!\n");
-                    }else
-#endif
-                        check(hpatch_FALSE,HDIFF_PATCH_ERROR,"get diff info");
-                }
-                check(findDecompress(&saved_decompressPlugin,diffinfo.compressType),
-                      HDIFF_PATCH_ERROR,"diff data saved compress type");
+            hpatch_compressedDiffInfo diffInfo;
+            hpatch_singleCompressedDiffInfo sdiffInfo;
+            const char* compressType=0;
+            if (getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
+                compressType=diffInfo.compressType;
+            }else if (getSingleCompressedDiffInfo(&sdiffInfo,&diffData_in.base,0)){
+                compressType=sdiffInfo.compressType;
+                isSingleCompressedDiff=hpatch_TRUE;
+                if (!diffSets.isDoDiff)
+                    printf("test single compressed diffData!\n");
+            }else{
+                check(hpatch_FALSE,HDIFF_PATCH_ERROR,"get diff info");
             }
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-            if (isSingleStreamDiff){
-                diffrt=check_single_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
-            }else
-#endif
-            {
-                diffrt=check_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
-            }
+            check(findDecompress(&saved_decompressPlugin,compressType),
+                    HDIFF_PATCH_ERROR,"diff data saved compress type");
         }
+        bool diffrt;
+        if (isSingleCompressedDiff)
+            diffrt=check_single_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
+        else
+            diffrt=check_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
         check(diffrt,HDIFF_PATCH_ERROR,"patch check diff data");
         printf("patch   time: %.3f s\n",(clock_s()-patch_time0));
         printf("  patch check diff data ok!\n");
@@ -1296,33 +1404,35 @@ clear:
     return result;
 }
 
-int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,hpatch_BOOL isDiff,
-          hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
+int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
           const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-          hpatch_BOOL isSingleStreamDiff,size_t singleStreamStepSize){
+          const TDiffSets& diffSets){
     double time0=clock_s();
     std::string fnameInfo=std::string("old : \"")+oldFileName+"\"\n"
                                      +"new : \""+newFileName+"\"\n"
-                             +(isDiff?"out : \"":"test: \"")+outDiffFileName+"\"\n";
+                             +(diffSets.isDoDiff?"out : \"":"test: \"")+outDiffFileName+"\"\n";
     hpatch_printPath_utf8(fnameInfo.c_str());
     
-    if (isDiff) {
+    if (diffSets.isDoDiff) {
         const char* compressType="";
         if (compressPlugin) compressType=compressPlugin->compressType();
         printf("hdiffz run with compress plugin: \"%s\"\n",compressType);
-        if (isSingleStreamDiff)
+        if (diffSets.isSingleCompressedDiff)
             printf("create single compressed diffData!\n");
+#if (_IS_NEED_BSDIFF)
+        if (diffSets.isBsDiff)
+            printf("create bsdiff diffData!\n");
+#endif
     }
     
     int exitCode;
-    if (isLoadAll){
-        exitCode=hdiff_mem(oldFileName,newFileName,outDiffFileName,isDiff,matchValue,isPatchCheck,
-                           compressPlugin,decompressPlugin,isSingleStreamDiff,singleStreamStepSize);
-    }else{
-        exitCode=hdiff_stream(oldFileName,newFileName,outDiffFileName,isDiff,matchValue,isPatchCheck,
-                              compressPlugin,decompressPlugin,isSingleStreamDiff,singleStreamStepSize);
-    }
-    if (isDiff && isPatchCheck)
+    if (diffSets.isDiffInMem)
+        exitCode=hdiff_in_mem(oldFileName,newFileName,outDiffFileName,
+                              compressPlugin,decompressPlugin,diffSets);
+    else
+        exitCode=hdiff_by_stream(oldFileName,newFileName,outDiffFileName,
+                                 compressPlugin,decompressPlugin,diffSets);
+    if (diffSets.isDoDiff && diffSets.isDoPatchCheck)
         printf("\nall   time: %.3f s\n",(clock_s()-time0));
     return exitCode;
 }
@@ -1339,9 +1449,7 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
     hpatch_BOOL  isDirDiff=hpatch_FALSE;
     hpatch_BOOL  isSingleDiff=hpatch_FALSE;
     hpatch_compressedDiffInfo diffInfo;
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
     hpatch_singleCompressedDiffInfo singleDiffInfo;
-#endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
     std::string  dirCompressType;
     TDirDiffInfo dirDiffInfo;
@@ -1363,7 +1471,6 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
         printf("  resave as dir diffFile \n");
     }else
 #endif
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
     if (getSingleCompressedDiffInfo(&singleDiffInfo,&diffData_in.base,0)){
         isSingleDiff=hpatch_TRUE;
         diffInfo.newDataSize=singleDiffInfo.newDataSize;
@@ -1371,9 +1478,9 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
         diffInfo.compressedCount=(singleDiffInfo.compressedSize>0)?1:0;
         memcpy(diffInfo.compressType,singleDiffInfo.compressType,strlen(singleDiffInfo.compressType)+1);
         printf("  resave as single stream diffFile \n");
-    }else
-#endif
-    if (!getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
+    }else if(getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
+        //ok
+    }else{
         check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile");
         check(hpatch_FALSE,HDIFF_RESAVE_DIFFINFO_ERROR,"is hdiff file? get diff info");
     }
@@ -1422,18 +1529,16 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                            &diffData_out.base,compressPlugin,checksumPlugin);
         }else
 #endif
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-        if (isSingleDiff){
+        if (isSingleDiff)
             resave_single_compressed_diff(&diffData_in.base,decompressPlugin,
                                           &diffData_out.base,compressPlugin,&singleDiffInfo);
-        }else
-#endif
-        {
+        else
             resave_compressed_diff(&diffData_in.base,decompressPlugin,
                                    &diffData_out.base,compressPlugin);
-        }
         diffData_out.base.streamSize=diffData_out.out_length;
     }catch(const std::exception& e){
+        check(!diffData_in.fileError,HDIFF_RESAVE_FILEREAD_ERROR,"read diffFile");
+        check(!diffData_out.fileError,HDIFF_RESAVE_OPENWRITE_ERROR,"write diffFile");
         check(false,HDIFF_RESAVE_ERROR,"resave diff run an error: "+e.what());
     }
     printf("outDiffSize: %" PRIu64 "\n",diffData_out.base.streamSize);
@@ -1505,11 +1610,9 @@ static void check_manifest(TManifest& out_manifest,const std::string& rootPath,c
 }
 
 int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileName,
-              hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
-              hpatch_BOOL isDiff,hpatch_BOOL isLoadAll,size_t matchValue,hpatch_BOOL isPatchCheck,
-              hpatch_BOOL isSingleStreamDiff,size_t singleStreamStepSize,
               const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-              hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber,
+              hpatch_TChecksum* checksumPlugin,hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
+              const TDiffSets& diffSets,size_t kMaxOpenFileNumber,
               const std::vector<std::string>& ignorePathListBase,const std::vector<std::string>& ignoreOldPathList,
               const std::vector<std::string>& ignoreNewPathList,
               const std::string& oldManifestFileName,const std::string& newManifestFileName){
@@ -1521,11 +1624,11 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
     std::string fnameInfo=std::string("")
         +(oldIsDir?"oldDir : \"":"oldFile: \"")+oldPath+"\"\n"
         +(newIsDir?"newDir : \"":"newFile: \"")+newPath+"\"\n"
-        +(isDiff?  "outDiff: \"":"  test : \"")+outDiffFileName+"\"\n";
+        +(diffSets.isDoDiff ?  "outDiff: \"":"  test : \"")+outDiffFileName+"\"\n";
     hpatch_printPath_utf8(fnameInfo.c_str());
     
     bool isManifest= (!newManifestFileName.empty());
-    if (isDiff) {
+    if (diffSets.isDoDiff) {
         const char* checksumType="";
         const char* compressType="";
         if (checksumPlugin)
@@ -1563,15 +1666,15 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         get_manifest(&newDirPathIgnore,newPath,newManifest);
     }
 
-    if (isDiff){
+    if (diffSets.isDoDiff){
         double diff_time0=clock_s();
         try {
             check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,~(hpatch_StreamPos_t)0),
                   HDIFF_OPENWRITE_ERROR,"open out diffFile");
             hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
             DirDiffListener listener;
-            dir_diff(&listener,oldManifest,newManifest,&diffData_out.base,isLoadAll!=0,matchValue,
-                     isSingleStreamDiff,singleStreamStepSize,compressPlugin,checksumPlugin,kMaxOpenFileNumber);
+            dir_diff(&listener,oldManifest,newManifest,&diffData_out.base,
+                     compressPlugin,checksumPlugin,diffSets,kMaxOpenFileNumber);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             check(false,DIRDIFF_DIFF_ERROR,"dir diff run an error: "+e.what());
@@ -1581,7 +1684,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
         printf("  out dirDiffFile ok!\n");
     }
-    if (isPatchCheck){
+    if (diffSets.isDoPatchCheck){
         double patch_time0=clock_s();
         printf("\nload %sdirDiffFile for test by patch check:\n",isManifest?"manifest ":"");
         check(hpatch_TFileStreamInput_open(&diffData_in,outDiffFileName),

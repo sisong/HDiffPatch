@@ -1,6 +1,14 @@
 # HDiffPatch Change Log
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
+   
+## [v4.1.0](https://github.com/sisong/HDiffPatch/tree/v4.1.0) - 2021-11-27
+### Added
+* cmdline add option "-BSD", to create diffFile compatible with bsdiff;
+* add function create_bsdiff() & bspatch_with_cache().
+* cmdline add option "-cache", optimize hdiffz -m speed; note:the big cache max used O(oldFileSize) memory, and build slow.
+* cmdline add option "-block", optimize hdiffz -m speed;
+* add function create_single_compressed_diff_block() & create_compressed_diff_block() & create_bsdiff_block().
 
 ## [v4.0.0](https://github.com/sisong/HDiffPatch/tree/v4.0.0) - 2021-06-14
 ### Added

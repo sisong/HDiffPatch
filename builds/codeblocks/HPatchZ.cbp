@@ -164,6 +164,9 @@
 		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_block.h" />
 		<Unit filename="../../../zstd/lib/decompress/zstd_decompress_internal.h" />
 		<Unit filename="../../../zstd/lib/zstd.h" />
+		<Unit filename="../../bsdiff_wrapper/bspatch_wrapper.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../dirDiffPatch/dir_patch/dir_patch.c">
 			<Option compilerVar="CC" />
 		</Unit>
