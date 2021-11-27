@@ -2,7 +2,7 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
    
-## [v4.1.0](https://github.com/sisong/HDiffPatch/tree/v4.1.0) - 2021-11-25
+## [v4.1.0](https://github.com/sisong/HDiffPatch/tree/v4.1.0) - 2021-11-27
 ### Added
 * cmdline add option "-BSD", to create diffFile compatible with bsdiff;
 * add function create_bsdiff() & bspatch_with_cache().
