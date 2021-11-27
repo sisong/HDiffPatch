@@ -267,6 +267,11 @@ void create_compressed_diff_block(unsigned char* newData,unsigned char* newData_
                                   unsigned char* oldData,unsigned char* oldData_end,
                                   std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin,
                                   int kMinSingleMatchScore,bool isUseBigCacheMatch,size_t matchBlockSize){
+    if (matchBlockSize==0){
+        create_compressed_diff(newData,newData_end,oldData,oldData_end,
+                               out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch);
+        return;
+    }
     TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize);
     create_compressed_diff(newData,coversOp.matchBlock->newData_end_cur,oldData,coversOp.matchBlock->oldData_end_cur,
                            out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,&coversOp);
@@ -275,6 +280,11 @@ void create_compressed_diff_block(unsigned char* newData,unsigned char* newData_
                                   unsigned char* oldData,unsigned char* oldData_end,
                                   const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                                   int kMinSingleMatchScore,bool isUseBigCacheMatch,size_t matchBlockSize){
+    if (matchBlockSize==0){
+        create_compressed_diff(newData,newData_end,oldData,oldData_end,
+                               out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch);
+        return;
+    }
     TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize);
     create_compressed_diff(newData,coversOp.matchBlock->newData_end_cur,oldData,coversOp.matchBlock->oldData_end_cur,
                            out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,&coversOp);
@@ -297,6 +307,12 @@ void create_single_compressed_diff_block(unsigned char* newData,unsigned char* n
                                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                                          int kMinSingleMatchScore,size_t patchStepMemSize,
                                          bool isUseBigCacheMatch,size_t matchBlockSize){
+    if (matchBlockSize==0){
+        create_single_compressed_diff(newData,newData_end,oldData,oldData_end,
+                                      out_diff,compressPlugin,kMinSingleMatchScore,
+                                      patchStepMemSize,isUseBigCacheMatch);
+        return;
+    }
     TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize);
     create_single_compressed_diff(newData,coversOp.matchBlock->newData_end_cur,oldData,coversOp.matchBlock->oldData_end_cur,
                                   out_diff,compressPlugin,kMinSingleMatchScore,
@@ -307,6 +323,12 @@ void create_single_compressed_diff_block(unsigned char* newData,unsigned char* n
                                          std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin,
                                          int kMinSingleMatchScore,size_t patchStepMemSize,
                                          bool isUseBigCacheMatch,size_t matchBlockSize){
+    if (matchBlockSize==0){
+        create_single_compressed_diff(newData,newData_end,oldData,oldData_end,
+                                      out_diff,compressPlugin,kMinSingleMatchScore,
+                                      patchStepMemSize,isUseBigCacheMatch);
+        return;
+    }
     TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize);
     create_single_compressed_diff(newData,coversOp.matchBlock->newData_end_cur,oldData,coversOp.matchBlock->oldData_end_cur,
                                   out_diff,compressPlugin,kMinSingleMatchScore,

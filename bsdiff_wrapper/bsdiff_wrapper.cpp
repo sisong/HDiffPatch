@@ -207,6 +207,11 @@ void create_bsdiff_block(unsigned char* newData,unsigned char* newData_end,
                          unsigned char* oldData,unsigned char* oldData_end,
                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                          int kMinSingleMatchScore,bool isUseBigCacheMatch,size_t matchBlockSize){
+    if (matchBlockSize==0){
+        _create_bsdiff(newData,newData_end,newData_end,oldData,oldData_end,oldData_end,
+                       out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,0);
+        return;
+    }
     TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize);
     _create_bsdiff(newData,coversOp.matchBlock->newData_end_cur,newData_end,
                    oldData,coversOp.matchBlock->oldData_end_cur,oldData_end,
