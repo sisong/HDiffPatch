@@ -533,28 +533,6 @@ hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,hpatch_S
     return hpatch_TRUE;
 }
 
-hpatch_BOOL _TStreamCacheClip_readUInt(TStreamCacheClip* sclip,hpatch_StreamPos_t* result,hpatch_size_t uintSize){
-    // assert(uintSize<=sizeof(hpatch_StreamPos_t));
-    const TByte* buf=_TStreamCacheClip_readData(sclip,uintSize);
-    hpatch_StreamPos_t v=0;
-    if (buf!=0){
-        switch (uintSize) {
-            case 8: v|=((hpatch_StreamPos_t)buf[7])<<(7*8);
-            case 7: v|=((hpatch_StreamPos_t)buf[6])<<(6*8);
-            case 6: v|=((hpatch_StreamPos_t)buf[5])<<(5*8);
-            case 5: v|=((hpatch_StreamPos_t)buf[4])<<(4*8);
-            case 4: v|=((hpatch_StreamPos_t)buf[3])<<(3*8);
-            case 3: v|=((hpatch_StreamPos_t)buf[2])<<(2*8);
-            case 2: v|=((hpatch_StreamPos_t)buf[1])<<(1*8);
-            case 1: v|=((hpatch_StreamPos_t)buf[0]);
-            case 0: { *result=v; return hpatch_TRUE; }
-            default: return _hpatch_FALSE;
-        }
-    }else{
-        return _hpatch_FALSE;
-    }
-}
-
 hpatch_BOOL _TStreamCacheClip_readDataTo(TStreamCacheClip* sclip,TByte* out_buf,TByte* bufEnd){
     hpatch_size_t readLen=_TStreamCacheClip_cachedSize(sclip);
     hpatch_size_t outLen=bufEnd-out_buf;

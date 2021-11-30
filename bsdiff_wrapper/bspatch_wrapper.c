@@ -54,6 +54,12 @@ static hpatch_inline hpatch_uint64_t readUInt64(const unsigned char* buf){
     return _readUInt32(buf) | (((hpatch_uint64_t)_readUInt32(buf+4))<<32);
 }
 
+#define _clip_readUInt64(_clip,_result) { \
+    const unsigned char* buf=_TStreamCacheClip_readData(_clip,8); \
+    if (buf!=0) *(_result)=readUInt64(buf); \
+    else return _hpatch_FALSE; \
+}
+
 hpatch_BOOL getBsDiffInfo(hpatch_BsDiffInfo* out_diffinfo,const hpatch_TStreamInput* diffStream){
     unsigned char _buf[kBsDiffHeadLen];
     unsigned char* buf=&_buf[0];
@@ -113,9 +119,9 @@ hpatch_BOOL bspatchByClip(const hpatch_TStreamOutput* out_newData,const hpatch_T
         hpatch_uint64_t skipNewLen;
         hpatch_uint64_t skipOldLen;
         {//read ctrl
-            if (!_TStreamCacheClip_readUInt(ctrlClip,&coverLen,8)) return _hpatch_FALSE;
-            if (!_TStreamCacheClip_readUInt(ctrlClip,&skipNewLen,8)) return _hpatch_FALSE;
-            if (!_TStreamCacheClip_readUInt(ctrlClip,&skipOldLen,8)) return _hpatch_FALSE;
+            _clip_readUInt64(ctrlClip,&coverLen);
+            _clip_readUInt64(ctrlClip,&skipNewLen);
+            _clip_readUInt64(ctrlClip,&skipOldLen);
             if ((skipOldLen>>63)!=0)
                 skipOldLen=-(skipOldLen&((((hpatch_uint64_t)1)<<63)-1));
         }

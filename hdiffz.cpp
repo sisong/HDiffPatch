@@ -319,19 +319,19 @@ typedef enum THDiffResult {
     HDIFF_OPENREAD_ERROR,
     HDIFF_OPENWRITE_ERROR,
     HDIFF_FILECLOSE_ERROR,
-    HDIFF_MEM_ERROR,
+    HDIFF_MEM_ERROR, // 5
     HDIFF_DIFF_ERROR,
     HDIFF_PATCH_ERROR,
     HDIFF_RESAVE_FILEREAD_ERROR,
     //HDIFF_RESAVE_OPENWRITE_ERROR = HDIFF_OPENWRITE_ERROR
     HDIFF_RESAVE_DIFFINFO_ERROR,
-    HDIFF_RESAVE_COMPRESSTYPE_ERROR,
+    HDIFF_RESAVE_COMPRESSTYPE_ERROR, // 10
     HDIFF_RESAVE_ERROR,
     HDIFF_RESAVE_CHECKSUMTYPE_ERROR,
     
     HDIFF_PATHTYPE_ERROR, //adding begin v3.0
     HDIFF_TEMPPATH_ERROR,
-    HDIFF_DELETEPATH_ERROR,
+    HDIFF_DELETEPATH_ERROR, // 15
     HDIFF_RENAMEPATH_ERROR,
     
     DIRDIFF_DIFF_ERROR=101,
@@ -969,7 +969,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             diffSets.isUseFastMatchBlock=hpatch_FALSE;
         if (diffSets.isUseBigCacheMatch==_kNULL_VALUE)
             diffSets.isUseBigCacheMatch=hpatch_FALSE;
-        if (!diffSets.isDiffInMem){
+        if (diffSets.isDoDiff&&(!diffSets.isDiffInMem)){
             _options_check(!diffSets.isUseBigCacheMatch, "-cache must run with -m");
             _options_check(!diffSets.isUseFastMatchBlock,"-block must run with -m");
         }
@@ -1063,7 +1063,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #endif
         {
 #if (_IS_NEED_BSDIFF)
-            if (!diffSets.isDiffInMem)
+            if (diffSets.isDoDiff&&(!diffSets.isDiffInMem))
                 _options_check(!diffSets.isBsDiff,"bsdiff unsupport run with -s");
 #endif
             return hdiff(oldPath,newPath,outDiffFileName,
@@ -1325,9 +1325,6 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
     hpatch_TFileStreamInput_init(&newData);
     hpatch_TFileStreamOutput_init(&diffData_out);
     hpatch_TFileStreamInput_init(&diffData_in);
-#if (_IS_NEED_BSDIFF)
-    assert(!diffSets.isBsDiff);
-#endif
     
     if (oldFileName&&(strlen(oldFileName)>0)){
         check(hpatch_TFileStreamInput_open(&oldData,oldFileName),HDIFF_OPENREAD_ERROR,"open oldFile");
@@ -1368,10 +1365,16 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
         printf("diffDataSize: %" PRIu64 "\n",diffData_in.base.streamSize);
 
         hpatch_BOOL isSingleCompressedDiff=hpatch_FALSE;
+#if (_IS_NEED_BSDIFF)
+        hpatch_BOOL isBsDiff=hpatch_FALSE;
+#endif
         hpatch_TDecompress* saved_decompressPlugin=0;
         {
             hpatch_compressedDiffInfo diffInfo;
             hpatch_singleCompressedDiffInfo sdiffInfo;
+#if (_IS_NEED_BSDIFF)
+            hpatch_BsDiffInfo bsdiffInfo;
+#endif
             const char* compressType=0;
             if (getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
                 compressType=diffInfo.compressType;
@@ -1380,15 +1383,27 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
                 isSingleCompressedDiff=hpatch_TRUE;
                 if (!diffSets.isDoDiff)
                     printf("test single compressed diffData!\n");
+#if (_IS_NEED_BSDIFF)
+            }else if (getBsDiffInfo(&bsdiffInfo,&diffData_in.base)){
+                saved_decompressPlugin=&_bz2DecompressPlugin_unsz;
+                isBsDiff=hpatch_TRUE;
+                if (!diffSets.isDoDiff)
+                    printf("test bsdiff's diffData!\n");
+#endif
             }else{
                 check(hpatch_FALSE,HDIFF_PATCH_ERROR,"get diff info");
             }
-            check(findDecompress(&saved_decompressPlugin,compressType),
+            if (!saved_decompressPlugin)
+              check(findDecompress(&saved_decompressPlugin,compressType),
                     HDIFF_PATCH_ERROR,"diff data saved compress type");
         }
         bool diffrt;
         if (isSingleCompressedDiff)
             diffrt=check_single_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
+#if (_IS_NEED_BSDIFF)
+        else if (isBsDiff)
+            diffrt=check_bsdiff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
+#endif
         else
             diffrt=check_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
         check(diffrt,HDIFF_PATCH_ERROR,"patch check diff data");

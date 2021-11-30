@@ -127,7 +127,6 @@ hpatch_BOOL _TStreamCacheClip_addDataTo(TStreamCacheClip* self,unsigned char* ds
 
 hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,
                                                 hpatch_StreamPos_t* result,const hpatch_uint kTagBit);
-hpatch_BOOL _TStreamCacheClip_readUInt(TStreamCacheClip* sclip,hpatch_StreamPos_t* result,hpatch_size_t uintSize);
 
 hpatch_BOOL _TStreamCacheClip_readType_end(TStreamCacheClip* sclip,unsigned char endTag,
                                            char out_type[hpatch_kMaxPluginTypeLength+1]);

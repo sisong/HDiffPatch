@@ -114,7 +114,7 @@ static void serialize_bsdiff(const unsigned char* newData,const unsigned char* n
         pushUInt64(buf,0); //ctrlDataSize
         subDataSize_pos=buf.size();
         pushUInt64(buf,0); //subDataSize
-        pushUInt64(buf,newData_end-newData);
+        pushUInt64(buf,(size_t)(newData_end-newData));
         outDiff.pushBack(buf.data(),buf.size());
     }
     

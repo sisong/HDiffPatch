@@ -302,7 +302,7 @@ case list:
 |hdiffz -s -zstd|6.82%|73|24.1|13|20|464.0|
    
 
-## test with Apk Files: 
+## input Apk Files for test: 
 case list:
 | |newFile <-- oldFile|newSize|oldSize|
 |----:|:----|----:|----:|
