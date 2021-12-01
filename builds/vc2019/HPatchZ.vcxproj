@@ -288,7 +288,6 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -338,7 +337,6 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <AdditionalOptions>/subsystem:"windows" /entry:"wmainCRTStartup" %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -365,7 +363,6 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <AdditionalOptions>/subsystem:"windows" /entry:"wmainCRTStartup" %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -418,7 +415,6 @@
       <AdditionalDependencies>
       </AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
-      <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <AdditionalOptions>/subsystem:"windows" /entry:"wmainCRTStartup" %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
