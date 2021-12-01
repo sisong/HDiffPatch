@@ -8,12 +8,38 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v1
-      - run: |
-          make LZMA=0 ZSTD=0 MD5=0
-          make clean
-          git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
-          git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
-          git clone -b v1.5.0 --depth=1 https://github.com/facebook/zstd.git ../zstd
-          make DIR_DIFF=0 MT=0
-          make clean
-          make
+      - name: makeInitAndClone
+        run: |
+          make LZMA=0 ZSTD=0 MD5=0 -j
+          git clone https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.0 https://github.com/facebook/zstd.git ../zstd
+      - name: makeUnDef
+        run: |
+          make DIR_DIFF=0 MT=0 IS_NEED_BSDIFF=0 -j
+      - name: makeAll
+        run: |
+          make -j
+  build_arm:
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            distro: ubuntu-latest
+          - arch: armv7
+            distro: ubuntu-latest
+    runs-on: ubuntu-latest
+    name: Build on ${{ matrix.distro }} ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v2.1.0
+      - uses: uraimo/run-on-arch-action@v2.0.5
+        name: makeArmAll
+        id: build
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ${{ matrix.distro }}
+          run: |
+            git clone https://github.com/sisong/libmd5.git ../libmd5
+            git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+            git clone -b v1.5.0 https://github.com/facebook/zstd.git ../zstd
+            make -j
