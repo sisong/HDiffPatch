@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v1
-      - run:
+      - run: |
           make LZMA=0 ZSTD=0 MD5=0
           make clean
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
