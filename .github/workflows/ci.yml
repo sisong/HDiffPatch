@@ -1,0 +1,22 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: makeInitAndClone
+        run: |
+          make LZMA=0 ZSTD=0 MD5=0 -j
+          git clone https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.0 https://github.com/facebook/zstd.git ../zstd
+      - name: makeUnDef
+        run: |
+          make DIR_DIFF=0 MT=0 IS_NEED_BSDIFF=0 -j
+      - name: makeAll
+        run: |
+          make -j
