@@ -1,0 +1,19 @@
+name: ci-github-actions
+on: [push, pull_request]
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v1
+      - run:
+          make LZMA=0 ZSTD=0 MD5=0
+          make clean
+          git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.0 --depth=1 https://github.com/facebook/zstd.git ../zstd
+          make DIR_DIFF=0 MT=0
+          make clean
+          make
