@@ -1,4 +1,4 @@
-name: ci-github-actions
+name: ci
 on: [push, pull_request]
 jobs:
   build:

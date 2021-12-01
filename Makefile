@@ -53,7 +53,7 @@ else # https://www.7-zip.org  https://github.com/sisong/lzma
   endif
 endif
 ZSTD_PATH := ../zstd/lib
-ifeq ($(ZSTD_PATH),0)
+ifeq ($(ZSTD),0)
 else # # https://github.com/facebook/zstd
   HPATCH_OBJ += $(ZSTD_PATH)/common/debug.o \
   				$(ZSTD_PATH)/common/entropy_common.o \
