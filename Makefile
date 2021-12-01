@@ -42,6 +42,7 @@ else # https://www.7-zip.org  https://github.com/sisong/lzma
   				$(LZMA_PATH)/Lzma2Dec.o 
   HDIFF_OBJ  += $(LZMA_PATH)/LzFind.o \
   				$(LZMA_PATH)/LzFindOpt.o \
+  				$(LZMA_PATH)/CpuArch.o \
   				$(LZMA_PATH)/LzmaEnc.o \
 				$(LZMA_PATH)/Lzma2Enc.o  
   ifeq ($(MT),0)  
