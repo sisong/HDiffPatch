@@ -20,26 +20,3 @@ jobs:
       - name: makeAll
         run: |
           make -j
-  build_arm:
-    strategy:
-      matrix:
-        include:
-          - arch: aarch64
-            distro: ubuntu18.04
-          - arch: armv7
-            distro: ubuntu18.04
-    runs-on: ubuntu18.04
-    name: Build on ${{ matrix.distro }} ${{ matrix.arch }}
-    steps:
-      - uses: actions/checkout@v2.1.0
-      - uses: uraimo/run-on-arch-action@v2.0.5
-        name: makeArmAll
-        id: build
-        with:
-          arch: ${{ matrix.arch }}
-          distro: ${{ matrix.distro }}
-          run: |
-            git clone https://github.com/sisong/libmd5.git ../libmd5
-            git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
-            git clone -b v1.5.0 https://github.com/facebook/zstd.git ../zstd
-            make -j
