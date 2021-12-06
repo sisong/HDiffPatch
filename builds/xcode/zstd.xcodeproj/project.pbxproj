@@ -45,7 +45,6 @@
 		D68E134B2190761100E1D5D5 /* xxhash.c in Sources */ = {isa = PBXBuildFile; fileRef = D68E131D2190761000E1D5D5 /* xxhash.c */; };
 		D68E134C2190761100E1D5D5 /* bitstream.h in Headers */ = {isa = PBXBuildFile; fileRef = D68E131E2190761000E1D5D5 /* bitstream.h */; };
 		D68E134D2190761100E1D5D5 /* cpu.h in Headers */ = {isa = PBXBuildFile; fileRef = D68E131F2190761000E1D5D5 /* cpu.h */; };
-		D68E134E2190761100E1D5D5 /* zstd_errors.h in Headers */ = {isa = PBXBuildFile; fileRef = D68E13202190761000E1D5D5 /* zstd_errors.h */; };
 		D68E134F2190761100E1D5D5 /* pool.c in Sources */ = {isa = PBXBuildFile; fileRef = D68E13212190761000E1D5D5 /* pool.c */; };
 		D68E13502190761100E1D5D5 /* huf.h in Headers */ = {isa = PBXBuildFile; fileRef = D68E13222190761000E1D5D5 /* huf.h */; };
 		D68E13512190761100E1D5D5 /* mem.h in Headers */ = {isa = PBXBuildFile; fileRef = D68E13232190761000E1D5D5 /* mem.h */; };
@@ -103,7 +102,6 @@
 		D68E131D2190761000E1D5D5 /* xxhash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = xxhash.c; sourceTree = "<group>"; };
 		D68E131E2190761000E1D5D5 /* bitstream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bitstream.h; sourceTree = "<group>"; };
 		D68E131F2190761000E1D5D5 /* cpu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cpu.h; sourceTree = "<group>"; };
-		D68E13202190761000E1D5D5 /* zstd_errors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zstd_errors.h; sourceTree = "<group>"; };
 		D68E13212190761000E1D5D5 /* pool.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = pool.c; sourceTree = "<group>"; };
 		D68E13222190761000E1D5D5 /* huf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = huf.h; sourceTree = "<group>"; };
 		D68E13232190761000E1D5D5 /* mem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mem.h; sourceTree = "<group>"; };
@@ -214,7 +212,6 @@
 				D68E131D2190761000E1D5D5 /* xxhash.c */,
 				D68E131E2190761000E1D5D5 /* bitstream.h */,
 				D68E131F2190761000E1D5D5 /* cpu.h */,
-				D68E13202190761000E1D5D5 /* zstd_errors.h */,
 				D68E13212190761000E1D5D5 /* pool.c */,
 				D68E13222190761000E1D5D5 /* huf.h */,
 				D68E13232190761000E1D5D5 /* mem.h */,
@@ -252,7 +249,6 @@
 				D6E4012A2404EFD1006DCC68 /* zstd_compress_literals.h in Headers */,
 				D68E13472190761100E1D5D5 /* threading.h in Headers */,
 				D68E13372190761100E1D5D5 /* zstd_opt.h in Headers */,
-				D68E134E2190761100E1D5D5 /* zstd_errors.h in Headers */,
 				D68E132E2190761100E1D5D5 /* zstd_ddict.h in Headers */,
 				D68E13452190761100E1D5D5 /* compiler.h in Headers */,
 				D68E13332190761100E1D5D5 /* zstd_lazy.h in Headers */,

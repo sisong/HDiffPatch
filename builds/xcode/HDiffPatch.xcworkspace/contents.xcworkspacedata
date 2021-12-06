@@ -24,6 +24,9 @@
       location = "container:"
       name = "lib">
       <FileRef
+         location = "group:zstd.xcodeproj">
+      </FileRef>
+      <FileRef
          location = "group:lzma.xcodeproj">
       </FileRef>
    </Group>

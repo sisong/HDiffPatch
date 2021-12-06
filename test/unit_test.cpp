@@ -400,11 +400,13 @@ int main(int argc, const char * argv[]){
         const char* _strData14="a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1";
         const TByte* data14=(const TByte*)_strData14;
         const size_t dataSize=strlen(_strData14);
-        hpatch_StreamPos_t diffSize14=0;
-        errorCount+=test(data14, data14+dataSize,data14, data14+dataSize, "14",&diffSize14);
-        if (diffSize14>=dataSize){
-            ++errorCount;
-            printf("error!!! tag:%s\n","14 test diff size");
+        hpatch_StreamPos_t diffSize14[kDiffTypeCount]={0};
+        errorCount+=test(data14, data14+dataSize,data14, data14+dataSize, "14",diffSize14);
+        for (int i=0;i<kDiffTypeCount;++i){
+            if (diffSize14[i]>=dataSize){
+                ++errorCount;
+                printf("error!!! tag:%s\n","14 test diff size");
+            }
         }
     }
 

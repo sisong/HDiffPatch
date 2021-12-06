@@ -7,15 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0D571A64275CEB3B00672D57 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D571A63275CEB3B00672D57 /* liblzma.a */; };
+		0D571A66275CEB3B00672D57 /* libzstd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D571A65275CEB3B00672D57 /* libzstd.a */; };
+		0D571A69275CF68900672D57 /* match_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A68275CF68900672D57 /* match_block.cpp */; };
+		0D571A6F275CF71A00672D57 /* bspatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A6B275CF71A00672D57 /* bspatch_wrapper.c */; };
+		0D571A70275CF71A00672D57 /* bsdiff_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A6E275CF71A00672D57 /* bsdiff_wrapper.cpp */; };
+		0D571A72275CF75B00672D57 /* hdiffz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A71275CF75B00672D57 /* hdiffz.cpp */; };
 		D61DE5472344D16900F6FCCF /* dir_diff_tools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */; };
 		D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */ = {isa = PBXBuildFile; fileRef = D621352123DC521F00EC4FA4 /* new_dir_output.c */; };
 		D6241AE221DE47D200E2846A /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AE021DE47D200E2846A /* new_stream.c */; };
-		D64989831F600C27000FCC24 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64989821F600C27000FCC24 /* liblzma.a */; };
 		D67D3BDC21CBCD5D0050632A /* dir_diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BD521CBCD5D0050632A /* dir_diff.cpp */; };
 		D67D3BDD21CBCD5D0050632A /* ref_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BD921CBCD5D0050632A /* ref_stream.c */; };
 		D67D3BE121D11DF70050632A /* dir_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BE021D11DF70050632A /* dir_patch.c */; };
 		D68CD8F21F4426B100A61337 /* stream_serialize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D68CD8F01F4426B100A61337 /* stream_serialize.cpp */; };
-		D690AB9C1F20792A0089DC57 /* hdiffz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690AB9B1F20792A0089DC57 /* hdiffz.cpp */; };
 		D690AB9C1F20792A0089DC57 /* hdiffz_import_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D690AB9B1F20792A0089DC57 /* hdiffz_import_patch.c */; };
 		D690ABB71F2079E80089DC57 /* diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA01F2079E80089DC57 /* diff.cpp */; };
 		D690ABB81F2079E80089DC57 /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA31F2079E80089DC57 /* bytes_rle.cpp */; };
@@ -50,6 +54,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0D571A63275CEB3B00672D57 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D571A65275CEB3B00672D57 /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D571A68275CF68900672D57 /* match_block.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_block.cpp; sourceTree = "<group>"; };
+		0D571A6B275CF71A00672D57 /* bspatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bspatch_wrapper.c; path = ../../bsdiff_wrapper/bspatch_wrapper.c; sourceTree = "<group>"; };
+		0D571A6C275CF71A00672D57 /* bspatch_wrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bspatch_wrapper.h; path = ../../bsdiff_wrapper/bspatch_wrapper.h; sourceTree = "<group>"; };
+		0D571A6D275CF71A00672D57 /* bsdiff_wrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bsdiff_wrapper.h; path = ../../bsdiff_wrapper/bsdiff_wrapper.h; sourceTree = "<group>"; };
+		0D571A6E275CF71A00672D57 /* bsdiff_wrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bsdiff_wrapper.cpp; path = ../../bsdiff_wrapper/bsdiff_wrapper.cpp; sourceTree = "<group>"; };
+		0D571A71275CF75B00672D57 /* hdiffz.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hdiffz.cpp; path = ../../hdiffz.cpp; sourceTree = "<group>"; };
 		D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _dir_ignore.h; path = ../../_dir_ignore.h; sourceTree = "<group>"; };
 		D61DE52D234391CF00F6FCCF /* dir_diff_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_diff_tools.h; sourceTree = "<group>"; };
 		D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_diff_tools.cpp; sourceTree = "<group>"; };
@@ -60,7 +72,6 @@
 		D6241AE121DE47D200E2846A /* new_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_stream.h; sourceTree = "<group>"; };
 		D6367E4D21A65CB20032B717 /* _clock_for_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _clock_for_demo.h; path = ../../_clock_for_demo.h; sourceTree = "<group>"; };
 		D6367E4E21A65CB20032B717 /* _atosize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _atosize.h; path = ../../_atosize.h; sourceTree = "<group>"; };
-		D64989821F600C27000FCC24 /* liblzma.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = liblzma.a; path = "../../../../housisong/Library/Developer/Xcode/DerivedData/HDiffPatch-eyllrfrhmsokhaatowcgosnaofne/Build/Products/Debug/liblzma.a"; sourceTree = "<group>"; };
 		D671B71A204983F7002D17A7 /* diff_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diff_types.h; sourceTree = "<group>"; };
 		D67D3BD521CBCD5D0050632A /* dir_diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_diff.cpp; sourceTree = "<group>"; };
 		D67D3BD821CBCD5D0050632A /* ref_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ref_stream.h; sourceTree = "<group>"; };
@@ -74,7 +85,6 @@
 		D68CD8F11F4426B100A61337 /* stream_serialize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stream_serialize.h; sourceTree = "<group>"; };
 		D68CD8FF1F45D22C00A61337 /* file_for_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file_for_patch.h; path = ../../file_for_patch.h; sourceTree = "<group>"; };
 		D690AB911F2078A40089DC57 /* hdiffz */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hdiffz; sourceTree = BUILT_PRODUCTS_DIR; };
-		D690AB9B1F20792A0089DC57 /* hdiffz.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hdiffz.cpp; path = ../../hdiffz.cpp; sourceTree = "<group>"; };
 		D690AB9B1F20792A0089DC57 /* hdiffz_import_patch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hdiffz_import_patch.c; path = ../../hdiffz_import_patch.c; sourceTree = "<group>"; };
 		D690ABA01F2079E80089DC57 /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
 		D690ABA11F2079E80089DC57 /* diff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diff.h; sourceTree = "<group>"; };
@@ -133,7 +143,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D64989831F600C27000FCC24 /* liblzma.a in Frameworks */,
+				0D571A64275CEB3B00672D57 /* liblzma.a in Frameworks */,
+				0D571A66275CEB3B00672D57 /* libzstd.a in Frameworks */,
 				D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */,
 				D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */,
 			);
@@ -142,6 +153,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0D571A6A275CF6F000672D57 /* bsdiff_wrapper */ = {
+			isa = PBXGroup;
+			children = (
+				0D571A6E275CF71A00672D57 /* bsdiff_wrapper.cpp */,
+				0D571A6D275CF71A00672D57 /* bsdiff_wrapper.h */,
+				0D571A6B275CF71A00672D57 /* bspatch_wrapper.c */,
+				0D571A6C275CF71A00672D57 /* bspatch_wrapper.h */,
+			);
+			name = bsdiff_wrapper;
+			sourceTree = "<group>";
+		};
 		D67D3BD421CBCD5D0050632A /* dirDiffPatch */ = {
 			isa = PBXGroup;
 			children = (
@@ -190,6 +212,8 @@
 		D690AB881F2078A40089DC57 = {
 			isa = PBXGroup;
 			children = (
+				0D571A71275CF75B00672D57 /* hdiffz.cpp */,
+				0D571A6A275CF6F000672D57 /* bsdiff_wrapper */,
 				D69EECDA220C49DE001EF085 /* libParallel */,
 				D67D3BD421CBCD5D0050632A /* dirDiffPatch */,
 				D690AB9E1F2079E80089DC57 /* libHDiffPatch */,
@@ -203,7 +227,6 @@
 				D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */,
 				D6367E4E21A65CB20032B717 /* _atosize.h */,
 				D6367E4D21A65CB20032B717 /* _clock_for_demo.h */,
-				D690AB9B1F20792A0089DC57 /* hdiffz.cpp */,
 				D690AB9B1F20792A0089DC57 /* hdiffz_import_patch.c */,
 				D690AB921F2078A40089DC57 /* Products */,
 				D690ABBD1F20832E0089DC57 /* Frameworks */,
@@ -231,6 +254,7 @@
 		D690AB9F1F2079E80089DC57 /* HDiff */ = {
 			isa = PBXGroup;
 			children = (
+				0D571A68275CF68900672D57 /* match_block.cpp */,
 				D671B71A204983F7002D17A7 /* diff_types.h */,
 				D690ABA01F2079E80089DC57 /* diff.cpp */,
 				D690ABA11F2079E80089DC57 /* diff.h */,
@@ -289,7 +313,8 @@
 		D690ABBD1F20832E0089DC57 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D64989821F600C27000FCC24 /* liblzma.a */,
+				0D571A63275CEB3B00672D57 /* liblzma.a */,
+				0D571A65275CEB3B00672D57 /* libzstd.a */,
 				D690AEFC1F2097D30089DC57 /* libz.tbd */,
 				D690AEFA1F2097C90089DC57 /* libbz2.tbd */,
 			);
@@ -382,8 +407,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6C9A9AC23D04F3900AC50F8 /* dir_patch_tools.c in Sources */,
+				0D571A70275CF71A00672D57 /* bsdiff_wrapper.cpp in Sources */,
 				D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */,
+				0D571A72275CF75B00672D57 /* hdiffz.cpp in Sources */,
 				D69EECD9220BD8E2001EF085 /* compress_parallel.cpp in Sources */,
+				0D571A6F275CF71A00672D57 /* bspatch_wrapper.c in Sources */,
 				D6BF3A5D21E97A0B00833537 /* file_for_patch.c in Sources */,
 				D67D3BDC21CBCD5D0050632A /* dir_diff.cpp in Sources */,
 				D67D3BE121D11DF70050632A /* dir_patch.c in Sources */,
@@ -396,13 +424,14 @@
 				D6B240B021E5C21300993A81 /* res_handle_limit.c in Sources */,
 				D690ABB81F2079E80089DC57 /* bytes_rle.cpp in Sources */,
 				D690ABBB1F2079E80089DC57 /* suffix_string.cpp in Sources */,
+				0D571A69275CF68900672D57 /* match_block.cpp in Sources */,
 				D67D3BDD21CBCD5D0050632A /* ref_stream.c in Sources */,
 				D61DE5472344D16900F6FCCF /* dir_diff_tools.cpp in Sources */,
 				D69EECDF220C49DE001EF085 /* parallel_channel.cpp in Sources */,
 				D690ABB71F2079E80089DC57 /* diff.cpp in Sources */,
 				D690ABBA1F2079E80089DC57 /* divsufsort64.c in Sources */,
 				D690ABB91F2079E80089DC57 /* divsufsort.c in Sources */,
-				D690AB9C1F20792A0089DC57 /* hdiffz.cpp in Sources */,
+				D690AB9C1F20792A0089DC57 /* hdiffz_import_patch.c in Sources */,
 				D690AB9C1F20792A0089DC57 /* hdiffz_import_patch.c in Sources */,
 				D68CD8F21F4426B100A61337 /* stream_serialize.cpp in Sources */,
 				D6DD68E31F40163200A1B22B /* adler_roll.c in Sources */,
@@ -470,7 +499,6 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
-				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
 		};
@@ -528,7 +556,6 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
-				VALID_ARCHS = x86_64;
 			};
 			name = Release;
 		};
@@ -537,7 +564,6 @@
 			buildSettings = {
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				VALID_ARCHS = x86_64;
 			};
 			name = Debug;
 		};
@@ -546,7 +572,6 @@
 			buildSettings = {
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				VALID_ARCHS = x86_64;
 			};
 			name = Release;
 		};
