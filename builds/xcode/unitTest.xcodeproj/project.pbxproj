@@ -313,7 +313,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "";
 				SDKROOT = macosx;
@@ -362,7 +362,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				OTHER_CFLAGS = "";
 				SDKROOT = macosx;
 			};

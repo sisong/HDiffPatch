@@ -143,8 +143,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0D571A64275CEB3B00672D57 /* liblzma.a in Frameworks */,
 				0D571A66275CEB3B00672D57 /* libzstd.a in Frameworks */,
+				0D571A64275CEB3B00672D57 /* liblzma.a in Frameworks */,
 				D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */,
 				D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */,
 			);
@@ -495,7 +495,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -553,7 +553,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 			};

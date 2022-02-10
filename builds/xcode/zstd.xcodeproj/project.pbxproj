@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0D60847B27B4F04B00039D46 /* zstd_ddict.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D60847A27B4F04B00039D46 /* zstd_ddict.c */; };
 		D65B8E352090C88F00DBBEEE /* zstd.h in Headers */ = {isa = PBXBuildFile; fileRef = D65B8E192090C88F00DBBEEE /* zstd.h */; };
-		D68E13292190761100E1D5D5 /* zstd_ddict.c in Sources */ = {isa = PBXBuildFile; fileRef = D68E12F92190761000E1D5D5 /* zstd_ddict.c */; };
 		D68E132A2190761100E1D5D5 /* huf_decompress.c in Sources */ = {isa = PBXBuildFile; fileRef = D68E12FA2190761000E1D5D5 /* huf_decompress.c */; };
 		D68E132B2190761100E1D5D5 /* zstd_decompress_block.h in Headers */ = {isa = PBXBuildFile; fileRef = D68E12FB2190761000E1D5D5 /* zstd_decompress_block.h */; };
 		D68E132C2190761100E1D5D5 /* zstd_decompress_internal.h in Headers */ = {isa = PBXBuildFile; fileRef = D68E12FC2190761000E1D5D5 /* zstd_decompress_internal.h */; };
@@ -63,9 +63,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0D60847A27B4F04B00039D46 /* zstd_ddict.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zstd_ddict.c; sourceTree = "<group>"; };
 		D64989021F5F970F000FCC24 /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D65B8E192090C88F00DBBEEE /* zstd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = zstd.h; path = ../../../zstd/lib/zstd.h; sourceTree = "<group>"; };
-		D68E12F92190761000E1D5D5 /* zstd_ddict.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zstd_ddict.c; sourceTree = "<group>"; };
 		D68E12FA2190761000E1D5D5 /* huf_decompress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = huf_decompress.c; sourceTree = "<group>"; };
 		D68E12FB2190761000E1D5D5 /* zstd_decompress_block.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zstd_decompress_block.h; sourceTree = "<group>"; };
 		D68E12FC2190761000E1D5D5 /* zstd_decompress_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zstd_decompress_internal.h; sourceTree = "<group>"; };
@@ -152,12 +152,12 @@
 		D68E12F82190761000E1D5D5 /* decompress */ = {
 			isa = PBXGroup;
 			children = (
-				D68E12F92190761000E1D5D5 /* zstd_ddict.c */,
 				D68E12FA2190761000E1D5D5 /* huf_decompress.c */,
 				D68E12FB2190761000E1D5D5 /* zstd_decompress_block.h */,
 				D68E12FC2190761000E1D5D5 /* zstd_decompress_internal.h */,
 				D68E12FD2190761000E1D5D5 /* zstd_decompress.c */,
 				D68E12FE2190761000E1D5D5 /* zstd_ddict.h */,
+				0D60847A27B4F04B00039D46 /* zstd_ddict.c */,
 				D68E12FF2190761000E1D5D5 /* zstd_decompress_block.c */,
 			);
 			name = decompress;
@@ -321,6 +321,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0D60847B27B4F04B00039D46 /* zstd_ddict.c in Sources */,
 				D68E132D2190761100E1D5D5 /* zstd_decompress.c in Sources */,
 				D68E13342190761100E1D5D5 /* zstdmt_compress.c in Sources */,
 				D68E132A2190761100E1D5D5 /* huf_decompress.c in Sources */,
@@ -343,7 +344,6 @@
 				D68E13462190761100E1D5D5 /* entropy_common.c in Sources */,
 				D68E13402190761100E1D5D5 /* fse_compress.c in Sources */,
 				D6E4012B2404EFD1006DCC68 /* zstd_compress_literals.c in Sources */,
-				D68E13292190761100E1D5D5 /* zstd_ddict.c in Sources */,
 				D68E133F2190761100E1D5D5 /* zstd_opt.c in Sources */,
 				D68E132F2190761100E1D5D5 /* zstd_decompress_block.c in Sources */,
 			);
@@ -394,6 +394,8 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
+					ZSTD_DISABLE_ASM,
+					ZSTD_STATIC_LINKING_ONLY,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -401,7 +403,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -445,13 +447,17 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					ZSTD_DISABLE_ASM,
+					ZSTD_STATIC_LINKING_ONLY,
+				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 			};
