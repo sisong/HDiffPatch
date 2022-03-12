@@ -19,29 +19,35 @@ a C\C++ library and command-line tools for Diff & Patch between binary files or 
 [Download from latest release](https://github.com/sisong/HDiffPatch/releases) : Command line app for Windows, Linux, MacOS; and .so patch lib for Android.     
 ( release files build by projects in path `HDiffPatch/builds` )   
 
-## Builds
+## Build it yourself
 `$ cd <dir>/HDiffPatch`   
-if on linux or macos, try :   
+### Linux or MacOS X ###
+Try:   
 `$ make LZMA=0 ZSTD=0 MD5=0`   
-or    
+if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again.   install bzip2: `$ apt-get install libbz2` or `$ sudo apt-get install libbz2-dev` or `$ yum -y install bzip2` or `$ brew install bzip2` ...   
+Alternatively, get the optional library headers (+bzip2 library) and build completely: `$ git clone https://github.com/sisong/bzip2.git ../bzip2 && pushd ../bzip2 && make && sudo make install && popd`   
+   
+if need lzma zstd md5 support, Try:    
 ```
-$ git clone https://github.com/sisong/lzma.git   ../lzma
-$ git clone https://github.com/facebook/zstd.git ../zstd
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+$ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
 $ make
 ```    
+Tip: You can use `$ make -j` to compile in parallel
    
-if on windows, befor compile `builds/vc/HDiffPatch.sln` by `Visual Studio` 
+### Windows ###
+Before you build `builds/vc/HDiffPatch.sln` with [`Visual Studio`](https://visualstudio.microsoft.com), first get the libraries into sibling folders, like so: 
 ```
-$ git clone https://github.com/sisong/lzma.git   ../lzma
-$ git clone https://github.com/facebook/zstd.git ../zstd
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+$ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
 $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 ```
    
-build libhpatchz.so for Android:   
-* install Android NDK
+### libhpatchz.so for Android ###   
+* install [Android NDK](https://developer.android.google.cn/ndk/downloads)
 * `$ cd <dir>/HDiffPatch/builds/android_ndk_jni_mk`
 * `$ build_libs.sh`  (or `$ build_libs.bat` on windows, then got \*.so files)
 * import file `com/github/sisong/HPatch.java` (from `HDiffPatch/builds/android_ndk_jni_mk/java/`) & .so files, java code can call the patch function in libhpatchz.so
@@ -68,7 +74,7 @@ memory options:
       matchScore>=0, DEFAULT -m-6, recommended bin: 0--4 text: 4--9 etc...
   -s[-matchBlockSize]
       all file load as Stream; fast;
-      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;
+      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
 special options:
   -block[-fastMatchBlockSize]
