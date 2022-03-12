@@ -167,11 +167,11 @@ else
     -D_IS_USED_PTHREAD=1
 endif
 
-PATCH_LINK := -lz -lbz2
+PATCH_LINK := -lz -lbz2		# link zlib & bzip2
 DIFF_LINK  := $(PATCH_LINK)
 ifeq ($(MT),0)
 else
-  DIFF_LINK += -lpthread
+  DIFF_LINK += -lpthread	# link pthread
 endif
 ifeq ($(CL),1)
   CXX := clang++
