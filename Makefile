@@ -4,13 +4,16 @@ MT       := 1
 LZMA     := 1
 ZSTD     := 1
 MD5      := 1
-CL  	 := 0	# used clang?
-BSD      := 1	# support bsdiff&bspatch?
+# used clang?
+CL  	 := 0	
+# support bsdiff&bspatch?
+BSD      := 1	
 ifeq ($(OS),Windows_NT) # mingw?
-  CC    := gcc	#default
+  CC    := gcc
   BZIP2 := 1
 else
-  BZIP2 := 2	# 0: not need bzip2 (must BSD=0); 1: compile bzip2 source code; 2: used -lbz2 to link bzip2 lib;
+  # 0: not need bzip2 (must BSD=0);  1: compile bzip2 source code;  2: used -lbz2 to link bzip2 lib;
+  BZIP2 := 2
 endif
 ifeq ($(BZIP2),0)
   ifeq ($(BSD),0)
