@@ -185,8 +185,12 @@ hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8){
 #   ifdef _MSC_VER
             return 0==_mkdir(path);
 #   else
+#       if defined(__MINGW32__) && defined(_WIN32)
+            return 0==mkdir(path);
+#       else
             const mode_t kDefalutMode=S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;//0755
             return 0==mkdir(path,kDefalutMode);
+#       endif
 #   endif
 #endif
         } break;
