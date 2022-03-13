@@ -4,8 +4,23 @@ MT       := 1
 LZMA     := 1
 ZSTD     := 1
 MD5      := 1
-BSD      := 1  # support bsdiff&bspatch?
-CL  	 := 0  # clang?
+# used clang?
+CL  	 := 0	
+# support bsdiff&bspatch?
+BSD      := 1	
+ifeq ($(OS),Windows_NT) # mingw?
+  CC    := gcc
+  BZIP2 := 1
+else
+  # 0: not need bzip2 (must BSD=0);  1: compile bzip2 source code;  2: used -lbz2 to link bzip2 lib;
+  BZIP2 := 2
+endif
+ifeq ($(BZIP2),0)
+  ifeq ($(BSD),0)
+  else
+  $(error error: support bsdiff need BZIP2! set BSD=0 continue)
+  endif
+endif
 
 HDIFF_OBJ  := 
 HPATCH_OBJ := \
@@ -55,7 +70,7 @@ else # https://www.7-zip.org  https://github.com/sisong/lzma
 endif
 ZSTD_PATH := ../zstd/lib
 ifeq ($(ZSTD),0)
-else # # https://github.com/facebook/zstd
+else # https://github.com/facebook/zstd
   HPATCH_OBJ += $(ZSTD_PATH)/common/debug.o \
   				$(ZSTD_PATH)/common/entropy_common.o \
   				$(ZSTD_PATH)/common/error_private.o \
@@ -85,6 +100,16 @@ else # # https://github.com/facebook/zstd
 				$(ZSTD_PATH)/compress/zstdmt_compress.o
   endif
 endif
+BZ2_PATH := ../bzip2
+ifeq ($(BZIP2),1) # https://github.com/sisong/bzip2
+  HPATCH_OBJ += $(BZ2_PATH)/blocksort.o \
+  				$(BZ2_PATH)/bzlib.o \
+  				$(BZ2_PATH)/compress.o \
+  				$(BZ2_PATH)/crctable.o \
+  				$(BZ2_PATH)/decompress.o \
+  				$(BZ2_PATH)/huffman.o \
+  				$(BZ2_PATH)/randtable.o
+endif
 
 HDIFF_OBJ += \
     hdiffz_import_patch.o \
@@ -97,8 +122,10 @@ HDIFF_OBJ += \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.o \
-    libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o \
     $(HPATCH_OBJ)
+ifeq ($(DIR_DIFF),0)
+  HDIFF_OBJ += libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o
+endif
 
 ifeq ($(DIR_DIFF),0)
 else
@@ -125,9 +152,15 @@ DEF_FLAGS := \
     -D_IS_NEED_ALL_CompressPlugin=0 \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \
     -D_CompressPlugin_zlib  \
-    -D_CompressPlugin_bz2  \
     -D_IS_NEED_ALL_ChecksumPlugin=0 \
     -D_IS_NEED_DEFAULT_ChecksumPlugin=0 
+ifeq ($(BZIP2),0)
+else
+    DEF_FLAGS += -D_CompressPlugin_bz2
+	ifeq ($(BZIP2),1)
+        DEF_FLAGS += -I$(BZ2_PATH)
+	endif
+endif
 ifeq ($(DIR_DIFF),0)
   DEF_FLAGS += -D_IS_NEED_DIR_DIFF_PATCH=0
 else
@@ -167,7 +200,10 @@ else
     -D_IS_USED_PTHREAD=1
 endif
 
-PATCH_LINK := -lz -lbz2		# link zlib & bzip2
+PATCH_LINK := -lz			# link zlib
+ifeq ($(BZIP2),2)
+  PATCH_LINK += -lbz2		# link bzip2
+endif
 DIFF_LINK  := $(PATCH_LINK)
 ifeq ($(MT),0)
 else
@@ -194,14 +230,20 @@ hpatchz: $(HPATCH_OBJ)
 hdiffz: libhdiffpatch.a
 	$(CXX) hdiffz.cpp libhdiffpatch.a $(CXXFLAGS) $(DIFF_LINK) -o hdiffz
 
-RM := rm -f
+ifeq ($(OS),Windows_NT) # mingw?
+  RM := del /Q /F
+  DEL_HDIFF_OBJ := $(subst /,\,$(HDIFF_OBJ))
+else
+  RM := rm -f
+  DEL_HDIFF_OBJ := $(HDIFF_OBJ)
+endif
 INSTALL_X := install -m 0755
 INSTALL_BIN := $(DESTDIR)/usr/local/bin
 
 mostlyclean: hpatchz hdiffz
-	$(RM) $(HDIFF_OBJ)
+	$(RM) $(DEL_HDIFF_OBJ)
 clean:
-	$(RM) libhdiffpatch.a hpatchz hdiffz $(HDIFF_OBJ)
+	$(RM) libhdiffpatch.a hpatchz hdiffz $(DEL_HDIFF_OBJ)
 
 install: all
 	$(INSTALL_X) hdiffz $(INSTALL_BIN)/hdiffz
