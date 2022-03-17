@@ -45,7 +45,9 @@
 #   define _adler64_BASE                0xFFFFFFFBull
 #   define _fast_adler64_BASE           ((uint64_t)1<<32)
 
+#ifndef _CPU_IS_LITTLE_ENDIAN
 #define _CPU_IS_LITTLE_ENDIAN()    ((*((const unsigned short*)"\0\1"))>>8)
+#endif
 
 static const uint64_t __fast_adler_table[256]=/*create by _gen_fast_adler_table*/{
     0xe9834671b5e6a199ull,0x0914fc228c715a7full,0x9d31fb3962abb5afull,0xa3d3c03569f00344ull,
