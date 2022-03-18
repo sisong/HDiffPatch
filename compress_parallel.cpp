@@ -33,11 +33,97 @@
 #include "libParallel/parallel_channel.h"
 #include "libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
+struct TMt_base {
+    CChannel work_chan;
+    
+    void on_error(){
+        {
+            CAutoLocker _auto_locker(_locker.locker);
+            if (_is_on_error) return;
+            _is_on_error=true;
+        }
+        closeAndClear();
+    }
+    
+    bool start_threads(int threadCount,TThreadRunCallBackProc threadProc,void* workData,bool isUseThisThread){
+        for (int i=0;i<threadCount;++i){
+            if (isUseThisThread&&(i==threadCount-1)){
+                thread_on(1);
+                threadProc(i,workData);
+            }else{
+                thread_on(1);
+                try{
+                    thread_parallel(1,threadProc,workData,0,i);
+                }catch(...){
+                    thread_on(-1);
+                    on_error();
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    inline void thread_end(){
+        _end_chan.send((TChanData)1,true);
+    }
+    inline  explicit TMt_base():_is_on_error(false),_is_thread_on(0) {}
+    inline ~TMt_base() { closeAndClear(); wait_all_thread_end(); _end_chan.close(); while (_end_chan.accept(false)) {} }
+    inline bool is_on_error()const{ CAutoLocker _auto_locker(_locker.locker); return _is_on_error; }
+    
+    inline void finish(){ // wait all threads exit
+        close();
+        wait_all_thread_end();
+    }
+    inline void wait_all_thread_end(){
+        while(_is_thread_on){
+            --_is_thread_on;
+            _end_chan.accept(true);
+        }
+    }
+protected:
+    CHLocker  _locker;
+    volatile bool _is_on_error;
+    
+    inline void close() {
+        work_chan.close();
+    }
+    void closeAndClear(){
+        close();
+        while(work_chan.accept(false)) {}
+    }
+private:
+    inline void thread_on(int threadNum){
+        _is_thread_on+=threadNum;
+    }
+    volatile size_t _is_thread_on;
+    CChannel  _end_chan;
+};
 
-#define check(value) { \
-    if (!(value)) throw std::runtime_error("parallel_compress_blocks() check "#value" error!"); }
+struct _auto_thread_end_t{
+    inline  explicit _auto_thread_end_t(TMt_base& mt) :_mt(mt) {  }
+    inline ~_auto_thread_end_t() { _mt.thread_end(); }
+    TMt_base&  _mt;
+};
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+    struct TWorkBuf{
+        struct TWorkBuf*    next;
+        size_t              workIndex;
+        size_t              dictSize;
+        size_t              uncompressedSize;
+        size_t              compressedSize;
+        unsigned char       buf[1];
+    };
+#ifdef __cplusplus
+}
+#endif
 
+struct TDict{
+    unsigned char*  buf;
+    size_t          size;
+};
 
 struct TBlockCompressor {
     hdiff_compressBlockHandle       handle;
@@ -46,88 +132,98 @@ struct TBlockCompressor {
     inline void open(hdiff_TParallelCompress* pc){
         _pc=pc;
         handle=pc->openBlockCompressor(pc);
-        check(handle!=0);
+        if (handle==0) throw std::runtime_error("parallel_compress_blocks() openBlockCompressor() error!");
     }
     hdiff_TParallelCompress*  _pc;
 };
 
-struct TWorkData{
+struct TMt:public TMt_base{
     hdiff_TParallelCompress*        pc;
+    size_t                          blockDictSize;
     size_t                          blockSize;
     size_t                          threadMemSize;
     const hpatch_TStreamOutput*     out_code;
     const hpatch_TStreamInput*      in_data;
+    hpatch_StreamPos_t              blockCount;
     
-    bool                            isInError;
-    hpatch_StreamPos_t              inDataPos;
     hpatch_StreamPos_t              outCodePos;
-    hpatch_StreamPos_t              outBlockIndex;
+    hpatch_StreamPos_t              curReadBlockIndex;
+    hpatch_StreamPos_t              curWriteBlockIndex;
     std::vector<TBlockCompressor>   blockCompressors;
-    hdiff_private::TAutoMem         mem;
-    CHLocker                        ioLocker;
-    int                             chanWaitCount;
-    CChannel                        chanForWaitWrite;
-    CChannel                        chanForWorkEnd;
+    CHLocker                        readLocker;
+    CHLocker                        writeLocker;
+    TDict                           dict;
+    TWorkBuf*                       dataBufList;
 };
 
 void _threadRunCallBack(int threadIndex,void* _workData){
     #define _check_br(value){ \
         if (!(value)) { LOG_ERR("parallel_compress_blocks() check "#value" error!\n"); \
-        wd.isInError=true; wd.chanForWaitWrite.close(); wd.chanForWorkEnd.close(); break; } }
-    TWorkData& wd=*(TWorkData*)_workData;
-    hdiff_compressBlockHandle cbhandle=wd.blockCompressors[threadIndex].handle;
-    unsigned char* dataBuf=wd.mem.data()+threadIndex*wd.threadMemSize;
-    unsigned char* codeBuf=dataBuf+wd.blockSize;
-    unsigned char* codeBufEnd=dataBuf+wd.threadMemSize;
+            mt.on_error(); break; } }
+    TMt& mt=*(TMt*)_workData;
+    hdiff_compressBlockHandle cbhandle=mt.blockCompressors[threadIndex].handle;
+    _auto_thread_end_t __auto_thread_end(mt);
     while (true) {
-        size_t readLen=wd.blockSize;
-        hpatch_StreamPos_t blockIndex;
+        TWorkBuf* workBuf=(TWorkBuf*)mt.work_chan.accept(true);
+        if (workBuf==0) break; //finish
+        unsigned char* dictBufEnd;
+        unsigned char* dataBufEnd;
         {//read data
-            CAutoLocker _autoLoker(wd.ioLocker.locker);
-            if (wd.isInError) break;
-            blockIndex=wd.inDataPos/wd.blockSize;
-            if (readLen+wd.inDataPos>wd.in_data->streamSize)
-                readLen=(size_t)(wd.in_data->streamSize-wd.inDataPos);
-            if (readLen==0) break;
-            _check_br(wd.in_data->read(wd.in_data,wd.inDataPos,dataBuf,dataBuf+readLen));
-            wd.inDataPos+=readLen;
+            CAutoLocker _autoLoker(mt.readLocker.locker);
+            if (mt.curReadBlockIndex>=mt.blockCount) break;
+            workBuf->dictSize=mt.dict.size;
+            memcpy(workBuf->buf,mt.dict.buf,mt.dict.size);
+            const hpatch_StreamPos_t inDataPos=mt.curReadBlockIndex*mt.blockSize;
+            if (mt.curReadBlockIndex+1<mt.blockCount)
+                workBuf->uncompressedSize=mt.blockSize;
+            else
+                workBuf->uncompressedSize=mt.in_data->streamSize-inDataPos;
+            dictBufEnd=workBuf->buf+workBuf->dictSize;
+            dataBufEnd=dictBufEnd+workBuf->uncompressedSize;
+            _check_br(mt.in_data->read(mt.in_data,inDataPos,dictBufEnd,dataBufEnd));
+            workBuf->workIndex=mt.curReadBlockIndex;
+            ++mt.curReadBlockIndex;
+            if (mt.curReadBlockIndex<mt.blockCount){//update dict
+                if (workBuf->uncompressedSize+workBuf->dictSize>=mt.blockDictSize)
+                    mt.dict.size=mt.blockDictSize;
+                else
+                    mt.dict.size=workBuf->uncompressedSize+workBuf->dictSize;
+                memcpy(mt.dict.buf,dataBufEnd-mt.dict.size,mt.dict.size);
+            }
         }
         //compress
-        size_t codeLen=wd.pc->compressBlock(wd.pc,cbhandle,blockIndex,
-                                            codeBuf,codeBufEnd,dataBuf,dataBuf+readLen);
-        while (true) {//write code
-            {//write or wait ?
-                CAutoLocker _autoLoker(wd.ioLocker.locker);
-                if (wd.isInError) break;
-                _check_br(codeLen>0);
+        workBuf->compressedSize=mt.pc->compressBlock(mt.pc,cbhandle,workBuf->workIndex,mt.blockCount,
+                                                     dataBufEnd,workBuf->buf+mt.threadMemSize,
+                                                     workBuf->buf,dictBufEnd,dataBufEnd);
+        _check_br(workBuf->compressedSize>0);
+        {//write or push
+            CAutoLocker _autoLoker(mt.writeLocker.locker);
+            //push to list
+            TWorkBuf** insertBuf=&mt.dataBufList;
+            while ((*insertBuf)&&((*insertBuf)->workIndex<workBuf->workIndex))
+                insertBuf=&((*insertBuf)->next);
+            workBuf->next=*insertBuf;
+            *insertBuf=workBuf;
+            //write
+            while (mt.dataBufList&&(mt.dataBufList->workIndex==mt.curWriteBlockIndex)){
+                //pop from list
+                workBuf=mt.dataBufList;
+                mt.dataBufList=mt.dataBufList->next;
                 //write
-                const bool isWrite=(blockIndex==wd.outBlockIndex);
-                if (isWrite){
-                    _check_br(wd.out_code->write(wd.out_code,wd.outCodePos,codeBuf,codeBuf+codeLen));
-                    wd.outCodePos+=codeLen;
-                    ++wd.outBlockIndex;
-                }
-                //wake all
-                for (int i=0; i<wd.chanWaitCount; ++i)
-                    wd.chanForWaitWrite.send((TChanData)(1+(size_t)i),true);
-                wd.chanWaitCount=0;
-                //continue work or wait
-                if (isWrite)
-                    break;//continue work
-                else
-                    ++wd.chanWaitCount; //continue wait
+                const unsigned char* codeBuf=workBuf->buf+workBuf->dictSize+workBuf->uncompressedSize;
+                _check_br(mt.out_code->write(mt.out_code,mt.outCodePos,codeBuf,codeBuf+workBuf->compressedSize));
+                mt.outCodePos+=workBuf->compressedSize;
+                ++mt.curWriteBlockIndex;
+                _check_br(mt.work_chan.send(workBuf,true));
             }
-            //wait
-            wd.chanForWaitWrite.accept(true);
         }
     }
-    wd.chanForWorkEnd.send((TChanData)(1+(size_t)threadIndex),true); //can't send null
     #undef _check_br
 }
 
 
 hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
-                                            int threadNum,size_t blockSize,
+                                            int threadNum,size_t blockDictSize,size_t blockSize,
                                             const hpatch_TStreamOutput* out_code,
                                             const hpatch_TStreamInput*  in_data){
     assert(blockSize>0);
@@ -135,28 +231,37 @@ hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
     if (threadNum<1) threadNum=1;
     hpatch_StreamPos_t blockCount=(in_data->streamSize+blockSize-1)/blockSize;
     if ((hpatch_StreamPos_t)threadNum>blockCount) threadNum=(int)blockCount;
+    const size_t workBufCount=threadNum+(threadNum+2)/3;
+    const size_t threadMemSize=(size_t)(blockDictSize+blockSize+pc->maxCompressedSize(blockSize));
     try {
-        TWorkData workData;
-        workData.isInError=false;
-        workData.chanWaitCount=0;
+        hdiff_private::TAutoMem  mem;
+        TMt workData;
         workData.pc=pc;
+        workData.blockCount=blockCount;
+        workData.blockDictSize=blockDictSize;
         workData.blockSize=blockSize;
         workData.out_code=out_code;
         workData.outCodePos=0;
-        workData.outBlockIndex=0;
+        workData.curReadBlockIndex=0;
+        workData.curWriteBlockIndex=0;
         workData.in_data=in_data;
-        workData.inDataPos=0;
-        workData.threadMemSize=(size_t)(blockSize + pc->maxCompressedSize(blockSize));
-        workData.mem.realloc(workData.threadMemSize*threadNum);
+        workData.threadMemSize=threadMemSize;
         workData.blockCompressors.resize(threadNum);
         for (int t=0; t<threadNum; ++t)
             workData.blockCompressors[t].open(pc);
-        
-        thread_parallel(threadNum,_threadRunCallBack,&workData,hpatch_TRUE,0);
-        
-        for (int t=0;t<threadNum; ++t) //wait all thread end
-            workData.chanForWorkEnd.accept(true);
-        return workData.isInError?0:workData.outCodePos;
+        mem.realloc(workData.threadMemSize*workBufCount + blockDictSize);
+        unsigned char* pbuf=mem.data();
+        for (int i=0; i<workBufCount; ++i){
+            if (!workData.work_chan.send(pbuf,true))
+                throw std::runtime_error("parallel_compress_blocks() workData.data_chan.send() error!");
+            pbuf+=threadMemSize;
+        }
+        workData.dict.buf=pbuf;
+        workData.dict.size=0;
+        workData.dataBufList=0;
+        workData.start_threads(threadNum,_threadRunCallBack,&workData,hpatch_TRUE);
+        workData.wait_all_thread_end();
+        return workData.is_on_error()?0:workData.outCodePos;
     } catch (const std::exception& e) {
         LOG_ERR("parallel_compress_blocks run error! %s\n",e.what());
         return 0; //error

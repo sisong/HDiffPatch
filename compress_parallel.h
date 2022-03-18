@@ -44,12 +44,12 @@ extern "C" {
                                                          hdiff_compressBlockHandle blockCompressor);
         //compressBlock() called multiple times by thread
         size_t  (*compressBlock)(struct hdiff_TParallelCompress* pc,hdiff_compressBlockHandle blockCompressor,
-                                 hpatch_StreamPos_t blockIndex,unsigned char* out_code,unsigned char* out_codeEnd,
-                                 const unsigned char* block_data,const unsigned char* block_dataEnd);
+                                 hpatch_StreamPos_t blockIndex,hpatch_StreamPos_t blockCount,unsigned char* out_code,unsigned char* out_codeEnd,
+                                 const unsigned char* block_data,const unsigned char* block_dictEnd,const unsigned char* block_dataEnd);
     } hdiff_TParallelCompress;
     
     hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
-                                                int threadNum,size_t blockSize,
+                                                int threadNum,size_t blockDictSize,size_t blockSize,
                                                 const hpatch_TStreamOutput* out_code,
                                                 const hpatch_TStreamInput*  in_data);
 #ifdef __cplusplus

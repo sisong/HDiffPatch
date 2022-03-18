@@ -1103,11 +1103,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #endif
     }else{// (arg_values.size()==2)  //resave
         _options_check(!isOldPathInputEmpty,"can't resave, must input a diffFile");
-        _options_check((diffSets.isDiffInMem==_kNULL_VALUE),"-m or -s unsupport run with resave mode");
         _options_check((diffSets.isDoDiff==_kNULL_VALUE),"-d unsupport run with resave mode");
         _options_check((diffSets.isDoPatchCheck==_kNULL_VALUE),"-t unsupport run with resave mode");
 #if (_IS_NEED_BSDIFF)
-        _options_check((diffSets.isBsDiff==_kNULL_VALUE),"-BSD unsupport run with resave mode");
+        _options_check((diffSets.isBsDiff==hpatch_FALSE),"-BSD unsupport run with resave mode");
 #endif
         
 #if (_IS_NEED_DIR_DIFF_PATCH)
