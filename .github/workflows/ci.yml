@@ -5,6 +5,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest]
+        compiler: [gcc, clang]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v1
