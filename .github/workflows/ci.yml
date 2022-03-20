@@ -27,9 +27,6 @@ jobs:
 
   xcode-build:
     runs-on: macos-latest
-    strategy:
-      include:
-        - xcode: "13.2"
     steps:
       - uses: actions/checkout@v1
       - name: initAndClone
