@@ -185,8 +185,8 @@ endif
 ifeq ($(ZSTD),0)
 else
   DEF_FLAGS += \
-    -D_CompressPlugin_zstd -DZSTD_DISABLE_ASM -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common \
-	-I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
+    -D_CompressPlugin_zstd -DZSTD_DISABLE_ASM -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 \
+	-I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
 endif
 
 ifeq ($(MT),0)

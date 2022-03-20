@@ -27,10 +27,11 @@
 					<Add option="-fvisibility=hidden" />
 					<Add option="-ffunction-sections -fdata-sections" />
 					<Add option="-ffat-lto-objects -flto" />
+					<Add option="-DNDEBUG" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
-					<Add option="-Wl,--gc-sections" />
+					<Add option="-Wl,--gc-sections,--as-needed" />
 				</Linker>
 			</Target>
 			<Target title="Release_x86">
@@ -46,11 +47,12 @@
 					<Add option="-fvisibility=hidden" />
 					<Add option="-ffunction-sections -fdata-sections" />
 					<Add option="-ffat-lto-objects -flto" />
+					<Add option="-DNDEBUG" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
 					<Add option="-m32" />
-					<Add option="-Wl,--gc-sections" />
+					<Add option="-Wl,--gc-sections,--as-needed" />
 				</Linker>
 			</Target>
 		</Build>

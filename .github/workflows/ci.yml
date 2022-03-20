@@ -1,22 +1,59 @@
 name: ci
 on: [push, pull_request]
 jobs:
-  build:
+  make-build:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v1
-      - name: makeInitAndClone
+      - name: makeInit
         run: |
           make LZMA=0 ZSTD=0 MD5=0 -j
-          git clone https://github.com/sisong/libmd5.git ../libmd5
-          git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
-          git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
       - name: makeUnDef
         run: |
-          make DIR_DIFF=0 MT=0 IS_NEED_BSDIFF=0 -j
+          git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+          make DIR_DIFF=0 MT=0 BSD=0 BZIP2=0 -j
       - name: makeAll
         run: |
           make -j
+      - name: makeBz2ByCode
+        run: |
+          git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
+          make BZIP2=1 -j
+
+  clang-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: installClang
+        run: |
+          sudo apt-get install -y llvm clang
+      - name: initAndClone
+        run: |
+          git clone https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
+      - name: makeByClang
+        run: |
+          make CL=1 -j
+
+  xcode-build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: initAndClone
+        run: |
+          git clone https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
+      - name: buildByXocde
+        run: |
+          xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hdiffz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin
+          xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin
+          xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme unitTest -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin
+
+
