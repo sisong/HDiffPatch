@@ -5,7 +5,6 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest]
-        compiler: [gcc, clang]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v1
@@ -25,6 +24,22 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
           make BZIP2=1 -j
+
+  clang-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: installClang
+        run: |
+          sudo apt-get install -y llvm clang
+      - name: initAndClone
+        run: |
+          git clone https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
+      - name: makeByClang
+        run: |
+          make CL=1 -j
 
   xcode-build:
     runs-on: macos-latest
