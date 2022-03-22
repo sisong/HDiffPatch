@@ -168,7 +168,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;ZSTD_MULTITHREAD=1;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;ZSTD_MULTITHREAD=1;ZSTD_HAVE_WEAK_SYMBOLS=0;DZSTD_TRACE=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
@@ -187,7 +187,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;ZSTD_MULTITHREAD=1;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;ZSTD_MULTITHREAD=1;ZSTD_HAVE_WEAK_SYMBOLS=0;DZSTD_TRACE=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
@@ -206,7 +206,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;ZSTD_MULTITHREAD=1;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;ZSTD_MULTITHREAD=1;ZSTD_HAVE_WEAK_SYMBOLS=0;DZSTD_TRACE=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>

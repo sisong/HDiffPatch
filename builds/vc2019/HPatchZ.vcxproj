@@ -211,11 +211,13 @@
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/obj/_/_/_/%(RelativeDir)/</ObjectFileName>
       <StringPooling>true</StringPooling>
+      <CallingConvention>FastCall</CallingConvention>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -235,6 +237,7 @@
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/obj/_/_/_/%(RelativeDir)/</ObjectFileName>
       <StringPooling>true</StringPooling>
+      <CallingConvention>FastCall</CallingConvention>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -265,6 +268,7 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
