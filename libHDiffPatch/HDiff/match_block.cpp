@@ -105,7 +105,7 @@ void TMatchBlock::getPackedCover(){
         for (size_t i=0;i<packedCovers.size();++i){
             const TPackedCover& cv=packedCovers[i];
             assert(dst==data+cv.newPos);
-            memmove(data+cv.newPos,data+cv.oldPos,cv.length);
+            memmove(data+cv.newPos,data+cv.oldPos,(size_t)cv.length);
             dst=data+cv.newPos+cv.length;
         }
         return dst;
@@ -201,7 +201,7 @@ void TMatchBlock::packData(){
         for (size_t i=packedCovers.size();i>0;--i){
             const TPackedCover& cv=packedCovers[i-1];
             unsigned char* dst=data+cv.oldPos;
-            memmove(dst,data+cv.newPos,cv.length);
+            memmove(dst,data+cv.newPos,(size_t)cv.length);
             unsigned char* dstEnd=dst+cv.length;
             memset(dstEnd,0,lastEnd-dstEnd);
             lastEnd=dst;

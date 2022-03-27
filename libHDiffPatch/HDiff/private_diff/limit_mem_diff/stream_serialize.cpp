@@ -277,11 +277,11 @@ void TNewDataSubDiffStream_mem::readTo(unsigned char* out_data,unsigned char* ou
                 hpatch_TCover cover;
                 covers.covers(nextCoveri,&cover);
                 if ((size_t)cover.newPos>curReadNewPos){
-                    curDataLen=cover.newPos-curReadNewPos;
+                    curDataLen=(size_t)(cover.newPos-curReadNewPos);
                     curOldData=0;
                 }else{
                     assert((size_t)cover.newPos==curReadNewPos);
-                    curDataLen=cover.length;
+                    curDataLen=(size_t)cover.length;
                     curOldData=df_oldData+cover.oldPos;
                     ++nextCoveri;
                 }
