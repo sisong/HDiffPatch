@@ -110,7 +110,7 @@ extern "C" {
 #endif
     struct TWorkBuf{
         struct TWorkBuf*    next;
-        size_t              workIndex;
+        hpatch_StreamPos_t  workIndex;
         size_t              dictSize;
         size_t              uncompressedSize;
         size_t              compressedSize;
@@ -177,7 +177,7 @@ void _threadRunCallBack(int threadIndex,void* _workData){
             if (mt.curReadBlockIndex+1<mt.blockCount)
                 workBuf->uncompressedSize=mt.blockSize;
             else
-                workBuf->uncompressedSize=mt.in_data->streamSize-inDataPos;
+                workBuf->uncompressedSize=(size_t)(mt.in_data->streamSize-inDataPos);
             dictBufEnd=workBuf->buf+workBuf->dictSize;
             dataBufEnd=dictBufEnd+workBuf->uncompressedSize;
             _check_br(mt.in_data->read(mt.in_data,inDataPos,dictBufEnd,dataBufEnd));
@@ -251,7 +251,7 @@ hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
             workData.blockCompressors[t].open(pc);
         mem.realloc(workData.threadMemSize*workBufCount + blockDictSize);
         unsigned char* pbuf=mem.data();
-        for (int i=0; i<workBufCount; ++i){
+        for (size_t i=0; i<workBufCount; ++i){
             if (!workData.work_chan.send(pbuf,true))
                 throw std::runtime_error("parallel_compress_blocks() workData.data_chan.send() error!");
             pbuf+=threadMemSize;
