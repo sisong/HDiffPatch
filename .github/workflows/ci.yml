@@ -68,5 +68,6 @@ jobs:
           ndk-version: r17c
       - name: buildWithNDK
         run: |
+          git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
           cd ./builds/android_ndk_jni_mk
           ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
