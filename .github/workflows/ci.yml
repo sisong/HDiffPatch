@@ -63,6 +63,9 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
+      - uses: nttld/setup-ndk@v1.0.6
+        with:
+          ndk-version: r17c
       - name: buildWithNDK
         run: |
           cd ./builds/android_ndk_jni_mk
