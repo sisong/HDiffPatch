@@ -7,7 +7,7 @@ jobs:
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: makeInit
         run: |
           make LZMA=0 ZSTD=0 MD5=0 -j
@@ -28,7 +28,7 @@ jobs:
   clang-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: installClang
         run: |
           sudo apt-get install -y llvm clang
@@ -44,7 +44,7 @@ jobs:
   xcode-build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: initAndClone
         run: |
           git clone https://github.com/sisong/libmd5.git ../libmd5
@@ -56,4 +56,13 @@ jobs:
           xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin
           xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme unitTest -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin
 
-
+  ndk-build:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v2
+      - runs: |
+          cd ./builds/android_ndk_jni_mk
+          ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
