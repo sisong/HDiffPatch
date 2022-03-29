@@ -71,3 +71,21 @@ jobs:
           git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
           cd ./builds/android_ndk_jni_mk
           ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
+
+  vc-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: microsoft/setup-msbuild@v1.1
+        with:
+          msbuild-architecture: x64
+      - name: initAndClone
+        run: |
+          git clone --depth=1 https://github.com/sisong/zlib.git ../zlib
+          git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
+          git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+      - name: buildByVC
+        run: |
+          msbuild builds/vc2019/HDiffPatch.sln -t:rebuild -verbosity:diag -property:Configuration=Release
