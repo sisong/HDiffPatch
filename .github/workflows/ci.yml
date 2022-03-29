@@ -34,9 +34,9 @@ jobs:
           sudo apt-get install -y llvm clang
       - name: initAndClone
         run: |
-          git clone https://github.com/sisong/libmd5.git ../libmd5
-          git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
-          git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
+          git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
       - name: makeByClang
         run: |
           make CL=1 -j
@@ -47,10 +47,10 @@ jobs:
       - uses: actions/checkout@v2
       - name: initAndClone
         run: |
-          git clone https://github.com/sisong/libmd5.git ../libmd5
-          git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
-          git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
-      - name: buildByXocde
+          git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+      - name: buildByXcode
         run: |
           xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hdiffz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin
           xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin
@@ -65,9 +65,27 @@ jobs:
       - uses: actions/checkout@v2
       - uses: nttld/setup-ndk@v1.0.6
         with:
-          ndk-version: r17c
-      - name: buildWithNDK
+          ndk-version: r16b
+      - name: buildByAndroidNDK
         run: |
           git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
           cd ./builds/android_ndk_jni_mk
           ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
+
+  vc-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: microsoft/setup-msbuild@v1.1
+        with:
+          msbuild-architecture: x64
+      - name: initAndClone
+        run: |
+          git clone --depth=1 https://github.com/sisong/zlib.git ../zlib
+          git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
+          git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+          git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
+          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+      - name: buildByVC
+        run: |
+          msbuild builds/vc2019/HDiffPatch.sln -t:rebuild -verbosity:diag -property:Configuration=Release
