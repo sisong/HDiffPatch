@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: nttld/setup-ndk@v1.0.6
         with:
-          ndk-version: r17c
+          ndk-version: r16b
       - name: buildByAndroidNDK
         run: |
           git clone -b fix-make-build --depth=1 https://github.com/sisong/lzma.git ../lzma
