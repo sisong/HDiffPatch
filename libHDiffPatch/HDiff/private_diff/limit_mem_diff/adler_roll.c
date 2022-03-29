@@ -45,8 +45,17 @@
 #   define _adler64_BASE                0xFFFFFFFBull
 #   define _fast_adler64_BASE           ((uint64_t)1<<32)
 
+
 #ifndef _CPU_IS_LITTLE_ENDIAN
-#define _CPU_IS_LITTLE_ENDIAN()    ((*((const unsigned short*)"\0\1"))>>8)
+#   if     (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)) \
+        || defined(__LITTLE_ENDIAN__) \
+        || defined(_M_AMD64) || defined(_M_X64) || defined(__x86_64__) || defined(__AMD64__) \
+        || defined(__amd64__) || defined(_M_IX86) || defined(__i386__) \
+        || defined(_M_IA64) || defined(__ia64__) \
+        || defined(__ARMEL__) || defined(__THUMBEL__) || defined(__AARCH64EL__) \
+        || defined(__MIPSEL__) || defined(__MIPSEL) || defined(_MIPSEL) || defined(__BFIN__)
+#       define _CPU_IS_LITTLE_ENDIAN   1
+#   endif
 #endif
 
 static const uint64_t __fast_adler_table[256]=/*create by _gen_fast_adler_table*/{
