@@ -6,6 +6,10 @@ ZSTD     := 1
 MD5      := 1
 # used clang?
 CL  	 := 0	
+# build with -m32?
+M32      := 0
+# build for out min size
+MINS     := 0
 # support bsdiff&bspatch?
 BSD      := 1	
 ifeq ($(OS),Windows_NT) # mingw?
@@ -154,6 +158,21 @@ DEF_FLAGS := \
     -D_CompressPlugin_zlib  \
     -D_IS_NEED_ALL_ChecksumPlugin=0 \
     -D_IS_NEED_DEFAULT_ChecksumPlugin=0 
+ifeq ($(M32),0)
+else
+  DEF_FLAGS += -m32
+endif
+ifeq ($(MINS),0)
+else
+  DEF_FLAGS += \
+    -s \
+    -Wno-error=format-security \
+    -fvisibility=hidden  \
+    -ffunction-sections -fdata-sections \
+    -ffat-lto-objects -flto
+  CXXFLAGS += -fvisibility-inlines-hidden
+endif
+
 ifeq ($(BZIP2),0)
 else
     DEF_FLAGS += -D_CompressPlugin_bz2
@@ -208,6 +227,14 @@ DIFF_LINK  := $(PATCH_LINK)
 ifeq ($(MT),0)
 else
   DIFF_LINK += -lpthread	# link pthread
+endif
+ifeq ($(M32),0)
+else
+  DIFF_LINK += -m32
+endif
+ifeq ($(MINS),0)
+else
+  DIFF_LINK += -Wl,--gc-sections,--as-needed
 endif
 ifeq ($(CL),1)
   CXX := clang++
