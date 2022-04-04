@@ -4,6 +4,7 @@ MT       := 1
 # 0: not need zlib;  1: compile zlib source code;  2: used -lz to link zlib lib;
 ZLIB     := 2
 LZMA     := 1
+# 0: not need zstd;  1: compile zstd source code;  2: used -lzstd to link zstd lib;
 ZSTD     := 1
 MD5      := 1
 # used clang?
@@ -75,8 +76,7 @@ else # https://www.7-zip.org  https://github.com/sisong/lzma
   endif
 endif
 ZSTD_PATH := ../zstd/lib
-ifeq ($(ZSTD),0)
-else # https://github.com/facebook/zstd
+ifeq ($(ZSTD),1) # https://github.com/facebook/zstd
   HPATCH_OBJ += $(ZSTD_PATH)/common/debug.o \
   				$(ZSTD_PATH)/common/entropy_common.o \
   				$(ZSTD_PATH)/common/error_private.o \
@@ -228,9 +228,12 @@ else
 endif
 ifeq ($(ZSTD),0)
 else
-  DEF_FLAGS += \
-    -D_CompressPlugin_zstd -DZSTD_DISABLE_ASM -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 \
-	-I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
+    DEF_FLAGS += -D_CompressPlugin_zstd
+	ifeq ($(ZSTD),1)
+      DEF_FLAGS += \
+        -D_CompressPlugin_zstd -DZSTD_DISABLE_ASM -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 \
+	    -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
+	endif
 endif
 
 ifeq ($(MT),0)
@@ -250,6 +253,9 @@ ifeq ($(ZLIB),2)
 endif
 ifeq ($(BZIP2),2)
   PATCH_LINK += -lbz2		# link bzip2
+endif
+ifeq ($(ZSTD),2)
+  PATCH_LINK += -lzstd		# link zstd
 endif
 DIFF_LINK  := $(PATCH_LINK)
 ifeq ($(MT),0)
