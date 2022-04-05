@@ -58,7 +58,14 @@
 #   endif
 #endif
 
-static const uint64_t __fast_adler_table[256]=/*create by _gen_fast_adler_table*/{
+
+//__fast_adler_table create by _gen_fast_adler_table() on MacOSX
+#if (_IS_NEED_FAST_ADLER128) || (_CPU_IS_LITTLE_ENDIAN)
+#   if _IS_NEED_FAST_ADLER128
+static const uint64_t __fast_adler_table[256]={
+#   else
+static const uint64_t __fast_adler_table[128]={
+#   endif
     0xe9834671b5e6a199ull,0x0914fc228c715a7full,0x9d31fb3962abb5afull,0xa3d3c03569f00344ull,
     0x399a5b7264db3b1cull,0x0c036c4f959bb01eull,0x4dc75b77344fbc39ull,0x0ab026b325be7198ull,
     0xe6a1281ebab2d5e6ull,0x53346d230eb13df7ull,0xb363ede943437647ull,0xdea89be55783a9ebull,
@@ -91,6 +98,7 @@ static const uint64_t __fast_adler_table[256]=/*create by _gen_fast_adler_table*
     0x55c725b1880c75bbull,0x04747a86d6e226a9ull,0xde31e4b63ba442afull,0x90be6f0656b265b8ull,
     0xe6004b58d491b721ull,0xb13531527e737445ull,0xd9ae2437689bee09ull,0x761828fc1e4160bcull,
     0xdae6bc729e290dc5ull,0x5198300db64afb06ull,0x0800732342d6d3f1ull,0xa1606c218cf682e4ull,
+#   if _IS_NEED_FAST_ADLER128
     0x1838e333280f674eull,0xf32f3622c8b9929full,0x6faa5847b2a5e48bull,0x9bc9239301e76beaull,
     0x6af6da13021eaf55ull,0xb41a06eb9c2568f1ull,0x2d2b1e3bf2355c05ull,0x23392705f4be24f2ull,
     0x2fa3b21fdfb99b28ull,0x4c63f66993a13011ull,0x461b744d68e5f030ull,0x6b2c411820684fffull,
@@ -122,7 +130,10 @@ static const uint64_t __fast_adler_table[256]=/*create by _gen_fast_adler_table*
     0x10d604d7d5acf7d9ull,0x5f1ee02d80e62ec4ull,0x094272f2b03a3adcull,0x7c53663013c68fe6ull,
     0xdfc16f8c66e87e96ull,0x513669ffcc854cbcull,0x7b6e2e4729891f10ull,0x366d835f1e25842eull,
     0xb59420af3feb2f8aull,0xc880ce98aab484c7ull,0xf27daa46241716e1ull,0x167b40b03178b385ull,
-    0xfa1ba16937e78784ull,0x21e6ec6ca0b50cf4ull,0xe984c351976999a1ull,0x84d3c2fbb222e66dull };
+    0xfa1ba16937e78784ull,0x21e6ec6ca0b50cf4ull,0xe984c351976999a1ull,0x84d3c2fbb222e66dull,
+#   endif //_IS_NEED_FAST_ADLER128
+};
+#endif
 /*
 #include <set>
 //gen table better than CRC32Table:{0,0x77073096,..,0x2D02EF8D} or CRC64Table
@@ -225,7 +236,9 @@ static const uint32_t __fast_adler64_table[256] ={
 const uint16_t* _private_fast_adler32_table =(const uint16_t*)&__fast_adler32_table[0];
 const uint32_t* _private_fast_adler64_table =(const uint32_t*)&__fast_adler64_table[0];
 #endif
+#if _IS_NEED_FAST_ADLER128
 const uint64_t* _private_fast_adler128_table =(const uint64_t*)&__fast_adler_table[0];
+#endif //_IS_NEED_FAST_ADLER128
 
 #define fast_adler_add1(_table, adler,sum,pdata){ \
     (adler) += _table[(unsigned char)(*pdata++)]; \
@@ -412,9 +425,11 @@ uint64_t fast_adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64
     _fast_adler_by_combine(__private_fast64_SUM,__private_fast64_ADLER,__private_fast64_SUMADLER,
                            uint32_t, adler_left,adler_right,len_right)
 
+#if _IS_NEED_FAST_ADLER128
 adler128_t fast_adler128_append(adler128_t _adler,const adler_data_t* pdata,size_t n)
     _fast_adler_append(__private_fast128_SUM,__private_fast128_ADLER,__private_fast128_SUMADLER,
                        uint64_t, _private_fast_adler128_table, _adler,pdata,n)
 adler128_t fast_adler128_by_combine(adler128_t adler_left,adler128_t adler_right,uint64_t len_right)
     _fast_adler_by_combine(__private_fast128_SUM,__private_fast128_ADLER,__private_fast128_SUMADLER,
                            uint64_t, adler_left,adler_right,len_right)
+#endif //_IS_NEED_FAST_ADLER128

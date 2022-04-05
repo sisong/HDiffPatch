@@ -65,7 +65,11 @@ extern "C" {
 #endif
 
 #ifndef ADLER_INITIAL
-#define ADLER_INITIAL 1 //must 0 or 1
+#   define ADLER_INITIAL    1 //must 0 or 1
+#endif
+
+#ifndef _IS_NEED_FAST_ADLER128
+#   define _IS_NEED_FAST_ADLER128   0
 #endif
 
 #define  __private_fast_adler_roll(SUM,ADLER,return_SUMADLER,_c_t,_table,_tb_t, \
@@ -86,7 +90,7 @@ uint32_t adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_
 uint64_t adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n);
 uint64_t adler64_roll(uint64_t adler,uint64_t blockSize,adler_data_t out_data,adler_data_t in_data);
 uint64_t adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right);
-    
+
 #define  fast_adler32_start(pdata,n) fast_adler32_append(ADLER_INITIAL,pdata,n)
 uint32_t fast_adler32_append(uint32_t adler,const adler_data_t* pdata,size_t n);
                         extern const uint16_t* _private_fast_adler32_table;
@@ -111,6 +115,8 @@ uint64_t fast_adler64_roll(uint64_t adler,uint64_t blockSize,adler_data_t out_da
                               uint32_t, _private_fast_adler64_table,uint32_t, adler,blockSize,out_data,in_data)
 uint64_t fast_adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t len_right);
 
+#if _IS_NEED_FAST_ADLER128
+
 typedef struct adler128_t{
     uint64_t adler;
     uint64_t sum;
@@ -129,6 +135,7 @@ adler128_t fast_adler128_roll(adler128_t adler,uint64_t blockSize,adler_data_t o
                               uint64_t, _private_fast_adler128_table,uint64_t, adler,blockSize,out_data,in_data)
 adler128_t fast_adler128_by_combine(adler128_t adler_left,adler128_t adler_right,uint64_t len_right);
 
+#endif //_IS_NEED_FAST_ADLER128
 
 #ifdef __cplusplus
 }
