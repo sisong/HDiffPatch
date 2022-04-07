@@ -14,7 +14,7 @@ else
   Lzma_Files := $(LZMA_PATH)/LzmaDec.c  \
                 $(LZMA_PATH)/Lzma2Dec.c
  ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
-  Lzma_Files += $(LOCAL_PATH)/../../../lzma/Asm/arm64/LzmaDecOpt.S
+  Lzma_Files += $(LZMA_PATH)/../Asm/arm64/LzmaDecOpt.S
  endif
 endif
 

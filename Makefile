@@ -4,6 +4,7 @@ MT       := 1
 # 0: not need zlib;  1: compile zlib source code;  2: used -lz to link zlib lib;
 ZLIB     := 2
 LZMA     := 1
+ARM64ASM := 0
 # 0: not need zstd;  1: compile zstd source code;  2: used -lzstd to link zstd lib;
 ZSTD     := 1
 MD5      := 1
@@ -62,6 +63,10 @@ ifeq ($(LZMA),0)
 else # https://www.7-zip.org  https://github.com/sisong/lzma
   HPATCH_OBJ += $(LZMA_PATH)/LzmaDec.o \
   				$(LZMA_PATH)/Lzma2Dec.o 
+  ifeq ($(ARM64ASM),0)
+  else
+  	HPATCH_OBJ += $(LZMA_PATH)/../Asm/arm64/LzmaDecOpt.o
+  endif
   HDIFF_OBJ  += $(LZMA_PATH)/LzFind.o \
   				$(LZMA_PATH)/LzFindOpt.o \
   				$(LZMA_PATH)/CpuArch.o \
@@ -225,6 +230,10 @@ endif
 ifeq ($(LZMA),0)
 else
   DEF_FLAGS += -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 -I$(LZMA_PATH)
+  ifeq ($(ARM64ASM),0)
+  else
+    DEF_FLAGS += -D_LZMA_DEC_OPT
+  endif
 endif
 ifeq ($(ZSTD),0)
 else
