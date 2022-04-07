@@ -8,6 +8,7 @@ ARM64ASM := 0
 # 0: not need zstd;  1: compile zstd source code;  2: used -lzstd to link zstd lib;
 ZSTD     := 1
 MD5      := 1
+STATIC_CPP := 0
 # used clang?
 CL  	 := 0
 # build with -m32?
@@ -282,7 +283,11 @@ endif
 ifeq ($(CL),1)
   CXX := clang++
   CC  := clang
+endif
+ifeq ($(STATIC_CPP),0)
   DIFF_LINK += -lstdc++
+else
+  DIFF_LINK += -static-libstdc++
 endif
 
 CFLAGS   += $(DEF_FLAGS) 
