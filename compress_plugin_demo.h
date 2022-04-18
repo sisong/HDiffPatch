@@ -39,6 +39,7 @@
 //  zstdCompressPlugin
 //  brotliCompressPlugin
 //  lzhamCompressPlugin
+//  tuzCompressPlugin
 
 #include "libHDiffPatch/HDiff/diff_types.h"
 #include "compress_parallel.h"
@@ -1176,6 +1177,34 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         {_lzham_compressType,_default_maxCompressedSize,_lzham_setParallelThreadNumber,_lzham_compress},
          LZHAM_COMP_LEVEL_BETTER,24,kDefaultCompressThreadNumber};
 #endif//_CompressPlugin_lzham
+
+#ifdef _CompressPlugin_tuz
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "tuz_enc.h" // "tinyuz/compress/tuz_enc.h" https://github.com/sisong/tinyuz
+#endif
+    typedef struct TCompressPlugin_tuz{
+        hdiff_TCompress     base;
+        tuz_TCompressProps  props;
+    } TCompressPlugin_tuz;
+    static int _tuz_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
+        TCompressPlugin_tuz* plugin=(TCompressPlugin_tuz*)compressPlugin;
+        plugin->props.threadNum=threadNum;
+        return threadNum;
+    }
+    static hpatch_StreamPos_t _tuz_compress(const hdiff_TCompress* compressPlugin,
+                                            const hpatch_TStreamOutput* out_code,
+                                            const hpatch_TStreamInput*  in_data){
+        const TCompressPlugin_tuz* plugin=(const TCompressPlugin_tuz*)compressPlugin;
+        tuz_TCompressProps props=plugin->props;
+        if (props.dictSize>in_data->streamSize)
+            props.dictSize=(in_data->streamSize>0)?in_data->streamSize:1;
+        return tuz_compress(out_code,in_data,&props);
+    }
+    _def_fun_compressType(_tuz_compressType,"tuz");
+    static const TCompressPlugin_tuz tuzCompressPlugin={
+        {_tuz_compressType,_default_maxCompressedSize,_tuz_setParallelThreadNumber,_tuz_compress},
+            {tuz_kMaxOfDictSize,tuz_kMaxOfMaxSaveLength,kDefaultCompressThreadNumber}};
+#endif//_CompressPlugin_tuz
 
 #ifdef __cplusplus
 }
