@@ -1035,12 +1035,12 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
     } _tuz_TDecompress;
 
     static tuz_BOOL _tuz_TDecompress_read_code(tuz_TInputStreamHandle listener,
-                                               tuz_byte* out_code,tuz_dict_size_t* code_size){
+                                               tuz_byte* out_code,tuz_size_t* code_size){
         _tuz_TDecompress* self=(_tuz_TDecompress*)listener;
-        tuz_dict_size_t r_size=*code_size;
+        tuz_size_t r_size=*code_size;
         hpatch_StreamPos_t s_size=self->code_end-self->code_begin;
         if (r_size>s_size){
-            r_size=(tuz_dict_size_t)s_size;
+            r_size=(tuz_size_t)s_size;
             *code_size=r_size;
         }
         if (!self->codeStream->read(self->codeStream,self->code_begin,
@@ -1057,7 +1057,7 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
                                               const hpatch_TStreamInput* codeStream,
                                               hpatch_StreamPos_t code_begin,
                                               hpatch_StreamPos_t code_end){
-        tuz_dict_size_t dictSize;
+        tuz_size_t dictSize;
         _tuz_TDecompress* self=0;
         assert(code_begin<code_end);
         self=(_tuz_TDecompress*)malloc(sizeof(_tuz_TDecompress));
@@ -1086,7 +1086,7 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         tuz_TResult ret;
         _tuz_TDecompress* self=(_tuz_TDecompress*)decompressHandle;
         size_t  out_size=out_part_data_end-out_part_data;
-        tuz_dict_size_t data_size=(tuz_dict_size_t)out_size;
+        tuz_size_t data_size=(tuz_size_t)out_size;
         assert(data_size==out_size);
         ret=tuz_TStream_decompress_partial(&self->s,out_part_data,&data_size);
         if ((ret==tuz_OK)|(ret==tuz_STREAM_END))

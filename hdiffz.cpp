@@ -696,7 +696,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
                                         ptype,ptypeEnd,"tuz","tinyuz",
                                         &dictSize,1,tuz_kMaxOfDictSize,defaultDictSize),"-c-tuz-?"){
         static TCompressPlugin_tuz _tuzCompressPlugin=tuzCompressPlugin;
-        _tuzCompressPlugin.props.dictSize=(tuz_dict_size_t)dictSize;
+        _tuzCompressPlugin.props.dictSize=(tuz_size_t)dictSize;
         *out_compressPlugin=&_tuzCompressPlugin.base;
         *out_decompressPlugin=&tuzDecompressPlugin; }}
 #endif
