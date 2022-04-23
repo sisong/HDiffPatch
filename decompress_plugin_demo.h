@@ -1029,9 +1029,8 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
         hpatch_StreamPos_t code_end;
-        tuz_byte*   dict_mem;
+        tuz_byte*   dec_mem;
         tuz_TStream s;
-        tuz_byte    codeBuf[kDecompressBufSize];
     } _tuz_TDecompress;
 
     static tuz_BOOL _tuz_TDecompress_read_code(tuz_TInputStreamHandle listener,
@@ -1062,22 +1061,27 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         assert(code_begin<code_end);
         self=(_tuz_TDecompress*)malloc(sizeof(_tuz_TDecompress));
         if (!self) return 0;
-        self->dict_mem=0;
+        self->dec_mem=0;
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
-        tuz_TStream_open(&self->s,self,_tuz_TDecompress_read_code,self->codeBuf,sizeof(self->codeBuf),&dictSize);
-        if ((dictSize==0)|(dictSize>(1<<30))){ free(self); return 0; }
-        self->dict_mem=(tuz_byte*)malloc(dictSize);
-        if (self->dict_mem==0){ free(self); return 0; }
-        tuz_TStream_decompress_begin(&self->s,self->dict_mem,dictSize);
+#if (tuz_isNeedSaveDictSize)
+        dictSize=tuz_TStream_read_dict_size(self,_tuz_TDecompress_read_code);
+#else
+        dictSize=dataSize<tuz_kMaxOfDictSize?dataSize:tuz_kMaxOfDictSize;//unknow dictSize
+#endif
+        self->dec_mem=(tuz_byte*)malloc(dictSize+kDecompressBufSize);
+        if (self->dec_mem==0){ free(self); return 0; }
+        if (tuz_OK!=tuz_TStream_open(&self->s,self,_tuz_TDecompress_read_code,
+                                     self->dec_mem,dictSize+kDecompressBufSize,dictSize)){
+            free(self->dec_mem); free(self); return 0; }
         return self;
     }
     static hpatch_BOOL _tuz_close(struct hpatch_TDecompress* decompressPlugin,
                                   hpatch_decompressHandle decompressHandle){
         _tuz_TDecompress* self=(_tuz_TDecompress*)decompressHandle;
         if (!self) return hpatch_TRUE;
-        if (self->dict_mem) free(self->dict_mem);
+        if (self->dec_mem) free(self->dec_mem);
         free(self);
         return hpatch_TRUE;
     }

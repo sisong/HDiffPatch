@@ -1196,15 +1196,19 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
                                             const hpatch_TStreamInput*  in_data){
         const TCompressPlugin_tuz* plugin=(const TCompressPlugin_tuz*)compressPlugin;
         tuz_TCompressProps props=plugin->props;
-        if (props.dictSize>in_data->streamSize)
-            props.dictSize=(in_data->streamSize>0)?in_data->streamSize:1;
+        if (props.dictSize>=in_data->streamSize)
+            props.dictSize=(in_data->streamSize>1)?(tuz_size_t)(in_data->streamSize-1):1;
+#       if (IS_NOTICE_compress_canceled)
+        printf("  (used one tinyuz dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
+               (hpatch_StreamPos_t)props.dictSize,in_data->streamSize);
+#       endif
         return tuz_compress(out_code,in_data,&props);
     }
     _def_fun_compressType(_tuz_compressType,"tuz");
     static const TCompressPlugin_tuz tuzCompressPlugin={
         {_tuz_compressType,_default_maxCompressedSize,_tuz_setParallelThreadNumber,_tuz_compress},
             {tuz_kMaxOfDictSize,tuz_kMaxOfMaxSaveLength,kDefaultCompressThreadNumber}};
-#endif//_CompressPlugin_tuz
+#endif //_CompressPlugin_tuz
 
 #ifdef __cplusplus
 }
