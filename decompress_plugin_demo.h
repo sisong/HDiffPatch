@@ -45,7 +45,7 @@
 #include "libHDiffPatch/HPatch/patch_types.h"
 
 #ifndef kDecompressBufSize
-#   define kDecompressBufSize (1024*16)
+#   define kDecompressBufSize (1024*32)
 #endif
 #ifndef _IsNeedIncludeDefaultCompressHead
 #   define _IsNeedIncludeDefaultCompressHead 1
@@ -1065,15 +1065,12 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
-#if (tuz_isNeedSaveDictSize)
         dictSize=tuz_TStream_read_dict_size(self,_tuz_TDecompress_read_code);
-#else
-        dictSize=dataSize<tuz_kMaxOfDictSize?dataSize:tuz_kMaxOfDictSize;//unknow dictSize
-#endif
+        assert(dictSize<=tuz_kMaxOfDictSize);
         self->dec_mem=(tuz_byte*)malloc(dictSize+kDecompressBufSize);
         if (self->dec_mem==0){ free(self); return 0; }
         if (tuz_OK!=tuz_TStream_open(&self->s,self,_tuz_TDecompress_read_code,
-                                     self->dec_mem,dictSize+kDecompressBufSize,dictSize)){
+                                     self->dec_mem,dictSize,kDecompressBufSize)){
             free(self->dec_mem); free(self); return 0; }
         return self;
     }
@@ -1093,10 +1090,7 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         tuz_size_t data_size=(tuz_size_t)out_size;
         assert(data_size==out_size);
         ret=tuz_TStream_decompress_partial(&self->s,out_part_data,&data_size);
-        if ((ret==tuz_OK)|(ret==tuz_STREAM_END))
-            return hpatch_TRUE;
-        else
-            return hpatch_FALSE;
+        return (ret<=tuz_STREAM_END)&&(data_size==out_size);
     }
     static hpatch_TDecompress tuzDecompressPlugin={_tuz_is_can_open,_tuz_open,
                                                    _tuz_close,_tuz_decompress_part};

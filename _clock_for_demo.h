@@ -30,7 +30,15 @@
 //  static double clock_s(){ return clock()*1.0/CLOCKS_PER_SEC; }
 #ifdef _WIN32
     #include <windows.h>
-    static double clock_s(){ return GetTickCount()/1000.0; }
+    static double clock_s(){
+        LARGE_INTEGER f;
+        if (QueryPerformanceFrequency(&f)){
+            LARGE_INTEGER c;
+            QueryPerformanceCounter(&c);
+            return c.QuadPart/((double)f.QuadPart);
+        }
+        return GetTickCount()/1000.0; 
+    }
 #else
     //Unix-like system
     #include <sys/time.h>
