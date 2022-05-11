@@ -183,8 +183,6 @@ static void printUsage(){
 #   if (_IS_USED_MULTITHREAD)
            "        -c-pzlib[-{1..9}]               DEFAULT level 6\n"
            "            support run by multi-thread parallel, fast!\n"
-           "            WARNING: code not compatible with it compressed by -c-zlib!\n"
-           "              and code size may be larger than if it compressed by -c-zlib. \n"
 #   endif
 #endif
 #ifdef _CompressPlugin_bz2

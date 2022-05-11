@@ -99,6 +99,10 @@ typedef enum hpi_compressType{
     //...
 } hpi_compressType;
 
+#ifndef _IS_USED_SHARE_hpi_TInputCache
+#   define  _IS_USED_SHARE_hpi_TInputCache  0
+#endif
+
 #ifdef __cplusplus
 }
 #endif

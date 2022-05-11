@@ -5,7 +5,7 @@
  Copyright (c) 2020-2022 HouSisong All Rights Reserved.
 */
 #include "hpatch_lite.h"
-#include "hpatch_lite_types_private.h"
+#include "hpatch_lite_input_cache.h"
 
 #define _hpi_FALSE  hpi_FALSE
 //hpi_size_t __debug_check_false_x=0; //for debug
@@ -33,7 +33,7 @@
 #define _cache_update           _hpi_cache_update
 #define _cache_success_finish   _hpi_cache_success_finish
 
-#if (!_IS_NEED_SHARE_hpi_TInputCache)
+#if (!_IS_USED_SHARE_hpi_TInputCache)
 static
 #endif
 hpi_BOOL _cache_update(struct _TInputCache* self){
@@ -48,7 +48,7 @@ hpi_BOOL _cache_update(struct _TInputCache* self){
     return len!=0;
 }
 
-#if (!_IS_NEED_SHARE_hpi_TInputCache)
+#if (!_IS_USED_SHARE_hpi_TInputCache)
 static hpi_try_inline 
 #endif
 hpi_fast_uint8 _cache_read_1byte(struct _TInputCache* self){
@@ -119,23 +119,24 @@ static hpi_BOOL _patch_add_old_withClip(hpatchi_listener_t* old_and_new,_TInputC
 hpi_BOOL hpatch_lite_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read read_diff,
                           hpi_compressType* out_compress_type,hpi_pos_t* out_newSize){
     #define hpi_code_version     1
-    hpi_pos_t  new_size=0;
-    hpi_size_t i;
     hpi_size_t len=hpi_kHeadSize;
     hpi_byte   buf[hpi_kHeadSize<sizeof(hpi_pos_t)?hpi_kHeadSize:sizeof(hpi_pos_t)];
     
     _CHECK(read_diff(diff_data,buf,&len));
-    //HPatchLite type tag 2byte, version code 4bit
+    //HPatchLite type tag 2byte, version code(low 4bit)
     _SAFE_CHECK((len==hpi_kHeadSize)&(buf[0]=='h')&(buf[1]=='I')&((buf[3]&0xF)==hpi_code_version));
     *out_compress_type=buf[2];
-    len=buf[3]>>4; //new_size_bytes
+    len=buf[3]>>4; //new_size_bytes(high 4bit)
 
     _SAFE_CHECK(len<=sizeof(hpi_pos_t));
     _CHECK(read_diff(diff_data,buf,&len));
-    for (i=0;i<len;++i)
-        new_size|=((hpi_pos_t)buf[i])<<(i*8);
-
-    *out_newSize=new_size;
+    {
+        hpi_pos_t new_size=0;
+        while(len--){
+            new_size=(new_size<<8)|(hpi_pos_t)buf[len];
+        }
+        *out_newSize=new_size;
+    }
     return hpi_TRUE;
 }
 
