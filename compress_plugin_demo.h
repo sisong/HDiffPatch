@@ -118,7 +118,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         hdiff_TCompress base;
         int             compress_level; //0..9
         int             mem_level;
-        signed char     windowBits;
+        signed char     windowBits; // -9..-15
         hpatch_BOOL     isNeedSaveWindowBits;
         int             strategy;
     } TCompressPlugin_zlib;
@@ -348,9 +348,13 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
                 ||(in_data->streamSize<blockSize*2)){ //same as "zlib"
             return _zlib_compress(compressPlugin,out_code,in_data);
         }else{
-            uInt dictSize=32*1024; //now used max dict size; can calculated by windowBits
+            int dictBits=plugin->base.windowBits;
+            if (dictBits<0) dictBits=-dictBits;
+            if (dictBits>15) dictBits-=16;
+            if (dictBits<9) dictBits=9;
+            else if (dictBits>15) dictBits=15;
             plugin->pc.import=plugin;
-            return parallel_compress_blocks(&plugin->pc,plugin->thread_num,dictSize,blockSize,out_code,in_data);
+            return parallel_compress_blocks(&plugin->pc,plugin->thread_num,(1<<dictBits),blockSize,out_code,in_data);
         }
     }
     
