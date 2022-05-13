@@ -65,9 +65,8 @@ extern "C" {
 #endif
 
 #ifndef hpi_try_inline
+//#   define hpi_try_inline hpi_inline
 #   define hpi_try_inline
-#else
-#   define hpi_try_inline hpi_inline
 #endif
 
 
@@ -99,8 +98,8 @@ typedef enum hpi_compressType{
     //...
 } hpi_compressType;
 
-#ifndef _IS_USED_SHARE_hpi_TInputCache
-#   define  _IS_USED_SHARE_hpi_TInputCache  0
+#ifndef _IS_USED_SHARE_hpatch_lite_TInputCache
+#   define  _IS_USED_SHARE_hpatch_lite_TInputCache  0
 #endif
 
 #ifdef __cplusplus

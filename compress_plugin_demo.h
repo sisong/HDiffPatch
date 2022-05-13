@@ -354,7 +354,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
             if (dictBits<9) dictBits=9;
             else if (dictBits>15) dictBits=15;
             plugin->pc.import=plugin;
-            return parallel_compress_blocks(&plugin->pc,plugin->thread_num,(1<<dictBits),blockSize,out_code,in_data);
+            return parallel_compress_blocks(&plugin->pc,plugin->thread_num,((size_t)1<<dictBits),blockSize,out_code,in_data);
         }
     }
     

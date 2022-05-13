@@ -22,7 +22,7 @@ typedef struct hpatchi_listener_t{
 } hpatchi_listener_t;
 
 hpi_BOOL hpatch_lite_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read read_diff,
-                          hpi_compressType* out_compress_type,hpi_pos_t* out_newSize);
+                          hpi_compressType* out_compress_type,hpi_pos_t* out_newSize,hpi_pos_t* out_uncompressSize);
 hpi_BOOL hpatch_lite_patch(hpatchi_listener_t* listener,hpi_pos_t newSize,
                            hpi_byte* temp_cache,hpi_size_t temp_cache_size);
 

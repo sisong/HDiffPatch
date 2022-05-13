@@ -33,7 +33,7 @@
 #define _cache_update           _hpi_cache_update
 #define _cache_success_finish   _hpi_cache_success_finish
 
-#if (!_IS_USED_SHARE_hpi_TInputCache)
+#if (!_IS_USED_SHARE_hpatch_lite_TInputCache)
 static
 #endif
 hpi_BOOL _cache_update(struct _TInputCache* self){
@@ -48,7 +48,7 @@ hpi_BOOL _cache_update(struct _TInputCache* self){
     return len!=0;
 }
 
-#if (!_IS_USED_SHARE_hpi_TInputCache)
+#if (!_IS_USED_SHARE_hpatch_lite_TInputCache)
 static hpi_try_inline 
 #endif
 hpi_fast_uint8 _cache_read_1byte(struct _TInputCache* self){
@@ -115,28 +115,34 @@ static hpi_BOOL _patch_add_old_withClip(hpatchi_listener_t* old_and_new,_TInputC
     return hpi_TRUE;
 }
 
+static hpi_pos_t _hpi_readSize(const hpi_byte* buf,hpi_size_t len){
+    hpi_pos_t v=0;
+    while(len--){
+        v=(v<<8)|(hpi_pos_t)buf[len];
+    }
+    return v;
+}
 
 hpi_BOOL hpatch_lite_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read read_diff,
-                          hpi_compressType* out_compress_type,hpi_pos_t* out_newSize){
-    #define hpi_code_version     1
-    hpi_size_t len=hpi_kHeadSize;
-    hpi_byte   buf[hpi_kHeadSize<sizeof(hpi_pos_t)?hpi_kHeadSize:sizeof(hpi_pos_t)];
+                          hpi_compressType* out_compress_type,hpi_pos_t* out_newSize,hpi_pos_t* out_uncompressSize){
+    #define kHPatchLite_versionCode     1
+    hpi_size_t lenn=hpi_kHeadSize;
+    hpi_size_t lenu;
+    hpi_byte   buf[hpi_kHeadSize>sizeof(hpi_pos_t)?hpi_kHeadSize:sizeof(hpi_pos_t)];
     
-    _CHECK(read_diff(diff_data,buf,&len));
-    //HPatchLite type tag 2byte, version code(low 4bit)
-    _SAFE_CHECK((len==hpi_kHeadSize)&(buf[0]=='h')&(buf[1]=='I')&((buf[3]&0xF)==hpi_code_version));
-    *out_compress_type=buf[2];
-    len=buf[3]>>4; //new_size_bytes(high 4bit)
+    _CHECK(read_diff(diff_data,buf,&lenn));
+    //HPatchLite type tag 2byte, version code(high 2bit)
+    lenu=buf[3];
+    _SAFE_CHECK((lenn==hpi_kHeadSize)&(buf[0]=='h')&(buf[1]=='I')&((lenu>>6)==kHPatchLite_versionCode));
+    *out_compress_type=buf[2]; //compress type
+    lenn=lenu&7; //newSize bytes(low 3bit)
+    lenu=(lenu>>3)&7; //uncompressSize bytes(mid 3bit)
 
-    _SAFE_CHECK(len<=sizeof(hpi_pos_t));
-    _CHECK(read_diff(diff_data,buf,&len));
-    {
-        hpi_pos_t new_size=0;
-        while(len--){
-            new_size=(new_size<<8)|(hpi_pos_t)buf[len];
-        }
-        *out_newSize=new_size;
-    }
+    _SAFE_CHECK((lenn|lenu)<sizeof(hpi_pos_t));
+    _CHECK(read_diff(diff_data,buf,&lenn));
+    *out_newSize=_hpi_readSize(buf,lenn);
+    _CHECK(read_diff(diff_data,buf,&lenu));
+    *out_uncompressSize=_hpi_readSize(buf,lenu);
     return hpi_TRUE;
 }
 

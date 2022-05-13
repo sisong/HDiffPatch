@@ -10,18 +10,22 @@
 #include "diff_types.h"
 #include "../HPatchLite/hpatch_lite_types.h"
 
-struct hdiffi_TCompress:public hdiff_TCompress{
+struct hdiffi_TCompress{
+    hdiff_TCompress*    compress;
     hpi_compressType    compress_type;
 };
 const int kLiteMatchScore_default = 4;
 
-void create_lite_diff(const unsigned char* newData,const unsigned char* newData_end,
-                      const unsigned char* oldData,const unsigned char* oldData_end,
-                      const hpatch_TStreamOutput* out_diff,const hdiffi_TCompress* compressPlugin,
+void create_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
+                      const hpi_byte* oldData,const hpi_byte* oldData_end,
+                      std::vector<hpi_byte>& out_lite_diff,const hdiffi_TCompress* compressPlugin,
                       int kMinSingleMatchScore=kLiteMatchScore_default,bool isUseBigCacheMatch=false);
-bool check_lite_diff(const unsigned char* newData,const unsigned char* newData_end,
-                     const unsigned char* oldData,const unsigned char* oldData_end,
-                     const unsigned char* lite_diff,const unsigned char* lite_diff_end,
+
+bool check_lite_diff_open(const hpi_byte* lite_diff,const hpi_byte* lite_diff_end,
+                          hpi_compressType* out_compress_type);
+bool check_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
+                     const hpi_byte* oldData,const hpi_byte* oldData_end,
+                     const hpi_byte* lite_diff,const hpi_byte* lite_diff_end,
                      hpatch_TDecompress* decompressPlugin);
 
 #endif //HDiff_for_hpatch_lite_h

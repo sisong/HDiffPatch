@@ -22,7 +22,7 @@ typedef struct _hpi_TInputCache{
 static hpi_force_inline 
 hpi_BOOL _hpi_cache_success_finish(const _hpi_TInputCache* self){ return (self->cache_end!=0); }
 
-#if (_IS_USED_SHARE_hpi_TInputCache)
+#if (_IS_USED_SHARE_hpatch_lite_TInputCache)
     hpi_fast_uint8 _hpi_cache_read_1byte(struct _hpi_TInputCache* self);
     hpi_BOOL       _hpi_cache_update(struct _hpi_TInputCache* self);
 #endif
