@@ -1211,7 +1211,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     _def_fun_compressType(_tuz_compressType,"tuz");
     static const TCompressPlugin_tuz tuzCompressPlugin={
         {_tuz_compressType,_default_maxCompressedSize,_tuz_setParallelThreadNumber,_tuz_compress},
-            {tuz_kMaxOfDictSize,tuz_kMaxOfMaxSaveLength,kDefaultCompressThreadNumber}};
+            {(1<<24),tuz_kMaxOfMaxSaveLength,kDefaultCompressThreadNumber}};
 #endif //_CompressPlugin_tuz
 
 #ifdef __cplusplus

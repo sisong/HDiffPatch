@@ -95,12 +95,13 @@ typedef enum hpi_compressType{
     hpi_compressType_zlib=2,
     hpi_compressType_lzma=3,
     hpi_compressType_lzma2=4,
+    hpi_compressType_zstd=5,
+    hpi_compressType_bzip2=6,
+    hpi_compressType_lz4=7,
+    hpi_compressType_brotli=8,
+    hpi_compressType_lzham=9,
     //...
 } hpi_compressType;
-
-#ifndef _IS_USED_SHARE_hpatch_lite_TInputCache
-#   define  _IS_USED_SHARE_hpatch_lite_TInputCache  0
-#endif
 
 #ifdef __cplusplus
 }

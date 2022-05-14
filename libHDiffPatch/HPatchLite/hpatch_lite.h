@@ -12,6 +12,11 @@
 extern "C" {
 #endif
 
+//-----------------------------------------------------------------------------------------------------------------
+// hpatch_lite by stream : compiled by Mbed Studio is 664 bytes
+
+//diff_data must created by create_lite_diff()
+
 typedef struct hpatchi_listener_t{
     hpi_TInputStreamHandle  diff_data;
     hpi_TInputStream_read   read_diff;

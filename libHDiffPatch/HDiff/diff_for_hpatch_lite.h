@@ -11,10 +11,10 @@
 #include "../HPatchLite/hpatch_lite_types.h"
 
 struct hdiffi_TCompress{
-    hdiff_TCompress*    compress;
-    hpi_compressType    compress_type;
+    const hdiff_TCompress* compress;
+    hpi_compressType       compress_type;
 };
-const int kLiteMatchScore_default = 4;
+const int kLiteMatchScore_default = 6;
 
 void create_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
                       const hpi_byte* oldData,const hpi_byte* oldData_end,

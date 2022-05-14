@@ -1058,7 +1058,6 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
                                               hpatch_StreamPos_t code_end){
         tuz_size_t dictSize;
         _tuz_TDecompress* self=0;
-        assert(code_begin<code_end);
         self=(_tuz_TDecompress*)malloc(sizeof(_tuz_TDecompress));
         if (!self) return 0;
         self->dec_mem=0;
@@ -1066,7 +1065,7 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         self->code_begin=code_begin;
         self->code_end=code_end;
         dictSize=tuz_TStream_read_dict_size(self,_tuz_TDecompress_read_code);
-        assert(dictSize<=tuz_kMaxOfDictSize);
+        if (((tuz_size_t)(dictSize-1))>=tuz_kMaxOfDictSize) { free(self); return 0; }
         self->dec_mem=(tuz_byte*)malloc(dictSize+kDecompressBufSize);
         if (self->dec_mem==0){ free(self); return 0; }
         if (tuz_OK!=tuz_TStream_open(&self->s,self,_tuz_TDecompress_read_code,

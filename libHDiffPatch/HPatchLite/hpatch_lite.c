@@ -33,9 +33,6 @@
 #define _cache_update           _hpi_cache_update
 #define _cache_success_finish   _hpi_cache_success_finish
 
-#if (!_IS_USED_SHARE_hpatch_lite_TInputCache)
-static
-#endif
 hpi_BOOL _cache_update(struct _TInputCache* self){
     //    [                    cache  buf                        ]
     hpi_size_t len=self->cache_end;
@@ -48,9 +45,6 @@ hpi_BOOL _cache_update(struct _TInputCache* self){
     return len!=0;
 }
 
-#if (!_IS_USED_SHARE_hpatch_lite_TInputCache)
-static hpi_try_inline 
-#endif
 hpi_fast_uint8 _cache_read_1byte(struct _TInputCache* self){
     if (self->cache_begin!=self->cache_end){
 __cache_read_1byte:
@@ -97,10 +91,11 @@ static hpi_BOOL _patch_add_old_withClip(hpatchi_listener_t* old_and_new,_TInputC
         if (isNeedSubDiff){
             decodeStep-=diff->cache_begin;
             if (decodeStep==0){
-                _CHECK(_cache_update(diff));
+                _cache_update(diff);
                 decodeStep=diff->cache_end-diff->cache_begin;
             }
         }
+        _CHECK(decodeStep>0);
         if (decodeStep>addLength)
             decodeStep=(hpi_size_t)addLength;
         _CHECK(old_and_new->read_old(old_and_new,oldPos,temp_cache,(hpi_pos_t)decodeStep));
@@ -190,6 +185,7 @@ hpi_BOOL hpatch_lite_patch(hpatchi_listener_t* listener,hpi_pos_t newSize,
         _CHECK(_patch_add_old_withClip(listener,&diff,isNeedSubDiff,cover_oldPos,cover_length,temp_cache));
         newPosBack=cover_newPos+cover_length;
         oldPosBack=cover_oldPos+cover_length;
+        _SAFE_CHECK((cover_length>0)|(coverCount==0));
     }
     return (newSize==newPosBack)&_cache_success_finish(&diff);
 }

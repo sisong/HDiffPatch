@@ -1299,17 +1299,11 @@ void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
         check(v==(hpi_pos_t)v);
         packUInt(buf,v);
     }
-
     static inline void hpi_packUIntWithTag(std::vector<TByte>& buf,TUInt v,TByte tag,TByte bit){
         check(v==(hpi_pos_t)v);
         packUIntWithTag(buf,v,tag,bit);
     }
-
-    static inline void hpi_pushUInt(std::vector<TByte>& buf,TUInt v){
-        check(v==(hpi_pos_t)v);
-        pushUInt(buf,(hpi_pos_t)v);
-    }
-
+    
     static inline TByte hpi_getSavedSizeBytes(TUInt size){
         check(size==(hpi_pos_t)size);
         TByte bytes=0; 
@@ -1403,8 +1397,9 @@ void create_lite_diff(const unsigned char* newData,const unsigned char* newData_
                       const unsigned char* oldData,const unsigned char* oldData_end,
                       std::vector<hpi_byte>& out_lite_diff,const hdiffi_TCompress* compressPlugin,
                       int kMinSingleMatchScore,bool isUseBigCacheMatch){
+    static const int _kMatchScore_optim4bin=6;
     TDiffData diff;
-    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore,isUseBigCacheMatch);
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore-_kMatchScore_optim4bin,isUseBigCacheMatch);
     hpatch_StreamPos_t oldPosEnd=0;
     hpatch_StreamPos_t newPosEnd=0;
     if (!diff.covers.empty()){
@@ -1501,12 +1496,13 @@ bool check_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
                           &saved_uncompressSize)) return false;
     if (saved_newSize!=(size_t)(newData_end-newData)) return false;
     listener.diff_data=&listener;
-    listener.decompressPlugin=decompressPlugin;
-    if (decompressPlugin){
+    listener.decompressPlugin=(_compress_type!=hpi_compressType_no)?decompressPlugin:0;
+    if (listener.decompressPlugin){
         listener.uncompressSize=saved_uncompressSize;
         mem_as_hStreamInput(&listener.diffStream,listener.diffData_cur,lite_diff_end);
         listener.decompresser=decompressPlugin->open(decompressPlugin,saved_uncompressSize,&listener.diffStream,
                                                      0,(size_t)(lite_diff_end-listener.diffData_cur));
+        if (listener.decompresser==0) return false;
         listener.read_diff=listener._read_diff_dec;
     }else{
         listener.read_diff=listener._read_diff;
