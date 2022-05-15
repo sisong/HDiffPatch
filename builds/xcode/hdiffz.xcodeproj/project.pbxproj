@@ -13,6 +13,7 @@
 		0D571A6F275CF71A00672D57 /* bspatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A6B275CF71A00672D57 /* bspatch_wrapper.c */; };
 		0D571A70275CF71A00672D57 /* bsdiff_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A6E275CF71A00672D57 /* bsdiff_wrapper.cpp */; };
 		0D571A72275CF75B00672D57 /* hdiffz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A71275CF75B00672D57 /* hdiffz.cpp */; };
+		0D7FEAB8283124A20029772D /* hpatch_lite.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D7FEAB5283124A20029772D /* hpatch_lite.c */; };
 		D61DE5472344D16900F6FCCF /* dir_diff_tools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */; };
 		D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */ = {isa = PBXBuildFile; fileRef = D621352123DC521F00EC4FA4 /* new_dir_output.c */; };
 		D6241AE221DE47D200E2846A /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AE021DE47D200E2846A /* new_stream.c */; };
@@ -62,6 +63,10 @@
 		0D571A6D275CF71A00672D57 /* bsdiff_wrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bsdiff_wrapper.h; path = ../../bsdiff_wrapper/bsdiff_wrapper.h; sourceTree = "<group>"; };
 		0D571A6E275CF71A00672D57 /* bsdiff_wrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bsdiff_wrapper.cpp; path = ../../bsdiff_wrapper/bsdiff_wrapper.cpp; sourceTree = "<group>"; };
 		0D571A71275CF75B00672D57 /* hdiffz.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hdiffz.cpp; path = ../../hdiffz.cpp; sourceTree = "<group>"; };
+		0D7FEAB4283124A20029772D /* hpatch_lite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hpatch_lite.h; sourceTree = "<group>"; };
+		0D7FEAB5283124A20029772D /* hpatch_lite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hpatch_lite.c; sourceTree = "<group>"; };
+		0D7FEAB6283124A20029772D /* hpatch_lite_input_cache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hpatch_lite_input_cache.h; sourceTree = "<group>"; };
+		0D7FEAB7283124A20029772D /* hpatch_lite_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hpatch_lite_types.h; sourceTree = "<group>"; };
 		D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _dir_ignore.h; path = ../../_dir_ignore.h; sourceTree = "<group>"; };
 		D61DE52D234391CF00F6FCCF /* dir_diff_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_diff_tools.h; sourceTree = "<group>"; };
 		D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_diff_tools.cpp; sourceTree = "<group>"; };
@@ -164,6 +169,17 @@
 			name = bsdiff_wrapper;
 			sourceTree = "<group>";
 		};
+		0D7FEAB3283124A20029772D /* HPatchLite */ = {
+			isa = PBXGroup;
+			children = (
+				0D7FEAB4283124A20029772D /* hpatch_lite.h */,
+				0D7FEAB5283124A20029772D /* hpatch_lite.c */,
+				0D7FEAB6283124A20029772D /* hpatch_lite_input_cache.h */,
+				0D7FEAB7283124A20029772D /* hpatch_lite_types.h */,
+			);
+			path = HPatchLite;
+			sourceTree = "<group>";
+		};
 		D67D3BD421CBCD5D0050632A /* dirDiffPatch */ = {
 			isa = PBXGroup;
 			children = (
@@ -244,6 +260,7 @@
 		D690AB9E1F2079E80089DC57 /* libHDiffPatch */ = {
 			isa = PBXGroup;
 			children = (
+				0D7FEAB3283124A20029772D /* HPatchLite */,
 				D690AB9F1F2079E80089DC57 /* HDiff */,
 				D690ABB41F2079E80089DC57 /* HPatch */,
 			);
@@ -413,6 +430,7 @@
 				D69EECD9220BD8E2001EF085 /* compress_parallel.cpp in Sources */,
 				0D571A6F275CF71A00672D57 /* bspatch_wrapper.c in Sources */,
 				D6BF3A5D21E97A0B00833537 /* file_for_patch.c in Sources */,
+				0D7FEAB8283124A20029772D /* hpatch_lite.c in Sources */,
 				D67D3BDC21CBCD5D0050632A /* dir_diff.cpp in Sources */,
 				D67D3BE121D11DF70050632A /* dir_patch.c in Sources */,
 				D6C9A98E23CBF37D00AC50F8 /* dir_manifest.cpp in Sources */,
@@ -563,7 +581,7 @@
 		D690AB991F2078A40089DC57 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -571,7 +589,7 @@
 		D690AB9A1F2078A40089DC57 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

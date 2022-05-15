@@ -4,9 +4,11 @@ MT       := 1
 # 0: not need zlib;  1: compile zlib source code;  2: used -lz to link zlib lib;
 ZLIB     := 2
 LZMA     := 1
+ARM64ASM := 0
 # 0: not need zstd;  1: compile zstd source code;  2: used -lzstd to link zstd lib;
 ZSTD     := 1
 MD5      := 1
+STATIC_CPP := 0
 # used clang?
 CL  	 := 0
 # build with -m32?
@@ -62,6 +64,10 @@ ifeq ($(LZMA),0)
 else # https://www.7-zip.org  https://github.com/sisong/lzma
   HPATCH_OBJ += $(LZMA_PATH)/LzmaDec.o \
   				$(LZMA_PATH)/Lzma2Dec.o 
+  ifeq ($(ARM64ASM),0)
+  else
+  	HPATCH_OBJ += $(LZMA_PATH)/../Asm/arm64/LzmaDecOpt.o
+  endif
   HDIFF_OBJ  += $(LZMA_PATH)/LzFind.o \
   				$(LZMA_PATH)/LzFindOpt.o \
   				$(LZMA_PATH)/CpuArch.o \
@@ -133,6 +139,7 @@ endif
 
 HDIFF_OBJ += \
     hdiffz_import_patch.o \
+    libHDiffPatch/HPatchLite/hpatch_lite.o \
     libHDiffPatch/HDiff/diff.o \
     libHDiffPatch/HDiff/match_block.o \
     libHDiffPatch/HDiff/private_diff/bytes_rle.o \
@@ -225,13 +232,16 @@ endif
 ifeq ($(LZMA),0)
 else
   DEF_FLAGS += -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 -I$(LZMA_PATH)
+  ifeq ($(ARM64ASM),0)
+  else
+    DEF_FLAGS += -D_LZMA_DEC_OPT
+  endif
 endif
 ifeq ($(ZSTD),0)
 else
     DEF_FLAGS += -D_CompressPlugin_zstd
 	ifeq ($(ZSTD),1)
-      DEF_FLAGS += \
-        -D_CompressPlugin_zstd -DZSTD_DISABLE_ASM -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 \
+      DEF_FLAGS += -DZSTD_DISABLE_ASM -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 \
 	    -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
 	endif
 endif
@@ -273,7 +283,11 @@ endif
 ifeq ($(CL),1)
   CXX := clang++
   CC  := clang
+endif
+ifeq ($(STATIC_CPP),0)
   DIFF_LINK += -lstdc++
+else
+  DIFF_LINK += -static-libstdc++
 endif
 
 CFLAGS   += $(DEF_FLAGS) 

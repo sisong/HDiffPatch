@@ -36,6 +36,7 @@
 //  zstdDecompressPlugin;
 //  brotliDecompressPlugin;
 //  lzhamDecompressPlugin;
+//  tuzDecompressPlugin;
 
 // _bz2DecompressPlugin_unsz support for bspatch_with_cache()
 
@@ -44,7 +45,7 @@
 #include "libHDiffPatch/HPatch/patch_types.h"
 
 #ifndef kDecompressBufSize
-#   define kDecompressBufSize (1024*16)
+#   define kDecompressBufSize (1024*32)
 #endif
 #ifndef _IsNeedIncludeDefaultCompressHead
 #   define _IsNeedIncludeDefaultCompressHead 1
@@ -1018,5 +1019,80 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
     static hpatch_TDecompress lzhamDecompressPlugin={_lzham_is_can_open,_lzham_open,
                                                      _lzham_close,_lzham_decompress_part};
 #endif//_CompressPlugin_lzham
+
+
+#ifdef _CompressPlugin_tuz
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "tuz_dec.h" // "tinyuz/decompress/tuz_dec.h" https://github.com/sisong/tinyuz
+#endif
+    typedef struct _tuz_TDecompress{
+        const struct hpatch_TStreamInput* codeStream;
+        hpatch_StreamPos_t code_begin;
+        hpatch_StreamPos_t code_end;
+        tuz_byte*   dec_mem;
+        tuz_TStream s;
+    } _tuz_TDecompress;
+
+    static tuz_BOOL _tuz_TDecompress_read_code(tuz_TInputStreamHandle listener,
+                                               tuz_byte* out_code,tuz_size_t* code_size){
+        _tuz_TDecompress* self=(_tuz_TDecompress*)listener;
+        tuz_size_t r_size=*code_size;
+        hpatch_StreamPos_t s_size=self->code_end-self->code_begin;
+        if (r_size>s_size){
+            r_size=(tuz_size_t)s_size;
+            *code_size=r_size;
+        }
+        if (!self->codeStream->read(self->codeStream,self->code_begin,
+                                    out_code,out_code+r_size)) return tuz_FALSE;
+        self->code_begin+=r_size;
+        return tuz_TRUE;
+    }
+
+    static hpatch_BOOL _tuz_is_can_open(const char* compressType){
+        return (0==strcmp(compressType,"tuz"));
+    }
+    static hpatch_decompressHandle  _tuz_open(hpatch_TDecompress* decompressPlugin,
+                                              hpatch_StreamPos_t dataSize,
+                                              const hpatch_TStreamInput* codeStream,
+                                              hpatch_StreamPos_t code_begin,
+                                              hpatch_StreamPos_t code_end){
+        tuz_size_t dictSize;
+        _tuz_TDecompress* self=0;
+        self=(_tuz_TDecompress*)malloc(sizeof(_tuz_TDecompress));
+        if (!self) return 0;
+        self->dec_mem=0;
+        self->codeStream=codeStream;
+        self->code_begin=code_begin;
+        self->code_end=code_end;
+        dictSize=tuz_TStream_read_dict_size(self,_tuz_TDecompress_read_code);
+        if (((tuz_size_t)(dictSize-1))>=tuz_kMaxOfDictSize) { free(self); return 0; }
+        self->dec_mem=(tuz_byte*)malloc(dictSize+kDecompressBufSize);
+        if (self->dec_mem==0){ free(self); return 0; }
+        if (tuz_OK!=tuz_TStream_open(&self->s,self,_tuz_TDecompress_read_code,
+                                     self->dec_mem,dictSize,kDecompressBufSize)){
+            free(self->dec_mem); free(self); return 0; }
+        return self;
+    }
+    static hpatch_BOOL _tuz_close(struct hpatch_TDecompress* decompressPlugin,
+                                  hpatch_decompressHandle decompressHandle){
+        _tuz_TDecompress* self=(_tuz_TDecompress*)decompressHandle;
+        if (!self) return hpatch_TRUE;
+        if (self->dec_mem) free(self->dec_mem);
+        free(self);
+        return hpatch_TRUE;
+    }
+    static hpatch_BOOL _tuz_decompress_part(hpatch_decompressHandle decompressHandle,
+                                            unsigned char* out_part_data,unsigned char* out_part_data_end){
+        tuz_TResult ret;
+        _tuz_TDecompress* self=(_tuz_TDecompress*)decompressHandle;
+        size_t  out_size=out_part_data_end-out_part_data;
+        tuz_size_t data_size=(tuz_size_t)out_size;
+        assert(data_size==out_size);
+        ret=tuz_TStream_decompress_partial(&self->s,out_part_data,&data_size);
+        return (ret<=tuz_STREAM_END)&&(data_size==out_size);
+    }
+    static hpatch_TDecompress tuzDecompressPlugin={_tuz_is_can_open,_tuz_open,
+                                                   _tuz_close,_tuz_decompress_part};
+#endif//_CompressPlugin_tuz
 
 #endif

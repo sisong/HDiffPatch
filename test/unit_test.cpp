@@ -3,7 +3,7 @@
 //
 /*
  The MIT License (MIT)
- Copyright (c) 2012-2017 HouSisong
+ Copyright (c) 2012-2022 HouSisong
 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -37,7 +37,9 @@
 #include <stdlib.h>
 #include "math.h"
 #include "../libHDiffPatch/HDiff/diff.h"
+#include "../libHDiffPatch/HDiff/diff_for_hpatch_lite.h"
 #include "../libHDiffPatch/HPatch/patch.h"
+#include "../libHDiffPatch/HPatchLite/hpatch_lite.h"
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
 using namespace hdiff_private;
 typedef unsigned char   TByte;
@@ -57,6 +59,7 @@ const long kRandTestCount=20000;
 //#define _CompressPlugin_zstd
 //#define _CompressPlugin_brotli
 //#define _CompressPlugin_lzham
+//#define _CompressPlugin_tuz
 
 #define IS_NOTICE_compress_canceled 0 //for test, close compress fail notice
 #define IS_REUSE_compress_handle    1 //for test, must in single thread
@@ -67,42 +70,57 @@ const long kRandTestCount=20000;
 #ifdef  _CompressPlugin_no
     const hdiff_TCompress* compressPlugin=0;
     hpatch_TDecompress* decompressPlugin=0;
+    hpi_compressType compressHpiType=hpi_compressType_no;
 #endif
 #ifdef  _CompressPlugin_zlib
     const hdiff_TCompress* compressPlugin=&zlibCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&zlibDecompressPlugin;
+    hpi_compressType compressHpiType=hpi_compressType_zlib;
 #endif
 #ifdef  _CompressPlugin_bz2
     const hdiff_TCompress* compressPlugin=&bz2CompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&bz2DecompressPlugin;
+    hpi_compressType compressHpiType=hpi_compressType_bz2;
 #endif
 #ifdef  _CompressPlugin_lzma
     const hdiff_TCompress* compressPlugin=&lzmaCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&lzmaDecompressPlugin;
+    hpi_compressType compressHpiType=hpi_compressType_lzma;
 #endif
 #ifdef  _CompressPlugin_lzma2
     const hdiff_TCompress* compressPlugin=&lzma2CompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&lzma2DecompressPlugin;
+    hpi_compressType compressHpiType=hpi_compressType_lzma2;
 #endif
 #ifdef  _CompressPlugin_lz4
     const hdiff_TCompress* compressPlugin=&lz4CompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
+    hpi_compressType compressHpiType=hpi_compressType_lz4;
 #endif
 #ifdef  _CompressPlugin_lz4hc
     const hdiff_TCompress* compressPlugin=&lz4hcCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&lz4DecompressPlugin;
+    hpi_compressType compressHpiType=hpi_compressType_lz4;
 #endif
 #ifdef  _CompressPlugin_zstd
     const hdiff_TCompress* compressPlugin=&zstdCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&zstdDecompressPlugin;
+    hpi_compressType compressHpiType=hpi_compressType_zstd;
 #endif
 #ifdef  _CompressPlugin_brotli
     const hdiff_TCompress* compressPlugin=&brotliCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&brotliDecompressPlugin;
+    hpi_compressType compressHpiType=hpi_compressType_brotli;
 #endif
 #ifdef  _CompressPlugin_lzham
     const hdiff_TCompress* compressPlugin=&lzhamCompressPlugin.base;
     hpatch_TDecompress* decompressPlugin=&lzhamDecompressPlugin;
+    hpi_compressType compressHpiType=hpi_compressType_lzham;
+#endif
+#ifdef  _CompressPlugin_tuz
+    const hdiff_TCompress* compressPlugin=&tuzCompressPlugin.base;
+    hpatch_TDecompress* decompressPlugin=&tuzDecompressPlugin;
+    hpi_compressType compressHpiType=hpi_compressType_tuz;
 #endif
 
 int testCompress(const char* str,const char* error_tag){
@@ -165,8 +183,9 @@ enum TDiffType{
     kDiffZs,
     kDiffS,
     kDiffSs,
+    kDiffi,
 };
-static const size_t kDiffTypeCount=kDiffSs+1;
+static const size_t kDiffTypeCount=kDiffi+1;
 
 #ifdef _AttackPacth_ON
 
@@ -185,6 +204,64 @@ hpatch_BOOL _sspatch_onDiffInfo(struct sspatch_listener_t* listener,
     *out_decompressPlugin=decompressPlugin;
     return hpatch_TRUE;
 }
+
+struct TPatchiListener:public hpatchi_listener_t{
+    hpatch_decompressHandle decompresser;
+    hpatch_TDecompress*     decompressPlugin;
+    inline TPatchiListener():decompresser(0){}
+    inline ~TPatchiListener(){ if (decompresser) decompressPlugin->close(decompressPlugin,decompresser); }
+    const hpi_byte* diffData_cur;
+    const hpi_byte* diffData_end;
+    hpatch_TStreamInput diffStream;
+    hpi_pos_t           uncompressSize;
+    const hpi_byte* newData_cur;
+    const hpi_byte* newData_end;
+    const hpi_byte* oldData;
+    const hpi_byte* oldData_end;
+
+    static hpi_BOOL _read_diff(hpi_TInputStreamHandle inputStream,hpi_byte* out_data,hpi_size_t* data_size){
+        TPatchiListener& self=*(TPatchiListener*)inputStream;
+        const hpi_byte* cur=self.diffData_cur;
+        size_t d_size=self.diffData_end-cur;
+        size_t r_size=*data_size;
+        if (r_size>d_size){
+            r_size=d_size;
+            *data_size=(hpi_size_t)r_size;
+        }
+        memcpy(out_data,cur,r_size);
+        self.diffData_cur=cur+r_size;
+        return hpi_TRUE;
+    }
+    static hpi_BOOL _read_diff_dec(hpi_TInputStreamHandle inputStream,hpi_byte* out_data,hpi_size_t* data_size){
+        TPatchiListener& self=*(TPatchiListener*)inputStream;
+        hpi_size_t r_size=*data_size;
+        if (r_size>self.uncompressSize){
+            r_size=(hpi_size_t)self.uncompressSize;
+            *data_size=(hpi_size_t)self.uncompressSize;
+        }
+        if (!self.decompressPlugin->decompress_part(self.decompresser,out_data,out_data+r_size))
+            return hpi_FALSE;
+        self.uncompressSize-=r_size;
+        return hpi_TRUE;
+    }
+    static hpi_BOOL _write_new(struct hpatchi_listener_t* listener,const hpi_byte* data,hpi_size_t data_size){
+        TPatchiListener& self=*(TPatchiListener*)listener;
+        if (data_size>(size_t)(self.newData_end-self.newData_cur)) 
+            return hpi_FALSE;
+        if (0!=memcmp(self.newData_cur,data,data_size))
+            return hpi_FALSE;
+        self.newData_cur+=data_size;
+        return hpi_TRUE;
+    }
+    static hpi_BOOL _read_old(struct hpatchi_listener_t* listener,hpi_pos_t read_from_pos,hpi_byte* out_data,hpi_size_t data_size){
+        TPatchiListener& self=*(TPatchiListener*)listener;
+        size_t dsize=self.oldData_end-self.oldData;
+        if ((read_from_pos>dsize)|(data_size>(size_t)(dsize-read_from_pos))) return hpi_FALSE;
+        memcpy(out_data,self.oldData+(size_t)read_from_pos,data_size);
+        return hpi_TRUE;
+    }
+};
+
 
 long attackPacth(TByte* out_newData,TByte* out_newData_end,
                         const TByte* oldData,const TByte* oldData_end,
@@ -207,6 +284,12 @@ long attackPacth(TByte* out_newData,TByte* out_newData_end,
             sspatch_listener_t listener={0,_sspatch_onDiffInfo,0};
             patch_single_stream_mem(&listener,out_newData,out_newData_end,oldData,oldData_end,
                                     diffData,diffData_end,0);
+        } break;
+        case kDiffi: {
+            hpi_compressType    compressType;
+            check_lite_diff_open(diffData,diffData_end,&compressType);
+            check_lite_diff(out_newData,out_newData_end,oldData,oldData_end,
+                            diffData,diffData_end,decompressPlugin);
         } break;
     }
     return 0;
@@ -325,6 +408,24 @@ long test(const TByte* newData,const TByte* newData_end,
 #ifdef _AttackPacth_ON
             long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
                                             diffData.data(),diffData.data()+diffData.size(),rand(),kDiffZ);
+            if (exceptionCount>0) return exceptionCount;
+#endif
+        }
+    }
+    {//test diffi
+        std::vector<TByte> diffData;
+        hdiffi_TCompress compressPlugini={compressPlugin,compressHpiType};
+        create_lite_diff(newData,newData_end,oldData,oldData_end,diffData,&compressPlugini);
+        if (out_diffSizes) out_diffSizes[kDiffi]+=diffData.size();
+        if (!check_lite_diff(newData,newData_end,oldData,oldData_end,
+                             diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
+            printf("\n diffi error!!! tag:%s\n",tag);
+            ++result;
+        }else{
+            printf(" diffi:%ld", (long)(diffData.size()));
+#ifdef _AttackPacth_ON
+            long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
+                                            diffData.data(),diffData.data()+diffData.size(),rand(),kDiffi);
             if (exceptionCount>0) return exceptionCount;
 #endif
         }
@@ -457,10 +558,12 @@ int main(int argc, const char * argv[]){
     }
 
     printf("\nchecked:%ld  errorCount:%ld\n",kRandTestCount,errorCount);
-    printf("newSize:100%% oldSize:%2.2f%% diffOsize:%2.2f%% diffZsize:%2.2f%%(s:%2.2f%%) diffSsize:%2.2f%%(s:%2.2f%%)\n",
+    printf("newSize:100%% oldSize:%2.2f%% diffOsize:%2.2f%% diffZsize:%2.2f%%(s:%2.2f%%)"
+           " diffSsize:%2.2f%%(s:%2.2f%%) diffisize:%2.2f%%\n",
             sumOldSize*100.0/sumNewSize,sumDiffSizes[kDiffO]*100.0/sumNewSize,
             sumDiffSizes[kDiffZ]*100.0/sumNewSize,sumDiffSizes[kDiffZs]*100.0/sumNewSize,
-            sumDiffSizes[kDiffS]*100.0/sumNewSize,sumDiffSizes[kDiffSs]*100.0/sumNewSize);
+            sumDiffSizes[kDiffS]*100.0/sumNewSize,sumDiffSizes[kDiffSs]*100.0/sumNewSize,
+            sumDiffSizes[kDiffi]*100.0/sumNewSize);
     clock_t time2=clock();
     printf("\nrun time:%.1f s\n",(time2-time1)*(1.0/CLOCKS_PER_SEC));
 

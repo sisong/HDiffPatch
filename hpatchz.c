@@ -74,6 +74,7 @@
 #   define _CompressPlugin_lz4 // || _CompressPlugin_lz4hc
 #   define _CompressPlugin_brotli
 #   define _CompressPlugin_lzham
+#   define _CompressPlugin_tuz
 #endif
 
 #if (_IS_NEED_BSDIFF)
@@ -113,11 +114,17 @@
 #endif
 
 static void printVersion(){
-    printf("HDiffPatch::hpatchz v" HDIFFPATCH_VERSION_STRING "\n\n");
+    printf("HDiffPatch::hpatchz v" HDIFFPATCH_VERSION_STRING "\n");
+}
+
+static void printHelpInfo(){
+    printf("  -h  (or -?)\n"
+           "      output usage info.\n");
 }
 
 static void printUsage(){
     printVersion();
+    printf("\n");
     printf("patch usage: hpatchz [options] oldPath diffFile outNewPath\n"
 #if (_IS_NEED_SFX)
            "create  SFX: hpatchz [-X-exe#selfExecuteFile] diffFile -X#outSelfExtractArchive\n"
@@ -189,10 +196,10 @@ static void printUsage(){
            "        if patch output directory, will overwrite, but not delete\n"
            "          needless existing files in directory.\n"
 #endif
-           "  -h or -?\n"
-           "      output Help info (this usage).\n"
-           "  -v  output Version info.\n\n"
+           "  -v  output Version info.\n"
            );
+    printHelpInfo();
+    printf("\n");
 }
 
 typedef enum THPatchResult {
@@ -315,7 +322,7 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
 
 #define _options_check(value,errorInfo){ \
     if (!(value)) { LOG_ERR("options " errorInfo " ERROR!\n\n"); \
-        printUsage(); return HPATCH_OPTIONS_ERROR; } }
+        printHelpInfo(); return HPATCH_OPTIONS_ERROR; } }
 
 #define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
 #define kPatchCacheSize_bestmin  ((size_t)1<<21)
@@ -360,6 +367,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     const char* arg_values[kMax_arg_values_size]={0};
     int         arg_values_size=0;
     int         i;
+    if (argc<=1){
+        printUsage();
+        return HPATCH_OPTIONS_ERROR;
+    }
     for (i=1; i<argc; ++i) {
         const char* op=argv[i];
         _options_check(op!=0,"?");
@@ -698,6 +709,10 @@ static hpatch_BOOL getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo
 #ifdef  _CompressPlugin_lzham
         if ((!decompressPlugin)&&lzhamDecompressPlugin.is_can_open(diffInfo->compressType))
             decompressPlugin=&lzhamDecompressPlugin;
+#endif
+#ifdef  _CompressPlugin_tuz
+        if ((!decompressPlugin)&&tuzDecompressPlugin.is_can_open(diffInfo->compressType))
+            decompressPlugin=&tuzDecompressPlugin;
 #endif
     }
     if (!decompressPlugin){

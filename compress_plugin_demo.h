@@ -39,6 +39,7 @@
 //  zstdCompressPlugin
 //  brotliCompressPlugin
 //  lzhamCompressPlugin
+//  tuzCompressPlugin
 
 #include "libHDiffPatch/HDiff/diff_types.h"
 #include "compress_parallel.h"
@@ -117,7 +118,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         hdiff_TCompress base;
         int             compress_level; //0..9
         int             mem_level;
-        signed char     windowBits;
+        signed char     windowBits; // -9..-15
         hpatch_BOOL     isNeedSaveWindowBits;
         int             strategy;
     } TCompressPlugin_zlib;
@@ -347,9 +348,13 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
                 ||(in_data->streamSize<blockSize*2)){ //same as "zlib"
             return _zlib_compress(compressPlugin,out_code,in_data);
         }else{
-            uInt dictSize=32*1024; //now used max dict size; can calculated by windowBits
+            int dictBits=plugin->base.windowBits;
+            if (dictBits<0) dictBits=-dictBits;
+            if (dictBits>15) dictBits-=16;
+            if (dictBits<9) dictBits=9;
+            else if (dictBits>15) dictBits=15;
             plugin->pc.import=plugin;
-            return parallel_compress_blocks(&plugin->pc,plugin->thread_num,dictSize,blockSize,out_code,in_data);
+            return parallel_compress_blocks(&plugin->pc,plugin->thread_num,((size_t)1<<dictBits),blockSize,out_code,in_data);
         }
     }
     
@@ -1176,6 +1181,38 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         {_lzham_compressType,_default_maxCompressedSize,_lzham_setParallelThreadNumber,_lzham_compress},
          LZHAM_COMP_LEVEL_BETTER,24,kDefaultCompressThreadNumber};
 #endif//_CompressPlugin_lzham
+
+#ifdef _CompressPlugin_tuz
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "tuz_enc.h" // "tinyuz/compress/tuz_enc.h" https://github.com/sisong/tinyuz
+#endif
+    typedef struct TCompressPlugin_tuz{
+        hdiff_TCompress     base;
+        tuz_TCompressProps  props;
+    } TCompressPlugin_tuz;
+    static int _tuz_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
+        TCompressPlugin_tuz* plugin=(TCompressPlugin_tuz*)compressPlugin;
+        plugin->props.threadNum=threadNum;
+        return threadNum;
+    }
+    static hpatch_StreamPos_t _tuz_compress(const hdiff_TCompress* compressPlugin,
+                                            const hpatch_TStreamOutput* out_code,
+                                            const hpatch_TStreamInput*  in_data){
+        const TCompressPlugin_tuz* plugin=(const TCompressPlugin_tuz*)compressPlugin;
+        tuz_TCompressProps props=plugin->props;
+        if (props.dictSize>=in_data->streamSize)
+            props.dictSize=(in_data->streamSize>1)?(tuz_size_t)(in_data->streamSize-1):1;
+#       if (IS_NOTICE_compress_canceled)
+        printf("  (used one tinyuz dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
+               (hpatch_StreamPos_t)props.dictSize,in_data->streamSize);
+#       endif
+        return tuz_compress(out_code,in_data,&props);
+    }
+    _def_fun_compressType(_tuz_compressType,"tuz");
+    static const TCompressPlugin_tuz tuzCompressPlugin={
+        {_tuz_compressType,_default_maxCompressedSize,_tuz_setParallelThreadNumber,_tuz_compress},
+            {(1<<24),tuz_kMaxOfMaxSaveLength,kDefaultCompressThreadNumber}};
+#endif //_CompressPlugin_tuz
 
 #ifdef __cplusplus
 }

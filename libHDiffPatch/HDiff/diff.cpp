@@ -1285,3 +1285,239 @@ void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
         outDiff.pushStream(&clip,compressPlugin,compressedSize_pos);
     }
 }
+
+
+//----------------------------------------------------------------------------------------------------
+
+#include "diff_for_hpatch_lite.h"
+#include "../HPatchLite/hpatch_lite.h"
+
+    static const char*      kHPatchLite_versionType="hI";
+    static const hpi_byte   kHPatchLite_versionCode=1;
+
+    static inline void hpi_packUInt(std::vector<TByte>& buf,TUInt v){
+        check(v==(hpi_pos_t)v);
+        packUInt(buf,v);
+    }
+    static inline void hpi_packUIntWithTag(std::vector<TByte>& buf,TUInt v,TByte tag,TByte bit){
+        check(v==(hpi_pos_t)v);
+        packUIntWithTag(buf,v,tag,bit);
+    }
+    
+    static inline TByte hpi_getSavedSizeBytes(TUInt size){
+        check(size==(hpi_pos_t)size);
+        TByte bytes=0; 
+        while (size>0){
+            ++bytes;
+            size>>=8;
+        }
+        return bytes;
+    }
+    static inline void hpi_saveSize(std::vector<TByte>& buf,TUInt size){
+        check(size==(hpi_pos_t)size);
+        while (size>0){
+            buf.push_back((TByte)size);
+            size>>=8;
+        }
+    }
+    
+    static bool _getIs0(const TByte* data,size_t length){
+        for (size_t i=0; i<length; ++i) {
+            if (data[i]==0)
+                continue;
+            else
+                return false;
+        }
+        return true;
+    }
+
+    static void _getSubDiff(std::vector<TByte>& subDiff,const TDiffData& diff,const TOldCover& cover){
+        subDiff.resize(cover.length);
+        const TByte* pnew=diff.newData+cover.newPos;
+        const TByte* pold=diff.oldData+cover.oldPos;
+        for (size_t i=0;i<subDiff.size();++i)
+            subDiff[i]=pnew[i]-pold[i];
+    }
+
+static void serialize_lite_diff(const TDiffData& diff,std::vector<TByte>& out_diff,
+                                const hdiffi_TCompress* compressPlugin){
+    const TUInt coverCount=(TUInt)diff.covers.size();
+    std::vector<TByte> subDiff;
+    std::vector<TByte> buf;
+    hpi_packUInt(buf,coverCount);
+    const TUInt newSize=(TUInt)(diff.newData_end-diff.newData);
+    {
+        TUInt lastOldEnd=0;
+        TUInt lastNewEnd=0;
+        for (TUInt i=0; i<coverCount; ++i) {
+            const TOldCover& cover=diff.covers[i];
+            hpi_packUInt(buf, cover.length);
+            _getSubDiff(subDiff,diff,cover);
+            const TByte isNullSubDiff=_getIs0(subDiff.data(),cover.length)?1:0;
+            if ((TUInt)cover.oldPos>=lastOldEnd){ //save inc_oldPos
+                hpi_packUIntWithTag(buf,(TUInt)(cover.oldPos-lastOldEnd), 0+isNullSubDiff*2,2);
+            }else{
+                hpi_packUIntWithTag(buf,(TUInt)(lastOldEnd-cover.oldPos), 1+isNullSubDiff*2,2);
+            }
+            TUInt backNewLen=cover.newPos-lastNewEnd;
+            assert(backNewLen>=0);
+            hpi_packUInt(buf,(TUInt)backNewLen); //save inc_newPos
+            
+            if (backNewLen>0){
+                const TByte* newDataDiff=diff.newData+lastNewEnd;
+                pushBack(buf,newDataDiff,newDataDiff+backNewLen);
+            }
+            if (!isNullSubDiff){
+                pushBack(buf,subDiff.data(),subDiff.data()+cover.length);
+            }
+            
+            lastOldEnd=cover.oldPos+cover.length;
+            lastNewEnd=cover.newPos+cover.length;
+        }
+        
+        TUInt backNewLen=(newSize-lastNewEnd);
+        check(backNewLen==0);
+    }
+    
+    std::vector<TByte> compress_buf;
+    do_compress(compress_buf,buf,compressPlugin->compress);
+    out_diff.push_back(kHPatchLite_versionType[0]);
+    out_diff.push_back(kHPatchLite_versionType[1]);
+    out_diff.push_back(compress_buf.empty()?hpi_compressType_no:compressPlugin->compress_type);
+    TUInt savedUncompressSize=compress_buf.empty()?0:buf.size();
+    out_diff.push_back((kHPatchLite_versionCode<<6)|
+                       (hpi_getSavedSizeBytes(newSize))|
+                       (hpi_getSavedSizeBytes(savedUncompressSize)<<3));
+    hpi_saveSize(out_diff,newSize);
+    hpi_saveSize(out_diff,savedUncompressSize);
+    pushBack(out_diff,compress_buf.empty()?buf:compress_buf);
+}
+
+void create_lite_diff(const unsigned char* newData,const unsigned char* newData_end,
+                      const unsigned char* oldData,const unsigned char* oldData_end,
+                      std::vector<hpi_byte>& out_lite_diff,const hdiffi_TCompress* compressPlugin,
+                      int kMinSingleMatchScore,bool isUseBigCacheMatch){
+    static const int _kMatchScore_optim4bin=6;
+    TDiffData diff;
+    get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore-_kMatchScore_optim4bin,isUseBigCacheMatch);
+    hpatch_StreamPos_t oldPosEnd=0;
+    hpatch_StreamPos_t newPosEnd=0;
+    if (!diff.covers.empty()){
+        const TOldCover& c=diff.covers.back();
+        oldPosEnd=c.oldPos+c.length;
+        newPosEnd=c.newPos+c.length;
+    }
+    const size_t newSize=newData_end-newData;
+    if (newPosEnd<newSize)
+        diff.covers.push_back(TOldCover(oldPosEnd,newSize,0));
+    serialize_lite_diff(diff,out_lite_diff,compressPlugin);
+}
+
+struct TPatchiListener:public hpatchi_listener_t{
+    hpatch_decompressHandle decompresser;
+    hpatch_TDecompress*     decompressPlugin;
+    inline TPatchiListener():decompresser(0){}
+    inline ~TPatchiListener(){ if (decompresser) decompressPlugin->close(decompressPlugin,decompresser); }
+    const hpi_byte* diffData_cur;
+    const hpi_byte* diffData_end;
+    hpatch_TStreamInput diffStream;
+    hpi_pos_t           uncompressSize;
+    const hpi_byte* newData_cur;
+    const hpi_byte* newData_end;
+    const hpi_byte* oldData;
+    const hpi_byte* oldData_end;
+
+    static hpi_BOOL _read_diff(hpi_TInputStreamHandle inputStream,hpi_byte* out_data,hpi_size_t* data_size){
+        TPatchiListener& self=*(TPatchiListener*)inputStream;
+        const hpi_byte* cur=self.diffData_cur;
+        size_t d_size=self.diffData_end-cur;
+        size_t r_size=*data_size;
+        if (r_size>d_size){
+            r_size=d_size;
+            *data_size=(hpi_size_t)r_size;
+        }
+        memcpy(out_data,cur,r_size);
+        self.diffData_cur=cur+r_size;
+        return hpi_TRUE;
+    }
+    static hpi_BOOL _read_diff_dec(hpi_TInputStreamHandle inputStream,hpi_byte* out_data,hpi_size_t* data_size){
+        TPatchiListener& self=*(TPatchiListener*)inputStream;
+        hpi_size_t r_size=*data_size;
+        if (r_size>self.uncompressSize){
+            r_size=(hpi_size_t)self.uncompressSize;
+            *data_size=(hpi_size_t)self.uncompressSize;
+        }
+        if (!self.decompressPlugin->decompress_part(self.decompresser,out_data,out_data+r_size))
+            return hpi_FALSE;
+        self.uncompressSize-=r_size;
+        return hpi_TRUE;
+    }
+    static hpi_BOOL _write_new(struct hpatchi_listener_t* listener,const hpi_byte* data,hpi_size_t data_size){
+        TPatchiListener& self=*(TPatchiListener*)listener;
+        if (data_size>(size_t)(self.newData_end-self.newData_cur)) 
+            return hpi_FALSE;
+        if (0!=memcmp(self.newData_cur,data,data_size))
+            return hpi_FALSE;
+        self.newData_cur+=data_size;
+        return hpi_TRUE;
+    }
+    static hpi_BOOL _read_old(struct hpatchi_listener_t* listener,hpi_pos_t read_from_pos,hpi_byte* out_data,hpi_size_t data_size){
+        TPatchiListener& self=*(TPatchiListener*)listener;
+        size_t dsize=self.oldData_end-self.oldData;
+        if ((read_from_pos>dsize)|(data_size>(size_t)(dsize-read_from_pos))) return hpi_FALSE;
+        memcpy(out_data,self.oldData+(size_t)read_from_pos,data_size);
+        return hpi_TRUE;
+    }
+};
+
+bool check_lite_diff_open(const hpi_byte* lite_diff,const hpi_byte* lite_diff_end,
+                          hpi_compressType* out_compress_type){
+    TPatchiListener listener;
+    listener.diffData_cur=lite_diff;
+    listener.diffData_end=lite_diff_end;
+    hpi_pos_t saved_newSize;
+    hpi_pos_t saved_uncompressSize;
+    if (!hpatch_lite_open(&listener,listener._read_diff,out_compress_type,&saved_newSize,
+                          &saved_uncompressSize)) return false;
+    return true;
+}
+
+bool check_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
+                     const hpi_byte* oldData,const hpi_byte* oldData_end,
+                     const hpi_byte* lite_diff,const hpi_byte* lite_diff_end,
+                     hpatch_TDecompress* decompressPlugin){
+    TPatchiListener listener;
+    listener.diffData_cur=lite_diff;
+    listener.diffData_end=lite_diff_end;
+    hpi_compressType _compress_type;
+    hpi_pos_t saved_newSize;
+    hpi_pos_t saved_uncompressSize;
+    if (!hpatch_lite_open(&listener,listener._read_diff,&_compress_type,&saved_newSize,
+                          &saved_uncompressSize)) return false;
+    if (saved_newSize!=(size_t)(newData_end-newData)) return false;
+    listener.diff_data=&listener;
+    listener.decompressPlugin=(_compress_type!=hpi_compressType_no)?decompressPlugin:0;
+    if (listener.decompressPlugin){
+        listener.uncompressSize=saved_uncompressSize;
+        mem_as_hStreamInput(&listener.diffStream,listener.diffData_cur,lite_diff_end);
+        listener.decompresser=decompressPlugin->open(decompressPlugin,saved_uncompressSize,&listener.diffStream,
+                                                     0,(size_t)(lite_diff_end-listener.diffData_cur));
+        if (listener.decompresser==0) return false;
+        listener.read_diff=listener._read_diff_dec;
+    }else{
+        listener.read_diff=listener._read_diff;
+    }
+    listener.newData_cur=newData;
+    listener.newData_end=newData_end;
+    listener.write_new=listener._write_new;
+    listener.oldData=oldData;
+    listener.oldData_end=oldData_end;
+    listener.read_old=listener._read_old;
+
+    const size_t kACacheBufSize=1024*64-1;
+    hdiff_private::TAutoMem _cache(kACacheBufSize);
+    
+    if (!hpatch_lite_patch(&listener,saved_newSize,_cache.data(),(hpi_size_t)_cache.size()))
+        return false;
+    return true;
+}

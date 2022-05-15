@@ -51,6 +51,9 @@
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/digest_matcher.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/suffix_string.cpp" />
+		<Unit filename="../../libHDiffPatch/HPatchLite/hpatch_lite.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
 			<Option compilerVar="CC" />
 		</Unit>

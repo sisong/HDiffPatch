@@ -34,7 +34,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <algorithm>  //find search
 #include "libHDiffPatch/HDiff/diff.h"
 #include "libHDiffPatch/HDiff/match_block.h"
 #include "libHDiffPatch/HPatch/patch.h"
@@ -75,6 +74,7 @@
 #   define _CompressPlugin_lz4hc // faster decompresser
 #   define _CompressPlugin_brotli// better compresser / faster decompresser
 #   define _CompressPlugin_lzham // better compresser / decompress faster than lzma2
+#   define _CompressPlugin_tuz   // decompress requires tiny code(.text) & ram
 #endif
 
 #if (_IS_NEED_BSDIFF)
@@ -117,11 +117,17 @@
 #endif
 
 static void printVersion(){
-    printf("HDiffPatch::hdiffz v" HDIFFPATCH_VERSION_STRING "\n\n");
+    printf("HDiffPatch::hdiffz v" HDIFFPATCH_VERSION_STRING "\n");
+}
+
+static void printHelpInfo(){
+    printf("  -h (or -?)\n"
+           "      output usage info.\n");
 }
 
 static void printUsage(){
     printVersion();
+    printf("\n");
     printf("diff    usage: hdiffz [options] oldPath newPath outDiffFile\n"
            "test    usage: hdiffz    -t     oldPath newPath testDiffFile\n"
            "resave  usage: hdiffz [-c-...]  diffFile outDiffFile\n"
@@ -168,17 +174,17 @@ static void printUsage(){
            "      DEFAULT -p-4; requires more memory!\n"
 #endif
            "  -c-compressType[-compressLevel]\n"
-           "      set outDiffFile Compress type & level, DEFAULT uncompress;\n"
+           "      set outDiffFile Compress type, DEFAULT uncompress;\n"
            "      for resave diffFile,recompress diffFile to outDiffFile by new set;\n"
-           "      support compress type & level:\n"
+           "      support compress type & level & dict:\n"
            "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
-           "        -c-zlib[-{1..9}]                DEFAULT level 9\n"
+           "        -c-zlib[-{1..9}[-dictBits]]     DEFAULT level 9\n"
+           "            dictBits can 9--15, DEFAULT 15.\n"
 #   if (_IS_USED_MULTITHREAD)
-           "        -c-pzlib[-{1..9}]               DEFAULT level 6\n"
+           "        -c-pzlib[-{1..9}[-dictBits]]    DEFAULT level 6\n"
+           "            dictBits can 9--15, DEFAULT 15.\n"
            "            support run by multi-thread parallel, fast!\n"
-           "            WARNING: code not compatible with it compressed by -c-zlib!\n"
-           "              and code size may be larger than if it compressed by -c-zlib. \n"
 #   endif
 #endif
 #ifdef _CompressPlugin_bz2
@@ -213,21 +219,25 @@ static void printUsage(){
 #endif
 #ifdef _CompressPlugin_zstd
            "        -c-zstd[-{0..22}[-dictBits]]    DEFAULT level 20\n"
-           "            dictBits can 10--31, DEFAULT 24.\n"
+           "            dictBits can 10--31, DEFAULT 23.\n"
 #   if (_IS_USED_MULTITHREAD)
            "            support run by multi-thread parallel, fast!\n"
 #   endif
 #endif
 #ifdef _CompressPlugin_brotli
            "        -c-brotli[-{0..11}[-dictBits]]  DEFAULT level 9\n"
-           "            dictBits can 10--30, DEFAULT 24.\n"
+           "            dictBits can 10--30, DEFAULT 23.\n"
 #endif
 #ifdef _CompressPlugin_lzham
            "        -c-lzham[-{0..5}[-dictBits]]    DEFAULT level 4\n"
-           "            dictBits can 15--29, DEFAULT 24.\n"
+           "            dictBits can 15--29, DEFAULT 23.\n"
 #   if (_IS_USED_MULTITHREAD)
            "            support run by multi-thread parallel, fast!\n"
 #   endif
+#endif
+#ifdef _CompressPlugin_tuz
+           "        -c-tuz[-dictSize]               (or -tinyuz)\n"
+           "            1<=dictSize<=" _HDIFFPATCH_EXPAND_AND_QUOTE(tuz_kMaxOfDictSize) ", can like 510,1k,4k,64k,1m,16m ..., DEFAULT 8m\n"
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumType\n"
@@ -307,10 +317,10 @@ static void printUsage(){
            "      if used -f and write path is exist directory, will always return error.\n"
            "  --patch\n"
            "      swap to hpatchz mode.\n"
-           "  -h or -?\n"
-           "      output Help info (this usage).\n"
-           "  -v  output Version info.\n\n"
+           "  -v  output Version info.\n"
            );
+    printHelpInfo();
+    printf("\n");
 }
 
 typedef enum THDiffResult {
@@ -463,6 +473,9 @@ static hpatch_BOOL findDecompress(hpatch_TDecompress** out_decompressPlugin,cons
 #ifdef  _CompressPlugin_lzham
     __setDecompress(&lzhamDecompressPlugin);
 #endif
+#ifdef  _CompressPlugin_tuz
+    __setDecompress(&tuzDecompressPlugin);
+#endif
     return hpatch_FALSE;
 }
 
@@ -523,7 +536,7 @@ static bool _tryGetCompressSet(const char** isMatchedType,const char* ptype,cons
                                const char* cmpType,const char* cmpType2=0,
                                size_t* compressLevel=0,size_t levelMin=0,size_t levelMax=0,size_t levelDefault=0,
                                size_t* dictSize=0,size_t dictSizeMin=0,size_t dictSizeMax=0,size_t dictSizeDefault=0){
-    if (*isMatchedType) return true; //ok
+    assert (0==(*isMatchedType));
     const size_t ctypeLen=strlen(cmpType);
     const size_t ctype2Len=(cmpType2!=0)?strlen(cmpType2):0;
     if ( ((ctypeLen==(size_t)(ptypeEnd-ptype))&&(0==strncmp(ptype,cmpType,ctypeLen)))
@@ -535,7 +548,7 @@ static bool _tryGetCompressSet(const char** isMatchedType,const char* ptype,cons
     if ((compressLevel)&&(ptypeEnd[0]=='-')){
         const char* plevel=ptypeEnd+1;
         const char* plevelEnd=findUntilEnd(plevel,'-');
-        if (!a_to_size(plevel,plevelEnd-plevel,compressLevel)) return false; //error
+        if (!kmg_to_size(plevel,plevelEnd-plevel,compressLevel)) return false; //error
         if (*compressLevel<levelMin) *compressLevel=levelMin;
         else if (*compressLevel>levelMax) *compressLevel=levelMax;
         if ((dictSize)&&(plevelEnd[0]=='-')){
@@ -557,132 +570,139 @@ static bool _tryGetCompressSet(const char** isMatchedType,const char* ptype,cons
 }
 
 #define _options_check(value,errorInfo){ \
-    if (!(value)) { LOG_ERR("options " errorInfo " ERROR!\n\n"); printUsage(); return HDIFF_OPTIONS_ERROR; } }
+    if (!(value)) { LOG_ERR("options " errorInfo " ERROR!\n\n"); printHelpInfo(); return HDIFF_OPTIONS_ERROR; } }
+
+#define __getCompressSet(_tryGet_code,_errTag)  \
+    if (isMatchedType==0){                      \
+        _options_check(_tryGet_code,_errTag);   \
+        if (isMatchedType)
 
 static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
                              hpatch_TDecompress** out_decompressPlugin,
                              const char* ptype,const char* ptypeEnd){
     const char* isMatchedType=0;
     size_t      compressLevel=0;
-#if (defined _CompressPlugin_lzma)||(defined _CompressPlugin_lzma2)
+#if (defined _CompressPlugin_lzma)||(defined _CompressPlugin_lzma2)||(defined _CompressPlugin_tuz)
     size_t       dictSize=0;
-    const size_t defaultDictSize=(1<<20)*8;
+    const size_t defaultDictSize=(1<<20)*8; //8m
 #endif
-#if (defined _CompressPlugin_zstd)||(defined _CompressPlugin_brotli)||(defined _CompressPlugin_lzham)
+#if (defined _CompressPlugin_zlib)||(defined _CompressPlugin_zstd)||(defined _CompressPlugin_brotli)||(defined _CompressPlugin_lzham)
     size_t       dictBits=0;
-    const size_t defaultDictBits=20+4;
+    const size_t defaultDictBits=20+3; //8m
+    const size_t defaultDictBits_zlib=15; //32k
 #endif
 #ifdef _CompressPlugin_zlib
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zlib",0,
-                                      &compressLevel,1,9,9),"-c-zlib-?");
-     if ((isMatchedType)&&(0==strcmp(isMatchedType,"zlib"))){
-         static TCompressPlugin_zlib _zlibCompressPlugin=zlibCompressPlugin;
-         _zlibCompressPlugin.compress_level=(int)compressLevel;
-         *out_compressPlugin=&_zlibCompressPlugin.base;
-         *out_decompressPlugin=&zlibDecompressPlugin; }
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zlib",0,
+                                        &compressLevel,1,9,9, &dictBits,9,15,defaultDictBits_zlib),"-c-zlib-?"){
+        static TCompressPlugin_zlib _zlibCompressPlugin=zlibCompressPlugin;
+        _zlibCompressPlugin.compress_level=(int)compressLevel;
+        _zlibCompressPlugin.windowBits=(signed char)(-dictBits);
+        *out_compressPlugin=&_zlibCompressPlugin.base;
+        *out_decompressPlugin=&zlibDecompressPlugin; }}
 #   if (_IS_USED_MULTITHREAD)
     //pzlib
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"pzlib",0,
-                                     &compressLevel,1,9,6),"-c-pzlib-?");
-    if ((isMatchedType)&&(0==strcmp(isMatchedType,"pzlib"))){
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"pzlib",0,
+                                        &compressLevel,1,9,6, &dictBits,9,15,defaultDictBits_zlib),"-c-pzlib-?"){
         static TCompressPlugin_pzlib _pzlibCompressPlugin=pzlibCompressPlugin;
         _pzlibCompressPlugin.base.compress_level=(int)compressLevel;
+        _pzlibCompressPlugin.base.windowBits=(signed char)(-dictBits);
         *out_compressPlugin=&_pzlibCompressPlugin.base.base;
-        *out_decompressPlugin=&zlibDecompressPlugin; }
+        *out_decompressPlugin=&zlibDecompressPlugin; }}
 #   endif // _IS_USED_MULTITHREAD
 #endif
 #ifdef _CompressPlugin_bz2
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"bzip2","bz2",
-                                      &compressLevel,1,9,9),"-c-bzip2-?");
-     if ((isMatchedType)&&((0==strcmp(isMatchedType,"bzip2"))||(0==strcmp(isMatchedType,"bz2")))){
-         static TCompressPlugin_bz2 _bz2CompressPlugin=bz2CompressPlugin;
-         _bz2CompressPlugin.compress_level=(int)compressLevel;
-         *out_compressPlugin=&_bz2CompressPlugin.base;
-         *out_decompressPlugin=&bz2DecompressPlugin;  }
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"bzip2","bz2",
+                                        &compressLevel,1,9,9),"-c-bzip2-?"){
+        static TCompressPlugin_bz2 _bz2CompressPlugin=bz2CompressPlugin;
+        _bz2CompressPlugin.compress_level=(int)compressLevel;
+        *out_compressPlugin=&_bz2CompressPlugin.base;
+        *out_decompressPlugin=&bz2DecompressPlugin; }}
 #   if (_IS_USED_MULTITHREAD)
     //pbzip2
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"pbzip2","pbz2",
-                                      &compressLevel,1,9,8),"-c-pbzip2-?");
-    if ((isMatchedType)&&((0==strcmp(isMatchedType,"pbzip2"))||(0==strcmp(isMatchedType,"pbz2")))){
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"pbzip2","pbz2",
+                                        &compressLevel,1,9,8),"-c-pbzip2-?"){
         static TCompressPlugin_pbz2 _pbz2CompressPlugin=pbz2CompressPlugin;
         _pbz2CompressPlugin.base.compress_level=(int)compressLevel;
         *out_compressPlugin=&_pbz2CompressPlugin.base.base;
-        *out_decompressPlugin=&bz2DecompressPlugin; }
+        *out_decompressPlugin=&bz2DecompressPlugin; }}
 #   endif // _IS_USED_MULTITHREAD
 #endif
 #ifdef _CompressPlugin_lzma
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lzma",0,
-                                      &compressLevel,0,9,7, &dictSize,1<<12,
-                                      (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),defaultDictSize),"-c-lzma-?");
-     if ((isMatchedType)&&(0==strcmp(isMatchedType,"lzma"))){
-         static TCompressPlugin_lzma _lzmaCompressPlugin=lzmaCompressPlugin;
-         _lzmaCompressPlugin.compress_level=(int)compressLevel;
-         _lzmaCompressPlugin.dict_size=(int)dictSize;
-         *out_compressPlugin=&_lzmaCompressPlugin.base;
-         *out_decompressPlugin=&lzmaDecompressPlugin;  }
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lzma",0,
+                                        &compressLevel,0,9,7, &dictSize,1<<12,
+                                        (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),defaultDictSize),"-c-lzma-?"){
+        static TCompressPlugin_lzma _lzmaCompressPlugin=lzmaCompressPlugin;
+        _lzmaCompressPlugin.compress_level=(int)compressLevel;
+        _lzmaCompressPlugin.dict_size=(int)dictSize;
+        *out_compressPlugin=&_lzmaCompressPlugin.base;
+        *out_decompressPlugin=&lzmaDecompressPlugin; }}
 #endif
 #ifdef _CompressPlugin_lzma2
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lzma2",0,
-                                      &compressLevel,0,9,7, &dictSize,1<<12,
-                                      (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),defaultDictSize),"-c-lzma2-?");
-     if ((isMatchedType)&&(0==strcmp(isMatchedType,"lzma2"))){
-         static TCompressPlugin_lzma2 _lzma2CompressPlugin=lzma2CompressPlugin;
-         _lzma2CompressPlugin.compress_level=(int)compressLevel;
-         _lzma2CompressPlugin.dict_size=(int)dictSize;
-         *out_compressPlugin=&_lzma2CompressPlugin.base;
-         *out_decompressPlugin=&lzma2DecompressPlugin;  }
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lzma2",0,
+                                        &compressLevel,0,9,7, &dictSize,1<<12,
+                                        (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),defaultDictSize),"-c-lzma2-?"){
+        static TCompressPlugin_lzma2 _lzma2CompressPlugin=lzma2CompressPlugin;
+        _lzma2CompressPlugin.compress_level=(int)compressLevel;
+        _lzma2CompressPlugin.dict_size=(int)dictSize;
+        *out_compressPlugin=&_lzma2CompressPlugin.base;
+        *out_decompressPlugin=&lzma2DecompressPlugin; }}
 #endif
 #ifdef _CompressPlugin_lz4
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lz4",0,
-                                      &compressLevel,1,50,50),"-c-lz4-?");
-     if ((isMatchedType)&&(0==strcmp(isMatchedType,"lz4"))){
-         static TCompressPlugin_lz4 _lz4CompressPlugin=lz4CompressPlugin;
-         _lz4CompressPlugin.compress_level=(int)compressLevel;
-         *out_compressPlugin=&_lz4CompressPlugin.base;
-         *out_decompressPlugin=&lz4DecompressPlugin;  }
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lz4",0,
+                                        &compressLevel,1,50,50),"-c-lz4-?"){
+        static TCompressPlugin_lz4 _lz4CompressPlugin=lz4CompressPlugin;
+        _lz4CompressPlugin.compress_level=(int)compressLevel;
+        *out_compressPlugin=&_lz4CompressPlugin.base;
+        *out_decompressPlugin=&lz4DecompressPlugin; }}
 #endif
 #ifdef _CompressPlugin_lz4hc
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lz4hc",0,
-                                      &compressLevel,3,12,11),"-c-lz4hc-?");
-    if ((isMatchedType)&&(0==strcmp(isMatchedType,"lz4hc"))){
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lz4hc",0,
+                                        &compressLevel,3,12,11),"-c-lz4hc-?"){
         static TCompressPlugin_lz4hc _lz4hcCompressPlugin=lz4hcCompressPlugin;
         _lz4hcCompressPlugin.compress_level=(int)compressLevel;
         *out_compressPlugin=&_lz4hcCompressPlugin.base;
-        *out_decompressPlugin=&lz4DecompressPlugin;  }
+        *out_decompressPlugin=&lz4DecompressPlugin; }}
 #endif
 #ifdef _CompressPlugin_zstd
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zstd",0,
-                                      &compressLevel,0,22,20, &dictBits,10,
-                                      _ZSTD_WINDOWLOG_MAX,defaultDictBits),"-c-zstd-?");
-     if ((isMatchedType)&&(0==strcmp(isMatchedType,"zstd"))){
-         static TCompressPlugin_zstd _zstdCompressPlugin=zstdCompressPlugin;
-         _zstdCompressPlugin.compress_level=(int)compressLevel;
-         _zstdCompressPlugin.dict_bits = (int)dictBits;
-         *out_compressPlugin=&_zstdCompressPlugin.base;
-         *out_decompressPlugin=&zstdDecompressPlugin;  }
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zstd",0,
+                                        &compressLevel,0,22,20, &dictBits,10,
+                                        _ZSTD_WINDOWLOG_MAX,defaultDictBits),"-c-zstd-?"){
+        static TCompressPlugin_zstd _zstdCompressPlugin=zstdCompressPlugin;
+        _zstdCompressPlugin.compress_level=(int)compressLevel;
+        _zstdCompressPlugin.dict_bits = (int)dictBits;
+        *out_compressPlugin=&_zstdCompressPlugin.base;
+        *out_decompressPlugin=&zstdDecompressPlugin; }}
 #endif
 #ifdef _CompressPlugin_brotli
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"brotli",0,
-                                      &compressLevel,0,11,9, &dictBits,10,
-                                      30,defaultDictBits),"-c-brotli-?");
-     if ((isMatchedType)&&(0==strcmp(isMatchedType,"brotli"))){
-         static TCompressPlugin_brotli _brotliCompressPlugin=brotliCompressPlugin;
-         _brotliCompressPlugin.compress_level=(int)compressLevel;
-         _brotliCompressPlugin.dict_bits = (int)dictBits;
-         *out_compressPlugin=&_brotliCompressPlugin.base;
-         *out_decompressPlugin=&brotliDecompressPlugin;  }
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"brotli",0,
+                                        &compressLevel,0,11,9, &dictBits,10,
+                                        30,defaultDictBits),"-c-brotli-?"){
+        static TCompressPlugin_brotli _brotliCompressPlugin=brotliCompressPlugin;
+        _brotliCompressPlugin.compress_level=(int)compressLevel;
+        _brotliCompressPlugin.dict_bits = (int)dictBits;
+        *out_compressPlugin=&_brotliCompressPlugin.base;
+        *out_decompressPlugin=&brotliDecompressPlugin; }}
 #endif
 #ifdef _CompressPlugin_lzham
-    _options_check(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lzham",0,
-                                      &compressLevel,0,5,4, &dictBits,15,
-                                      (sizeof(size_t)<=4)?26:29,defaultDictBits),"-c-lzham-?");
-     if ((isMatchedType)&&(0==strcmp(isMatchedType,"lzham"))){
-         static TCompressPlugin_lzham _lzhamCompressPlugin=lzhamCompressPlugin;
-         _lzhamCompressPlugin.compress_level=(int)compressLevel;
-         _lzhamCompressPlugin.dict_bits = (int)dictBits;
-         *out_compressPlugin=&_lzhamCompressPlugin.base;
-         *out_decompressPlugin=&lzhamDecompressPlugin;  }
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lzham",0,
+                                        &compressLevel,0,5,4, &dictBits,15,
+                                        (sizeof(size_t)<=4)?26:29,defaultDictBits),"-c-lzham-?"){
+        static TCompressPlugin_lzham _lzhamCompressPlugin=lzhamCompressPlugin;
+        _lzhamCompressPlugin.compress_level=(int)compressLevel;
+        _lzhamCompressPlugin.dict_bits = (int)dictBits;
+        *out_compressPlugin=&_lzhamCompressPlugin.base;
+        *out_decompressPlugin=&lzhamDecompressPlugin; }}
 #endif
+#ifdef _CompressPlugin_tuz
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,
+                                        ptype,ptypeEnd,"tuz","tinyuz",
+                                        &dictSize,1,tuz_kMaxOfDictSize,defaultDictSize),"-c-tuz-?"){
+        static TCompressPlugin_tuz _tuzCompressPlugin=tuzCompressPlugin;
+        _tuzCompressPlugin.props.dictSize=(tuz_size_t)dictSize;
+        *out_compressPlugin=&_tuzCompressPlugin.base;
+        *out_decompressPlugin=&tuzDecompressPlugin; }}
+#endif
+
     _options_check((*out_compressPlugin!=0)&&(*out_decompressPlugin!=0),"-c-?");
     return HDIFF_SUCCESS;
 }
@@ -730,6 +750,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     std::vector<std::string>    ignoreNewPathList;
 #endif
     std::vector<const char *> arg_values;
+    if (argc<=1){
+        printUsage();
+        return HDIFF_OPTIONS_ERROR;
+    }
     for (int i=1; i<argc; ++i) {
         const char* op=argv[i];
         _options_check(op!=0,"?");
@@ -907,7 +931,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
         }//switch
     }
-    
+
     if (isOutputHelp==_kNULL_VALUE)
         isOutputHelp=hpatch_FALSE;
     if (isOutputVersion==_kNULL_VALUE)
