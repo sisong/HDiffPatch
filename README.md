@@ -100,13 +100,13 @@ special options:
   -c-compressType[-compressLevel]
       set outDiffFile Compress type & level, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
-      support compress type & level:
+      support compress type & level & dict:
        (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
-        -c-zlib[-{1..9}]                DEFAULT level 9
-        -c-pzlib[-{1..9}]               DEFAULT level 6
+        -c-zlib[-{1..9}[-dictBits]]     DEFAULT level 9
+            dictBits can 9--15, DEFAULT 15.
+        -c-pzlib[-{1..9}[-dictBits]]    DEFAULT level 6
+            dictBits can 9--15, DEFAULT 15.
             support run by multi-thread parallel, fast!
-            WARNING: code not compatible with it compressed by -c-zlib!
-              and code size may be larger than if it compressed by -c-zlib.
         -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9
         -c-pbzip2[-{1..9}]              (or -pbz2) DEFAULT level 8
             support run by multi-thread parallel, fast!
