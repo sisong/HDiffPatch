@@ -586,13 +586,14 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     size_t       dictSize=0;
     const size_t defaultDictSize=(1<<20)*8; //8m
 #endif
-#if (defined _CompressPlugin_zstd)||(defined _CompressPlugin_brotli)||(defined _CompressPlugin_lzham)
+#if (defined _CompressPlugin_zlib)||(defined _CompressPlugin_zstd)||(defined _CompressPlugin_brotli)||(defined _CompressPlugin_lzham)
     size_t       dictBits=0;
     const size_t defaultDictBits=20+3; //8m
+    const size_t defaultDictBits_zlib=15; //32k
 #endif
 #ifdef _CompressPlugin_zlib
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zlib",0,
-                                        &compressLevel,1,9,9, &dictBits,9,15,15),"-c-zlib-?"){
+                                        &compressLevel,1,9,9, &dictBits,9,15,defaultDictBits_zlib),"-c-zlib-?"){
         static TCompressPlugin_zlib _zlibCompressPlugin=zlibCompressPlugin;
         _zlibCompressPlugin.compress_level=(int)compressLevel;
         _zlibCompressPlugin.windowBits=(signed char)(-dictBits);
@@ -601,7 +602,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
 #   if (_IS_USED_MULTITHREAD)
     //pzlib
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"pzlib",0,
-                                        &compressLevel,1,9,6, &dictBits,9,15,15),"-c-pzlib-?"){
+                                        &compressLevel,1,9,6, &dictBits,9,15,defaultDictBits_zlib),"-c-pzlib-?"){
         static TCompressPlugin_pzlib _pzlibCompressPlugin=pzlibCompressPlugin;
         _pzlibCompressPlugin.base.compress_level=(int)compressLevel;
         _pzlibCompressPlugin.base.windowBits=(signed char)(-dictBits);
