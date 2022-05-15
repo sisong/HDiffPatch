@@ -139,6 +139,7 @@ endif
 
 HDIFF_OBJ += \
     hdiffz_import_patch.o \
+    libHDiffPatch/HPatchLite/hpatch_lite.o \
     libHDiffPatch/HDiff/diff.o \
     libHDiffPatch/HDiff/match_block.o \
     libHDiffPatch/HDiff/private_diff/bytes_rle.o \
