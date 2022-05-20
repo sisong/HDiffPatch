@@ -363,8 +363,8 @@ struct TDiffSets:public THDiffSets{
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
 int hdiff_dir(const char* oldPath,const char* newPath,const char* outDiffFileName,
-              const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-              hpatch_TChecksum* checksumPlugin,hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
+              const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,
+              hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
               const TDiffSets& diffSets,size_t kMaxOpenFileNumber,
               const std::vector<std::string>& ignorePathListBase,const std::vector<std::string>& ignoreOldPathList,
               const std::vector<std::string>& ignoreNewPathList,
@@ -373,8 +373,7 @@ int create_manifest(const char* inputPath,const char* outManifestFileName,
                     hpatch_TChecksum* checksumPlugin,const std::vector<std::string>& ignorePathList);
 #endif
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-          const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-          const TDiffSets& diffSets);
+          const hdiff_TCompress* compressPlugin,const TDiffSets& diffSets);
 int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
                  const hdiff_TCompress* compressPlugin);
 
@@ -578,7 +577,6 @@ static bool _tryGetCompressSet(const char** isMatchedType,const char* ptype,cons
         if (isMatchedType)
 
 static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
-                             hpatch_TDecompress** out_decompressPlugin,
                              const char* ptype,const char* ptypeEnd){
     const char* isMatchedType=0;
     size_t      compressLevel=0;
@@ -597,8 +595,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         static TCompressPlugin_zlib _zlibCompressPlugin=zlibCompressPlugin;
         _zlibCompressPlugin.compress_level=(int)compressLevel;
         _zlibCompressPlugin.windowBits=(signed char)(-dictBits);
-        *out_compressPlugin=&_zlibCompressPlugin.base;
-        *out_decompressPlugin=&zlibDecompressPlugin; }}
+        *out_compressPlugin=&_zlibCompressPlugin.base; }}
 #   if (_IS_USED_MULTITHREAD)
     //pzlib
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"pzlib",0,
@@ -606,8 +603,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         static TCompressPlugin_pzlib _pzlibCompressPlugin=pzlibCompressPlugin;
         _pzlibCompressPlugin.base.compress_level=(int)compressLevel;
         _pzlibCompressPlugin.base.windowBits=(signed char)(-dictBits);
-        *out_compressPlugin=&_pzlibCompressPlugin.base.base;
-        *out_decompressPlugin=&zlibDecompressPlugin; }}
+        *out_compressPlugin=&_pzlibCompressPlugin.base.base; }}
 #   endif // _IS_USED_MULTITHREAD
 #endif
 #ifdef _CompressPlugin_bz2
@@ -615,16 +611,14 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
                                         &compressLevel,1,9,9),"-c-bzip2-?"){
         static TCompressPlugin_bz2 _bz2CompressPlugin=bz2CompressPlugin;
         _bz2CompressPlugin.compress_level=(int)compressLevel;
-        *out_compressPlugin=&_bz2CompressPlugin.base;
-        *out_decompressPlugin=&bz2DecompressPlugin; }}
+        *out_compressPlugin=&_bz2CompressPlugin.base; }}
 #   if (_IS_USED_MULTITHREAD)
     //pbzip2
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"pbzip2","pbz2",
                                         &compressLevel,1,9,8),"-c-pbzip2-?"){
         static TCompressPlugin_pbz2 _pbz2CompressPlugin=pbz2CompressPlugin;
         _pbz2CompressPlugin.base.compress_level=(int)compressLevel;
-        *out_compressPlugin=&_pbz2CompressPlugin.base.base;
-        *out_decompressPlugin=&bz2DecompressPlugin; }}
+        *out_compressPlugin=&_pbz2CompressPlugin.base.base; }}
 #   endif // _IS_USED_MULTITHREAD
 #endif
 #ifdef _CompressPlugin_lzma
@@ -634,8 +628,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         static TCompressPlugin_lzma _lzmaCompressPlugin=lzmaCompressPlugin;
         _lzmaCompressPlugin.compress_level=(int)compressLevel;
         _lzmaCompressPlugin.dict_size=(int)dictSize;
-        *out_compressPlugin=&_lzmaCompressPlugin.base;
-        *out_decompressPlugin=&lzmaDecompressPlugin; }}
+        *out_compressPlugin=&_lzmaCompressPlugin.base; }}
 #endif
 #ifdef _CompressPlugin_lzma2
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lzma2",0,
@@ -644,24 +637,21 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         static TCompressPlugin_lzma2 _lzma2CompressPlugin=lzma2CompressPlugin;
         _lzma2CompressPlugin.compress_level=(int)compressLevel;
         _lzma2CompressPlugin.dict_size=(int)dictSize;
-        *out_compressPlugin=&_lzma2CompressPlugin.base;
-        *out_decompressPlugin=&lzma2DecompressPlugin; }}
+        *out_compressPlugin=&_lzma2CompressPlugin.base; }}
 #endif
 #ifdef _CompressPlugin_lz4
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lz4",0,
                                         &compressLevel,1,50,50),"-c-lz4-?"){
         static TCompressPlugin_lz4 _lz4CompressPlugin=lz4CompressPlugin;
         _lz4CompressPlugin.compress_level=(int)compressLevel;
-        *out_compressPlugin=&_lz4CompressPlugin.base;
-        *out_decompressPlugin=&lz4DecompressPlugin; }}
+        *out_compressPlugin=&_lz4CompressPlugin.base; }}
 #endif
 #ifdef _CompressPlugin_lz4hc
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lz4hc",0,
                                         &compressLevel,3,12,11),"-c-lz4hc-?"){
         static TCompressPlugin_lz4hc _lz4hcCompressPlugin=lz4hcCompressPlugin;
         _lz4hcCompressPlugin.compress_level=(int)compressLevel;
-        *out_compressPlugin=&_lz4hcCompressPlugin.base;
-        *out_decompressPlugin=&lz4DecompressPlugin; }}
+        *out_compressPlugin=&_lz4hcCompressPlugin.base; }}
 #endif
 #ifdef _CompressPlugin_zstd
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zstd",0,
@@ -670,8 +660,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         static TCompressPlugin_zstd _zstdCompressPlugin=zstdCompressPlugin;
         _zstdCompressPlugin.compress_level=(int)compressLevel;
         _zstdCompressPlugin.dict_bits = (int)dictBits;
-        *out_compressPlugin=&_zstdCompressPlugin.base;
-        *out_decompressPlugin=&zstdDecompressPlugin; }}
+        *out_compressPlugin=&_zstdCompressPlugin.base; }}
 #endif
 #ifdef _CompressPlugin_brotli
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"brotli",0,
@@ -680,8 +669,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         static TCompressPlugin_brotli _brotliCompressPlugin=brotliCompressPlugin;
         _brotliCompressPlugin.compress_level=(int)compressLevel;
         _brotliCompressPlugin.dict_bits = (int)dictBits;
-        *out_compressPlugin=&_brotliCompressPlugin.base;
-        *out_decompressPlugin=&brotliDecompressPlugin; }}
+        *out_compressPlugin=&_brotliCompressPlugin.base; }}
 #endif
 #ifdef _CompressPlugin_lzham
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"lzham",0,
@@ -690,8 +678,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         static TCompressPlugin_lzham _lzhamCompressPlugin=lzhamCompressPlugin;
         _lzhamCompressPlugin.compress_level=(int)compressLevel;
         _lzhamCompressPlugin.dict_bits = (int)dictBits;
-        *out_compressPlugin=&_lzhamCompressPlugin.base;
-        *out_decompressPlugin=&lzhamDecompressPlugin; }}
+        *out_compressPlugin=&_lzhamCompressPlugin.base; }}
 #endif
 #ifdef _CompressPlugin_tuz
     __getCompressSet(_tryGetCompressSet(&isMatchedType,
@@ -699,11 +686,10 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
                                         &dictSize,1,tuz_kMaxOfDictSize,defaultDictSize),"-c-tuz-?"){
         static TCompressPlugin_tuz _tuzCompressPlugin=tuzCompressPlugin;
         _tuzCompressPlugin.props.dictSize=(tuz_size_t)dictSize;
-        *out_compressPlugin=&_tuzCompressPlugin.base;
-        *out_decompressPlugin=&tuzDecompressPlugin; }}
+        *out_compressPlugin=&_tuzCompressPlugin.base; }}
 #endif
 
-    _options_check((*out_compressPlugin!=0)&&(*out_decompressPlugin!=0),"-c-?");
+    _options_check((*out_compressPlugin!=0),"-c-?");
     return HDIFF_SUCCESS;
 }
 
@@ -736,7 +722,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
     size_t      threadNum = _THREAD_NUMBER_NULL;
     hdiff_TCompress*        compressPlugin=0;
-    hpatch_TDecompress*     decompressPlugin=0;
 #if (_IS_NEED_DIR_DIFF_PATCH)
     hpatch_BOOL             isForceRunDirDiff=_kNULL_VALUE;
     size_t                  kMaxOpenFileNumber=_kNULL_SIZE; //only used in dir diff by stream
@@ -861,7 +846,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                     _options_check((compressPlugin==0),"-c-");
                     const char* ptype=op+3;
                     const char* ptypeEnd=findUntilEnd(ptype,'-');
-                    int result=_checkSetCompress(&compressPlugin,&decompressPlugin,ptype,ptypeEnd);
+                    int result=_checkSetCompress(&compressPlugin,ptype,ptypeEnd);
                     if (HDIFF_SUCCESS!=result)
                         return result;
                 }else if (op[2]=='a'){
@@ -959,7 +944,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             static TCompressPlugin_bz2 _bz2CompressPlugin=bz2CompressPlugin;
             compressPlugin=&_bz2CompressPlugin.base;
         }
-        decompressPlugin=&_bz2DecompressPlugin_unsz;
     }
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -1078,7 +1062,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #if (_IS_NEED_BSDIFF)
             _options_check(!diffSets.isBsDiff,"bsdiff unsupport dir diff");
 #endif
-            return hdiff_dir(oldPath,newPath,outDiffFileName,compressPlugin,decompressPlugin,
+            return hdiff_dir(oldPath,newPath,outDiffFileName,compressPlugin,
                              checksumPlugin,(kPathType_dir==oldType),(kPathType_dir==newType), 
                              diffSets,kMaxOpenFileNumber,
                              ignorePathList,ignoreOldPathList,ignoreNewPathList,
@@ -1091,7 +1075,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 _options_check(!diffSets.isBsDiff,"bsdiff unsupport run with -s");
 #endif
             return hdiff(oldPath,newPath,outDiffFileName,
-                         compressPlugin,decompressPlugin,diffSets);
+                         compressPlugin,diffSets);
         }
 #if (_IS_NEED_DIR_DIFF_PATCH)
     }else if (!manifestOut.empty()){ //() //create manifest
@@ -1211,8 +1195,7 @@ static hpatch_BOOL readFileAll(hdiff_private::TAutoMem& out_mem,const char* file
     if (!(value)){ hpatch_printStdErrPath_utf8(erri.c_str()); _check_on_error(errorType); } }
 
 static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-                        const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-                        const TDiffSets& diffSets){
+                        const hdiff_TCompress* compressPlugin,const TDiffSets& diffSets){
     double diff_time0=clock_s();
     int    result=HDIFF_SUCCESS;
     int    _isInClear=hpatch_FALSE;
@@ -1335,8 +1318,7 @@ clear:
 }
 
 static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-                           const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-                           const TDiffSets& diffSets){
+                           const hdiff_TCompress* compressPlugin,const TDiffSets& diffSets){
     double diff_time0=clock_s();
     int result=HDIFF_SUCCESS;
     int _isInClear=hpatch_FALSE;
@@ -1443,8 +1425,7 @@ clear:
 }
 
 int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
-          const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-          const TDiffSets& diffSets){
+          const hdiff_TCompress* compressPlugin,const TDiffSets& diffSets){
     double time0=clock_s();
     std::string fnameInfo=std::string("old : \"")+oldFileName+"\"\n"
                                      +"new : \""+newFileName+"\"\n"
@@ -1466,10 +1447,10 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
     int exitCode;
     if (diffSets.isDiffInMem)
         exitCode=hdiff_in_mem(oldFileName,newFileName,outDiffFileName,
-                              compressPlugin,decompressPlugin,diffSets);
+                              compressPlugin,diffSets);
     else
         exitCode=hdiff_by_stream(oldFileName,newFileName,outDiffFileName,
-                                 compressPlugin,decompressPlugin,diffSets);
+                                 compressPlugin,diffSets);
     if (diffSets.isDoDiff && diffSets.isDoPatchCheck)
         printf("\nall   time: %.3f s\n",(clock_s()-time0));
     return exitCode;
@@ -1648,8 +1629,8 @@ static void check_manifest(TManifest& out_manifest,const std::string& rootPath,c
 }
 
 int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileName,
-              const hdiff_TCompress* compressPlugin,hpatch_TDecompress* decompressPlugin,
-              hpatch_TChecksum* checksumPlugin,hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
+              const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,
+              hpatch_BOOL oldIsDir, hpatch_BOOL newIsDir,
               const TDiffSets& diffSets,size_t kMaxOpenFileNumber,
               const std::vector<std::string>& ignorePathListBase,const std::vector<std::string>& ignoreOldPathList,
               const std::vector<std::string>& ignoreNewPathList,

@@ -150,6 +150,8 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -174,6 +176,8 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
