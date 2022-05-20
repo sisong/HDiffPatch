@@ -1292,6 +1292,7 @@ void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
 #include "diff_for_hpatch_lite.h"
 #include "../HPatchLite/hpatch_lite.h"
 
+namespace{
     static const char*      kHPatchLite_versionType="hI";
     static const hpi_byte   kHPatchLite_versionCode=1;
 
@@ -1393,6 +1394,8 @@ static void serialize_lite_diff(const TDiffData& diff,std::vector<TByte>& out_di
     pushBack(out_diff,compress_buf.empty()?buf:compress_buf);
 }
 
+} //end namespace
+
 void create_lite_diff(const unsigned char* newData,const unsigned char* newData_end,
                       const unsigned char* oldData,const unsigned char* oldData_end,
                       std::vector<hpi_byte>& out_lite_diff,const hdiffi_TCompress* compressPlugin,
@@ -1413,6 +1416,7 @@ void create_lite_diff(const unsigned char* newData,const unsigned char* newData_
     serialize_lite_diff(diff,out_lite_diff,compressPlugin);
 }
 
+namespace{
 struct TPatchiListener:public hpatchi_listener_t{
     hpatch_decompressHandle decompresser;
     hpatch_TDecompress*     decompressPlugin;
@@ -1469,6 +1473,7 @@ struct TPatchiListener:public hpatchi_listener_t{
         return hpi_TRUE;
     }
 };
+}// end namespace
 
 bool check_lite_diff_open(const hpi_byte* lite_diff,const hpi_byte* lite_diff_end,
                           hpi_compressType* out_compress_type){
@@ -1514,10 +1519,10 @@ bool check_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
     listener.oldData_end=oldData_end;
     listener.read_old=listener._read_old;
 
-    const size_t kACacheBufSize=1024*64-1;
+    const size_t kACacheBufSize=1024*32;
     hdiff_private::TAutoMem _cache(kACacheBufSize);
     
     if (!hpatch_lite_patch(&listener,saved_newSize,_cache.data(),(hpi_size_t)_cache.size()))
         return false;
-    return true;
+    return listener.newData_cur==listener.newData_end;
 }
