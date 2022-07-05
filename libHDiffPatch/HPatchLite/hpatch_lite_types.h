@@ -18,15 +18,6 @@
 extern "C" {
 #endif
 
-#define HPATCHLITE_VERSION_MAJOR    0
-#define HPATCHLITE_VERSION_MINOR    2
-#define HPATCHLITE_VERSION_RELEASE  0
-
-#define _HPATCHLITE_VERSION          HPATCHLITE_VERSION_MAJOR.HPATCHLITE_VERSION_MINOR.HPATCHLITE_VERSION_RELEASE
-#define _HDIFFPATCH_QUOTE(str) #str
-#define _HDIFFPATCH_EXPAND_AND_QUOTE(str) _HDIFFPATCH_QUOTE(str)
-#define HPATCHLITE_VERSION_STRING   _HDIFFPATCH_EXPAND_AND_QUOTE(_HPATCHLITE_VERSION)
-
 #ifndef hpi_byte
     typedef     unsigned char   hpi_byte;
 #endif
@@ -82,17 +73,17 @@ extern "C" {
 typedef hpi_BOOL (*hpi_TInputStream_read)(hpi_TInputStreamHandle inputStream,hpi_byte* out_data,hpi_size_t* data_size);
 
 #ifndef hpi_kHeadSize
-#   define      hpi_kHeadSize       (2+1+1) // "hI" + hpi_compressType + new_size_bytes { + new_size }
+#   define  hpi_kHeadSize       (2+1+1) //"hI" + hpi_compressType + (versionCode+newSize bytes+uncompressSize bytes) { + newSize + uncompressSize}
 #endif
 
 #ifndef hpi_kMinCacheSize
-#   define      hpi_kMinCacheSize   (1*2)
+#   define hpi_kMinCacheSize    (1*2)
 #endif
 
 typedef enum hpi_compressType{
     hpi_compressType_no=0,
     hpi_compressType_tuz=1, //tinyuz
-    hpi_compressType_zlib=2,
+    hpi_compressType_zlib=2, //deflate format
     hpi_compressType_lzma=3,
     hpi_compressType_lzma2=4,
     hpi_compressType_zstd=5,

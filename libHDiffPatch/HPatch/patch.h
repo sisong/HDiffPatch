@@ -159,7 +159,6 @@ hpatch_BOOL patch_single_stream(sspatch_listener_t* listener, //call back when g
                                 hpatch_StreamPos_t  diffInfo_pos, //default 0, begin pos in singleCompressedDiff
                                 sspatch_coversListener_t* coversListener //default NULL, call by on got covers
                                 );
-// patch_single_stream_by rename to patch_single_stream
 static hpatch_inline hpatch_BOOL
     patch_single_stream_mem(sspatch_listener_t* listener,
                             unsigned char* out_newData,unsigned char* out_newData_end,
@@ -174,7 +173,6 @@ static hpatch_inline hpatch_BOOL
         mem_as_hStreamInput(&diffStream,diff,diff_end);
         return patch_single_stream(listener,&out_newStream,&oldStream,&diffStream,0,coversListener);
     }
-// patch_single_stream_by_mem rename to patch_single_stream_mem
 
 //get singleCompressedDiff info
 //  singleCompressedDiff create by create_single_compressed_diff() or create_single_compressed_diff_stream()
