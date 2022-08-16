@@ -2,6 +2,10 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
    
+## [v4.2.0](https://github.com/sisong/HDiffPatch/tree/v4.2.0) - 2022-05-15
+### Added
+* add function create_lite_diff() & hpatch_lite_open(),hpatch_lite_patch(); optimized hpatch on MCU,NB-IoT... (demo [HPatchLite](https://github.com/sisong/HPatchLite))
+
 ## [v4.1.0](https://github.com/sisong/HDiffPatch/tree/v4.1.0) - 2021-11-27
 ### Added
 * cmdline add option "-BSD", to create diffFile compatible with bsdiff;

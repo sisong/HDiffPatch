@@ -18,11 +18,6 @@
 #define _CHECK(code)                { if (!(code)) return _hpi_FALSE; }
 
 #ifdef __RUN_MEM_SAFE_CHECK
-#   define  _SAFE_CHECK_DO(code)    _CHECK(code)
-#else
-#   define  _SAFE_CHECK_DO(code)    { code; }
-#endif
-#ifdef __RUN_MEM_SAFE_CHECK
 #   define  _SAFE_CHECK(checkv)     _CHECK(checkv)
 #else
 #   define  _SAFE_CHECK(checkv)
