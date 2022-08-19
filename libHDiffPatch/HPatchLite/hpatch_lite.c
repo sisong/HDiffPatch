@@ -128,7 +128,7 @@ hpi_BOOL hpatch_lite_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read
     lenn=lenu&7; //newSize bytes(low 3bit)
     lenu=(lenu>>3)&7; //uncompressSize bytes(mid 3bit)
 
-    _SAFE_CHECK((lenn|lenu)<sizeof(hpi_pos_t));
+    _SAFE_CHECK((lenn<=sizeof(hpi_pos_t))&(lenu<=sizeof(hpi_pos_t)));
     _CHECK(read_diff(diff_data,buf,&lenn));
     *out_newSize=_hpi_readSize(buf,lenn);
     _CHECK(read_diff(diff_data,buf,&lenu));

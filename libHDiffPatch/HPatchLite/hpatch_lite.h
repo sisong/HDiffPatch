@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 //-----------------------------------------------------------------------------------------------------------------
-// hpatch_lite by stream: hpatch_lite_open()+hpatch_lite_patch() compiled by Mbed Studio is 664 bytes
+// hpatch_lite by stream: hpatch_lite_open()+hpatch_lite_patch() compiled by Mbed Studio is 670 bytes
 
 //diff_data must created by create_lite_diff()
 
