@@ -63,8 +63,9 @@ hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info
         diffData.base.streamSize=diffDataSize;
     }
     result=getDirDiffInfo(&diffData.base,out_info);
-    check(hpatch_TFileStreamInput_close(&diffData));
 clear:
+    if (!hpatch_TFileStreamInput_close(&diffData)) 
+        { LOG_ERR("check hpatch_TFileStreamInput_close(&diffData) error!\n"); result=hpatch_FALSE; }
     return result;
 }
 
@@ -576,9 +577,11 @@ hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_
 #endif
     check(patch_decompress_with_cache(out_newData,oldData,&hdiffData.base,
                                       self->_decompressPlugin,temp_cache,temp_cache_end));
-    check(_TDirPatcher_closeNewFileHandles(self));
-    check(_TDirPatcher_closeOldFileHandles(self));
-clear:
+clear: 
+    if (!_TDirPatcher_closeNewFileHandles(self)) 
+        { LOG_ERR("check _TDirPatcher_closeNewFileHandles(self) error!\n"); result=hpatch_FALSE; }
+    if (!_TDirPatcher_closeOldFileHandles(self))
+        { LOG_ERR("check _TDirPatcher_closeOldFileHandles(self) error!\n"); result=hpatch_FALSE; }
     return result;
 }
 
