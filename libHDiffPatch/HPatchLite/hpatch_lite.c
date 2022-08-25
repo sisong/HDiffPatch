@@ -79,11 +79,11 @@ static hpi_BOOL _patch_copy_diff(hpatchi_listener_t* out_newData,
 
     static hpi_force_inline void addData(hpi_byte* dst,const hpi_byte* src,hpi_size_t length){
         while (length--) { *dst++ += *src++; } }
-static hpi_BOOL _patch_add_old_withClip(hpatchi_listener_t* old_and_new,_TInputCache* diff,hpi_BOOL isNeedSubDiff,
+static hpi_BOOL _patch_add_old_withClip(hpatchi_listener_t* old_and_new,_TInputCache* diff,hpi_BOOL isNotNeedSubDiff,
                                         hpi_size_t oldPos,hpi_size_t addLength,hpi_byte* temp_cache){
     while (addLength>0){
         hpi_size_t decodeStep=diff->cache_end;
-        if (isNeedSubDiff){
+        if (!isNotNeedSubDiff){
             decodeStep-=diff->cache_begin;
             if (decodeStep==0){
                 _cache_update(diff);
@@ -94,7 +94,7 @@ static hpi_BOOL _patch_add_old_withClip(hpatchi_listener_t* old_and_new,_TInputC
         if (decodeStep>addLength)
             decodeStep=(hpi_size_t)addLength;
         _CHECK(old_and_new->read_old(old_and_new,oldPos,temp_cache,(hpi_pos_t)decodeStep));
-        if (isNeedSubDiff){
+        if (!isNotNeedSubDiff){
             addData(temp_cache,diff->cache_buf+diff->cache_begin,decodeStep);
             diff->cache_begin+=decodeStep;
         }
@@ -158,13 +158,13 @@ hpi_BOOL hpatch_lite_patch(hpatchi_listener_t* listener,hpi_pos_t newSize,
         hpi_pos_t cover_oldPos;
         hpi_pos_t cover_newPos;
         hpi_pos_t cover_length;
-        hpi_BOOL  isNeedSubDiff;
+        hpi_BOOL  isNotNeedSubDiff;
         {//read cover
             cover_length=_cache_unpackUInt(&diff,0,hpi_TRUE);
             {
                 hpi_fast_uint8 tag=_cache_read_1byte(&diff);
                 cover_oldPos=_cache_unpackUInt(&diff,tag&31,tag&(1<<5));
-                isNeedSubDiff=!(tag>>7);
+                isNotNeedSubDiff=(tag>>7);
                 if (tag&(1<<6))
                     cover_oldPos=oldPosBack-cover_oldPos;
                 else
@@ -177,7 +177,7 @@ hpi_BOOL hpatch_lite_patch(hpatchi_listener_t* listener,hpi_pos_t newSize,
         _SAFE_CHECK(cover_newPos>=newPosBack);
         if (newPosBack<cover_newPos)
             _CHECK(_patch_copy_diff(listener,&diff,cover_newPos-newPosBack));
-        _CHECK(_patch_add_old_withClip(listener,&diff,isNeedSubDiff,cover_oldPos,cover_length,temp_cache));
+        _CHECK(_patch_add_old_withClip(listener,&diff,isNotNeedSubDiff,cover_oldPos,cover_length,temp_cache));
         newPosBack=cover_newPos+cover_length;
         oldPosBack=cover_oldPos+cover_length;
         _SAFE_CHECK((cover_length>0)|(coverCount==0));
