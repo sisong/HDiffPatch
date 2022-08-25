@@ -35,8 +35,9 @@
 
 #define TUInt hpatch_StreamPos_t
 
-#define  check(value) { if (!(value)){ LOG_ERR("check "#value" error!\n");  \
+#define  checki(value,errorInfo) { if (!(value)){ LOG_ERR("dir_patch " errorInfo " error!\n");  \
                                        result=hpatch_FALSE; goto clear; } }
+#define  check(value) checki(value,"check " #value)
 
 static hpatch_BOOL _TDirPatcher_copyFile(const char* oldFileName_utf8,const char* newFileName_utf8,
                                          hpatch_ICopyDataListener* copyListener){
@@ -118,8 +119,9 @@ static hpatch_BOOL _copySameFile(hpatch_INewStreamListener* listener,size_t newP
     check(self->_oldPathListener.getOldPathByIndex!=0);
     oldFileName=_getOldPathByIndex(self,oldPathIndex);
     check(oldFileName!=0);
-    check(self->_listener->copySameFile(self->_listener,oldFileName,newFileName,
-                                        self->isCheck_copyFileData?(&self->_sameFileCopyListener):0));
+    checki(self->_listener->copySameFile(self->_listener,oldFileName,newFileName,
+                                         self->isCheck_copyFileData?(&self->_sameFileCopyListener):0),
+           "_copySameFile() copySameFile");
 clear:
     return result;
 }
@@ -139,8 +141,9 @@ static hpatch_BOOL _openNewFile(hpatch_INewStreamListener* listener,size_t newRe
     }else{
         utf8fileName=TNewDirOutput_getNewPathByRefIndex(self,newRefIndex);
         check(utf8fileName!=0);
-        check(self->_listener->openNewFile(self->_listener,self->_curNewFile,
-                                           utf8fileName,fileSize));
+        checki(self->_listener->openNewFile(self->_listener,self->_curNewFile,
+                                            utf8fileName,fileSize),
+               "_openNewFile() openNewFile");
         *out_newFileStream=&self->_curNewFile->base;
     }
 clear:
@@ -248,10 +251,11 @@ hpatch_BOOL TNewDirOutput_openDir(TNewDirOutput* self,IDirPatchListener* listene
             self->_sameFileCopyListener.copyedData=_sameFile_copyedData;
         }
     }
-    check(hpatch_TNewStream_open(&self->_newDirStream,&self->_newDirStreamListener,
-                                 self->newDataSize,self->newPathCount,
-                                 self->newRefList,refCount,self->dataSamePairList,
-                                 self->sameFilePairCount,kAlignSize));
+    checki(hpatch_TNewStream_open(&self->_newDirStream,&self->_newDirStreamListener,
+                                  self->newDataSize,self->newPathCount,
+                                  self->newRefList,refCount,self->dataSamePairList,
+                                  self->sameFilePairCount,kAlignSize),
+           "TNewDirOutput_openDir() hpatch_TNewStream_open");
     *out_newDirStream=self->_newDirStream.stream;
 clear:
     return result;

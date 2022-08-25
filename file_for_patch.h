@@ -32,6 +32,7 @@
 #include <stdio.h>  //fprintf
 #include <stdlib.h> // malloc free
 #include <locale.h> // setlocale
+#include <errno.h>  //errno
 #include "dirDiffPatch/dir_patch/dir_patch_types.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #  ifdef _MSC_VER
@@ -40,7 +41,21 @@
 #   include <unistd.h> // rmdir
 #  endif
 #endif
-
+#ifndef _FILE_IS_USED_errno
+#   define  _FILE_IS_USED_errno 1
+#endif
+#if (_FILE_IS_USED_errno)
+#   define  _setFileErrNo(v) do {errno=v;} while(0)
+#else
+#   define  _setFileErrNo(v)
+#endif
+#if (_FILE_IS_USED_errno)
+#   define  LOG_ERRNO(_err_no,errorInfo) \
+        LOG_ERR(errorInfo " ERROR! errno: %d, errmsg: %s.\n",_err_no,strerror(_err_no))
+#else
+#   define  LOG_ERRNO(_,errorInfo) LOG_ERR(errorInfo " ERROR!\n")
+#endif
+    
 
 #ifndef _IS_USED_WIN32_UTF8_WAPI
 #   if (defined(_WIN32) && defined(_MSC_VER))
@@ -79,18 +94,23 @@ hpatch_inline static const char* findUntilEnd(const char* str,char c){
 #define _path_noEndDirSeparator(dst_path,src_path)  \
     char  dst_path[hpatch_kPathMaxSize];      \
     {   size_t len=strlen(src_path);   \
-        if (len>=hpatch_kPathMaxSize) return hpatch_FALSE; /* error */ \
+        if (len>=hpatch_kPathMaxSize) { _setFileErrNo(ENAMETOOLONG); return hpatch_FALSE;} /* error */ \
         if ((len>0)&&(src_path[len-1]==kPatch_dirSeparator)) --len; /* without '/' */\
         memcpy(dst_path,src_path,len); \
         dst_path[len]='\0';  } /* safe */
 
 
 #ifdef _WIN32
-static int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
-    return MultiByteToWideChar(_hpatch_kMultiBytePage,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize); }
+#define  _setFileErrNo_iconv() _setFileErrNo(GetLastError()==ERROR_INSUFFICIENT_BUFFER?ENAMETOOLONG:EILSEQ)
 
-static int _wFileName_to_utf8(const wchar_t* fileName_w,char* out_fileName_utf8,size_t out_bSize){
-    return WideCharToMultiByte(_hpatch_kMultiBytePage,0,fileName_w,-1,out_fileName_utf8,(int)out_bSize,0,0); }
+static hpatch_inline int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
+    int result=MultiByteToWideChar(_hpatch_kMultiBytePage,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize);
+    if (result<=0) _setFileErrNo_iconv();
+    return result; }
+static hpatch_inline int _wFileName_to_utf8(const wchar_t* fileName_w,char* out_fileName_utf8,size_t out_bSize){
+    int result=WideCharToMultiByte(_hpatch_kMultiBytePage,0,fileName_w,-1,out_fileName_utf8,(int)out_bSize,0,0);
+    if (result<=0) _setFileErrNo_iconv();
+    return result; }
 
 static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCount,
                                        char** out_fileNames_utf8,size_t out_byteSize){
@@ -99,7 +119,7 @@ static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCo
     size_t i;
     for (i=0; i<fileCount; ++i) {
         int csize;
-        if (_bufCur>=_bufEnd) return hpatch_FALSE; //error
+        if (_bufCur>=_bufEnd) { _setFileErrNo(ENAMETOOLONG); return hpatch_FALSE; } //error 
         csize=_wFileName_to_utf8(fileNames_w[i],_bufCur,_bufEnd-_bufCur);
         if (csize<=0) return hpatch_FALSE; //error
         out_fileNames_utf8[i]=_bufCur;
@@ -181,14 +201,14 @@ hpatch_BOOL hpatch_getPathStat(const char* path_utf8,hpatch_TPathType* out_type,
 hpatch_inline static
 hpatch_BOOL hpatch_isPathNotExist(const char* pathName){
     hpatch_TPathType type;
-    if (pathName==0) return hpatch_FALSE;
+    if (pathName==0) { _setFileErrNo(EINVAL); return hpatch_FALSE; }
     if (!hpatch_getPathStat(pathName,&type,0)) return hpatch_FALSE;
     return (kPathType_notExist==type);
 }
 hpatch_inline static
 hpatch_BOOL hpatch_isPathExist(const char* pathName){
     hpatch_TPathType type;
-    if (pathName==0) return hpatch_FALSE;
+    if (pathName==0) { _setFileErrNo(EINVAL); return hpatch_FALSE; }
     if (!hpatch_getPathStat(pathName,&type,0)) return hpatch_FALSE;
     return (kPathType_notExist!=type);
 }
@@ -218,7 +238,11 @@ typedef struct hpatch_TFileStreamInput{
     hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset;
+#if (_FILE_IS_USED_errno)
+    int                 fileError; // 0: no error; other: saved errno value;
+#else
     hpatch_BOOL         fileError;
+#endif
 } hpatch_TFileStreamInput;
 
 hpatch_inline
@@ -234,7 +258,11 @@ typedef struct hpatch_TFileStreamOutput{ //is hpatch_TFileStreamInput !
     hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset; //now not used
+#if (_FILE_IS_USED_errno)
+    int                 fileError; // 0: no error; other: saved errno value;
+#else
     hpatch_BOOL         fileError;
+#endif
     //
     hpatch_BOOL         is_random_out;
     hpatch_BOOL         is_in_readModel;

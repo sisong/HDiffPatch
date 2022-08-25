@@ -29,7 +29,6 @@
  */
 #include "file_for_patch.h"
 #include <sys/stat.h> //stat mkdir
-#include <errno.h>    //errno
 /*
 #ifdef _MSC_VER
 #   include <io.h>    //_chsize_s
@@ -93,7 +92,7 @@ hpatch_BOOL hpatch_getTempPathName(const char* path_utf8,char* out_tempPath_utf8
     size_t i;
     size_t len=strlen(path_utf8);
     if ((len>0)&&(path_utf8[len-1]==kPatch_dirSeparator)) --len; //without '/'
-    if (len+(4+_AddingLen)>(size_t)(out_tempPath_end-out_tempPath_utf8)) return hpatch_FALSE;
+    if (len+(4+_AddingLen)>(size_t)(out_tempPath_end-out_tempPath_utf8)) { _setFileErrNo(ENAMETOOLONG); return hpatch_FALSE; }
     memcpy(out_tempPath_utf8,path_utf8,len);
     out_tempPath_utf8+=len;
     for (i=1; i<1000; ++i) {
@@ -226,7 +225,6 @@ hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName){
 
 #if defined(ANDROID) && (__ANDROID_API__ < 24)
 static off64_t _import_lseek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
-    off64_t oldPos;
     int fd;
     if (feof(file))
         rewind(file);
@@ -247,7 +245,7 @@ hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos
 #  if __ANDROID_API__ >= 24
     return fseeko64(file,seekPos,whence)==0;
 #  else
-    if (((long long)seekPos)==((int)seekPos)) return fseek(file,(int)seekPos,whence)==0;
+    if (((off64_t)seekPos)==((long)seekPos)) return fseek(file,(long)seekPos,whence)==0;
     else return _import_lseek64(file,seekPos,whence)>=0;
 #  endif
 # else
@@ -267,6 +265,17 @@ hpatch_BOOL _import_fileClose(hpatch_FileHandle* pfile){
     }
     return hpatch_TRUE;
 }
+#if (_FILE_IS_USED_errno)
+    hpatch_inline static
+    hpatch_BOOL _import_fileClose_No_errno(hpatch_FileHandle* pfile){
+        int err=errno;
+        hpatch_BOOL result=_import_fileClose(pfile); 
+        if (err) _setFileErrNo(err);
+        return result;
+    }
+#else
+#   define  _import_fileClose_No_errno(pfile) _import_fileClose(pfile)
+#endif
 
 hpatch_BOOL _import_fileRead(hpatch_FileHandle file,TByte* buf,TByte* buf_end){
     while (buf<buf_end) {
@@ -324,7 +333,7 @@ static hpatch_FileHandle _import_fileOpenByMode(const char* fileName_utf8,const 
     if (wsize>0) {
 # if (_MSC_VER>=1400) // VC2005
         hpatch_FileHandle file=0;
-        errno_t err=_wfopen_s(&file,fileName_w,mode_w);
+        int err=_wfopen_s(&file,fileName_w,mode_w);
         return (err==0)?file:0;
 # else
         return _wfopen(fileName_w,mode_w);
@@ -339,21 +348,16 @@ hpatch_FileHandle _import_fileOpenByMode(const char* fileName_utf8,const char* m
     return fopen(fileName_utf8,mode); }
 #endif
 
-#define _file_error(fileHandle){ \
-    if (fileHandle) _import_fileClose(&fileHandle); \
-    return hpatch_FALSE; \
-}
-
 hpatch_BOOL _import_fileOpenRead(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle,
                                  hpatch_StreamPos_t* out_fileLength){
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
-    if (out_fileHandle==0) _file_error(file);
+    if (out_fileHandle==0) { _setFileErrNo(EINVAL); return hpatch_FALSE; }
     if (out_fileLength!=0){
-        if (!hpatch_getFileSize(fileName_utf8,out_fileLength)) _file_error(file);
+        if (!hpatch_getFileSize(fileName_utf8,out_fileLength)) return hpatch_FALSE;
     }
     file=_import_fileOpenByMode(fileName_utf8,_kFileReadMode);
-    if (file==0) _file_error(file);
+    if (file==0) return hpatch_FALSE;
     *out_fileHandle=file;
     return hpatch_TRUE;
 }
@@ -361,9 +365,9 @@ hpatch_BOOL _import_fileOpenRead(const char* fileName_utf8,hpatch_FileHandle* ou
 hpatch_BOOL _import_fileOpenCreateOrReWrite(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle){
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
-    if (out_fileHandle==0) _file_error(file);
+    if (out_fileHandle==0) { _setFileErrNo(EINVAL); return hpatch_FALSE; }
     file=_import_fileOpenByMode(fileName_utf8,_kFileWriteMode);
-    if (file==0) _file_error(file);
+    if (file==0) return hpatch_FALSE;
     *out_fileHandle=file;
     return hpatch_TRUE;
 }
@@ -373,22 +377,30 @@ hpatch_BOOL _import_fileReopenWrite(const char* fileName_utf8,hpatch_FileHandle*
     hpatch_FileHandle file=0;
     hpatch_StreamPos_t curFileSize=0;
     assert(out_fileHandle!=0);
-    if (out_fileHandle==0) _file_error(file);
-    if (!hpatch_getFileSize(fileName_utf8,&curFileSize)) _file_error(file);
+    if (out_fileHandle==0) { _setFileErrNo(EINVAL); return hpatch_FALSE; }
+    if (!hpatch_getFileSize(fileName_utf8,&curFileSize)) return hpatch_FALSE;
     if (out_curFileWritePos!=0) *out_curFileWritePos=curFileSize;
     file=_import_fileOpenByMode(fileName_utf8,_kFileReadWriteMode);
-    if (file==0) _file_error(file);
-    if (!_import_fileSeek64(file,curFileSize)) _file_error(file);
+    if (file==0) return hpatch_FALSE;
+    if (!_import_fileSeek64(file,curFileSize))  
+        { _import_fileClose_No_errno(&file); return hpatch_FALSE; }
     *out_fileHandle=file;
     return hpatch_TRUE;
 }
 
+#if (_FILE_IS_USED_errno)
+#   define  _updateTfsErr()     { if (self->fileError==0) self->fileError=errno; \
+                                  LOG_ERRNO(errno,"hpatch_TFileStream"); }
+#   define  _updateTfsErrv(v)   { _setFileErrNo(v); _updateTfsErr(); }
+#else
+#   define  _updateTfsErr()     { self->fileError=hpatch_TRUE; }
+#   define  _updateTfsErrv(v)   _updateTfsErr()
+#endif
 
-
-#undef _file_error
-
-
-#define _fileError_return { self->fileError=hpatch_TRUE; self->m_fpos=~(hpatch_StreamPos_t)0; return hpatch_FALSE; }
+#define _ferr_return()          { _updateTfsErr();   return hpatch_FALSE; }
+#define _ferr_returnv(v)        { _updateTfsErrv(v); return hpatch_FALSE; }
+#define _rw_ferr_return()       { self->m_fpos=~(hpatch_StreamPos_t)0; _ferr_return(); }
+#define _rw_ferr_returnv(v)     { self->m_fpos=~(hpatch_StreamPos_t)0; _ferr_returnv(v); }
 
     static hpatch_BOOL _TFileStreamInput_read_file(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                                                    TByte* out_data,TByte* out_data_end){
@@ -398,43 +410,45 @@ hpatch_BOOL _import_fileReopenWrite(const char* fileName_utf8,hpatch_FileHandle*
         readLen=(size_t)(out_data_end-out_data);
         if (readLen==0) return hpatch_TRUE;
         if ((readLen>self->base.streamSize)
-            ||(readFromPos>self->base.streamSize-readLen)) _fileError_return;
+            ||(readFromPos>self->base.streamSize-readLen)) _ferr_returnv(EFBIG);
         if (self->m_fpos!=readFromPos+self->m_offset){
-            if (!_import_fileSeek64(self->m_file,readFromPos+self->m_offset)) _fileError_return;
+            if (!_import_fileSeek64(self->m_file,readFromPos+self->m_offset)) _rw_ferr_return();
         }
-        if (!_import_fileRead(self->m_file,out_data,out_data+readLen)) _fileError_return;
+        if (!_import_fileRead(self->m_file,out_data,out_data+readLen)) _rw_ferr_return();
         self->m_fpos=readFromPos+self->m_offset+readLen;
         return hpatch_TRUE;
     }
 
 hpatch_BOOL hpatch_TFileStreamInput_open(hpatch_TFileStreamInput* self,const char* fileName_utf8){
     assert(self->m_file==0);
-    if (self->m_file) return hpatch_FALSE;
-    if (!_import_fileOpenRead(fileName_utf8,&self->m_file,&self->base.streamSize)) return hpatch_FALSE;
+    self->fileError=hpatch_FALSE;
+    if (self->m_file) _ferr_returnv(EINVAL);
+    if (!_import_fileOpenRead(fileName_utf8,&self->m_file,&self->base.streamSize))
+        _ferr_return();
     
     self->base.streamImport=self;
     self->base.read=_TFileStreamInput_read_file;
     self->m_fpos=0;
     self->m_offset=0;
-    self->fileError=hpatch_FALSE;
     return hpatch_TRUE;
 }
 
 hpatch_BOOL hpatch_TFileStreamInput_setOffset(hpatch_TFileStreamInput* self,hpatch_StreamPos_t offset){
     if (self->base.streamSize<offset)
-        return hpatch_FALSE;
+        _ferr_returnv(EFBIG);
     self->m_offset+=offset;
     self->base.streamSize-=offset;
     return hpatch_TRUE;
 }
 
 hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self){
-    return _import_fileClose(&self->m_file);
+    if (!_import_fileClose(&self->m_file)) _ferr_return();
+    return hpatch_TRUE;
 }
 
 
     static hpatch_BOOL _TFileStreamOutput_write_file(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
-                                   const TByte* data,const TByte* data_end){
+                                                     const TByte* data,const TByte* data_end){
         size_t writeLen;
         hpatch_TFileStreamOutput* self=(hpatch_TFileStreamOutput*)stream->streamImport;
         assert(data<=data_end);
@@ -442,33 +456,33 @@ hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self){
         writeLen=(size_t)(data_end-data);
         if (writeLen==0) return hpatch_TRUE;
         if ((writeLen>self->base.streamSize)
-            ||(writeToPos>self->base.streamSize-writeLen)) _fileError_return;
+            ||(writeToPos>self->base.streamSize-writeLen)) _ferr_returnv(EFBIG);
         if (self->is_in_readModel){
             self->is_in_readModel=hpatch_FALSE;
             self->m_fpos=~(hpatch_StreamPos_t)0;
         }
         if (writeToPos!=self->m_fpos){
             if (self->is_random_out){
-                if (!_import_fileFlush(self->m_file)) _fileError_return; //for lseek64 safe
-                if (!_import_fileSeek64(self->m_file,writeToPos)) _fileError_return;
+                if (!_import_fileFlush(self->m_file)) _rw_ferr_return(); //for lseek64 safe
+                if (!_import_fileSeek64(self->m_file,writeToPos)) _rw_ferr_return();
                 self->m_fpos=writeToPos;
             }else{
-                _fileError_return;
+                _ferr_returnv(ERANGE); //must continue write at self->m_fpos
             }
         }
-        if (!_import_fileWrite(self->m_file,data,data+writeLen)) _fileError_return;
+        if (!_import_fileWrite(self->m_file,data,data+writeLen)) _rw_ferr_return();
         self->m_fpos=writeToPos+writeLen;
         self->out_length=(self->out_length>=self->m_fpos)?self->out_length:self->m_fpos;
         return hpatch_TRUE;
     }
     static hpatch_BOOL _hpatch_TFileStreamOutput_read_file(const hpatch_TStreamOutput* stream,
-                                                    hpatch_StreamPos_t readFromPos,
-                                                    TByte* out_data,TByte* out_data_end){
+                                                           hpatch_StreamPos_t readFromPos,
+                                                           TByte* out_data,TByte* out_data_end){
          //hpatch_TFileStreamOutput is A hpatch_TFileStreamInput !
         hpatch_TFileStreamOutput* self=(hpatch_TFileStreamOutput*)stream->streamImport;
         const hpatch_TStreamInput* in_stream=(const hpatch_TStreamInput*)stream;
         if (!self->is_in_readModel){
-            if (!hpatch_TFileStreamOutput_flush(self)) return hpatch_FALSE;
+            if (!hpatch_TFileStreamOutput_flush(self)) _rw_ferr_return();
             self->is_in_readModel=hpatch_TRUE;
             self->m_fpos=~(hpatch_StreamPos_t)0;
         }
@@ -477,8 +491,10 @@ hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self){
 hpatch_BOOL hpatch_TFileStreamOutput_open(hpatch_TFileStreamOutput* self,const char* fileName_utf8,
                                           hpatch_StreamPos_t max_file_length){
     assert(self->m_file==0);
-    if (self->m_file) return hpatch_FALSE;
-    if (!_import_fileOpenCreateOrReWrite(fileName_utf8,&self->m_file)) return hpatch_FALSE;
+    self->fileError=hpatch_FALSE;
+    if (self->m_file) _ferr_returnv(EINVAL);
+    if (!_import_fileOpenCreateOrReWrite(fileName_utf8,&self->m_file))
+        _ferr_return();
     
     self->base.streamImport=self;
     self->base.streamSize=max_file_length;
@@ -486,7 +502,6 @@ hpatch_BOOL hpatch_TFileStreamOutput_open(hpatch_TFileStreamOutput* self,const c
     self->base.write=_TFileStreamOutput_write_file;
     self->m_fpos=0;
     self->m_offset=0;
-    self->fileError=hpatch_FALSE;
     self->is_in_readModel=hpatch_FALSE;
     self->is_random_out=hpatch_FALSE;
     self->out_length=0;
@@ -496,13 +511,14 @@ hpatch_BOOL hpatch_TFileStreamOutput_reopen(hpatch_TFileStreamOutput* self,const
                                             hpatch_StreamPos_t max_file_length){
     hpatch_StreamPos_t curFileWritePos=0;
     assert(self->m_file==0);
-    if (self->m_file) return hpatch_FALSE;
+    self->fileError=hpatch_FALSE;
+    if (self->m_file) _ferr_returnv(EINVAL);
     if (!_import_fileReopenWrite(fileName_utf8,&self->m_file,&curFileWritePos))
-        return hpatch_FALSE;
+       _ferr_return();
     if (curFileWritePos>max_file_length){
         //note: now not support reset file length to max_file_length
         _import_fileClose(&self->m_file);
-        return hpatch_FALSE;
+        _ferr_returnv(EFBIG);
     }
     self->base.streamImport=self;
     self->base.streamSize=max_file_length;
@@ -510,7 +526,6 @@ hpatch_BOOL hpatch_TFileStreamOutput_reopen(hpatch_TFileStreamOutput* self,const
     self->base.write=_TFileStreamOutput_write_file;
     self->m_fpos=curFileWritePos;
     self->m_offset=0;
-    self->fileError=hpatch_FALSE;
     self->is_in_readModel=hpatch_FALSE;
     self->is_random_out=hpatch_FALSE;
     self->out_length=curFileWritePos;
@@ -519,13 +534,19 @@ hpatch_BOOL hpatch_TFileStreamOutput_reopen(hpatch_TFileStreamOutput* self,const
 
 /*
 hpatch_BOOL hpatch_TFileStreamOutput_truncate(hpatch_TFileStreamOutput* self,hpatch_StreamPos_t new_file_length){
-    return _import_fileTruncate(self->m_file,new_file_length);
+    if (!_import_fileTruncate(self->m_file,new_file_length)) 
+        _ferr_return();
+    return hpatch_TRUE;
 }*/
 
 hpatch_BOOL hpatch_TFileStreamOutput_flush(hpatch_TFileStreamOutput* self){
-    return _import_fileFlush(self->m_file);
+    if (!_import_fileFlush(self->m_file)) 
+        _ferr_return();
+    return hpatch_TRUE;
 }
 
 hpatch_BOOL hpatch_TFileStreamOutput_close(hpatch_TFileStreamOutput* self){
-    return _import_fileClose(&self->m_file);
+    if (!_import_fileClose(&self->m_file))
+        _ferr_return();
+    return hpatch_TRUE;
 }

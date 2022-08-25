@@ -257,7 +257,7 @@ struct TVectorAsStreamOutput:public hpatch_TStreamOutput{
 };
 
 
-#define _test_rt(value) { if (!(value)) { LOG_ERR("patch check "#value" error!\n");  return hpatch_FALSE; } }
+#define _test_rt(value) { if (!(value)) { LOG_ERR("check "#value" error!\n");  return hpatch_FALSE; } }
 
 struct _TCheckOutNewDataStream:public hpatch_TStreamOutput{
     _TCheckOutNewDataStream(const hpatch_TStreamInput* _newData,unsigned char* _buf,size_t _bufSize);

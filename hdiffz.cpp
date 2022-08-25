@@ -1171,28 +1171,35 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     }
 }
 
-#define _check_readFile(value) { if (!(value)) { hpatch_TFileStreamInput_close(&file); return hpatch_FALSE; } }
+#define _checkf(value,errorInfo) { if (!(value)) { \
+    LOG_ERR(errorInfo " ERROR!\n"); result=hpatch_FALSE; if (!_isInClear){ goto clear; } } }
 static hpatch_BOOL readFileAll(hdiff_private::TAutoMem& out_mem,const char* fileName){
+    hpatch_BOOL         result=hpatch_TRUE;
+    int                 _isInClear=hpatch_FALSE;
     size_t              dataSize;
     hpatch_TFileStreamInput    file;
     hpatch_TFileStreamInput_init(&file);
-    _check_readFile(hpatch_TFileStreamInput_open(&file,fileName));
+
+    _checkf(hpatch_TFileStreamInput_open(&file,fileName),"readFileAll() file open");
     dataSize=(size_t)file.base.streamSize;
-    _check_readFile(dataSize==file.base.streamSize);
+    _checkf(dataSize==file.base.streamSize,"readFileAll() file size");
     try {
         out_mem.realloc(dataSize);
     } catch (...) {
-        _check_readFile(false);
+        _checkf(false,"readFileAll() memory alloc");
     }
-    _check_readFile(file.base.read(&file.base,0,out_mem.data(),out_mem.data_end()));
-    return hpatch_TFileStreamInput_close(&file);
+    _checkf(file.base.read(&file.base,0,out_mem.data(),out_mem.data_end()),"readFileAll() file read");
+clear:
+    _isInClear=hpatch_TRUE;
+    _checkf(hpatch_TFileStreamInput_close(&file),"readFileAll() file close");
+    return result;
 }
 
-#define  _check_on_error(errorType) { \
+#define _check_on_error(errorType) { \
     if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
-#define check(value,errorType,errorInfo) { \
-    std::string erri=std::string()+errorInfo+" ERROR!\n"; \
-    if (!(value)){ hpatch_printStdErrPath_utf8(erri.c_str()); _check_on_error(errorType); } }
+#define check(value,errorType,errorInfo) { if (!(value)){ \
+    hpatch_printStdErrPath_utf8((std::string()+errorInfo+" ERROR!\n").c_str()); \
+    _check_on_error(errorType); } }
 
 static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const char* outDiffFileName,
                         const hdiff_TCompress* compressPlugin,const TDiffSets& diffSets){
