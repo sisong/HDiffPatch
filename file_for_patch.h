@@ -239,7 +239,7 @@ typedef struct hpatch_TFileStreamInput{
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset;
 #if (_FILE_IS_USED_errno)
-    errno_t             fileError; // 0: no error; other: saved errno value;
+    int                 fileError; // 0: no error; other: saved errno value;
 #else
     hpatch_BOOL         fileError;
 #endif
@@ -259,7 +259,7 @@ typedef struct hpatch_TFileStreamOutput{ //is hpatch_TFileStreamInput !
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset; //now not used
 #if (_FILE_IS_USED_errno)
-    errno_t             fileError; // 0: no error; other: saved errno value;
+    int                 fileError; // 0: no error; other: saved errno value;
 #else
     hpatch_BOOL         fileError;
 #endif

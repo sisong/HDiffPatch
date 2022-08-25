@@ -268,7 +268,7 @@ hpatch_BOOL _import_fileClose(hpatch_FileHandle* pfile){
 #if (_FILE_IS_USED_errno)
     hpatch_inline static
     hpatch_BOOL _import_fileClose_No_errno(hpatch_FileHandle* pfile){
-        errno_t err=errno;
+        int err=errno;
         hpatch_BOOL result=_import_fileClose(pfile); 
         if (err) _setFileErrNo(err);
         return result;
@@ -333,7 +333,7 @@ static hpatch_FileHandle _import_fileOpenByMode(const char* fileName_utf8,const 
     if (wsize>0) {
 # if (_MSC_VER>=1400) // VC2005
         hpatch_FileHandle file=0;
-        errno_t err=_wfopen_s(&file,fileName_w,mode_w);
+        int err=_wfopen_s(&file,fileName_w,mode_w);
         return (err==0)?file:0;
 # else
         return _wfopen(fileName_w,mode_w);
