@@ -34,7 +34,7 @@
 
 #define TUInt hpatch_StreamPos_t
 
-#define  check(value) { if (!(value)){ LOG_ERR("check "#value" error!\n");  \
+#define  checki(value,errorInfo) { if (!(value)){ LOG_ERR("dir_patch " errorInfo " error!\n");  \
                                        result=hpatch_FALSE; goto clear; } }
 
 void formatDirTagForLoad(char* utf8_path,char* utf8_pathEnd){
@@ -63,7 +63,8 @@ hpatch_BOOL readListTo(TStreamCacheClip* sclip,hpatch_StreamPos_t* out_list,size
     hpatch_BOOL result=hpatch_TRUE;
     size_t i;
     for (i=0; i<count; ++i) {
-        check(_TStreamCacheClip_unpackUIntWithTag(sclip,&out_list[i],0));
+        checki(_TStreamCacheClip_unpackUIntWithTag(sclip,&out_list[i],0),
+               "readListTo() saved data");
     }
 clear:
     return result;
@@ -77,9 +78,9 @@ hpatch_BOOL readIncListTo(TStreamCacheClip* sclip,size_t* out_list,
     size_t i;
     for (i=0; i<count; ++i) {
         TUInt incValue;
-        check(_TStreamCacheClip_unpackUIntWithTag(sclip,&incValue,0));
+        checki(_TStreamCacheClip_unpackUIntWithTag(sclip,&incValue,0),"readIncListTo() saved data");
         backValue+=1+incValue;
-        check(backValue<check_endValue);
+        checki(backValue<check_endValue,"readIncListTo() saved data value");
         out_list[i]=(size_t)backValue;
     }
 clear:
@@ -89,7 +90,7 @@ clear:
 char* setPath(char* out_path,char* out_pathBufEnd,const char* fileName){
     char* result=0; //false
     size_t strLen=strlen(fileName);
-    check(strLen+1<=(size_t)(out_pathBufEnd-out_path));
+    checki(strLen+1<=(size_t)(out_pathBufEnd-out_path),"setPath() fileName buf size");
     memcpy(out_path,fileName,strLen+1);//with '\0'
     result=out_path+strLen;
 clear:
@@ -100,7 +101,8 @@ char* setDirPath(char* out_path,char* out_pathBufEnd,const char* dirName){
     char* result=0; //false
     size_t strLen=strlen(dirName);
     hpatch_BOOL isNeedDirSeparator=(strLen>0)&&(dirName[strLen-1]!=kPatch_dirSeparator);
-    check((strLen+(isNeedDirSeparator?1:0)+1)<=(size_t)(out_pathBufEnd-out_path));
+    checki((strLen+(isNeedDirSeparator?1:0)+1)<=(size_t)(out_pathBufEnd-out_path),
+           "setDirPath() dirName buf size");
     memcpy(out_path,dirName,strLen);
     result=out_path+strLen;
     if (isNeedDirSeparator) { *result=kPatch_dirSeparator; ++result; }

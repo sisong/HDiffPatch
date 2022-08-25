@@ -51,7 +51,7 @@
 #   define _IsNeedIncludeDefaultCompressHead 1
 #endif
 
-#define _close_check(value) { if (!(value)) { LOG_ERR("check "#value " ERROR!\n"); result=hpatch_FALSE; } }
+#define _dec_close_check(value) { if (!(value)) { LOG_ERR("check "#value " ERROR!\n"); result=hpatch_FALSE; } }
 
 #ifdef  _CompressPlugin_zlib
 #if (_IsNeedIncludeDefaultCompressHead)
@@ -137,7 +137,7 @@
         hpatch_BOOL result=hpatch_TRUE;
         if (!self) return result;
         if (self->d_stream.state!=0){
-            _close_check(Z_OK==inflateEnd(&self->d_stream));
+            _dec_close_check(Z_OK==inflateEnd(&self->d_stream));
         }
         memset(self,0,sizeof(_zlib_TDecompress));
         return result;
@@ -272,7 +272,7 @@
         hpatch_BOOL result=hpatch_TRUE;
         _bz2_TDecompress* self=(_bz2_TDecompress*)decompressHandle;
         if (!self) return result;
-        _close_check(BZ_OK==BZ2_bzDecompressEnd(&self->d_stream));
+        _dec_close_check(BZ_OK==BZ2_bzDecompressEnd(&self->d_stream));
         free(self);
         return result;
     }
@@ -649,7 +649,7 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         hpatch_BOOL result=hpatch_TRUE;
         _lz4_TDecompress* self=(_lz4_TDecompress*)decompressHandle;
         if (!self) return result;
-        _close_check(0==LZ4_freeStreamDecode(self->s));
+        _dec_close_check(0==LZ4_freeStreamDecode(self->s));
         free(self);
         return result;
     }
@@ -743,7 +743,7 @@ static hpatch_TDecompress lzma2DecompressPlugin={_lzma2_is_can_open,_lzma2_open,
         hpatch_BOOL result=hpatch_TRUE;
         _zstd_TDecompress* self=(_zstd_TDecompress*)decompressHandle;
         if (!self) return result;
-        _close_check(0==ZSTD_freeDStream(self->s));
+        _dec_close_check(0==ZSTD_freeDStream(self->s));
         free(self);
         return result;
     }
