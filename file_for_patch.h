@@ -49,7 +49,13 @@
 #else
 #   define  _setFileErrNo(v)
 #endif
-
+#if (_FILE_IS_USED_errno)
+#   define  LOG_ERRNO(_err_no,errorInfo) \
+        LOG_ERR(errorInfo " ERROR! errno: %d, errmsg: %s.\n",_err_no,strerror(_err_no))
+#else
+#   define  LOG_ERRNO(_,errorInfo) LOG_ERR(errorInfo " ERROR!\n")
+#endif
+    
 
 #ifndef _IS_USED_WIN32_UTF8_WAPI
 #   if (defined(_WIN32) && defined(_MSC_VER))
@@ -233,7 +239,7 @@ typedef struct hpatch_TFileStreamInput{
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset;
 #if (_FILE_IS_USED_errno)
-    int                 fileError; // 0: no error; >=1 : saved errno value; <0 unknow error
+    errno_t             fileError; // 0: no error; other: saved errno value;
 #else
     hpatch_BOOL         fileError;
 #endif
