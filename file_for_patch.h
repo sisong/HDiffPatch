@@ -49,13 +49,31 @@
 #else
 #   define  _setFileErrNo(v)
 #endif
+
+#define _k_import_system_tag "call import system api"
 #if (_FILE_IS_USED_errno)
-#   define  LOG_ERRNO(_err_no,errorInfo) \
-        LOG_ERR(errorInfo " ERROR! errno: %d, errmsg: %s.\n",_err_no,strerror(_err_no))
+#   define  LOG_ERRNO(_err_no) \
+        LOG_ERR(_k_import_system_tag" error! errno: %d, errmsg: %s.\n",_err_no,strerror(_err_no))
 #else
-#   define  LOG_ERRNO(_,errorInfo) LOG_ERR(errorInfo " ERROR!\n")
+#   define  LOG_ERRNO(_err_no) LOG_ERR(_k_import_system_tag" error!\n")
 #endif
-    
+
+#   define  set_ferr(_saved_errno,_throw_errno) /*save new errno*/\
+                        do { if (_throw_errno) _saved_errno=_throw_errno; } while(0)
+
+#if (_FILE_IS_USED_errno)
+#   define  __mix_ferr_(_saved_errno,_throw_errno,_is_log) /*only save first errno*/ do { \
+                        if (((_saved_errno)!=(_throw_errno))&&(_throw_errno)){ \
+                            if (!(_saved_errno)) _saved_errno=_throw_errno; \
+                            if (_is_log) LOG_ERRNO(_throw_errno); } } while(0)
+#   define  _update_ferr(fe)        do { int v=errno;      __mix_ferr_(fe,v,1); } while(0)
+#   define  _update_ferrv(fe,v)     do { _setFileErrNo(v); __mix_ferr_(fe,v,1);  } while(0)
+#   define  mix_ferr(_saved_errno,_throw_errno)     __mix_ferr_(_saved_errno,_throw_errno,0)
+#else
+#   define  _update_ferr(fe)        do { fe=hpatch_TRUE; } while(0)
+#   define  _update_ferrv(fe,v)     _update_ferr(fe)
+#   define  mix_ferr(_saved_errno,_throw_errno)     set_ferr(_saved_errno,_throw_errno)
+#endif
 
 #ifndef _IS_USED_WIN32_UTF8_WAPI
 #   if (defined(_WIN32) && defined(_MSC_VER))

@@ -388,17 +388,9 @@ hpatch_BOOL _import_fileReopenWrite(const char* fileName_utf8,hpatch_FileHandle*
     return hpatch_TRUE;
 }
 
-#if (_FILE_IS_USED_errno)
-#   define  _updateTfsErr()     { if (self->fileError==0) self->fileError=errno; \
-                                  LOG_ERRNO(errno,"hpatch_TFileStream"); }
-#   define  _updateTfsErrv(v)   { _setFileErrNo(v); _updateTfsErr(); }
-#else
-#   define  _updateTfsErr()     { self->fileError=hpatch_TRUE; }
-#   define  _updateTfsErrv(v)   _updateTfsErr()
-#endif
 
-#define _ferr_return()          { _updateTfsErr();   return hpatch_FALSE; }
-#define _ferr_returnv(v)        { _updateTfsErrv(v); return hpatch_FALSE; }
+#define _ferr_return()          { _update_ferr(self->fileError);   return hpatch_FALSE; }
+#define _ferr_returnv(v)        { _update_ferrv(self->fileError,v); return hpatch_FALSE; }
 #define _rw_ferr_return()       { self->m_fpos=~(hpatch_StreamPos_t)0; _ferr_return(); }
 #define _rw_ferr_returnv(v)     { self->m_fpos=~(hpatch_StreamPos_t)0; _ferr_returnv(v); }
 
