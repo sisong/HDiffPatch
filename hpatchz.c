@@ -832,11 +832,11 @@ int hpatch(const char* oldFileName,const char* diffFileName,
     hpatch_TFileStreamInput_init(&diffData);
     hpatch_TFileStreamOutput_init(&newData);
     {//open
-        printf(    "old : \""); hpatch_printPath_utf8(oldFileName);
+        printf(    "old : \""); if (oldFileName) hpatch_printPath_utf8(oldFileName);
         printf("\"\ndiff: \""); hpatch_printPath_utf8(diffFileName);
         printf("\"\nout : \""); hpatch_printPath_utf8(outNewFileName);
         printf("\"\n");
-        if (0==strcmp(oldFileName,"")){ // isOldPathInputEmpty
+        if ((0==oldFileName)||(0==strlen(oldFileName))){
             mem_as_hStreamInput(&oldData.base,0,0);
         }else{
             check(hpatch_TFileStreamInput_open(&oldData,oldFileName),
@@ -967,11 +967,11 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     const hpatch_TStreamOutput* newStream=0;
     hpatch_TFileStreamInput_init(&diffData);
     TDirPatcher_init(&dirPatcher);
-    assert(0!=strcmp(oldPath,outNewPath));
+    if (oldPath) assert(0!=strcmp(oldPath,outNewPath));
     {//dir diff info
         hpatch_BOOL  rt;
         hpatch_TPathType    oldType;
-        if (0==strcmp(oldPath,"")){ // isOldPathInputEmpty
+        if ((0==oldPath)||(0==strlen(oldPath))){
             oldType=kPathType_file; //as empty file
         }else{
             check(hpatch_getPathStat(oldPath,&oldType,0),HPATCH_PATHTYPE_ERROR,"get oldPath type");
@@ -998,8 +998,9 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             check(kPathType_file==oldType,HPATCH_PATHTYPE_ERROR,"input old path need file");
         }
         printf(        dirDiffInfo->oldPathIsDir?"old  dir: \"":"old file: \"");
-        hpatch_printPath_utf8(oldPath);
-        if (dirDiffInfo->oldPathIsDir&&(!hpatch_getIsDirName(oldPath))) printf("%c",kPatch_dirSeparator);
+        if (oldPath) hpatch_printPath_utf8(oldPath);
+        if ((oldPath)&&dirDiffInfo->oldPathIsDir&&(!hpatch_getIsDirName(oldPath))) 
+            printf("%c",kPatch_dirSeparator);
         printf(                                             "\"\ndiffFile: \"");
         hpatch_printPath_utf8(diffFileName);
         printf(dirDiffInfo->newPathIsDir?"\"\nout  dir: \"":"\"\nout file: \"");
