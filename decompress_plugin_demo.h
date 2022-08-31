@@ -384,17 +384,20 @@ static void* _dec_malloc(hpatch_size_t size) {
 #       include "Lzma2Dec.h"
 #   endif
 #endif
-static void * __lzma_dec_Alloc(ISzAllocPtr p, size_t size){
-    return malloc(size);
-}
-static void __lzma_dec_Free(ISzAllocPtr p, void *address){
-    if (address) free(address);
-}
-static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
+
+    #define __lzmax_dec_Alloc(_lzmax_TDecompress,p,size) {  \
+        void* result=_dec_malloc(size); \
+        if (!result)    \
+            ((_lzmax_TDecompress*)p)->isMemError=hpatch_TRUE;   \
+        return result;  }
+    static void __lzmax_dec_Free(ISzAllocPtr p, void *address){
+        if (address) free(address); }
+    #define _dec_onMemErr_up()   do { if ((self)->isMemError) _dec_memErr(); } while(0)
 #endif
 
 #ifdef _CompressPlugin_lzma
     typedef struct _lzma_TDecompress{
+        ISzAlloc           memAllocBase;
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
         hpatch_StreamPos_t code_end;
@@ -406,6 +409,9 @@ static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
         hpatch_BOOL     isMemError;
         unsigned char   dec_buf[kDecompressBufSize];
     } _lzma_TDecompress;
+    static void * __lzma1_dec_Alloc(ISzAllocPtr p, size_t size) 
+        __lzmax_dec_Alloc(_lzma_TDecompress,p,size)
+
     static hpatch_BOOL _lzma_is_can_open(const char* compressType){
         return (0==strcmp(compressType,"lzma"));
     }
@@ -430,6 +436,8 @@ static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
         self=(_lzma_TDecompress*)_dec_malloc(sizeof(_lzma_TDecompress));
         if (!self) _dec_memErr_rt();
         memset(self,0,sizeof(_lzma_TDecompress)-kDecompressBufSize);
+        self->memAllocBase.Alloc=__lzma1_dec_Alloc;
+        self->memAllocBase.Free=__lzmax_dec_Free;
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
@@ -438,7 +446,7 @@ static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
         self->decReadPos=kDecompressBufSize;
         
         LzmaDec_Construct(&self->decEnv);
-        ret=LzmaDec_Allocate(&self->decEnv,props,propsSize,&__lzma_dec_alloc);
+        ret=LzmaDec_Allocate(&self->decEnv,props,propsSize,&self->memAllocBase);
         if (ret!=SZ_OK){ free(self); _dec_onMemErr_up(); _dec_openErr_rt(); }
         LzmaDec_Init(&self->decEnv);
         return self;
@@ -447,7 +455,7 @@ static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
                                    hpatch_decompressHandle decompressHandle){
         _lzma_TDecompress* self=(_lzma_TDecompress*)decompressHandle;
         if (!self) return hpatch_TRUE;
-        LzmaDec_Free(&self->decEnv,&__lzma_dec_alloc);
+        LzmaDec_Free(&self->decEnv,&self->memAllocBase);
         _dec_onMemErr_up();
         _dec_onDecErr_up();
         free(self);
@@ -506,6 +514,7 @@ static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
 
 #ifdef _CompressPlugin_lzma2
     typedef struct _lzma2_TDecompress{
+        ISzAlloc           memAllocBase;
         const struct hpatch_TStreamInput* codeStream;
         hpatch_StreamPos_t code_begin;
         hpatch_StreamPos_t code_end;
@@ -517,6 +526,9 @@ static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
         hpatch_BOOL     isMemError;
         unsigned char   dec_buf[kDecompressBufSize];
     } _lzma2_TDecompress;
+    static void * __lzma2_dec_Alloc(ISzAllocPtr p, size_t size) 
+        __lzmax_dec_Alloc(_lzma2_TDecompress,p,size)
+    
     static hpatch_BOOL _lzma2_is_can_open(const char* compressType){
         return (0==strcmp(compressType,"lzma2"));
     }
@@ -536,6 +548,8 @@ static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
         self=(_lzma2_TDecompress*)_dec_malloc(sizeof(_lzma2_TDecompress));
         if (!self) _dec_memErr_rt();
         memset(self,0,sizeof(_lzma2_TDecompress)-kDecompressBufSize);
+        self->memAllocBase.Alloc=__lzma2_dec_Alloc;
+        self->memAllocBase.Free=__lzmax_dec_Free;
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
@@ -544,7 +558,7 @@ static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
         self->decReadPos=kDecompressBufSize;
         
         Lzma2Dec_Construct(&self->decEnv);
-    ret=Lzma2Dec_Allocate(&self->decEnv,propsSize,&__lzma_dec_alloc);
+        ret=Lzma2Dec_Allocate(&self->decEnv,propsSize,&self->memAllocBase);
         if (ret!=SZ_OK){ free(self); _dec_onMemErr_up(); _dec_openErr_rt(); }
         Lzma2Dec_Init(&self->decEnv);
         return self;
@@ -553,7 +567,7 @@ static ISzAlloc __lzma_dec_alloc={__lzma_dec_Alloc,__lzma_dec_Free};
                                     hpatch_decompressHandle decompressHandle){
         _lzma2_TDecompress* self=(_lzma2_TDecompress*)decompressHandle;
         if (!self) return hpatch_TRUE;
-    Lzma2Dec_Free(&self->decEnv,&__lzma_dec_alloc);
+        Lzma2Dec_Free(&self->decEnv,&self->memAllocBase);
         _dec_onMemErr_up();
         _dec_onDecErr_up();
         free(self);
