@@ -104,6 +104,13 @@ extern "C" {
 #   include <stdio.h>  //for stderr
 #   define LOG_ERR(...) fprintf(stderr,__VA_ARGS__)
 #endif
+#define _hpatch_import_system_tag "call import system api"
+#if (_HPATCH_IS_USED_errno)
+#   define  LOG_ERRNO(_err_no) \
+        LOG_ERR(_hpatch_import_system_tag" error! errno: %d, errmsg: %s.\n",_err_no,strerror(_err_no))
+#else
+#   define  LOG_ERRNO(_err_no) LOG_ERR(_hpatch_import_system_tag" error!\n")
+#endif
     
 #define _hpatch_align_type_lower(uint_type,p,align2pow) (((uint_type)(p)) & (~(uint_type)((align2pow)-1)))
 #define _hpatch_align_lower(p,align2pow) _hpatch_align_type_lower(hpatch_size_t,p,align2pow)
@@ -152,6 +159,12 @@ extern "C" {
     } hpatch_compressedDiffInfo;
     
     typedef void*  hpatch_decompressHandle;
+    typedef enum{
+        hpatch_dec_ok=0,
+        hpatch_dec_mem_error,
+        hpatch_dec_open_error,
+        hpatch_dec_error,
+    } hpatch_dec_error_t;
     typedef struct hpatch_TDecompress{
         hpatch_BOOL        (*is_can_open)(const char* compresseType);
         //error return 0.
@@ -165,8 +178,11 @@ extern "C" {
         //decompress_part() must out (out_part_data_end-out_part_data), otherwise error return hpatch_FALSE
         hpatch_BOOL    (*decompress_part)(hpatch_decompressHandle decompressHandle,
                                           unsigned char* out_part_data,unsigned char* out_part_data_end);
+        hpatch_dec_error_t      decError;
     } hpatch_TDecompress;
-
+    #define _hpatch_update_decError(decompressPlugin,errorCode) \
+        do { if ((decompressPlugin)->decError==hpatch_dec_ok)   \
+                (decompressPlugin)->decError=errorCode;     } while(0)
     
     
     void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,

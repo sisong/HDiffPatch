@@ -41,27 +41,19 @@
 #   include <unistd.h> // rmdir
 #  endif
 #endif
-#ifndef _FILE_IS_USED_errno
-#   define  _FILE_IS_USED_errno 1
+#ifndef _HPATCH_IS_USED_errno
+#   define  _HPATCH_IS_USED_errno 1
 #endif
-#if (_FILE_IS_USED_errno)
+#if (_HPATCH_IS_USED_errno)
 #   define  _setFileErrNo(v) do {errno=v;} while(0)
 #else
 #   define  _setFileErrNo(v)
 #endif
 
-#define _k_import_system_tag "call import system api"
-#if (_FILE_IS_USED_errno)
-#   define  LOG_ERRNO(_err_no) \
-        LOG_ERR(_k_import_system_tag" error! errno: %d, errmsg: %s.\n",_err_no,strerror(_err_no))
-#else
-#   define  LOG_ERRNO(_err_no) LOG_ERR(_k_import_system_tag" error!\n")
-#endif
-
 #   define  set_ferr(_saved_errno,_throw_errno) /*save new errno*/\
                         do { if (_throw_errno) _saved_errno=_throw_errno; } while(0)
 
-#if (_FILE_IS_USED_errno)
+#if (_HPATCH_IS_USED_errno)
 #   define  __mix_ferr_(_saved_errno,_throw_errno,_is_log) /*only save first errno*/ do { \
                         if (((_saved_errno)!=(_throw_errno))&&(_throw_errno)){ \
                             if (!(_saved_errno)) _saved_errno=_throw_errno; \
@@ -256,7 +248,7 @@ typedef struct hpatch_TFileStreamInput{
     hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset;
-#if (_FILE_IS_USED_errno)
+#if (_HPATCH_IS_USED_errno)
     int                 fileError; // 0: no error; other: saved errno value;
 #else
     hpatch_BOOL         fileError;
@@ -276,7 +268,7 @@ typedef struct hpatch_TFileStreamOutput{ //is hpatch_TFileStreamInput !
     hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset; //now not used
-#if (_FILE_IS_USED_errno)
+#if (_HPATCH_IS_USED_errno)
     int                 fileError; // 0: no error; other: saved errno value;
 #else
     hpatch_BOOL         fileError;

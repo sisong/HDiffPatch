@@ -265,7 +265,7 @@ hpatch_BOOL _import_fileClose(hpatch_FileHandle* pfile){
     }
     return hpatch_TRUE;
 }
-#if (_FILE_IS_USED_errno)
+#if (_HPATCH_IS_USED_errno)
     hpatch_inline static
     hpatch_BOOL _import_fileClose_No_errno(hpatch_FileHandle* pfile){
         int err=errno;
