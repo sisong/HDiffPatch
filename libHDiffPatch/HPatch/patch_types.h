@@ -164,6 +164,7 @@ extern "C" {
         hpatch_dec_mem_error,
         hpatch_dec_open_error,
         hpatch_dec_error,
+        hpatch_dec_close_error,
     } hpatch_dec_error_t;
     typedef struct hpatch_TDecompress{
         hpatch_BOOL        (*is_can_open)(const char* compresseType);
