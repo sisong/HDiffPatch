@@ -89,6 +89,8 @@ static void __dec_free(void* _, void* address){
         signed char     windowBits;
         hpatch_dec_error_t  decError;
     } _zlib_TDecompress;
+    static void * __zlib_dec_Alloc(void* p,uInt items,uInt size) 
+        __dec_Alloc_fun(_zlib_TDecompress,p,((items)*(size_t)(size)))
     static hpatch_BOOL _zlib_is_can_open(const char* compressType){
         return (0==strcmp(compressType,"zlib"))||(0==strcmp(compressType,"pzlib"));
     }
@@ -121,9 +123,11 @@ static void __dec_free(void* _, void* address){
         self->code_begin=code_begin;
         self->code_end=code_end;
         self->windowBits=kWindowBits;
-        
+        self->d_stream.zalloc=__zlib_dec_Alloc;
+        self->d_stream.zfree=__dec_free;
+        self->d_stream.opaque=self;
         ret = inflateInit2(&self->d_stream,self->windowBits);
-        if (ret!=Z_OK) _dec_openErr_rt();
+        if (ret!=Z_OK) { _dec_onDecErr_up(); _dec_openErr_rt(); }
         return self;
     }
     static hpatch_decompressHandle  _zlib_decompress_open(hpatch_TDecompress* decompressPlugin,
