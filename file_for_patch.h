@@ -41,9 +41,6 @@
 #   include <unistd.h> // rmdir
 #  endif
 #endif
-#ifndef _HPATCH_IS_USED_errno
-#   define  _HPATCH_IS_USED_errno 1
-#endif
 #if (_HPATCH_IS_USED_errno)
 #   define  _setFileErrNo(v) do {errno=v;} while(0)
 #else

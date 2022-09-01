@@ -57,15 +57,22 @@
 #define _dec_close_check(value) { if (!(value)) { LOG_ERR("check "#value " ERROR!\n"); \
                                     result=hpatch_FALSE; _hpatch_update_decError(decompressPlugin,hpatch_dec_close_error); } }
 
-#define _dec_onDecErr_rt()  do { (self)->decError=hpatch_dec_error; return 0; } while(0)
-#define _dec_onDecErr_up()   do { if ((self)->decError) _hpatch_update_decError(decompressPlugin,(self)->decError); } while(0)
+#define _dec_onDecErr_rt()  do { if (!(self)->decError) (self)->decError=hpatch_dec_error;  return 0; } while(0)
+#define _dec_onDecErr_up()  do { if ((self)->decError) _hpatch_update_decError(decompressPlugin,(self)->decError); } while(0)
 
 static void* _dec_malloc(hpatch_size_t size) {
     void* result=malloc(size);
     if (!result) LOG_ERRNO(errno);
     return result;
 }
+#define __dec_Alloc_fun(_type_TDecompress,p,size) {  \
+    void* result=_dec_malloc(size); \
+    if (!result)    \
+        ((_type_TDecompress*)p)->decError=hpatch_dec_mem_error;   \
+    return result;  }
 
+static void __dec_free(void* _, void* address){
+    if (address) free(address); }
 
 #ifdef  _CompressPlugin_zlib
 #if (_IsNeedIncludeDefaultCompressHead)
@@ -384,14 +391,6 @@ static void* _dec_malloc(hpatch_size_t size) {
 #       include "Lzma2Dec.h"
 #   endif
 #endif
-
-    #define __lzmax_dec_Alloc(_lzmax_TDecompress,p,size) {  \
-        void* result=_dec_malloc(size); \
-        if (!result)    \
-            ((_lzmax_TDecompress*)p)->decError=hpatch_dec_mem_error;   \
-        return result;  }
-    static void __lzmax_dec_Free(ISzAllocPtr p, void *address){
-        if (address) free(address); }
 #endif
 
 #ifdef _CompressPlugin_lzma
@@ -408,7 +407,7 @@ static void* _dec_malloc(hpatch_size_t size) {
         unsigned char   dec_buf[kDecompressBufSize];
     } _lzma_TDecompress;
     static void * __lzma1_dec_Alloc(ISzAllocPtr p, size_t size) 
-        __lzmax_dec_Alloc(_lzma_TDecompress,p,size)
+        __dec_Alloc_fun(_lzma_TDecompress,p,size)
 
     static hpatch_BOOL _lzma_is_can_open(const char* compressType){
         return (0==strcmp(compressType,"lzma"));
@@ -435,7 +434,7 @@ static void* _dec_malloc(hpatch_size_t size) {
         if (!self) _dec_memErr_rt();
         memset(self,0,sizeof(_lzma_TDecompress)-kDecompressBufSize);
         self->memAllocBase.Alloc=__lzma1_dec_Alloc;
-        self->memAllocBase.Free=__lzmax_dec_Free;
+        *((void**)&self->memAllocBase.Free)=__dec_free;
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
@@ -445,7 +444,7 @@ static void* _dec_malloc(hpatch_size_t size) {
         
         LzmaDec_Construct(&self->decEnv);
         ret=LzmaDec_Allocate(&self->decEnv,props,propsSize,&self->memAllocBase);
-        if (ret!=SZ_OK){ free(self); _dec_onDecErr_up(); _dec_openErr_rt(); }
+        if (ret!=SZ_OK){ _dec_onDecErr_up(); free(self); _dec_openErr_rt(); }
         LzmaDec_Init(&self->decEnv);
         return self;
     }
@@ -523,7 +522,7 @@ static void* _dec_malloc(hpatch_size_t size) {
         unsigned char   dec_buf[kDecompressBufSize];
     } _lzma2_TDecompress;
     static void * __lzma2_dec_Alloc(ISzAllocPtr p, size_t size) 
-        __lzmax_dec_Alloc(_lzma2_TDecompress,p,size)
+        __dec_Alloc_fun(_lzma2_TDecompress,p,size)
     
     static hpatch_BOOL _lzma2_is_can_open(const char* compressType){
         return (0==strcmp(compressType,"lzma2"));
@@ -545,7 +544,7 @@ static void* _dec_malloc(hpatch_size_t size) {
         if (!self) _dec_memErr_rt();
         memset(self,0,sizeof(_lzma2_TDecompress)-kDecompressBufSize);
         self->memAllocBase.Alloc=__lzma2_dec_Alloc;
-        self->memAllocBase.Free=__lzmax_dec_Free;
+        *((void**)&self->memAllocBase.Free)=__dec_free;
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
@@ -555,7 +554,7 @@ static void* _dec_malloc(hpatch_size_t size) {
         
         Lzma2Dec_Construct(&self->decEnv);
         ret=Lzma2Dec_Allocate(&self->decEnv,propsSize,&self->memAllocBase);
-        if (ret!=SZ_OK){ free(self); _dec_onDecErr_up(); _dec_openErr_rt(); }
+        if (ret!=SZ_OK){ _dec_onDecErr_up(); free(self); _dec_openErr_rt(); }
         Lzma2Dec_Init(&self->decEnv);
         return self;
     }
@@ -724,6 +723,7 @@ static void* _dec_malloc(hpatch_size_t size) {
 
 #ifdef  _CompressPlugin_zstd
 #if (_IsNeedIncludeDefaultCompressHead)
+//#   define ZSTD_STATIC_LINKING_ONLY //for ZSTD_customMem
 #   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/facebook/zstd
 #endif
     typedef struct _zstd_TDecompress{
@@ -738,6 +738,10 @@ static void* _dec_malloc(hpatch_size_t size) {
         hpatch_dec_error_t decError;
         unsigned char      buf[1];
     } _zstd_TDecompress;
+    #ifdef ZSTD_STATIC_LINKING_ONLY
+    static void* __ZSTD_alloc(void* opaque, size_t size)
+        __dec_Alloc_fun(_zstd_TDecompress,opaque,size)
+    #endif
     static hpatch_BOOL _zstd_is_can_open(const char* compressType){
         return (0==strcmp(compressType,"zstd"));
     }
@@ -764,11 +768,17 @@ static void* _dec_malloc(hpatch_size_t size) {
         self->s_output.size=_output_size;
         self->s_output.pos=0;
         self->data_begin=0;
-        
-        self->s = ZSTD_createDStream();
-        if (!self->s){ free(self); _dec_openErr_rt(); }
+        #ifdef ZSTD_STATIC_LINKING_ONLY
+        {
+            ZSTD_customMem customMem={__ZSTD_alloc,__dec_free,self};
+            self->s=ZSTD_createDStream_advanced(customMem);
+        }
+        #else
+            self->s=ZSTD_createDStream();
+        #endif
+        if (!self->s){ _dec_onDecErr_up(); free(self); _dec_openErr_rt(); }
         ret=ZSTD_initDStream(self->s);
-        if (ZSTD_isError(ret)) { ZSTD_freeDStream(self->s); free(self); _dec_openErr_rt(); }
+        if (ZSTD_isError(ret)) { ZSTD_freeDStream(self->s); _dec_onDecErr_up(); free(self); _dec_openErr_rt(); }
         #define _ZSTD_WINDOWLOG_MAX ((sizeof(size_t)<=4)?30:31)
         ret=ZSTD_DCtx_setParameter(self->s,ZSTD_d_windowLogMax,_ZSTD_WINDOWLOG_MAX);
         //if (ZSTD_isError(ret)) { printf("WARNING: ZSTD_DCtx_setMaxWindowSize() error!"); }
