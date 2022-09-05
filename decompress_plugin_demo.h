@@ -438,7 +438,7 @@ static void __dec_free(void* _, void* address){
         if (!self) _dec_memErr_rt();
         memset(self,0,sizeof(_lzma_TDecompress)-kDecompressBufSize);
         self->memAllocBase.Alloc=__lzma1_dec_Alloc;
-        *((void**)&self->memAllocBase.Free)=__dec_free;
+        *((void**)&self->memAllocBase.Free)=(void*)__dec_free;
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
@@ -548,7 +548,7 @@ static void __dec_free(void* _, void* address){
         if (!self) _dec_memErr_rt();
         memset(self,0,sizeof(_lzma2_TDecompress)-kDecompressBufSize);
         self->memAllocBase.Alloc=__lzma2_dec_Alloc;
-        *((void**)&self->memAllocBase.Free)=__dec_free;
+        *((void**)&self->memAllocBase.Free)=(void*)__dec_free;
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
