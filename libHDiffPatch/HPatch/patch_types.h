@@ -182,7 +182,7 @@ extern "C" {
         //decompress_part() must out (out_part_data_end-out_part_data), otherwise error return hpatch_FALSE
         hpatch_BOOL    (*decompress_part)(hpatch_decompressHandle decompressHandle,
                                           unsigned char* out_part_data,unsigned char* out_part_data_end);
-        hpatch_dec_error_t      decError;
+        volatile hpatch_dec_error_t decError; //if you used decError value, once patch must used it's own hpatch_TDecompress
     } hpatch_TDecompress;
     #define _hpatch_update_decError(decompressPlugin,errorCode) \
         do { if ((decompressPlugin)->decError==hpatch_dec_ok)   \

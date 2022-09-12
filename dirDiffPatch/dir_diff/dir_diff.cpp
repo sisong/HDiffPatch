@@ -708,7 +708,7 @@ bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const
 #define _check(value) { if (!(value)) { LOG_ERR("dirOldDataChecksum check "#value" error!\n"); \
                             result= hpatch_FALSE; goto clear; } }
 hpatch_BOOL check_dirOldDataChecksum(const char* oldPath,hpatch_TStreamInput* diffData,
-                                     hpatch_TDecompress *decompressPlugin,hpatch_TChecksum *checksumPlugin){
+                                     hpatch_TDecompress* decompressPlugin,hpatch_TChecksum* checksumPlugin){
     hpatch_BOOL  result=hpatch_TRUE;
     hpatch_BOOL         isAppendContinue=hpatch_FALSE;
     hpatch_StreamPos_t  readPos=0;
