@@ -161,7 +161,7 @@ static void __dec_free(void* _, void* address){
                                                         int  isSavedWindowBits,
                                                         unsigned char* _mem_buf,size_t _mem_buf_size){
         #define __MAX_TS(a,b)  ((a)>=(b)?(a):(b))
-        const hpatch_size_t kZlibAlign=__MAX_TS(__MAX_TS(sizeof(hpatch_StreamPos_t),sizeof(void*)),sizeof(uLongf))
+        const hpatch_size_t kZlibAlign=__MAX_TS(__MAX_TS(sizeof(hpatch_StreamPos_t),sizeof(void*)),sizeof(uLongf));
         #undef __MAX_TS
         unsigned char* _mem_buf_end=_mem_buf+_mem_buf_size;
         unsigned char* self_at=(unsigned char*)_hpatch_align_upper(_mem_buf,kZlibAlign);
