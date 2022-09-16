@@ -95,15 +95,15 @@ static void __dec_free(void* _, void* address){
         return (0==strcmp(compressType,"zlib"))||(0==strcmp(compressType,"pzlib"));
     }
 
-    static _zlib_TDecompress*  _zlib_decompress_open_by(hpatch_TDecompress* decompressPlugin,
+    static _zlib_TDecompress*  _zlib_decompress_open_at(hpatch_TDecompress* decompressPlugin,
                                                         const hpatch_TStreamInput* codeStream,
                                                         hpatch_StreamPos_t code_begin,
                                                         hpatch_StreamPos_t code_end,
                                                         int  isSavedWindowBits,
-                                                        unsigned char* _mem_buf,size_t _mem_buf_size){
-        _zlib_TDecompress* self=0;
+                                                        _zlib_TDecompress* self,size_t _self_size){
         int ret;
         signed char kWindowBits=-MAX_WBITS;
+        assert(_self_size>sizeof(_zlib_TDecompress));
         if (isSavedWindowBits){//load kWindowBits
             if (code_end-code_begin<1) _dec_openErr_rt();
             if (!codeStream->read(codeStream,code_begin,(unsigned char*)&kWindowBits,
@@ -111,14 +111,9 @@ static void __dec_free(void* _, void* address){
             ++code_begin;
         }
         
-        self=(_zlib_TDecompress*)_hpatch_align_upper(_mem_buf,sizeof(hpatch_StreamPos_t));
-        assert((_mem_buf+_mem_buf_size)>((unsigned char*)self+sizeof(_zlib_TDecompress)));
-        _mem_buf_size=(_mem_buf+_mem_buf_size)-((unsigned char*)self+sizeof(_zlib_TDecompress));
-        _mem_buf=(unsigned char*)self+sizeof(_zlib_TDecompress);
-        
         memset(self,0,sizeof(_zlib_TDecompress));
-        self->dec_buf=_mem_buf;
-        self->dec_buf_size=_mem_buf_size;
+        self->dec_buf=((unsigned char*)self)+sizeof(_zlib_TDecompress);
+        self->dec_buf_size=_self_size-sizeof(_zlib_TDecompress);
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;
@@ -138,8 +133,8 @@ static void __dec_free(void* _, void* address){
         _zlib_TDecompress* self=0;
         unsigned char* _mem_buf=(unsigned char*)_dec_malloc(sizeof(_zlib_TDecompress)+kDecompressBufSize);
         if (!_mem_buf) _dec_memErr_rt();
-        self=_zlib_decompress_open_by(decompressPlugin,codeStream,code_begin,code_end,1,
-                                      _mem_buf,sizeof(_zlib_TDecompress)+kDecompressBufSize);
+        self=_zlib_decompress_open_at(decompressPlugin,codeStream,code_begin,code_end,1,
+                                      (_zlib_TDecompress*)_mem_buf,sizeof(_zlib_TDecompress)+kDecompressBufSize);
         if (!self)
             free(_mem_buf);
         return self;
@@ -152,11 +147,27 @@ static void __dec_free(void* _, void* address){
         _zlib_TDecompress* self=0;
         unsigned char* _mem_buf=(unsigned char*)_dec_malloc(sizeof(_zlib_TDecompress)+kDecompressBufSize);
         if (!_mem_buf) _dec_memErr_rt();
-        self=_zlib_decompress_open_by(decompressPlugin,codeStream,code_begin,code_end,0,
-                                      _mem_buf,sizeof(_zlib_TDecompress)+kDecompressBufSize);
+        self=_zlib_decompress_open_at(decompressPlugin,codeStream,code_begin,code_end,0,
+                                      (_zlib_TDecompress*)_mem_buf,sizeof(_zlib_TDecompress)+kDecompressBufSize);
         if (!self)
             free(_mem_buf);
         return self;
+    }
+
+    static _zlib_TDecompress*  _zlib_decompress_open_by(hpatch_TDecompress* decompressPlugin,
+                                                        const hpatch_TStreamInput* codeStream,
+                                                        hpatch_StreamPos_t code_begin,
+                                                        hpatch_StreamPos_t code_end,
+                                                        int  isSavedWindowBits,
+                                                        unsigned char* _mem_buf,size_t _mem_buf_size){
+        #define __MAX_TS(a,b)  ((a)>=(b)?(a):(b))
+        const hpatch_size_t kZlibAlign=__MAX_TS(__MAX_TS(sizeof(hpatch_StreamPos_t),sizeof(void*)),sizeof(uLongf))
+        #undef __MAX_TS
+        unsigned char* _mem_buf_end=_mem_buf+_mem_buf_size;
+        unsigned char* self_at=(unsigned char*)_hpatch_align_upper(_mem_buf,kZlibAlign);
+        if (self_at>=_mem_buf_end) return 0;
+        return _zlib_decompress_open_at(decompressPlugin,codeStream,code_begin,code_end,isSavedWindowBits,
+                                        (_zlib_TDecompress*)self_at,_mem_buf_end-self_at);
     }
     static hpatch_BOOL _zlib_decompress_close_by(struct hpatch_TDecompress* decompressPlugin,
                                                  _zlib_TDecompress* self){
@@ -169,6 +180,7 @@ static void __dec_free(void* _, void* address){
         memset(self,0,sizeof(_zlib_TDecompress));
         return result;
     }
+    
     static hpatch_BOOL _zlib_decompress_close(struct hpatch_TDecompress* decompressPlugin,
                                               hpatch_decompressHandle decompressHandle){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
@@ -176,6 +188,7 @@ static void __dec_free(void* _, void* address){
         if (self) free(self);
         return result;
     }
+
     static hpatch_BOOL _zlib_reset_for_next_node(_zlib_TDecompress* self){
         //backup
         Bytef*   next_out_back=self->d_stream.next_out;
@@ -1147,7 +1160,7 @@ static void __dec_free(void* _, void* address){
         tuz_size_t data_size=(tuz_size_t)out_size;
         assert(data_size==out_size);
         ret=tuz_TStream_decompress_partial(&self->s,out_part_data,&data_size);
-        if (!((ret<=tuz_STREAM_END)&&(data_size==out_size))
+        if (!((ret<=tuz_STREAM_END)&&(data_size==out_size)))
             _dec_onDecErr_rt();
         return hpatch_TRUE;
     }
