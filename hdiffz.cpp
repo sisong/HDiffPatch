@@ -435,47 +435,44 @@ static hpatch_BOOL _getIsBsDiffFile(const char* diffFileName){
 }
 #endif
 
-static inline bool _trySetDecompress(hpatch_TDecompress** out_decompressPlugin,const char* compressType,
-                                     hpatch_TDecompress* testDecompressPlugin){
-    assert(0==*out_decompressPlugin);
-    if (!testDecompressPlugin->is_can_open(compressType)) return false;
-    *out_decompressPlugin=testDecompressPlugin;
-    return true;
-}
-#define __setDecompress(_decompressPlugin) \
-    if (_trySetDecompress(out_decompressPlugin,compressType,_decompressPlugin)) return hpatch_TRUE;
 
+#define _try_rt_dec(dec) { if (dec.is_can_open(compressType)) return &dec; }
+
+static hpatch_TDecompress* __find_decompressPlugin(const char* compressType){
+#ifdef  _CompressPlugin_zlib
+    _try_rt_dec(zlibDecompressPlugin);
+#endif
+#ifdef  _CompressPlugin_bz2
+    _try_rt_dec(bz2DecompressPlugin);
+#endif
+#ifdef  _CompressPlugin_lzma
+    _try_rt_dec(lzmaDecompressPlugin);
+#endif
+#ifdef  _CompressPlugin_lzma2
+    _try_rt_dec(lzma2DecompressPlugin);
+#endif
+#if (defined(_CompressPlugin_lz4) || (defined(_CompressPlugin_lz4hc)))
+    _try_rt_dec(lz4DecompressPlugin);
+#endif
+#ifdef  _CompressPlugin_zstd
+    _try_rt_dec(zstdDecompressPlugin);
+#endif
+#ifdef  _CompressPlugin_brotli
+    _try_rt_dec(brotliDecompressPlugin);
+#endif
+#ifdef  _CompressPlugin_lzham
+    _try_rt_dec(lzhamDecompressPlugin);
+#endif
+#ifdef  _CompressPlugin_tuz
+    _try_rt_dec(tuzDecompressPlugin);
+#endif
+    return 0;
+}
 static hpatch_BOOL findDecompress(hpatch_TDecompress** out_decompressPlugin,const char* compressType){
     *out_decompressPlugin=0;
     if (strlen(compressType)==0) return hpatch_TRUE;
-#ifdef  _CompressPlugin_zlib
-    __setDecompress(&zlibDecompressPlugin);
-#endif
-#ifdef  _CompressPlugin_bz2
-    __setDecompress(&bz2DecompressPlugin);
-#endif
-#ifdef  _CompressPlugin_lzma
-    __setDecompress(&lzmaDecompressPlugin);
-#endif
-#ifdef  _CompressPlugin_lzma2
-    __setDecompress(&lzma2DecompressPlugin);
-#endif
-#if (defined(_CompressPlugin_lz4) || (defined(_CompressPlugin_lz4hc)))
-    __setDecompress(&lz4DecompressPlugin);
-#endif
-#ifdef  _CompressPlugin_zstd
-    __setDecompress(&zstdDecompressPlugin);
-#endif
-#ifdef  _CompressPlugin_brotli
-    __setDecompress(&brotliDecompressPlugin);
-#endif
-#ifdef  _CompressPlugin_lzham
-    __setDecompress(&lzhamDecompressPlugin);
-#endif
-#ifdef  _CompressPlugin_tuz
-    __setDecompress(&tuzDecompressPlugin);
-#endif
-    return hpatch_FALSE;
+    *out_decompressPlugin=__find_decompressPlugin(compressType);
+    return 0!=(*out_decompressPlugin);
 }
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
