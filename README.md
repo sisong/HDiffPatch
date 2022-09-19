@@ -288,29 +288,29 @@ case list:
 **hdiffz -BSD** diff with `-m-6 -BSD -block -d -f -p-1 {old} {new} {pat}`   
 **hdiffz -bzip2** diff with `-m-6 -SD -block -d -f -p-1 -c-bzip2-9 {old} {new} {pat}`   
 **hdiffz -zlib** diff with `-m-6 -SD -block -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
-**hdiffz -lzma2** diff with `-m-6 -SD -block -d -f -p-1 -c-lzma-9-16m {old} {new} {pat}`   
+**hdiffz -lzma2** diff with `-m-6 -SD -block -d -f -p-1 -c-lzma2-9-16m {old} {new} {pat}`   
 **hdiffz -zstd** diff with `-m-6 -SD -block -d -f -p-1 -c-zstd-20-24 {old} {new} {pat}`   
 **hdiffz -s -zlib** diff with `-s-64 -SD -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
-**hdiffz -s -lzma2** diff with `-s-64 -SD -d -f -p-1 -c-lzma-9-16m {old} {new} {pat}`   
-**hdiffz -s -zstd** diff with `-s-64 -SD -d -f -p-1 -c-zstd-17-24 {old} {new} {pat}`   
+**hdiffz -s -lzma2** diff with `-s-64 -SD -d -f -p-1 -c-lzma2-9-16m {old} {new} {pat}`   
+**hdiffz -s -zstd-17** diff with `-s-64 -SD -d -f -p-1 -c-zstd-17-24 {old} {new} {pat}`   
 **hpatchz** patch with `-s-256k -f {old} {pat} {new}`   
    
 **test result average**:
-|Program|compress|diff mem(MB)|speed(MB/S)|patch mem(MB)|max mem(MB)|speed(MB/S)|
+|Program|compress|diff mem|speed|patch mem|max mem|speed|
 |:----|----:|----:|----:|----:|----:|----:|
 |bzip2|31.76%|
 |lzma2|28.47%|
-|xdelta3 |12.18%|212|6.9|84|98|53.8|
-|xdelta3 -B|7.35%|442|19.5|197|534|174.1|
-|bsdiff |6.63%|1263|2.3|298|1043|119.7|
-|hdiffz -BSD |5.67%|596|15.8|12|14|130.8|
-|hdiffz -bzip2|5.77%|596|17.4|7|7|208.0|
-|hdiffz -zlib|5.93%|596|17.4|4|4|374.2|
-|hdiffz -lzma2|5.02%|597|13.2|12|20|321.4|
-|hdiffz -zstd|5.22%|660|12.3|13|20|382.6|
-|hdiffz -s -zlib|8.13%|44|40.7|4|4|436.3|
-|hdiffz -s -lzma2 |6.39%|119|17.4|13|20|337.3|
-|hdiffz -s -zstd|6.82%|73|24.1|13|20|464.0|
+|xdelta3 |12.18%|212MB|6.9MB/s|84MB|98MB|53.8MB/s|
+|xdelta3 -B|7.35%|442MB|19.5MB/s|197MB|534MB|174.1MB/s|
+|bsdiff |6.63%|1263MB|2.3MB/s|298MB|1043MB|119.7MB/s|
+|hdiffz -BSD |5.67%|596MB|15.8MB/s|12MB|14MB|130.8MB/s|
+|hdiffz -bzip2|5.77%|596MB|17.4MB/s|7MB|7MB|208.0MB/s|
+|hdiffz -zlib|5.93%|596MB|17.4MB/s|4MB|4MB|374.2MB/s|
+|hdiffz -lzma2|5.02%|597MB|13.2MB/s|12MB|20MB|321.4MB/s|
+|hdiffz -zstd|5.22%|660MB|12.3MB/s|13MB|20MB|382.6MB/s|
+|hdiffz -s -zlib|8.13%|44MB|40.7MB/s|4MB|4MB|436.3MB/s|
+|hdiffz -s -lzma2 |6.39%|119MB|17.4MB/s|13MB|20MB|337.3MB/s|
+|hdiffz -s -zstd-17|6.82%|73MB|24.1MB/s|13MB|20MB|464.0MB/s|
    
 
 ## input Apk Files for test: 
@@ -351,32 +351,34 @@ case list:
 |32|yuanshichuanqi1.3.608.apk <-- yuanshichuanqi1.3.607.apk|192578139|192577253|
    
 **changed test Program**:   
-**hdiffz ...** `-m-6` changed to `-m-1 -cache`   
-**hdiffz ...** `-s-64` changed to `-s-16`   
-**hdiffz** added diff with `-m-1 -cache -SD -block -d -f -p-1 {old} {new} {pat}`   
-**hdiffz -s** added diff with `-s-16 -SD -d -f -p-1 {old} {new} {pat}`   
-**sfpatcher -1 -zstd** diff with `-o-1 -c-zstd-21-24 -p-1 -block -cache -d {old} {new} {pat}`, patch with `-lp -p-8 {old} {pat} {new}`   
-**sfpatcher -3 -lzma2** diff with `-o-3 -c-lzma2-9-8m -lp-8m -p-1 -block -cache -d {old} {new} {pat}`, patch with `-lp -p-8 {old} {pat} {new}`   
+**hdiffz ...** `-m-6 -SD` changed to `-m-1 -SD-2m -cache`, `-s-64 -SD` changed to `-s-16 -SD-2m`   
+**hdiffz ...** lzma2 dict size `16m` changed to `8m`, zstd dict bit `24` changed to `23`   
+**hdiffz** added diff with `-m-1 -SD-2m -cache -block -d -f -p-1 {old} {new} {pat}`   
+**hdiffz -s** added diff with `-s-16 -SD-2m -d -f -p-1 {old} {new} {pat}`   
+**sfpatcher -1 -zstd** diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-1 -block -cache -d {old} {new} {pat}`, patch with `-lp -p-8 {old} {pat} {new}`   
+**sfpatcher -2 -lzma2** diff with `-o-2 -c-lzma2-9-4m -m-2 -step-2m -lp-8m -p-1 -block -cache -d {old} {new} {pat}`, patch with `-lp -p-8 {old} {pat} {new}`   
+**sfpatcher -3 -lzma2** diff with `-o-3 -c-lzma2-9-4m -m-4 -step-2m -lp-8m -p-1 -block -cache -d {old} {new} {pat}`, patch with `-lp -p-8 {old} {pat} {new}`   
 ( [sfpatcher](https://github.com/sisong/sfpatcher) optimized diff&patch between apk files )  
 
 **test result average**:
-|Program|compress|diff mem(MB)|speed(MB/S)|patch mem(MB)|max mem(MB)|speed(MB/S)|
-|:----|----:|----:|----:|----:|----:|----:|
-|xdelta3 |59.92%|228|2.8|100|101|157.4|
-|xdelta3 -B|59.51%|440|3.0|206|549|154.6|
-|bsdiff |59.76%|1035|1.0|244|752|41.1|
-|hdiffz -BSD |59.50%|524|5.5|13|14|42.6|
-|hdiffz -bzip2|59.54%|524|5.6|7|7|55.7|
-|hdiffz|59.87%|524|7.2|4|4|658.4|
-|hdiffz -zlib|59.10%|524|6.7|4|4|504.9|
-|hdiffz -lzma2|58.67%|537|3.5|20|20|279.8|
-|hdiffz -zstd|58.74%|536|4.1|20|21|596.5|
-|hdiffz -s|60.46%|133|32.5|4|4|679.9|
-|hdiffz -s -zlib|59.52%|133|23.6|4|4|555.8|
-|hdiffz -s -lzma2 |59.02%|210|5.5|20|20|268.4|
-|hdiffz -s -zstd|59.26%|139|8.6|20|20|619.2|
-|sfpatcher -1 -zstd|31.70%|773|2.7|24|29|399.8|
-|sfpatcher -3 -lzma2|23.77%|976|2.1|27|33|65.3|
+|Program|compress|diff mem|speed|patch mem|max mem|speed|arm Kirin980 speed|
+|:----|----:|----:|----:|----:|----:|----:|----:|
+|xdelta3|59.92%|228MB|2.9MB/s|100MB|100MB|159MB/s|
+|xdelta3 -B|59.51%|440MB|3.1MB/s|206MB|548MB|157MB/s|
+|bsdiff|59.76%|1035MB|1.0MB/s|243MB|751MB|42MB/s|
+|hdiffz -BSD|59.50%|523MB|5.4MB/s|13MB|14MB|44MB/s|
+|hdiffz -bzip2|59.51%|523MB|5.5MB/s|7MB|9MB|57MB/s|
+|hdiffz|59.87%|523MB|7.5MB/s|4MB|5MB|780MB/s|268MB/s|
+|hdiffz -zlib|59.10%|523MB|6.9MB/s|4MB|5MB|587MB/s|226MB/s|
+|hdiffz -zstd|58.74%|612MB|5.0MB/s|13MB|14MB|680MB/s|265MB/s|
+|hdiffz -lzma2|58.67%|523MB|3.7MB/s|12MB|13MB|285MB/s|
+|hdiffz -s|60.46%|133MB|31.8MB/s|3MB|4MB|806MB/s|
+|hdiffz -s -zlib|59.52%|133MB|23.5MB/s|3MB|4MB|608MB/s|
+|hdiffz -s -zstd-17|59.27%|136MB|9.7MB/s|12MB|12MB|763MB/s|
+|hdiffz -s -lzma2|59.03%|147MB|5.9MB/s|11MB|12MB|288MB/s|
+|sf_diff -1 -zstd|31.70%|774MB|2.8MB/s|19MB|22MB|394MB/s|218MB/s|
+|sf_diff -2 -lzma2|27.53%|859MB|2.5MB/s|21MB|29MB|107MB/s|59MB/s|
+|sf_diff -3 -lzma2|23.73%|976MB|2.3MB/s|24MB|29MB|66MB/s|36MB/s|
 
 ---
 ## Contact
