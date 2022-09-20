@@ -100,10 +100,10 @@ static void __dec_free(void* _, void* address){
                                                         hpatch_StreamPos_t code_begin,
                                                         hpatch_StreamPos_t code_end,
                                                         int  isSavedWindowBits,
-                                                        _zlib_TDecompress* self,size_t _self_size){
+                                                        _zlib_TDecompress* self,size_t _self_and_buf_size){
         int ret;
         signed char kWindowBits=-MAX_WBITS;
-        assert(_self_size>sizeof(_zlib_TDecompress));
+        assert(_self_and_buf_size>sizeof(_zlib_TDecompress));
         if (isSavedWindowBits){//load kWindowBits
             if (code_end-code_begin<1) _dec_openErr_rt();
             if (!codeStream->read(codeStream,code_begin,(unsigned char*)&kWindowBits,
@@ -113,7 +113,7 @@ static void __dec_free(void* _, void* address){
         
         memset(self,0,sizeof(_zlib_TDecompress));
         self->dec_buf=((unsigned char*)self)+sizeof(_zlib_TDecompress);
-        self->dec_buf_size=_self_size-sizeof(_zlib_TDecompress);
+        self->dec_buf_size=_self_and_buf_size-sizeof(_zlib_TDecompress);
         self->codeStream=codeStream;
         self->code_begin=code_begin;
         self->code_end=code_end;

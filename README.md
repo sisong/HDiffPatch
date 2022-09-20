@@ -300,17 +300,17 @@ case list:
 |:----|----:|----:|----:|----:|----:|----:|
 |bzip2|31.76%|
 |lzma2|28.47%|
-|xdelta3 |12.18%|212MB|6.9MB/s|84MB|98MB|53.8MB/s|
-|xdelta3 -B|7.35%|442MB|19.5MB/s|197MB|534MB|174.1MB/s|
-|bsdiff |6.63%|1263MB|2.3MB/s|298MB|1043MB|119.7MB/s|
-|hdiffz -BSD |5.67%|596MB|15.8MB/s|12MB|14MB|130.8MB/s|
-|hdiffz -bzip2|5.77%|596MB|17.4MB/s|7MB|7MB|208.0MB/s|
-|hdiffz -zlib|5.93%|596MB|17.4MB/s|4MB|4MB|374.2MB/s|
-|hdiffz -lzma2|5.02%|597MB|13.2MB/s|12MB|20MB|321.4MB/s|
-|hdiffz -zstd|5.22%|660MB|12.3MB/s|13MB|20MB|382.6MB/s|
-|hdiffz -s -zlib|8.13%|44MB|40.7MB/s|4MB|4MB|436.3MB/s|
-|hdiffz -s -lzma2 |6.39%|119MB|17.4MB/s|13MB|20MB|337.3MB/s|
-|hdiffz -s -zstd-17|6.82%|73MB|24.1MB/s|13MB|20MB|464.0MB/s|
+|xdelta3 |12.18%|212MB|6.9MB/s|84MB|98MB|54MB/s|
+|xdelta3 -B|7.35%|442MB|19.5MB/s|197MB|534MB|174MB/s|
+|bsdiff |6.63%|1263MB|2.3MB/s|298MB|1043MB|120MB/s|
+|hdiffz -BSD |5.67%|596MB|15.8MB/s|12MB|14MB|131MB/s|
+|hdiffz -bzip2|5.77%|596MB|17.4MB/s|7MB|7MB|208MB/s|
+|hdiffz -zlib|5.93%|596MB|17.4MB/s|4MB|4MB|374MB/s|
+|hdiffz -lzma2|5.02%|597MB|13.2MB/s|12MB|20MB|321MB/s|
+|hdiffz -zstd|5.22%|660MB|12.3MB/s|13MB|20MB|383MB/s|
+|hdiffz -s -zlib|8.13%|44MB|40.7MB/s|4MB|4MB|436MB/s|
+|hdiffz -s -lzma2 |6.39%|119MB|17.4MB/s|13MB|20MB|337MB/s|
+|hdiffz -s -zstd-17|6.82%|73MB|24.1MB/s|13MB|20MB|464MB/s|
    
 
 ## input Apk Files for test: 

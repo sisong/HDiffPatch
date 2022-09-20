@@ -129,29 +129,36 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         z_stream        c_stream;
     } _zlib_TCompress;
 
-    static _zlib_TCompress*  _zlib_compress_open_by(const hdiff_TCompress* compressPlugin,
+    static _zlib_TCompress*  _zlib_compress_open_at(const hdiff_TCompress* compressPlugin,
                                                     int compressLevel,int compressMemLevel,
                                                     const hpatch_TStreamOutput* out_code,
-                                                    unsigned char* _mem_buf,size_t _mem_buf_size){
+                                                    _zlib_TCompress* self,size_t _self_and_buf_size){
         const TCompressPlugin_zlib* plugin=(const TCompressPlugin_zlib*)compressPlugin;
-        _zlib_TCompress* self=0;
-        
-        self=(_zlib_TCompress*)_hpatch_align_upper(_mem_buf,sizeof(hpatch_StreamPos_t));
-        assert((_mem_buf+_mem_buf_size)>((unsigned char*)self+sizeof(_zlib_TCompress)));
-        _mem_buf_size=(_mem_buf+_mem_buf_size)-((unsigned char*)self+sizeof(_zlib_TCompress));
-        _mem_buf=(unsigned char*)self+sizeof(_zlib_TCompress);
-        
+        assert(_self_and_buf_size>sizeof(_zlib_TCompress));
         memset(self,0,sizeof(_zlib_TCompress));
-        self->c_buf=_mem_buf;
-        self->c_buf_size=_mem_buf_size;
+        self->c_buf=((unsigned char*)self)+sizeof(_zlib_TCompress);;
+        self->c_buf_size=_self_and_buf_size-sizeof(_zlib_TCompress);
         self->out_code=out_code;
         
-        self->c_stream.next_out = (Bytef*)_mem_buf;
-        self->c_stream.avail_out = (uInt)_mem_buf_size;
+        self->c_stream.next_out = (Bytef*)self->c_buf;
+        self->c_stream.avail_out = (uInt)self->c_buf_size;
         if (Z_OK!=deflateInit2(&self->c_stream,compressLevel,Z_DEFLATED,
                                plugin->windowBits,compressMemLevel,plugin->strategy))
             return 0;
         return self;
+    }
+    static _zlib_TCompress*  _zlib_compress_open_by(const hdiff_TCompress* compressPlugin,
+                                                    int compressLevel,int compressMemLevel,
+                                                    const hpatch_TStreamOutput* out_code,
+                                                    unsigned char* _mem_buf,size_t _mem_buf_size){
+        #define __MAX_TS(a,b)  ((a)>=(b)?(a):(b))
+        const hpatch_size_t kZlibAlign=__MAX_TS(__MAX_TS(sizeof(hpatch_StreamPos_t),sizeof(void*)),sizeof(uLongf));
+        #undef __MAX_TS
+        unsigned char* _mem_buf_end=_mem_buf+_mem_buf_size;
+        unsigned char* self_at=(unsigned char*)_hpatch_align_upper(_mem_buf,kZlibAlign);
+        if (self_at>=_mem_buf_end) return 0;
+        return _zlib_compress_open_at(compressPlugin,compressLevel,compressMemLevel,out_code,
+                                      (_zlib_TCompress*)self_at,_mem_buf_end-self_at);
     }
     static int _zlib_compress_close_by(const hdiff_TCompress* compressPlugin,_zlib_TCompress* self){
         int result=1;//true;

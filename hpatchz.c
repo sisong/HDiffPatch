@@ -208,19 +208,17 @@ typedef enum THPatchResult {
     HPATCH_OPENREAD_ERROR,
     HPATCH_OPENWRITE_ERROR,
     HPATCH_FILEREAD_ERROR,
-    HPATCH_FILEWRITE_ERROR, // 5
+    HPATCH_FILEWRITE_ERROR, // 5 //see 24
     HPATCH_FILEDATA_ERROR,
     HPATCH_FILECLOSE_ERROR,
-    HPATCH_MEM_ERROR,
+    HPATCH_MEM_ERROR, //see 22
     HPATCH_HDIFFINFO_ERROR,
     HPATCH_COMPRESSTYPE_ERROR, // 10
     HPATCH_HPATCH_ERROR,
-    
     HPATCH_PATHTYPE_ERROR, //adding begin v3.0
     HPATCH_TEMPPATH_ERROR,
     HPATCH_DELETEPATH_ERROR,
     HPATCH_RENAMEPATH_ERROR, // 15
-
     HPATCH_SPATCH_ERROR,
     HPATCH_BSPATCH_ERROR,
 
@@ -680,7 +678,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #define check_dec(decError) { \
         switch (decError){    \
             case hpatch_dec_ok:          break; \
-            case hpatch_dec_mem_error:   check(0,HPATCH_DECOMPRESSER_MEM_ERROR,"decompressPlugin malloc"); \
+            case hpatch_dec_mem_error:   check(0,HPATCH_DECOMPRESSER_MEM_ERROR,"decompressPlugin alloc memory"); \
             case hpatch_dec_open_error:  check(0,HPATCH_DECOMPRESSER_OPEN_ERROR,"decompressPlugin open"); \
             case hpatch_dec_close_error: check(0,HPATCH_DECOMPRESSER_CLOSE_ERROR,"decompressPlugin close"); \
             default: { assert(decError==hpatch_dec_error); \
