@@ -129,6 +129,7 @@ typedef struct TDirPatcher{
     const hpatch_TStreamInput*  _dirDiffData;
     void*                       _pDiffDataMem;
     size_t*                     _pOldSameRefCount;
+    hpatch_FileError_t          fileError;
 } TDirPatcher;
 
 hpatch_inline

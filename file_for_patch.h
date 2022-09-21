@@ -42,9 +42,9 @@
 #  endif
 #endif
 #if (_HPATCH_IS_USED_errno)
-#   define  _setFileErrNo(v) do {errno=v;} while(0)
+#   define  _set_errno_new(v) do {errno=v;} while(0)
 #else
-#   define  _setFileErrNo(v)
+#   define  _set_errno_new(v)
 #endif
 
 #   define  set_ferr(_saved_errno,_throw_errno) /*save new errno*/\
@@ -56,7 +56,7 @@
                             if (!(_saved_errno)) _saved_errno=_throw_errno; \
                             if (_is_log) LOG_ERRNO(_throw_errno); } } while(0)
 #   define  _update_ferr(fe)        do { int v=errno;      __mix_ferr_(fe,v,1); } while(0)
-#   define  _update_ferrv(fe,v)     do { _setFileErrNo(v); __mix_ferr_(fe,v,1);  } while(0)
+#   define  _update_ferrv(fe,v)     do { _set_errno_new(v); __mix_ferr_(fe,v,1);  } while(0)
 #   define  mix_ferr(_saved_errno,_throw_errno)     __mix_ferr_(_saved_errno,_throw_errno,0)
 #else
 #   define  _update_ferr(fe)        do { fe=hpatch_TRUE; } while(0)
@@ -101,14 +101,14 @@ hpatch_inline static const char* findUntilEnd(const char* str,char c){
 #define _path_noEndDirSeparator(dst_path,src_path)  \
     char  dst_path[hpatch_kPathMaxSize];      \
     {   size_t len=strlen(src_path);   \
-        if (len>=hpatch_kPathMaxSize) { _setFileErrNo(ENAMETOOLONG); return hpatch_FALSE;} /* error */ \
+        if (len>=hpatch_kPathMaxSize) { _set_errno_new(ENAMETOOLONG); return hpatch_FALSE;} /* error */ \
         if ((len>0)&&(src_path[len-1]==kPatch_dirSeparator)) --len; /* without '/' */\
         memcpy(dst_path,src_path,len); \
         dst_path[len]='\0';  } /* safe */
 
 
 #ifdef _WIN32
-#define  _setFileErrNo_iconv() _setFileErrNo(GetLastError()==ERROR_INSUFFICIENT_BUFFER?ENAMETOOLONG:EILSEQ)
+#define  _setFileErrNo_iconv() _set_errno_new(GetLastError()==ERROR_INSUFFICIENT_BUFFER?ENAMETOOLONG:EILSEQ)
 
 static hpatch_inline int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
     int result=MultiByteToWideChar(_hpatch_kMultiBytePage,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize);
@@ -126,7 +126,7 @@ static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCo
     size_t i;
     for (i=0; i<fileCount; ++i) {
         int csize;
-        if (_bufCur>=_bufEnd) { _setFileErrNo(ENAMETOOLONG); return hpatch_FALSE; } //error 
+        if (_bufCur>=_bufEnd) { _set_errno_new(ENAMETOOLONG); return hpatch_FALSE; } //error 
         csize=_wFileName_to_utf8(fileNames_w[i],_bufCur,_bufEnd-_bufCur);
         if (csize<=0) return hpatch_FALSE; //error
         out_fileNames_utf8[i]=_bufCur;
@@ -208,14 +208,14 @@ hpatch_BOOL hpatch_getPathStat(const char* path_utf8,hpatch_TPathType* out_type,
 hpatch_inline static
 hpatch_BOOL hpatch_isPathNotExist(const char* pathName){
     hpatch_TPathType type;
-    if (pathName==0) { _setFileErrNo(EINVAL); return hpatch_FALSE; }
+    if (pathName==0) { _set_errno_new(EINVAL); return hpatch_FALSE; }
     if (!hpatch_getPathStat(pathName,&type,0)) return hpatch_FALSE;
     return (kPathType_notExist==type);
 }
 hpatch_inline static
 hpatch_BOOL hpatch_isPathExist(const char* pathName){
     hpatch_TPathType type;
-    if (pathName==0) { _setFileErrNo(EINVAL); return hpatch_FALSE; }
+    if (pathName==0) { _set_errno_new(EINVAL); return hpatch_FALSE; }
     if (!hpatch_getPathStat(pathName,&type,0)) return hpatch_FALSE;
     return (kPathType_notExist!=type);
 }
@@ -245,11 +245,7 @@ typedef struct hpatch_TFileStreamInput{
     hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset;
-#if (_HPATCH_IS_USED_errno)
-    int                 fileError; // 0: no error; other: saved errno value;
-#else
-    hpatch_BOOL         fileError;
-#endif
+    hpatch_FileError_t  fileError;
 } hpatch_TFileStreamInput;
 
 hpatch_inline

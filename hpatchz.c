@@ -226,6 +226,7 @@ typedef enum THPatchResult {
     HPATCH_DECOMPRESSER_CLOSE_ERROR,
     HPATCH_DECOMPRESSER_MEM_ERROR,
     HPATCH_DECOMPRESSER_DECOMPRESS_ERROR,
+    HPATCH_FILEWRITE_NO_SPACE_ERROR,
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
     DIRPATCH_DIRDIFFINFO_ERROR=101,
@@ -243,6 +244,7 @@ typedef enum THPatchResult {
     DIRPATCH_CLOSE_NEWPATH_ERROR,
     DIRPATCH_PATCHBEGIN_ERROR,
     DIRPATCH_PATCHFINISH_ERROR, // 115
+    DIRPATCH_PATCH_FILE_ERROR,
 #endif
 #if (_IS_NEED_SFX)
     HPATCH_CREATE_SFX_DIFFFILETYPE_ERROR=201,
@@ -675,6 +677,19 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #define  check(value,errorType,errorInfo) { \
     if (!(value)){ LOG_ERR(errorInfo " ERROR!\n"); check_on_error(errorType); } }
 
+#if (_HPATCH_IS_USED_errno)
+#   define check_ferr(fileError,errorType,errorInfo){ \
+        if (fileError){ \
+            result=HPATCH_SUCCESS; \
+            if (ENOSPC==(fileError)){ \
+                check(hpatch_FALSE,HPATCH_FILEWRITE_NO_SPACE_ERROR,errorInfo); \
+            }else{ \
+                check(hpatch_FALSE,errorType,errorInfo); } } }
+#else
+#   define check_ferr(fileError,errorType,errorInfo) { \
+        if (fileError) { result=HPATCH_SUCCESS; check(hpatch_FALSE,errorType,errorInfo); } }
+#endif
+
 #define check_dec(decError) { \
         switch (decError){    \
             case hpatch_dec_ok:          break; \
@@ -936,7 +951,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,
     if (patch_result!=HPATCH_SUCCESS){
         check(!oldData.fileError,HPATCH_FILEREAD_ERROR,"oldFile read");
         check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"diffFile read");
-        check(!newData.fileError,HPATCH_FILEWRITE_ERROR,"out newFile write");
+        check_ferr(newData.fileError,HPATCH_FILEWRITE_ERROR,"out newFile write");
         check_dec(_decompressPlugin.decError);
         check(hpatch_FALSE,patch_result,"patch run");
     }
@@ -1107,11 +1122,12 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     }
 clear:
     _isInClear=hpatch_TRUE;
-    check(hlistener->patchFinish(hlistener,result==HPATCH_SUCCESS),
-          DIRPATCH_PATCHFINISH_ERROR,"dir patch finish");
+    check(hlistener->patchFinish(hlistener,result==HPATCH_SUCCESS),DIRPATCH_PATCHFINISH_ERROR,"dir patch finish");
     check(TDirPatcher_closeNewDirStream(&dirPatcher),DIRPATCH_CLOSE_NEWPATH_ERROR,"newPath close");
     check(TDirPatcher_closeOldRefStream(&dirPatcher),DIRPATCH_CLOSE_OLDPATH_ERROR,"oldPath close");
     TDirPatcher_close(&dirPatcher);
+    check_ferr(dirPatcher.fileError,DIRPATCH_PATCH_FILE_ERROR,"dir patch file");
+    check_ferr(hlistener->fileError,DIRPATCH_PATCH_FILE_ERROR,"dir patch file");
     check(hpatch_TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"diffFile close");
     _free_mem(p_temp_mem);
     printf("\nhpatchz dir patch time: %.3f s\n",(clock_s()-time0));

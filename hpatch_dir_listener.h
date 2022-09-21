@@ -40,23 +40,30 @@ typedef struct IHPatchDirListener {
     void*       listenerImport;
     hpatch_BOOL (*patchBegin) (struct IHPatchDirListener* listener,TDirPatcher* dirPatcher);
     hpatch_BOOL (*patchFinish)(struct IHPatchDirListener* listener,hpatch_BOOL isPatchSuccess);
+    hpatch_FileError_t fileError; 
 } IHPatchDirListener;
 
 
 //IDirPatchListener
 static hpatch_BOOL _makeNewDir(IDirPatchListener* listener,const char* newDir){
-    return hpatch_makeNewDir(newDir);
+    hpatch_BOOL result=hpatch_makeNewDir(newDir);
+    if (!result) _update_ferr(((IHPatchDirListener*)listener)->fileError);
+    return result;
 }
 static hpatch_BOOL _copySameFile(IDirPatchListener* listener,const char* oldFileName,
                                  const char* newFileName,hpatch_ICopyDataListener* copyListener){
-    return TDirPatcher_copyFile(oldFileName,newFileName,copyListener);
+    return TDirPatcher_copyFile(oldFileName,newFileName,copyListener,&((IHPatchDirListener*)listener)->fileError);
 }
 static hpatch_BOOL _openNewFile(IDirPatchListener* listener,hpatch_TFileStreamOutput*  out_curNewFile,
                                 const char* newFileName,hpatch_StreamPos_t newFileSize){
-    return hpatch_TFileStreamOutput_open(out_curNewFile,newFileName,newFileSize);
+    hpatch_BOOL result=hpatch_TFileStreamOutput_open(out_curNewFile,newFileName,newFileSize); 
+    if (!result) set_ferr(((IHPatchDirListener*)listener)->fileError,out_curNewFile->fileError);
+    return result;
 }
 static hpatch_BOOL _closeNewFile(IDirPatchListener* listener,hpatch_TFileStreamOutput* curNewFile){
-    return hpatch_TFileStreamOutput_close(curNewFile);
+    hpatch_BOOL result=hpatch_TFileStreamOutput_close(curNewFile);
+    mix_ferr(((IHPatchDirListener*)listener)->fileError,curNewFile->fileError);
+    return result;
 }
 //IHPatchDirListener
 static hpatch_BOOL _dirPatchBegin(IHPatchDirListener* listener,TDirPatcher* dirPatcher){
@@ -88,7 +95,7 @@ static hpatch_BOOL _dirPatchFinish(IHPatchDirListener* listener,hpatch_BOOL isPa
 }
 
 static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,_openNewFile,_closeNewFile},
-                                                    0,_dirPatchBegin,_dirPatchFinish};
+                                                    0,_dirPatchBegin,_dirPatchFinish,0};
 
     
     static hpatch_BOOL _tryRemovePath(const char* pathName){
@@ -101,11 +108,12 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
     }
     
     typedef const char* (*IDirPathMove_getDstPathBySrcPath)(void* importMove,const char* srcPath);
-    typedef struct IDirPathMove{
+    typedef struct{
         void*           importMove;
         IDirPathMove_getDstPathBySrcPath getDstPathBySrcPath;
         IDirPathList    srcPathList;
         IDirPathList    dstPathList;
+        hpatch_FileError_t fileError; 
     } IDirPathMove;
     
     static hpatch_BOOL _moveNewToOld(IDirPathMove* dirPathMove) {
@@ -136,7 +144,7 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
             if (hpatch_getIsDirName(srcPath)){
                 const char* dstDir=dirPathMove->getDstPathBySrcPath(dirPathMove->importMove,srcPath);
                 if (dstDir==0) { result=hpatch_FALSE; continue; }
-                if (!hpatch_makeNewDir(dstDir)) { result=hpatch_FALSE; continue; }
+                if (!hpatch_makeNewDir(dstDir)) { _update_ferr(dirPathMove->fileError); result=hpatch_FALSE; continue; }
             }
         }
         for (i=srcPathList->pathCount; i>0; --i) {//move files to dstDir and remove dirs in srcDir
@@ -150,6 +158,7 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
                 if (dstPath==0) { result=hpatch_FALSE; continue; }
                 hpatch_removeFile(dstPath);//overwrite
                 if (!hpatch_moveFile(srcPath,dstPath)){//move src to dst
+                     _update_ferr(dirPathMove->fileError);
                     result=hpatch_FALSE;
                     LOG_ERR("can't move new file to oldDirectory \"");
                     hpatch_printStdErrPath_utf8(srcPath); LOG_ERR("\"  ERROR!\n");
@@ -184,7 +193,7 @@ static hpatch_BOOL _tempDir_copySameFile(IDirPatchListener* listener,const char*
     //checksum same file
     //not copy now
     if (copyListener==0) return hpatch_TRUE;
-    return TDirPatcher_readFile(oldFileName,copyListener);
+    return TDirPatcher_readFile(oldFileName,copyListener,&((IHPatchDirListener*)listener)->fileError);
 }
 //IHPatchDirListener
 static hpatch_BOOL _tempDirPatchBegin(IHPatchDirListener* self,TDirPatcher* dirPatcher){
@@ -212,7 +221,7 @@ static hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPa
             oldPath=TDirPatcher_getOldPathBySameIndex(dirPatcher,sameIndex);
             if (oldPath==0) { result=hpatch_FALSE; continue; }
             if (TDirPatcher_oldSameRefCount(dirPatcher,sameIndex)>1){//copy old to new
-                if (!TDirPatcher_copyFile(oldPath,newPath,0)){
+                if (!TDirPatcher_copyFile(oldPath,newPath,0,&self->fileError)){
                     result=hpatch_FALSE;
                     LOG_ERR("can't copy new file to newTempDir from same old file \"");
                     hpatch_printStdErrPath_utf8(newPath); LOG_ERR("\"  ERROR!\n");
@@ -229,13 +238,15 @@ static hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPa
         TDirPatcher_finishOldSameRefCount(dirPatcher);
         
         {//move new to old:
-            IDirPathMove dirPathMove;
+            IDirPathMove dirPathMove={0};
             dirPathMove.importMove=dirPatcher;
             dirPathMove.getDstPathBySrcPath=(IDirPathMove_getDstPathBySrcPath)TDirPatcher_getOldPathByNewPath;
             TDirPatcher_getNewDirPathList(dirPatcher,&dirPathMove.srcPathList);
             TDirPatcher_getOldDirPathList(dirPatcher,&dirPathMove.dstPathList);
-            if (!_moveNewToOld(&dirPathMove))
+            if (!_moveNewToOld(&dirPathMove)){
+                mix_ferr(self->fileError,dirPathMove.fileError);
                 result=hpatch_FALSE;
+            }
         }
     
         {//set execute tags in oldDir
@@ -281,7 +292,7 @@ static hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPa
 //        delete newTempDir; }
 static IHPatchDirListener tempDirPatchListener={{&tempDirPatchListener,_makeNewDir,_tempDir_copySameFile,
                                                    _openNewFile,_closeNewFile},
-                                                 0,_tempDirPatchBegin,_tempDirPatchFinish};
+                                                 0,_tempDirPatchBegin,_tempDirPatchFinish,0};
     
 #endif //_IS_NEED_tempDirPatchListener
 #ifdef __cplusplus

@@ -419,6 +419,7 @@ hpatch_BOOL  _openRes(hpatch_IResHandle* res,hpatch_TStreamInput** out_stream){
     check(hpatch_TFileStreamInput_open(file,utf8fileName));
     *out_stream=&file->base;
 clear:
+    if (!result) set_ferr(self->fileError,file->fileError);
     return result;
 }
 hpatch_BOOL _closeRes(hpatch_IResHandle* res,const hpatch_TStreamInput* stream){
@@ -431,6 +432,7 @@ hpatch_BOOL _closeRes(hpatch_IResHandle* res,const hpatch_TStreamInput* stream){
     assert(stream==&file->base);
     check(hpatch_TFileStreamInput_close(file));
 clear:
+    mix_ferr(self->fileError,file->fileError);
     return result;
 }
 
@@ -770,6 +772,7 @@ static hpatch_BOOL _do_checksumFiles(TDirPatcher* self,size_t fileCount,_t_getPa
     }
 clear:
     if (!hpatch_TFileStreamInput_close(&fileData)) result=hpatch_FALSE;
+    mix_ferr(self->fileError,fileData.fileError);
     if (csHandle) checksumPlugin->close(checksumPlugin,csHandle);
     return result;
 }

@@ -92,7 +92,7 @@ hpatch_BOOL hpatch_getTempPathName(const char* path_utf8,char* out_tempPath_utf8
     size_t i;
     size_t len=strlen(path_utf8);
     if ((len>0)&&(path_utf8[len-1]==kPatch_dirSeparator)) --len; //without '/'
-    if (len+(4+_AddingLen)>(size_t)(out_tempPath_end-out_tempPath_utf8)) { _setFileErrNo(ENAMETOOLONG); return hpatch_FALSE; }
+    if (len+(4+_AddingLen)>(size_t)(out_tempPath_end-out_tempPath_utf8)) { _set_errno_new(ENAMETOOLONG); return hpatch_FALSE; }
     memcpy(out_tempPath_utf8,path_utf8,len);
     out_tempPath_utf8+=len;
     for (i=1; i<1000; ++i) {
@@ -172,7 +172,7 @@ hpatch_BOOL hpatch_makeNewDir(const char* dirName_utf8){
     if (!_hpatch_getPathStat_noEndDirSeparator(path,&type,0,0)) return hpatch_FALSE; //error
     switch (type) {
         case kPathType_dir :{ return hpatch_TRUE; } break; //exist
-        case kPathType_file:{ return hpatch_FALSE; } break; //error, not overwite
+        case kPathType_file:{ _set_errno_new(EPERM); return hpatch_FALSE; } break; //error, not overwite
         case kPathType_notExist:{
 #if (_IS_USED_WIN32_UTF8_WAPI)
             int     wsize;
@@ -270,7 +270,7 @@ hpatch_BOOL _import_fileClose(hpatch_FileHandle* pfile){
     hpatch_BOOL _import_fileClose_No_errno(hpatch_FileHandle* pfile){
         int err=errno;
         hpatch_BOOL result=_import_fileClose(pfile); 
-        if (err) _setFileErrNo(err);
+        if (err) _set_errno_new(err);
         return result;
     }
 #else
@@ -352,7 +352,7 @@ hpatch_BOOL _import_fileOpenRead(const char* fileName_utf8,hpatch_FileHandle* ou
                                  hpatch_StreamPos_t* out_fileLength){
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
-    if (out_fileHandle==0) { _setFileErrNo(EINVAL); return hpatch_FALSE; }
+    if (out_fileHandle==0) { _set_errno_new(EINVAL); return hpatch_FALSE; }
     if (out_fileLength!=0){
         if (!hpatch_getFileSize(fileName_utf8,out_fileLength)) return hpatch_FALSE;
     }
@@ -365,7 +365,7 @@ hpatch_BOOL _import_fileOpenRead(const char* fileName_utf8,hpatch_FileHandle* ou
 hpatch_BOOL _import_fileOpenCreateOrReWrite(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle){
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
-    if (out_fileHandle==0) { _setFileErrNo(EINVAL); return hpatch_FALSE; }
+    if (out_fileHandle==0) { _set_errno_new(EINVAL); return hpatch_FALSE; }
     file=_import_fileOpenByMode(fileName_utf8,_kFileWriteMode);
     if (file==0) return hpatch_FALSE;
     *out_fileHandle=file;
@@ -377,7 +377,7 @@ hpatch_BOOL _import_fileReopenWrite(const char* fileName_utf8,hpatch_FileHandle*
     hpatch_FileHandle file=0;
     hpatch_StreamPos_t curFileSize=0;
     assert(out_fileHandle!=0);
-    if (out_fileHandle==0) { _setFileErrNo(EINVAL); return hpatch_FALSE; }
+    if (out_fileHandle==0) { _set_errno_new(EINVAL); return hpatch_FALSE; }
     if (!hpatch_getFileSize(fileName_utf8,&curFileSize)) return hpatch_FALSE;
     if (out_curFileWritePos!=0) *out_curFileWritePos=curFileSize;
     file=_import_fileOpenByMode(fileName_utf8,_kFileReadWriteMode);
