@@ -143,6 +143,7 @@ struct THash_fadler64{
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 
+#if (_IS_NEED_FAST_ADLER128)
 struct THash_fadler128{
     typedef adler128_t TValue;
     inline static const char* name() { return "fadler128"; }
@@ -162,6 +163,7 @@ struct _adler128_t_cmp{
         return (x.adler==y.adler) & (x.sum==y.sum);
     }
 };
+#endif
 
 const uint64_t kMaxMapNodeSize=80000000ull; //run test memory ctrl
 const size_t   kRandTestMaxSize=1024*1024*1024;//test rand data size
@@ -267,6 +269,7 @@ void test(const TByte* data,const TByte* data_end){
     printf(" \ttime:%.1fs\n",(clock_s()-time0));
 }
 
+#if (_IS_NEED_FAST_ADLER128)
 template <uint64_t kTestMask0,uint64_t kTestMask1>
 void test_fadler128(const TByte* data,const TByte* data_end){
     typedef THash_fadler128 THash;
@@ -368,6 +371,7 @@ void test_fadler128(const TByte* data,const TByte* data_end){
     if (clip_count>0) printf("]");
     printf(" \ttime:%.1fs\n",(clock_s()-time0));
 }
+#endif
 
 int main() {
     double bestCR_32bit =1.0/(((uint64_t)1)<<32);
@@ -417,11 +421,13 @@ int main() {
     test<THash_fadler64,uint16_t>(data.data(),data.data()+data.size());
     test<THash_fadler64,uint32_t>(data.data(),data.data()+data.size());
     //test<THash_fadler64,uint64_t>(data.data(),data.data()+data.size());
+#if (_IS_NEED_FAST_ADLER128)
     test<THash_fadler128,uint8_t>(data.data(),data.data()+data.size());
     test<THash_fadler128,uint16_t>(data.data(),data.data()+data.size());
     test<THash_fadler128,uint32_t>(data.data(),data.data()+data.size());
     kMinClash=50;
     test<THash_fadler128,uint64_t>(data.data(),data.data()+data.size());
+#endif
     printf("\n");
     //*/
     //*
@@ -436,6 +442,7 @@ int main() {
     printf("\n");
     //*/
     /*
+#if (_IS_NEED_FAST_ADLER128)
     printf("NOTE: not enough time to get next test results ...\n");
     kMinClash=1;
     test_fadler128<kTestMask32,kTestMask32>(data.data(),data.data()+data.size());
@@ -443,6 +450,7 @@ int main() {
     test_fadler128<kTestMask32<<32,kTestMask32>(data.data(),data.data()+data.size());
     test_fadler128<kTestMask32<<32,kTestMask32<<32>(data.data(),data.data()+data.size());
     printf("\n");
+#endif
     //*/
     //*
     printf("NOTE: not enough time to get next test results ...\n");
