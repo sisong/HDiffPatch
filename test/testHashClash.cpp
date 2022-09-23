@@ -30,16 +30,24 @@
 #include <iostream>
 #include <stdlib.h>
 #include <vector>
+#include <assert.h>
 #include <unordered_map>
-#include "zlib.h"
-#include "md5.h" // https://sourceforge.net/projects/libmd5-rfc
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../_clock_for_demo.h"
+#define _IS_NEED_ZLIB   1
+#define _IS_NEED_MD5    0
+#if (_IS_NEED_ZLIB)
+#include "zlib.h"
+#endif
+#if (_IS_NEED_MD5)
+#include "md5.h" // https://sourceforge.net/projects/libmd5-rfc
+#endif
+
 typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
 
-/*
+/* //interface
 struct THash{
     typename TValue;
     static const char* name() const;
@@ -48,6 +56,7 @@ struct THash{
     void hash_finish(TValue* hv);
 };*/
 
+#if (_IS_NEED_MD5)
 struct THash_md5_128{
     typedef std::pair<uint64_t,uint64_t> TValue;
     inline static const char* name() { return "md5_128"; }
@@ -57,7 +66,6 @@ struct THash_md5_128{
         { md5_append(&_hv,pdata,(int)(pdata_end-pdata)); }
     inline void hash_end(TValue* hv) { md5_finish(&_hv,(TByte*)hv); }
 };
-
 namespace std{
     template<> struct hash<THash_md5_128::TValue>{
         inline size_t operator()(const THash_md5_128::TValue& v) const{
@@ -68,7 +76,9 @@ namespace std{
             return (x.first^x.second) < (y.first^y.second); }
     };
 }
+#endif
 
+#if (_IS_NEED_ZLIB)
 struct THash_crc32{
     typedef uint32_t TValue;
     inline static const char* name() { return "crc32"; }
@@ -88,6 +98,7 @@ struct THash_adler32{
                         { _hv=(TValue)adler32(_hv,pdata,(uInt)(pdata_end-pdata)); }
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
+#endif
 
 
 struct THash_adler32h{
@@ -132,6 +143,7 @@ struct THash_fadler64{
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 
+#if (_IS_NEED_FAST_ADLER128)
 struct THash_fadler128{
     typedef adler128_t TValue;
     inline static const char* name() { return "fadler128"; }
@@ -151,6 +163,7 @@ struct _adler128_t_cmp{
         return (x.adler==y.adler) & (x.sum==y.sum);
     }
 };
+#endif
 
 const uint64_t kMaxMapNodeSize=80000000ull; //run test memory ctrl
 const size_t   kRandTestMaxSize=1024*1024*1024;//test rand data size
@@ -169,7 +182,8 @@ void test(const TByte* data,const TByte* data_end){
     for (size_t m=0;m<clip_count;++m)
         maps[m].reserve(kMaxMapNodeSize*3/clip_count);
     unsigned int rand_seed=7;
-    if (kTestMask!=(TUInt)~(TUInt)0) printf("mask[%08X %08X] ",(int)(kTestMask>>32),(int)kTestMask);
+    srand(rand_seed);
+    if (kTestMask!=(TUInt)~(TUInt)0) printf("mask[%08X %08X] ",(int)((uint64_t)kTestMask>>32),(int)kTestMask);
     printf("%s%s ",THash::name(),std::string(10-strlen(THash::name()),' ').c_str());
     
     uint64_t    curClashMin=0;
@@ -177,15 +191,15 @@ void test(const TByte* data,const TByte* data_end){
     double clashBases[clip_count]={0};
     size_t i=0;
     while (curClashMin<kMinClash) {
-        uint64_t    clashMin=-(uint64_t)1;
+        uint64_t    clashMin=~(uint64_t)0;
         for (size_t m=0;m<clip_count;++m){
             if (clashs[m]<clashMin) clashMin=clashs[m];
         }
         curClashMin=clashMin;
         
-        size_t dlen=rand_r(&rand_seed) % kMaxHashDataSize;
-        size_t dstrat=rand_r(&rand_seed) % ((data_end-data) - dlen);
-        assert(dstrat+dlen<=(data_end-data));
+        size_t dlen=rand() % kMaxHashDataSize;
+        size_t dstrat=((uint64_t)rand()+((uint64_t)rand()*(RAND_MAX+1))) % ((data_end-data)-dlen);
+        assert(dstrat+dlen<=(size_t)(data_end-data));
         const TByte* pv    =data+dstrat;
         const TByte* pv_end=pv+dlen;
         
@@ -255,6 +269,7 @@ void test(const TByte* data,const TByte* data_end){
     printf(" \ttime:%.1fs\n",(clock_s()-time0));
 }
 
+#if (_IS_NEED_FAST_ADLER128)
 template <uint64_t kTestMask0,uint64_t kTestMask1>
 void test_fadler128(const TByte* data,const TByte* data_end){
     typedef THash_fadler128 THash;
@@ -268,6 +283,7 @@ void test_fadler128(const TByte* data,const TByte* data_end){
     for (size_t m=0;m<clip_count;++m)
         maps[m].reserve(kMaxMapNodeSize*3/clip_count);
     unsigned int rand_seed=7;
+    srand(rand_seed);
     printf("mask[%08X %08X ",(int)(kTestMask1>>32),(int)kTestMask1);
     printf("%08X %08X] ",(int)(kTestMask0>>32),(int)kTestMask0);
     printf("%s%s ",THash::name(),std::string(10-strlen(THash::name()),' ').c_str());
@@ -277,14 +293,14 @@ void test_fadler128(const TByte* data,const TByte* data_end){
     double clashBases[clip_count]={0};
     size_t i=0;
     while (curClashMin<kMinClash) {
-        uint64_t    clashMin=-(uint64_t)1;
+        uint64_t    clashMin=~(uint64_t)0;
         for (size_t m=0;m<clip_count;++m){
             if (clashs[m]<clashMin) clashMin=clashs[m];
         }
         curClashMin=clashMin;
         
-        size_t dlen=rand_r(&rand_seed) % kMaxHashDataSize;
-        size_t dstrat=rand_r(&rand_seed) % ((data_end-data) - dlen);
+        size_t dlen=rand() % kMaxHashDataSize;
+        size_t dstrat=rand() % ((data_end-data) - dlen);
         assert(dstrat+dlen<=(data_end-data));
         const TByte* pv    =data+dstrat;
         const TByte* pv_end=pv+dlen;
@@ -355,6 +371,7 @@ void test_fadler128(const TByte* data,const TByte* data_end){
     if (clip_count>0) printf("]");
     printf(" \ttime:%.1fs\n",(clock_s()-time0));
 }
+#endif
 
 int main() {
     double bestCR_32bit =1.0/(((uint64_t)1)<<32);
@@ -365,14 +382,15 @@ int main() {
     printf("48bit  hash  best clash rate: %.3e (1/%llu) \n",
            1.0/(((uint64_t)1)<<48),(((uint64_t)1)<<48));
     printf("64bit  hash  best clash rate: %.3e (1/%llu%llu) \n",
-           bestCR_64bit,(((uint64_t)(-(uint64_t)1)))/10,(((uint64_t)(-(uint64_t)1)))%10+1);
+           bestCR_64bit,(((uint64_t)(~(uint64_t)0)))/10,(((uint64_t)(~(uint64_t)0)))%10+1);
     printf("128bit hash  best clash rate: %.3e (1/%.3e) \n\n",
            bestCR_128bit,1/bestCR_128bit);
     
     std::vector<TByte> data(kRandTestMaxSize);
     unsigned int rand_seed=0;
+    srand(rand_seed);
     for (size_t i=0; i<data.size(); ++i) {
-        data[i]=(TByte)rand_r(&rand_seed);
+        data[i]=(TByte)rand();
     }
     const uint64_t kTestMask8=((((uint64_t)1)<<8)-1);
     const uint64_t kTestMask16=((((uint64_t)1)<<16)-1);
@@ -381,12 +399,17 @@ int main() {
     
     //*
     kMinClash=100000;
-    test<THash_adler32,uint8_t>(data.data(),data.data()+data.size());
-    test<THash_adler32,uint16_t>(data.data(),data.data()+data.size());
-    test<THash_adler32,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h,uint8_t>(data.data(), data.data() + data.size());
+    test<THash_adler32h,uint16_t>(data.data(), data.data() + data.size());
     test<THash_adler32h,uint32_t>(data.data(),data.data()+data.size());
+#if (_IS_NEED_ZLIB)
+    test<THash_adler32,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_crc32,uint16_t>(data.data(),data.data()+data.size());
     test<THash_crc32,uint32_t>(data.data(),data.data()+data.size());
+#endif
+#if (_IS_NEED_MD5)
     test<THash_md5_128,uint32_t>(data.data(),data.data()+data.size());
+#endif
     test<THash_adler64h,uint8_t>(data.data(),data.data()+data.size());
     test<THash_adler64h,uint16_t>(data.data(),data.data()+data.size());
     test<THash_adler64h,uint32_t>(data.data(),data.data()+data.size());
@@ -398,11 +421,13 @@ int main() {
     test<THash_fadler64,uint16_t>(data.data(),data.data()+data.size());
     test<THash_fadler64,uint32_t>(data.data(),data.data()+data.size());
     //test<THash_fadler64,uint64_t>(data.data(),data.data()+data.size());
+#if (_IS_NEED_FAST_ADLER128)
     test<THash_fadler128,uint8_t>(data.data(),data.data()+data.size());
     test<THash_fadler128,uint16_t>(data.data(),data.data()+data.size());
     test<THash_fadler128,uint32_t>(data.data(),data.data()+data.size());
     kMinClash=50;
     test<THash_fadler128,uint64_t>(data.data(),data.data()+data.size());
+#endif
     printf("\n");
     //*/
     //*
@@ -417,6 +442,7 @@ int main() {
     printf("\n");
     //*/
     /*
+#if (_IS_NEED_FAST_ADLER128)
     printf("NOTE: not enough time to get next test results ...\n");
     kMinClash=1;
     test_fadler128<kTestMask32,kTestMask32>(data.data(),data.data()+data.size());
@@ -424,12 +450,15 @@ int main() {
     test_fadler128<kTestMask32<<32,kTestMask32>(data.data(),data.data()+data.size());
     test_fadler128<kTestMask32<<32,kTestMask32<<32>(data.data(),data.data()+data.size());
     printf("\n");
+#endif
     //*/
     //*
     printf("NOTE: not enough time to get next test results ...\n");
     kMinClash=1; // for timesaving but increase deviation
     test<THash_fadler64,uint64_t>(data.data(),data.data()+data.size());
+#if (_IS_NEED_MD5)
     test<THash_md5_128,uint64_t>(data.data(),data.data()+data.size());
+#endif
     //*/
     return 0;
 }

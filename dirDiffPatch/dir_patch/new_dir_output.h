@@ -45,8 +45,8 @@ extern "C" {
     } hpatch_ICopyDataListener;
     
 hpatch_BOOL TDirPatcher_copyFile(const char* oldFileName_utf8,const char* newFileName_utf8,
-                                 hpatch_ICopyDataListener* copyListener);
-hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,hpatch_ICopyDataListener* copyListener);
+                                 hpatch_ICopyDataListener* copyListener,hpatch_FileError_t* out_fileError);
+hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,hpatch_ICopyDataListener* copyListener,hpatch_FileError_t* out_fileError);
 
 
     struct hpatch_TFileStreamOutput;

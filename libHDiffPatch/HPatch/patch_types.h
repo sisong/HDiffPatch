@@ -37,8 +37,8 @@ extern "C" {
 #endif
 
 #define HDIFFPATCH_VERSION_MAJOR    4
-#define HDIFFPATCH_VERSION_MINOR    2
-#define HDIFFPATCH_VERSION_RELEASE  3
+#define HDIFFPATCH_VERSION_MINOR    3
+#define HDIFFPATCH_VERSION_RELEASE  0
 
 #define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
 #define _HDIFFPATCH_QUOTE(str) #str
@@ -82,6 +82,12 @@ extern "C" {
 #define     hpatch_FALSE    0
 #define     hpatch_TRUE     ((hpatch_BOOL)(!hpatch_FALSE))
     
+#if (_HPATCH_IS_USED_errno)
+typedef    int          hpatch_FileError_t;// 0: no error; other: saved errno value;
+#else
+typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
+#endif
+
 #ifdef _MSC_VER
 #   define hpatch_inline _inline
 #else
@@ -103,6 +109,16 @@ extern "C" {
 #else
 #   include <stdio.h>  //for stderr
 #   define LOG_ERR(...) fprintf(stderr,__VA_ARGS__)
+#endif
+#ifndef _HPATCH_IS_USED_errno
+#   define  _HPATCH_IS_USED_errno 1
+#endif
+#define _hpatch_import_system_tag "call import system api"
+#if (_HPATCH_IS_USED_errno)
+#   define  LOG_ERRNO(_err_no) \
+        LOG_ERR(_hpatch_import_system_tag" error! errno: %d, errmsg: %s.\n",_err_no,strerror(_err_no))
+#else
+#   define  LOG_ERRNO(_err_no) LOG_ERR(_hpatch_import_system_tag" error!\n")
 #endif
     
 #define _hpatch_align_type_lower(uint_type,p,align2pow) (((uint_type)(p)) & (~(uint_type)((align2pow)-1)))
@@ -152,6 +168,13 @@ extern "C" {
     } hpatch_compressedDiffInfo;
     
     typedef void*  hpatch_decompressHandle;
+    typedef enum{
+        hpatch_dec_ok=0,
+        hpatch_dec_mem_error,
+        hpatch_dec_open_error,
+        hpatch_dec_error,
+        hpatch_dec_close_error,
+    } hpatch_dec_error_t;
     typedef struct hpatch_TDecompress{
         hpatch_BOOL        (*is_can_open)(const char* compresseType);
         //error return 0.
@@ -165,8 +188,11 @@ extern "C" {
         //decompress_part() must out (out_part_data_end-out_part_data), otherwise error return hpatch_FALSE
         hpatch_BOOL    (*decompress_part)(hpatch_decompressHandle decompressHandle,
                                           unsigned char* out_part_data,unsigned char* out_part_data_end);
+        volatile hpatch_dec_error_t decError; //if you used decError value, once patch must used it's own hpatch_TDecompress
     } hpatch_TDecompress;
-
+    #define _hpatch_update_decError(decompressPlugin,errorCode) \
+        do { if ((decompressPlugin)->decError==hpatch_dec_ok)   \
+                (decompressPlugin)->decError=errorCode;     } while(0)
     
     
     void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
