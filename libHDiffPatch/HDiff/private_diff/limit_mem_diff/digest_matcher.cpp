@@ -131,8 +131,8 @@ static size_t posToBlockIndex(hpatch_StreamPos_t pos,size_t kMatchBlockSize,size
 TDigestMatcher::~TDigestMatcher(){
 }
     
-TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize,bool kIsSkipSameRange)
-:m_oldData(oldData),m_isUseLargeSorted(true),m_kIsSkipSameRange(kIsSkipSameRange),
+TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize)
+:m_oldData(oldData),m_isUseLargeSorted(true),
 m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_kMatchBlockSize(0){
     if (kMatchBlockSize>(oldData->streamSize+1)/2)
         kMatchBlockSize=(size_t)((oldData->streamSize+1)/2);
@@ -331,21 +331,6 @@ struct TNewStreamCache:public TBlockStreamCache{
             return roll();
         }
     }
-    bool skip_same(unsigned char same){
-        if (!TBlockStreamCache::resetPos(pos()+kMatchBlockSize)) return false;
-        while (true) {
-            const unsigned char* pdata=data();
-            const unsigned char* pdata_end=pdata+dataLength();
-            for (;pdata<pdata_end;++pdata){
-                if ((*pdata)!=same) break;
-            }
-            if (pdata<pdata_end){
-                return resetPos(pos()+(pdata-data()));
-            }else{
-                if (!TBlockStreamCache::resetPos(pos()+dataLength())) return false;
-            }
-        }
-    }
     inline adler_uint_t rollDigest()const{ return roll_digest; }
 private:
     adler_uint_t               roll_digest;
@@ -519,29 +504,6 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     }
     return isMatched;
 }
-
-    static bool is_same_data(const unsigned char* s,size_t length){
-        size_t length_fast,i;
-        unsigned char same;
-        if (length==0) return true;
-        same=s[length-1];
-        
-        length_fast=length&(~(size_t)7);
-        for (i=0;i<length_fast;i+=8){
-            if(s[i  ]!=same) return false;
-            if(s[i+1]!=same) return false;
-            if(s[i+2]!=same) return false;
-            if(s[i+3]!=same) return false;
-            if(s[i+4]!=same) return false;
-            if(s[i+5]!=same) return false;
-            if(s[i+6]!=same) return false;
-            if(s[i+7]!=same) return false;
-        }
-        for (;i<length-1;++i){
-            if(s[i]!=same) return false;
-        }
-        return true;
-    }
     
     static const size_t getOldPosCost(hpatch_StreamPos_t oldPos,const TCover& lastCover){
         hpatch_StreamPos_t oldPosEnd=lastCover.oldPos+lastCover.length;
@@ -575,7 +537,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
                             const TIndex* iblocks,const TIndex* iblocks_end,
                             TOldStreamCache& oldStream,TNewStreamCache& newStream,
                             const TBloomFilter<adler_hash_t>& filter,
-                            bool kIsSkipSameRange,hpatch_TOutputCovers* out_covers) {
+                            hpatch_TOutputCovers* out_covers) {
     TDigest_comp comp(blocksBase);
     TCover  lastCover={0,0,0};
     while (true) {
@@ -587,11 +549,6 @@ static void tm_search_cover(const adler_uint_t* blocksBase,size_t blocksSize,
         range=std::equal_range(iblocks,iblocks_end,digest_value,comp);
         if (range.first==range.second)
             { if (newStream.roll()) continue; else break; }//finish
-        
-        if (kIsSkipSameRange&&is_same_data(newStream.data(),newStream.kMatchBlockSize)){
-            if (!newStream.skip_same(*newStream.data())) break;//finish
-            continue;
-        }
         
         hpatch_StreamPos_t newPosBack=newStream.pos();
         TCover  curCover;
@@ -620,10 +577,10 @@ void TDigestMatcher::search_cover(const hpatch_TStreamInput* newData,hpatch_TOut
                               m_oldCacheSize,m_backupCacheSize,m_kMatchBlockSize);
     if (m_isUseLargeSorted)
         tm_search_cover(&m_blocks[0],m_blocks.size(),&m_sorted_larger[0],&m_sorted_larger[0]+m_blocks.size(),
-                        oldStream,newStream,m_filter,m_kIsSkipSameRange,out_covers);
+                        oldStream,newStream,m_filter,out_covers);
     else
         tm_search_cover(&m_blocks[0],m_blocks.size(),&m_sorted_limit[0],&m_sorted_limit[0]+m_blocks.size(),
-                        oldStream,newStream,m_filter,m_kIsSkipSameRange,out_covers);
+                        oldStream,newStream,m_filter,out_covers);
 }
 
 }//namespace hdiff_private

@@ -175,10 +175,10 @@ void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
 
 //same as create?compressed_diff_stream(), but not serialize diffData, only got covers
 void get_match_covers_by_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange=false);
+                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize);
 void get_match_covers_by_block(const unsigned char* newData,const unsigned char* newData_end,
                                const unsigned char* oldData,const unsigned char* oldData_end,
-                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,bool kIsSkipSameRange=false);
+                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize);
 
 //same as create?_diff(), but not serialize diffData, only got covers
 void get_match_covers_by_sstring(const unsigned char* newData,const unsigned char* newData_end,

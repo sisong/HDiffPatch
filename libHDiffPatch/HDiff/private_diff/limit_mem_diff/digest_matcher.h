@@ -62,7 +62,7 @@ static inline adler_hash_t adler_to_hash(const uint64_t x){ return x; }
 class TDigestMatcher{
 public:
     //throw std::runtime_error when data->read error or kMatchBlockSize error;
-    TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize,bool kIsSkipSameRange);
+    TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize);
     void search_cover(const hpatch_TStreamInput* newData,hpatch_TOutputCovers* out_covers);
     ~TDigestMatcher();
 private:
@@ -72,7 +72,6 @@ private:
     std::vector<uint32_t>       m_sorted_limit;
     std::vector<size_t>         m_sorted_larger;
     bool                        m_isUseLargeSorted;
-    bool                        m_kIsSkipSameRange;
     TAutoMem                    m_mem;
     size_t                      m_newCacheSize;
     size_t                      m_oldCacheSize;

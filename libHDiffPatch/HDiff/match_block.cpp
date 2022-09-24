@@ -33,7 +33,6 @@
 #define _check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 
 namespace hdiff_private {
-    static const bool   kIsSkipSameRange = false;
     typedef TMatchBlock::TPackedCover TPackedCover;
 
     template<class T> inline static
@@ -88,7 +87,7 @@ namespace hdiff_private {
 void TMatchBlock::getBlockCovers(){
     TOutputCovers covers(blockCovers);
     get_match_covers_by_block(newData,newData_end,oldData,oldData_end,
-                              &covers,matchBlockSize,kIsSkipSameRange);
+                              &covers,matchBlockSize);
 }
 
 void TMatchBlock::getPackedCover(){
