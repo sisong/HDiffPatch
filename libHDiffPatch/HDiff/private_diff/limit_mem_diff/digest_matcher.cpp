@@ -29,6 +29,7 @@
 #include <stdexcept>  //std::runtime_error
 #include <algorithm>  //std::sort,std::equal_range
 #include "../compress_detect.h" //_getUIntCost
+#include "../qsort_parallel.h"
 namespace hdiff_private{
 static  const size_t kMinTrustMatchedLength=1024*16;
 static  const size_t kMinMatchedLength = 16;
@@ -214,9 +215,9 @@ void TDigestMatcher::getDigests(){
     size_t kMaxCmpDeep= 1 + upperCount(kMinTrustMatchedLength,m_kMatchBlockSize);
     TIndex_comp comp(m_blocks.data(),m_blocks.size(),kMaxCmpDeep);
     if (m_isUseLargeSorted)
-        std::sort(m_sorted_larger.begin(),m_sorted_larger.end(),comp);
+        sort_parallel(m_sorted_larger.data(),m_sorted_larger.data()+m_sorted_larger.size(),comp,m_threadNum);
     else
-        std::sort(m_sorted_limit.begin(),m_sorted_limit.end(),comp);
+        sort_parallel(m_sorted_limit.data(),m_sorted_limit.data()+m_sorted_limit.size(),comp,m_threadNum);
 }
 
 struct TBlockStreamCache:public TStreamCache{
