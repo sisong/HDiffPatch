@@ -41,12 +41,14 @@ namespace hdiff_private{
         unsigned char* oldData_end;
         unsigned char* oldData_end_cur;
         const size_t   matchBlockSize;
+        const size_t   threadNum;
         typedef hpatch_TCover TPackedCover;
         TMatchBlock(unsigned char* _newData,unsigned char* _newData_end,
-                    unsigned char* _oldData,unsigned char* _oldData_end,size_t _matchBlockSize)
+                    unsigned char* _oldData,unsigned char* _oldData_end,
+                    size_t _matchBlockSize,size_t _threadNum)
         :newData(_newData),newData_end(_newData_end),newData_end_cur(_newData_end),
          oldData(_oldData),oldData_end(_oldData_end),oldData_end_cur(_oldData_end),
-         matchBlockSize(_matchBlockSize){}
+         matchBlockSize(_matchBlockSize),threadNum(_threadNum){}
         void getBlockCovers();
         void getPackedCover();
         void packData();
@@ -73,8 +75,10 @@ namespace hdiff_private{
     template<class _TMatchBlock>
     struct TCoversOptimMB:public TCoversOptim{
         TCoversOptimMB(unsigned char* newData,unsigned char* newData_end,
-                       unsigned char* oldData,unsigned char* oldData_end,size_t matchBlockSize)
-        :TCoversOptim(&_matchBlock),_matchBlock(newData,newData_end,oldData,oldData_end,matchBlockSize){
+                       unsigned char* oldData,unsigned char* oldData_end,
+                       size_t matchBlockSize,size_t threadNum)
+        :TCoversOptim(&_matchBlock),_matchBlock(newData,newData_end,oldData,oldData_end,
+                                                matchBlockSize,threadNum){
             _matchBlock.getBlockCovers();
             _matchBlock.getPackedCover();
             _matchBlock.packData();
@@ -99,21 +103,24 @@ void create_compressed_diff_block(const hpatch_TStreamInput* newData,//will load
                                   const hdiff_TCompress* compressPlugin=0,
                                   int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                   bool isUseBigCacheMatch=false,
-                                  size_t matchBlockSize=kDefaultFastMatchBlockSize);
+                                  size_t matchBlockSize=kDefaultFastMatchBlockSize,
+                                  size_t threadNum=1);
 void create_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
                                   unsigned char* oldData,unsigned char* oldData_end,
                                   const hpatch_TStreamOutput* out_diff,
                                   const hdiff_TCompress* compressPlugin=0,
                                   int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                   bool isUseBigCacheMatch=false,
-                                  size_t matchBlockSize=kDefaultFastMatchBlockSize);
+                                  size_t matchBlockSize=kDefaultFastMatchBlockSize,
+                                  size_t threadNum=1);
 void create_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
                                   unsigned char* oldData,unsigned char* oldData_end,
                                   std::vector<unsigned char>& out_diff,
                                   const hdiff_TCompress* compressPlugin=0,
                                   int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                   bool isUseBigCacheMatch=false,
-                                  size_t matchBlockSize=kDefaultFastMatchBlockSize);
+                                  size_t matchBlockSize=kDefaultFastMatchBlockSize,
+                                  size_t threadNum=1);
 
 void create_single_compressed_diff_block(const hpatch_TStreamInput* newData,//will load in memory
                                          const hpatch_TStreamInput* oldData,//will load in memory
@@ -121,20 +128,23 @@ void create_single_compressed_diff_block(const hpatch_TStreamInput* newData,//wi
                                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                          size_t patchStepMemSize=kDefaultPatchStepMemSize,
                                          bool isUseBigCacheMatch=false,
-                                         size_t matchBlockSize=kDefaultFastMatchBlockSize);
+                                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
+                                         size_t threadNum=1);
 void create_single_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
                                          unsigned char* oldData,unsigned char* oldData_end,
                                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin=0,
                                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                          size_t patchStepMemSize=kDefaultPatchStepMemSize,
                                          bool isUseBigCacheMatch=false,
-                                         size_t matchBlockSize=kDefaultFastMatchBlockSize);
+                                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
+                                         size_t threadNum=1);
 void create_single_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
                                          unsigned char* oldData,unsigned char* oldData_end,
                                          std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin=0,
                                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                          size_t patchStepMemSize=kDefaultPatchStepMemSize,
                                          bool isUseBigCacheMatch=false,
-                                         size_t matchBlockSize=kDefaultFastMatchBlockSize);
+                                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
+                                         size_t threadNum=1);
 
 #endif //hdiff_match_block_h

@@ -713,11 +713,11 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     diffSets.isSingleCompressedDiff =_kNULL_VALUE;
     diffSets.isUseBigCacheMatch =_kNULL_VALUE;
     diffSets.isUseFastMatchBlock=_kNULL_VALUE;
+    diffSets.threadNum=_THREAD_NUMBER_NULL;
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
-    size_t      threadNum = _THREAD_NUMBER_NULL;
     hdiff_TCompress*        compressPlugin=0;
 #if (_IS_NEED_DIR_DIFF_PATCH)
     hpatch_BOOL             isForceRunDirDiff=_kNULL_VALUE;
@@ -819,10 +819,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
 #if (_IS_USED_MULTITHREAD)
             case 'p':{
-                _options_check((threadNum==_THREAD_NUMBER_NULL)&&(op[2]=='-'),"-p-?");
+                _options_check((diffSets.threadNum==_THREAD_NUMBER_NULL)&&(op[2]=='-'),"-p-?");
                 const char* pnum=op+3;
-                _options_check(a_to_size(pnum,strlen(pnum),&threadNum),"-p-?");
-                _options_check(threadNum>=_THREAD_NUMBER_MIN,"-p-?");
+                _options_check(a_to_size(pnum,strlen(pnum),&diffSets.threadNum),"-p-?");
+                _options_check(diffSets.threadNum>=_THREAD_NUMBER_MIN,"-p-?");
             } break;
 #endif
             case 'b':{
@@ -949,12 +949,12 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
 #endif
-    if (threadNum==_THREAD_NUMBER_NULL)
-        threadNum=_THREAD_NUMBER_DEFUALT;
-    else if (threadNum>_THREAD_NUMBER_MAX)
-        threadNum=_THREAD_NUMBER_MAX;
+    if (diffSets.threadNum==_THREAD_NUMBER_NULL)
+        diffSets.threadNum=_THREAD_NUMBER_DEFUALT;
+    else if (diffSets.threadNum>_THREAD_NUMBER_MAX)
+        diffSets.threadNum=_THREAD_NUMBER_MAX;
     if (compressPlugin!=0){
-        compressPlugin->setParallelThreadNumber(compressPlugin,(int)threadNum);
+        compressPlugin->setParallelThreadNumber(compressPlugin,(int)diffSets.threadNum);
     }
     
     if (isOldPathInputEmpty==_kNULL_VALUE)
@@ -1221,7 +1221,8 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
             if (diffSets.isBsDiff){
               if (diffSets.isUseFastMatchBlock)
                 create_bsdiff_block(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),&diffData_out.base,
-                                    compressPlugin,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch,diffSets.fastMatchBlockSize);   
+                                    compressPlugin,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch,
+                                    diffSets.fastMatchBlockSize,diffSets.threadNum);   
               else
                 create_bsdiff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),&diffData_out.base,
                               compressPlugin,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch);     
@@ -1231,7 +1232,8 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
               if (diffSets.isUseFastMatchBlock)
                 create_single_compressed_diff_block(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
                                                     &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
-                                                    diffSets.patchStepMemSize,diffSets.isUseBigCacheMatch,diffSets.fastMatchBlockSize);   
+                                                    diffSets.patchStepMemSize,diffSets.isUseBigCacheMatch,
+                                                    diffSets.fastMatchBlockSize,diffSets.threadNum);   
               else
                 create_single_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
                                               &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
@@ -1240,7 +1242,7 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
               if (diffSets.isUseFastMatchBlock)
                 create_compressed_diff_block(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
                                              &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
-                                             diffSets.isUseBigCacheMatch,diffSets.fastMatchBlockSize);
+                                             diffSets.isUseBigCacheMatch,diffSets.fastMatchBlockSize,diffSets.threadNum);
               else
                 create_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
                                        &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
@@ -1350,10 +1352,11 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
         try{
             if (diffSets.isSingleCompressedDiff)
                 create_single_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
-                                                     compressPlugin,diffSets.matchBlockSize,diffSets.patchStepMemSize);
+                                                     compressPlugin,diffSets.matchBlockSize,
+                                                     diffSets.patchStepMemSize,diffSets.threadNum);
             else
                 create_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
-                                              compressPlugin,diffSets.matchBlockSize);
+                                              compressPlugin,diffSets.matchBlockSize,diffSets.threadNum);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             check(!newData.fileError,HDIFF_OPENREAD_ERROR,"read newFile");

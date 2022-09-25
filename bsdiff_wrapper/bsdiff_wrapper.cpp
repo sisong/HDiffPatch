@@ -206,27 +206,30 @@ void create_bsdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput*
 void create_bsdiff_block(unsigned char* newData,unsigned char* newData_end,
                          unsigned char* oldData,unsigned char* oldData_end,
                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
-                         int kMinSingleMatchScore,bool isUseBigCacheMatch,size_t matchBlockSize){
+                         int kMinSingleMatchScore,bool isUseBigCacheMatch,
+                         size_t matchBlockSize,size_t threadNum){
     if (matchBlockSize==0){
         _create_bsdiff(newData,newData_end,newData_end,oldData,oldData_end,oldData_end,
                        out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,0);
         return;
     }
-    TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize);
+    TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize,threadNum);
     _create_bsdiff(newData,coversOp.matchBlock->newData_end_cur,newData_end,
                    oldData,coversOp.matchBlock->oldData_end_cur,oldData_end,
                    out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,&coversOp);   
 }
 void create_bsdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
-                         int kMinSingleMatchScore,bool isUseBigCacheMatch,size_t matchBlockSize){
+                         int kMinSingleMatchScore,bool isUseBigCacheMatch,
+                         size_t matchBlockSize,size_t threadNum){
     TAutoMem oldAndNewData;
     loadOldAndNewStream(oldAndNewData,oldData,newData);
     size_t old_size=oldData?(size_t)oldData->streamSize:0;
     unsigned char* pOldData=oldAndNewData.data();
     unsigned char* pNewData=pOldData+old_size;
     create_bsdiff_block(pNewData,pNewData+(size_t)newData->streamSize,pOldData,pOldData+old_size,
-                        out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,matchBlockSize);
+                        out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,
+                        matchBlockSize,threadNum);
 }
 
 bool get_is_bsdiff(const hpatch_TStreamInput* diffData){

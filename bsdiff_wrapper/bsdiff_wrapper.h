@@ -55,10 +55,14 @@ void create_bsdiff_block(unsigned char* newData,unsigned char* newData_end,
                          unsigned char* oldData,unsigned char* oldData_end,
                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                         bool isUseBigCacheMatch=false,size_t matchBlockSize=kDefaultFastMatchBlockSize);
+                         bool isUseBigCacheMatch=false,
+                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
+                         size_t threadNum=1);
 void create_bsdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                         bool isUseBigCacheMatch=false,size_t matchBlockSize=kDefaultFastMatchBlockSize);
+                         bool isUseBigCacheMatch=false,
+                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
+                         size_t threadNum=1);
 
 #endif

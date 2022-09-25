@@ -467,7 +467,8 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
             create_single_compressed_diff_block(newData,newData+newRefStream.stream->streamSize,
                                                 oldData,oldData+oldRefStream.stream->streamSize,
                                                 &ofStream,compressPlugin,(int)hdiffSets.matchScore,
-                                                hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch);
+                                                hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch,
+                                                hdiffSets.threadNum);
           else
             create_single_compressed_diff(newData,newData+newRefStream.stream->streamSize,
                                           oldData,oldData+oldRefStream.stream->streamSize,
@@ -485,7 +486,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
             create_compressed_diff_block(newData,newData+newRefStream.stream->streamSize,
                                          oldData,oldData+oldRefStream.stream->streamSize,
                                          out_diff,compressPlugin,(int)hdiffSets.matchScore,
-                                         hdiffSets.isUseBigCacheMatch);
+                                         hdiffSets.isUseBigCacheMatch,hdiffSets.threadNum);
           else
             create_compressed_diff(newData,newData+newRefStream.stream->streamSize,
                                    oldData,oldData+oldRefStream.stream->streamSize,
@@ -498,10 +499,11 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
         if (hdiffSets.isSingleCompressedDiff){
             create_single_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                                 compressPlugin,hdiffSets.matchBlockSize,hdiffSets.patchStepMemSize);
+                                                 compressPlugin,hdiffSets.matchBlockSize,
+                                                 hdiffSets.patchStepMemSize,hdiffSets.threadNum);
         }else{
             create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                          compressPlugin,hdiffSets.matchBlockSize);
+                                          compressPlugin,hdiffSets.matchBlockSize,hdiffSets.threadNum);
         }
         diffDataSize=ofStream.outSize;
         if (checksumByteSize>0){

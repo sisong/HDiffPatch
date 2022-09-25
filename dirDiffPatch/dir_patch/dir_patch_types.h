@@ -44,6 +44,7 @@ struct THDiffSets{
     //diff by stream
     size_t patchStepMemSize;
     size_t matchBlockSize;
+    size_t threadNum;
 };
 
 #ifndef _IS_NEED_DIR_DIFF_PATCH
