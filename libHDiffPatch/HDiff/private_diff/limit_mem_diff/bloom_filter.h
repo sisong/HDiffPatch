@@ -31,6 +31,7 @@
 #include <string.h> //memset
 #include <assert.h>
 #include <stdexcept>//std::runtime_error
+#include <atomic>
 namespace hdiff_private{
 
 class TBitSet{
@@ -42,6 +43,21 @@ public:
         //assert(bitIndex<m_bitSize);
         m_bits[bitIndex>>kBaseShr] |= ((base_t)1<<(bitIndex&kBaseMask));
     }
+#if (_IS_USED_MULTITHREAD)
+    void set_MT(size_t bitIndex){
+        //assert(bitIndex<m_bitSize);
+        assert(sizeof(std::atomic<base_t>)==sizeof(base_t));
+        base_t oldv;
+        base_t newv;
+        std::atomic<base_t>& v=*(std::atomic<base_t>*)&m_bits[bitIndex>>kBaseShr];
+        do {
+            oldv=v.load();
+            newv=oldv | ((base_t)1<<(bitIndex&kBaseMask));
+            if (oldv==newv)
+                return;
+        } while(!v.compare_exchange_weak(oldv,newv));
+    }
+#endif
     inline bool is_hit(size_t bitIndex)const{
         //assert(bitIndex<m_bitSize);
         return 0!=(m_bits[bitIndex>>kBaseShr] & ((base_t)1<<(bitIndex&kBaseMask)));
@@ -93,6 +109,13 @@ public:
         m_bitSet.set(hash1(data));
         m_bitSet.set(hash2(data));
     }
+#if (_IS_USED_MULTITHREAD)
+    inline void insert_MT(T data){
+        m_bitSet.set_MT(hash0(data));
+        m_bitSet.set_MT(hash1(data));
+        m_bitSet.set_MT(hash2(data));
+    }
+#endif
     inline bool is_hit(T data)const{
         return m_bitSet.is_hit(hash0(data))
             && m_bitSet.is_hit(hash1(data))

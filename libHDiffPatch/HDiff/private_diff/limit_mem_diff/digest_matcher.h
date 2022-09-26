@@ -30,11 +30,11 @@
 
 #ifndef digest_matcher_h
 #define digest_matcher_h
+#include "../../../../libParallel/parallel_import.h"
 #include "bloom_filter.h"
 #include "covers.h"
 #include "adler_roll.h"
 #include "../mem_buf.h"
-
 namespace hdiff_private{
 
 typedef uint64_t        adler_uint_t;

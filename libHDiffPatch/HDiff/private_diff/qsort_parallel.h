@@ -29,8 +29,10 @@
 #ifndef HDiff_qsort_parallel_h
 #define HDiff_qsort_parallel_h
 #include <algorithm> //sort
-#include <thread>
 #include "../../../libParallel/parallel_import.h"
+#if (_IS_USED_MULTITHREAD)
+#include <thread>
+#endif
 
 #if (_IS_USED_MULTITHREAD)
     inline size_t __index_by_ratio(size_t size,size_t ratio,size_t ratio_base){
@@ -58,11 +60,12 @@
             size_t ri=(curIndex+(size_t)rand()) % size;  //muti thread safe
             samples[i]=ri;
         }
-        //std::sort(samples,samples+kSampleSize,_sort_parallel_TCmpi<TValue,TCmp>(begin,cmp));
+        const bool _kIsSortNotNth=false;
+        if (_kIsSortNotNth) std::sort(samples,samples+kSampleSize,_sort_parallel_TCmpi<TValue,TCmp>(begin,cmp));
         size_t _pivot_i=__index_by_ratio(kSampleSize,leftWeight,(leftWeight+rightWeight));
-        std::nth_element(samples,samples+_pivot_i,samples+kSampleSize,_sort_parallel_TCmpi<TValue,TCmp>(begin,cmp));
+        if (!_kIsSortNotNth) std::nth_element(samples,samples+_pivot_i,samples+kSampleSize,_sort_parallel_TCmpi<TValue,TCmp>(begin,cmp));
         size_t pivot=samples[_pivot_i];
-        std::swap(begin[0],begin[pivot]);
+        std::swap(begin[0], begin[pivot]);
         TValue x(begin[0]);
         size_t mid=0;
         for (size_t j=mid+1;j<size; j++){
@@ -72,17 +75,14 @@
         std::swap(begin[0],begin[mid]);
         return begin+mid;
     }
-#endif
 
     template<class TValue,class TCmp,size_t kSampleSize>
     static void _sort_parallel_thread(TValue* begin,TValue* end,TCmp cmp,size_t threadNum){
-#if (_IS_USED_MULTITHREAD)
         if (threadNum>1){
             const size_t rightWeight=(threadNum>>1);
             const size_t leftWeight=threadNum-rightWeight;
             TValue* mid;
             const bool _kIsPartitionNotMerge=true;
-
             if (_kIsPartitionNotMerge){ // partition
                 //mid=begin+__index_by_ratio(size,leftWeight,threadNum); std::nth_element(begin,mid,end,cmp);
                 //mid=std::_Partition_by_median_guess_unchecked(begin, end, cmp).first;
@@ -99,28 +99,27 @@
             if (!_kIsPartitionNotMerge){ //merge
                 std::inplace_merge(begin,mid,end,cmp);
             }
-        }else
-#endif
-        {
+        }else{
             std::sort(begin,end,cmp);
             //printf("parallel sort size: %" PRIu64 " \n",(hpatch_StreamPos_t)(end-begin));
         }
     }
+#endif
 
     template<class TValue,class TCmp,size_t kMinQSortParallelSize=4096,size_t kSampleSize=137>
     static void sort_parallel(TValue* begin,TValue* end,TCmp cmp,size_t threadNum){
         const size_t size=end-begin;
-        if (size<=1) return;
 #if (_IS_USED_MULTITHREAD)
         if ((threadNum>1)&&(size>=kMinQSortParallelSize)){
             const size_t maxThreanNum=size/(kMinQSortParallelSize/2);
             threadNum=(threadNum<=maxThreanNum)?threadNum:maxThreanNum;
-            //std::random_shuffle(begin,end);
-        }else{
-            threadNum=1;
-        }
+            //try? std::random_shuffle(begin,end);
+            _sort_parallel_thread<TValue,TCmp,kSampleSize>(begin,end,cmp,threadNum);
+        }else
 #endif
-        _sort_parallel_thread<TValue,TCmp,kSampleSize>(begin,end,cmp,threadNum);
+        {
+            std::sort(begin,end,cmp);
+        }
     }
 
 #endif
