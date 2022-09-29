@@ -31,7 +31,7 @@
 #include <string.h> //memset
 #include <assert.h>
 #include <stdexcept>//std::runtime_error
-#include <atomic>
+#include "../../../../libParallel/parallel_channel.h"
 namespace hdiff_private{
 
 class TBitSet{
@@ -46,16 +46,7 @@ public:
 #if (_IS_USED_MULTITHREAD)
     void set_MT(size_t bitIndex){
         //assert(bitIndex<m_bitSize);
-        assert(sizeof(std::atomic<base_t>)==sizeof(base_t));
-        base_t oldv;
-        base_t newv;
-        std::atomic<base_t>& v=*(std::atomic<base_t>*)&m_bits[bitIndex>>kBaseShr];
-        do {
-            oldv=v.load();
-            newv=oldv | ((base_t)1<<(bitIndex&kBaseMask));
-            if (oldv==newv)
-                return;
-        } while(!v.compare_exchange_weak(oldv,newv));
+        atomic32_or(&m_bits[bitIndex>>kBaseShr],((base_t)1<<(bitIndex&kBaseMask)));
     }
 #endif
     inline bool is_hit(size_t bitIndex)const{
@@ -80,7 +71,7 @@ public:
     }
 private:
     inline static size_t bitSizeToCount(size_t bitSize){ return (bitSize+(kBaseTBits-1))/kBaseTBits; }
-    typedef size_t base_t;
+    typedef uint32_t base_t;
     enum {
         kBaseShr=(sizeof(base_t)==8)?6:((sizeof(base_t)==4)?5:0),
         kBaseTBits=(1<<kBaseShr),

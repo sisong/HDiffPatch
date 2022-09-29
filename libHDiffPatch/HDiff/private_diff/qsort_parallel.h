@@ -31,7 +31,7 @@
 #include <algorithm> //sort
 #include "../../../libParallel/parallel_import.h"
 #if (_IS_USED_MULTITHREAD)
-#include <thread>
+#include <thread>   //if used vc++, need >= vc2012
 #endif
 
 #if (_IS_USED_MULTITHREAD)
@@ -106,7 +106,7 @@
     }
 #endif
 
-    template<class TValue,class TCmp,size_t kMinQSortParallelSize=4096,size_t kSampleSize=137>
+    template<class TValue,class TCmp,size_t kMinQSortParallelSize,size_t kSampleSize>
     static void sort_parallel(TValue* begin,TValue* end,TCmp cmp,size_t threadNum){
         const size_t size=end-begin;
 #if (_IS_USED_MULTITHREAD)

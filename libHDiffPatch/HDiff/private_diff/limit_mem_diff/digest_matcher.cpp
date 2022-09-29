@@ -29,6 +29,7 @@
 #include <stdexcept>  //std::runtime_error
 #include <algorithm>  //std::sort,std::equal_range
 #include "../compress_detect.h" //_getUIntCost
+#include "../../../../libParallel/parallel_channel.h"
 #include "../qsort_parallel.h"
 namespace hdiff_private{
 static  const size_t kMinTrustMatchedLength=1024*16;
@@ -76,7 +77,7 @@ protected:
         if (streamPos+kMinCacheDataSize>streamSize) return false;
         hpatch_StreamPos_t readPos=(streamPos>=kBackupCacheSize)?(streamPos-kBackupCacheSize):0;
         size_t readLen=((streamSize-readPos)>=cacheSize)?cacheSize:(size_t)(streamSize-readPos);
-        
+
         unsigned char* dst=cache+cacheSize-readLen;
         if ((m_readPosEnd>readPos)&&(m_readPos<=readPos)){
             size_t moveLen=(size_t)(m_readPosEnd-readPos);
@@ -254,9 +255,9 @@ void TDigestMatcher::getDigests(){
     size_t kMaxCmpDeep= 1 + upperCount(kMinTrustMatchedLength,m_kMatchBlockSize);
     TIndex_comp comp(m_blocks.data(),m_blocks.size(),kMaxCmpDeep);
     if (m_isUseLargeSorted)
-        sort_parallel(m_sorted_larger.data(),m_sorted_larger.data()+m_sorted_larger.size(),comp,m_threadNum);
+        sort_parallel<uint64_t,TIndex_comp,8192,137>(m_sorted_larger.data(),m_sorted_larger.data()+m_sorted_larger.size(),comp,m_threadNum);
     else
-        sort_parallel(m_sorted_limit.data(),m_sorted_limit.data()+m_sorted_limit.size(),comp,m_threadNum);
+        sort_parallel<uint32_t,TIndex_comp,8192,137>(m_sorted_limit.data(),m_sorted_limit.data()+m_sorted_limit.size(),comp,m_threadNum);
 }
 
 struct TBlockStreamCache:public TStreamCache{

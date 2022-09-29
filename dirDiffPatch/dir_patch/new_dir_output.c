@@ -91,9 +91,11 @@ hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,hpatch_ICopyDataLi
 
 
 static hpatch_BOOL _tryCloseNewFile(TNewDirOutput* self){
+    hpatch_BOOL result;
+    hpatch_FileError_t fileError;
     if (self->_curNewFile==0) return hpatch_TRUE;
-    hpatch_BOOL result=self->_listener->closeNewFile(self->_listener,self->_curNewFile);
-    hpatch_FileError_t fileError=self->_curNewFile->fileError;
+    result=self->_listener->closeNewFile(self->_listener,self->_curNewFile);
+    fileError=self->_curNewFile->fileError;
     hpatch_TFileStreamOutput_init(self->_curNewFile);
     return result&&(!fileError);
 }
@@ -141,8 +143,9 @@ static hpatch_BOOL _openNewFile(hpatch_INewStreamListener* listener,size_t newRe
     hpatch_BOOL  result=hpatch_TRUE;
     TNewDirOutput* self=(TNewDirOutput*)listener->listenerImport;
     const char*  utf8fileName=0;
+    hpatch_StreamPos_t fileSize;
     assert((newRefIndex<self->newRefFileCount)&&(self->_curNewFile->base.write==0));
-    hpatch_StreamPos_t fileSize=self->newRefSizeList[newRefIndex];
+    fileSize=self->newRefSizeList[newRefIndex];
     if (fileSize==0){
         size_t newPathIndex=self->newRefList?self->newRefList[newRefIndex]:newRefIndex;
         check(_makeNewDirOrEmptyFile(listener,newPathIndex));
