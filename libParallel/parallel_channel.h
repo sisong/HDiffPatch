@@ -77,9 +77,8 @@ struct CHLocker{
 #else
 #   include <atomic> 
     static inline void atomic32_or(uint32_t* p,uint32_t or_v){
-        assert(sizeof(std::atomic<uint32_t>)==sizeof(uint32_t));
-        std::atomic<uint32_t>& v=*(std::atomic<uint32_t>*)p;
-        v.fetch_or(or_v);
+        static_assert(sizeof(std::atomic<uint32_t>)==sizeof(uint32_t),"std::atomic<uint32_t> size error!");
+        ((std::atomic<uint32_t>*)p)->fetch_or(or_v);
     }
 #endif
 

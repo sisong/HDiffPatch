@@ -50,9 +50,9 @@ static const char* kHDiffSFVersionType="HDIFFSF20";
 #define check(value) checki(value,"check "#value" error!")
 
 #if (_SSTRING_FAST_MATCH>0)
-static const int kMinMatchLen   = (_SSTRING_FAST_MATCH>5)?_SSTRING_FAST_MATCH:5;
+static const int kMinMatchLen   = (_SSTRING_FAST_MATCH>kCoverMinMatchLen)?_SSTRING_FAST_MATCH:kCoverMinMatchLen;
 #else
-static const int kMinMatchLen   = 5; //最小搜寻相等长度。
+static const int kMinMatchLen   = kCoverMinMatchLen; //最小搜寻相等长度。
 #endif
 static const int kMinMatchScore = 2; //最小搜寻覆盖收益.
 
@@ -78,7 +78,7 @@ namespace{
             return isCollinear(next)&&(linkSpaceLength(next)<=kMaxLinkSpaceLength);
         }
         inline bool isCollinear(const TOldCover& next)const{//覆盖线是否在同一条直线上.
-            return (oldPos-next.oldPos==newPos-next.newPos);
+            return cover_is_collinear(*this,next);
         }
         inline TInt linkSpaceLength(const TOldCover& next)const{//覆盖线间的间距.
             return next.oldPos-(oldPos+length);
@@ -1058,8 +1058,8 @@ void __hdiff_private__create_compressed_diff(const TByte* newData,const TByte* n
 void get_match_covers_by_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                                hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,size_t threadNum){
     assert(out_covers->push_cover!=0);
-    TDigestMatcher matcher(oldData,kMatchBlockSize,threadNum);
-    matcher.search_cover(newData,out_covers);
+    TDigestMatcher matcher(oldData,newData,kMatchBlockSize,threadNum);
+    matcher.search_cover(out_covers);
     //todo: + extend_cover_stream ?
 }
 void get_match_covers_by_block(const unsigned char* newData,const unsigned char* newData_end,

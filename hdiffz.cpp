@@ -1219,34 +1219,20 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
         try {
 #if (_IS_NEED_BSDIFF)
             if (diffSets.isBsDiff){
-              if (diffSets.isUseFastMatchBlock)
                 create_bsdiff_block(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),&diffData_out.base,
                                     compressPlugin,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch,
-                                    diffSets.fastMatchBlockSize,diffSets.threadNum);   
-              else
-                create_bsdiff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),&diffData_out.base,
-                              compressPlugin,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch);     
+                                    diffSets.isUseFastMatchBlock?diffSets.fastMatchBlockSize:0,diffSets.threadNum);   
             }else
 #endif
             if (diffSets.isSingleCompressedDiff){
-              if (diffSets.isUseFastMatchBlock)
                 create_single_compressed_diff_block(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
                                                     &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
                                                     diffSets.patchStepMemSize,diffSets.isUseBigCacheMatch,
-                                                    diffSets.fastMatchBlockSize,diffSets.threadNum);   
-              else
-                create_single_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                              &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
-                                              diffSets.patchStepMemSize,diffSets.isUseBigCacheMatch);        
+                                                    diffSets.isUseFastMatchBlock?diffSets.fastMatchBlockSize:0,diffSets.threadNum);     
             }else{
-              if (diffSets.isUseFastMatchBlock)
                 create_compressed_diff_block(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
                                              &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
-                                             diffSets.isUseBigCacheMatch,diffSets.fastMatchBlockSize,diffSets.threadNum);
-              else
-                create_compressed_diff(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),
-                                       &diffData_out.base,compressPlugin,(int)diffSets.matchScore,
-                                       diffSets.isUseBigCacheMatch);
+                                             diffSets.isUseBigCacheMatch,diffSets.isUseFastMatchBlock?diffSets.fastMatchBlockSize:0,diffSets.threadNum);
             }
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){

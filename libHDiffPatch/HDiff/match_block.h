@@ -94,7 +94,7 @@ namespace hdiff_private{
 
 
 //optimize diff speed by match block
-//note: newData&oldData will be changed
+//note: newData&oldData in memory will be changed
 //see create_compressed_diff | create_single_compressed_diff
 
 void create_compressed_diff_block(const hpatch_TStreamInput* newData,//will load in memory

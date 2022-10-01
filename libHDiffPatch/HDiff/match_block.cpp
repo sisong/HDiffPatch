@@ -28,6 +28,7 @@
 #include "match_block.h"
 #include "diff.h"
 #include "private_diff/limit_mem_diff/stream_serialize.h" //TAutoMem
+#include "private_diff/limit_mem_diff/covers.h" // tm_collate_covers()
 #include <algorithm>
 #include <stdexcept>  //std::runtime_error
 #define _check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
@@ -76,11 +77,15 @@ namespace hdiff_private {
 
     struct TOutputCovers:public hpatch_TOutputCovers{
         TOutputCovers(std::vector<hpatch_TCover>& _blockCovers) :blockCovers(_blockCovers){ 
-            blockCovers.clear();  push_cover=_push_cover; }
+            blockCovers.clear();  push_cover=_push_cover;  collate_covers=_collate_covers; }
         static hpatch_BOOL _push_cover(struct hpatch_TOutputCovers* out_covers,const hpatch_TCover* cover){
             TOutputCovers* self=(TOutputCovers*)out_covers;
             self->blockCovers.push_back(*cover);
             return hpatch_TRUE;
+        }
+        static void _collate_covers(struct hpatch_TOutputCovers* out_covers){
+            TOutputCovers* self=(TOutputCovers*)out_covers;
+            tm_collate_covers(self->blockCovers);
         }
         std::vector<hpatch_TCover>& blockCovers;
     };

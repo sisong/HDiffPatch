@@ -61,11 +61,13 @@ static inline adler_hash_t adler_to_hash(const uint64_t x){ return x; }
 class TDigestMatcher{
 public:
     //throw std::runtime_error when data->read error or kMatchBlockSize error;
-    TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize,size_t threadNum);
-    void search_cover(const hpatch_TStreamInput* newData,hpatch_TOutputCovers* out_covers);
+    TDigestMatcher(const hpatch_TStreamInput* oldData,const hpatch_TStreamInput* newData,
+                   size_t kMatchBlockSize,size_t threadNum);
+    void search_cover(hpatch_TOutputCovers* out_covers);
     ~TDigestMatcher();
 private:
     const hpatch_TStreamInput*  m_oldData;
+    const hpatch_TStreamInput*  m_newData;
     std::vector<adler_uint_t>   m_blocks;
     TBloomFilter<adler_hash_t>  m_filter;
     std::vector<uint32_t>       m_sorted_limit;
@@ -80,6 +82,9 @@ private:
     size_t                      m_kMatchBlockSize;
     
     void getDigests();
+    size_t getSearchThreadNum()const;
+public: //private for muti-thread
+    void _search_cover_thread(hpatch_TOutputCovers* out_covers,size_t threadIndex,size_t threadNum,void* mt_data);
 };
 
 }//namespace hdiff_private

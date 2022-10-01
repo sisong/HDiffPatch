@@ -264,6 +264,7 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
     //output covers
     typedef struct hpatch_TOutputCovers{
         hpatch_BOOL (*push_cover)(struct hpatch_TOutputCovers* out_covers,const hpatch_TCover* cover); 
+        void (*collate_covers)(struct hpatch_TOutputCovers* out_covers); // for support search covers by muti-thread
     } hpatch_TOutputCovers;
     
     typedef struct{
