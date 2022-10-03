@@ -35,11 +35,13 @@ namespace hdiff_private{
 static  const size_t kMinTrustMatchedLength=1024*16;
 static  const size_t kMinMatchedLength = 16;
 static  const size_t kMatchBlockSize_min=4;//sizeof(hpatch_uint32_t);
-static  const size_t kBestReadSize=1024*512; //for sequence read
+static  const size_t kBestReadSize=1024*256; //for sequence read
 static  const size_t kMinReadSize=1024*4;    //for random first read speed
 static  const size_t kMinBackupReadSize=256;
 static  const size_t kBestMatchRange=1024*64;
-static  const size_t kMaxLinkIndexFindSize=64;
+static  const size_t kMaxLinkIndexFindCount=64;
+static  const size_t kMinParallelSize=1024*64;
+static  const size_t kBestParallelSize=1024*1024*16;
 
 
 #define readStream(stream,pos,dst,n) { \
@@ -147,7 +149,6 @@ TDigestMatcher::~TDigestMatcher(){
     
 size_t TDigestMatcher::getSearchThreadNum()const{
 #if (_IS_USED_MULTITHREAD)
-    const size_t kMinParallelSize=1024*64;
     const size_t threadNum=m_threadNum;
     hpatch_StreamPos_t size=m_newData->streamSize;
     if ((threadNum>1)&&(size>=kMinParallelSize)&&(size/2>=m_kMatchBlockSize)) {
@@ -512,7 +513,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     if (best==0){
         TIndex_comp comp(blocksBase,blocksSize,max_digests_n);
         size_t findCount=(right-left)*2+1;
-        if (findCount>kMaxLinkIndexFindSize) findCount=kMaxLinkIndexFindSize;
+        if (findCount>kMaxLinkIndexFindCount) findCount=kMaxLinkIndexFindCount;
         for (TIndex inc=1;(inc<=findCount);++inc) { //linkIndex附近找;
             TIndex fi;  TIndex s=(inc>>1);
             if (inc&1){
@@ -667,34 +668,15 @@ struct mt_data_t{
     CHLocker    oldDataLocker;
     CHLocker    newDataLocker;
     CHLocker    coversLocker;
+    hpatch_StreamPos_t rollCount;
+    hpatch_StreamPos_t workCount;
+    volatile hpatch_StreamPos_t workIndex;
 };
 
-void TDigestMatcher::_search_cover_thread(hpatch_TOutputCovers* out_covers,
-                                          size_t threadIndex,size_t threadNum,void* mt_data){
-    void* oldDataLocker=0;
-    void* newDataLocker=0;
-    void* coversLocker=0;
-    hpatch_StreamPos_t newOffset=0;
-    hpatch_TStreamInput newData=*m_newData;
-#if (_IS_USED_MULTITHREAD)
-    if (mt_data){
-        mt_data_t& mt=*(mt_data_t*)mt_data;
-        oldDataLocker=mt.oldDataLocker.locker;
-        newDataLocker=mt.newDataLocker.locker;
-        coversLocker =mt.coversLocker.locker;
-
-        hpatch_StreamPos_t rollCount=newData.streamSize-(m_kMatchBlockSize-1);
-        hpatch_StreamPos_t step=rollCount/threadNum;
-        newOffset=step*threadIndex;
-        newData.streamSize=((threadIndex<threadNum)?step:(rollCount-step*(threadNum-1)))+(m_kMatchBlockSize-1);
-    }else
-#endif
-    {
-        threadIndex=0;
-    }
-
-    unsigned char* pmem=m_mem.data()+(m_newCacheSize+m_oldCacheSize)*threadIndex;
-    TNewStreamCache newStream(&newData,pmem,m_newCacheSize,m_backupCacheSize,
+void TDigestMatcher::_search_cover(const hpatch_TStreamInput* newData,hpatch_StreamPos_t newOffset,
+                                   hpatch_TOutputCovers* out_covers,unsigned char* pmem,
+                                   void* oldDataLocker,void* newDataLocker,void* coversLocker){
+    TNewStreamCache newStream(newData,pmem,m_newCacheSize,m_backupCacheSize,
                               m_kMatchBlockSize,newOffset,newDataLocker);
     TOldStreamCache oldStream(m_oldData,pmem+m_newCacheSize,m_oldMinCacheSize,
                               m_oldCacheSize,m_backupCacheSize,m_kMatchBlockSize,oldDataLocker);    
@@ -704,33 +686,58 @@ void TDigestMatcher::_search_cover_thread(hpatch_TOutputCovers* out_covers,
         __search_cover(m_sorted_limit,newOffset,coversLocker);
 }
 
-static inline void _search_cover(TDigestMatcher* self,hpatch_TOutputCovers* out_covers,
-                                 size_t threadIndex,size_t threadNum,void* mt_data=0){
+void TDigestMatcher::_search_cover_thread(hpatch_TOutputCovers* out_covers,
+                                          size_t threadIndex,size_t threadNum,void* mt_data){
+#if (_IS_USED_MULTITHREAD)
+    unsigned char* pmem=m_mem.data()+(m_newCacheSize+m_oldCacheSize)*threadIndex;
+    mt_data_t& mt=*(mt_data_t*)mt_data;
+    std::atomic<hpatch_StreamPos_t>& workIndex=*(std::atomic<hpatch_StreamPos_t>*)&mt.workIndex;
+    while (true){
+        hpatch_StreamPos_t curWorkIndex=workIndex++;
+        if (curWorkIndex>=mt.workCount) break;
+        //printf("%d ",(int)curWorkIndex);
+        hpatch_TStreamInput newData=*m_newData;
+        hpatch_StreamPos_t newOffset=mt.rollCount*curWorkIndex/mt.workCount;
+        newData.streamSize=((curWorkIndex+1<mt.workCount)?mt.rollCount*(curWorkIndex+1)/mt.workCount:mt.rollCount)
+                            -newOffset+(m_kMatchBlockSize-1);
+        _search_cover(&newData,newOffset,out_covers,pmem,
+                      mt.oldDataLocker.locker,mt.newDataLocker.locker,mt.coversLocker.locker);
+    }
+#endif 
+}
+
+static inline void __search_cover_mt(TDigestMatcher* self,hpatch_TOutputCovers* out_covers,
+                                     size_t threadIndex,size_t threadNum,void* mt_data){
     self->_search_cover_thread(out_covers,threadIndex,threadNum,mt_data);
 }
 
 void TDigestMatcher::search_cover(hpatch_TOutputCovers* out_covers){
     if (m_blocks.empty()) return;
     if (m_newData->streamSize<m_kMatchBlockSize) return;
-    const size_t searchThreadNum=getSearchThreadNum();
 #if (_IS_USED_MULTITHREAD)
-    if (searchThreadNum>1){
-        const size_t threadCount=searchThreadNum-1;
+    size_t threadNum=getSearchThreadNum();
+    const hpatch_StreamPos_t rollCount=m_newData->streamSize-(m_kMatchBlockSize-1);
+    size_t bestStep=(kBestParallelSize/2>m_kMatchBlockSize)?kBestParallelSize:2*m_kMatchBlockSize;
+    hpatch_StreamPos_t workCount=(rollCount+bestStep-1)/bestStep;
+    workCount=(threadNum>workCount)?threadNum:workCount;
+    if (threadNum>1){
         mt_data_t mt_data;
+        mt_data.rollCount=rollCount;
+        mt_data.workCount=workCount;
+        mt_data.workIndex=0;
+        const size_t threadCount=threadNum-1;
         std::vector<std::thread> threads(threadCount);
         for (size_t i=0;i<threadCount;i++)
-            threads[i]=std::thread(_search_cover,this,out_covers,i,searchThreadNum,&mt_data);
-        _search_cover(this,out_covers,threadCount,searchThreadNum,&mt_data);
+            threads[i]=std::thread(__search_cover_mt,this,out_covers,i,threadNum,&mt_data);
+        __search_cover_mt(this,out_covers,threadCount,threadNum,&mt_data);
         for (size_t i=0;i<threadCount;i++)
             threads[i].join();
+        out_covers->collate_covers(out_covers);
     }else
 #endif
     {
-        _search_cover(this,out_covers,0,1);
+        _search_cover(m_newData,0,out_covers,m_mem.data());
     }
-
-    if (searchThreadNum>1)
-        out_covers->collate_covers(out_covers);
 }
 
 }//namespace hdiff_private

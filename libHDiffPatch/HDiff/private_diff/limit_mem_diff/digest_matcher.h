@@ -83,8 +83,12 @@ private:
     
     void getDigests();
     size_t getSearchThreadNum()const;
+    void _search_cover(const hpatch_TStreamInput* newData,hpatch_StreamPos_t newOffset,
+                       hpatch_TOutputCovers* out_covers,unsigned char* pmem,
+                       void* oldDataLocker=0,void* newDataLocker=0,void* coversLocker=0);
 public: //private for muti-thread
-    void _search_cover_thread(hpatch_TOutputCovers* out_covers,size_t threadIndex,size_t threadNum,void* mt_data);
+    void _search_cover_thread(hpatch_TOutputCovers* out_covers,
+                              size_t threadIndex,size_t threadNum,void* mt_data);
 };
 
 }//namespace hdiff_private
