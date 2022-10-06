@@ -54,6 +54,12 @@
 
 namespace hdiff_private{
 
+template<class T>
+static void _clearVector(std::vector<T>& v){
+    std::vector<T> _tmp;
+    v.swap(_tmp);
+}
+
 namespace {
     typedef TSuffixString::TInt   TInt;
     typedef TSuffixString::TInt32 TInt32;
@@ -256,24 +262,21 @@ void TSuffixString::clear(){
     clear_cache();
     m_src_begin=0;
     m_src_end=0;
-    std::vector<TInt32> _tmp_m;
-    m_SA_limit.swap(_tmp_m);
-    std::vector<TInt> _tmp_g;
-    m_SA_large.swap(_tmp_g);
+    _clearVector(m_SA_limit);
+    _clearVector(m_SA_large);
 }
+
 
 void TSuffixString::resetSuffixString(const TChar* src_begin,const TChar* src_end){
     assert(src_begin<=src_end);
     m_src_begin=src_begin;
     m_src_end=src_end;
     if (isUseLargeSA()){
-        std::vector<TInt32> _tmp_m;
-        m_SA_limit.swap(_tmp_m);
+        _clearVector(m_SA_limit);
         _suffixString_create(m_src_begin,m_src_end,m_SA_large);
     }else{
         assert(sizeof(TInt32)==4);
-        std::vector<TInt> _tmp_g;
-        m_SA_large.swap(_tmp_g);
+        _clearVector(m_SA_large);
         _suffixString_create(m_src_begin,m_src_end,m_SA_limit);
     }
     build_cache();

@@ -71,7 +71,7 @@ struct CHLocker{
     };
 
 
-#if (_MSC_VER<1700) && (defined(WIN32)) //vc2012 support atomic
+#if (defined(_MSC_VER)) && (_MSC_VER<1700) && (defined(WIN32)) //vc2012 support atomic
 #   define _NEED_MSVC_WIN32_atomic_func 1
     void atomic32_or(uint32_t* p,uint32_t or_v);
 #else

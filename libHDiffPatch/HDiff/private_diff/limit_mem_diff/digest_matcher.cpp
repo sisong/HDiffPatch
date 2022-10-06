@@ -152,8 +152,8 @@ size_t TDigestMatcher::getSearchThreadNum()const{
     const size_t threadNum=m_threadNum;
     hpatch_StreamPos_t size=m_newData->streamSize;
     if ((threadNum>1)&&(size>=kMinParallelSize)&&(size/2>=m_kMatchBlockSize)) {
-        const size_t maxThreanNum=size/(kMinParallelSize/2);
-        return (threadNum<=maxThreanNum)?threadNum:maxThreanNum;
+        const hpatch_StreamPos_t maxThreanNum=size/(kMinParallelSize/2);
+        return (threadNum<=maxThreanNum)?threadNum:(size_t)maxThreanNum;
     }else
 #endif
     {
@@ -288,7 +288,7 @@ void TDigestMatcher::getDigests(){
     size_t kMaxCmpDeep= 1 + upperCount(kMinTrustMatchedLength,m_kMatchBlockSize);
     TIndex_comp comp(m_blocks.data(),m_blocks.size(),kMaxCmpDeep);
     if (m_isUseLargeSorted)
-        __sort_indexs(uint64_t,m_sorted_larger,comp,m_threadNum);
+        __sort_indexs(std::vector<size_t>::value_type,m_sorted_larger,comp,m_threadNum);
     else
         __sort_indexs(uint32_t,m_sorted_limit,comp,m_threadNum);
 }
@@ -695,7 +695,6 @@ void TDigestMatcher::_search_cover_thread(hpatch_TOutputCovers* out_covers,
     while (true){
         hpatch_StreamPos_t curWorkIndex=workIndex++;
         if (curWorkIndex>=mt.workCount) break;
-        //printf("%d ",(int)curWorkIndex);
         hpatch_TStreamInput newData=*m_newData;
         hpatch_StreamPos_t newOffset=mt.rollCount*curWorkIndex/mt.workCount;
         newData.streamSize=((curWorkIndex+1<mt.workCount)?mt.rollCount*(curWorkIndex+1)/mt.workCount:mt.rollCount)
