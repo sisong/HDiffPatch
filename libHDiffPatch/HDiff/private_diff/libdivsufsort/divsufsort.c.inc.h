@@ -37,7 +37,7 @@ static
 saidx_t
 sort_typeBstar(const sauchar_t *T, saidx_t *SA,
                saidx_t *bucket_A, saidx_t *bucket_B,
-               saidx_t n) {
+               saidx_t n,size_t threadNum) {
   saidx_t *PAb, *ISAb, *buf;
 #ifdef _OPENMP
   saidx_t *curbuf;
@@ -101,7 +101,7 @@ note:
 
     /* Sort the type B* substrings using sssort. */
 #ifdef _OPENMP
-    tmp = omp_get_max_threads();
+    tmp = (int)threadNum;
     buf = SA + m, bufsize = (n - (2 * m)) / tmp;
     c0 = ALPHABET_SIZE - 2, c1 = ALPHABET_SIZE - 1, j = m;
 #pragma omp parallel default(shared) private(curbuf, k, l, d0, d1, tmp)
@@ -329,7 +329,7 @@ construct_BWT(const sauchar_t *T, saidx_t *SA,
 /*- Function -*/
 
 saint_t
-divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n) {
+divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n,size_t threadNum) {
   saidx_t *bucket_A, *bucket_B;
   saidx_t m;
   saint_t err = 0;
@@ -345,7 +345,7 @@ divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n) {
 
   /* Suffixsort. */
   if((bucket_A != NULL) && (bucket_B != NULL)) {
-    m = sort_typeBstar(T, SA, bucket_A, bucket_B, n);
+    m = sort_typeBstar(T, SA, bucket_A, bucket_B, n, threadNum);
     construct_SA(T, SA, bucket_A, bucket_B, n, m);
   } else {
     err = -2;
@@ -358,7 +358,7 @@ divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n) {
 }
 
 saidx_t
-divbwt(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n) {
+divbwt(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n,size_t threadNum) {
   saidx_t *B;
   saidx_t *bucket_A, *bucket_B;
   saidx_t m, pidx, i;
@@ -373,7 +373,7 @@ divbwt(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n) {
 
   /* Burrows-Wheeler Transform. */
   if((B != NULL) && (bucket_A != NULL) && (bucket_B != NULL)) {
-    m = sort_typeBstar(T, B, bucket_A, bucket_B, n);
+    m = sort_typeBstar(T, B, bucket_A, bucket_B, n, threadNum);
     pidx = construct_BWT(T, B, bucket_A, bucket_B, n, m);
 
     /* Copy to output string. */

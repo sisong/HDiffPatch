@@ -87,7 +87,7 @@ typedef int32_t saidx_t;
  */
 DIVSUFSORT_API
 saint_t
-divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n);
+divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n,size_t threadNum);
 
 /**
  * Constructs the burrows-wheeler transformed string of a given string.
@@ -99,7 +99,7 @@ divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n);
  */
 DIVSUFSORT_API
 saidx_t
-divbwt(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n);
+divbwt(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n,size_t threadNum);
 
 /**
  * Returns the version of the divsufsort library.
@@ -123,7 +123,7 @@ DIVSUFSORT_API
 saint_t
 bw_transform(const sauchar_t *T, sauchar_t *U,
              saidx_t *SA /* can NULL */,
-             saidx_t n, saidx_t *idx);
+             saidx_t n, saidx_t *idx,size_t threadNum);
 
 /**
  * Inverse BW-transforms a given BWTed string.

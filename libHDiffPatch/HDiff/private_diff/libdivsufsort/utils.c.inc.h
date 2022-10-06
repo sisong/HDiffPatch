@@ -51,7 +51,7 @@ binarysearch_lower(const saidx_t *A, saidx_t size, saidx_t value) {
 /* Burrows-Wheeler transform. */
 saint_t
 bw_transform(const sauchar_t *T, sauchar_t *U, saidx_t *SA,
-             saidx_t n, saidx_t *idx) {
+             saidx_t n, saidx_t *idx,size_t threadNum) {
   saidx_t *A, i, j, p, t;
   saint_t c;
 
@@ -64,7 +64,7 @@ bw_transform(const sauchar_t *T, sauchar_t *U, saidx_t *SA,
   }
 
   if((A = SA) == NULL) {
-    i = divbwt(T, U, NULL, n);
+    i = divbwt(T, U, NULL, n, threadNum);
     if(0 <= i) { *idx = i; i = 0; }
     return (saint_t)i;
   }

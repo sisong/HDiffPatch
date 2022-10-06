@@ -97,7 +97,7 @@ typedef llong_t saidx64_t;
  */
 DIVSUFSORT_API
 saint_t
-divsufsort64(const sauchar_t *T, saidx64_t *SA, saidx64_t n);
+divsufsort64(const sauchar_t *T, saidx64_t *SA, saidx64_t n,size_t threadNum);
 
 /**
  * Constructs the burrows-wheeler transformed string of a given string.
@@ -133,7 +133,7 @@ DIVSUFSORT_API
 saint_t
 bw_transform64(const sauchar_t *T, sauchar_t *U,
              saidx64_t *SA /* can NULL */,
-             saidx64_t n, saidx64_t *idx);
+             saidx64_t n, saidx64_t *idx,size_t threadNum);
 
 /**
  * Inverse BW-transforms a given BWTed string.
