@@ -26,7 +26,9 @@
 
 #include "divsufsort_private.h"
 #include "../../../../libParallel/parallel_channel.h"
+#if (_IS_USED_MULTITHREAD)
 #include <thread>
+#endif
 #include <vector>
 
 /*- Private Functions -*/

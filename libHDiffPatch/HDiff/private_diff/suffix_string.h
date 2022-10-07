@@ -63,14 +63,14 @@ public:
 
     inline TFastMatchForSString(){}
     inline void clear(){ bf.clear(); }
-    void buildMatchCache(const TChar* src_begin,const TChar* src_end);
+    void buildMatchCache(const TChar* src_begin,const TChar* src_end,size_t threadNum);
 
     static inline THash getHash(const TChar* datas) { return fast_adler32_start(datas,kFMMinStrSize); }
+    static inline THash rollHash(THash h,const TChar* cur) { return fast_adler32_roll(h,kFMMinStrSize,cur[-kFMMinStrSize],cur[0]); }
 
     inline bool isHit(THash h) const { return bf.is_hit(h); }
 private:
-    TBloomFilter<size_t>  bf;
-    static inline THash rollHash(THash h,const TChar* cur) { return fast_adler32_roll(h,kFMMinStrSize,cur[-kFMMinStrSize],cur[0]); }
+    TBloomFilter<THash>  bf;
 };
 #endif
 
@@ -122,7 +122,7 @@ private:
                                        const TChar* src_begin,const TChar* src_end,
                                        const void* SA_begin,size_t min_eq);
     t_lower_bound_func  m_lower_bound;
-    void                build_cache();
+    void                build_cache(size_t threadNum);
     void                clear_cache();
 };
 

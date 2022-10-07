@@ -225,24 +225,23 @@ private:
     }
 };
 
-
-
-static inline void _filter_insert(TBloomFilter<adler_hash_t>* filter,const adler_uint_t* begin,const adler_uint_t* end){
+template<bool isMT>
+static void _filter_insert(TBloomFilter<adler_hash_t>* filter,const adler_uint_t* begin,const adler_uint_t* end){
     while (begin!=end){
-        filter->insert(adler_to_hash(*begin++));
-    }
-}
+        adler_hash_t h=adler_to_hash(*begin++);
 #if (_IS_USED_MULTITHREAD)
-static void _filter_insert_MT(TBloomFilter<adler_hash_t>* filter,const adler_uint_t* begin,const adler_uint_t* end){
-    while (begin!=end){
-        filter->insert_MT(adler_to_hash(*begin++));
-    }
-}
+        if (isMT)
+            filter->insert_MT(h);
+        else
 #endif
+            filter->insert(h);
+    }
+}
 
-static void filter_insert_parallel(TBloomFilter<adler_hash_t>& filter,const adler_uint_t* begin,const adler_uint_t* end,
-                                   size_t threadNum,size_t kMinParallelSize=4096){
+static void filter_insert_parallel(TBloomFilter<adler_hash_t>& filter,const adler_uint_t* begin,
+                                   const adler_uint_t* end,size_t threadNum){
 #if (_IS_USED_MULTITHREAD)
+    const size_t kMinParallelSize=4096;
     const size_t size=end-begin;
     if ((threadNum>1)&&(size>=kMinParallelSize)) {
         const size_t maxThreanNum=size/(kMinParallelSize/2);
@@ -252,14 +251,14 @@ static void filter_insert_parallel(TBloomFilter<adler_hash_t>& filter,const adle
         const size_t threadCount=threadNum-1;
         std::vector<std::thread> threads(threadCount);
         for (size_t i=0;i<threadCount;i++,begin+=step)
-            threads[i]=std::thread(_filter_insert_MT,&filter,begin,begin+step);
-        _filter_insert_MT(&filter,begin,end);
+            threads[i]=std::thread(_filter_insert<true>,&filter,begin,begin+step);
+        _filter_insert<true>(&filter,begin,end);
         for (size_t i=0;i<threadCount;i++)
             threads[i].join();
     }else
 #endif
     {
-        _filter_insert(&filter,begin,end);
+        _filter_insert<false>(&filter,begin,end);
     }
 }
 

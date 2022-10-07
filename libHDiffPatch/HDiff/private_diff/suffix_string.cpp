@@ -30,6 +30,10 @@
 #include <assert.h>
 #include <string.h> //memset
 #include <stdexcept> //std::runtime_error
+#include "../../../libParallel/parallel_import.h"
+#if (_IS_USED_MULTITHREAD)
+#include <thread>   //if used vc++, need >= vc2012
+#endif
 //排序方法选择.
 #ifndef _SA_SORTBY
 #define _SA_SORTBY
@@ -280,7 +284,7 @@ void TSuffixString::resetSuffixString(const TChar* src_begin,const TChar* src_en
         _clearVector(m_SA_large);
         _suffixString_create(m_src_begin,m_src_end,m_SA_limit,threadNum);
     }
-    build_cache();
+    build_cache(threadNum);
 }
 
 #define _cached2(ix) (TChar*)m_cached_SA_begin+(isLarge? \
@@ -326,10 +330,10 @@ void TSuffixString::clear_cache(){
     m_lower_bound=(t_lower_bound_func)_lower_bound_TInt32;//safe
 }
 
-void TSuffixString::build_cache(){
+void TSuffixString::build_cache(size_t threadNum){
     clear_cache();
 #if (_SSTRING_FAST_MATCH>0)
-    if (m_isUsedFastMatch) m_fastMatch.buildMatchCache(m_src_begin,m_src_end);
+    if (m_isUsedFastMatch) m_fastMatch.buildMatchCache(m_src_begin,m_src_end,threadNum);
 #endif
     const size_t kUsedCacheMinSASize =2*(1<<20); //当字符串较大时再启用大缓存表.
     if (SASize()>kUsedCacheMinSASize){
@@ -363,21 +367,52 @@ void TSuffixString::build_cache(){
 
 
 #if (_SSTRING_FAST_MATCH>0)
-    void TFastMatchForSString::buildMatchCache(const TChar* src_begin,const TChar* src_end){
+
+    template<bool isMT>
+    static void _filter_insert(TBloomFilter<TFastMatchForSString::THash>* filter,
+                               const TChar* src_begin,const TChar* src_end){
+        const TChar* cur = src_begin;
+        TFastMatchForSString::THash h=TFastMatchForSString::getHash(cur);
+        cur+=TFastMatchForSString::kFMMinStrSize;
+        do {
+    #if (_IS_USED_MULTITHREAD)
+            if (isMT)
+                filter->insert_MT(h);
+            else
+    #endif
+                filter->insert(h);
+            if (cur<src_end)
+                h=TFastMatchForSString::rollHash(h,cur++);
+            else
+                break;
+        } while (true);
+    }
+
+    void TFastMatchForSString::buildMatchCache(const TChar* src_begin,const TChar* src_end,size_t threadNum){
         #define kFMZoom 4  //ctrl memory size & match speed
         size_t srcSize=src_end-src_begin;
         if (srcSize>=kFMMinStrSize){
-            bf.init(srcSize-(kFMMinStrSize-1),kFMZoom); //alloc large memory
-            const TChar* cur = src_begin;
-            THash h = getHash(cur);
-            cur += kFMMinStrSize;
-            do {
-                bf.insert(h);  //random write slow
-                if (cur<src_end)
-                    h = rollHash(h,cur++);
-                else
-                    break;
-            } while (true);
+            const size_t rollSize=srcSize-(kFMMinStrSize-1);
+            bf.init(rollSize,kFMZoom); //alloc large memory
+#if (_IS_USED_MULTITHREAD)
+            const size_t kMinParallelSize=4096;
+            if ((threadNum>1)&&(rollSize>=kMinParallelSize)) {
+                const size_t maxThreanNum=rollSize/(kMinParallelSize/2);
+                threadNum=(threadNum<=maxThreanNum)?threadNum:maxThreanNum;
+
+                const size_t step=rollSize/threadNum;
+                const size_t threadCount=threadNum-1;
+                std::vector<std::thread> threads(threadCount);
+                for (size_t i=0;i<threadCount;i++,src_begin+=step)
+                    threads[i]=std::thread(_filter_insert<true>,&bf,src_begin,src_begin+step+(kFMMinStrSize-1));
+                _filter_insert<true>(&bf,src_begin,src_end);
+                for (size_t i=0;i<threadCount;i++)
+                    threads[i].join();
+            }else
+#endif
+            {
+                _filter_insert<false>(&bf,src_begin,src_end);
+            }
         }else if ((srcSize>0)||(src_begin!=0))
             bf.init(0,kFMZoom);
         else{
