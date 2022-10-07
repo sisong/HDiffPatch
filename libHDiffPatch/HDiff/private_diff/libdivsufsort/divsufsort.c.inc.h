@@ -25,12 +25,38 @@
  */
 
 #include "divsufsort_private.h"
-#ifdef _OPENMP
-# include <omp.h>
-#endif
-
+#include "../../../../libParallel/parallel_channel.h"
+#include <thread>
+#include <vector>
 
 /*- Private Functions -*/
+
+static void _sssort_thread(HLocker locker,saint_t* c0,saint_t* c1,saidx_t* j,
+                           saidx_t *bucket_B,const sauchar_t *T, const saidx_t *PAb,
+                           saidx_t *SA,saidx_t *buf, saidx_t bufsize,saidx_t n,saidx_t m){
+    saidx_t k = 0;
+    saidx_t l;
+    for(;;) {
+        {
+            CAutoLocker __autoLocker(locker);
+            if(0 < (l = *j)) {
+                saint_t d0 = *c0, d1 = *c1;
+                do {
+                k = BUCKET_BSTAR(d0, d1);
+                if(--d1 <= d0) {
+                    d1 = ALPHABET_SIZE - 1;
+                    if(--d0 < 0) { break; }
+                }
+                } while(((l - k) <= 1) && (0 < (l = k)));
+                *c0 = d0, *c1 = d1, *j = k;
+            }
+        }
+        if(l == 0) { break; }
+        sssort(T, PAb, SA + k, SA + l,
+               buf, bufsize, 2, n, *(SA + k) == (m - 1));
+    }
+}
+
 
 /* Sorts suffixes of type B*. */
 static
@@ -38,17 +64,9 @@ saidx_t
 sort_typeBstar(const sauchar_t *T, saidx_t *SA,
                saidx_t *bucket_A, saidx_t *bucket_B,
                saidx_t n,size_t threadNum) {
-  saidx_t *PAb, *ISAb, *buf;
-#ifdef _OPENMP
-  saidx_t *curbuf;
-  saidx_t l;
-#endif
-  saidx_t i, j, k, t, m, bufsize;
+  saidx_t *PAb, *ISAb;
+  saidx_t i, j, k, t, m;
   saint_t c0, c1;
-#ifdef _OPENMP
-  saint_t d0, d1;
-  int tmp;
-#endif
 
   /* Initialize bucket arrays. */
   for(i = 0; i < BUCKET_A_SIZE; ++i) { bucket_A[i] = 0; }
@@ -100,47 +118,37 @@ note:
     SA[--BUCKET_BSTAR(c0, c1)] = m - 1;
 
     /* Sort the type B* substrings using sssort. */
-#ifdef _OPENMP
-    tmp = (int)threadNum;
-    buf = SA + m, bufsize = (n - (2 * m)) / tmp;
-    c0 = ALPHABET_SIZE - 2, c1 = ALPHABET_SIZE - 1, j = m;
-#pragma omp parallel default(shared) private(curbuf, k, l, d0, d1, tmp)
-    {
-      tmp = omp_get_thread_num();
-      curbuf = buf + tmp * bufsize;
-      k = 0;
-      for(;;) {
-        #pragma omp critical(sssort_lock)
-        {
-          if(0 < (l = j)) {
-            d0 = c0, d1 = c1;
-            do {
-              k = BUCKET_BSTAR(d0, d1);
-              if(--d1 <= d0) {
-                d1 = ALPHABET_SIZE - 1;
-                if(--d0 < 0) { break; }
-              }
-            } while(((l - k) <= 1) && (0 < (l = k)));
-            c0 = d0, c1 = d1, j = k;
-          }
+#if (_IS_USED_MULTITHREAD)
+    if (threadNum>1){
+        CHLocker locker;
+        const saidx_t bufsize = (n - (2 * m)) / (saidx_t)threadNum;
+        const size_t threadCount=threadNum-1;
+        c0 = ALPHABET_SIZE - 2, c1 = ALPHABET_SIZE - 1, j = m;
+        std::vector<std::thread> threads(threadCount);
+        saidx_t* buf = SA + m;
+        for (size_t ti=0;ti<threadCount;++ti,buf+=bufsize){
+            threads[ti]=std::thread(_sssort_thread,locker.locker,&c0,&c1,&j,
+                                                   bucket_B,T,PAb,SA,buf,bufsize,n,m);
         }
-        if(l == 0) { break; }
-        sssort(T, PAb, SA + k, SA + l,
-               curbuf, bufsize, 2, n, *(SA + k) == (m - 1));
-      }
-    }
-#else
-    buf = SA + m, bufsize = n - (2 * m);
-    for(c0 = ALPHABET_SIZE - 2, j = m; 0 < j; --c0) {
-      for(c1 = ALPHABET_SIZE - 1; c0 < c1; j = i, --c1) {
-        i = BUCKET_BSTAR(c0, c1);
-        if(1 < (j - i)) {
-          sssort(T, PAb, SA + i, SA + j,
-                 buf, bufsize, 2, n, *(SA + i) == (m - 1));
-        }
-      }
-    }
+        _sssort_thread(locker.locker,&c0,&c1,&j,
+                       bucket_B,T,PAb,SA,buf,bufsize,n,m);
+        for (size_t ti=0;ti<threadCount;++ti)
+            threads[ti].join();
+    }else
 #endif
+    {
+        saidx_t* buf = SA + m;
+        saidx_t bufsize = n - (2 * m);
+        for(c0 = ALPHABET_SIZE - 2, j = m; 0 < j; --c0) {
+            for(c1 = ALPHABET_SIZE - 1; c0 < c1; j = i, --c1) {
+                i = BUCKET_BSTAR(c0, c1);
+                if(1 < (j - i)) {
+                    sssort(T, PAb, SA + i, SA + j,
+                           buf, bufsize, 2, n, *(SA + i) == (m - 1));
+                }
+            }
+        }
+    }
 
     /* Compute ranks of type B* substrings. */
     for(i = m - 1; 0 <= i; --i) {
