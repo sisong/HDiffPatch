@@ -27,10 +27,6 @@
 #ifndef _DIVSUFSORT_PRIVATE_H
 #define _DIVSUFSORT_PRIVATE_H 1
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
 #if HAVE_CONFIG_H
 # include "config.h"
 #endif
@@ -57,32 +53,6 @@ extern "C" {
 # if HAVE_STDINT_H
 #  include <stdint.h>
 # endif
-#endif
-#if defined(BUILD_DIVSUFSORT64)
-# include "divsufsort64.h"
-# ifndef SAIDX_T
-#  define SAIDX_T
-#  define saidx_t saidx64_t
-# endif /* SAIDX_T */
-#define sastore_t saidx64_t
-# define divsufsort divsufsort64
-# define divsufsort_version divsufsort64_version
-# define sssort sssort64
-# define trsort trsort64
-#elif defined(BUILD_DIVSUFSORT40)
-# include "divsufsort40.h"
-# ifndef SAIDX_T
-#  define SAIDX_T
-#  define saidx_t saidx64_t
-# endif /* SAIDX_T */
-#define sastore_t saidx40_t
-# define divsufsort divsufsort40
-# define divsufsort_version divsufsort40_version
-# define sssort sssort40
-# define trsort trsort40
-#else
-# include "divsufsort.h"
-#define sastore_t saidx32_t
 #endif
 
 /*- Constants -*/
@@ -194,13 +164,13 @@ extern "C" {
 /*- Private Prototypes -*/
 /* sssort.c */
 void
-sssort(const sauchar_t *Td, const saidx_t *PA,
-       saidx_t *first, saidx_t *last,
-       saidx_t *buf, saidx_t bufsize,
+sssort(const sauchar_t *Td, const sastore_t *PA,
+       sastore_t *first, sastore_t *last,
+       sastore_t *buf, saidx_t bufsize,
        saidx_t depth, saidx_t n, saint_t lastsuffix);
 /* trsort.c */
 void
-trsort(saidx_t *ISA, saidx_t *SA, saidx_t n, saidx_t depth);
+trsort(sastore_t *ISA, sastore_t* SA, saidx_t n, saidx_t depth);
 
 static const int lg_table[256]= {
  -1,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
@@ -212,9 +182,5 @@ static const int lg_table[256]= {
   7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
   7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7
 };
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif /* __cplusplus */
 
 #endif /* _DIVSUFSORT_PRIVATE_H */

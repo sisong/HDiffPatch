@@ -64,10 +64,10 @@ typedef uint8_t sauchar_t;
 #define SAINT_T
 typedef int32_t saint_t;
 #endif /* SAINT_T */
-#ifndef SAIDX_T
-#define SAIDX_T
-typedef int32_t saidx_t;
-#endif /* SAIDX_T */
+#ifndef SAIDX32_T
+#define SAIDX32_T
+typedef int32_t saidx32_t;
+#endif /* SAIDX32_T */
 
 /*- Prototypes -*/
 
@@ -80,7 +80,7 @@ typedef int32_t saidx_t;
  */
 DIVSUFSORT_API
 saint_t
-divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n,size_t threadNum);
+divsufsort(const sauchar_t *T,saidx32_t *SA,saidx32_t n,size_t threadNum);
 
 /**
  * Returns the version of the divsufsort library.

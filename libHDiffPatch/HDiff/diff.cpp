@@ -1407,8 +1407,8 @@ void create_lite_diff(const unsigned char* newData,const unsigned char* newData_
     TDiffData diff;
     get_diff(newData,newData_end,oldData,oldData_end,diff,kMinSingleMatchScore-_kMatchScore_optim4bin,
              isUseBigCacheMatch,0,0,threadNum);
-    hpatch_StreamPos_t oldPosEnd=0;
-    hpatch_StreamPos_t newPosEnd=0;
+    size_t oldPosEnd=0;
+    size_t newPosEnd=0;
     if (!diff.covers.empty()){
         const TOldCover& c=diff.covers.back();
         oldPosEnd=c.oldPos+c.length;

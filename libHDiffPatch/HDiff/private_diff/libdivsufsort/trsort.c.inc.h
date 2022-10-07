@@ -65,8 +65,8 @@ tr_ilg(saidx_t n) {
 /* Simple insertionsort for small size groups. */
 static
 void
-tr_insertionsort(const saidx_t *ISAd, saidx_t *first, saidx_t *last) {
-  saidx_t *a, *b;
+tr_insertionsort(const sastore_t*ISAd, sastore_t*first, sastore_t*last) {
+  sastore_t*a, *b;
   saidx_t t, r;
 
   for(a = first + 1; a < last; ++a) {
@@ -84,7 +84,7 @@ tr_insertionsort(const saidx_t *ISAd, saidx_t *first, saidx_t *last) {
 
 static INLINE
 void
-tr_fixdown(const saidx_t *ISAd, saidx_t *SA, saidx_t i, saidx_t size) {
+tr_fixdown(const sastore_t*ISAd, sastore_t* SA, saidx_t i, saidx_t size) {
   saidx_t j, k;
   saidx_t v;
   saidx_t c, d, e;
@@ -100,7 +100,7 @@ tr_fixdown(const saidx_t *ISAd, saidx_t *SA, saidx_t i, saidx_t size) {
 /* Simple top-down heapsort. */
 static
 void
-tr_heapsort(const saidx_t *ISAd, saidx_t *SA, saidx_t size) {
+tr_heapsort(const sastore_t*ISAd, sastore_t* SA, saidx_t size) {
   saidx_t i, m;
   saidx_t t;
 
@@ -124,9 +124,9 @@ tr_heapsort(const saidx_t *ISAd, saidx_t *SA, saidx_t size) {
 
 /* Returns the median of three elements. */
 static INLINE
-saidx_t *
-tr_median3(const saidx_t *ISAd, saidx_t *v1, saidx_t *v2, saidx_t *v3) {
-  saidx_t *t;
+sastore_t*
+tr_median3(const sastore_t*ISAd, sastore_t*v1, sastore_t*v2, sastore_t*v3) {
+  sastore_t*t;
   if(ISAd[*v1] > ISAd[*v2]) { SWAP(v1, v2); }
   if(ISAd[*v2] > ISAd[*v3]) {
     if(ISAd[*v1] > ISAd[*v3]) { return v1; }
@@ -137,10 +137,10 @@ tr_median3(const saidx_t *ISAd, saidx_t *v1, saidx_t *v2, saidx_t *v3) {
 
 /* Returns the median of five elements. */
 static INLINE
-saidx_t *
-tr_median5(const saidx_t *ISAd,
-           saidx_t *v1, saidx_t *v2, saidx_t *v3, saidx_t *v4, saidx_t *v5) {
-  saidx_t *t;
+sastore_t*
+tr_median5(const sastore_t*ISAd,
+           sastore_t*v1, sastore_t*v2, sastore_t*v3, sastore_t*v4, sastore_t*v5) {
+  sastore_t*t;
   if(ISAd[*v2] > ISAd[*v3]) { SWAP(v2, v3); }
   if(ISAd[*v4] > ISAd[*v5]) { SWAP(v4, v5); }
   if(ISAd[*v2] > ISAd[*v4]) { SWAP(v2, v4); SWAP(v3, v5); }
@@ -152,9 +152,9 @@ tr_median5(const saidx_t *ISAd,
 
 /* Returns the pivot element. */
 static INLINE
-saidx_t *
-tr_pivot(const saidx_t *ISAd, saidx_t *first, saidx_t *last) {
-  saidx_t *middle;
+sastore_t*
+tr_pivot(const sastore_t*ISAd, sastore_t*first, sastore_t*last) {
+  sastore_t*middle;
   saidx_t t;
 
   t = (saidx_t)(last - first);
@@ -208,10 +208,10 @@ trbudget_check(trbudget_t *budget, saidx_t size) {
 
 static INLINE
 void
-tr_partition(const saidx_t *ISAd,
-             saidx_t *first, saidx_t *middle, saidx_t *last,
-             saidx_t **pa, saidx_t **pb, saidx_t v) {
-  saidx_t *a, *b, *c, *d, *e, *f;
+tr_partition(const sastore_t*ISAd,
+             sastore_t*first, sastore_t*middle, sastore_t*last,
+             sastore_t**pa, sastore_t**pb, saidx_t v) {
+  sastore_t*a, *b, *c, *d, *e, *f;
   saidx_t t, s;
   saidx_t x = 0;
 
@@ -250,12 +250,12 @@ tr_partition(const saidx_t *ISAd,
 
 static
 void
-tr_copy(saidx_t *ISA, const saidx_t *SA,
-        saidx_t *first, saidx_t *a, saidx_t *b, saidx_t *last,
+tr_copy(sastore_t*ISA, const sastore_t* SA,
+        sastore_t*first, sastore_t*a, sastore_t*b, sastore_t*last,
         saidx_t depth) {
   /* sort suffixes of middle partition
      by using sorted order of suffixes of left and right partition. */
-  saidx_t *c, *d, *e;
+  sastore_t*c, *d, *e;
   saidx_t s, v;
 
   v = (saidx_t)(b - SA - 1);
@@ -275,10 +275,10 @@ tr_copy(saidx_t *ISA, const saidx_t *SA,
 
 static
 void
-tr_partialcopy(saidx_t *ISA, const saidx_t *SA,
-               saidx_t *first, saidx_t *a, saidx_t *b, saidx_t *last,
+tr_partialcopy(sastore_t*ISA, const sastore_t* SA,
+               sastore_t*first, sastore_t*a, sastore_t*b, sastore_t*last,
                saidx_t depth) {
-  saidx_t *c, *d, *e;
+  sastore_t *c, *d, *e;
   saidx_t s, v;
   saidx_t rank, lastrank, newrank = -1;
 
@@ -313,12 +313,12 @@ tr_partialcopy(saidx_t *ISA, const saidx_t *SA,
 
 static
 void
-tr_introsort(saidx_t *ISA, const saidx_t *ISAd,
-             saidx_t *SA, saidx_t *first, saidx_t *last,
+tr_introsort(sastore_t*ISA, const sastore_t*ISAd,
+             sastore_t* SA, sastore_t*first, sastore_t*last,
              trbudget_t *budget) {
 #define STACK_SIZE TR_STACKSIZE
-  struct { const saidx_t *a; saidx_t *b, *c; saint_t d, e; }stack[STACK_SIZE];
-  saidx_t *a, *b, *c;
+  struct { const sastore_t*a; sastore_t*b, *c; saint_t d, e; }stack[STACK_SIZE];
+  sastore_t*a, *b, *c;
   saidx_t t;
   saidx_t v, x = 0;
   saidx_t incr = (saidx_t)(ISAd - ISA);
@@ -541,9 +541,9 @@ tr_introsort(saidx_t *ISA, const saidx_t *ISAd,
 
 /* Tandem repeat sort */
 void
-trsort(saidx_t *ISA, saidx_t *SA, saidx_t n, saidx_t depth) {
-  saidx_t *ISAd;
-  saidx_t *first, *last;
+trsort(sastore_t *ISA, sastore_t* SA, saidx_t n, saidx_t depth) {
+  sastore_t*ISAd;
+  sastore_t*first, *last;
   trbudget_t budget;
   saidx_t t, skip, unsorted;
 
