@@ -83,8 +83,8 @@ public:
     ~TSuffixString();
     
     //throw std::runtime_error when create SA error
-    TSuffixString(const TChar* src_begin,const TChar* src_end,bool isUsedFastMatch=false);
-    void resetSuffixString(const TChar* src_begin,const TChar* src_end);
+    TSuffixString(const TChar* src_begin,const TChar* src_end,bool isUsedFastMatch=false,size_t threadNum=1);
+    void resetSuffixString(const TChar* src_begin,const TChar* src_end,size_t threadNum=1);
 
     inline const TChar* src_begin()const{ return m_src_begin; }
     inline const TChar* src_end()const{ return m_src_end; }

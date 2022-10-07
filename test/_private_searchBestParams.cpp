@@ -162,7 +162,7 @@ void doDiff(TDiffInfo& di){
         di.oldFileSize=di.oldData.size();
         di.newFileSize=di.newData.size();
         const TByte* oldData0=di.oldData.data();
-        di.sstring.resetSuffixString(oldData0,oldData0+di.oldData.size());
+        di.sstring.resetSuffixString(oldData0,oldData0+di.oldData.size(),8);
     }
     
     di.diffSize=_compress_diff(di,0,0);

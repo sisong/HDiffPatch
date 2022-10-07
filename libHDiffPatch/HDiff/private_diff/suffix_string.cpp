@@ -110,7 +110,8 @@ namespace {
     };
 
     template<class TSAInt>
-    static void _suffixString_create(const TChar* src,const TChar* src_end,std::vector<TSAInt>& out_sstring){
+    static void _suffixString_create(const TChar* src,const TChar* src_end,
+                                     std::vector<TSAInt>& out_sstring,size_t threadNum){
         TSAInt size=(TSAInt)(src_end-src);
         if (size<0)
             throw std::runtime_error("suffixString_create() error.");
@@ -133,9 +134,9 @@ namespace {
     #ifdef _SA_SORTBY_DIVSUFSORT
         saint_t rt=-1;
         if (sizeof(TSAInt)==8)
-            rt=divsufsort64(src,(saidx64_t*)&out_sstring[0],(saidx64_t)size);
+            rt=divsufsort64(src,(saidx64_t*)&out_sstring[0],(saidx64_t)size,threadNum);
         else if (sizeof(TSAInt)==4)
-            rt=divsufsort(src,(saidx_t*)&out_sstring[0],(saidx_t)size);
+            rt=divsufsort(src,(saidx_t*)&out_sstring[0],(saidx_t)size,threadNum);
     #endif
        if (rt!=0)
             throw std::runtime_error("suffixString_create() error.");
@@ -248,10 +249,10 @@ TSuffixString::TSuffixString(bool isUsedFastMatch)
      clear_cache();
 }
 
-TSuffixString::TSuffixString(const TChar* src_begin,const TChar* src_end,bool isUsedFastMatch)
+TSuffixString::TSuffixString(const TChar* src_begin,const TChar* src_end,bool isUsedFastMatch,size_t threadNum)
 :m_src_begin(0),m_src_end(0),m_isUsedFastMatch(isUsedFastMatch),m_cached2char_range(0){
     clear_cache();
-    resetSuffixString(src_begin,src_end);
+    resetSuffixString(src_begin,src_end,threadNum);
 }
 
 TSuffixString::~TSuffixString(){
@@ -267,17 +268,17 @@ void TSuffixString::clear(){
 }
 
 
-void TSuffixString::resetSuffixString(const TChar* src_begin,const TChar* src_end){
+void TSuffixString::resetSuffixString(const TChar* src_begin,const TChar* src_end,size_t threadNum){
     assert(src_begin<=src_end);
     m_src_begin=src_begin;
     m_src_end=src_end;
     if (isUseLargeSA()){
         _clearVector(m_SA_limit);
-        _suffixString_create(m_src_begin,m_src_end,m_SA_large);
+        _suffixString_create(m_src_begin,m_src_end,m_SA_large,threadNum);
     }else{
         assert(sizeof(TInt32)==4);
         _clearVector(m_SA_large);
-        _suffixString_create(m_src_begin,m_src_end,m_SA_limit);
+        _suffixString_create(m_src_begin,m_src_end,m_SA_limit,threadNum);
     }
     build_cache();
 }

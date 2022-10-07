@@ -274,12 +274,12 @@ void create_compressed_diff_block(unsigned char* newData,unsigned char* newData_
                                   size_t matchBlockSize,size_t threadNum){
     if (matchBlockSize==0){
         create_compressed_diff(newData,newData_end,oldData,oldData_end,
-                               out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch);
+                               out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,0,threadNum);
         return;
     }
     TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize,threadNum);
     create_compressed_diff(newData,coversOp.matchBlock->newData_end_cur,oldData,coversOp.matchBlock->oldData_end_cur,
-                           out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,&coversOp);
+                           out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,&coversOp,threadNum);
 }
 void create_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
                                   unsigned char* oldData,unsigned char* oldData_end,
@@ -288,12 +288,12 @@ void create_compressed_diff_block(unsigned char* newData,unsigned char* newData_
                                   size_t matchBlockSize,size_t threadNum){
     if (matchBlockSize==0){
         create_compressed_diff(newData,newData_end,oldData,oldData_end,
-                               out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch);
+                               out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,0,threadNum);
         return;
     }
     TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize,threadNum);
     create_compressed_diff(newData,coversOp.matchBlock->newData_end_cur,oldData,coversOp.matchBlock->oldData_end_cur,
-                           out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,&coversOp);
+                           out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,&coversOp,threadNum);
 }
 void create_compressed_diff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                                   const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
@@ -317,13 +317,13 @@ void create_single_compressed_diff_block(unsigned char* newData,unsigned char* n
     if (matchBlockSize==0){
         create_single_compressed_diff(newData,newData_end,oldData,oldData_end,
                                       out_diff,compressPlugin,kMinSingleMatchScore,
-                                      patchStepMemSize,isUseBigCacheMatch);
+                                      patchStepMemSize,isUseBigCacheMatch,0,threadNum);
         return;
     }
     TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize,threadNum);
     create_single_compressed_diff(newData,coversOp.matchBlock->newData_end_cur,oldData,coversOp.matchBlock->oldData_end_cur,
                                   out_diff,compressPlugin,kMinSingleMatchScore,
-                                  patchStepMemSize,isUseBigCacheMatch,&coversOp);                                      
+                                  patchStepMemSize,isUseBigCacheMatch,&coversOp,threadNum);                                      
 }
 void create_single_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
                                          unsigned char* oldData,unsigned char* oldData_end,
@@ -333,13 +333,13 @@ void create_single_compressed_diff_block(unsigned char* newData,unsigned char* n
     if (matchBlockSize==0){
         create_single_compressed_diff(newData,newData_end,oldData,oldData_end,
                                       out_diff,compressPlugin,kMinSingleMatchScore,
-                                      patchStepMemSize,isUseBigCacheMatch);
+                                      patchStepMemSize,isUseBigCacheMatch,0,threadNum);
         return;
     }
     TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize,threadNum);
     create_single_compressed_diff(newData,coversOp.matchBlock->newData_end_cur,oldData,coversOp.matchBlock->oldData_end_cur,
                                   out_diff,compressPlugin,kMinSingleMatchScore,
-                                  patchStepMemSize,isUseBigCacheMatch,&coversOp); 
+                                  patchStepMemSize,isUseBigCacheMatch,&coversOp,threadNum); 
 }
 void create_single_compressed_diff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,

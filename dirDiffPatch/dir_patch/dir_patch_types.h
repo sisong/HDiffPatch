@@ -38,10 +38,7 @@ struct THDiffSets{
     hpatch_BOOL isSingleCompressedDiff;
     //diff in mem
     hpatch_BOOL isUseBigCacheMatch;
-    hpatch_BOOL isUseFastMatchBlock;
     size_t matchScore;
-    size_t fastMatchBlockSize;
-    //diff by stream
     size_t patchStepMemSize;
     size_t matchBlockSize;
     size_t threadNum;
