@@ -287,7 +287,7 @@ void TSuffixString::resetSuffixString(const TChar* src_begin,const TChar* src_en
     build_cache(threadNum);
 }
 
-#define _cached2(ix) (TChar*)m_cached_SA_begin+(isLarge? \
+#define _cached2(ix,isLarge) (TChar*)m_cached_SA_begin+(isLarge? \
         ((size_t*)m_cached2char_range)[ix]*sizeof(size_t) : ((TInt32*)m_cached2char_range)[ix]*sizeof(TInt32) )
 
 TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
@@ -305,7 +305,7 @@ TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
     if ((kMinStrLen>=2)&(m_cached2char_range!=0)){
         size_t cc=((size_t)str[1]) | (((size_t)str[0])<<8);
         const bool isLarge=isUseLargeSA();
-        return m_lower_bound(_cached2(cc),_cached2(cc+1),
+        return m_lower_bound(_cached2(cc,isLarge),_cached2(cc+1,isLarge),
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,2);
     }else if (kMinStrLen>0){
         size_t c=str[0];
@@ -395,9 +395,9 @@ void TSuffixString::build_cache(size_t threadNum){
             const size_t rollSize=srcSize-(kFMMinStrSize-1);
             bf.init(rollSize,kFMZoom); //alloc large memory
 #if (_IS_USED_MULTITHREAD)
-            const size_t kMinParallelSize=4096;
-            if ((threadNum>1)&&(rollSize>=kMinParallelSize)) {
-                const size_t maxThreanNum=rollSize/(kMinParallelSize/2);
+            const size_t kInsertMinParallelSize=4096;
+            if ((threadNum>1)&&(rollSize>=kInsertMinParallelSize)) {
+                const size_t maxThreanNum=rollSize/(kInsertMinParallelSize/2);
                 threadNum=(threadNum<=maxThreanNum)?threadNum:maxThreanNum;
 
                 const size_t step=rollSize/threadNum;
