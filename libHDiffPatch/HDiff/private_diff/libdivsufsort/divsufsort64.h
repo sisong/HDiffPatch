@@ -78,12 +78,6 @@ typedef int32_t saint_t;
 #define SAIDX64_T
 typedef llong_t saidx64_t;
 #endif /* SAIDX64_T */
-#ifndef PRIdSAINT_T
-#define PRIdSAINT_T PRId32
-#endif /* PRIdSAINT_T */
-#ifndef PRIdSAIDX64_T
-#define PRIdSAIDX64_T PRId64
-#endif /* PRIdSAIDX64_T */
 
 
 /*- Prototypes -*/

@@ -64,23 +64,26 @@ extern "C" {
 #  define SAIDX_T
 #  define saidx_t saidx64_t
 # endif /* SAIDX_T */
-# ifndef PRIdSAIDX_T
-#  define PRIdSAIDX_T PRIdSAIDX64_T
-# endif /* PRIdSAIDX_T */
+#define sastore_t saidx64_t
 # define divsufsort divsufsort64
-# define divbwt divbwt64
 # define divsufsort_version divsufsort64_version
-# define bw_transform bw_transform64
-# define inverse_bw_transform inverse_bw_transform64
-# define sufcheck sufcheck64
-# define sa_search sa_search64
-# define sa_simplesearch sa_simplesearch64
 # define sssort sssort64
 # define trsort trsort64
+#elif defined(BUILD_DIVSUFSORT40)
+# include "divsufsort40.h"
+# ifndef SAIDX_T
+#  define SAIDX_T
+#  define saidx_t saidx64_t
+# endif /* SAIDX_T */
+#define sastore_t saidx40_t
+# define divsufsort divsufsort40
+# define divsufsort_version divsufsort40_version
+# define sssort sssort40
+# define trsort trsort40
 #else
 # include "divsufsort.h"
+#define sastore_t saidx32_t
 #endif
-
 
 /*- Constants -*/
 #if !defined(UINT8_MAX)
@@ -117,27 +120,27 @@ extern "C" {
 #endif
 /* minstacksize = log(SS_BLOCKSIZE) / log(3) * 2 */
 #if SS_BLOCKSIZE == 0
-# if defined(BUILD_DIVSUFSORT64)
-#  define SS_MISORT_STACKSIZE (96)
-# else
+# if !defined(BUILD_DIVSUFSORT64)
 #  define SS_MISORT_STACKSIZE (64)
+# else
+#  define SS_MISORT_STACKSIZE (96)
 # endif
 #elif SS_BLOCKSIZE <= 4096
 # define SS_MISORT_STACKSIZE (16)
 #else
 # define SS_MISORT_STACKSIZE (24)
 #endif
-#if defined(BUILD_DIVSUFSORT64)
-# define SS_SMERGE_STACKSIZE (64)
-#else
+#if !defined(BUILD_DIVSUFSORT64)
 # define SS_SMERGE_STACKSIZE (32)
+#else
+# define SS_SMERGE_STACKSIZE (64)
 #endif
 /* for trsort.c */
 #define TR_INSERTIONSORT_THRESHOLD (8)
-#if defined(BUILD_DIVSUFSORT64)
-# define TR_STACKSIZE (96)
-#else
+#if !defined(BUILD_DIVSUFSORT64)
 # define TR_STACKSIZE (64)
+#else
+# define TR_STACKSIZE (96)
 #endif
 
 
@@ -199,6 +202,16 @@ sssort(const sauchar_t *Td, const saidx_t *PA,
 void
 trsort(saidx_t *ISA, saidx_t *SA, saidx_t n, saidx_t depth);
 
+static const int lg_table[256]= {
+ -1,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+  5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
+  6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+  6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+  7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
+  7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
+  7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
+  7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7
+};
 
 #ifdef __cplusplus
 } /* extern "C" */
