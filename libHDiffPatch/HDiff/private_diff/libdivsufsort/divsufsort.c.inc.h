@@ -33,6 +33,7 @@
 
 /*- Private Functions -*/
 
+#if (_IS_USED_MULTITHREAD)
 struct mt_data_t{
     CHLocker            locker;
     const sauchar_t*    T;
@@ -70,7 +71,7 @@ static void _sssort_thread(saint_t* c0,saint_t* c1,saidx_t* j,
                buf, mt->bufsize, 2, mt->n, *(SA + k) == (mt->m - 1));
     }
 }
-
+#endif
 
 /* Sorts suffixes of type B*. */
 static
