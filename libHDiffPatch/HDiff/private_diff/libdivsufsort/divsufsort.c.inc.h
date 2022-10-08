@@ -25,22 +25,33 @@
  */
 
 #include "divsufsort_private.h"
+#include <vector>
 #include "../../../../libParallel/parallel_channel.h"
 #if (_IS_USED_MULTITHREAD)
 #include <thread>
 #endif
-#include <vector>
 
 /*- Private Functions -*/
 
-static void _sssort_thread(HLocker locker,saint_t* c0,saint_t* c1,saidx_t* j,
-                           saidx_t *bucket_B,const sauchar_t *T, const sastore_t *PAb,
-                           sastore_t* SA,sastore_t *buf, saidx_t bufsize,saidx_t n,saidx_t m){
+struct mt_data_t{
+    CHLocker            locker;
+    const sauchar_t*    T;
+    sastore_t*          SA;
+    const saidx_t*      bucket_B;
+    const sastore_t*    PAb;
+    saidx_t             bufsize;
+    saidx_t             n;
+    saidx_t             m;
+};
+
+static void _sssort_thread(saint_t* c0,saint_t* c1,saidx_t* j,
+                           sastore_t *buf,mt_data_t* mt){
     saidx_t k = 0;
     saidx_t l;
+    const saidx_t*  bucket_B=mt->bucket_B;
     for(;;) {
         {
-            CAutoLocker __autoLocker(locker);
+            CAutoLocker __autoLocker(mt->locker.locker);
             if(0 < (l = *j)) {
                 saint_t d0 = *c0, d1 = *c1;
                 do {
@@ -54,8 +65,9 @@ static void _sssort_thread(HLocker locker,saint_t* c0,saint_t* c1,saidx_t* j,
             }
         }
         if(l == 0) { break; }
-        sssort(T, PAb, SA + k, SA + l,
-               buf, bufsize, 2, n, *(SA + k) == (m - 1));
+        sastore_t* SA=mt->SA;
+        sssort(mt->T, mt->PAb, SA + k, SA + l,
+               buf, mt->bufsize, 2, mt->n, *(SA + k) == (mt->m - 1));
     }
 }
 
@@ -122,18 +134,23 @@ note:
     /* Sort the type B* substrings using sssort. */
 #if (_IS_USED_MULTITHREAD)
     if (threadNum>1){
-        CHLocker locker;
         const saidx_t bufsize = (n - (2 * m)) / (saidx_t)threadNum;
         const size_t threadCount=threadNum-1;
         c0 = ALPHABET_SIZE - 2, c1 = ALPHABET_SIZE - 1, j = m;
+        mt_data_t mt_data;
+        mt_data.T=T;
+        mt_data.SA=SA;
+        mt_data.bucket_B=bucket_B;
+        mt_data.PAb=PAb;
+        mt_data.bufsize=bufsize;
+        mt_data.n=n;
+        mt_data.m=m;
         std::vector<std::thread> threads(threadCount);
         sastore_t* buf = SA + m;
         for (size_t ti=0;ti<threadCount;++ti,buf+=bufsize){
-            threads[ti]=std::thread(_sssort_thread,locker.locker,&c0,&c1,&j,
-                                                   bucket_B,T,PAb,SA,buf,bufsize,n,m);
+            threads[ti]=std::thread(_sssort_thread,&c0,&c1,&j,buf,&mt_data);
         }
-        _sssort_thread(locker.locker,&c0,&c1,&j,
-                       bucket_B,T,PAb,SA,buf,bufsize,n,m);
+        _sssort_thread(&c0,&c1,&j,buf,&mt_data);
         for (size_t ti=0;ti<threadCount;++ti)
             threads[ti].join();
     }else

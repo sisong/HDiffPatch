@@ -676,13 +676,18 @@ static void search_and_dispose_cover(std::vector<TOldCover>& covers,const TDiffD
 }
 
 #if (_IS_USED_MULTITHREAD)
-    static void _search_and_dispose_cover_MT(std::vector<TOldCover>* _covers,const TDiffData* _diff,
-                                             const TSuffixString* sstring,int kMinSingleMatchScore,
-                                             size_t workCount,size_t* pworkIndex){
+    struct mt_data_t{
+        const TDiffData*        diff;
+        const TSuffixString*    sstring;
+        int                     kMinSingleMatchScore;
+        volatile size_t         workIndex;
+    };
+
+    static void _search_and_dispose_cover_MT(std::vector<TOldCover>* _covers,size_t workCount,mt_data_t* mt){
         const size_t kPartPepeatSize=1024*2;
         std::vector<TOldCover>& covers=*_covers;
-        const TDiffData& diff=*_diff;
-        std::atomic<size_t>& workIndex=*(std::atomic<size_t>*)pworkIndex;
+        const TDiffData& diff=*mt->diff;
+        std::atomic<size_t>& workIndex=*(std::atomic<size_t>*)&mt->workIndex;
         const size_t newSize=diff.newData_end-diff.newData;
         while (true){
             size_t curWorkIndex=workIndex++;
@@ -694,7 +699,7 @@ static void search_and_dispose_cover(std::vector<TOldCover>& covers,const TDiffD
             diff_part.newData=diff.newData+new_begin;
             diff_part.newData_end=diff.newData+new_end;
             size_t coverCountBack=covers.size();
-            search_and_dispose_cover(covers,diff_part,*sstring,kMinSingleMatchScore,0);
+            search_and_dispose_cover(covers,diff_part,*mt->sstring,mt->kMinSingleMatchScore,0);
             for (size_t i=coverCountBack;i<covers.size();++i)
                 covers[i].newPos+=new_begin;
         }
@@ -714,13 +719,17 @@ static void search_and_dispose_cover_MT(std::vector<TOldCover>& covers,const TDi
         size_t workCount=(newSize+kBestParallelSize-1)/kBestParallelSize;
         workCount=(threadNum>workCount)?threadNum:workCount;
 
-        size_t workIndex=0;
         const size_t threadCount=threadNum-1;
         std::vector<std::thread> threads(threadCount);
         std::vector<std::vector<TOldCover> > threadCovers(threadCount);
+        mt_data_t mt_data;
+        mt_data.diff=&diff;
+        mt_data.sstring=&sstring;
+        mt_data.kMinSingleMatchScore=kMinSingleMatchScore;
+        mt_data.workIndex=0;
         for (size_t i=0;i<threadCount;i++)
-            threads[i]=std::thread(_search_and_dispose_cover_MT,&threadCovers[i],&diff,&sstring,kMinSingleMatchScore,workCount,&workIndex);
-        _search_and_dispose_cover_MT(&covers,&diff,&sstring,kMinSingleMatchScore,workCount,&workIndex);
+            threads[i]=std::thread(_search_and_dispose_cover_MT,&threadCovers[i],workCount,&mt_data);
+        _search_and_dispose_cover_MT(&covers,workCount,&mt_data);
         for (size_t i=0;i<threadCount;i++){
             threads[i].join();
             covers.insert(covers.end(),threadCovers[i].begin(),threadCovers[i].end());
