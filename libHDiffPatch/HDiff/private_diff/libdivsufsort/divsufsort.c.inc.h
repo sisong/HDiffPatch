@@ -77,7 +77,7 @@ static
 saidx_t
 sort_typeBstar(const sauchar_t *T, sastore_t* SA,
                saidx_t *bucket_A, saidx_t *bucket_B,
-               saidx_t n,size_t threadNum) {
+               saidx_t n,int threadNum) {
   sastore_t *PAb, *ISAb;
   saidx_t i, j, k, t, m;
   saint_t c0, c1;
@@ -135,7 +135,7 @@ note:
 #if (_IS_USED_MULTITHREAD)
     if (threadNum>1){
         const saidx_t bufsize = (n - (2 * m)) / (saidx_t)threadNum;
-        const size_t threadCount=threadNum-1;
+        const int threadCount=threadNum-1;
         c0 = ALPHABET_SIZE - 2, c1 = ALPHABET_SIZE - 1, j = m;
         mt_data_t mt_data;
         mt_data.T=T;
@@ -147,11 +147,11 @@ note:
         mt_data.m=m;
         std::vector<std::thread> threads(threadCount);
         sastore_t* buf = SA + m;
-        for (size_t ti=0;ti<threadCount;++ti,buf+=bufsize){
+        for (int ti=0;ti<threadCount;++ti,buf+=bufsize){
             threads[ti]=std::thread(_sssort_thread,&c0,&c1,&j,buf,&mt_data);
         }
         _sssort_thread(&c0,&c1,&j,buf,&mt_data);
-        for (size_t ti=0;ti<threadCount;++ti)
+        for (int ti=0;ti<threadCount;++ti)
             threads[ti].join();
     }else
 #endif
@@ -284,7 +284,7 @@ construct_SA(const sauchar_t *T, sastore_t* SA,
 /*- Function -*/
 
 saint_t
-divsufsort(const sauchar_t *T, sastore_t* SA, saidx_t n,size_t threadNum) {
+divsufsort(const sauchar_t *T, sastore_t* SA, saidx_t n,int threadNum) {
   saidx_t *bucket_A, *bucket_B;
   saidx_t m;
   saint_t err = 0;

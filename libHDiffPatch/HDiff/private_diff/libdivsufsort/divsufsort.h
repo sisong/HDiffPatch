@@ -80,7 +80,7 @@ typedef int32_t saidx32_t;
  */
 DIVSUFSORT_API
 saint_t
-divsufsort(const sauchar_t *T,saidx32_t *SA,saidx32_t n,size_t threadNum);
+divsufsort(const sauchar_t *T,saidx32_t *SA,saidx32_t n,int threadNum);
 
 /**
  * Returns the version of the divsufsort library.

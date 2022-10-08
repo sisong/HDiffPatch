@@ -180,6 +180,8 @@
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
     </ClCompile>
+    <ClCompile Include="..\..\libParallel\parallel_channel.cpp" />
+    <ClCompile Include="..\..\libParallel\parallel_import.cpp" />
     <ClCompile Include="..\..\test\unit_test.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -91,7 +91,7 @@ typedef llong_t saidx64_t;
  */
 DIVSUFSORT_API
 saint_t
-divsufsort64(const sauchar_t *T, saidx64_t *SA, saidx64_t n,size_t threadNum);
+divsufsort64(const sauchar_t *T, saidx64_t *SA, saidx64_t n,int threadNum);
 
 /**
  * Returns the version of the divsufsort library.
