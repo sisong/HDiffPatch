@@ -679,7 +679,7 @@ static void search_and_dispose_cover(std::vector<TOldCover>& covers,const TDiffD
     static void _search_and_dispose_cover_MT(std::vector<TOldCover>* _covers,const TDiffData* _diff,
                                              const TSuffixString* sstring,int kMinSingleMatchScore,
                                              size_t workCount,size_t* pworkIndex){
-        const size_t kPartPepeatSize=1024;
+        const size_t kPartPepeatSize=1024*2;
         std::vector<TOldCover>& covers=*_covers;
         const TDiffData& diff=*_diff;
         std::atomic<size_t>& workIndex=*(std::atomic<size_t>*)pworkIndex;
@@ -700,14 +700,13 @@ static void search_and_dispose_cover(std::vector<TOldCover>& covers,const TDiffD
         }
     }
 #endif
-#include "../../_clock_for_demo.h"
+
 static void search_and_dispose_cover_MT(std::vector<TOldCover>& covers,const TDiffData& diff,
                                         const TSuffixString& sstring,int kMinSingleMatchScore,
-                                        TDiffLimit* diffLimit=0,size_t threadNum=1){   
-double t0=clock_s();
+                                        TDiffLimit* diffLimit=0,size_t threadNum=1){
 #if (_IS_USED_MULTITHREAD)
-    const size_t kMinParallelSize=1024*64;
-    const size_t kBestParallelSize=1024*1024*16;
+    const size_t kMinParallelSize=1024*1024*2;
+    const size_t kBestParallelSize=1024*1024*8;
     size_t newSize=diff.newData_end-diff.newData;
     if ((threadNum>1)&&(diffLimit==0)&&(diff.oldData!=diff.oldData_end)&&(newSize>=kMinParallelSize)){
         const size_t maxThreanNum=newSize/(kMinParallelSize/2);
@@ -733,8 +732,6 @@ double t0=clock_s();
     {
         search_and_dispose_cover(covers,diff,sstring,kMinSingleMatchScore,diffLimit);
     }
-    double t1=clock_s();
-    printf("search_and_dispose_cover time:%3.3f s\n",t1-t0);
 }
 
 static const hpatch_StreamPos_t _kNullCoverHitEndPos =~(hpatch_StreamPos_t)0;

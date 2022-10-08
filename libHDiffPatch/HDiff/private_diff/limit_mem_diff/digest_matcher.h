@@ -66,6 +66,9 @@ public:
     void search_cover(hpatch_TOutputCovers* out_covers);
     ~TDigestMatcher();
 private:
+    TDigestMatcher(const TDigestMatcher &); //empty
+    TDigestMatcher &operator=(const TDigestMatcher &); //empty
+private:
     const hpatch_TStreamInput*  m_oldData;
     const hpatch_TStreamInput*  m_newData;
     std::vector<adler_uint_t>   m_blocks;

@@ -79,7 +79,7 @@ public:
     typedef ptrdiff_t     TInt;
     typedef int32_t       TInt32;
     typedef unsigned char TChar;
-    TSuffixString(bool isUsedFastMatch=false);
+    explicit TSuffixString(bool isUsedFastMatch=false);
     ~TSuffixString();
     
     //throw std::runtime_error when create SA error
@@ -98,6 +98,9 @@ public:
             return (TInt)m_SA_limit[i];
     }
     TInt lower_bound(const TChar* str,const TChar* str_end)const;//return index in SA; must str_end-str>=2 !
+private:
+    TSuffixString(const TSuffixString &); //empty
+    TSuffixString &operator=(const TSuffixString &); //empty
 private:
     const TChar*        m_src_begin;//原字符串.
     const TChar*        m_src_end;

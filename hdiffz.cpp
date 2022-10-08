@@ -146,7 +146,11 @@ static void printUsage(){
            "      matchScore>=0, DEFAULT -m-6, recommended bin: 0--4 text: 4--9 etc...\n"
            "  -s[-matchBlockSize]\n"
            "      all file load as Stream; fast;\n"
-           "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5)bytes of memory;\n"
+           "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5"
+#if (_IS_USED_MULTITHREAD)
+           "*parallelThreadNumber"
+#endif
+           ")bytes of memory;\n"
            "      matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...\n"
            "special options:\n"
            "  -block[-fastMatchBlockSize] \n"
