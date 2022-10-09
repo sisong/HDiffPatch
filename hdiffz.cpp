@@ -184,11 +184,9 @@ static void printUsage(){
            "      support compress type & level & dict:\n"
            "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
-           "        -c-zlib[-{1..9}[-dictBits]]     DEFAULT level 9\n"
+           "        -c-zlib[-{1..9}[-dictBits]]     (or -pzlib) DEFAULT level 9\n"
            "            dictBits can 9--15, DEFAULT 15.\n"
 #   if (_IS_USED_MULTITHREAD)
-           "        -c-pzlib[-{1..9}[-dictBits]]    DEFAULT level 6\n"
-           "            dictBits can 9--15, DEFAULT 15.\n"
            "            support run by multi-thread parallel, fast!\n"
 #   endif
 #endif
@@ -592,16 +590,14 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     const size_t defaultDictBits_zlib=15; //32k
 #endif
 #ifdef _CompressPlugin_zlib
-    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zlib",0,
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zlib","pzlib",
                                         &compressLevel,1,9,9, &dictBits,9,15,defaultDictBits_zlib),"-c-zlib-?"){
+#   if (!_IS_USED_MULTITHREAD)
         static TCompressPlugin_zlib _zlibCompressPlugin=zlibCompressPlugin;
         _zlibCompressPlugin.compress_level=(int)compressLevel;
         _zlibCompressPlugin.windowBits=(signed char)(-dictBits);
         *out_compressPlugin=&_zlibCompressPlugin.base; }}
-#   if (_IS_USED_MULTITHREAD)
-    //pzlib
-    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"pzlib",0,
-                                        &compressLevel,1,9,6, &dictBits,9,15,defaultDictBits_zlib),"-c-pzlib-?"){
+#   else
         static TCompressPlugin_pzlib _pzlibCompressPlugin=pzlibCompressPlugin;
         _pzlibCompressPlugin.base.compress_level=(int)compressLevel;
         _pzlibCompressPlugin.base.windowBits=(signed char)(-dictBits);
