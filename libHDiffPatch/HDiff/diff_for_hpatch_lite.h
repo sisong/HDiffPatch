@@ -19,7 +19,8 @@ const int kLiteMatchScore_default = 6;
 void create_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
                       const hpi_byte* oldData,const hpi_byte* oldData_end,
                       std::vector<hpi_byte>& out_lite_diff,const hdiffi_TCompress* compressPlugin,
-                      int kMinSingleMatchScore=kLiteMatchScore_default,bool isUseBigCacheMatch=false);
+                      int kMinSingleMatchScore=kLiteMatchScore_default,
+                      bool isUseBigCacheMatch=false,size_t threadNum=1);
 
 bool check_lite_diff_open(const hpi_byte* lite_diff,const hpi_byte* lite_diff_end,
                           hpi_compressType* out_compress_type);

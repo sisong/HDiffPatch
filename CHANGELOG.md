@@ -1,7 +1,15 @@
 # HDiffPatch Change Log
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
-   
+
+## [v4.4.0](https://github.com/sisong/HDiffPatch/tree/v4.4.0) - 2022-10-09
+### Changed
+* optimize diff -m & -s speed by muti-thread parallel, requires C++11.
+
+## [v4.3.0](https://github.com/sisong/HDiffPatch/tree/v4.3.0) - 2022-09-23
+### Changed
+* recode some patch error code: decompresser errors, file error, disk space full error, jni error
+
 ## [v4.2.0](https://github.com/sisong/HDiffPatch/tree/v4.2.0) - 2022-05-15
 ### Added
 * add function create_lite_diff() & hpatch_lite_open(),hpatch_lite_patch(); optimized hpatch on MCU,NB-IoT... (demo [HPatchLite](https://github.com/sisong/HPatchLite))

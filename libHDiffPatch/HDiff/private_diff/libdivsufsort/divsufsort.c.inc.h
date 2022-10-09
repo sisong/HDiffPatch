@@ -25,30 +25,63 @@
  */
 
 #include "divsufsort_private.h"
-#ifdef _OPENMP
-# include <omp.h>
+#include <vector>
+#include "../../../../libParallel/parallel_channel.h"
+#if (_IS_USED_MULTITHREAD)
+#include <thread>
 #endif
 
-
 /*- Private Functions -*/
+
+#if (_IS_USED_MULTITHREAD)
+struct mt_data_t{
+    CHLocker            locker;
+    const sauchar_t*    T;
+    sastore_t*          SA;
+    const saidx_t*      bucket_B;
+    const sastore_t*    PAb;
+    saidx_t             bufsize;
+    saidx_t             n;
+    saidx_t             m;
+};
+
+static void _sssort_thread(saint_t* c0,saint_t* c1,saidx_t* j,
+                           sastore_t *buf,mt_data_t* mt){
+    saidx_t k = 0;
+    saidx_t l;
+    const saidx_t*  bucket_B=mt->bucket_B;
+    for(;;) {
+        {
+            CAutoLocker __autoLocker(mt->locker.locker);
+            if(0 < (l = *j)) {
+                saint_t d0 = *c0, d1 = *c1;
+                do {
+                k = BUCKET_BSTAR(d0, d1);
+                if(--d1 <= d0) {
+                    d1 = ALPHABET_SIZE - 1;
+                    if(--d0 < 0) { break; }
+                }
+                } while(((l - k) <= 1) && (0 < (l = k)));
+                *c0 = d0, *c1 = d1, *j = k;
+            }
+        }
+        if(l == 0) { break; }
+        sastore_t* SA=mt->SA;
+        sssort(mt->T, mt->PAb, SA + k, SA + l,
+               buf, mt->bufsize, 2, mt->n, *(SA + k) == (mt->m - 1));
+    }
+}
+#endif
 
 /* Sorts suffixes of type B*. */
 static
 saidx_t
-sort_typeBstar(const sauchar_t *T, saidx_t *SA,
+sort_typeBstar(const sauchar_t *T, sastore_t* SA,
                saidx_t *bucket_A, saidx_t *bucket_B,
-               saidx_t n) {
-  saidx_t *PAb, *ISAb, *buf;
-#ifdef _OPENMP
-  saidx_t *curbuf;
-  saidx_t l;
-#endif
-  saidx_t i, j, k, t, m, bufsize;
+               saidx_t n,int threadNum) {
+  sastore_t *PAb, *ISAb;
+  saidx_t i, j, k, t, m;
   saint_t c0, c1;
-#ifdef _OPENMP
-  saint_t d0, d1;
-  int tmp;
-#endif
 
   /* Initialize bucket arrays. */
   for(i = 0; i < BUCKET_A_SIZE; ++i) { bucket_A[i] = 0; }
@@ -100,47 +133,42 @@ note:
     SA[--BUCKET_BSTAR(c0, c1)] = m - 1;
 
     /* Sort the type B* substrings using sssort. */
-#ifdef _OPENMP
-    tmp = omp_get_max_threads();
-    buf = SA + m, bufsize = (n - (2 * m)) / tmp;
-    c0 = ALPHABET_SIZE - 2, c1 = ALPHABET_SIZE - 1, j = m;
-#pragma omp parallel default(shared) private(curbuf, k, l, d0, d1, tmp)
-    {
-      tmp = omp_get_thread_num();
-      curbuf = buf + tmp * bufsize;
-      k = 0;
-      for(;;) {
-        #pragma omp critical(sssort_lock)
-        {
-          if(0 < (l = j)) {
-            d0 = c0, d1 = c1;
-            do {
-              k = BUCKET_BSTAR(d0, d1);
-              if(--d1 <= d0) {
-                d1 = ALPHABET_SIZE - 1;
-                if(--d0 < 0) { break; }
-              }
-            } while(((l - k) <= 1) && (0 < (l = k)));
-            c0 = d0, c1 = d1, j = k;
-          }
+#if (_IS_USED_MULTITHREAD)
+    if (threadNum>1){
+        const saidx_t bufsize = (n - (2 * m)) / (saidx_t)threadNum;
+        const int threadCount=threadNum-1;
+        c0 = ALPHABET_SIZE - 2, c1 = ALPHABET_SIZE - 1, j = m;
+        mt_data_t mt_data;
+        mt_data.T=T;
+        mt_data.SA=SA;
+        mt_data.bucket_B=bucket_B;
+        mt_data.PAb=PAb;
+        mt_data.bufsize=bufsize;
+        mt_data.n=n;
+        mt_data.m=m;
+        std::vector<std::thread> threads(threadCount);
+        sastore_t* buf = SA + m;
+        for (int ti=0;ti<threadCount;++ti,buf+=bufsize){
+            threads[ti]=std::thread(_sssort_thread,&c0,&c1,&j,buf,&mt_data);
         }
-        if(l == 0) { break; }
-        sssort(T, PAb, SA + k, SA + l,
-               curbuf, bufsize, 2, n, *(SA + k) == (m - 1));
-      }
-    }
-#else
-    buf = SA + m, bufsize = n - (2 * m);
-    for(c0 = ALPHABET_SIZE - 2, j = m; 0 < j; --c0) {
-      for(c1 = ALPHABET_SIZE - 1; c0 < c1; j = i, --c1) {
-        i = BUCKET_BSTAR(c0, c1);
-        if(1 < (j - i)) {
-          sssort(T, PAb, SA + i, SA + j,
-                 buf, bufsize, 2, n, *(SA + i) == (m - 1));
-        }
-      }
-    }
+        _sssort_thread(&c0,&c1,&j,buf,&mt_data);
+        for (int ti=0;ti<threadCount;++ti)
+            threads[ti].join();
+    }else
 #endif
+    {
+        sastore_t* buf = SA + m;
+        saidx_t bufsize = n - (2 * m);
+        for(c0 = ALPHABET_SIZE - 2, j = m; 0 < j; --c0) {
+            for(c1 = ALPHABET_SIZE - 1; c0 < c1; j = i, --c1) {
+                i = BUCKET_BSTAR(c0, c1);
+                if(1 < (j - i)) {
+                    sssort(T, PAb, SA + i, SA + j,
+                           buf, bufsize, 2, n, *(SA + i) == (m - 1));
+                }
+            }
+        }
+    }
 
     /* Compute ranks of type B* substrings. */
     for(i = m - 1; 0 <= i; --i) {
@@ -192,10 +220,10 @@ note:
 /* Constructs the suffix array by using the sorted order of type B* suffixes. */
 static
 void
-construct_SA(const sauchar_t *T, saidx_t *SA,
+construct_SA(const sauchar_t *T, sastore_t* SA,
              saidx_t *bucket_A, saidx_t *bucket_B,
              saidx_t n, saidx_t m) {
-  saidx_t *i, *j, *k;
+  sastore_t *i, *j, *k;
   saidx_t s;
   saint_t c0, c1, c2;
 
@@ -252,84 +280,12 @@ construct_SA(const sauchar_t *T, saidx_t *SA,
   }
 }
 
-/* Constructs the burrows-wheeler transformed string directly
-   by using the sorted order of type B* suffixes. */
-static
-saidx_t
-construct_BWT(const sauchar_t *T, saidx_t *SA,
-              saidx_t *bucket_A, saidx_t *bucket_B,
-              saidx_t n, saidx_t m) {
-  saidx_t *i, *j, *k, *orig;
-  saidx_t s;
-  saint_t c0, c1, c2;
-
-  if(0 < m) {
-    /* Construct the sorted order of type B suffixes by using
-       the sorted order of type B* suffixes. */
-    for(c1 = ALPHABET_SIZE - 2; 0 <= c1; --c1) {
-      /* Scan the suffix array from right to left. */
-      for(i = SA + BUCKET_BSTAR(c1, c1 + 1),
-          j = SA + BUCKET_A(c1 + 1) - 1, k = NULL, c2 = -1;
-          i <= j;
-          --j) {
-        if(0 < (s = *j)) {
-          assert(T[s] == c1);
-          assert(((s + 1) < n) && (T[s] <= T[s + 1]));
-          assert(T[s - 1] <= T[s]);
-          c0 = T[--s];
-          *j = ~((saidx_t)c0);
-          if((0 < s) && (T[s - 1] > c0)) { s = ~s; }
-          if(c0 != c2) {
-            if(0 <= c2) { BUCKET_B(c2, c1) = (saidx_t)(k - SA); }
-            k = SA + BUCKET_B(c2 = c0, c1);
-          }
-          assert(k < j);
-          *k-- = s;
-        } else if(s != 0) {
-          *j = ~s;
-#ifndef NDEBUG
-        } else {
-          assert(T[s] == c1);
-#endif
-        }
-      }
-    }
-  }
-
-  /* Construct the BWTed string by using
-     the sorted order of type B suffixes. */
-  k = SA + BUCKET_A(c2 = T[n - 1]);
-  *k++ = (T[n - 2] < c2) ? ~((saidx_t)T[n - 2]) : (n - 1);
-  /* Scan the suffix array from left to right. */
-  for(i = SA, j = SA + n, orig = SA; i < j; ++i) {
-    if(0 < (s = *i)) {
-      assert(T[s - 1] >= T[s]);
-      c0 = T[--s];
-      *i = c0;
-      if((0 < s) && (T[s - 1] < c0)) { s = ~((saidx_t)T[s - 1]); }
-      if(c0 != c2) {
-        BUCKET_A(c2) = (saidx_t)(k - SA);
-        k = SA + BUCKET_A(c2 = c0);
-      }
-      assert(i < k);
-      *k++ = s;
-    } else if(s != 0) {
-      *i = ~s;
-    } else {
-      orig = i;
-    }
-  }
-
-  return (saidx_t)(orig - SA);
-}
-
-
 /*---------------------------------------------------------------------------*/
 
 /*- Function -*/
 
 saint_t
-divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n) {
+divsufsort(const sauchar_t *T, sastore_t* SA, saidx_t n,int threadNum) {
   saidx_t *bucket_A, *bucket_B;
   saidx_t m;
   saint_t err = 0;
@@ -345,7 +301,7 @@ divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n) {
 
   /* Suffixsort. */
   if((bucket_A != NULL) && (bucket_B != NULL)) {
-    m = sort_typeBstar(T, SA, bucket_A, bucket_B, n);
+    m = sort_typeBstar(T, SA, bucket_A, bucket_B, n, threadNum);
     construct_SA(T, SA, bucket_A, bucket_B, n, m);
   } else {
     err = -2;
@@ -355,41 +311,6 @@ divsufsort(const sauchar_t *T, saidx_t *SA, saidx_t n) {
   free(bucket_A);
 
   return err;
-}
-
-saidx_t
-divbwt(const sauchar_t *T, sauchar_t *U, saidx_t *A, saidx_t n) {
-  saidx_t *B;
-  saidx_t *bucket_A, *bucket_B;
-  saidx_t m, pidx, i;
-
-  /* Check arguments. */
-  if((T == NULL) || (U == NULL) || (n < 0)) { return -1; }
-  else if(n <= 1) { if(n == 1) { U[0] = T[0]; } return n; }
-
-  if((B = A) == NULL) { B = (saidx_t *)malloc((size_t)(n + 1) * sizeof(saidx_t)); }
-  bucket_A = (saidx_t *)malloc(BUCKET_A_SIZE * sizeof(saidx_t));
-  bucket_B = (saidx_t *)malloc(BUCKET_B_SIZE * sizeof(saidx_t));
-
-  /* Burrows-Wheeler Transform. */
-  if((B != NULL) && (bucket_A != NULL) && (bucket_B != NULL)) {
-    m = sort_typeBstar(T, B, bucket_A, bucket_B, n);
-    pidx = construct_BWT(T, B, bucket_A, bucket_B, n, m);
-
-    /* Copy to output string. */
-    U[0] = T[n - 1];
-    for(i = 0; i < pidx; ++i) { U[i + 1] = (sauchar_t)B[i]; }
-    for(i += 1; i < n; ++i) { U[i] = (sauchar_t)B[i]; }
-    pidx += 1;
-  } else {
-    pidx = -2;
-  }
-
-  free(bucket_B);
-  free(bucket_A);
-  if(A == NULL) { free(B); }
-
-  return pidx;
 }
 
 const char *

@@ -24,8 +24,8 @@
 		D690AB9C1F20792A0089DC57 /* hdiffz_import_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D690AB9B1F20792A0089DC57 /* hdiffz_import_patch.c */; };
 		D690ABB71F2079E80089DC57 /* diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA01F2079E80089DC57 /* diff.cpp */; };
 		D690ABB81F2079E80089DC57 /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA31F2079E80089DC57 /* bytes_rle.cpp */; };
-		D690ABB91F2079E80089DC57 /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA71F2079E80089DC57 /* divsufsort.c */; };
-		D690ABBA1F2079E80089DC57 /* divsufsort64.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABAA1F2079E80089DC57 /* divsufsort64.c */; };
+		D690ABB91F2079E80089DC57 /* divsufsort.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABA71F2079E80089DC57 /* divsufsort.cpp */; };
+		D690ABBA1F2079E80089DC57 /* divsufsort64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABAA1F2079E80089DC57 /* divsufsort64.cpp */; };
 		D690ABBB1F2079E80089DC57 /* suffix_string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABB21F2079E80089DC57 /* suffix_string.cpp */; };
 		D690ABBC1F2079E80089DC57 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABB51F2079E80089DC57 /* patch.c */; };
 		D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFA1F2097C90089DC57 /* libbz2.tbd */; };
@@ -96,10 +96,10 @@
 		D690ABA31F2079E80089DC57 /* bytes_rle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bytes_rle.cpp; sourceTree = "<group>"; };
 		D690ABA41F2079E80089DC57 /* bytes_rle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bytes_rle.h; sourceTree = "<group>"; };
 		D690ABA61F2079E80089DC57 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
-		D690ABA71F2079E80089DC57 /* divsufsort.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = divsufsort.c; sourceTree = "<group>"; };
+		D690ABA71F2079E80089DC57 /* divsufsort.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = divsufsort.cpp; sourceTree = "<group>"; };
 		D690ABA81F2079E80089DC57 /* divsufsort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort.c.inc.h; sourceTree = "<group>"; };
 		D690ABA91F2079E80089DC57 /* divsufsort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort.h; sourceTree = "<group>"; };
-		D690ABAA1F2079E80089DC57 /* divsufsort64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = divsufsort64.c; sourceTree = "<group>"; };
+		D690ABAA1F2079E80089DC57 /* divsufsort64.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = divsufsort64.cpp; sourceTree = "<group>"; };
 		D690ABAB1F2079E80089DC57 /* divsufsort64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort64.h; sourceTree = "<group>"; };
 		D690ABAC1F2079E80089DC57 /* divsufsort_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort_private.h; sourceTree = "<group>"; };
 		D690ABAD1F2079E80089DC57 /* sssort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sssort.c.inc.h; sourceTree = "<group>"; };
@@ -302,10 +302,10 @@
 			isa = PBXGroup;
 			children = (
 				D690ABA61F2079E80089DC57 /* config.h */,
-				D690ABA71F2079E80089DC57 /* divsufsort.c */,
+				D690ABA71F2079E80089DC57 /* divsufsort.cpp */,
 				D690ABA81F2079E80089DC57 /* divsufsort.c.inc.h */,
 				D690ABA91F2079E80089DC57 /* divsufsort.h */,
-				D690ABAA1F2079E80089DC57 /* divsufsort64.c */,
+				D690ABAA1F2079E80089DC57 /* divsufsort64.cpp */,
 				D690ABAB1F2079E80089DC57 /* divsufsort64.h */,
 				D690ABAC1F2079E80089DC57 /* divsufsort_private.h */,
 				D690ABAD1F2079E80089DC57 /* sssort.c.inc.h */,
@@ -447,8 +447,8 @@
 				D61DE5472344D16900F6FCCF /* dir_diff_tools.cpp in Sources */,
 				D69EECDF220C49DE001EF085 /* parallel_channel.cpp in Sources */,
 				D690ABB71F2079E80089DC57 /* diff.cpp in Sources */,
-				D690ABBA1F2079E80089DC57 /* divsufsort64.c in Sources */,
-				D690ABB91F2079E80089DC57 /* divsufsort.c in Sources */,
+				D690ABBA1F2079E80089DC57 /* divsufsort64.cpp in Sources */,
+				D690ABB91F2079E80089DC57 /* divsufsort.cpp in Sources */,
 				D690AB9C1F20792A0089DC57 /* hdiffz_import_patch.c in Sources */,
 				D690AB9C1F20792A0089DC57 /* hdiffz_import_patch.c in Sources */,
 				D68CD8F21F4426B100A61337 /* stream_serialize.cpp in Sources */,
@@ -466,7 +466,7 @@
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -527,7 +527,7 @@
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;

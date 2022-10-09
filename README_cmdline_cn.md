@@ -18,7 +18,7 @@
       数据的可压缩性相关,一般输入数据的可压缩性越大,这个值就可以越大。
   -s[-matchBlockSize]
       所有文件当作文件流加载;一般速度比较快;
-      需要的内存大小: O(旧版本文件大小*16/matchBlockSize+matchBlockSize*5);
+      需要的内存大小: O(旧版本文件大小*16/matchBlockSize+matchBlockSize*5*parallelThreadNumber);
       匹配块大小matchBlockSize>=4, 默认为64, 推荐16,32,48,1k,64k,1m等;
       一般匹配块越大,内存占用越小,速度越快,但补丁包可能变大。
 其他选项:

@@ -37,7 +37,7 @@ extern "C" {
 #endif
 
 #define HDIFFPATCH_VERSION_MAJOR    4
-#define HDIFFPATCH_VERSION_MINOR    3
+#define HDIFFPATCH_VERSION_MINOR    4
 #define HDIFFPATCH_VERSION_RELEASE  0
 
 #define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
@@ -264,6 +264,7 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
     //output covers
     typedef struct hpatch_TOutputCovers{
         hpatch_BOOL (*push_cover)(struct hpatch_TOutputCovers* out_covers,const hpatch_TCover* cover); 
+        void (*collate_covers)(struct hpatch_TOutputCovers* out_covers); // for support search covers by muti-thread
     } hpatch_TOutputCovers;
     
     typedef struct{

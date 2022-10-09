@@ -31,6 +31,7 @@
 #include <string.h> //memset
 #include <assert.h>
 #include <stdexcept>//std::runtime_error
+#include "../../../../libParallel/parallel_channel.h"
 namespace hdiff_private{
 
 class TBitSet{
@@ -42,6 +43,12 @@ public:
         //assert(bitIndex<m_bitSize);
         m_bits[bitIndex>>kBaseShr] |= ((base_t)1<<(bitIndex&kBaseMask));
     }
+#if (_IS_USED_MULTITHREAD)
+    void set_MT(size_t bitIndex){
+        //assert(bitIndex<m_bitSize);
+        atomic32_or(&m_bits[bitIndex>>kBaseShr],((base_t)1<<(bitIndex&kBaseMask)));
+    }
+#endif
     inline bool is_hit(size_t bitIndex)const{
         //assert(bitIndex<m_bitSize);
         return 0!=(m_bits[bitIndex>>kBaseShr] & ((base_t)1<<(bitIndex&kBaseMask)));
@@ -64,7 +71,7 @@ public:
     }
 private:
     inline static size_t bitSizeToCount(size_t bitSize){ return (bitSize+(kBaseTBits-1))/kBaseTBits; }
-    typedef size_t base_t;
+    typedef uint32_t base_t;
     enum {
         kBaseShr=(sizeof(base_t)==8)?6:((sizeof(base_t)==4)?5:0),
         kBaseTBits=(1<<kBaseShr),
@@ -93,6 +100,13 @@ public:
         m_bitSet.set(hash1(data));
         m_bitSet.set(hash2(data));
     }
+#if (_IS_USED_MULTITHREAD)
+    inline void insert_MT(T data){
+        m_bitSet.set_MT(hash0(data));
+        m_bitSet.set_MT(hash1(data));
+        m_bitSet.set_MT(hash2(data));
+    }
+#endif
     inline bool is_hit(T data)const{
         return m_bitSet.is_hit(hash0(data))
             && m_bitSet.is_hit(hash1(data))

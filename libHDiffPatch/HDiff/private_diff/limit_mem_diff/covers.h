@@ -27,7 +27,8 @@
 #ifndef covers_h
 #define covers_h
 #include <vector>
-#include "../../../HPatch/patch_types.h"
+#include <algorithm> //std::sort
+#include "../../../HDiff/diff_types.h"
 namespace hdiff_private{
 typedef hpatch_TCover   TCover;
 
@@ -56,28 +57,71 @@ struct TCovers:public hpatch_TOutputCovers{
     }
 };
 
+template<class _TCover>
+static void tm_collate_covers(std::vector<_TCover>& covers){
+    if (covers.size()<=1) return;
+    std::sort(covers.begin(),covers.end(),cover_cmp_by_new_t<_TCover>());
+    size_t backi=0;
+    for (size_t i=1;i<covers.size();++i){
+        if (covers[i].newPos<covers[backi].newPos+covers[backi].length){
+            if (covers[i].newPos+covers[i].length>covers[backi].newPos+covers[backi].length){
+                if (cover_is_collinear(covers[i],covers[backi])){//insert i part to backi,del i
+                    covers[backi].length=covers[i].newPos+covers[i].length-covers[backi].newPos;
+                }else{//del backi part, save i
+                    covers[backi].length=covers[i].newPos-covers[backi].newPos;
+                    if (covers[backi].length>=kCoverMinMatchLen)
+                        ++backi;
+                    covers[backi]=covers[i];
+                }
+            } //else del i
+        }else if ((covers[i].newPos==covers[backi].newPos+covers[backi].length)
+                &&(covers[i].oldPos==covers[backi].oldPos+covers[backi].length)){
+            covers[backi].length+=covers[i].length; //insert i all to backi,del i
+        }else{ //save i
+            ++backi;
+            covers[backi]=covers[i];
+        }
+    }
+    covers.resize(backi+1);
+}
+
 class TCoversBuf:public TCovers{
 public:
     inline TCoversBuf(hpatch_StreamPos_t dataSize0,hpatch_StreamPos_t dataSize1)
     :TCovers(0,0,(dataSize0|dataSize1)<((hpatch_StreamPos_t)1<<32)){
         push_cover=_push_cover;
+        collate_covers=_collate_covers;
     }
 private:
+    template<class _TCover>
+    inline void _update(std::vector<_TCover>& covers){
+        _covers=covers.data();
+        _coverCount=covers.size();
+    }
     static hpatch_BOOL _push_cover(struct hpatch_TOutputCovers* out_covers,const TCover* cover){
         TCoversBuf* self=(TCoversBuf*)out_covers;
-        ++self->_coverCount;
         if (self->_isCover32) {
             hpatch_TCover32 c32;
             c32.oldPos=(hpatch_uint32_t)cover->oldPos;
             c32.newPos=(hpatch_uint32_t)cover->newPos;
             c32.length=(hpatch_uint32_t)cover->length;
             self->m_covers_limit.push_back(c32);
-            self->_covers=self->m_covers_limit.data();
+            self->_update(self->m_covers_limit);
         }else{
             self->m_covers_larger.push_back(*cover);
-            self->_covers=self->m_covers_larger.data();
+            self->_update(self->m_covers_larger);
         }
         return hpatch_TRUE;
+    }
+    static void _collate_covers(struct hpatch_TOutputCovers* out_covers){
+        TCoversBuf* self=(TCoversBuf*)out_covers;
+        if (self->_isCover32){
+            tm_collate_covers(self->m_covers_limit);
+            self->_update(self->m_covers_limit);
+        }else{
+            tm_collate_covers(self->m_covers_larger);
+            self->_update(self->m_covers_larger);
+        }
     }
     std::vector<hpatch_TCover32>    m_covers_limit;
     std::vector<TCover>             m_covers_larger;

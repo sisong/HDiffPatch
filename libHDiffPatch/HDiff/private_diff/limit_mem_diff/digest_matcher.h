@@ -34,7 +34,6 @@
 #include "covers.h"
 #include "adler_roll.h"
 #include "../mem_buf.h"
-
 namespace hdiff_private{
 
 typedef uint64_t        adler_uint_t;
@@ -62,17 +61,22 @@ static inline adler_hash_t adler_to_hash(const uint64_t x){ return x; }
 class TDigestMatcher{
 public:
     //throw std::runtime_error when data->read error or kMatchBlockSize error;
-    TDigestMatcher(const hpatch_TStreamInput* oldData,size_t kMatchBlockSize,bool kIsSkipSameRange);
-    void search_cover(const hpatch_TStreamInput* newData,hpatch_TOutputCovers* out_covers);
+    TDigestMatcher(const hpatch_TStreamInput* oldData,const hpatch_TStreamInput* newData,
+                   size_t kMatchBlockSize,size_t threadNum);
+    void search_cover(hpatch_TOutputCovers* out_covers);
     ~TDigestMatcher();
 private:
+    TDigestMatcher(const TDigestMatcher &); //empty
+    TDigestMatcher &operator=(const TDigestMatcher &); //empty
+private:
     const hpatch_TStreamInput*  m_oldData;
+    const hpatch_TStreamInput*  m_newData;
     std::vector<adler_uint_t>   m_blocks;
     TBloomFilter<adler_hash_t>  m_filter;
     std::vector<uint32_t>       m_sorted_limit;
     std::vector<size_t>         m_sorted_larger;
     bool                        m_isUseLargeSorted;
-    bool                        m_kIsSkipSameRange;
+    const size_t                m_threadNum;
     TAutoMem                    m_mem;
     size_t                      m_newCacheSize;
     size_t                      m_oldCacheSize;
@@ -81,6 +85,12 @@ private:
     size_t                      m_kMatchBlockSize;
     
     void getDigests();
+    size_t getSearchThreadNum()const;
+    void _search_cover(const hpatch_TStreamInput* newData,hpatch_StreamPos_t newOffset,
+                       hpatch_TOutputCovers* out_covers,unsigned char* pmem,
+                       void* oldDataLocker=0,void* newDataLocker=0,void* coversLocker=0);
+public: //private for muti-thread
+    void _search_cover_thread(hpatch_TOutputCovers* out_covers,unsigned char* pmem,void* mt_data);
 };
 
 }//namespace hdiff_private

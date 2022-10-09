@@ -35,28 +35,27 @@
 		<Linker>
 			<Add library="libz" />
 			<Add library="libbz2" />
+			<Add library="libpthread" />
 		</Linker>
 		<Unit filename="../../libHDiffPatch/HDiff/diff.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/bytes_rle.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/compress_detect.cpp" />
-		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.c">
-			<Option compilerVar="CC" />
-		</Unit>
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.cpp" />
+		<Unit filename="../../libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/digest_matcher.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/suffix_string.cpp" />
-		<Unit filename="../../libHDiffPatch/HPatchLite/hpatch_lite.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../libHDiffPatch/HPatchLite/hpatch_lite.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../libParallel/parallel_channel.cpp" />
+		<Unit filename="../../libParallel/parallel_import.cpp" />
 		<Unit filename="../../test/unit_test.cpp" />
 		<Extensions>
 			<envvars />

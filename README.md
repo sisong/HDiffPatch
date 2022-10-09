@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.3.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.4.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -75,7 +75,7 @@ memory options:
       matchScore>=0, DEFAULT -m-6, recommended bin: 0--4 text: 4--9 etc...
   -s[-matchBlockSize]
       all file load as Stream; fast;
-      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5) bytes of memory;
+      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5*parallelThreadNumber)bytes of memory;
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
 special options:
   -block[-fastMatchBlockSize]
@@ -99,7 +99,7 @@ special options:
       if parallelThreadNumber>1 then open multi-thread Parallel mode;
       DEFAULT -p-4; requires more memory!
   -c-compressType[-compressLevel]
-      set outDiffFile Compress type & level, DEFAULT uncompress;
+      set outDiffFile Compress type, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
       support compress type & level & dict:
        (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
@@ -121,7 +121,7 @@ special options:
             support run by multi-thread parallel, fast!
             WARNING: code not compatible with it compressed by -c-lzma!
         -c-zstd[-{0..22}[-dictBits]]    DEFAULT level 20
-            dictBits can 10--31, DEFAULT 24.
+            dictBits can 10--31, DEFAULT 23.
             support run by multi-thread parallel, fast!
   -C-checksumType
       set outDiffFile Checksum type for directory diff, DEFAULT -C-fadler64;
@@ -164,9 +164,9 @@ special options:
       if used -f and write path is exist directory, will always return error.
   --patch
       swap to hpatchz mode.
-  -h or -?
-      output Help info (this usage).
   -v  output Version info.
+  -h (or -?)
+      output usage info.
 ```
    
 ## **patch** command line usage:   
@@ -217,9 +217,9 @@ special options:
         if patch output file, will always return error;
         if patch output directory, will overwrite, but not delete
           needless existing files in directory.
-  -h or -?
-      output Help info (this usage).
   -v  output Version info.
+  -h  (or -?)
+      output usage info.
 ```
    
 ---

@@ -34,7 +34,12 @@ namespace hdiff_private{
 
     template<class TCover>
     struct cover_cmp_by_new_t{
-        inline bool operator ()(const TCover& x,const TCover& y){ return x.newPos<y.newPos; }
+        inline bool operator ()(const TCover& x,const TCover& y){
+            if (x.newPos!=y.newPos)
+                return x.newPos<y.newPos;
+            else
+                return x.length<y.length;
+        }
     };
     template<class TCover>
     struct cover_cmp_by_old_t{
@@ -45,6 +50,12 @@ namespace hdiff_private{
                 return x.length<y.length;
         }
     };
+    template<class TCover>
+    inline static bool cover_is_collinear(const TCover& x,const TCover& y){
+        return (x.oldPos+y.newPos==x.newPos+y.oldPos);
+    }
+
+    static const int kCoverMinMatchLen=5;
 }
 
 #ifdef __cplusplus

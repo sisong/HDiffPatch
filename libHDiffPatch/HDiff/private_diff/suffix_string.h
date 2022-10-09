@@ -63,14 +63,14 @@ public:
 
     inline TFastMatchForSString(){}
     inline void clear(){ bf.clear(); }
-    void buildMatchCache(const TChar* src_begin,const TChar* src_end);
+    void buildMatchCache(const TChar* src_begin,const TChar* src_end,size_t threadNum);
 
     static inline THash getHash(const TChar* datas) { return fast_adler32_start(datas,kFMMinStrSize); }
+    static inline THash rollHash(THash h,const TChar* cur) { return fast_adler32_roll(h,kFMMinStrSize,cur[-kFMMinStrSize],cur[0]); }
 
     inline bool isHit(THash h) const { return bf.is_hit(h); }
 private:
-    TBloomFilter<size_t>  bf;
-    static inline THash rollHash(THash h,const TChar* cur) { return fast_adler32_roll(h,kFMMinStrSize,cur[-kFMMinStrSize],cur[0]); }
+    TBloomFilter<THash>  bf;
 };
 #endif
 
@@ -79,12 +79,12 @@ public:
     typedef ptrdiff_t     TInt;
     typedef int32_t       TInt32;
     typedef unsigned char TChar;
-    TSuffixString(bool isUsedFastMatch=false);
+    explicit TSuffixString(bool isUsedFastMatch=false);
     ~TSuffixString();
     
     //throw std::runtime_error when create SA error
-    TSuffixString(const TChar* src_begin,const TChar* src_end,bool isUsedFastMatch=false);
-    void resetSuffixString(const TChar* src_begin,const TChar* src_end);
+    TSuffixString(const TChar* src_begin,const TChar* src_end,bool isUsedFastMatch=false,size_t threadNum=1);
+    void resetSuffixString(const TChar* src_begin,const TChar* src_end,size_t threadNum=1);
 
     inline const TChar* src_begin()const{ return m_src_begin; }
     inline const TChar* src_end()const{ return m_src_end; }
@@ -98,6 +98,9 @@ public:
             return (TInt)m_SA_limit[i];
     }
     TInt lower_bound(const TChar* str,const TChar* str_end)const;//return index in SA; must str_end-str>=2 !
+private:
+    TSuffixString(const TSuffixString &); //empty
+    TSuffixString &operator=(const TSuffixString &); //empty
 private:
     const TChar*        m_src_begin;//原字符串.
     const TChar*        m_src_end;
@@ -122,7 +125,7 @@ private:
                                        const TChar* src_begin,const TChar* src_end,
                                        const void* SA_begin,size_t min_eq);
     t_lower_bound_func  m_lower_bound;
-    void                build_cache();
+    void                build_cache(size_t threadNum);
     void                clear_cache();
 };
 

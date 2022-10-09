@@ -463,16 +463,11 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         resLimit.close(); //close files
         if (hdiffSets.isSingleCompressedDiff){
             TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
-          if (hdiffSets.isUseFastMatchBlock)
             create_single_compressed_diff_block(newData,newData+newRefStream.stream->streamSize,
                                                 oldData,oldData+oldRefStream.stream->streamSize,
                                                 &ofStream,compressPlugin,(int)hdiffSets.matchScore,
-                                                hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch);
-          else
-            create_single_compressed_diff(newData,newData+newRefStream.stream->streamSize,
-                                          oldData,oldData+oldRefStream.stream->streamSize,
-                                          &ofStream,compressPlugin,(int)hdiffSets.matchScore,
-                                          hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch);
+                                                hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch,
+                                                hdiffSets.matchBlockSize,hdiffSets.threadNum);
             diffDataSize=ofStream.outSize;
             if (checksumByteSize>0){
                 assert(outDiffStream->read_writed!=0);
@@ -481,16 +476,11 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
             }
         }else{
             std::vector<TByte> out_diff;
-          if (hdiffSets.isUseFastMatchBlock)
             create_compressed_diff_block(newData,newData+newRefStream.stream->streamSize,
                                          oldData,oldData+oldRefStream.stream->streamSize,
                                          out_diff,compressPlugin,(int)hdiffSets.matchScore,
-                                         hdiffSets.isUseBigCacheMatch);
-          else
-            create_compressed_diff(newData,newData+newRefStream.stream->streamSize,
-                                   oldData,oldData+oldRefStream.stream->streamSize,
-                                   out_diff,compressPlugin,(int)hdiffSets.matchScore,
-                                   hdiffSets.isUseBigCacheMatch);
+                                         hdiffSets.isUseBigCacheMatch,
+                                         hdiffSets.matchBlockSize,hdiffSets.threadNum);
             diffDataSize=out_diff.size();
             _pushv(out_diff);
         }
@@ -498,10 +488,11 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
         if (hdiffSets.isSingleCompressedDiff){
             create_single_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                                 compressPlugin,hdiffSets.matchBlockSize,hdiffSets.patchStepMemSize);
+                                                 compressPlugin,hdiffSets.matchBlockSize,
+                                                 hdiffSets.patchStepMemSize,hdiffSets.threadNum);
         }else{
             create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                          compressPlugin,hdiffSets.matchBlockSize);
+                                          compressPlugin,hdiffSets.matchBlockSize,hdiffSets.threadNum);
         }
         diffDataSize=ofStream.outSize;
         if (checksumByteSize>0){

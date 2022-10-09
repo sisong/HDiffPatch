@@ -29,7 +29,8 @@
 #define parallel_channel_h
 #include "parallel_import.h"
 #if (_IS_USED_MULTITHREAD)
-
+#include <stdint.h> //uint32
+#include <assert.h>
 #include <stddef.h> //for size_t ptrdiff_t
 
 struct CHLocker{
@@ -68,6 +69,18 @@ struct CHLocker{
     private:
         _CChannel_import* _import;
     };
+
+
+#if (defined(_MSC_VER)) && (_MSC_VER<1700) && (defined(WIN32)) //vc2012 support atomic
+#   define _NEED_MSVC_WIN32_atomic_func 1
+    void atomic32_or(uint32_t* p,uint32_t or_v);
+#else
+#   include <atomic> 
+    static inline void atomic32_or(uint32_t* p,uint32_t or_v){
+        static_assert(sizeof(std::atomic<uint32_t>)==sizeof(uint32_t),"std::atomic<uint32_t> size error!");
+        ((std::atomic<uint32_t>*)p)->fetch_or(or_v);
+    }
+#endif
 
 #endif //_IS_USED_MULTITHREAD
 #endif //parallel_channel_h

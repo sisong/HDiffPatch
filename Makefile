@@ -291,7 +291,7 @@ else
 endif
 
 CFLAGS   += $(DEF_FLAGS) 
-CXXFLAGS += $(DEF_FLAGS)
+CXXFLAGS += $(DEF_FLAGS) -std=c++11
 
 .PHONY: all install clean
 

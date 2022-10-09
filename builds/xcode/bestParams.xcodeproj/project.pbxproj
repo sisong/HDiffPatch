@@ -8,14 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		0D7FEAB2283124970029772D /* hpatch_lite.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D7FEAAF283124970029772D /* hpatch_lite.c */; };
+		0DD93B1B28F16B5D0097699C /* parallel_channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0DD93B1728F16B5D0097699C /* parallel_channel.cpp */; };
+		0DD93B1C28F16B5D0097699C /* parallel_import.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0DD93B1928F16B5D0097699C /* parallel_import.cpp */; };
 		80D1B2A4199A40A700F6B3A8 /* diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B298199A40A700F6B3A8 /* diff.cpp */; };
 		80D1B2A5199A40A700F6B3A8 /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B29B199A40A700F6B3A8 /* bytes_rle.cpp */; };
 		80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B29F199A40A700F6B3A8 /* suffix_string.cpp */; };
 		80D1B2A7199A40A700F6B3A8 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B2A2199A40A700F6B3A8 /* patch.c */; };
 		D6241ACD21DA5C9600E2846A /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D6EF751F21C13CE4000EBBCC /* liblzma.a */; };
 		D639ACDE208B458500811BB3 /* _private_searchBestParams.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D639ACDD208B458500811BB3 /* _private_searchBestParams.cpp */; };
-		D66166271E189F5A005C570A /* divsufsort.c in Sources */ = {isa = PBXBuildFile; fileRef = D661661E1E189F5A005C570A /* divsufsort.c */; };
-		D66166281E189F5A005C570A /* divsufsort64.c in Sources */ = {isa = PBXBuildFile; fileRef = D66166211E189F5A005C570A /* divsufsort64.c */; };
+		D66166271E189F5A005C570A /* divsufsort.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D661661E1E189F5A005C570A /* divsufsort.cpp */; };
+		D66166281E189F5A005C570A /* divsufsort64.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D66166211E189F5A005C570A /* divsufsort64.cpp */; };
 		D68CD9151F469DDB00A61337 /* adler_roll.c in Sources */ = {isa = PBXBuildFile; fileRef = D68CD90D1F469DDB00A61337 /* adler_roll.c */; };
 		D68CD9161F469DDB00A61337 /* digest_matcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D68CD9111F469DDB00A61337 /* digest_matcher.cpp */; };
 		D68CD9171F469DDB00A61337 /* stream_serialize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D68CD9131F469DDB00A61337 /* stream_serialize.cpp */; };
@@ -41,6 +43,10 @@
 		0D7FEAAF283124970029772D /* hpatch_lite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hpatch_lite.c; sourceTree = "<group>"; };
 		0D7FEAB0283124970029772D /* hpatch_lite_input_cache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hpatch_lite_input_cache.h; sourceTree = "<group>"; };
 		0D7FEAB1283124970029772D /* hpatch_lite_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hpatch_lite_types.h; sourceTree = "<group>"; };
+		0DD93B1728F16B5D0097699C /* parallel_channel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_channel.cpp; sourceTree = "<group>"; };
+		0DD93B1828F16B5D0097699C /* parallel_import.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_import.h; sourceTree = "<group>"; };
+		0DD93B1928F16B5D0097699C /* parallel_import.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_import.cpp; sourceTree = "<group>"; };
+		0DD93B1A28F16B5D0097699C /* parallel_channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_channel.h; sourceTree = "<group>"; };
 		80D1B298199A40A700F6B3A8 /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
 		80D1B299199A40A700F6B3A8 /* diff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diff.h; sourceTree = "<group>"; };
 		80D1B29B199A40A700F6B3A8 /* bytes_rle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bytes_rle.cpp; sourceTree = "<group>"; };
@@ -53,10 +59,10 @@
 		80D1B2A3199A40A700F6B3A8 /* patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patch.h; sourceTree = "<group>"; };
 		D639ACDD208B458500811BB3 /* _private_searchBestParams.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = _private_searchBestParams.cpp; path = ../../test/_private_searchBestParams.cpp; sourceTree = "<group>"; };
 		D661661D1E189F5A005C570A /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
-		D661661E1E189F5A005C570A /* divsufsort.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = divsufsort.c; sourceTree = "<group>"; };
+		D661661E1E189F5A005C570A /* divsufsort.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = divsufsort.cpp; sourceTree = "<group>"; };
 		D661661F1E189F5A005C570A /* divsufsort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort.c.inc.h; sourceTree = "<group>"; };
 		D66166201E189F5A005C570A /* divsufsort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort.h; sourceTree = "<group>"; };
-		D66166211E189F5A005C570A /* divsufsort64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = divsufsort64.c; sourceTree = "<group>"; };
+		D66166211E189F5A005C570A /* divsufsort64.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = divsufsort64.cpp; sourceTree = "<group>"; };
 		D66166221E189F5A005C570A /* divsufsort64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort64.h; sourceTree = "<group>"; };
 		D66166231E189F5A005C570A /* divsufsort_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = divsufsort_private.h; sourceTree = "<group>"; };
 		D66166241E189F5A005C570A /* sssort.c.inc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sssort.c.inc.h; sourceTree = "<group>"; };
@@ -101,6 +107,18 @@
 				0D7FEAB1283124970029772D /* hpatch_lite_types.h */,
 			);
 			path = HPatchLite;
+			sourceTree = "<group>";
+		};
+		0DD93B1628F16B5D0097699C /* libParallel */ = {
+			isa = PBXGroup;
+			children = (
+				0DD93B1728F16B5D0097699C /* parallel_channel.cpp */,
+				0DD93B1828F16B5D0097699C /* parallel_import.h */,
+				0DD93B1928F16B5D0097699C /* parallel_import.cpp */,
+				0DD93B1A28F16B5D0097699C /* parallel_channel.h */,
+			);
+			name = libParallel;
+			path = ../../libParallel;
 			sourceTree = "<group>";
 		};
 		80D1B296199A40A700F6B3A8 /* libHDiffPatch */ = {
@@ -154,10 +172,10 @@
 			isa = PBXGroup;
 			children = (
 				D661661D1E189F5A005C570A /* config.h */,
-				D661661E1E189F5A005C570A /* divsufsort.c */,
+				D661661E1E189F5A005C570A /* divsufsort.cpp */,
 				D661661F1E189F5A005C570A /* divsufsort.c.inc.h */,
 				D66166201E189F5A005C570A /* divsufsort.h */,
-				D66166211E189F5A005C570A /* divsufsort64.c */,
+				D66166211E189F5A005C570A /* divsufsort64.cpp */,
 				D66166221E189F5A005C570A /* divsufsort64.h */,
 				D66166231E189F5A005C570A /* divsufsort_private.h */,
 				D66166241E189F5A005C570A /* sssort.c.inc.h */,
@@ -196,6 +214,7 @@
 			isa = PBXGroup;
 			children = (
 				D639ACDD208B458500811BB3 /* _private_searchBestParams.cpp */,
+				0DD93B1628F16B5D0097699C /* libParallel */,
 				80D1B296199A40A700F6B3A8 /* libHDiffPatch */,
 				D6CB33621664FD2900AB34B7 /* Products */,
 				D690A7B21F0E6F260089DC57 /* Frameworks */,
@@ -264,11 +283,13 @@
 			files = (
 				D639ACDE208B458500811BB3 /* _private_searchBestParams.cpp in Sources */,
 				D6EE50601F2990AD002854A2 /* compress_detect.cpp in Sources */,
-				D66166281E189F5A005C570A /* divsufsort64.c in Sources */,
+				D66166281E189F5A005C570A /* divsufsort64.cpp in Sources */,
 				D68CD9161F469DDB00A61337 /* digest_matcher.cpp in Sources */,
+				0DD93B1B28F16B5D0097699C /* parallel_channel.cpp in Sources */,
+				0DD93B1C28F16B5D0097699C /* parallel_import.cpp in Sources */,
 				80D1B2A5199A40A700F6B3A8 /* bytes_rle.cpp in Sources */,
 				80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */,
-				D66166271E189F5A005C570A /* divsufsort.c in Sources */,
+				D66166271E189F5A005C570A /* divsufsort.cpp in Sources */,
 				0D7FEAB2283124970029772D /* hpatch_lite.c in Sources */,
 				80D1B2A4199A40A700F6B3A8 /* diff.cpp in Sources */,
 				80D1B2A7199A40A700F6B3A8 /* patch.c in Sources */,
@@ -285,7 +306,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
@@ -307,7 +328,7 @@
 				COPY_PHASE_STRIP = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -340,7 +361,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
@@ -362,7 +383,7 @@
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_C_LANGUAGE_STANDARD = "compiler-default";
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = "";

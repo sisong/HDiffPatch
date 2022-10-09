@@ -33,11 +33,13 @@ void create_bsdiff(const unsigned char* newData,const unsigned char* newData_end
                    const unsigned char* oldData,const unsigned char* oldData_end,
                    const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                   bool isUseBigCacheMatch=false,ICoverLinesListener* coverLinesListener=0);
+                   bool isUseBigCacheMatch=false,ICoverLinesListener* coverLinesListener=0,
+                   size_t threadNum=1);
 void create_bsdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                    const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                   bool isUseBigCacheMatch=false,ICoverLinesListener* coverLinesListener=0);
+                   bool isUseBigCacheMatch=false,ICoverLinesListener* coverLinesListener=0,
+                   size_t threadNum=1);
 
 bool get_is_bsdiff(const unsigned char* diffData,const unsigned char* diffData_end);
 bool get_is_bsdiff(const hpatch_TStreamInput* diffData);
@@ -55,10 +57,14 @@ void create_bsdiff_block(unsigned char* newData,unsigned char* newData_end,
                          unsigned char* oldData,unsigned char* oldData_end,
                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                         bool isUseBigCacheMatch=false,size_t matchBlockSize=kDefaultFastMatchBlockSize);
+                         bool isUseBigCacheMatch=false,
+                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
+                         size_t threadNum=1);
 void create_bsdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                         bool isUseBigCacheMatch=false,size_t matchBlockSize=kDefaultFastMatchBlockSize);
+                         bool isUseBigCacheMatch=false,
+                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
+                         size_t threadNum=1);
 
 #endif
