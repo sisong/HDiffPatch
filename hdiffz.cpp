@@ -153,10 +153,11 @@ static void printUsage(){
            ")bytes of memory;\n"
            "      matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...\n"
            "special options:\n"
-           "  -block[-fastMatchBlockSize] \n"
+           "  -block-fastMatchBlockSize \n"
            "      must run with -m;\n"
-           "      set is use fast block match befor slow match, DEFAULT false;\n"
-           "      fastMatchBlockSize>=4, DEFAULT 4k, recommended 256,1k,64k,1m etc...;\n"
+           "      set block match befor slow byte-by-byte match, DEFAULT -block-4k;\n"
+           "      fastMatchBlockSize>=4, recommended 256,1k,64k,1m etc...;\n"
+           "      if set -block-0, means don't use block match;\n"
            "      if newData similar to oldData then diff speed++ & diff memory--,\n"
            "      but small possibility outDiffFile's size+\n"
            "  -cache \n"
@@ -716,7 +717,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     diffSets.isDiffInMem   =_kNULL_VALUE;
     diffSets.isSingleCompressedDiff =_kNULL_VALUE;
     diffSets.isUseBigCacheMatch =_kNULL_VALUE;
-    diffSets.matchBlockSize=0;
+    diffSets.matchBlockSize=_kNULL_SIZE;
     diffSets.threadNum=_THREAD_NUMBER_NULL;
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
@@ -771,12 +772,13 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
             case 's':{
                 _options_check((diffSets.isDiffInMem==_kNULL_VALUE),"-s");
-                _options_check((diffSets.matchBlockSize==0),"-block must run with -m");
+                _options_check((diffSets.matchBlockSize==_kNULL_SIZE),"-block must run with -m");
                 diffSets.isDiffInMem=hpatch_FALSE; //diff by stream
                 if (op[2]=='-'){
                     const char* pnum=op+3;
                     _options_check(kmg_to_size(pnum,strlen(pnum),&diffSets.matchBlockSize),"-s-?");
-                    _options_check(kMatchBlockSize_min<=diffSets.matchBlockSize,"-s-?");
+                    _options_check((kMatchBlockSize_min<=diffSets.matchBlockSize)
+                                 &&(diffSets.matchBlockSize!=_kNULL_SIZE),"-s-?");
                 }else{
                     diffSets.matchBlockSize=kMatchBlockSize_default;
                 }
@@ -832,13 +834,15 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
 #endif
             case 'b':{
-                _options_check((diffSets.matchBlockSize==0)&&
+                _options_check((diffSets.matchBlockSize==_kNULL_SIZE)&&
                     (op[2]=='l')&&(op[3]=='o')&&(op[4]=='c')&&(op[5]=='k')&&
                     ((op[6]=='\0')||(op[6]=='-')),"-block?");
                 if (op[6]=='-'){
                     const char* pnum=op+7;
                     _options_check(kmg_to_size(pnum,strlen(pnum),&diffSets.matchBlockSize),"-block-?");
-                    _options_check(kMatchBlockSize_min<=diffSets.matchBlockSize,"-block-?");
+                    if (diffSets.matchBlockSize!=0)
+                        _options_check((kMatchBlockSize_min<=diffSets.matchBlockSize)
+                                     &&(diffSets.matchBlockSize!=_kNULL_SIZE),"-block-?");
                 }else{
                     diffSets.matchBlockSize=kDefaultFastMatchBlockSize;
                 }
@@ -867,9 +871,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 _options_check(_getOptChecksum(&checksumPlugin,ptype,"no"),"-C-?");
             } break;
             case 'n':{
-                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?")
+                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n")
                 const char* pnum=op+3;
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
+                _options_check((kMaxOpenFileNumber!=_kNULL_SIZE),"-n-?");
             } break;
             case 'g':{
                 if (op[2]=='#'){ //-g#
@@ -954,6 +959,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
 #endif
+    if (diffSets.isDiffInMem&&(diffSets.matchBlockSize==_kNULL_SIZE))
+        diffSets.matchBlockSize=kDefaultFastMatchBlockSize;
     if (diffSets.threadNum==_THREAD_NUMBER_NULL)
         diffSets.threadNum=_THREAD_NUMBER_DEFUALT;
     else if (diffSets.threadNum>_THREAD_NUMBER_MAX)
@@ -1024,7 +1031,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #endif
             {
                 diffSets.isDiffInMem=hpatch_FALSE;     //not need -m, set as -s
-                diffSets.matchBlockSize=hpatch_kStreamCacheSize; //not used
+                diffSets.matchBlockSize=kDefaultFastMatchBlockSize; //not used
                 diffSets.isUseBigCacheMatch=hpatch_FALSE;
             }
         }else{

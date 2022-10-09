@@ -447,8 +447,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             } break;
             case 'n':{
                 const char* pnum=op+3;
-                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?");
+                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n");
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
+                _options_check((kMaxOpenFileNumber!=_kNULL_SIZE),"-n-?");
             } break;
 #endif
             case '?':
