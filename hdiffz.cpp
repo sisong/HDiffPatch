@@ -156,8 +156,8 @@ static void printUsage(){
            "  -block-fastMatchBlockSize \n"
            "      must run with -m;\n"
            "      set block match befor slow byte-by-byte match, DEFAULT -block-4k;\n"
-           "      fastMatchBlockSize>=4, recommended 256,1k,64k,1m etc...;\n"
            "      if set -block-0, means don't use block match;\n"
+           "      fastMatchBlockSize>=4, recommended 256,1k,64k,1m etc...\n"
            "      if newData similar to oldData then diff speed++ & diff memory--,\n"
            "      but small possibility outDiffFile's size+\n"
            "  -cache \n"
@@ -182,9 +182,8 @@ static void printUsage(){
            "      set outDiffFile Compress type, DEFAULT uncompress;\n"
            "      for resave diffFile,recompress diffFile to outDiffFile by new set;\n"
            "      support compress type & level & dict:\n"
-           "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
-           "        -c-zlib[-{1..9}[-dictBits]]     (or -pzlib) DEFAULT level 9\n"
+           "        -c-zlib[-{1..9}[-dictBits]]     DEFAULT level 9\n"
            "            dictBits can 9--15, DEFAULT 15.\n"
 #   if (_IS_USED_MULTITHREAD)
            "            support run by multi-thread parallel, fast!\n"

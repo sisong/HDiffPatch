@@ -7,7 +7,7 @@
 [![Build Status](https://github.com/sisong/HDiffPatch/workflows/ci/badge.svg?branch=master)](https://github.com/sisong/HDiffPatch/actions?query=workflow%3Aci+branch%3Amaster)
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 
-a C\C++ library and command-line tools for Diff & Patch between binary files or directories(folder); cross-platform; run fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
+a C\C++ library and command-line tools for Diff & Patch between binary files or directories(folder); cross-platform; runs fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
    
 ( NOTE: This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
 ( if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite](https://github.com/sisong/HPatchLite) )   
@@ -78,10 +78,11 @@ memory options:
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5*parallelThreadNumber)bytes of memory;
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
 special options:
-  -block[-fastMatchBlockSize]
+  -block-fastMatchBlockSize
       must run with -m;
-      set is use fast block match befor slow match, DEFAULT false;
-      fastMatchBlockSize>=4, DEFAULT 4k, recommended 256,1k,64k,1m etc...;
+      set block match befor slow byte-by-byte match, DEFAULT -block-4k;
+      if set -block-0, means don't use block match;
+      fastMatchBlockSize>=4, recommended 256,1k,64k,1m etc...
       if newData similar to oldData then diff speed++ & diff memory--,
       but small possibility outDiffFile's size+
   -cache
@@ -102,10 +103,7 @@ special options:
       set outDiffFile Compress type, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
       support compress type & level & dict:
-       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )
         -c-zlib[-{1..9}[-dictBits]]     DEFAULT level 9
-            dictBits can 9--15, DEFAULT 15.
-        -c-pzlib[-{1..9}[-dictBits]]    DEFAULT level 6
             dictBits can 9--15, DEFAULT 15.
             support run by multi-thread parallel, fast!
         -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9
@@ -300,55 +298,55 @@ case list:
 |:----|----:|----:|----:|----:|----:|----:|
 |bzip2|31.76%|
 |lzma2|28.47%|
-|xdelta3 |12.18%|212MB|6.9MB/s|84MB|98MB|54MB/s|
-|xdelta3 -B|7.35%|442MB|19.5MB/s|197MB|534MB|174MB/s|
-|bsdiff |6.63%|1263MB|2.3MB/s|298MB|1043MB|120MB/s|
-|hdiffz -BSD |5.67%|596MB|15.8MB/s|12MB|14MB|131MB/s|
-|hdiffz -bzip2|5.77%|596MB|17.4MB/s|7MB|7MB|208MB/s|
-|hdiffz -zlib|5.93%|596MB|17.4MB/s|4MB|4MB|374MB/s|
-|hdiffz -lzma2|5.02%|597MB|13.2MB/s|12MB|20MB|321MB/s|
-|hdiffz -zstd|5.22%|660MB|12.3MB/s|13MB|20MB|383MB/s|
-|hdiffz -s -zlib|8.13%|44MB|40.7MB/s|4MB|4MB|436MB/s|
-|hdiffz -s -lzma2 |6.39%|119MB|17.4MB/s|13MB|20MB|337MB/s|
-|hdiffz -s -zstd-17|6.82%|73MB|24.1MB/s|13MB|20MB|464MB/s|
+|xdelta3|12.18%|212M|6.9MB/s|84M|98M|54MB/s|
+|xdelta3 -B|7.35%|442M|19.5MB/s|197M|534M|174MB/s|
+|bsdiff|6.63%|1263M|2.3MB/s|298M|1043M|120MB/s|
+|hdiffz -BSD|5.67%|596M|15.8MB/s|12M|14M|131MB/s|
+|hdiffz bzip2|5.77%|596M|17.4MB/s|7M|7M|208MB/s|
+|hdiffz zlib|5.93%|596M|17.4MB/s|4M|4M|374MB/s|
+|hdiffz lzma2|5.02%|597M|13.2MB/s|12M|20M|321MB/s|
+|hdiffz -zstd|5.22%|660M|12.3MB/s|13M|20M|383MB/s|
+|hdiffz -s zlib|8.13%|44M|40.7MB/s|4M|4M|436MB/s|
+|hdiffz -s lzma2|6.39%|119M|17.4MB/s|13M|20M|337MB/s|
+|hdiffz -s zstd-17|6.82%|73M|24.1MB/s|13M|20M|464MB/s|
    
 
 ## input Apk Files for test: 
 case list:
-| |newFile <-- oldFile|newSize|oldSize|
-|----:|:----|----:|----:|
-|1|12306_5.2.11.apk <-- 12306_5.1.2.apk| 61120025|66209244|
-|2|alipay10.1.99.apk <-- alipay10.1.95.apk|94178674|90951351|
-|3|alipay10.2.0.apk <-- alipay10.1.99.apk|95803005|94178674|
-|4|baidumaps10.25.0.apk <-- baidumaps10.24.12.apk|95539893|104527191|
-|5|baidumaps10.25.5.apk <-- baidumaps10.25.0.apk|95526276|95539893|
-|6|bilibili6.15.0.apk <-- bilibili6.14.0.apk|74783182|72067209|
-|7|chrome-64-0-3282-137.apk <-- chrome-64-0-3282-123.apk|43879588|43879588|
-|8|chrome-65-0-3325-109.apk <-- chrome-64-0-3282-137.apk|43592997|43879588|
-|9|didi6.0.2.apk <-- didi6.0.0.apk|100866981|91462767|
-|10|firefox68.10.0.apk <-- firefox68.9.0.apk|43543846|43531470|
-|11|firefox68.10.1.apk <-- firefox68.10.0.apk|43542786|43543846|
-|12|google-maps-9-71-0.apk <-- google-maps-9-70-0.apk|50568872|51304768|
-|13|google-maps-9-72-0.apk <-- google-maps-9-71-0.apk|54342938|50568872|
-|14|jd9.0.0.apk <-- jd8.5.12.apk|96891703|94233891|
-|15|jd9.0.8.apk <-- jd9.0.0.apk|97329322|96891703|
-|16|jinianbeigu2_1.12.4.apk <-- jinianbeigu2_1.12.3.apk|171611658|159691189|
-|17|lushichuanshuo19.4.71003.apk <-- lushichuanshuo19.2.69054.apk|93799693|93442621|
-|18|meituan10.9.401.apk <-- meituan10.9.203.apk|88956726|89384406|
-|19|minecraft1.17.30.apk <-- minecraft1.17.20.apk|373025314|370324338|
-|20|minecraft1.18.10.apk <-- minecraft1.17.30.apk|401075178|373025314|
-|21|popcap.pvz2_2.4.84.1010.apk <-- popcap.pvz2_2.4.84.1009.apk|387572492|386842079|
-|22|supercell.clashofclans13.369.3.apk <-- supercell.clashofclans13.180.18.apk|152896934|149011539|
-|23|tangmumaopaoku4.8.0.971.apk <-- tangmumaopaoku4.6.0.913.apk|105486308|104732413|
-|24|taobao9.8.0.apk <-- taobao9.7.2.apk|178734456|176964070|
-|25|taobao9.9.1.apk <-- taobao9.8.0.apk|184437315|178734456|
-|26|tiktok11.5.0.apk <-- tiktok11.3.0.apk|88544106|87075000|
-|27|translate6.9.0.apk <-- translate6.8.0.apk|28171978|28795243|
-|28|translate6.9.1.apk <-- translate6.9.0.apk|31290990|28171978|
-|29|weixin7.0.15.apk <-- weixin7.0.14.apk|148405483|147695111|
-|30|weixin7.0.16.apk <-- weixin7.0.15.apk|158906413|148405483|
-|31|wps12.5.2.apk <-- wps12.5.1.apk|51293286|51136905|
-|32|yuanshichuanqi1.3.608.apk <-- yuanshichuanqi1.3.607.apk|192578139|192577253|
+| |app|newFile <-- oldFile|newSize|oldSize|
+|----:|:---:|:----|----:|----:|
+|1|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.MobileTicket.png" width="36">|12306_5.2.11.apk <-- 12306_5.1.2.apk| 61120025|66209244|
+|2|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.eg.android.AlipayGphone.png" width="36">|alipay10.1.99.apk <-- alipay10.1.95.apk|94178674|90951351|
+|3|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.eg.android.AlipayGphone.png" width="36">|alipay10.2.0.apk <-- alipay10.1.99.apk|95803005|94178674|
+|4|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.baidu.BaiduMap.png" width="36">|baidumaps10.25.0.apk <-- baidumaps10.24.12.apk|95539893|104527191|
+|5|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.baidu.BaiduMap.png" width="36">|baidumaps10.25.5.apk <-- baidumaps10.25.0.apk|95526276|95539893|
+|6|<img src="https://github.com/sisong/sfpatcher/raw/master/img/tv.danmaku.bili.png" width="36">|bilibili6.15.0.apk <-- bilibili6.14.0.apk|74783182|72067209|
+|7|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.android.chrome.png" width="36">|chrome-64-0-3282-137.apk <-- chrome-64-0-3282-123.apk|43879588|43879588|
+|8|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.android.chrome.png" width="36">|chrome-65-0-3325-109.apk <-- chrome-64-0-3282-137.apk|43592997|43879588|
+|9|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sdu.didi.psnger.png" width="36">|didi6.0.2.apk <-- didi6.0.0.apk|100866981|91462767|
+|10|<img src="https://github.com/sisong/sfpatcher/raw/master/img/org.mozilla.firefox.png" width="36">|firefox68.10.0.apk <-- firefox68.9.0.apk|43543846|43531470|
+|11|<img src="https://github.com/sisong/sfpatcher/raw/master/img/org.mozilla.firefox.png" width="36">|firefox68.10.1.apk <-- firefox68.10.0.apk|43542786|43543846|
+|12|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.maps.png" width="36">|google-maps-9-71-0.apk <-- google-maps-9-70-0.apk|50568872|51304768|
+|13|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.maps.png" width="36">|google-maps-9-72-0.apk <-- google-maps-9-71-0.apk|54342938|50568872|
+|14|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.jingdong.app.mall.png" width="36">|jd9.0.0.apk <-- jd8.5.12.apk|96891703|94233891|
+|15|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.jingdong.app.mall.png" width="36">|jd9.0.8.apk <-- jd9.0.0.apk|97329322|96891703|
+|16|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.tmgp.jnbg2.png" width="36">|jinianbeigu2_1.12.4.apk <-- jinianbeigu2_1.12.3.apk|171611658|159691189|
+|17|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.blizzard.wtcg.hearthstone.cn.png" width="36">|lushichuanshuo19.4.71003.apk <-- lushichuanshuo19.2.69054.apk|93799693|93442621|
+|18|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sankuai.meituan.png" width="36">|meituan10.9.401.apk <-- meituan10.9.203.apk|88956726|89384406|
+|19|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.netease.mc.png" width="36">|minecraft1.17.30.apk <-- minecraft1.17.20.apk|373025314|370324338|
+|20|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.netease.mc.png" width="36">|minecraft1.18.10.apk <-- minecraft1.17.30.apk|401075178|373025314|
+|21|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.popcap.pvz2cthd.png" width="36">|popcap.pvz2_2.4.84.1010.apk <-- popcap.pvz2_2.4.84.1009.apk|387572492|386842079|
+|22|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.supercell.clashofclans.png" width="36">|supercell.clashofclans13.369.3.apk <-- supercell.clashofclans13.180.18.apk|152896934|149011539|
+|23|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.outfit7.talkingtomgoldrun.png" width="36">|tangmumaopaoku4.8.0.971.apk <-- tangmumaopaoku4.6.0.913.apk|105486308|104732413|
+|24|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.taobao.taobao.png" width="36">|taobao9.8.0.apk <-- taobao9.7.2.apk|178734456|176964070|
+|25|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.taobao.taobao.png" width="36">|taobao9.9.1.apk <-- taobao9.8.0.apk|184437315|178734456|
+|26|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.ss.android.ugc.aweme.png" width="36">|tiktok11.5.0.apk <-- tiktok11.3.0.apk|88544106|87075000|
+|27|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.translate.png" width="36">|translate6.9.0.apk <-- translate6.8.0.apk|28171978|28795243|
+|28|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.translate.png" width="36">|translate6.9.1.apk <-- translate6.9.0.apk|31290990|28171978|
+|29|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mm.png" width="36">|weixin7.0.15.apk <-- weixin7.0.14.apk|148405483|147695111|
+|30|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mm.png" width="36">|weixin7.0.16.apk <-- weixin7.0.15.apk|158906413|148405483|
+|31|<img src="https://github.com/sisong/sfpatcher/raw/master/img/cn.wps.moffice_eng.png" width="36">|wps12.5.2.apk <-- wps12.5.1.apk|51293286|51136905|
+|32|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tanwan.yscqlyzf.png" width="36">|yuanshichuanqi1.3.608.apk <-- yuanshichuanqi1.3.607.apk|192578139|192577253|
    
 **changed test Program**:   
 **hdiffz ...** `-m-6 -SD` changed to `-m-1 -SD-2m -cache`, `-s-64 -SD` changed to `-s-16 -SD-2m`   
@@ -363,22 +361,22 @@ case list:
 **test result average**:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|arm Kirin980 speed|
 |:----|----:|----:|----:|----:|----:|----:|----:|
-|xdelta3|59.92%|228MB|2.9MB/s|100MB|100MB|159MB/s|
-|xdelta3 -B|59.51%|440MB|3.1MB/s|206MB|548MB|157MB/s|
-|bsdiff|59.76%|1035MB|1.0MB/s|243MB|751MB|42MB/s|
-|hdiffz -BSD|59.50%|523MB|5.4MB/s|13MB|14MB|44MB/s|
-|hdiffz -bzip2|59.51%|523MB|5.5MB/s|7MB|9MB|57MB/s|
-|hdiffz|59.87%|523MB|7.5MB/s|4MB|5MB|780MB/s|268MB/s|
-|hdiffz -zlib|59.10%|523MB|6.9MB/s|4MB|5MB|587MB/s|226MB/s|
-|hdiffz -zstd|58.74%|612MB|5.0MB/s|13MB|14MB|680MB/s|265MB/s|
-|hdiffz -lzma2|58.67%|523MB|3.7MB/s|12MB|13MB|285MB/s|
-|hdiffz -s|60.46%|133MB|31.8MB/s|3MB|4MB|806MB/s|
-|hdiffz -s -zlib|59.52%|133MB|23.5MB/s|3MB|4MB|608MB/s|
-|hdiffz -s -zstd-17|59.27%|136MB|9.7MB/s|12MB|12MB|763MB/s|
-|hdiffz -s -lzma2|59.03%|147MB|5.9MB/s|11MB|12MB|288MB/s|
-|sf_diff -1 -zstd|31.70%|774MB|2.8MB/s|19MB|22MB|394MB/s|218MB/s|
-|sf_diff -2 -lzma2|27.53%|859MB|2.5MB/s|21MB|29MB|107MB/s|59MB/s|
-|sf_diff -3 -lzma2|23.73%|976MB|2.3MB/s|24MB|29MB|66MB/s|36MB/s|
+|xdelta3|59.92%|228M|2.9MB/s|100M|100M|159MB/s|
+|xdelta3 -B|59.51%|440M|3.1MB/s|206M|548M|157MB/s|
+|bsdiff|59.76%|1035M|1.0MB/s|243M|751M|42MB/s|
+|hdiffz -BSD|59.50%|523M|5.4MB/s|13M|14M|44MB/s|
+|hdiffz bzip2|59.51%|523M|5.5MB/s|7M|9M|57MB/s|
+|hdiffz|59.87%|523M|7.5MB/s|4M|5M|780MB/s|268MB/s|
+|hdiffz zlib|59.10%|523M|6.9MB/s|4M|5M|587MB/s|226MB/s|
+|hdiffz zstd|58.74%|612M|5.0MB/s|13M|14M|680MB/s|265MB/s|
+|hdiffz lzma2|58.67%|523M|3.7MB/s|12M|13M|285MB/s|
+|hdiffz -s|60.46%|133M|31.8MB/s|3M|4M|806MB/s|
+|hdiffz -s zlib|59.52%|133M|23.5MB/s|3M|4M|608MB/s|
+|hdiffz -s zstd-17|59.27%|136M|9.7MB/s|12M|12M|763MB/s|
+|hdiffz -s lzma2|59.03%|147M|5.9MB/s|11M|12M|288MB/s|
+|sf_diff -1 zstd|31.70%|774M|2.8MB/s|19M|22M|394MB/s|218MB/s|
+|sf_diff -2 lzma2|27.53%|859M|2.5MB/s|21M|29M|107MB/s|59MB/s|
+|sf_diff -3 lzma2|23.73%|976M|2.3MB/s|24M|29M|66MB/s|36MB/s|
 
 ---
 ## Contact
