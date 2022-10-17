@@ -33,6 +33,7 @@
 #include "libParallel/parallel_channel.h"
 #include "libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
+namespace{
 struct TMt_base {
     CChannel work_chan;
     
@@ -104,6 +105,7 @@ struct _auto_thread_end_t{
     inline ~_auto_thread_end_t() { _mt.thread_end(); }
     TMt_base&  _mt;
 };
+}
 
 #ifdef __cplusplus
 extern "C" {

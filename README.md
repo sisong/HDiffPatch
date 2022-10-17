@@ -265,13 +265,13 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 case list:
 | |newFile <-- oldFile|newSize|oldSize|
 |----:|:----|----:|----:|
-|1|apache-maven-2.2.1-src.tar <-- apache-maven-2.0.11-src.tar|5150720|4689920|
-|2|httpd_2.4.4-netware-bin.tar <-- httpd_2.2.24-netware-bin.tar|22612480|17059328|
-|3|httpd-2.4.4-src.tar <-- httpd-2.2.24-src.tar|31809536|37365760|
-|4|Firefox-21.0-mac-en-US.app.tar <-- Firefox-20.0-mac-en-US.app.tar|98740736|96340480|
-|5|emacs-24.3.tar <-- emacs-23.4.tar|185528320|166420480|
-|6|eclipse-java-juno-SR2-macosx-cocoa-x86_64.tar <-- eclipse-java-juno-SR2-macosx-cocoa.tar|178595840|178800640|
-|7|gcc-4.8.0.tar <-- gcc-4.7.0.tar|552775680|526745600|
+|1|apache-maven-2.2.1-src.tar <-- 2.0.11-src.tar|5150720|4689920|
+|2|httpd_2.4.4-netware-bin.tar <-- 2.2.24-netware-bin.tar|22612480|17059328|
+|3|httpd-2.4.4-src.tar <-- 2.2.24-src.tar|31809536|37365760|
+|4|Firefox-21.0-mac-en-US.app.tar <-- 20.0-mac-en-US.app.tar|98740736|96340480|
+|5|emacs-24.3.tar <-- 23.4.tar|185528320|166420480|
+|6|eclipse-java-juno-SR2-macosx-cocoa-x86_64.tar <-- SR2-macosx-cocoa.tar|178595840|178800640|
+|7|gcc-4.8.0.tar <-- 4.7.0.tar|552775680|526745600|
    
 
 **test PC**: Windows11, CPU Ryzen 5800H, SSD Disk, Memroy 8G*2 DDR4 3200MHz   
@@ -315,38 +315,38 @@ case list:
 case list:
 | |app|newFile <-- oldFile|newSize|oldSize|
 |----:|:---:|:----|----:|----:|
-|1|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.MobileTicket.png" width="36">|12306_5.2.11.apk <-- 12306_5.1.2.apk| 61120025|66209244|
-|2|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.eg.android.AlipayGphone.png" width="36">|alipay10.1.99.apk <-- alipay10.1.95.apk|94178674|90951351|
-|3|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.eg.android.AlipayGphone.png" width="36">|alipay10.2.0.apk <-- alipay10.1.99.apk|95803005|94178674|
-|4|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.baidu.BaiduMap.png" width="36">|baidumaps10.25.0.apk <-- baidumaps10.24.12.apk|95539893|104527191|
-|5|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.baidu.BaiduMap.png" width="36">|baidumaps10.25.5.apk <-- baidumaps10.25.0.apk|95526276|95539893|
-|6|<img src="https://github.com/sisong/sfpatcher/raw/master/img/tv.danmaku.bili.png" width="36">|bilibili6.15.0.apk <-- bilibili6.14.0.apk|74783182|72067209|
-|7|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.android.chrome.png" width="36">|chrome-64-0-3282-137.apk <-- chrome-64-0-3282-123.apk|43879588|43879588|
-|8|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.android.chrome.png" width="36">|chrome-65-0-3325-109.apk <-- chrome-64-0-3282-137.apk|43592997|43879588|
-|9|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sdu.didi.psnger.png" width="36">|didi6.0.2.apk <-- didi6.0.0.apk|100866981|91462767|
-|10|<img src="https://github.com/sisong/sfpatcher/raw/master/img/org.mozilla.firefox.png" width="36">|firefox68.10.0.apk <-- firefox68.9.0.apk|43543846|43531470|
-|11|<img src="https://github.com/sisong/sfpatcher/raw/master/img/org.mozilla.firefox.png" width="36">|firefox68.10.1.apk <-- firefox68.10.0.apk|43542786|43543846|
-|12|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.maps.png" width="36">|google-maps-9-71-0.apk <-- google-maps-9-70-0.apk|50568872|51304768|
-|13|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.maps.png" width="36">|google-maps-9-72-0.apk <-- google-maps-9-71-0.apk|54342938|50568872|
-|14|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.jingdong.app.mall.png" width="36">|jd9.0.0.apk <-- jd8.5.12.apk|96891703|94233891|
-|15|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.jingdong.app.mall.png" width="36">|jd9.0.8.apk <-- jd9.0.0.apk|97329322|96891703|
-|16|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.tmgp.jnbg2.png" width="36">|jinianbeigu2_1.12.4.apk <-- jinianbeigu2_1.12.3.apk|171611658|159691189|
-|17|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.blizzard.wtcg.hearthstone.cn.png" width="36">|lushichuanshuo19.4.71003.apk <-- lushichuanshuo19.2.69054.apk|93799693|93442621|
-|18|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sankuai.meituan.png" width="36">|meituan10.9.401.apk <-- meituan10.9.203.apk|88956726|89384406|
-|19|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.netease.mc.png" width="36">|minecraft1.17.30.apk <-- minecraft1.17.20.apk|373025314|370324338|
-|20|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.netease.mc.png" width="36">|minecraft1.18.10.apk <-- minecraft1.17.30.apk|401075178|373025314|
-|21|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.popcap.pvz2cthd.png" width="36">|popcap.pvz2_2.4.84.1010.apk <-- popcap.pvz2_2.4.84.1009.apk|387572492|386842079|
-|22|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.supercell.clashofclans.png" width="36">|supercell.clashofclans13.369.3.apk <-- supercell.clashofclans13.180.18.apk|152896934|149011539|
-|23|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.outfit7.talkingtomgoldrun.png" width="36">|tangmumaopaoku4.8.0.971.apk <-- tangmumaopaoku4.6.0.913.apk|105486308|104732413|
-|24|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.taobao.taobao.png" width="36">|taobao9.8.0.apk <-- taobao9.7.2.apk|178734456|176964070|
-|25|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.taobao.taobao.png" width="36">|taobao9.9.1.apk <-- taobao9.8.0.apk|184437315|178734456|
-|26|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.ss.android.ugc.aweme.png" width="36">|tiktok11.5.0.apk <-- tiktok11.3.0.apk|88544106|87075000|
-|27|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.translate.png" width="36">|translate6.9.0.apk <-- translate6.8.0.apk|28171978|28795243|
-|28|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.translate.png" width="36">|translate6.9.1.apk <-- translate6.9.0.apk|31290990|28171978|
-|29|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mm.png" width="36">|weixin7.0.15.apk <-- weixin7.0.14.apk|148405483|147695111|
-|30|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mm.png" width="36">|weixin7.0.16.apk <-- weixin7.0.15.apk|158906413|148405483|
-|31|<img src="https://github.com/sisong/sfpatcher/raw/master/img/cn.wps.moffice_eng.png" width="36">|wps12.5.2.apk <-- wps12.5.1.apk|51293286|51136905|
-|32|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tanwan.yscqlyzf.png" width="36">|yuanshichuanqi1.3.608.apk <-- yuanshichuanqi1.3.607.apk|192578139|192577253|
+|1|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.MobileTicket.png" width="36">|12306_5.2.11.apk <-- 5.1.2.apk| 61120025|66209244|
+|2|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.eg.android.AlipayGphone.png" width="36">|alipay10.1.99.apk <-- 10.1.95.apk|94178674|90951351|
+|3|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.eg.android.AlipayGphone.png" width="36">|alipay10.2.0.apk <-- 10.1.99.apk|95803005|94178674|
+|4|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.baidu.BaiduMap.png" width="36">|baidumaps10.25.0.apk <-- 10.24.12.apk|95539893|104527191|
+|5|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.baidu.BaiduMap.png" width="36">|baidumaps10.25.5.apk <-- 10.25.0.apk|95526276|95539893|
+|6|<img src="https://github.com/sisong/sfpatcher/raw/master/img/tv.danmaku.bili.png" width="36">|bilibili6.15.0.apk <-- 6.14.0.apk|74783182|72067209|
+|7|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.android.chrome.png" width="36">|chrome-64-0-3282-137.apk <-- 64-0-3282-123.apk|43879588|43879588|
+|8|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.android.chrome.png" width="36">|chrome-65-0-3325-109.apk <-- 64-0-3282-137.apk|43592997|43879588|
+|9|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sdu.didi.psnger.png" width="36">|didi6.0.2.apk <-- 6.0.0.apk|100866981|91462767|
+|10|<img src="https://github.com/sisong/sfpatcher/raw/master/img/org.mozilla.firefox.png" width="36">|firefox68.10.0.apk <-- 68.9.0.apk|43543846|43531470|
+|11|<img src="https://github.com/sisong/sfpatcher/raw/master/img/org.mozilla.firefox.png" width="36">|firefox68.10.1.apk <-- 68.10.0.apk|43542786|43543846|
+|12|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.maps.png" width="36">|google-maps-9-71-0.apk <-- 9-70-0.apk|50568872|51304768|
+|13|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.maps.png" width="36">|google-maps-9-72-0.apk <-- 9-71-0.apk|54342938|50568872|
+|14|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.jingdong.app.mall.png" width="36">|jd9.0.0.apk <-- 8.5.12.apk|96891703|94233891|
+|15|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.jingdong.app.mall.png" width="36">|jd9.0.8.apk <-- 9.0.0.apk|97329322|96891703|
+|16|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.tmgp.jnbg2.png" width="36">|jinianbeigu2_1.12.4.apk <-- 1.12.3.apk|171611658|159691189|
+|17|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.blizzard.wtcg.hearthstone.cn.png" width="36">|lushichuanshuo19.4.71003.apk <-- 19.2.69054.apk|93799693|93442621|
+|18|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sankuai.meituan.png" width="36">|meituan10.9.401.apk <-- 10.9.203.apk|88956726|89384406|
+|19|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.netease.mc.png" width="36">|minecraft1.17.30.apk <-- 1.17.20.apk|373025314|370324338|
+|20|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.netease.mc.png" width="36">|minecraft1.18.10.apk <-- 1.17.30.apk|401075178|373025314|
+|21|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.popcap.pvz2cthd.png" width="36">|popcap.pvz2_2.4.84.1010.apk <-- 2.4.84.1009.apk|387572492|386842079|
+|22|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.supercell.clashofclans.png" width="36">|supercell.clashofclans13.369.3.apk <-- 13.180.18.apk|152896934|149011539|
+|23|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.outfit7.talkingtomgoldrun.png" width="36">|tangmumaopaoku4.8.0.971.apk <-- 4.6.0.913.apk|105486308|104732413|
+|24|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.taobao.taobao.png" width="36">|taobao9.8.0.apk <-- 9.7.2.apk|178734456|176964070|
+|25|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.taobao.taobao.png" width="36">|taobao9.9.1.apk <-- 9.8.0.apk|184437315|178734456|
+|26|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.ss.android.ugc.aweme.png" width="36">|tiktok11.5.0.apk <-- 11.3.0.apk|88544106|87075000|
+|27|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.translate.png" width="36">|translate6.9.0.apk <-- 6.8.0.apk|28171978|28795243|
+|28|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.translate.png" width="36">|translate6.9.1.apk <-- 6.9.0.apk|31290990|28171978|
+|29|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mm.png" width="36">|weixin7.0.15.apk <-- 7.0.14.apk|148405483|147695111|
+|30|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mm.png" width="36">|weixin7.0.16.apk <-- 7.0.15.apk|158906413|148405483|
+|31|<img src="https://github.com/sisong/sfpatcher/raw/master/img/cn.wps.moffice_eng.png" width="36">|wps12.5.2.apk <-- 12.5.1.apk|51293286|51136905|
+|32|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tanwan.yscqlyzf.png" width="36">|yuanshichuanqi1.3.608.apk <-- 1.3.607.apk|192578139|192577253|
    
 **changed test Program**:   
 **hdiffz ...** `-m-6 -SD` changed to `-m-1 -SD-2m -cache`, `-s-64 -SD` changed to `-s-16 -SD-2m`   

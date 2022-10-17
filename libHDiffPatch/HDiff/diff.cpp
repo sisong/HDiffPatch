@@ -675,45 +675,59 @@ static void search_and_dispose_cover(std::vector<TOldCover>& covers,const TDiffD
         _dispose_cover(covers,cover_begin,diff,kMinSingleMatchScore,diffLimit);
 }
 
+#define first_search_and_dispose_cover(covers,diff,sstring,kMinSingleMatchScore) search_and_dispose_cover(covers,diff,sstring,kMinSingleMatchScore,0);
+
 #if (_IS_USED_MULTITHREAD)
+    const size_t kPartPepeatSize=1024*2;
     struct mt_data_t{
         const TDiffData*        diff;
         const TSuffixString*    sstring;
+        ICoverLinesListener*    listener;
         int                     kMinSingleMatchScore;
-        volatile size_t         workIndex;
+        size_t                  workBlockSize;
+        std::atomic<size_t>     workIndex;
+        bool nextBlock(hdiff_TRange* out_newRange){
+            const size_t kNewSize=(diff->newData_end-diff->newData);
+            if (listener)
+                return listener->next_search_block_MT(listener,out_newRange);
+            size_t i=workIndex++;
+            hpatch_StreamPos_t pos=i*(hpatch_StreamPos_t)workBlockSize;
+            if (pos<kNewSize){
+                out_newRange->beginPos=pos;
+                pos+=workBlockSize+kPartPepeatSize;
+                pos=(pos<=kNewSize)?pos:kNewSize;
+                out_newRange->endPos=pos;
+                return true;
+            }else{
+                return false;
+            }
+        }
     };
 
-    static void _search_and_dispose_cover_MT(std::vector<TOldCover>* _covers,size_t workCount,mt_data_t* mt){
-        const size_t kPartPepeatSize=1024*2;
+    static void _fsearch_and_dispose_cover_thread(std::vector<TOldCover>* _covers,mt_data_t* mt){
         std::vector<TOldCover>& covers=*_covers;
         const TDiffData& diff=*mt->diff;
-        std::atomic<size_t>& workIndex=*(std::atomic<size_t>*)&mt->workIndex;
-        const size_t newSize=diff.newData_end-diff.newData;
-        while (true){
-            size_t curWorkIndex=workIndex++;
-            if (curWorkIndex>=workCount) break;
-            size_t new_begin=(size_t)(newSize*(hpatch_uint64_t)curWorkIndex/workCount);
-            size_t new_end=((curWorkIndex+1<workCount)?
-                (size_t)(newSize*(hpatch_uint64_t)(curWorkIndex+1)/workCount+kPartPepeatSize):newSize);
+        hdiff_TRange newRange;
+        while (mt->nextBlock(&newRange)){
             TDiffData diff_part=diff;
-            diff_part.newData=diff.newData+new_begin;
-            diff_part.newData_end=diff.newData+new_end;
+            diff_part.newData=diff.newData+(size_t)newRange.beginPos;
+            diff_part.newData_end=diff.newData+(size_t)newRange.endPos;
             size_t coverCountBack=covers.size();
-            search_and_dispose_cover(covers,diff_part,*mt->sstring,mt->kMinSingleMatchScore,0);
+            first_search_and_dispose_cover(covers,diff_part,*mt->sstring,mt->kMinSingleMatchScore);
             for (size_t i=coverCountBack;i<covers.size();++i)
-                covers[i].newPos+=new_begin;
+                covers[i].newPos+=(TInt)newRange.beginPos;
         }
     }
 #endif
 
-static void search_and_dispose_cover_MT(std::vector<TOldCover>& covers,const TDiffData& diff,
-                                        const TSuffixString& sstring,int kMinSingleMatchScore,
-                                        TDiffLimit* diffLimit=0,size_t threadNum=1){
+static void first_search_and_dispose_cover_MT(std::vector<TOldCover>& covers,const TDiffData& diff,
+                                              const TSuffixString& sstring,int kMinSingleMatchScore,
+                                              ICoverLinesListener* listener,size_t threadNum=1){
 #if (_IS_USED_MULTITHREAD)
     const size_t kMinParallelSize=1024*1024*2;
     const size_t kBestParallelSize=1024*1024*8;
     size_t newSize=diff.newData_end-diff.newData;
-    if ((threadNum>1)&&(diffLimit==0)&&(diff.oldData!=diff.oldData_end)&&(newSize>=kMinParallelSize)){
+    if ((threadNum>1)&&(diff.oldData!=diff.oldData_end)&&(newSize>=kMinParallelSize)){
         const size_t maxThreanNum=newSize/(kMinParallelSize/2);
         threadNum=(threadNum<=maxThreanNum)?threadNum:maxThreanNum;
         size_t workCount=(newSize+kBestParallelSize-1)/kBestParallelSize;
@@ -725,21 +739,26 @@ static void search_and_dispose_cover_MT(std::vector<TOldCover>& covers,const TDi
         mt_data_t mt_data;
         mt_data.diff=&diff;
         mt_data.sstring=&sstring;
+        mt_data.listener=(listener&&listener->next_search_block_MT)?listener:0;
         mt_data.kMinSingleMatchScore=kMinSingleMatchScore;
+        mt_data.workBlockSize=(newSize+workCount-1)/workCount;
         mt_data.workIndex=0;
+        if (mt_data.listener&&listener->begin_search_block)
+            listener->begin_search_block(listener,newSize,mt_data.workBlockSize,kPartPepeatSize);
         for (size_t i=0;i<threadCount;i++)
-            threads[i]=std::thread(_search_and_dispose_cover_MT,&threadCovers[i],workCount,&mt_data);
-        _search_and_dispose_cover_MT(&covers,workCount,&mt_data);
+            threads[i]=std::thread(_fsearch_and_dispose_cover_thread,&threadCovers[i],&mt_data);
+        _fsearch_and_dispose_cover_thread(&covers,&mt_data);
         for (size_t i=0;i<threadCount;i++){
             threads[i].join();
             covers.insert(covers.end(),threadCovers[i].begin(),threadCovers[i].end());
             { std::vector<TOldCover> tmp; tmp.swap(threadCovers[i]); }
         }
         tm_collate_covers(covers);
+        //assert_covers_safe(covers,newSize,(size_t)(diff.oldData_end-diff.oldData));
     }else
 #endif
     {
-        search_and_dispose_cover(covers,diff,sstring,kMinSingleMatchScore,diffLimit);
+        first_search_and_dispose_cover(covers,diff,sstring,kMinSingleMatchScore);
     }
 }
 
@@ -880,7 +899,7 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
             _sstring_default.resetSuffixString(oldData,oldData_end,threadNum);
             sstring=&_sstring_default;
         }
-        search_and_dispose_cover_MT(covers,diff,*sstring,kMinSingleMatchScore,0,threadNum);
+        first_search_and_dispose_cover_MT(covers,diff,*sstring,kMinSingleMatchScore,listener,threadNum);
         assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
         if (listener&&listener->search_cover_limit&&
                 listener->search_cover_limit(listener,covers.data(),covers.size(),isCover32)){
