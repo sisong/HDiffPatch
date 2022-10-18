@@ -126,6 +126,7 @@ struct TDiffLimit{
     TCompressDetect& nocover_detect;
     TCompressDetect& cover_detect;
     TOldCover        lastCover_back;
+    int              kMaxMatchDeep;
 };
 
  
@@ -133,8 +134,7 @@ struct TDiffLimit{
 static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
                          const TByte* newData,const TByte* newData_end,
                          TInt curNewPos,TDiffLimit* diffLimit=0){
-    const TInt kMaxMatchDeepForLimit=6;
-    const TInt matchDeep = diffLimit?kMaxMatchDeepForLimit:2;
+    const TInt matchDeep = diffLimit?diffLimit->kMaxMatchDeep:2;
     const TInt kLimitOldPos=(TInt)(diffLimit?diffLimit->recoverOldPos:0);
     const TInt kLimitOldEnd=(TInt)(diffLimit?diffLimit->recoverOldEnd:sstring.SASize());
     TInt sai=sstring.lower_bound(newData,newData_end);
@@ -754,7 +754,6 @@ static void first_search_and_dispose_cover_MT(std::vector<TOldCover>& covers,con
             { std::vector<TOldCover> tmp; tmp.swap(threadCovers[i]); }
         }
         tm_collate_covers(covers);
-        //assert_covers_safe(covers,newSize,(size_t)(diff.oldData_end-diff.oldData));
     }else
 #endif
     {
@@ -764,8 +763,10 @@ static void first_search_and_dispose_cover_MT(std::vector<TOldCover>& covers,con
 
 static const hpatch_StreamPos_t _kNullCoverHitEndPos =~(hpatch_StreamPos_t)0;
 struct TDiffResearchCover:public IDiffResearchCover{
-    TDiffResearchCover(TDiffData& diff_,std::vector<TOldCover>& covers_,const TSuffixString& sstring_,int kMinSingleMatchScore_)
-        :diff(diff_), covers(covers_),sstring(sstring_),kMinSingleMatchScore(kMinSingleMatchScore_),
+    TDiffResearchCover(TDiffData& diff_,std::vector<TOldCover>& covers_,const TSuffixString& sstring_,
+                       int kMinSingleMatchScore_,int kMaxMatchDeep_)
+        :diff(diff_), covers(covers_),sstring(sstring_),
+        kMinSingleMatchScore(kMinSingleMatchScore_),kMaxMatchDeep(kMaxMatchDeep_),
         limitCoverIndex_back(~(size_t)0),limitCoverHitEndPos_back(_kNullCoverHitEndPos){ researchCover=_researchCover; }
 
     void _researchRange(TDiffLimit* diffLimit){
@@ -808,7 +809,7 @@ struct TDiffResearchCover:public IDiffResearchCover{
 
         TDiffLimit diffLimit={listener,cover.newPos+(size_t)hitPos,cover.newPos+(size_t)(hitPos+hitLen),
                               cover.oldPos+(size_t)hitPos,cover.oldPos+(size_t)(hitPos+hitLen),   
-                              nocover_detect,cover_detect,lastCover_back};
+                              nocover_detect,cover_detect,lastCover_back,kMaxMatchDeep};
         _researchRange(&diffLimit);
     }
 
@@ -835,6 +836,7 @@ struct TDiffResearchCover:public IDiffResearchCover{
     std::vector<TOldCover>& covers;
     const TSuffixString&    sstring;
     int                     kMinSingleMatchScore;
+    int                     kMaxMatchDeep;
     std::vector<TOldCover>  reCovers;
     std::vector<TOldCover>  curCovers;
     size_t                  limitCoverIndex_back;
@@ -903,7 +905,8 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
         assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
         if (listener&&listener->search_cover_limit&&
                 listener->search_cover_limit(listener,covers.data(),covers.size(),isCover32)){
-            TDiffResearchCover diffResearchCover(diff,covers,*sstring,kMinSingleMatchScore);
+            TDiffResearchCover diffResearchCover(diff,covers,*sstring,kMinSingleMatchScore,
+                                    listener->get_max_match_deep?listener->get_max_match_deep(listener):kDefaultMaxMatchDeepForLimit);
             listener->research_cover(listener,&diffResearchCover,covers.data(),covers.size(),isCover32);
             diffResearchCover.researchFinish();
         }
