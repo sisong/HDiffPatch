@@ -86,7 +86,7 @@
     //parallel run
     typedef void (*TThreadRunCallBackProc)(int threadIndex,void* workData);
     void  thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
-                          int isUseThisThread,int threadIndexStart);
+                          int isUseThisThread,int threadIndexOffset);
 
 #endif //_IS_USED_MULTITHREAD
 #endif //parallel_import_h

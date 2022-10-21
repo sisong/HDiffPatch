@@ -29,6 +29,18 @@
 #ifndef hdiff_dir_diff_h
 #define hdiff_dir_diff_h
 #include "../dir_patch/dir_patch_types.h"
+
+struct THDiffSets{
+    hpatch_BOOL isDiffInMem;//or diff by stream
+    hpatch_BOOL isSingleCompressedDiff;
+    //diff in mem
+    hpatch_BOOL isUseBigCacheMatch;
+    size_t matchScore;
+    size_t patchStepMemSize;
+    size_t matchBlockSize;
+    size_t threadNum;
+};
+
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dir_manifest.h"
 

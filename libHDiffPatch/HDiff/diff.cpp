@@ -105,17 +105,21 @@ struct TDiffData{
 
 
 //查找相等的字符串长度.
-static TInt getEqualLength(const TByte* x,const TByte* x_end,
-                           const TByte* y,const TByte* y_end){
+template<TInt kMaxEqLenLimit>
+static TInt getEqualLengthLimit(const TByte* x,const TByte* x_end,
+                          const TByte* y,const TByte* y_end){
     const TInt xLen=(TInt)(x_end-x);
     const TInt yLen=(TInt)(y_end-y);
-    const TInt maxEqLen=(xLen<yLen)?xLen:yLen;
+    TInt maxEqLen=(xLen<yLen)?xLen:yLen;
+    if (kMaxEqLenLimit)
+        maxEqLen=(maxEqLen<=kMaxEqLenLimit)?maxEqLen:kMaxEqLenLimit;
     for (TInt i=0; i<maxEqLen; ++i) {
         if (x[i]!=y[i])
             return i;
     }
     return maxEqLen;
 }
+#define getEqualLength(x,x_end,y,y_end) getEqualLengthLimit<0>(x,x_end,y,y_end)
 
 struct TDiffLimit{
     IDiffSearchCoverListener* listener;
@@ -154,11 +158,17 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
         TInt i = sai + (1-(mdi&1)*2) * ((mdi+1)/2);
         if ((i<0)|(i>=(src_end-src_begin))) continue;
         TInt curOldPos=sstring.SA(i);
-        if (diffLimit){
+
+        TInt curLength;
+        #define kTryEqLenLimit (1024*1+17)
+        if (0==diffLimit){
+            curLength=getEqualLength(newData,newData_end,src_begin+curOldPos,src_end);
+        }else{
             if ((curOldPos>=kLimitOldPos)&(curOldPos<kLimitOldEnd))
                 continue;
+            curLength=getEqualLengthLimit<kTryEqLenLimit>(newData,newData_end,src_begin+curOldPos,src_end);
         }
-        TInt curLength=getEqualLength(newData,newData_end,src_begin+curOldPos,src_end);
+         
         if (curLength>bestLength){
             if (diffLimit){
                 hpatch_TCover cover={(size_t)curOldPos,(size_t)curNewPos,(size_t)curLength};
@@ -166,8 +176,12 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
                 diffLimit->listener->limitCover(diffLimit->listener,&cover,&hitPos);
                 if (hitPos<=(size_t)bestLength)
                     continue;
-                else
-                    curLength=(TInt)hitPos;
+                if (hitPos==kTryEqLenLimit){
+                    curLength=getEqualLength(newData,newData_end,src_begin+curOldPos,src_end);
+                    hpatch_TCover cover={(size_t)curOldPos,(size_t)curNewPos,(size_t)curLength};
+                    diffLimit->listener->limitCover(diffLimit->listener,&cover,&hitPos);
+                }
+                curLength=(TInt)hitPos;
             }
             bestLength = curLength;
             bestOldPos= curOldPos;

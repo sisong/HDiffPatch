@@ -176,7 +176,7 @@ extract SFX: **selfExtractArchive**   (same as: selfExtractArchive -f "" -X "./"
 ```
 memory options:
   -s[-cacheSize]
-      DEFAULT -s-64m; oldPath loaded as Stream;
+      DEFAULT -s-4m; oldPath loaded as Stream;
       cacheSize can like 262144 or 256k or 512m or 2g etc....
       requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData, then requires

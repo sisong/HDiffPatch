@@ -163,13 +163,13 @@ static void* _pt_threadProc(void* _pt){
 }
 
 void thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
-                     int isUseThisThread,int threadIndexStart){
+                     int isUseThisThread,int threadIndexOffset){
     for (int i=0; i<threadCount; ++i) {
         if ((i==threadCount-1)&&(isUseThisThread)){
-            threadProc(i+threadIndexStart,workData);
+            threadProc(i+threadIndexOffset,workData);
         }else{
             _TThreadData* pt=new _TThreadData();
-            pt->threadIndex=i+threadIndexStart;
+            pt->threadIndex=i+threadIndexOffset;
             pt->threadProc=threadProc;
             pt->workData=workData;
             pthread_t t; memset(&t,0,sizeof(pthread_t));
@@ -240,12 +240,12 @@ struct _TThreadProc{
     inline void operator()(){  threadProc(threadIndex,workData);  }
 };
 void thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
-                     int isUseThisThread,int threadIndexStart){
+                     int isUseThisThread,int threadIndexOffset){
     for (int i=0; i<threadCount; ++i) {
         if ((i==threadCount-1)&&(isUseThisThread)){
-            threadProc(i+threadIndexStart,workData);
+            threadProc(i+threadIndexOffset,workData);
         }else{
-            _TThreadProc tp={threadProc,i+threadIndexStart,workData};
+            _TThreadProc tp={threadProc,i+threadIndexOffset,workData};
             std::thread t(tp);
             t.detach();
         }
@@ -345,13 +345,13 @@ inline static HANDLE _thread_create(TProc func,void* param){
 }
 
 void thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
-                     int isUseThisThread,int threadIndexStart){
+                     int isUseThisThread,int threadIndexOffset){
     for (int i=0; i<threadCount; ++i) {
         if ((i==threadCount-1)&&(isUseThisThread)){
-            threadProc(i+threadIndexStart,workData);
+            threadProc(i+threadIndexOffset,workData);
         }else{
             _TThreadData* pt=new _TThreadData();
-            pt->threadIndex=i+threadIndexStart;
+            pt->threadIndex=i+threadIndexOffset;
             pt->threadProc=threadProc;
             pt->workData=workData;
             HANDLE rt=_thread_create(_win_threadProc,pt);
