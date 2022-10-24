@@ -70,7 +70,11 @@ struct CHLocker{
         _CChannel_import* _import;
     };
 
+#ifndef _IS_NEED_atomic_func
+#define _IS_NEED_atomic_func 1
+#endif
 
+#if (_IS_NEED_atomic_func)
 #if (defined(_MSC_VER)) && (_MSC_VER<1700) && (defined(WIN32)) //vc2012 support atomic
 #   define _NEED_MSVC_WIN32_atomic_func 1
     void atomic32_or(uint32_t* p,uint32_t or_v);
@@ -81,6 +85,7 @@ struct CHLocker{
         ((std::atomic<uint32_t>*)p)->fetch_or(or_v);
     }
 #endif
+#endif //_IS_NEED_atomic_func
 
 #endif //_IS_USED_MULTITHREAD
 #endif //parallel_channel_h
