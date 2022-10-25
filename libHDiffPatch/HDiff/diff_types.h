@@ -108,6 +108,13 @@ extern "C"
     struct IDiffInsertCover{
         void* (*insertCover)(IDiffInsertCover* diffi,const void* pInsertCovers,size_t insertCoverCount,bool insertIsCover32);
     };
+
+    static const int kDefaultMaxMatchDeepForLimit=6;
+    typedef struct{
+        hpatch_StreamPos_t beginPos;
+        hpatch_StreamPos_t endPos;
+    } hdiff_TRange;
+
     struct ICoverLinesListener {
         bool (*search_cover_limit)(ICoverLinesListener* listener,const void* pcovers,size_t coverCount,bool isCover32);
         void (*research_cover)(ICoverLinesListener* listener,IDiffResearchCover* diffi,const void* pcovers,size_t coverCount,bool isCover32);
@@ -115,6 +122,11 @@ extern "C"
                              hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
         void (*search_cover_finish)(ICoverLinesListener* listener,void* pcovers,size_t* pcoverCount,bool isCover32,
                                     hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
+        int (*get_max_match_deep)(const ICoverLinesListener* listener); //if null, default kDefaultMaxMatchDeepForLimit
+        // *search_block* for muti-thread parallel match,can null
+        void (*begin_search_block)(ICoverLinesListener* listener,hpatch_StreamPos_t newSize,
+                                   size_t searchBlockSize,size_t kPartPepeatSize);
+        hpatch_BOOL (*next_search_block_MT)(ICoverLinesListener* listener,hdiff_TRange* out_newRange);//must thread safe
     };
 
     

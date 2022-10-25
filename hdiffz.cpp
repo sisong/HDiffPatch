@@ -153,10 +153,11 @@ static void printUsage(){
            ")bytes of memory;\n"
            "      matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...\n"
            "special options:\n"
-           "  -block[-fastMatchBlockSize] \n"
+           "  -block-fastMatchBlockSize \n"
            "      must run with -m;\n"
-           "      set is use fast block match befor slow match, DEFAULT false;\n"
-           "      fastMatchBlockSize>=4, DEFAULT 4k, recommended 256,1k,64k,1m etc...;\n"
+           "      set block match befor slow byte-by-byte match, DEFAULT -block-4k;\n"
+           "      if set -block-0, means don't use block match;\n"
+           "      fastMatchBlockSize>=4, recommended 256,1k,64k,1m etc...\n"
            "      if newData similar to oldData then diff speed++ & diff memory--,\n"
            "      but small possibility outDiffFile's size+\n"
            "  -cache \n"
@@ -181,13 +182,10 @@ static void printUsage(){
            "      set outDiffFile Compress type, DEFAULT uncompress;\n"
            "      for resave diffFile,recompress diffFile to outDiffFile by new set;\n"
            "      support compress type & level & dict:\n"
-           "       (re. https://github.com/sisong/lzbench/blob/master/lzbench171_sorted.md )\n"
 #ifdef _CompressPlugin_zlib
            "        -c-zlib[-{1..9}[-dictBits]]     DEFAULT level 9\n"
            "            dictBits can 9--15, DEFAULT 15.\n"
 #   if (_IS_USED_MULTITHREAD)
-           "        -c-pzlib[-{1..9}[-dictBits]]    DEFAULT level 6\n"
-           "            dictBits can 9--15, DEFAULT 15.\n"
            "            support run by multi-thread parallel, fast!\n"
 #   endif
 #endif
@@ -591,16 +589,14 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     const size_t defaultDictBits_zlib=15; //32k
 #endif
 #ifdef _CompressPlugin_zlib
-    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zlib",0,
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"zlib","pzlib",
                                         &compressLevel,1,9,9, &dictBits,9,15,defaultDictBits_zlib),"-c-zlib-?"){
+#   if (!_IS_USED_MULTITHREAD)
         static TCompressPlugin_zlib _zlibCompressPlugin=zlibCompressPlugin;
         _zlibCompressPlugin.compress_level=(int)compressLevel;
         _zlibCompressPlugin.windowBits=(signed char)(-dictBits);
         *out_compressPlugin=&_zlibCompressPlugin.base; }}
-#   if (_IS_USED_MULTITHREAD)
-    //pzlib
-    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"pzlib",0,
-                                        &compressLevel,1,9,6, &dictBits,9,15,defaultDictBits_zlib),"-c-pzlib-?"){
+#   else
         static TCompressPlugin_pzlib _pzlibCompressPlugin=pzlibCompressPlugin;
         _pzlibCompressPlugin.base.compress_level=(int)compressLevel;
         _pzlibCompressPlugin.base.windowBits=(signed char)(-dictBits);
@@ -716,7 +712,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     diffSets.isDiffInMem   =_kNULL_VALUE;
     diffSets.isSingleCompressedDiff =_kNULL_VALUE;
     diffSets.isUseBigCacheMatch =_kNULL_VALUE;
-    diffSets.matchBlockSize=0;
+    diffSets.matchBlockSize=_kNULL_SIZE;
     diffSets.threadNum=_THREAD_NUMBER_NULL;
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
@@ -771,12 +767,13 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
             case 's':{
                 _options_check((diffSets.isDiffInMem==_kNULL_VALUE),"-s");
-                _options_check((diffSets.matchBlockSize==0),"-block must run with -m");
+                _options_check((diffSets.matchBlockSize==_kNULL_SIZE),"-block must run with -m");
                 diffSets.isDiffInMem=hpatch_FALSE; //diff by stream
                 if (op[2]=='-'){
                     const char* pnum=op+3;
                     _options_check(kmg_to_size(pnum,strlen(pnum),&diffSets.matchBlockSize),"-s-?");
-                    _options_check(kMatchBlockSize_min<=diffSets.matchBlockSize,"-s-?");
+                    _options_check((kMatchBlockSize_min<=diffSets.matchBlockSize)
+                                 &&(diffSets.matchBlockSize!=_kNULL_SIZE),"-s-?");
                 }else{
                     diffSets.matchBlockSize=kMatchBlockSize_default;
                 }
@@ -832,13 +829,15 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
 #endif
             case 'b':{
-                _options_check((diffSets.matchBlockSize==0)&&
+                _options_check((diffSets.matchBlockSize==_kNULL_SIZE)&&
                     (op[2]=='l')&&(op[3]=='o')&&(op[4]=='c')&&(op[5]=='k')&&
                     ((op[6]=='\0')||(op[6]=='-')),"-block?");
                 if (op[6]=='-'){
                     const char* pnum=op+7;
                     _options_check(kmg_to_size(pnum,strlen(pnum),&diffSets.matchBlockSize),"-block-?");
-                    _options_check(kMatchBlockSize_min<=diffSets.matchBlockSize,"-block-?");
+                    if (diffSets.matchBlockSize!=0)
+                        _options_check((kMatchBlockSize_min<=diffSets.matchBlockSize)
+                                     &&(diffSets.matchBlockSize!=_kNULL_SIZE),"-block-?");
                 }else{
                     diffSets.matchBlockSize=kDefaultFastMatchBlockSize;
                 }
@@ -867,9 +866,10 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 _options_check(_getOptChecksum(&checksumPlugin,ptype,"no"),"-C-?");
             } break;
             case 'n':{
-                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?")
+                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n")
                 const char* pnum=op+3;
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
+                _options_check((kMaxOpenFileNumber!=_kNULL_SIZE),"-n-?");
             } break;
             case 'g':{
                 if (op[2]=='#'){ //-g#
@@ -954,6 +954,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
 #endif
+    if (diffSets.isDiffInMem&&(diffSets.matchBlockSize==_kNULL_SIZE))
+        diffSets.matchBlockSize=kDefaultFastMatchBlockSize;
     if (diffSets.threadNum==_THREAD_NUMBER_NULL)
         diffSets.threadNum=_THREAD_NUMBER_DEFUALT;
     else if (diffSets.threadNum>_THREAD_NUMBER_MAX)
@@ -1024,7 +1026,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #endif
             {
                 diffSets.isDiffInMem=hpatch_FALSE;     //not need -m, set as -s
-                diffSets.matchBlockSize=hpatch_kStreamCacheSize; //not used
+                diffSets.matchBlockSize=kDefaultFastMatchBlockSize; //not used
                 diffSets.isUseBigCacheMatch=hpatch_FALSE;
             }
         }else{

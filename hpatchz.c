@@ -139,7 +139,7 @@ static void printUsage(){
            "  if oldPath is empty input parameter \"\"\n"
            "memory options:\n"
            "  -s[-cacheSize] \n"
-           "      DEFAULT -s-64m; oldPath loaded as Stream;\n"
+           "      DEFAULT -s-4m; oldPath loaded as Stream;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc....\n"
            "      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.\n"
            "      if diffFile is single compressed diffData, then requires\n"
@@ -258,8 +258,8 @@ typedef enum THPatchResult {
 int hpatch_cmd_line(int argc, const char * argv[]);
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
-           hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
-           hpatch_StreamPos_t diffDataOffert,hpatch_StreamPos_t diffDataSize);
+           hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
+           hpatch_StreamPos_t diffDataSize);
 #if (_IS_NEED_DIR_DIFF_PATCH)
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
@@ -331,8 +331,7 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
 
 #define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
 #define kPatchCacheSize_bestmin  ((size_t)1<<21)
-#define kPatchCacheSize_default  ((size_t)1<<26)
-#define kPatchCacheSize_bestmax  ((size_t)1<<30)
+#define kPatchCacheSize_default  ((size_t)1<<22)
 
 #define _kNULL_VALUE    (-1)
 #define _kNULL_SIZE     (~(size_t)0)
@@ -447,8 +446,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             } break;
             case 'n':{
                 const char* pnum=op+3;
-                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n-?");
+                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n");
                 _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
+                _options_check((kMaxOpenFileNumber!=_kNULL_SIZE),"-n-?");
             } break;
 #endif
             case '?':
@@ -602,8 +602,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             }else
 #endif
             {
-                return hpatch(oldPath,diffFileName,outNewPath,
-                              isLoadOldAll,patchCacheSize,diffDataOffert,diffDataSize);
+                return hpatch(oldPath,diffFileName,outNewPath,isLoadOldAll,
+                              patchCacheSize,diffDataOffert,diffDataSize);
             }
         }else
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -626,12 +626,13 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #if (_IS_NEED_DIR_DIFF_PATCH)
             if (dirDiffInfo.isDirDiff){
                 result=hpatch_dir(oldPath,diffFileName,newTempName,isLoadOldAll,patchCacheSize,
-                                  kMaxOpenFileNumber,&checksumSet,&defaultPatchDirlistener,diffDataOffert,diffDataSize);
+                                  kMaxOpenFileNumber,&checksumSet,&defaultPatchDirlistener,
+                                  diffDataOffert,diffDataSize);
             }else
 #endif
             {
-                result=hpatch(oldPath,diffFileName,newTempName,
-                              isLoadOldAll,patchCacheSize,diffDataOffert,diffDataSize);
+                result=hpatch(oldPath,diffFileName,newTempName,isLoadOldAll,
+                              patchCacheSize,diffDataOffert,diffDataSize);
             }
             if (result==HPATCH_SUCCESS){
                 _return_check(hpatch_removeFile(oldPath),
@@ -657,8 +658,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             _return_check(hpatch_getTempPathName(outNewPath,newTempDir,newTempDir+hpatch_kPathMaxSize),
                           HPATCH_TEMPPATH_ERROR,"getTempPathName(outNewPath)");
             printf("NOTE: all in outNewPath temp directory will be move to oldDirectory after patch!\n");
-            result=hpatch_dir(oldPath,diffFileName,newTempDir,isLoadOldAll,patchCacheSize,
-                              kMaxOpenFileNumber,&checksumSet,&tempDirPatchListener,diffDataOffert,diffDataSize);
+            result=hpatch_dir(oldPath,diffFileName,newTempDir,isLoadOldAll,patchCacheSize,kMaxOpenFileNumber,
+                              &checksumSet,&tempDirPatchListener,diffDataOffert,diffDataSize);
             if (result==HPATCH_SUCCESS){
                 printf("all in outNewPath temp directory moved to oldDirectory!\n");
             }else if(!hpatch_isPathNotExist(newTempDir)){
@@ -800,34 +801,32 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
                                hpatch_StreamPos_t oldDataSize,size_t* out_memCacheSize){
     TByte* temp_cache=0;
     size_t temp_cache_size;
-    if (isLoadOldAll){
-        size_t addSize=kPatchCacheSize_bestmin;
-        if (addSize>oldDataSize+kPatchCacheSize_min)
-            addSize=(size_t)(oldDataSize+kPatchCacheSize_min);
-        assert(patchCacheSize==0);
-        temp_cache_size=(size_t)(oldDataSize+addSize);
-        if (temp_cache_size!=oldDataSize+addSize)
-            temp_cache_size=kPatchCacheSize_bestmax;//can not load all,load part
-    }else{
-        if (patchCacheSize<kPatchCacheSize_min)
-            patchCacheSize=kPatchCacheSize_min;
-        temp_cache_size=patchCacheSize;
-        if (temp_cache_size>oldDataSize+kPatchCacheSize_bestmin)
-            temp_cache_size=(size_t)(oldDataSize+kPatchCacheSize_bestmin);
+    {
+        hpatch_StreamPos_t limitCacheSize;
+        const hpatch_StreamPos_t bestMaxCacheSize=oldDataSize+kPatchCacheSize_bestmin;
+        if (isLoadOldAll){
+            limitCacheSize=bestMaxCacheSize;
+        }else{
+            limitCacheSize=(patchCacheSize<kPatchCacheSize_min)?kPatchCacheSize_min:patchCacheSize;
+            limitCacheSize=(limitCacheSize<bestMaxCacheSize)?limitCacheSize:bestMaxCacheSize;
+        }
+        if (limitCacheSize>(size_t)(_kNULL_SIZE-mustAppendMemSize))//too large
+            limitCacheSize=(size_t)(_kNULL_SIZE-mustAppendMemSize);
+        temp_cache_size=(size_t)limitCacheSize;
     }
-    while (!temp_cache) {
+    while (temp_cache_size>=kPatchCacheSize_min){
         temp_cache=(TByte*)malloc(mustAppendMemSize+temp_cache_size);
-        if ((!temp_cache)&&(temp_cache_size>=kPatchCacheSize_min*2))
-            temp_cache_size>>=1;
+        if (temp_cache) break;
+        temp_cache_size>>=1;
     }
     *out_memCacheSize=(temp_cache)?(mustAppendMemSize+temp_cache_size):0;
     return temp_cache;
 }
 
 
-int hpatch(const char* oldFileName,const char* diffFileName,
-           const char* outNewFileName,hpatch_BOOL isLoadOldAll,size_t patchCacheSize,
-           hpatch_StreamPos_t diffDataOffert,hpatch_StreamPos_t diffDataSize){
+int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
+           hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
+           hpatch_StreamPos_t diffDataSize){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
@@ -932,7 +931,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,
         check(temp_cache_size>=sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3,HPATCH_MEM_ERROR,"alloc cache memory");
         if (!patch_single_compressed_diff(&newData.base,poldData,&diffData.base,sdiffInfo.diffDataPos,
                                           sdiffInfo.uncompressedSize,sdiffInfo.compressedSize,decompressPlugin,
-                                          sdiffInfo.coverCount,(size_t)sdiffInfo.stepMemSize,temp_cache,temp_cache+temp_cache_size,0))
+                                          sdiffInfo.coverCount,(size_t)sdiffInfo.stepMemSize,
+                                          temp_cache,temp_cache+temp_cache_size,0))
             patch_result=HPATCH_SPATCH_ERROR;
     }else
 #endif

@@ -12,6 +12,15 @@ extern "C" {
     #define _check_jn2cstr(jstr,cstr) do { if (jstr) __j2cstr_(jstr,cstr); else (cstr)=0; } while(0)
     #define _jrelease_cstr(jstr,cstr) do { if (cstr) (*jenv)->ReleaseStringUTFChars(jenv,jstr,cstr); } while(0)
 
+
+    static size_t getCacheMemory(jlong cacheMemory){
+        #define kPatchCacheSize_default  (1024*256)
+        #define kPatchCacheSize_max ((jlong)((size_t)(~(size_t)0)))
+        if (cacheMemory<0) return kPatchCacheSize_default;
+        if (sizeof(jlong)<=sizeof(size_t)) return (size_t)cacheMemory;
+        return (size_t)((cacheMemory<kPatchCacheSize_max)?cacheMemory:kPatchCacheSize_max);
+    }
+
     JNIEXPORT int
     Java_com_github_sisong_HPatch_patch(JNIEnv* jenv,jobject jobj,
                                         jstring oldFileName,jstring diffFileName,
@@ -19,10 +28,9 @@ extern "C" {
         const char* cOldFileName   =0;
         const char* cDiffFileName  =0;
         const char* cOutNewFileName=0;
-        size_t cCacheMemory=(size_t)cacheMemory;
+        size_t cCacheMemory=getCacheMemory(cacheMemory);
         int result=0;
 
-        _check_rt((jlong)cCacheMemory==cacheMemory);
         _check_jn2cstr(oldFileName,cOldFileName);
         _check_j2cstr(diffFileName,cDiffFileName);
         _check_j2cstr(outNewFileName,cOutNewFileName);

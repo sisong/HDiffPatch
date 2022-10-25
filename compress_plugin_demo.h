@@ -365,7 +365,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         }
     }
     
-    _def_fun_compressType(_pzlib_compressType,"pzlib");
+    _def_fun_compressType(_pzlib_compressType,"zlib"); // pzlibCompressPlugin now out standard deflate code, same as zlibCompressPlugin
     static const TCompressPlugin_pzlib pzlibCompressPlugin={
         { {_pzlib_compressType,_default_maxCompressedSize,_pzlib_setThreadNum,_pzlib_compress},
             6,8,-MAX_WBITS,hpatch_TRUE,Z_DEFAULT_STRATEGY},

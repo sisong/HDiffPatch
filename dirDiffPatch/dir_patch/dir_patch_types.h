@@ -32,17 +32,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
-struct THDiffSets{
-    hpatch_BOOL isDiffInMem;//or diff by stream
-    hpatch_BOOL isSingleCompressedDiff;
-    //diff in mem
-    hpatch_BOOL isUseBigCacheMatch;
-    size_t matchScore;
-    size_t patchStepMemSize;
-    size_t matchBlockSize;
-    size_t threadNum;
-};
 
 #ifndef _IS_NEED_DIR_DIFF_PATCH
 #   define _IS_NEED_DIR_DIFF_PATCH  1
