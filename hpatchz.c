@@ -332,7 +332,6 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
 #define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
 #define kPatchCacheSize_bestmin  ((size_t)1<<21)
 #define kPatchCacheSize_default  ((size_t)1<<22)
-#define kPatchCacheSize_bestmax  ((size_t)1<<30)
 
 #define _kNULL_VALUE    (-1)
 #define _kNULL_SIZE     (~(size_t)0)
@@ -802,25 +801,23 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
                                hpatch_StreamPos_t oldDataSize,size_t* out_memCacheSize){
     TByte* temp_cache=0;
     size_t temp_cache_size;
-    if (isLoadOldAll){
-        size_t addSize=kPatchCacheSize_bestmin;
-        if (addSize>oldDataSize+kPatchCacheSize_min)
-            addSize=(size_t)(oldDataSize+kPatchCacheSize_min);
-        assert(patchCacheSize==0);
-        temp_cache_size=(size_t)(oldDataSize+addSize);
-        if (temp_cache_size!=oldDataSize+addSize)
-            temp_cache_size=kPatchCacheSize_bestmax;//can not load all,load part
-    }else{
-        if (patchCacheSize<kPatchCacheSize_min)
-            patchCacheSize=kPatchCacheSize_min;
-        temp_cache_size=patchCacheSize;
-        if (temp_cache_size>oldDataSize+kPatchCacheSize_bestmin)
-            temp_cache_size=(size_t)(oldDataSize+kPatchCacheSize_bestmin);
+    {
+        hpatch_StreamPos_t limitCacheSize;
+        const hpatch_StreamPos_t bestMaxCacheSize=oldDataSize+kPatchCacheSize_bestmin;
+        if (isLoadOldAll){
+            limitCacheSize=bestMaxCacheSize;
+        }else{
+            limitCacheSize=(patchCacheSize<kPatchCacheSize_min)?kPatchCacheSize_min:patchCacheSize;
+            limitCacheSize=(limitCacheSize<bestMaxCacheSize)?limitCacheSize:bestMaxCacheSize;
+        }
+        if (limitCacheSize>(size_t)(_kNULL_SIZE-mustAppendMemSize))//too large
+            limitCacheSize=(size_t)(_kNULL_SIZE-mustAppendMemSize);
+        temp_cache_size=(size_t)limitCacheSize;
     }
-    while (!temp_cache) {
+    while (temp_cache_size>=kPatchCacheSize_min){
         temp_cache=(TByte*)malloc(mustAppendMemSize+temp_cache_size);
-        if ((!temp_cache)&&(temp_cache_size>=kPatchCacheSize_min*2))
-            temp_cache_size>>=1;
+        if (temp_cache) break;
+        temp_cache_size>>=1;
     }
     *out_memCacheSize=(temp_cache)?(mustAppendMemSize+temp_cache_size):0;
     return temp_cache;
