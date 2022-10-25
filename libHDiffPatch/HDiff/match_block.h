@@ -60,11 +60,10 @@ namespace hdiff_private{
     };
 
     struct TCoversOptim:public ICoverLinesListener{
-        explicit TCoversOptim(TMatchBlock* _matchBlock):matchBlock(_matchBlock){ 
-            search_cover_limit=0;
-            research_cover=0; 
+        explicit TCoversOptim(TMatchBlock* _matchBlock):matchBlock(_matchBlock){
+            ICoverLinesListener* listener=this;
+            memset(listener,0,sizeof(*listener));
             insert_cover=_insert_cover;
-            search_cover_finish=0; 
         }
         TMatchBlock* matchBlock;
     protected:
