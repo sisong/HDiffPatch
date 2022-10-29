@@ -287,16 +287,13 @@ void TSuffixString::resetSuffixString(const TChar* src_begin,const TChar* src_en
     build_cache(threadNum);
 }
 
-#define _cached2(ix,isLarge) (TChar*)m_cached_SA_begin+(isLarge? \
-        ((size_t*)m_cached2char_range)[ix]*sizeof(size_t) : ((TInt32*)m_cached2char_range)[ix]*sizeof(TInt32) )
-
 TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
     //not use any cached range table
     //return m_lower_bound(m_cached_SA_begin,m_cached_SA_end,
     //                     str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,0);
 #if (_SSTRING_FAST_MATCH>0)
     if (m_isUsedFastMatch&&(!m_fastMatch.isHit(TFastMatchForSString::getHash(str))))
-        return 0;
+        return -1;
     #define kMinStrLen _SSTRING_FAST_MATCH
 #else
     //assert(str_end-str>=2);
@@ -304,15 +301,22 @@ TInt TSuffixString::lower_bound(const TChar* str,const TChar* str_end)const{
 #endif
     if ((kMinStrLen>=2)&(m_cached2char_range!=0)){
         size_t cc=((size_t)str[1]) | (((size_t)str[0])<<8);
-        const bool isLarge=isUseLargeSA();
-        return m_lower_bound(_cached2(cc,isLarge),_cached2(cc+1,isLarge),
+        size_t r0,r1;
+        if (isUseLargeSA()){
+            r0=((TInt*)m_cached2char_range)[cc]*sizeof(TInt);
+            r1=((TInt*)m_cached2char_range)[cc+1]*sizeof(TInt);
+        }else{
+            r0=((TInt32*)m_cached2char_range)[cc]*sizeof(TInt32);
+            r1=((TInt32*)m_cached2char_range)[cc+1]*sizeof(TInt32);
+        }
+        return m_lower_bound((TChar*)m_cached_SA_begin+r0,(TChar*)m_cached_SA_begin+r1,
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,2);
     }else if (kMinStrLen>0){
         size_t c=str[0];
         return m_lower_bound(m_cached1char_range[c],m_cached1char_range[c+1],
                              str,str_end,m_src_begin,m_src_end,m_cached_SA_begin,1);
     }else{
-        return 0;
+        return -1;
     }
 }
 

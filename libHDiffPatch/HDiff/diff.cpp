@@ -137,11 +137,12 @@ struct TDiffLimit{
 //得到最长的一个匹配长度和其位置.
 static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
                          const TByte* newData,const TByte* newData_end,
-                         TInt curNewPos,TDiffLimit* diffLimit=0){
+                         TInt curNewPos,TDiffLimit* diffLimit=0,size_t* out_limitSkip=0){
+    TInt sai=sstring.lower_bound(newData,newData_end);
+    if (sai<0) return 0;
     const TInt matchDeep = diffLimit?diffLimit->kMaxMatchDeep:2;
     const TInt kLimitOldPos=(TInt)(diffLimit?diffLimit->recoverOldPos:0);
     const TInt kLimitOldEnd=(TInt)(diffLimit?diffLimit->recoverOldEnd:sstring.SASize());
-    TInt sai=sstring.lower_bound(newData,newData_end);
     
     const TByte* src_begin=sstring.src_begin();
     const TByte* src_end=sstring.src_end();
@@ -164,9 +165,12 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
         if (0==diffLimit){
             curLength=getEqualLength(newData,newData_end,src_begin+curOldPos,src_end);
         }else{
-            if ((curOldPos>=kLimitOldPos)&(curOldPos<kLimitOldEnd))
-                continue;
             curLength=getEqualLengthLimit<kTryEqLenLimit>(newData,newData_end,src_begin+curOldPos,src_end);
+            if ((kLimitOldPos<=curOldPos)&&(curOldPos<kLimitOldEnd)){
+                if (curLength==kTryEqLenLimit)
+                    *out_limitSkip=kTryEqLenLimit/2;
+                continue;
+            }
         }
          
         if (curLength>bestLength){
@@ -293,9 +297,11 @@ static void _search_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
     TOldCover lastCover(0,0,0);
     while (newPos<=maxSearchNewPos) {
         TInt matchOldPos=0;
-        TInt matchEqLength=getBestMatch(&matchOldPos,sstring,diff.newData+newPos,diff.newData+newEnd,newPos,diffLimit);
+        size_t limitSkip=1;
+        TInt matchEqLength=getBestMatch(&matchOldPos,sstring,diff.newData+newPos,diff.newData+newEnd,newPos,
+                                        diffLimit,&limitSkip);
         if (matchEqLength<kMinMatchLen){
-            ++newPos;
+            newPos+=limitSkip;
             continue;
         }
         TOldCover matchCover(matchOldPos,newPos,matchEqLength);
