@@ -32,6 +32,10 @@
 #include <assert.h>
 #include <stdexcept>//std::runtime_error
 #include "../../../../libParallel/parallel_channel.h"
+#if (_IS_USED_MULTITHREAD)
+#include <atomic> //need c++11, vc version need vc2012
+#endif
+
 namespace hdiff_private{
 
 class TBitSet{
@@ -44,9 +48,9 @@ public:
         m_bits[bitIndex>>kBaseShr] |= ((base_t)1<<(bitIndex&kBaseMask));
     }
 #if (_IS_USED_MULTITHREAD)
-    void set_MT(size_t bitIndex){
+    inline void set_MT(size_t bitIndex){
         //assert(bitIndex<m_bitSize);
-        atomic32_or(&m_bits[bitIndex>>kBaseShr],((base_t)1<<(bitIndex&kBaseMask)));
+        ((std::atomic<base_t>*)&m_bits[bitIndex>>kBaseShr])->fetch_or(((base_t)1<<(bitIndex&kBaseMask)));
     }
 #endif
     inline bool is_hit(size_t bitIndex)const{
