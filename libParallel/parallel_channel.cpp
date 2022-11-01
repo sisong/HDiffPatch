@@ -167,12 +167,4 @@ TChanData CChannel::accept(bool isWait){
     return _import->accept(isWait);
 }
 
-
-#if (_NEED_MSVC_WIN32_atomic_func)
-#   include "windows.h"
-    void atomic32_or(uint32_t* p,uint32_t or_v){
-        InterlockedOr((volatile LONG*)p,(LONG)or_v);
-    }
-#endif
-
 #endif //_IS_USED_MULTITHREAD

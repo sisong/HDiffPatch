@@ -31,10 +31,6 @@
 #endif
 #include "patch_private.h"
 
-#ifndef  _IS_NEED_MIN_CODE_SIZE
-#   define _IS_NEED_MIN_CODE_SIZE  0   //default used fast code
-#endif
-
 #ifndef _IS_RUN_MEM_SAFE_CHECK
 #   define _IS_RUN_MEM_SAFE_CHECK  1
 #endif
@@ -325,30 +321,9 @@ hpatch_BOOL patch(TByte* out_newData,TByte* out_newData_end,
         return _hpatch_FALSE;
 }
 
-#if (_IS_NEED_MIN_CODE_SIZE)
 hpatch_inline static void addData(TByte* dst,const TByte* src,hpatch_size_t length){
     while (length--) { *dst++ += *src++; }
 }
-#else
-static void addData(TByte* dst,const TByte* src,hpatch_size_t length){
-    hpatch_size_t length_fast,i;
-    
-    length_fast=length&(~(hpatch_size_t)7);
-    for (i=0;i<length_fast;i+=8){
-        dst[i  ]+=src[i  ];
-        dst[i+1]+=src[i+1];
-        dst[i+2]+=src[i+2];
-        dst[i+3]+=src[i+3];
-        dst[i+4]+=src[i+4];
-        dst[i+5]+=src[i+5];
-        dst[i+6]+=src[i+6];
-        dst[i+7]+=src[i+7];
-    }
-    for (;i<length;++i)
-        dst[i]+=src[i];
-}
-#endif
-
 
 static hpatch_BOOL _bytesRle_load(TByte* out_data,TByte* out_dataEnd,
                                   const TByte* rle_code,const TByte* rle_code_end){
@@ -678,29 +653,9 @@ static void _TBytesRle_load_stream_init(_TBytesRle_load_stream* loader){
     _TStreamCacheClip_init(&loader->rleCodeClip,0,0,0,0,0);
 }
 
-#if (_IS_NEED_MIN_CODE_SIZE)
 hpatch_inline static void memSet_add(TByte* dst,const TByte src,hpatch_size_t length){
-    while (length--) { *dst++ += src; }
+    while (length--) { (*dst++) += src; }
 }
-#else
-static void memSet_add(TByte* dst,const TByte src,hpatch_size_t length){
-    hpatch_size_t length_fast,i;
-
-    length_fast=length&(~(hpatch_size_t)7);
-    for (i=0;i<length_fast;i+=8){
-        dst[i  ]+=src;
-        dst[i+1]+=src;
-        dst[i+2]+=src;
-        dst[i+3]+=src;
-        dst[i+4]+=src;
-        dst[i+5]+=src;
-        dst[i+6]+=src;
-        dst[i+7]+=src;
-    }
-    for (;i<length;++i)
-        dst[i]+=src;
-}
-#endif
 
 static hpatch_BOOL _TBytesRle_load_stream_mem_add(_TBytesRle_load_stream* loader,
                                                   hpatch_size_t* _decodeSize,TByte** _out_data){
@@ -1433,22 +1388,27 @@ static hpatch_BOOL _arrayCovers_load(_TArrayCovers** out_self,hpatch_TCovers* sr
     _uint_t y=((const _uint_t*)_y)[item]; \
     return (x<y)?(-1):((x>y)?1:0); \
 }
-static hpatch_int _arrayCovers_comp_by_old_32(const void* _x, const void *_y){
+#ifdef _MSC_VER
+#   define __CALL_BACK_C    __cdecl
+#else
+#   define __CALL_BACK_C
+#endif
+static hpatch_int __CALL_BACK_C _arrayCovers_comp_by_old_32(const void* _x, const void *_y){
     _arrayCovers_comp(hpatch_uint32_t,_x,_y,0);
 }
-static hpatch_int _arrayCovers_comp_by_old(const void* _x, const void *_y){
+static hpatch_int __CALL_BACK_C _arrayCovers_comp_by_old(const void* _x, const void *_y){
     _arrayCovers_comp(hpatch_StreamPos_t,_x,_y,0);
 }
-static hpatch_int _arrayCovers_comp_by_new_32(const void* _x, const void *_y){
+static hpatch_int __CALL_BACK_C _arrayCovers_comp_by_new_32(const void* _x, const void *_y){
     _arrayCovers_comp(hpatch_uint32_t,_x,_y,1);
 }
-static hpatch_int _arrayCovers_comp_by_new(const void* _x, const void *_y){
+static hpatch_int __CALL_BACK_C _arrayCovers_comp_by_new(const void* _x, const void *_y){
     _arrayCovers_comp(hpatch_StreamPos_t,_x,_y,1);
 }
-static hpatch_int _arrayCovers_comp_by_len_32(const void* _x, const void *_y){
+static hpatch_int __CALL_BACK_C _arrayCovers_comp_by_len_32(const void* _x, const void *_y){
     _arrayCovers_comp(hpatch_uint32_t,_x,_y,2);
 }
-static hpatch_int _arrayCovers_comp_by_len(const void* _x, const void *_y){
+static hpatch_int __CALL_BACK_C _arrayCovers_comp_by_len(const void* _x, const void *_y){
     _arrayCovers_comp(hpatch_StreamPos_t,_x,_y,2);
 }
 
