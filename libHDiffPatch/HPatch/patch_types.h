@@ -195,10 +195,10 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
                 (decompressPlugin)->decError=errorCode;     } while(0)
     
     
-    void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
-                             const unsigned char* mem,const unsigned char* mem_end);
-    void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
-                              unsigned char* mem,unsigned char* mem_end);
+    const hpatch_TStreamInput* mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
+                                                   const unsigned char* mem,const unsigned char* mem_end);
+    const hpatch_TStreamOutput* mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
+                                                     unsigned char* mem,unsigned char* mem_end);
     
     hpatch_BOOL hpatch_deccompress_mem(hpatch_TDecompress* decompressPlugin,
                                        const unsigned char* code,const unsigned char* code_end,

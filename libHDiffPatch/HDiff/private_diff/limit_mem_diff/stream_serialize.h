@@ -54,27 +54,36 @@ private:
                              unsigned char* out_data,unsigned char* out_data_end);
 };
 
-struct TNewDataSubDiffStream_mem:public hpatch_TStreamInput{
-    TNewDataSubDiffStream_mem(const unsigned char* newData,const unsigned char* newData_end,
-                              const unsigned char* oldData,const unsigned char* oldData_end,
-                              const TCovers& _covers,bool _isOnlySubCover=false);
-    inline ~TNewDataSubDiffStream_mem(){ assert(curReadPos==streamSize); }
+
+struct TNewDataSubDiffStream:public hpatch_TStreamInput{
+    TNewDataSubDiffStream(const hdiff_TStreamInput* _newData,const hdiff_TStreamInput* _oldData,
+                          const TCovers& _covers,bool _isOnlySubCover=false,bool _isZeroSubDiff=false);
+    inline ~TNewDataSubDiffStream(){ assert(curReadPos==streamSize); }
 private:
-    size_t curReadNewPos;
-    size_t curReadPos;
+    hpatch_StreamPos_t curReadNewPos;
+    hpatch_StreamPos_t curReadOldPos;
+    hpatch_StreamPos_t curReadPos;
+    hpatch_StreamPos_t curDataLen;
     size_t nextCoveri;
-    size_t curDataLen;
-    const unsigned char* df_newData;
-    const unsigned char* df_newData_end;
-    const unsigned char* df_oldData;
-    const unsigned char* df_oldData_end;
+    const hdiff_TStreamInput* newData;
+    const hdiff_TStreamInput* oldData;
     const TCovers& covers;
     const bool isOnlySubCover;
-    const unsigned char* curOldData;
+    const bool isZeroSubDiff;
+    TAutoMem _cache;
     void initRead();
     void readTo(unsigned char* out_data,unsigned char* out_data_end);
     static hpatch_BOOL _read(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                              unsigned char* out_data,unsigned char* out_data_end);
+};
+
+struct TNewDataSubDiffStream_mem:public TNewDataSubDiffStream{
+    TNewDataSubDiffStream_mem(const unsigned char* newData,const unsigned char* newData_end,
+                              const unsigned char* oldData,const unsigned char* oldData_end,
+                              const TCovers& _covers,bool _isOnlySubCover=false,bool _isZeroSubDiff=false);
+private:
+    hdiff_TStreamInput mem_newData;
+    hdiff_TStreamInput mem_oldData;
 };
 
 struct TNewDataDiffStream:public hpatch_TStreamInput{
@@ -103,7 +112,6 @@ struct TNewDataSubDiffCoverStream:public hpatch_TStreamInput{
     void resetCoverLen(hpatch_StreamPos_t coverLen);
     const bool isZeroSubDiff;
 private:
-    enum { kSubDiffCacheSize = hpatch_kFileIOBufBetterSize*4 };
     hpatch_StreamPos_t inStreamLen;
     size_t curDataLen;
     const hpatch_TStreamInput* newStream;

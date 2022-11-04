@@ -171,7 +171,7 @@ static void printUsage(){
            "      stepSize>=" _HDIFFPATCH_EXPAND_AND_QUOTE(hpatch_kStreamCacheSize) ", DEFAULT -SD-256k, recommended 64k,2m etc...\n"
 #if (_IS_NEED_BSDIFF)
            "  -BSD \n"
-           "      create diffFile compatible with bsdiff, unsupport input directory(folder).\n"
+           "      create diffFile compatible with bsdiff4, unsupport input directory(folder).\n"
 #endif
 #if (_IS_USED_MULTITHREAD)
            "  -p-parallelThreadNumber\n"
@@ -1021,14 +1021,9 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         hpatch_TPathType newType;
         if (isOldPathInputEmpty){
             oldType=kPathType_file;     //as empty file
-#if (_IS_NEED_BSDIFF)
-            if (!diffSets.isBsDiff)
-#endif
-            {
-                diffSets.isDiffInMem=hpatch_FALSE;     //not need -m, set as -s
-                diffSets.matchBlockSize=kDefaultFastMatchBlockSize; //not used
-                diffSets.isUseBigCacheMatch=hpatch_FALSE;
-            }
+            diffSets.isDiffInMem=hpatch_FALSE;     //not need -m, set as -s
+            diffSets.matchBlockSize=kDefaultFastMatchBlockSize; //not used
+            diffSets.isUseBigCacheMatch=hpatch_FALSE;
         }else{
             _return_check(hpatch_getPathStat(oldPath,&oldType,0),HDIFF_PATHTYPE_ERROR,"get oldPath type");
             _return_check((oldType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"oldPath not exist");
@@ -1070,10 +1065,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         }else
 #endif
         {
-#if (_IS_NEED_BSDIFF)
-            if (diffSets.isDoDiff&&(!diffSets.isDiffInMem))
-                _options_check(!diffSets.isBsDiff,"bsdiff unsupport run with -s");
-#endif
             return hdiff(oldPath,newPath,outDiffFileName,
                          compressPlugin,diffSets);
         }
@@ -1339,6 +1330,12 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
               HDIFF_OPENWRITE_ERROR,"open out diffFile");
         hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
         try{
+#if (_IS_NEED_BSDIFF)
+            if (diffSets.isBsDiff){
+                create_bsdiff_stream(&newData.base,&oldData.base, &diffData_out.base,
+                                     compressPlugin,diffSets.matchBlockSize,diffSets.threadNum);   
+            }else
+#endif
             if (diffSets.isSingleCompressedDiff)
                 create_single_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
                                                      compressPlugin,diffSets.matchBlockSize,

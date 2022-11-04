@@ -1239,11 +1239,11 @@ void get_match_covers_by_sstring(const unsigned char* newData,const unsigned cha
 }
 
 
-static void stream_serialize(const hpatch_TStreamInput*  newData,
-                             hpatch_StreamPos_t          oldDataSize,
-                             const hpatch_TStreamOutput* out_diff,
-                             const hdiff_TCompress* compressPlugin,
-                             const TCovers& covers){
+static void stream_serialize_compressed_diff(const hpatch_TStreamInput*  newData,
+                                             hpatch_StreamPos_t          oldDataSize,
+                                             const hpatch_TStreamOutput* out_diff,
+                                             const hdiff_TCompress* compressPlugin,
+                                             const TCovers& covers){
     
     std::vector<TByte> rle_ctrlBuf;
     std::vector<TByte> rle_codeBuf;
@@ -1296,7 +1296,7 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hdiff_TCompress* compressPlugin,size_t kMatchBlockSize,size_t threadNum){
     TCoversBuf covers(newData->streamSize,oldData->streamSize);
     get_match_covers_by_block(newData,oldData,&covers,kMatchBlockSize,threadNum);
-    stream_serialize(newData,oldData->streamSize,out_diff,compressPlugin,covers);
+    stream_serialize_compressed_diff(newData,oldData->streamSize,out_diff,compressPlugin,covers);
 }
 
 

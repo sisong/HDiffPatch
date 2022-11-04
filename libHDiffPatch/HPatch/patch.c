@@ -144,11 +144,12 @@ hpatch_BOOL hpatch_unpackUIntWithTag(const TByte** src_code,const TByte* src_cod
         memcpy(out_data,src+readFromPos,readLen);
         return hpatch_TRUE;
     }
-void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
-                         const unsigned char* mem,const unsigned char* mem_end){
+const hpatch_TStreamInput* mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
+                                               const unsigned char* mem,const unsigned char* mem_end){
     out_stream->streamImport=(void*)mem;
     out_stream->streamSize=mem_end-mem;
     out_stream->read=_read_mem_stream;
+    return out_stream;
 }
 
     static hpatch_BOOL _write_mem_stream(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
@@ -164,12 +165,13 @@ void mem_as_hStreamInput(hpatch_TStreamInput* out_stream,
     }
     typedef hpatch_BOOL (*_read_mem_stream_t)(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
                                               unsigned char* out_data,unsigned char* out_data_end);
-void mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
-                          unsigned char* mem,unsigned char* mem_end){
+const hpatch_TStreamOutput* mem_as_hStreamOutput(hpatch_TStreamOutput* out_stream,
+                                                 unsigned char* mem,unsigned char* mem_end){
     out_stream->streamImport=mem;
     out_stream->streamSize=mem_end-mem;
     out_stream->read_writed=(_read_mem_stream_t)_read_mem_stream;
     out_stream->write=_write_mem_stream;
+    return out_stream;
 }
 
 hpatch_BOOL hpatch_deccompress_mem(hpatch_TDecompress* decompressPlugin,

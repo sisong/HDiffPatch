@@ -123,8 +123,15 @@ private:
             self->_update(self->m_covers_larger);
         }
     }
+public:
     std::vector<hpatch_TCover32>    m_covers_limit;
     std::vector<TCover>             m_covers_larger;
+    inline void update(){
+        if (_isCover32)
+            _update(m_covers_limit);
+        else
+            _update(m_covers_larger);
+    }
 };
 
 }//namespace hdiff_private
