@@ -82,6 +82,7 @@ hpatch_inline static
 void _TStreamCacheClip_init(TStreamCacheClip* sclip,const hpatch_TStreamInput* srcStream,
                             hpatch_StreamPos_t streamPos,hpatch_StreamPos_t streamPos_end,
                             unsigned char* aCache,hpatch_size_t cacheSize){
+    assert((streamPos<=streamPos_end)&&(streamPos_end<=srcStream->streamSize));
     sclip->streamPos=streamPos;
     sclip->streamPos_end=streamPos_end;
     sclip->srcStream=srcStream;
@@ -90,10 +91,10 @@ void _TStreamCacheClip_init(TStreamCacheClip* sclip,const hpatch_TStreamInput* s
     sclip->cacheEnd=cacheSize;
 }
     
-#define _TStreamCacheClip_isFinish(sclip)     ( 0==_TStreamCacheClip_streamSize(sclip) )
+#define _TStreamCacheClip_isFinish(sclip)     ( 0==_TStreamCacheClip_leaveSize(sclip) )
 #define _TStreamCacheClip_isCacheEmpty(sclip) ( (sclip)->cacheBegin==(sclip)->cacheEnd )
 #define _TStreamCacheClip_cachedSize(sclip)   ( (hpatch_size_t)((sclip)->cacheEnd-(sclip)->cacheBegin) )
-#define _TStreamCacheClip_streamSize(sclip)   \
+#define _TStreamCacheClip_leaveSize(sclip)   \
             (  (hpatch_StreamPos_t)((sclip)->streamPos_end-(sclip)->streamPos)  \
                 + (hpatch_StreamPos_t)_TStreamCacheClip_cachedSize(sclip)  )
 #define _TStreamCacheClip_readPosOfSrcStream(sclip) ( \
@@ -147,6 +148,9 @@ static hpatch_inline void _TOutStreamCache_init(_TOutStreamCache* self,const hpa
     self->cacheBuf=aCache;
     self->cacheCur=0;
     self->cacheEnd=aCacheSize;
+}
+static hpatch_inline hpatch_StreamPos_t _TOutStreamCache_leaveSize(const _TOutStreamCache* self){
+    return self->dstStream->streamSize-self->writeToPos;
 }
 static hpatch_inline hpatch_BOOL _TOutStreamCache_isFinish(const _TOutStreamCache* self){
     return self->writeToPos==self->dstStream->streamSize;
