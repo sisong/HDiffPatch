@@ -395,6 +395,7 @@
     <ClCompile Include="..\..\libParallel\parallel_channel.cpp" />
     <ClCompile Include="..\..\libParallel\parallel_import.cpp" />
     <ClCompile Include="..\..\vcdiff_wrapper\vcdiff_wrapper.cpp" />
+    <ClCompile Include="..\..\vcdiff_wrapper\vcpatch_code_table.c" />
     <ClCompile Include="..\..\vcdiff_wrapper\vcpatch_wrapper.c" />
   </ItemGroup>
   <ItemGroup>

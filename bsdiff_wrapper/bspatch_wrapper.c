@@ -136,7 +136,7 @@ hpatch_BOOL bspatchByClip(_TOutStreamCache* outCache,const hpatch_TStreamInput* 
 #ifdef __RUN_MEM_SAFE_CHECK
             if (skipNewLen>(hpatch_uint64_t)(newDataSize-newPosBack)) return _hpatch_FALSE;
 #endif
-            if (!_patch_copy_diff_by_outCache(outCache,newDataDiffClip,skipNewLen)) return _hpatch_FALSE;
+            if (!_TOutStreamCache_copyFromClip(outCache,newDataDiffClip,skipNewLen)) return _hpatch_FALSE;
             newPosBack+=skipNewLen;
         }
     }

@@ -45,12 +45,28 @@ typedef struct{
 
 #define vcdiff_code_table_t vcdiff_code_pair_t*
 
-#define vcdiff_code_NOOP    0
-#define vcdiff_code_ADD     1
-#define vcdiff_code_RUN     2
-#define vcdiff_code_COPY    3
+#define vcdiff_code_NOOP        0
+#define vcdiff_code_ADD         1
+#define vcdiff_code_RUN         2
+#define vcdiff_code_COPY        3
+#define vcdiff_code_COPY_SELF   (vcdiff_code_COPY+0)
+#define vcdiff_code_COPY_HERE   (vcdiff_code_COPY+1)
+#define vcdiff_code_COPY_NEAR0  (vcdiff_code_COPY+2)
+#define vcdiff_code_COPY_NEAR1  (vcdiff_code_COPY+3)
+#define vcdiff_code_COPY_NEAR2  (vcdiff_code_COPY+4)
+#define vcdiff_code_COPY_NEAR3  (vcdiff_code_COPY+5)
+#define vcdiff_s_near           (vcdiff_code_COPY_NEAR3-vcdiff_code_COPY_NEAR0+1)
+#define vcdiff_code_COPY_SAME0  (vcdiff_code_COPY+6)
+#define vcdiff_code_COPY_SAME1  (vcdiff_code_COPY+7)
+#define vcdiff_code_COPY_SAME2  (vcdiff_code_COPY+8)
+#define vcdiff_s_same           (vcdiff_code_COPY_SAME2-vcdiff_code_COPY_SAME0+1)
+#define vcdiff_code_MAX         vcdiff_code_COPY_SAME2
 
 const vcdiff_code_table_t get_vcdiff_code_table_default();
+
+#define vcdiff_update_addr(same_array,near_array,near_index,addr) do{ \
+    same_array[(hpatch_size_t)((addr)%(vcdiff_s_same*256))]=addr;     \
+    near_array[(hpatch_size_t)(((*(near_index))++)%vcdiff_s_near)]=addr; } while(0)
 
 #ifdef __cplusplus
 }

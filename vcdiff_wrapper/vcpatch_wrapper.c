@@ -28,6 +28,7 @@
 #include "vcpatch_wrapper.h"
 #include "../libHDiffPatch/HPatch/patch_types.h"
 #include "../libHDiffPatch/HPatch/patch_private.h"
+#include "vcpatch_code_table.h"
 #include <string.h>
 #define _hpatch_FALSE   hpatch_FALSE
 //hpatch_uint __debug_check_false_x=0; //for debug
@@ -116,11 +117,79 @@ hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned cha
 
 
 hpatch_BOOL _vcpatch_delta(_TOutStreamCache* outCache,hpatch_StreamPos_t targetLen,
-                           const hpatch_TStreamInput* srcData,hpatch_StreamPos_t srcPos,hpatch_StreamPos_t srcPosEnd,
-                           TStreamCacheClip* data,TStreamCacheClip* inst,TStreamCacheClip* addr,
+                           const hpatch_TStreamInput* srcData,hpatch_StreamPos_t srcPos,hpatch_StreamPos_t srcLen,
+                           TStreamCacheClip* dataClip,TStreamCacheClip* instClip,TStreamCacheClip* addrClip,
                            unsigned char* temp_cache,hpatch_size_t cache_size){
-    //todo:
-
+    hpatch_StreamPos_t same_array[vcdiff_s_same*256]={0};
+    hpatch_StreamPos_t near_array[vcdiff_s_near]={0};
+    hpatch_StreamPos_t here=0;
+    hpatch_StreamPos_t near_index=0;
+    const vcdiff_code_table_t code_table=get_vcdiff_code_table_default();
+    while (here<targetLen){
+        const vcdiff_code_t*    codes;
+        hpatch_size_t           codei;
+        {
+            hpatch_byte insti;
+            _clip_readUInt8(instClip,&insti);
+            codes=(const vcdiff_code_t*)&code_table[insti];
+        }
+        for (codei=0;codei<2;++codei){
+            hpatch_StreamPos_t  addr;
+            const hpatch_size_t inst=codes[codei].inst;
+            hpatch_StreamPos_t  size=codes[codei].size;
+            assert(inst<=vcdiff_code_MAX);
+            if (inst==vcdiff_code_NOOP) continue;
+            if (size==0)
+                _clip_unpackUInt64(instClip,&size);
+            here+=size;
+#ifdef __RUN_MEM_SAFE_CHECK
+            if (here>targetLen)
+                return _hpatch_FALSE;
+#endif
+            switch (inst){
+                case vcdiff_code_ADD: {
+                    if (!_TOutStreamCache_copyFromClip(outCache,dataClip,size))
+                        return _hpatch_FALSE;
+                } continue;
+                case vcdiff_code_RUN: {
+                    hpatch_byte v;
+                    _clip_readUInt8(dataClip,&v);
+                    if (!_TOutStreamCache_fill(outCache,v,size))
+                        return _hpatch_FALSE;
+                } continue;
+                case vcdiff_code_COPY_SELF:
+                case vcdiff_code_COPY_HERE:
+                case vcdiff_code_COPY_NEAR0:
+                case vcdiff_code_COPY_NEAR1:
+                case vcdiff_code_COPY_NEAR2:
+                case vcdiff_code_COPY_NEAR3: {
+                    _clip_unpackUInt64(addrClip,&addr);
+                    switch (inst){
+                        case vcdiff_code_COPY_SELF: {
+                        } break;
+                        case vcdiff_code_COPY_HERE: {
+                            addr=srcLen+here-size-addr;
+                        } break;
+                        default: {
+                            addr+=near_array[inst-vcdiff_code_COPY_NEAR0];
+                        } break;
+                    }
+                } break;
+                default: { // vcdiff_code_COPY_SAME
+                    hpatch_byte samei;
+                    _clip_readUInt8(addrClip,&samei);
+                    addr=same_array[((hpatch_size_t)(inst-vcdiff_code_COPY_SAME0))*256+samei];
+                } break;
+            }//switch inst
+#ifdef __RUN_MEM_SAFE_CHECK
+            if (addr>srcLen)
+                return _hpatch_FALSE;
+#endif
+            vcdiff_update_addr(same_array,near_array,&near_index,addr);
+            if (!_TOutStreamCache_copyFromStream(outCache,srcData,srcPos+addr,size))
+                return _hpatch_FALSE;
+        }//for codes
+    }//while
     return hpatch_TRUE;
 }
 
@@ -136,7 +205,7 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
     while (windowOffset<compressedDiff->streamSize){
         TStreamCacheClip   diffClip;
         hpatch_StreamPos_t srcPos=0;
-        hpatch_StreamPos_t srcPosEnd=0;
+        hpatch_StreamPos_t srcLen=0;
         hpatch_StreamPos_t targetLen;
         hpatch_StreamPos_t deltaLen;
         hpatch_StreamPos_t dataLen;
@@ -168,17 +237,13 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
                     return _hpatch_FALSE; //error data or unsupport
             }
             if (srcData){
-                hpatch_StreamPos_t srcLen;
                 _clip_unpackUInt64(&diffClip,&srcLen);
                 _clip_unpackUInt64(&diffClip,&srcPos);
-                srcPosEnd=srcPos+srcLen;
 #ifdef __RUN_MEM_SAFE_CHECK
                 {
-                    hpatch_StreamPos_t streamSafeEnd;
-                    if ((srcPosEnd<srcPos)|(srcPosEnd<srcLen))
-                        return _hpatch_FALSE; //error data
-                    streamSafeEnd=(srcData==oldData)?srcData->streamSize:outCache->writeToPos;
-                    if (srcPosEnd>streamSafeEnd)
+                    hpatch_StreamPos_t streamSafeEnd=(srcData==oldData)?srcData->streamSize:outCache->writeToPos;
+                    hpatch_StreamPos_t srcPosEnd=srcPos+srcLen;
+                    if ((srcPosEnd<srcPos)|(srcPosEnd<srcLen)|(srcPosEnd>streamSafeEnd))
                         return _hpatch_FALSE; //error data
                 }
 #endif
@@ -235,7 +300,7 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
             _getStreamClip(&addrClip,2,addrLen);
             assert(curDiffOffset==windowOffset);
             
-            result=_vcpatch_delta(outCache,targetLen,srcData,srcPos,srcPosEnd,
+            result=_vcpatch_delta(outCache,targetLen,srcData,srcPos,srcLen,
                                   &dataClip,&instClip,&addrClip,temp_cache,cache_size);
 
         clear:

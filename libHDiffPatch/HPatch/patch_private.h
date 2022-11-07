@@ -157,8 +157,11 @@ static hpatch_inline hpatch_BOOL _TOutStreamCache_isFinish(const _TOutStreamCach
 }
 hpatch_BOOL _TOutStreamCache_flush(_TOutStreamCache* self);
 hpatch_BOOL _TOutStreamCache_write(_TOutStreamCache* self,const unsigned char* data,hpatch_size_t dataSize);
+hpatch_BOOL _TOutStreamCache_fill(_TOutStreamCache* self,hpatch_byte fillValue,hpatch_StreamPos_t fillLength);
 
-hpatch_BOOL _patch_copy_diff_by_outCache(_TOutStreamCache* outCache,TStreamCacheClip* diff,hpatch_StreamPos_t copyLength);
+hpatch_BOOL _TOutStreamCache_copyFromClip(_TOutStreamCache* self,TStreamCacheClip* src,hpatch_StreamPos_t copyLength);
+hpatch_BOOL _TOutStreamCache_copyFromStream(_TOutStreamCache* self,const hpatch_TStreamInput* src,
+                                            hpatch_StreamPos_t srcPos,hpatch_StreamPos_t copyLength);
 
 
     typedef struct _TDecompressInputStream{
