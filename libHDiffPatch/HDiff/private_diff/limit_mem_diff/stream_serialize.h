@@ -275,6 +275,8 @@ private:
     hpatch_StreamPos_t          writedLen;
     unsigned char*                      buf;
     size_t                      bufSize;
+    static hpatch_BOOL _read_writed(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
+                                    unsigned char* out_data,unsigned char* out_data_end);
     static hpatch_BOOL _write_check(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                     const unsigned char* data,const unsigned char* data_end);
 };

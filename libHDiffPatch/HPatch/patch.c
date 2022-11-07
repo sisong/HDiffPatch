@@ -47,8 +47,8 @@
 #endif
 
 #define _hpatch_FALSE   hpatch_FALSE
-//hpatch_uint __debug_check_false_x=0; //for debug
-//#define _hpatch_FALSE (1/__debug_check_false_x)
+//hpatch_uint __hpatch_debug_check_false_x=0; //for debug
+//#define _hpatch_FALSE (1/__hpatch_debug_check_false_x)
 
 typedef unsigned char TByte;
 
@@ -636,7 +636,7 @@ hpatch_BOOL _TOutStreamCache_fill(_TOutStreamCache* self,hpatch_byte fillValue,h
                 return _hpatch_FALSE;
         }
     }
-    return hpatch_TRUE;    
+    return hpatch_TRUE;
 }
 
 hpatch_BOOL _TOutStreamCache_copyFromStream(_TOutStreamCache* self,const hpatch_TStreamInput* src,
@@ -671,6 +671,76 @@ hpatch_BOOL _TOutStreamCache_copyFromClip(_TOutStreamCache* self,TStreamCacheCli
         copyLength-=runStep;
     }
     return hpatch_TRUE;
+}
+
+hpatch_BOOL _TOutStreamCache_copyFromSelf(_TOutStreamCache* self,hpatch_StreamPos_t aheadLength,hpatch_StreamPos_t copyLength){
+    //      [          writed                 ]
+    //                                        [    cached buf    |        empty buf         ]
+    const hpatch_TStreamInput* src=(const hpatch_TStreamInput*)self->dstStream;
+    hpatch_StreamPos_t srcPos=self->writeToPos+self->cacheCur-aheadLength;
+    if (src->read==0) //can't read
+        return _hpatch_FALSE;
+    if ((aheadLength<1)|(aheadLength>self->writeToPos+self->cacheCur))
+            return _hpatch_FALSE;
+    
+    if (srcPos+copyLength<=self->writeToPos){//copy from stream
+        //    [        copyLength          ]
+__copy_in_stream:
+        return _TOutStreamCache_copyFromStream(self,src,srcPos,copyLength);
+    }else if (srcPos>=self->writeToPos){ //copy in mem
+        //                                      [        copyLength        ]
+__copy_in_mem:
+        while (copyLength>0){
+            hpatch_byte* dstBuf=self->cacheBuf+self->cacheCur;
+            hpatch_byte* srcBuf=dstBuf-(hpatch_size_t)aheadLength;
+            hpatch_size_t runLen=(self->cacheCur+copyLength<=self->cacheEnd)?(hpatch_size_t)copyLength:(self->cacheEnd-self->cacheCur);
+            hpatch_size_t i;
+            for (i=0;i<runLen;i++)
+                dstBuf[i]=srcBuf[i];
+            copyLength-=runLen;
+            self->cacheCur+=runLen;
+            if (self->cacheCur==self->cacheEnd){
+                if (!_TOutStreamCache_flush(self))
+                    return _hpatch_FALSE;
+                runLen=(hpatch_size_t)((aheadLength<=copyLength)?aheadLength:copyLength);
+                memmove(self->cacheBuf,self->cacheBuf+self->cacheEnd-(hpatch_size_t)aheadLength,runLen);
+                self->cacheCur=runLen;
+                copyLength-=runLen;
+            }else{
+                assert(copyLength==0);
+            }
+        }
+        return hpatch_TRUE;
+    }else if (self->writeToPos+self->cacheCur<=srcPos+self->cacheEnd){ 
+        // small data in stream，can as copy in mem
+        hpatch_byte* dstBuf=self->cacheBuf+self->cacheCur;
+        hpatch_size_t runLen=(hpatch_size_t)(self->writeToPos-srcPos);
+        if (!src->read(src,srcPos,dstBuf,dstBuf+runLen))
+            return _hpatch_FALSE;
+        //srcPos+=runLen; //not used
+        copyLength-=runLen;
+        self->cacheCur+=runLen;
+        if (self->cacheCur==self->cacheEnd){
+            while (hpatch_TRUE){
+                if (self->cacheCur==self->cacheEnd){
+                    if (!_TOutStreamCache_flush(self))
+                        return _hpatch_FALSE;
+                }
+                if (copyLength>0){
+                    runLen=(self->cacheEnd<=copyLength)?self->cacheEnd:(hpatch_size_t)copyLength;
+                    //srcPos+=runLen; //not used
+                    copyLength-=runLen;
+                    self->cacheCur=runLen;
+                }else{
+                    return hpatch_TRUE;
+                }
+            }
+        }else{
+            goto __copy_in_mem;
+        }
+    }else{
+        goto __copy_in_stream;
+    }
 }
 
 

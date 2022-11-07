@@ -162,6 +162,7 @@ hpatch_BOOL _TOutStreamCache_fill(_TOutStreamCache* self,hpatch_byte fillValue,h
 hpatch_BOOL _TOutStreamCache_copyFromClip(_TOutStreamCache* self,TStreamCacheClip* src,hpatch_StreamPos_t copyLength);
 hpatch_BOOL _TOutStreamCache_copyFromStream(_TOutStreamCache* self,const hpatch_TStreamInput* src,
                                             hpatch_StreamPos_t srcPos,hpatch_StreamPos_t copyLength);
+hpatch_BOOL _TOutStreamCache_copyFromSelf(_TOutStreamCache* self,hpatch_StreamPos_t aheadLength,hpatch_StreamPos_t copyLength);
 
 
     typedef struct _TDecompressInputStream{

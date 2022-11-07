@@ -811,10 +811,17 @@ _TCheckOutNewDataStream::_TCheckOutNewDataStream(const hpatch_TStreamInput*  _ne
 :newData(_newData),writedLen(0),buf(_buf),bufSize(_bufSize){
     streamImport=this;
     streamSize=newData->streamSize;
-    read_writed=0;
+    read_writed=_read_writed;
     write=_write_check;
 }
 
+hpatch_BOOL _TCheckOutNewDataStream::_read_writed(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
+                                                  unsigned char* out_data,unsigned char* out_data_end){
+    _TCheckOutNewDataStream* self=(_TCheckOutNewDataStream*)stream->streamImport;
+    _test_rt(readFromPos<=self->writedLen);
+    _test_rt((hpatch_size_t)(out_data_end-out_data)<=(hpatch_StreamPos_t)(self->writedLen-readFromPos)); 
+    return self->newData->read(self->newData,readFromPos,out_data,out_data_end); 
+}
 hpatch_BOOL _TCheckOutNewDataStream::_write_check(const hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                                   const unsigned char* data,const unsigned char* data_end){
     _TCheckOutNewDataStream* self=(_TCheckOutNewDataStream*)stream->streamImport;

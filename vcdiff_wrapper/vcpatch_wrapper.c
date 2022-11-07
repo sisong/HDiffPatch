@@ -31,8 +31,8 @@
 #include "vcpatch_code_table.h"
 #include <string.h>
 #define _hpatch_FALSE   hpatch_FALSE
-//hpatch_uint __debug_check_false_x=0; //for debug
-//#define _hpatch_FALSE (1/__debug_check_false_x)
+//hpatch_uint __vcpatch_debug_check_false_x=0; //for debug
+//#define _hpatch_FALSE (1/__vcpatch_debug_check_false_x)
 
 #ifndef _IS_RUN_MEM_SAFE_CHECK
 #   define _IS_RUN_MEM_SAFE_CHECK  1
@@ -118,14 +118,14 @@ hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned cha
 
 hpatch_BOOL _vcpatch_delta(_TOutStreamCache* outCache,hpatch_StreamPos_t targetLen,
                            const hpatch_TStreamInput* srcData,hpatch_StreamPos_t srcPos,hpatch_StreamPos_t srcLen,
-                           TStreamCacheClip* dataClip,TStreamCacheClip* instClip,TStreamCacheClip* addrClip,
-                           unsigned char* temp_cache,hpatch_size_t cache_size){
+                           TStreamCacheClip* dataClip,TStreamCacheClip* instClip,TStreamCacheClip* addrClip){
     hpatch_StreamPos_t same_array[vcdiff_s_same*256]={0};
     hpatch_StreamPos_t near_array[vcdiff_s_near]={0};
     hpatch_StreamPos_t here=0;
     hpatch_StreamPos_t near_index=0;
     const vcdiff_code_table_t code_table=get_vcdiff_code_table_default();
     while (here<targetLen){
+        hpatch_StreamPos_t      cur_here=here;
         const vcdiff_code_t*    codes;
         hpatch_size_t           codei;
         {
@@ -168,7 +168,7 @@ hpatch_BOOL _vcpatch_delta(_TOutStreamCache* outCache,hpatch_StreamPos_t targetL
                         case vcdiff_code_COPY_SELF: {
                         } break;
                         case vcdiff_code_COPY_HERE: {
-                            addr=srcLen+here-size-addr;
+                            addr=srcLen+cur_here-addr;
                         } break;
                         default: {
                             addr+=near_array[inst-vcdiff_code_COPY_NEAR0];
@@ -181,13 +181,25 @@ hpatch_BOOL _vcpatch_delta(_TOutStreamCache* outCache,hpatch_StreamPos_t targetL
                     addr=same_array[((hpatch_size_t)(inst-vcdiff_code_COPY_SAME0))*256+samei];
                 } break;
             }//switch inst
+            vcdiff_update_addr(same_array, near_array, &near_index, addr);
+            
+            if (addr<srcLen){//copy from src
+                hpatch_StreamPos_t copyLen=(addr+size<=srcLen)?size:srcLen-addr;
+                if (!_TOutStreamCache_copyFromStream(outCache,srcData,srcPos+addr,copyLen))
+                    return _hpatch_FALSE;
+                cur_here+=copyLen;
+                addr+=copyLen;
+                size-=copyLen;
+            }
+            if (size>0){ //copy from outCache
+                addr-=srcLen;
 #ifdef __RUN_MEM_SAFE_CHECK
-            if (addr>srcLen)
-                return _hpatch_FALSE;
+                if (addr>=cur_here)
+                    return _hpatch_FALSE;
 #endif
-            vcdiff_update_addr(same_array,near_array,&near_index,addr);
-            if (!_TOutStreamCache_copyFromStream(outCache,srcData,srcPos+addr,size))
-                return _hpatch_FALSE;
+                if (!_TOutStreamCache_copyFromSelf(outCache,cur_here-addr,size))
+                    return _hpatch_FALSE;
+            }
         }//for codes
     }//while
     return hpatch_TRUE;
@@ -301,7 +313,7 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
             assert(curDiffOffset==windowOffset);
             
             result=_vcpatch_delta(outCache,targetLen,srcData,srcPos,srcLen,
-                                  &dataClip,&instClip,&addrClip,temp_cache,cache_size);
+                                  &dataClip,&instClip,&addrClip);
 
         clear:
             for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i) {
@@ -325,7 +337,7 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
 }
 
 
-#define _kCacheBsDecCount (1+3+1)
+#define _kCacheBsDecCount (1+3)
 
 hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
                                const hpatch_TStreamInput*  oldData,
