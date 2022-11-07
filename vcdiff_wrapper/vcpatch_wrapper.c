@@ -125,20 +125,21 @@ hpatch_BOOL _vcpatch_delta(_TOutStreamCache* outCache,hpatch_StreamPos_t targetL
     hpatch_StreamPos_t near_index=0;
     const vcdiff_code_table_t code_table=get_vcdiff_code_table_default();
     while (here<targetLen){
-        hpatch_StreamPos_t      cur_here=here;
         const vcdiff_code_t*    codes;
-        hpatch_size_t           codei;
+        const vcdiff_code_t*    codes_end;
         {
             hpatch_byte insti;
             _clip_readUInt8(instClip,&insti);
             codes=(const vcdiff_code_t*)&code_table[insti];
+            assert(codes[0].inst!=vcdiff_code_NOOP);
+            codes_end=codes+((codes[1].inst==vcdiff_code_NOOP)?1:2);
         }
-        for (codei=0;codei<2;++codei){
+        for (;codes<codes_end;++codes){
             hpatch_StreamPos_t  addr;
-            const hpatch_size_t inst=codes[codei].inst;
-            hpatch_StreamPos_t  size=codes[codei].size;
+            hpatch_StreamPos_t  cur_here=here;
+            hpatch_StreamPos_t  size=codes->size;
+            const hpatch_size_t inst=codes->inst;
             assert(inst<=vcdiff_code_MAX);
-            if (inst==vcdiff_code_NOOP) continue;
             if (size==0)
                 _clip_unpackUInt64(instClip,&size);
             here+=size;
@@ -181,7 +182,7 @@ hpatch_BOOL _vcpatch_delta(_TOutStreamCache* outCache,hpatch_StreamPos_t targetL
                     addr=same_array[((hpatch_size_t)(inst-vcdiff_code_COPY_SAME0))*256+samei];
                 } break;
             }//switch inst
-            vcdiff_update_addr(same_array, near_array, &near_index, addr);
+            vcdiff_update_addr(same_array,near_array,&near_index,addr);
             
             if (addr<srcLen){//copy from src
                 hpatch_StreamPos_t copyLen=(addr+size<=srcLen)?size:srcLen-addr;
@@ -211,7 +212,8 @@ static const hpatch_uint64_t _kUnknowMaxSize=~(hpatch_uint64_t)0;
 
 hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput* oldData,
                             const hpatch_TStreamInput* compressedDiff,hpatch_TDecompress* decompressPlugin,
-                            hpatch_StreamPos_t windowOffset,unsigned char* tempCaches,hpatch_size_t cache_size){
+                            hpatch_StreamPos_t windowOffset,hpatch_BOOL isGoogleVersion,
+                            unsigned char* tempCaches,hpatch_size_t cache_size){
     unsigned char _cache[hpatch_kStreamCacheSize];
     //window loop
     while (windowOffset<compressedDiff->streamSize){
@@ -274,9 +276,14 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
             _clip_unpackUInt64(&diffClip,&dataLen);
             _clip_unpackUInt64(&diffClip,&instLen);
             _clip_unpackUInt64(&diffClip,&addrLen);
-            if (isHaveAdler32){
-                if (!_TStreamCacheClip_skipData(&diffClip,4)) //now not checksum
-                    return _hpatch_FALSE; //error data or no data
+            if (isHaveAdler32){//now not checksum
+                if (isGoogleVersion){
+                    hpatch_StreamPos_t _tmp;
+                    _clip_unpackUInt64(&diffClip,&_tmp);
+                }else{
+                    if (!_TStreamCacheClip_skipData(&diffClip,4)) 
+                        return _hpatch_FALSE; //error data or no data
+                }
             }
             curDiffOffset=_TStreamCacheClip_readPosOfSrcStream(&diffClip);
 #ifdef __RUN_MEM_SAFE_CHECK
@@ -369,7 +376,7 @@ hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
         _TOutStreamCache_init(&outCache,out_newData,temp_cache,cacheSize);
         temp_cache+=cacheSize;
         result=_vcpatch_window(&outCache,oldData,compressedDiff,decompressPlugin,
-                               diffInfo.windowOffset,temp_cache,cacheSize);
+                               diffInfo.windowOffset,diffInfo.isGoogleVersion,temp_cache,cacheSize);
     }
 
     return result;
