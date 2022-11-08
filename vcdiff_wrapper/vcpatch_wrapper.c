@@ -297,6 +297,7 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
 
         {
             hpatch_BOOL result=hpatch_TRUE;
+            const hpatch_BOOL isInterleaved=((dataLen==0)&(addrLen==0));
             hpatch_size_t i;
             TStreamCacheClip   dataClip;
             TStreamCacheClip   instClip;
@@ -305,22 +306,27 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
             for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i)
                 decompressers[i].decompressHandle=0;
 
-            #define _getStreamClip(clip,index,len) \
+            #define _getStreamClip(clip,index,len,cacheSize) \
                 if (Delta_Indicator&(1<<index)){    \
                     if (!getStreamClip(clip,&decompressers[index],_kUnknowMaxSize,len,compressedDiff,&curDiffOffset, \
-                                       decompressPlugin,temp_cache,cache_size)) _clear_return(_hpatch_FALSE); \
+                                       decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE); \
                 }else{ \
                     if (!getStreamClip(clip,0,len,0,compressedDiff,&curDiffOffset, \
-                                       0,temp_cache,cache_size)) _clear_return(_hpatch_FALSE); \
+                                       0,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE); \
                 } \
-                temp_cache+=cache_size;
-            _getStreamClip(&dataClip,0,dataLen);
-            _getStreamClip(&instClip,1,instLen);
-            _getStreamClip(&addrClip,2,addrLen);
+                temp_cache+=cacheSize;
+
+            if (!isInterleaved){
+                _getStreamClip(&dataClip,0,dataLen,cache_size);
+                _getStreamClip(&instClip,1,instLen,cache_size);
+                _getStreamClip(&addrClip,2,addrLen,cache_size);
+            }else{
+                _getStreamClip(&instClip,0,instLen,cache_size*3);
+            }
             assert(curDiffOffset==windowOffset);
             
             result=_vcpatch_delta(outCache,targetLen,srcData,srcPos,srcLen,
-                                  &dataClip,&instClip,&addrClip);
+                                  isInterleaved?&instClip:&dataClip,&instClip,isInterleaved?&instClip:&addrClip);
 
         clear:
             for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i) {
