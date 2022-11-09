@@ -53,6 +53,9 @@
 #ifndef _IS_NEED_SFX
 #   define _IS_NEED_SFX 1
 #endif
+#if (_IS_NEED_VCDIFF)
+#   define _CompressPlugin_7zXZ
+#endif
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1

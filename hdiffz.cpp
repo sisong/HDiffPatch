@@ -55,6 +55,9 @@
 #ifndef _IS_NEED_VCDIFF
 #   define _IS_NEED_VCDIFF 1
 #endif
+#if (_IS_NEED_VCDIFF)
+#   define _CompressPlugin_7zXZ
+#endif
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1
@@ -1343,6 +1346,11 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
 #if (_IS_NEED_VCDIFF)
             }else if (getVcDiffInfo_mem(&vcdiffInfo,diffMem.data(),diffMem.data_end())){
                 isVcDiff=hpatch_TRUE;
+                if (vcdiffInfo.compressorID){
+                    check(vcdiffInfo.compressorID==kVcDiff_compressorID_7zXZ,
+                          HDIFF_PATCH_ERROR,"vcdiff unsported compressorID");
+                    saved_decompressPlugin=&_7zXZDecompressPlugin;
+                }
                 if (!diffSets.isDoDiff)
                     printf("test VCDIFF's diffData!\n");
 #endif
@@ -1463,7 +1471,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
 #if (_IS_NEED_VCDIFF)
             hpatch_VcDiffInfo vcdiffInfo;
 #endif
-            const char* compressType=0;
+            const char* compressType="";
             if (getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
                 compressType=diffInfo.compressType;
             }else if (getSingleCompressedDiffInfo(&sdiffInfo,&diffData_in.base,0)){
@@ -1481,6 +1489,11 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
 #if (_IS_NEED_VCDIFF)
             }else if (getVcDiffInfo(&vcdiffInfo,&diffData_in.base)){
                 isVcDiff=hpatch_TRUE;
+                if (vcdiffInfo.compressorID){
+                    check(vcdiffInfo.compressorID==kVcDiff_compressorID_7zXZ,
+                          HDIFF_PATCH_ERROR,"vcdiff unsported compressorID");
+                    saved_decompressPlugin=&_7zXZDecompressPlugin;
+                }
                 if (!diffSets.isDoDiff)
                     printf("test VCDIFF's diffData!\n");
 #endif

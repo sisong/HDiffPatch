@@ -90,7 +90,7 @@ hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamIn
 
     if (Hdr_Indicator&(1<<0)){ // VCD_DECOMPRESS
         _clip_readUInt8(&diffClip,&out_diffinfo->compressorID);
-        if (out_diffinfo->compressorID!=kVcDiff_compressorID_lzma)
+        if (out_diffinfo->compressorID!=kVcDiff_compressorID_7zXZ)
             return _hpatch_FALSE; //unsupport compressor ID
     }
     if (Hdr_Indicator&(1<<1)) // VCD_CODETABLE
@@ -207,14 +207,38 @@ hpatch_BOOL _vcpatch_delta(_TOutStreamCache* outCache,hpatch_StreamPos_t targetL
 }
 
 
-static const hpatch_uint64_t _kUnknowMaxSize=~(hpatch_uint64_t)0;
+
+#define _smallCacheSize(cacheSize) ((hpatch_kStreamCacheSize<cacheSize)?hpatch_kStreamCacheSize:cacheSize)
+
+static hpatch_BOOL _getStreamClip(TStreamCacheClip* clip,hpatch_byte Delta_Indicator,hpatch_byte index,
+                                  const hpatch_TStreamInput* compressedDiff,hpatch_StreamPos_t* curDiffOffset,
+                                  hpatch_TDecompress* decompressPlugin,_TDecompressInputStream* decompressers,
+                                  hpatch_StreamPos_t dataLen,unsigned char* temp_cache,hpatch_size_t cache_size){
+    hpatch_StreamPos_t uncompressedLen;
+    hpatch_StreamPos_t compressedLen;
+    if ((Delta_Indicator&(1<<index))){
+        hpatch_StreamPos_t readedBytes;
+        TStreamCacheClip   tempClip;
+        _TStreamCacheClip_init(&tempClip,compressedDiff,*curDiffOffset,
+                                compressedDiff->streamSize,temp_cache,_smallCacheSize(cache_size));
+        _clip_unpackUInt64(&tempClip,&uncompressedLen);
+        readedBytes=_TStreamCacheClip_readPosOfSrcStream(&tempClip)-(*curDiffOffset);
+        (*curDiffOffset)+=readedBytes;
+        compressedLen=dataLen-readedBytes;
+    }else{
+        uncompressedLen=dataLen;
+        compressedLen=0;
+    }
+    return getStreamClip(clip,&decompressers[index],uncompressedLen,compressedLen,compressedDiff,
+                         curDiffOffset,decompressPlugin,temp_cache,cache_size);
+}
+
 #define _clear_return(exitValue) {  result=exitValue; goto clear; }
 
 hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput* oldData,
                             const hpatch_TStreamInput* compressedDiff,hpatch_TDecompress* decompressPlugin,
                             hpatch_StreamPos_t windowOffset,hpatch_BOOL isGoogleVersion,
                             unsigned char* tempCaches,hpatch_size_t cache_size){
-    unsigned char _cache[hpatch_kStreamCacheSize];
     //window loop
     while (windowOffset<compressedDiff->streamSize){
         TStreamCacheClip   diffClip;
@@ -231,7 +255,7 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
         hpatch_BOOL   isHaveAdler32;
         unsigned char Delta_Indicator;
         _TStreamCacheClip_init(&diffClip,compressedDiff,windowOffset,compressedDiff->streamSize,
-                               _cache,sizeof(_cache));
+                               temp_cache,_smallCacheSize(cache_size));
         {
             unsigned char Win_Indicator;
             _clip_readUInt8(&diffClip,&Win_Indicator);
@@ -306,22 +330,18 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
             for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i)
                 decompressers[i].decompressHandle=0;
 
-            #define _getStreamClip(clip,index,len,cacheSize) \
-                if (Delta_Indicator&(1<<index)){    \
-                    if (!getStreamClip(clip,&decompressers[index],_kUnknowMaxSize,len,compressedDiff,&curDiffOffset, \
-                                       decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE); \
-                }else{ \
-                    if (!getStreamClip(clip,0,len,0,compressedDiff,&curDiffOffset, \
-                                       0,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE); \
-                } \
-                temp_cache+=cacheSize;
+            #define __getStreamClip(clip,index,len,cacheSize) { \
+                if (!(_getStreamClip(clip,Delta_Indicator,index,compressedDiff,&curDiffOffset, \
+                                    decompressPlugin,decompressers,len,temp_cache,cacheSize))) \
+                    _clear_return(_hpatch_FALSE); \
+                temp_cache+=cacheSize; }
 
             if (!isInterleaved){
-                _getStreamClip(&dataClip,0,dataLen,cache_size);
-                _getStreamClip(&instClip,1,instLen,cache_size);
-                _getStreamClip(&addrClip,2,addrLen,cache_size);
+                __getStreamClip(&dataClip,0,dataLen,cache_size);
+                __getStreamClip(&instClip,1,instLen,cache_size);
+                __getStreamClip(&addrClip,2,addrLen,cache_size);
             }else{
-                _getStreamClip(&instClip,0,instLen,cache_size*3);
+                __getStreamClip(&instClip,0,instLen,cache_size*3);
             }
             assert(curDiffOffset==windowOffset);
             

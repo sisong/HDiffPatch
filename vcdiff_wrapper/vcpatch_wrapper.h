@@ -39,7 +39,7 @@ typedef struct hpatch_VcDiffInfo{
     hpatch_BOOL         isGoogleVersion;
     unsigned char       compressorID;
 } hpatch_VcDiffInfo;
-#define kVcDiff_compressorID_lzma  2
+#define kVcDiff_compressorID_7zXZ  2
 
 hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamInput* diffStream);
 hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned char* diffData,const unsigned char* diffData_end);
