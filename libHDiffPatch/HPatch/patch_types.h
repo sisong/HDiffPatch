@@ -192,6 +192,11 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
         //decompress_part() must out (out_part_data_end-out_part_data), otherwise error return hpatch_FALSE
         hpatch_BOOL    (*decompress_part)(hpatch_decompressHandle decompressHandle,
                                           unsigned char* out_part_data,unsigned char* out_part_data_end);
+        hpatch_BOOL         (*reset_code)(hpatch_decompressHandle decompressHandle,
+                                          hpatch_StreamPos_t dataSize,
+                                          const struct hpatch_TStreamInput* codeStream,
+                                          hpatch_StreamPos_t code_begin,
+                                          hpatch_StreamPos_t code_end);
         volatile hpatch_dec_error_t decError; //if you used decError value, once patch must used it's own hpatch_TDecompress
     } hpatch_TDecompress;
     #define _hpatch_update_decError(decompressPlugin,errorCode) \

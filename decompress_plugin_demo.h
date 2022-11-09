@@ -689,6 +689,20 @@ static void __dec_free(void* _, void* address){
         XzUnpacker_Init(&self->decEnv);
         return self;
     }
+    static hpatch_BOOL _7zXZ_reset_code(hpatch_decompressHandle decompressHandle,
+                                        hpatch_StreamPos_t dataSize,
+                                        const struct hpatch_TStreamInput* codeStream,
+                                        hpatch_StreamPos_t code_begin,
+                                        hpatch_StreamPos_t code_end){
+        _7zXZ_TDecompress* self=(_7zXZ_TDecompress*)decompressHandle;
+        self->codeStream=codeStream;
+        self->code_begin=code_begin;
+        self->code_end=code_end;
+        
+        self->decCopyPos=0;
+        self->decReadPos=kDecompressBufSize;
+        return hpatch_TRUE;
+    }
     static hpatch_BOOL _7zXZ_close(struct hpatch_TDecompress* decompressPlugin,
                                     hpatch_decompressHandle decompressHandle){
         _7zXZ_TDecompress* self=(_7zXZ_TDecompress*)decompressHandle;
@@ -734,7 +748,7 @@ static void __dec_free(void* _, void* address){
         return hpatch_TRUE;
     }
     static hpatch_TDecompress _7zXZDecompressPlugin={_7zXZ_is_can_open,_7zXZ_open,
-                                                     _7zXZ_close,_7zXZ_decompress_part};
+                                                     _7zXZ_close,_7zXZ_decompress_part,_7zXZ_reset_code};
 #endif//_CompressPlugin_7zXZ
 
 

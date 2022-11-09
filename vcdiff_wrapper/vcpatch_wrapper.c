@@ -233,10 +233,9 @@ static hpatch_BOOL _getStreamClip(TStreamCacheClip* clip,hpatch_byte Delta_Indic
                          curDiffOffset,decompressPlugin,temp_cache,cache_size);
 }
 
-#define _clear_return(exitValue) {  result=exitValue; goto clear; }
-
 hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput* oldData,
                             const hpatch_TStreamInput* compressedDiff,hpatch_TDecompress* decompressPlugin,
+                            _TDecompressInputStream* decompressers,
                             hpatch_StreamPos_t windowOffset,hpatch_BOOL isGoogleVersion,
                             unsigned char* tempCaches,hpatch_size_t cache_size){
     //window loop
@@ -320,20 +319,14 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
         windowOffset=curDiffOffset+dataLen+instLen+addrLen;
 
         {
-            hpatch_BOOL result=hpatch_TRUE;
             const hpatch_BOOL isInterleaved=((dataLen==0)&(addrLen==0));
-            hpatch_size_t i;
             TStreamCacheClip   dataClip;
             TStreamCacheClip   instClip;
             TStreamCacheClip   addrClip;
-            _TDecompressInputStream decompressers[3];
-            for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i)
-                decompressers[i].decompressHandle=0;
-
             #define __getStreamClip(clip,index,len,cacheSize) { \
                 if (!(_getStreamClip(clip,Delta_Indicator,index,compressedDiff,&curDiffOffset, \
                                     decompressPlugin,decompressers,len,temp_cache,cacheSize))) \
-                    _clear_return(_hpatch_FALSE); \
+                    return _hpatch_FALSE; \
                 temp_cache+=cacheSize; }
 
             if (!isInterleaved){
@@ -345,18 +338,9 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
             }
             assert(curDiffOffset==windowOffset);
             
-            result=_vcpatch_delta(outCache,targetLen,srcData,srcPos,srcLen,
-                                  isInterleaved?&instClip:&dataClip,&instClip,isInterleaved?&instClip:&addrClip);
-
-        clear:
-            for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i) {
-                if (decompressers[i].decompressHandle){
-                    if (!decompressPlugin->close(decompressPlugin,decompressers[i].decompressHandle))
-                        result=_hpatch_FALSE;
-                    decompressers[i].decompressHandle=0;
-                }
-            }
-            if (!result)
+            if (!_vcpatch_delta(outCache,targetLen,srcData,srcPos,srcLen,
+                                isInterleaved?&instClip:&dataClip,&instClip,
+                                isInterleaved?&instClip:&addrClip))
                 return _hpatch_FALSE;
         }
     }
@@ -378,8 +362,12 @@ hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
                                hpatch_TDecompress* decompressPlugin,
                                unsigned char* temp_cache,unsigned char* temp_cache_end){
     hpatch_VcDiffInfo diffInfo;
+    hpatch_size_t i;
     hpatch_BOOL  result=hpatch_TRUE;
     const hpatch_size_t cacheSize=(temp_cache_end-temp_cache)/_kCacheBsDecCount;
+    _TDecompressInputStream decompressers[3];
+    for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i)
+        decompressers[i].decompressHandle=0;
     if (cacheSize<hpatch_kMaxPackedUIntBytes) return _hpatch_FALSE;
     assert(out_newData!=0);
     assert(out_newData->write!=0);
@@ -401,9 +389,16 @@ hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
         _TOutStreamCache outCache;
         _TOutStreamCache_init(&outCache,out_newData,temp_cache,cacheSize);
         temp_cache+=cacheSize;
-        result=_vcpatch_window(&outCache,oldData,compressedDiff,decompressPlugin,
+        result=_vcpatch_window(&outCache,oldData,compressedDiff,decompressPlugin,decompressers,
                                diffInfo.windowOffset,diffInfo.isGoogleVersion,temp_cache,cacheSize);
     }
 
+    for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i) {
+        if (decompressers[i].decompressHandle){
+            if (!decompressPlugin->close(decompressPlugin,decompressers[i].decompressHandle))
+                result=_hpatch_FALSE;
+            decompressers[i].decompressHandle=0;
+        }
+    }
     return result;
 }

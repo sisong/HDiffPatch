@@ -571,9 +571,15 @@ hpatch_BOOL getStreamClip(TStreamCacheClip* out_clip,_TDecompressInputStream* ou
             out_stream->IInputStream.streamSize=dataSize;
             out_stream->IInputStream.read=_decompress_read;
             out_stream->decompressPlugin=decompressPlugin;
-            out_stream->decompressHandle=decompressPlugin->open(decompressPlugin,dataSize,stream,
-                                                                curStreamPos,curStreamPos+compressedSize);
-            if (!out_stream->decompressHandle) return _hpatch_FALSE;
+            if (!out_stream->decompressHandle){
+                out_stream->decompressHandle=decompressPlugin->open(decompressPlugin,dataSize,stream,
+                                                                    curStreamPos,curStreamPos+compressedSize);
+                if (!out_stream->decompressHandle) return _hpatch_FALSE;
+            }else{
+                if (decompressPlugin->reset_code==0) return _hpatch_FALSE;
+                if (!decompressPlugin->reset_code(out_stream->decompressHandle,dataSize,stream,curStreamPos,
+                                                  curStreamPos+compressedSize)) return _hpatch_FALSE;
+            }
             _TStreamCacheClip_init(out_clip,&out_stream->IInputStream,0,
                                    out_stream->IInputStream.streamSize,aCache,cacheSize);
         }
