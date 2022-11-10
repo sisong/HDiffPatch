@@ -642,11 +642,10 @@ static void __dec_free(void* _, void* address){
 #   include "7zCrc.h" // CrcGenerateTable()
 #endif
 
-    static int __init_CompressPlugin_7zXZ(){
+    static int _init_CompressPlugin_7zXZ(){
         CrcGenerateTable();
         return 0;
     }
-    int __var_init_CompressPlugin_7zXZ=__init_CompressPlugin_7zXZ();
     
     typedef struct _7zXZ_TDecompress{
         ISzAlloc           memAllocBase;

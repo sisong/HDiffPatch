@@ -347,7 +347,7 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
 
     if (!_TOutStreamCache_flush(outCache))
         return _hpatch_FALSE;
-    if (_TOutStreamCache_isFinish(outCache))
+    if (_TOutStreamCache_isFinish(outCache)||(outCache->dstStream->streamSize==~(hpatch_StreamPos_t)0))
         return hpatch_TRUE;
     else
         return _hpatch_FALSE;
