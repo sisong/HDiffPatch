@@ -35,7 +35,7 @@ extern "C" {
 typedef struct{
     hpatch_byte     inst; //type
     hpatch_byte     size;
-    //hpatch_byte     mode; !saved to inst
+    //hpatch_byte     mode; !saved(add) to inst
 } vcdiff_code_t;
 
 typedef struct{

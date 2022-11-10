@@ -28,24 +28,30 @@
 #ifndef hdiff_vcdiff_wrapper_h
 #define hdiff_vcdiff_wrapper_h
 #include "../libHDiffPatch/HDiff/diff.h"
+#include "vcpatch_wrapper.h"
+
+struct vcdiff_TCompress{
+    const hdiff_TCompress* compress;
+    vcdiff_compressType    compress_type;
+};
 
 // create diffFile compatible with VCDIFF(RFC3284)
 //  format: https://www.ietf.org/rfc/rfc3284.txt
 void create_vcdiff(const unsigned char* newData,const unsigned char* newData_end,
                    const unsigned char* oldData,const unsigned char* oldData_end,
-                   const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                   const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin=0,
                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
                    bool isUseBigCacheMatch=false,ICoverLinesListener* coverLinesListener=0,
                    size_t threadNum=1);
 void create_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                   const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                   const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
                    bool isUseBigCacheMatch=false,ICoverLinesListener* coverLinesListener=0,
                    size_t threadNum=1);
 
 // create diffFile by stream compatible with VCDIFF
 void create_vcdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                          const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin=0,
                           size_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
 bool get_is_vcdiff(const unsigned char* diffData,const unsigned char* diffData_end);
@@ -62,13 +68,13 @@ bool check_vcdiff(const unsigned char* newData,const unsigned char* newData_end,
 
 void create_vcdiff_block(unsigned char* newData,unsigned char* newData_end,
                          unsigned char* oldData,unsigned char* oldData_end,
-                         const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                         const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin=0,
                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
                          bool isUseBigCacheMatch=false,
                          size_t matchBlockSize=kDefaultFastMatchBlockSize,
                          size_t threadNum=1);
 void create_vcdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                         const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                         const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin=0,
                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
                          bool isUseBigCacheMatch=false,
                          size_t matchBlockSize=kDefaultFastMatchBlockSize,

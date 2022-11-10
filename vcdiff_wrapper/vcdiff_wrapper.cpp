@@ -26,9 +26,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "vcdiff_wrapper.h"
-#include "vcpatch_wrapper.h"
 #include "../libHDiffPatch/HDiff/match_block.h"
-#include "../libHDiffPatch/HDiff/diff.h"
 #include "../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
 #include "../libHDiffPatch/HPatch/patch.h"
@@ -41,7 +39,7 @@ namespace hdiff_private{
 
 static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                              const TCovers& covers,const hpatch_TStreamOutput* out_diff,
-                             const hdiff_TCompress* compressPlugin,bool isZeroSubDiff=false){
+                             const vcdiff_TCompress* compressPlugin,bool isZeroSubDiff=false){
     std::vector<unsigned char> buf;
     TDiffStream outDiff(out_diff);
     size_t ctrlDataSize_pos;
@@ -51,6 +49,7 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
         pushBack(buf,kVcDiffType,sizeof(kVcDiffType));
         buf.push_back(kVcDiffVersion);
         buf.push_back(0);// Hdr_Indicator: No compression, no custom code table
+        assert((compressPlugin==0)||(compressPlugin->compress_type==kVcDiff_compressorID_no));
         
     }
     //todo:
@@ -58,7 +57,7 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
 
 void _create_vcdiff(const unsigned char* newData,const unsigned char* cur_newData_end,const unsigned char* newData_end,
                     const unsigned char* oldData,const unsigned char* cur_oldData_end,const unsigned char* oldData_end,
-                    const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                    const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                     int kMinSingleMatchScore,bool isUseBigCacheMatch,
                     ICoverLinesListener* coverLinesListener,size_t threadNum){
     std::vector<hpatch_TCover_sz> covers;
@@ -81,7 +80,7 @@ using namespace hdiff_private;
 
 void create_vcdiff(const unsigned char* newData,const unsigned char* newData_end,
                    const unsigned char* oldData,const unsigned char* oldData_end,
-                   const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                   const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                    int kMinSingleMatchScore,bool isUseBigCacheMatch,
                    ICoverLinesListener* coverLinesListener,size_t threadNum){
     _create_vcdiff(newData,newData_end,newData_end,oldData,oldData_end,oldData_end,
@@ -89,7 +88,7 @@ void create_vcdiff(const unsigned char* newData,const unsigned char* newData_end
                    coverLinesListener,threadNum);
 }
 void create_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                   const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                   const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                    int kMinSingleMatchScore,bool isUseBigCacheMatch,
                    ICoverLinesListener* coverLinesListener,size_t threadNum){
     TAutoMem oldAndNewData;
@@ -104,7 +103,7 @@ void create_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput*
 }
 
 void create_vcdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                          const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                           size_t kMatchBlockSize,size_t threadNum){
     TCoversBuf covers(newData->streamSize,oldData->streamSize);
     get_match_covers_by_block(newData,oldData,&covers,kMatchBlockSize,threadNum);
@@ -114,7 +113,7 @@ void create_vcdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStrea
 
 void create_vcdiff_block(unsigned char* newData,unsigned char* newData_end,
                          unsigned char* oldData,unsigned char* oldData_end,
-                         const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                         const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                          int kMinSingleMatchScore,bool isUseBigCacheMatch,
                          size_t matchBlockSize,size_t threadNum){
     if (matchBlockSize==0){
@@ -128,7 +127,7 @@ void create_vcdiff_block(unsigned char* newData,unsigned char* newData_end,
                    out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,&coversOp,threadNum);   
 }
 void create_vcdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                         const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
+                         const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                          int kMinSingleMatchScore,bool isUseBigCacheMatch,
                          size_t matchBlockSize,size_t threadNum){
     TAutoMem oldAndNewData;

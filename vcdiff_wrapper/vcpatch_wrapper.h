@@ -32,14 +32,18 @@
 extern "C" {
 #endif
 
+typedef enum{
+    kVcDiff_compressorID_no   = 0, // no compress
+    kVcDiff_compressorID_7zXZ = 2, // compress by 7zXZ, compatible with $xdelta -S lzma ...
+} vcdiff_compressType;
+
 typedef struct hpatch_VcDiffInfo{
     hpatch_StreamPos_t  appHeadDataOffset;
     hpatch_StreamPos_t  appHeadDataLen;
     hpatch_StreamPos_t  windowOffset;
     hpatch_BOOL         isGoogleVersion;
-    unsigned char       compressorID;
+    vcdiff_compressType compressorID;
 } hpatch_VcDiffInfo;
-#define kVcDiff_compressorID_7zXZ  2
 
 hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamInput* diffStream);
 hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned char* diffData,const unsigned char* diffData_end);
