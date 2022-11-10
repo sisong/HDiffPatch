@@ -28,6 +28,7 @@
 #include "vcpatch_wrapper.h"
 #include "../libHDiffPatch/HPatch/patch_types.h"
 #include "../libHDiffPatch/HPatch/patch_private.h"
+#include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "vcpatch_code_table.h"
 #include <string.h>
 #define _hpatch_FALSE   hpatch_FALSE
@@ -59,6 +60,12 @@ static const unsigned char kVcDiffType[3]={('V'|(1<<7)),('C'|(1<<7)),('D'|(1<<7)
 #define _clip_readUInt8(_clip,_result) { \
     const unsigned char* buf=_TStreamCacheClip_readData(_clip,1); \
     if (buf!=0) *(_result)=*buf; \
+    else return _hpatch_FALSE; \
+}
+#define _clip_readUInt32_BigEndian(_clip,_result) { \
+    const unsigned char* buf=_TStreamCacheClip_readData(_clip,4); \
+    if (buf!=0) *(_result)=(((hpatch_uint32_t)buf[0])<<24)|(((hpatch_uint32_t)buf[1])<<16) \
+                           |(((hpatch_uint32_t)buf[2])<<8)|((hpatch_uint32_t)buf[3]); \
     else return _hpatch_FALSE; \
 }
 
@@ -113,6 +120,93 @@ hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned cha
     hpatch_TStreamInput diffStream;
     mem_as_hStreamInput(&diffStream,diffData,diffData_end);
     return getVcDiffInfo(out_diffinfo,&diffStream);
+}
+
+
+typedef struct{
+    hpatch_BOOL isGoogleVersion;
+    hpatch_BOOL isNeedChecksum;
+    hpatch_BOOL     window_isHaveAdler32;
+    hpatch_uint32_t window_savedAdler32;
+    hpatch_uint32_t window_curAdler32;
+
+    const hpatch_TStreamOutput* _dstStream;
+    hpatch_TStreamOutput        _hookStream;
+} vcpatch_checksum_t;
+
+static hpatch_inline void vcpatch_checksum_init(vcpatch_checksum_t* self,hpatch_BOOL isGoogleVersion,
+                                                hpatch_BOOL isNeedChecksum,hpatch_BOOL window_isHaveAdler32){
+    memset(self,0,sizeof(*self));
+    self->isGoogleVersion=isGoogleVersion;
+    self->isNeedChecksum=isNeedChecksum;
+    self->window_isHaveAdler32=window_isHaveAdler32;
+}
+
+#define vcpatch_checksum_readAdler32(self,diffClip){ \
+    if ((self)->window_isHaveAdler32){ \
+        if ((self)->isGoogleVersion){  \
+            hpatch_StreamPos_t _v;     \
+            _clip_unpackUInt64(diffClip,&_v); \
+            if ((_v>>32)>0) return _hpatch_FALSE; /*error data or no data*/ \
+            (self)->window_savedAdler32=(hpatch_uint32_t)_v; \
+        }else{ \
+            _clip_readUInt32_BigEndian(diffClip,&(self)->window_savedAdler32); \
+        } \
+    } }
+
+
+    static hpatch_BOOL __vcpatch_checksum_read_writed(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
+                                                    unsigned char* out_data,unsigned char* out_data_end){
+        vcpatch_checksum_t* self=(vcpatch_checksum_t*)stream->streamImport;
+        return self->_dstStream->read_writed(self->_dstStream,readFromPos,out_data,out_data_end);      
+    }
+    static hpatch_BOOL __vcpatch_checksum_write(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                                const unsigned char* data,const unsigned char* data_end){
+        vcpatch_checksum_t* self=(vcpatch_checksum_t*)stream->streamImport;
+        self->window_curAdler32=adler32_append(self->window_curAdler32,data,data_end-data);
+        return self->_dstStream->write(self->_dstStream,writeToPos,data,data_end);
+    }
+hpatch_BOOL __vcpatch_checksum_begin_(vcpatch_checksum_t* self,_TOutStreamCache* outCache){
+    assert(self->_dstStream==0);
+    if (_TOutStreamCache_cachedDataSize(outCache)>0){
+        if (!_TOutStreamCache_flush(outCache)) return hpatch_FALSE;
+    }
+
+    self->_hookStream.streamImport=self;
+    self->_hookStream.streamSize=outCache->dstStream->streamSize;
+    self->_hookStream.read_writed=(outCache->dstStream->read_writed?__vcpatch_checksum_read_writed:0);
+    self->_hookStream.write=__vcpatch_checksum_write;
+
+    self->_dstStream=outCache->dstStream;
+    outCache->dstStream=&self->_hookStream;
+    self->window_curAdler32=(self->isGoogleVersion?0:1);
+    return hpatch_TRUE;
+}
+
+hpatch_BOOL __vcpatch_checksum_end_(vcpatch_checksum_t* self,_TOutStreamCache* outCache){
+    assert(self->_dstStream!=0);
+    assert(outCache->dstStream==&self->_hookStream);
+    if (_TOutStreamCache_cachedDataSize(outCache)>0){
+        if (!_TOutStreamCache_flush(outCache)) return hpatch_FALSE;
+    }
+
+    outCache->dstStream=self->_dstStream;
+    self->_dstStream=0;
+    return self->window_curAdler32==self->window_savedAdler32;
+}
+
+static hpatch_inline hpatch_BOOL vcpatch_checksum_begin(vcpatch_checksum_t* self,_TOutStreamCache* outCache){
+    if ((self)->isNeedChecksum&(self)->window_isHaveAdler32)
+        return __vcpatch_checksum_begin_(self,outCache);
+    else
+        return hpatch_TRUE;
+}
+
+static hpatch_inline hpatch_BOOL vcpatch_checksum_end(vcpatch_checksum_t* self,_TOutStreamCache* outCache){
+    if ((self)->isNeedChecksum&(self)->window_isHaveAdler32)
+        return __vcpatch_checksum_end_(self,outCache);
+    else
+        return hpatch_TRUE;
 }
 
 
@@ -235,8 +329,8 @@ static hpatch_BOOL _getStreamClip(TStreamCacheClip* clip,hpatch_byte Delta_Indic
 
 hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput* oldData,
                             const hpatch_TStreamInput* compressedDiff,hpatch_TDecompress* decompressPlugin,
-                            _TDecompressInputStream* decompressers,
-                            hpatch_StreamPos_t windowOffset,hpatch_BOOL isGoogleVersion,
+                            _TDecompressInputStream* decompressers,hpatch_StreamPos_t windowOffset,
+                            hpatch_BOOL isGoogleVersion,hpatch_BOOL isNeedChecksum,
                             unsigned char* tempCaches,hpatch_size_t cache_size){
     //window loop
     while (windowOffset<compressedDiff->streamSize){
@@ -251,15 +345,17 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
         hpatch_StreamPos_t curDiffOffset;
         const hpatch_TStreamInput* srcData;
         unsigned char* temp_cache=tempCaches;
-        hpatch_BOOL   isHaveAdler32;
+        vcpatch_checksum_t checksumer;
         unsigned char Delta_Indicator;
         _TStreamCacheClip_init(&diffClip,compressedDiff,windowOffset,compressedDiff->streamSize,
                                temp_cache,_smallCacheSize(cache_size));
         {
+            hpatch_BOOL window_isHaveAdler32;
             unsigned char Win_Indicator;
             _clip_readUInt8(&diffClip,&Win_Indicator);
-            isHaveAdler32=(0!=(Win_Indicator&VCD_ADLER32));
-            if (isHaveAdler32) Win_Indicator-=VCD_ADLER32;
+            window_isHaveAdler32=(0!=(Win_Indicator&VCD_ADLER32));
+            if (window_isHaveAdler32) Win_Indicator-=VCD_ADLER32;
+            vcpatch_checksum_init(&checksumer,isGoogleVersion,isNeedChecksum,window_isHaveAdler32);
             switch (Win_Indicator){
                 case 0         :{ srcData=0; } break;
                 case VCD_SOURCE:{ srcData=oldData; } break;
@@ -299,15 +395,7 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
             _clip_unpackUInt64(&diffClip,&dataLen);
             _clip_unpackUInt64(&diffClip,&instLen);
             _clip_unpackUInt64(&diffClip,&addrLen);
-            if (isHaveAdler32){//now not checksum
-                if (isGoogleVersion){
-                    hpatch_StreamPos_t _tmp;
-                    _clip_unpackUInt64(&diffClip,&_tmp);
-                }else{
-                    if (!_TStreamCacheClip_skipData(&diffClip,4)) 
-                        return _hpatch_FALSE; //error data or no data
-                }
-            }
+            vcpatch_checksum_readAdler32(&checksumer,&diffClip);
             curDiffOffset=_TStreamCacheClip_readPosOfSrcStream(&diffClip);
 #ifdef __RUN_MEM_SAFE_CHECK
             deltaHeadSize=curDiffOffset-deltaHeadSize;
@@ -319,6 +407,7 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
         windowOffset=curDiffOffset+dataLen+instLen+addrLen;
 
         {
+            hpatch_BOOL ret;
             const hpatch_BOOL isInterleaved=((dataLen==0)&(addrLen==0));
             TStreamCacheClip   dataClip;
             TStreamCacheClip   instClip;
@@ -337,10 +426,12 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
                 __getStreamClip(&instClip,0,instLen,cache_size*3);
             }
             assert(curDiffOffset==windowOffset);
-            
-            if (!_vcpatch_delta(outCache,targetLen,srcData,srcPos,srcLen,
-                                isInterleaved?&instClip:&dataClip,&instClip,
-                                isInterleaved?&instClip:&addrClip))
+            if (!vcpatch_checksum_begin(&checksumer,outCache))
+                return _hpatch_FALSE;
+            ret=_vcpatch_delta(outCache,targetLen,srcData,srcPos,srcLen,
+                                  isInterleaved?&instClip:&dataClip,&instClip,
+                                  isInterleaved?&instClip:&addrClip);
+            if ((!vcpatch_checksum_end(&checksumer,outCache))||(!ret))
                 return _hpatch_FALSE;
         }
     }
@@ -359,7 +450,7 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
 hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
                                const hpatch_TStreamInput*  oldData,
                                const hpatch_TStreamInput*  compressedDiff,
-                               hpatch_TDecompress* decompressPlugin,
+                               hpatch_TDecompress* decompressPlugin,hpatch_BOOL isNeedChecksum,
                                unsigned char* temp_cache,unsigned char* temp_cache_end){
     hpatch_VcDiffInfo diffInfo;
     hpatch_size_t i;
@@ -390,7 +481,7 @@ hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
         _TOutStreamCache_init(&outCache,out_newData,temp_cache,cacheSize);
         temp_cache+=cacheSize;
         result=_vcpatch_window(&outCache,oldData,compressedDiff,decompressPlugin,decompressers,
-                               diffInfo.windowOffset,diffInfo.isGoogleVersion,temp_cache,cacheSize);
+                               diffInfo.windowOffset,diffInfo.isGoogleVersion,isNeedChecksum,temp_cache,cacheSize);
     }
 
     for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i) {

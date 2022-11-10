@@ -155,6 +155,9 @@ static hpatch_inline hpatch_StreamPos_t _TOutStreamCache_leaveSize(const _TOutSt
 static hpatch_inline hpatch_BOOL _TOutStreamCache_isFinish(const _TOutStreamCache* self){
     return self->writeToPos==self->dstStream->streamSize;
 }
+static hpatch_inline hpatch_size_t _TOutStreamCache_cachedDataSize(const _TOutStreamCache* self){
+    return self->cacheCur;
+}
 hpatch_BOOL _TOutStreamCache_flush(_TOutStreamCache* self);
 hpatch_BOOL _TOutStreamCache_write(_TOutStreamCache* self,const unsigned char* data,hpatch_size_t dataSize);
 hpatch_BOOL _TOutStreamCache_fill(_TOutStreamCache* self,hpatch_byte fillValue,hpatch_StreamPos_t fillLength);

@@ -196,6 +196,10 @@ static void printUsage(){
            "      maxOpenFileNumber>=8, DEFAULT -n-24, the best limit value by different\n"
            "        operating system.\n"
 #endif
+#if (_IS_NEED_VCDIFF)
+           "  -C-no or -C-new\n"
+           "      if diffFile is VCDIFF, then to close or open checksum.\n"
+#endif
            "  -f  Force overwrite, ignore write path already exists;\n"
            "      DEFAULT (no -f) not overwrite and then return error;\n"
            "      support oldPath outNewPath same path!(patch to tempPath and overwrite old)\n"
@@ -282,7 +286,7 @@ int hpatch_cmd_line(int argc, const char * argv[]);
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
-           hpatch_StreamPos_t diffDataSize);
+           hpatch_StreamPos_t diffDataSize,hpatch_BOOL vcpatch_isChecksum);
 #if (_IS_NEED_DIR_DIFF_PATCH)
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
@@ -310,31 +314,35 @@ int main(int argc, const char * argv[]){
 #   endif
 #endif
 
-#if (_IS_NEED_DIR_DIFF_PATCH)
+#if ((_IS_NEED_DIR_DIFF_PATCH)||(_IS_NEED_VCDIFF))
 static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checksumSet){
     while (hpatch_TRUE) {
         const char* pend=findUntilEnd(psets,'-');
         size_t len=(size_t)(pend-psets);
         if (len==0) return hpatch_FALSE; //error no set
-        if        ((len==4)&&(0==memcmp(psets,"diff",len))){
-            checksumSet->isCheck_dirDiffData=hpatch_TRUE;
-        }else  if ((len==3)&&(0==memcmp(psets,"old",len))){
-            checksumSet->isCheck_oldRefData=hpatch_TRUE;
-        }else  if ((len==3)&&(0==memcmp(psets,"new",len))){
+        if ((len==3)&&(0==memcmp(psets,"new",len))){
             checksumSet->isCheck_newRefData=hpatch_TRUE;
-        }else  if ((len==4)&&(0==memcmp(psets,"copy",len))){
-            checksumSet->isCheck_copyFileData=hpatch_TRUE;
-        }else  if ((len==3)&&(0==memcmp(psets,"all",len))){
+        }else if ((len==3)&&(0==memcmp(psets,"all",len))){
             checksumSet->isCheck_dirDiffData=hpatch_TRUE;
             checksumSet->isCheck_oldRefData=hpatch_TRUE;
             checksumSet->isCheck_newRefData=hpatch_TRUE;
             checksumSet->isCheck_copyFileData=hpatch_TRUE;
-        }else  if ((len==2)&&(0==memcmp(psets,"no",len))){
+        }else if ((len==2)&&(0==memcmp(psets,"no",len))){
             checksumSet->isCheck_dirDiffData=hpatch_FALSE;
             checksumSet->isCheck_oldRefData=hpatch_FALSE;
             checksumSet->isCheck_newRefData=hpatch_FALSE;
             checksumSet->isCheck_copyFileData=hpatch_FALSE;
-        }else{
+        }else
+#if (_IS_NEED_DIR_DIFF_PATCH)
+        if       ((len==4)&&(0==memcmp(psets,"diff",len))){
+            checksumSet->isCheck_dirDiffData=hpatch_TRUE;
+        }else if ((len==3)&&(0==memcmp(psets,"old",len))){
+            checksumSet->isCheck_oldRefData=hpatch_TRUE;
+        }else if ((len==4)&&(0==memcmp(psets,"copy",len))){
+            checksumSet->isCheck_copyFileData=hpatch_TRUE;
+        }else
+#endif
+        {
             return hpatch_FALSE;//error unknow set
         }
         if (*pend=='\0')
@@ -388,8 +396,11 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     size_t      patchCacheSize=0;
 #if (_IS_NEED_DIR_DIFF_PATCH)
     size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir patch
+#endif
+#if ((_IS_NEED_DIR_DIFF_PATCH)||(_IS_NEED_VCDIFF))
     TDirPatchChecksumSet checksumSet={0,hpatch_FALSE,hpatch_TRUE,hpatch_TRUE,hpatch_FALSE}; //DEFAULT
 #endif
+    hpatch_BOOL vcpatch_isChecksum=hpatch_TRUE;
     #define kMax_arg_values_size 3
     const char* arg_values[kMax_arg_values_size]={0};
     int         arg_values_size=0;
@@ -460,13 +471,15 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 _options_check((isForceOverwrite==_kNULL_VALUE)&&(op[2]=='\0'),"-f");
                 isForceOverwrite=hpatch_TRUE;
             } break;
-#if (_IS_NEED_DIR_DIFF_PATCH)
+#if ((_IS_NEED_DIR_DIFF_PATCH)||(_IS_NEED_VCDIFF))
             case 'C':{
                 const char* psets=op+3;
                 _options_check((op[2]=='-'),"-C-?");
                 memset(&checksumSet,0,sizeof(checksumSet));//all set false
                 _options_check(_toChecksumSet(psets,&checksumSet),"-C-?");
             } break;
+#endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
             case 'n':{
                 const char* pnum=op+3;
                 _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n");
@@ -524,6 +537,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_patch;
     if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
+#endif
+#if (_IS_NEED_VCDIFF)
+    vcpatch_isChecksum=checksumSet.isCheck_newRefData;
 #endif
     
     if (isLoadOldAll==_kNULL_VALUE){
@@ -626,7 +642,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #endif
             {
                 return hpatch(oldPath,diffFileName,outNewPath,isLoadOldAll,
-                              patchCacheSize,diffDataOffert,diffDataSize);
+                              patchCacheSize,diffDataOffert,diffDataSize,vcpatch_isChecksum);
             }
         }else
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -655,7 +671,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #endif
             {
                 result=hpatch(oldPath,diffFileName,newTempName,isLoadOldAll,
-                              patchCacheSize,diffDataOffert,diffDataSize);
+                              patchCacheSize,diffDataOffert,diffDataSize,vcpatch_isChecksum);
             }
             if (result==HPATCH_SUCCESS){
                 _return_check(hpatch_removeFile(oldPath),
@@ -881,7 +897,7 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
 #define _kNULL_FILESIZE (~(hpatch_StreamPos_t)0)
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
-           hpatch_StreamPos_t diffDataSize){
+           hpatch_StreamPos_t diffDataSize,hpatch_BOOL vcpatch_isChecksum){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
@@ -1029,7 +1045,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
 #if (_IS_NEED_VCDIFF)
     if (isVcDiff){
         if (!vcpatch_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
-                                temp_cache,temp_cache+temp_cache_size))
+                                vcpatch_isChecksum,temp_cache,temp_cache+temp_cache_size))
             patch_result=HPATCH_VCPATCH_ERROR;
     }else
 #endif

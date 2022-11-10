@@ -47,7 +47,7 @@ hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned cha
 hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
                                const hpatch_TStreamInput*  oldData,
                                const hpatch_TStreamInput*  compressedDiff, //create by vcdiff or hdiffz -VCD
-                               hpatch_TDecompress* decompressPlugin, // todo: ?
+                               hpatch_TDecompress* decompressPlugin,hpatch_BOOL isNeedChecksum,
                                unsigned char* temp_cache,unsigned char* temp_cache_end);
 
 #ifdef __cplusplus

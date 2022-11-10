@@ -158,7 +158,7 @@ bool check_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* 
     const size_t kACacheBufSize=hpatch_kFileIOBufBetterSize;
     TAutoMem _cache(kACacheBufSize*(1+5));
     _TCheckOutNewDataStream out_newData(newData,_cache.data(),kACacheBufSize);
-    _test_rt(vcpatch_with_cache(&out_newData,oldData,diffStream,decompressPlugin,
+    _test_rt(vcpatch_with_cache(&out_newData,oldData,diffStream,decompressPlugin,hpatch_TRUE,
                                 _cache.data()+kACacheBufSize,_cache.data_end()));
     _test_rt(out_newData.isWriteFinish());
     return true;
