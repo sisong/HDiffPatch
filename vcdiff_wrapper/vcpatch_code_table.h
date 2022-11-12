@@ -62,6 +62,10 @@ typedef struct{
 #define vcdiff_s_same           (vcdiff_code_COPY_SAME2-vcdiff_code_COPY_SAME0+1)
 #define vcdiff_code_MAX         vcdiff_code_COPY_SAME2
 
+#define VCD_SOURCE  (1<<0)
+#define VCD_TARGET  (1<<1)
+#define VCD_ADLER32 (1<<2)
+
 const vcdiff_code_table_t get_vcdiff_code_table_default();
 
 #define vcdiff_update_addr(same_array,near_array,near_index,addr) do{ \

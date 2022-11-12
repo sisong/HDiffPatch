@@ -26,6 +26,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "vcdiff_wrapper.h"
+#include "vcpatch_code_table.h"
 #include "../libHDiffPatch/HDiff/match_block.h"
 #include "../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
@@ -37,22 +38,100 @@ static const unsigned char kVcDiffType[3]={('V'|(1<<7)),('C'|(1<<7)),('D'|(1<<7)
 
 namespace hdiff_private{
 
+static void _getSrcWindow(const TCovers& covers,hpatch_StreamPos_t* out_srcPos,hpatch_StreamPos_t* out_srcEnd){
+    const size_t count=covers.coverCount();
+    if (count==0){
+        *out_srcPos=0;
+        *out_srcEnd=0;
+        return;
+    }
+    hpatch_StreamPos_t srcPos=~(hpatch_StreamPos_t)0;
+    hpatch_StreamPos_t srcEnd=0;
+    for (size_t i=0;i<count;++i){
+        TCover c; covers.covers(i,&c);
+        hpatch_StreamPos_t pos=c.oldPos;
+        srcPos=(pos<srcPos)?pos:srcPos;
+        pos+=c.length;
+        srcEnd=(pos<srcEnd)?srcEnd:pos;
+    }
+    *out_srcPos=srcPos;
+    *out_srcEnd=srcEnd;
+}
+
+static void _select_ctrl(std::vector<unsigned char>& ctrls,const TCovers& covers,hpatch_StreamPos_t targetLen){
+    hpatch_StreamPos_t same_array[vcdiff_s_same*256]={0};
+    hpatch_StreamPos_t near_array[vcdiff_s_near]={0};
+    hpatch_StreamPos_t here=0;
+    hpatch_StreamPos_t near_index=0;
+    const vcdiff_code_table_t code_table=get_vcdiff_code_table_default();
+    const size_t count=covers.coverCount();
+
+    for (size_t i=0;i<count;++i){
+        TCover c; covers.covers(i,&c);
+        //todo:
+        
+    }
+    if (here<targetLen)
+     ;//todo:
+}
+
+static inline void _flushBuf(TDiffStream& outDiff,std::vector<unsigned char>& buf){
+    outDiff.pushBack(buf.data(),buf.size());
+    buf.clear();
+}
+
 static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                              const TCovers& covers,const hpatch_TStreamOutput* out_diff,
                              const vcdiff_TCompress* compressPlugin,bool isZeroSubDiff=false){
     std::vector<unsigned char> buf;
     TDiffStream outDiff(out_diff);
-    size_t ctrlDataSize_pos;
-    size_t subDataSize_pos;
     {//head
-        buf.clear();
         pushBack(buf,kVcDiffType,sizeof(kVcDiffType));
         buf.push_back(kVcDiffVersion);
-        buf.push_back(0);// Hdr_Indicator: No compression, no custom code table
         assert((compressPlugin==0)||(compressPlugin->compress_type==kVcDiff_compressorID_no));
-        
+        buf.push_back(0);// Hdr_Indicator: No compression, no custom code table
+        _flushBuf(outDiff,buf);
     }
-    //todo:
+    {//only one window
+        {
+            hpatch_StreamPos_t srcPos,srcEnd;
+            _getSrcWindow(covers,&srcPos,&srcEnd);
+            if (srcPos<srcEnd){
+                buf.push_back(VCD_SOURCE); //Win_Indicator
+                packUInt(buf,(hpatch_StreamPos_t)(srcEnd-srcPos));//srcLen
+                packUInt(buf,srcPos);//srcPos
+            }else{
+                buf.push_back(0); //Win_Indicator, no src window
+            }
+            _flushBuf(outDiff,buf);
+        }
+        const hpatch_StreamPos_t targetLen=newData->streamSize;
+        hpatch_StreamPos_t deltaLen=targetLen+(targetLen/8)+256;
+        TPlaceholder deltaLen_pos=outDiff.packUInt_pos(deltaLen); //need update deltaLen!
+        const hpatch_StreamPos_t dataLen=TNewDataDiffStream::getDataSize(covers,targetLen);
+        hpatch_StreamPos_t Delta_Indicator_pos;
+        {
+            packUInt(buf,targetLen);
+            assert((compressPlugin==0)||(compressPlugin->compress_type==kVcDiff_compressorID_no));
+            buf.push_back(0);// Delta_Indicator
+            packUInt(buf,dataLen);
+            _flushBuf(outDiff,buf);
+            Delta_Indicator_pos=outDiff.getWritedPos()-1;
+        }
+        hpatch_StreamPos_t instLen=deltaLen;
+        TPlaceholder instLen_pos=outDiff.packUInt_pos(instLen); //need update instLen!
+        hpatch_StreamPos_t addrLen=deltaLen;
+        TPlaceholder addrLen_pos=outDiff.packUInt_pos(addrLen); //need update addrLen!
+        {
+            _select_ctrl(buf,covers,targetLen);
+
+            buf.clear();
+        }
+        deltaLen=dataLen+instLen+addrLen;
+        outDiff.packUInt_update(deltaLen_pos,deltaLen);
+        outDiff.packUInt_update(instLen_pos,instLen);
+        outDiff.packUInt_update(addrLen_pos,addrLen);
+    }
 }
 
 void _create_vcdiff(const unsigned char* newData,const unsigned char* cur_newData_end,const unsigned char* newData_end,

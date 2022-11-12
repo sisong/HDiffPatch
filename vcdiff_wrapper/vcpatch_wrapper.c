@@ -49,10 +49,6 @@ static const unsigned char kVcDiffType[3]={('V'|(1<<7)),('C'|(1<<7)),('D'|(1<<7)
 #define     kVcDiffGoogleVersion    'S'
 #define     kVcDiffMinHeadLen       (sizeof(kVcDiffType)+1+1)
 
-#define VCD_SOURCE  (1<<0)
-#define VCD_TARGET  (1<<1)
-#define VCD_ADLER32 (1<<2)
-
 #define _clip_unpackUInt64(_clip,_result) { \
     if (!_TStreamCacheClip_unpackUIntWithTag(_clip,_result,0)) \
         return _hpatch_FALSE; \
@@ -621,8 +617,8 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
             if (!vcpatch_checksum_begin(&checksumer,outCache))
                 return _hpatch_FALSE;
             ret=_vcpatch_delta(outCache,targetLen,srcData,srcPos,srcLen,
-                                  isInterleaved?&instClip:&dataClip,&instClip,
-                                  isInterleaved?&instClip:&addrClip);
+                               isInterleaved?&instClip:&dataClip,&instClip,
+                               isInterleaved?&instClip:&addrClip);
             if ((!vcpatch_checksum_end(&checksumer,outCache))||(!ret))
                 return _hpatch_FALSE;
         }
