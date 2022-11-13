@@ -47,9 +47,6 @@ void create_bsdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStrea
                           const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                           size_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
-bool get_is_bsdiff(const unsigned char* diffData,const unsigned char* diffData_end);
-bool get_is_bsdiff(const hpatch_TStreamInput* diffData);
-
 bool check_bsdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                   const hpatch_TStreamInput* diffData,hpatch_TDecompress* decompressPlugin);
 bool check_bsdiff(const unsigned char* newData,const unsigned char* newData_end,

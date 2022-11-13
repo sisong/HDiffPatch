@@ -54,9 +54,6 @@ void create_vcdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStrea
                           const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin=0,
                           size_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
 
-bool get_is_vcdiff(const unsigned char* diffData,const unsigned char* diffData_end);
-bool get_is_vcdiff(const hpatch_TStreamInput* diffData);
-
 bool check_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                   const hpatch_TStreamInput* diffData,hpatch_TDecompress* decompressPlugin);
 bool check_vcdiff(const unsigned char* newData,const unsigned char* newData_end,

@@ -259,18 +259,6 @@ void create_bsdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStream
                         matchBlockSize,threadNum);
 }
 
-bool get_is_bsdiff(const hpatch_TStreamInput* diffData){
-    hpatch_BsDiffInfo diffinfo;
-    if (!getBsDiffInfo(&diffinfo,diffData))
-        return false;
-    return true;
-}
-bool get_is_bsdiff(const unsigned char* diffData,const unsigned char* diffData_end){
-    hdiff_TStreamInput diffStream;
-    mem_as_hStreamInput(&diffStream,diffData,diffData_end);
-    return get_is_bsdiff(&diffStream);
-}
-
 bool check_bsdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                   const hpatch_TStreamInput* diffStream,hpatch_TDecompress* decompressPlugin){
     const size_t kACacheBufSize=hpatch_kFileIOBufBetterSize;

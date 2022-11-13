@@ -320,6 +320,15 @@ hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned cha
     return getVcDiffInfo(out_diffinfo,&diffStream,isNeedWindowSize);
 }
 
+hpatch_BOOL getIsVcDiff(const hpatch_TStreamInput* diffData){
+    hpatch_VcDiffInfo diffinfo;
+    return getVcDiffInfo(&diffinfo,diffData,hpatch_FALSE);
+}
+hpatch_BOOL getIsVcDiff_mem(const unsigned char* diffData,const unsigned char* diffData_end){
+    hpatch_TStreamInput diffStream;
+    mem_as_hStreamInput(&diffStream,diffData,diffData_end);
+    return getIsVcDiff(&diffStream);
+}
 
 typedef struct{
     hpatch_BOOL isGoogleVersion;
@@ -613,7 +622,7 @@ hpatch_BOOL _vcpatch_window(const hpatch_TStreamOutput* out_newData,const hpatch
                             hpatch_BOOL isGoogleVersion,hpatch_BOOL isNeedChecksum,
                             unsigned char* tempCaches,size_t allCacheSize){
     hpatch_StreamPos_t srcPos_bck=0;
-    hpatch_StreamPos_t srcLen_bck=0;
+    hpatch_size_t srcLen_bck=0;
     const hpatch_TStreamInput* srcData_bck=0;
     hpatch_TStreamInput srcData_cache;
     _TOutStreamCache outCache;
@@ -636,7 +645,7 @@ hpatch_BOOL _vcpatch_window(const hpatch_TStreamOutput* out_newData,const hpatch
         {
             TStreamCacheClip   diffClip;
             _TStreamCacheClip_init(&diffClip,diffStream,windowOffset,diffStream->streamSize,
-                                   tempCaches,_smallCacheSize(allCacheSize));
+                                   tempCaches+allCacheSize-_smallCacheSize(allCacheSize),_smallCacheSize(allCacheSize));
             {
                 hpatch_BOOL window_isHaveAdler32;
                 unsigned char Win_Indicator;
@@ -702,13 +711,42 @@ hpatch_BOOL _vcpatch_window(const hpatch_TStreamOutput* out_newData,const hpatch
             size_t            cache_size=allCacheSize;
             if ((srcLen>0)&&(srcLen+_kCacheVcDecCount*hpatch_kStreamCacheSize<=cache_size)){//old all in cache
                 const size_t memSize=(size_t)srcLen;
-                if (!srcData->read(srcData,srcPos,temp_cache,temp_cache+memSize)) 
-                    return _hpatch_FALSE;
+                if ((srcData_bck!=srcData)||(srcPos_bck+srcLen_bck<=srcPos)||(srcPos_bck>=srcPos+memSize)){
+                    if (!srcData->read(srcData,srcPos,temp_cache,temp_cache+memSize))
+                        return _hpatch_FALSE;
+                }else{//hit cache
+                    hpatch_size_t dstPos;
+                    hpatch_size_t movePos;
+                    hpatch_size_t moveLen;
+                    if (srcPos_bck<=srcPos){
+                        dstPos=0;
+                        movePos=(hpatch_size_t)(srcPos-srcPos_bck);
+                        moveLen=srcLen_bck-movePos;
+                    }else{
+                        dstPos=(hpatch_size_t)(srcPos_bck-srcPos);
+                        movePos=0;
+                        moveLen=srcLen_bck;
+                    }
+                    if (dstPos+moveLen>=memSize)
+                        moveLen=memSize-dstPos;
+                    if (dstPos!=movePos)
+                        memmove(temp_cache+dstPos,temp_cache+movePos,moveLen);
+                    if (dstPos>0){
+                        if (!srcData->read(srcData,srcPos,temp_cache,temp_cache+dstPos))
+                            return _hpatch_FALSE;
+                    }
+                    dstPos+=moveLen;
+                    if (dstPos<memSize){
+                        if (!srcData->read(srcData,srcPos+dstPos,temp_cache+dstPos,temp_cache+memSize))
+                            return _hpatch_FALSE;
+                    }
+                }
+
                 mem_as_hStreamInput(&srcData_cache,temp_cache,temp_cache+memSize);
                 temp_cache+=memSize;
                 cache_size-=memSize;
                 srcPos_bck=srcPos;
-                srcLen_bck=srcLen;
+                srcLen_bck=memSize;
                 srcData_bck=srcData;
                 srcPos=0;
                 srcData=&srcData_cache;

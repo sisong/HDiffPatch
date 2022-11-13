@@ -39,6 +39,9 @@ typedef struct hpatch_BsDiffInfo{
     hpatch_StreamPos_t  newDataSize;
 } hpatch_BsDiffInfo;
 
+hpatch_BOOL getIsBsDiff(const hpatch_TStreamInput* diffData);
+hpatch_BOOL getIsBsDiff_mem(const unsigned char* diffData,const unsigned char* diffData_end);
+
 hpatch_BOOL getBsDiffInfo(hpatch_BsDiffInfo* out_diffinfo,const hpatch_TStreamInput* diffStream);
 hpatch_BOOL getBsDiffInfo_mem(hpatch_BsDiffInfo* out_diffinfo,const unsigned char* diffData,const unsigned char* diffData_end);
 

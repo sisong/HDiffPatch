@@ -58,7 +58,8 @@ static void _getSrcWindow(const TCovers& covers,hpatch_StreamPos_t* out_srcPos,h
     *out_srcEnd=srcEnd;
 }
 
-static void _select_ctrl(std::vector<unsigned char>& ctrls,const TCovers& covers,hpatch_StreamPos_t targetLen){
+static void _select_code(std::vector<unsigned char>& inst,std::vector<unsigned char>& addr,
+                         const TCovers& covers,hpatch_StreamPos_t targetLen){
     hpatch_StreamPos_t same_array[vcdiff_s_same*256]={0};
     hpatch_StreamPos_t near_array[vcdiff_s_near]={0};
     hpatch_StreamPos_t here=0;
@@ -114,23 +115,27 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
             packUInt(buf,targetLen);
             assert((compressPlugin==0)||(compressPlugin->compress_type==kVcDiff_compressorID_no));
             buf.push_back(0);// Delta_Indicator
-            packUInt(buf,dataLen);
             _flushBuf(outDiff,buf);
             Delta_Indicator_pos=outDiff.getWritedPos()-1;
         }
-        hpatch_StreamPos_t instLen=deltaLen;
-        TPlaceholder instLen_pos=outDiff.packUInt_pos(instLen); //need update instLen!
-        hpatch_StreamPos_t addrLen=deltaLen;
-        TPlaceholder addrLen_pos=outDiff.packUInt_pos(addrLen); //need update addrLen!
-        {
-            _select_ctrl(buf,covers,targetLen);
 
-            buf.clear();
+        {
+            std::vector<unsigned char> inst;
+            std::vector<unsigned char> addr;
+            _select_code(inst,addr,covers,targetLen);
+
+            packUInt(buf,dataLen);
+            packUInt(buf,inst.size());
+            packUInt(buf,addr.size());
+            _flushBuf(outDiff,buf);
+            deltaLen=dataLen+inst.size()+addr.size();
+            outDiff.packUInt_update(deltaLen_pos,deltaLen);
+            
+            TNewDataDiffStream _newDataDiff(covers,newData);
+            outDiff.pushStream(&_newDataDiff);
+            outDiff.pushBack(inst.data(),inst.size());
+            outDiff.pushBack(addr.data(),addr.size());
         }
-        deltaLen=dataLen+instLen+addrLen;
-        outDiff.packUInt_update(deltaLen_pos,deltaLen);
-        outDiff.packUInt_update(instLen_pos,instLen);
-        outDiff.packUInt_update(addrLen_pos,addrLen);
     }
 }
 
@@ -217,18 +222,6 @@ void create_vcdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStream
     create_vcdiff_block(pNewData,pNewData+(size_t)newData->streamSize,pOldData,pOldData+old_size,
                         out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,
                         matchBlockSize,threadNum);
-}
-
-bool get_is_vcdiff(const hpatch_TStreamInput* diffData){
-    hpatch_VcDiffInfo diffinfo;
-    if (!getVcDiffInfo(&diffinfo,diffData))
-        return false;
-    return true;
-}
-bool get_is_vcdiff(const unsigned char* diffData,const unsigned char* diffData_end){
-    hdiff_TStreamInput diffStream;
-    mem_as_hStreamInput(&diffStream,diffData,diffData_end);
-    return get_is_vcdiff(&diffStream);
 }
 
 bool check_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,

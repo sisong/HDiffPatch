@@ -51,6 +51,9 @@ typedef struct hpatch_VcDiffInfo{
     hpatch_StreamPos_t  sumTargetWindowsSize; //==newDataSize
 } hpatch_VcDiffInfo;
 
+hpatch_BOOL getIsVcDiff(const hpatch_TStreamInput* diffData);
+hpatch_BOOL getIsVcDiff_mem(const unsigned char* diffData,const unsigned char* diffData_end);
+
 hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamInput* diffStream,
                           hpatch_BOOL isNeedWindowSize);
 hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned char* diffData,

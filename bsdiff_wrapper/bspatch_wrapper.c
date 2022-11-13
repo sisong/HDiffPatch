@@ -85,6 +85,17 @@ hpatch_BOOL getBsDiffInfo_mem(hpatch_BsDiffInfo* out_diffinfo,const unsigned cha
     return getBsDiffInfo(out_diffinfo,&diffStream);
 }
 
+hpatch_BOOL getIsBsDiff(const hpatch_TStreamInput* diffData){
+    hpatch_BsDiffInfo diffinfo;
+    return getBsDiffInfo(&diffinfo,diffData);
+}
+
+hpatch_BOOL getIsBsDiff_mem(const unsigned char* diffData,const unsigned char* diffData_end){
+    hpatch_TStreamInput diffStream;
+    mem_as_hStreamInput(&diffStream,diffData,diffData_end);
+    return getIsBsDiff(&diffStream);
+}
+
 static hpatch_BOOL _patch_add_old_with_sub(_TOutStreamCache* outCache,TStreamCacheClip* subClip,
                                            const hpatch_TStreamInput* old,hpatch_uint64_t oldPos,
                                            hpatch_uint64_t addLength,unsigned char* aCache,hpatch_size_t aCacheSize){
