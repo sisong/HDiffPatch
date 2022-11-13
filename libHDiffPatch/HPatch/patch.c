@@ -1591,7 +1591,7 @@ static hpatch_size_t _set_cache_pos(_TArrayCovers* covers,hpatch_size_t maxCache
                                     hpatch_StreamPos_t* poldPosBegin,hpatch_StreamPos_t* poldPosEnd){
     const hpatch_size_t coverCount=covers->coverCount;
     const hpatch_size_t kMinCacheCoverCount=coverCount/8+1; //控制最小缓存数量,否则缓存的意义太小;
-    hpatch_StreamPos_t oldPosBegin=~(hpatch_StreamPos_t)0;
+    hpatch_StreamPos_t oldPosBegin=hpatch_kNullStreamPos;
     hpatch_StreamPos_t oldPosEnd=0;
     hpatch_size_t cacheCoverCount=0;
     hpatch_size_t sum=0;//result

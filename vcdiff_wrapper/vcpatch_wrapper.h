@@ -45,14 +45,20 @@ typedef struct hpatch_VcDiffInfo{
     hpatch_StreamPos_t  windowOffset;
     hpatch_BOOL         isGoogleVersion;
     vcdiff_compressType compressorID;
+    //WindowInfo
+    hpatch_StreamPos_t  maxSrcWindowsSize;
+    hpatch_StreamPos_t  maxSrcAddTargetWindowsSize;
+    hpatch_StreamPos_t  sumTargetWindowsSize; //==newDataSize
 } hpatch_VcDiffInfo;
 
-hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamInput* diffStream);
-hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned char* diffData,const unsigned char* diffData_end);
+hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamInput* diffStream,
+                          hpatch_BOOL isNeedWindowSize);
+hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned char* diffData,
+                              const unsigned char* diffData_end,hpatch_BOOL isNeedWindowSize);
 
 hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
                                const hpatch_TStreamInput*  oldData,
-                               const hpatch_TStreamInput*  compressedDiff, //create by vcdiff or hdiffz -VCD
+                               const hpatch_TStreamInput*  diffStream, //create by vcdiff or hdiffz -VCD
                                hpatch_TDecompress* decompressPlugin,hpatch_BOOL isNeedChecksum,
                                unsigned char* temp_cache,unsigned char* temp_cache_end);
 

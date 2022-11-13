@@ -75,6 +75,7 @@ extern "C" {
 #ifndef hpatch_StreamPos_t
     typedef hpatch_uint64_t     hpatch_StreamPos_t; // file size type
 #endif
+#define hpatch_kNullStreamPos   (~(hpatch_StreamPos_t)0)
 
 #ifndef hpatch_BOOL
     typedef int                 hpatch_BOOL;

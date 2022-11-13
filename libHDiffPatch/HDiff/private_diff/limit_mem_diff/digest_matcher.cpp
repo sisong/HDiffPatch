@@ -533,7 +533,7 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
     }
     if(best==0){ //继续找;
         best=left+(right-left)/2;
-        hpatch_StreamPos_t _best_distance=~(hpatch_StreamPos_t)0;
+        hpatch_StreamPos_t _best_distance=hpatch_kNullStreamPos;
         const TIndex* end=(left+kBestMatchRange>=right)?right:(left+kBestMatchRange);
         for (const TIndex* it=left;it<end; ++it) {
             hpatch_StreamPos_t oldIndex=(*it);

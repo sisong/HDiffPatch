@@ -781,7 +781,7 @@ static void first_search_and_dispose_cover_MT(std::vector<TOldCover>& covers,con
     }
 }
 
-static const hpatch_StreamPos_t _kNullCoverHitEndPos =~(hpatch_StreamPos_t)0;
+static const hpatch_StreamPos_t _kNullCoverHitEndPos =hpatch_kNullStreamPos;
 struct TDiffResearchCover:public IDiffResearchCover{
     TDiffResearchCover(TDiffData& diff_,std::vector<TOldCover>& covers_,const TSuffixString& sstring_,
                        int kMinSingleMatchScore_,int kMaxMatchDeep_)

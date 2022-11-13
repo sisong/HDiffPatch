@@ -157,7 +157,7 @@ void TMatchBlock::packData(){
                 if (clipCur!=clipEnd)
                     clipPos=clipCur->newPos;
                 else
-                    clipPos=~(hpatch_StreamPos_t)0;
+                    clipPos=hpatch_kNullStreamPos;
             }
             const TPackedCover* clipCuri=clipCur;
             hpatch_StreamPos_t  clipPosi=clipPos;
@@ -181,7 +181,7 @@ void TMatchBlock::packData(){
                     if (clipCuri!=clipEnd)
                         clipPosi=clipCuri->newPos;
                     else
-                        clipPosi=~(hpatch_StreamPos_t)0;
+                        clipPosi=hpatch_kNullStreamPos;
                 }
             } while (true);
         }

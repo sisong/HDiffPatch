@@ -264,7 +264,7 @@ TNewDataSubDiffStream::TNewDataSubDiffStream(const hdiff_TStreamInput* _newData,
     read=_read;
 }
 
-static const hpatch_StreamPos_t _kNullPos = ~(hpatch_StreamPos_t)0;
+static const hpatch_StreamPos_t _kNullPos = hpatch_kNullStreamPos;
 void TNewDataSubDiffStream::initRead(){
     curReadNewPos=0;
     curReadOldPos=_kNullPos;

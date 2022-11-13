@@ -894,7 +894,6 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
     return temp_cache;
 }
 
-#define _kNULL_FILESIZE (~(hpatch_StreamPos_t)0)
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
            hpatch_StreamPos_t diffDataSize,hpatch_BOOL vcpatch_isChecksum){
@@ -960,9 +959,9 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
                 diffInfo.compressedCount=(sdiffInfo.compressType[0]!='\0')?1:0;
                 diffInfo.newDataSize=sdiffInfo.newDataSize;
                 diffInfo.oldDataSize=sdiffInfo.oldDataSize;
-                patchCacheSize+=(size_t)sdiffInfo.stepMemSize;
-                if (patchCacheSize<sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3)
-                    patchCacheSize=(size_t)sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3;
+                check(sdiffInfo.stepMemSize==(size_t)sdiffInfo.stepMemSize,HPATCH_MEM_ERROR,"stepMemSize too large");
+                if (patchCacheSize<hpatch_kStreamCacheSize*3)
+                    patchCacheSize=hpatch_kStreamCacheSize*3;
                 isSingleStreamDiff=hpatch_TRUE;
                 printf("patch single compressed diffData!\n");
             }else
@@ -981,7 +980,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
             }else
 #endif
 #if (_IS_NEED_VCDIFF)
-            if (getVcDiffInfo(&vcdiffInfo,&diffData.base)){
+            if (getVcDiffInfo(&vcdiffInfo,&diffData.base,hpatch_TRUE)){
                 if (getVcDiffDecompressPlugin(decompressPlugin,vcdiffInfo.compressorID,diffInfo.compressType)){
                     if (decompressPlugin->open) diffInfo.compressedCount=3;
                     else diffInfo.compressedCount=0;
@@ -989,7 +988,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
                     LOG_ERR("can not decompress VCDIFF compressID \"%d\" data ERROR!\n",vcdiffInfo.compressorID);
                     check_on_error(HPATCH_COMPRESSTYPE_ERROR);
                 }
-                diffInfo.newDataSize=_kNULL_FILESIZE; //not saved newDataSize
+                diffInfo.newDataSize=vcdiffInfo.sumTargetWindowsSize;
                 diffInfo.oldDataSize=poldData->streamSize; //not saved oldDataSize
                 isVcDiff=hpatch_TRUE;
                 printf("patch VCDIFF diffData!\n");
@@ -1015,15 +1014,23 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     if (isVcDiff)
         hpatch_TFileStreamOutput_setRandomOut(&newData,hpatch_TRUE);
 #endif
-    if (savedNewSize!=_kNULL_FILESIZE){
-        printf("oldDataSize : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
-               poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
-    }else{
-        printf("oldDataSize : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewDataSize : unknow\n",
-               poldData->streamSize,diffData.base.streamSize);
+    printf("oldDataSize : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
+            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
+    {
+        hpatch_StreamPos_t maxWindowSize=poldData->streamSize;
+        hpatch_size_t      mustAppendMemSize=0;
+#if (_IS_NEED_VCDIFF)
+        if (isVcDiff){
+            maxWindowSize=(vcdiffInfo.maxSrcAddTargetWindowsSize<maxWindowSize)?
+                    vcdiffInfo.maxSrcAddTargetWindowsSize:vcdiffInfo.maxSrcWindowsSize;
+        }
+#endif
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+        if (isSingleStreamDiff)
+            mustAppendMemSize=(size_t)sdiffInfo.stepMemSize;
+#endif
+        temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,mustAppendMemSize,maxWindowSize, &temp_cache_size);
     }
-
-    temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,0,poldData->streamSize, &temp_cache_size);
     check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory");
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
     if (isSingleStreamDiff){
@@ -1061,7 +1068,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         check_dec(_decompressPlugin.decError);
         check(hpatch_FALSE,patch_result,"patch run");
     }
-    if ((newData.out_length!=newData.base.streamSize)&&(newData.base.streamSize!=_kNULL_FILESIZE)){
+    if (newData.out_length!=newData.base.streamSize){
         LOG_ERR("out newFile dataSize %" PRIu64 " != diffFile saved newDataSize %" PRIu64 " ERROR!\n",
                newData.out_length,newData.base.streamSize);
         check_on_error(HPATCH_FILEDATA_ERROR);

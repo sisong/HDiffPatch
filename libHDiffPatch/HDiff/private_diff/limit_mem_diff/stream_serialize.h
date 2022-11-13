@@ -240,7 +240,7 @@ private:
 struct TVectorAsStreamOutput:public hpatch_TStreamOutput{
     explicit TVectorAsStreamOutput(std::vector<unsigned char>& _dst):dst(_dst){
         this->streamImport=this;
-        this->streamSize=~(hpatch_StreamPos_t)0;
+        this->streamSize=hpatch_kNullStreamPos;
         this->read_writed=0;
         this->write=_write;
     }

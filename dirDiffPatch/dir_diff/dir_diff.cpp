@@ -577,7 +577,7 @@ struct CDirPatchListener:public IDirPatchListener{
                 newData=&newFile.base;
                 streamSize=newData->streamSize;
             }else{
-                streamSize=~(hpatch_StreamPos_t)0;
+                streamSize=hpatch_kNullStreamPos;
             }
             streamImport=this;
             read_writed=0;
