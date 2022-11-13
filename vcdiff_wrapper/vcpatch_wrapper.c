@@ -354,11 +354,9 @@ static hpatch_inline void vcpatch_checksum_init(vcpatch_checksum_t* self,hpatch_
         self->window_curAdler32=adler32_append(self->window_curAdler32,data,data_end-data);
         return self->_dstStream->write(self->_dstStream,writeToPos,data,data_end);
     }
-hpatch_BOOL __vcpatch_checksum_begin_(vcpatch_checksum_t* self,_TOutStreamCache* outCache){
+static hpatch_BOOL __vcpatch_checksum_begin_(vcpatch_checksum_t* self,_TOutStreamCache* outCache){
     assert(self->_dstStream==0);
-    if (_TOutStreamCache_cachedDataSize(outCache)>0){
-        if (!_TOutStreamCache_flush(outCache)) return hpatch_FALSE;
-    }
+    assert(_TOutStreamCache_cachedDataSize(outCache)==0);
 
     self->_hookStream.streamImport=self;
     self->_hookStream.streamSize=outCache->dstStream->streamSize;
@@ -371,12 +369,10 @@ hpatch_BOOL __vcpatch_checksum_begin_(vcpatch_checksum_t* self,_TOutStreamCache*
     return hpatch_TRUE;
 }
 
-hpatch_BOOL __vcpatch_checksum_end_(vcpatch_checksum_t* self,_TOutStreamCache* outCache){
+static hpatch_BOOL __vcpatch_checksum_end_(vcpatch_checksum_t* self,_TOutStreamCache* outCache){
     assert(self->_dstStream!=0);
     assert(outCache->dstStream==&self->_hookStream);
-    if (_TOutStreamCache_cachedDataSize(outCache)>0){
-        if (!_TOutStreamCache_flush(outCache)) return hpatch_FALSE;
-    }
+    assert(_TOutStreamCache_cachedDataSize(outCache)==0);
 
     outCache->dstStream=self->_dstStream;
     self->_dstStream=0;
@@ -515,14 +511,23 @@ static hpatch_BOOL _getStreamClip(TStreamCacheClip* clip,hpatch_byte Delta_Indic
                          curDiffOffset,decompressPlugin,temp_cache,cache_size);
 }
 
-hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput* oldData,
+#define _kCacheVcDecCount (1+3)
+
+hpatch_BOOL _vcpatch_window(const hpatch_TStreamOutput* out_newData,const hpatch_TStreamInput* oldData,
                             const hpatch_TStreamInput* compressedDiff,hpatch_TDecompress* decompressPlugin,
                             _TDecompressInputStream* decompressers,hpatch_StreamPos_t windowOffset,
                             hpatch_BOOL isGoogleVersion,hpatch_BOOL isNeedChecksum,
-                            unsigned char* tempCaches,hpatch_size_t cache_size){
+                            unsigned char* tempCaches,size_t allCacheSize){
+    hpatch_StreamPos_t srcPos_bck=0;
+    hpatch_StreamPos_t srcLen_bck=0;
+    const hpatch_TStreamInput* srcData_bck=0;
+    hpatch_TStreamInput srcData_cache;
+    _TOutStreamCache outCache;
+    if (allCacheSize<hpatch_kMaxPackedUIntBytes*_kCacheVcDecCount) return _hpatch_FALSE;
+    _TOutStreamCache_init(&outCache,out_newData,0,0); //need reset cache
+
     //window loop
     while (windowOffset<compressedDiff->streamSize){
-        TStreamCacheClip   diffClip;
         hpatch_StreamPos_t srcPos=0;
         hpatch_StreamPos_t srcLen=0;
         hpatch_StreamPos_t targetLen;
@@ -532,108 +537,141 @@ hpatch_BOOL _vcpatch_window(_TOutStreamCache* outCache,const hpatch_TStreamInput
         hpatch_StreamPos_t addrLen;
         hpatch_StreamPos_t curDiffOffset;
         const hpatch_TStreamInput* srcData;
-        unsigned char* temp_cache=tempCaches;
         vcpatch_checksum_t checksumer;
         unsigned char Delta_Indicator;
-        _TStreamCacheClip_init(&diffClip,compressedDiff,windowOffset,compressedDiff->streamSize,
-                               temp_cache,_smallCacheSize(cache_size));
         {
-            hpatch_BOOL window_isHaveAdler32;
-            unsigned char Win_Indicator;
-            _clip_readUInt8(&diffClip,&Win_Indicator);
-            window_isHaveAdler32=(0!=(Win_Indicator&VCD_ADLER32));
-            if (window_isHaveAdler32) Win_Indicator-=VCD_ADLER32;
-            vcpatch_checksum_init(&checksumer,isGoogleVersion,isNeedChecksum,window_isHaveAdler32);
-            switch (Win_Indicator){
-                case 0         :{ srcData=0; } break;
-                case VCD_SOURCE:{ srcData=oldData; } break;
-                case VCD_TARGET:{
-                    if (!_TOutStreamCache_flush(outCache))
-                        return _hpatch_FALSE;
-                    srcData=(const hpatch_TStreamInput*)outCache->dstStream;
-                    if (srcData->read==0)
-                        return _hpatch_FALSE; //unsupport, target can't read  
-                } break;
-                default:
-                    return _hpatch_FALSE; //error data or unsupport
+            TStreamCacheClip   diffClip;
+            _TStreamCacheClip_init(&diffClip,compressedDiff,windowOffset,compressedDiff->streamSize,
+                                   tempCaches,_smallCacheSize(allCacheSize));
+            {
+                hpatch_BOOL window_isHaveAdler32;
+                unsigned char Win_Indicator;
+                _clip_readUInt8(&diffClip,&Win_Indicator);
+                window_isHaveAdler32=(0!=(Win_Indicator&VCD_ADLER32));
+                if (window_isHaveAdler32) Win_Indicator-=VCD_ADLER32;
+                vcpatch_checksum_init(&checksumer,isGoogleVersion,isNeedChecksum,window_isHaveAdler32);
+                switch (Win_Indicator){
+                    case 0         :{ srcData=0; } break;
+                    case VCD_SOURCE:{ srcData=oldData; } break;
+                    case VCD_TARGET:{
+                        srcData=(const hpatch_TStreamInput*)outCache.dstStream;
+                        if (srcData->read==0)
+                            return _hpatch_FALSE; //unsupport, target can't read  
+                    } break;
+                    default:
+                        return _hpatch_FALSE; //error data or unsupport
+                }
             }
             if (srcData){
                 _clip_unpackUInt64(&diffClip,&srcLen);
                 _clip_unpackUInt64(&diffClip,&srcPos);
 #ifdef __RUN_MEM_SAFE_CHECK
                 {
-                    hpatch_StreamPos_t streamSafeEnd=(srcData==oldData)?srcData->streamSize:outCache->writeToPos;
+                    hpatch_StreamPos_t streamSafeEnd=(srcData==oldData)?srcData->streamSize:outCache.writeToPos;
                     hpatch_StreamPos_t srcPosEnd=srcPos+srcLen;
                     if ((srcPosEnd<srcPos)|(srcPosEnd<srcLen)|(srcPosEnd>streamSafeEnd))
                         return _hpatch_FALSE; //error data
                 }
 #endif
             }
-        }
-        _clip_unpackUInt64(&diffClip,&deltaLen);
-        {
+            _clip_unpackUInt64(&diffClip,&deltaLen);
+            {
 #ifdef __RUN_MEM_SAFE_CHECK
-            hpatch_StreamPos_t deltaHeadSize=_TStreamCacheClip_readPosOfSrcStream(&diffClip);
-            if (deltaLen>_TStreamCacheClip_leaveSize(&diffClip))
-                return _hpatch_FALSE; //error data
+                hpatch_StreamPos_t deltaHeadSize=_TStreamCacheClip_readPosOfSrcStream(&diffClip);
+                if (deltaLen>_TStreamCacheClip_leaveSize(&diffClip))
+                    return _hpatch_FALSE; //error data
 #endif
-            _clip_unpackUInt64(&diffClip,&targetLen);
-            _clip_readUInt8(&diffClip,&Delta_Indicator);
-            if (decompressPlugin==0) Delta_Indicator=0;
-            _clip_unpackUInt64(&diffClip,&dataLen);
-            _clip_unpackUInt64(&diffClip,&instLen);
-            _clip_unpackUInt64(&diffClip,&addrLen);
-            vcpatch_checksum_readAdler32(&checksumer,&diffClip);
-            curDiffOffset=_TStreamCacheClip_readPosOfSrcStream(&diffClip);
+                _clip_unpackUInt64(&diffClip,&targetLen);
+                _clip_readUInt8(&diffClip,&Delta_Indicator);
+                if (decompressPlugin==0) Delta_Indicator=0;
+                _clip_unpackUInt64(&diffClip,&dataLen);
+                _clip_unpackUInt64(&diffClip,&instLen);
+                _clip_unpackUInt64(&diffClip,&addrLen);
+                vcpatch_checksum_readAdler32(&checksumer,&diffClip);
+                curDiffOffset=_TStreamCacheClip_readPosOfSrcStream(&diffClip);
 #ifdef __RUN_MEM_SAFE_CHECK
-            deltaHeadSize=curDiffOffset-deltaHeadSize;
-            if (deltaLen!=deltaHeadSize+dataLen+instLen+addrLen)
-                return _hpatch_FALSE; //error data
+                deltaHeadSize=curDiffOffset-deltaHeadSize;
+                if (deltaLen!=deltaHeadSize+dataLen+instLen+addrLen)
+                    return _hpatch_FALSE; //error data
 #endif
-            
+            }
+            windowOffset=curDiffOffset+dataLen+instLen+addrLen;
         }
-        windowOffset=curDiffOffset+dataLen+instLen+addrLen;
 
         {
-            hpatch_BOOL ret;
+            hpatch_BOOL       ret;
             const hpatch_BOOL isInterleaved=((dataLen==0)&(addrLen==0));
-            TStreamCacheClip   dataClip;
-            TStreamCacheClip   instClip;
-            TStreamCacheClip   addrClip;
-            #define __getStreamClip(clip,index,len,cacheSize) { \
+            TStreamCacheClip  dataClip;
+            TStreamCacheClip  instClip;
+            TStreamCacheClip  addrClip;
+            unsigned char*    temp_cache=tempCaches;
+            size_t            cache_size=allCacheSize;
+            if ((srcLen>0)&&(srcLen+_kCacheVcDecCount*hpatch_kStreamCacheSize<=cache_size)){//old all in cache
+                const size_t memSize=(size_t)srcLen;
+                if (!srcData->read(srcData,srcPos,temp_cache,temp_cache+memSize)) 
+                    return _hpatch_FALSE;
+                mem_as_hStreamInput(&srcData_cache,temp_cache,temp_cache+memSize);
+                temp_cache+=memSize;
+                cache_size-=memSize;
+                srcPos_bck=srcPos;
+                srcLen_bck=srcLen;
+                srcData_bck=srcData;
+                srcPos=0;
+                srcData=&srcData_cache;
+            }else{
+                srcPos_bck=0;
+                srcLen_bck=0;
+                srcData_bck=0;
+            }
+            {//target all in cache?
+                size_t out_cache_size;
+                if ((targetLen>0)&&(targetLen+3*hpatch_kStreamCacheSize<=cache_size)){
+                    out_cache_size=(size_t)targetLen;
+                    cache_size=(cache_size-out_cache_size)/(isInterleaved?1:3);
+                }else{
+                    #define kBetterDecompressBufSize (1024*32)
+                    size_t dec_size=cache_size/_kCacheVcDecCount;
+                    dec_size=(dec_size<=kBetterDecompressBufSize)?dec_size:kBetterDecompressBufSize;
+                    out_cache_size=cache_size-dec_size*(isInterleaved?1:3);
+                    cache_size=dec_size;
+                }
+                _TOutStreamCache_resetCache(&outCache,temp_cache,out_cache_size);
+                temp_cache+=out_cache_size;
+            }
+
+            #define __getStreamClip(clip,index,len) { \
                 if (!(_getStreamClip(clip,Delta_Indicator,index,compressedDiff,&curDiffOffset, \
-                                    decompressPlugin,decompressers,len,temp_cache,cacheSize))) \
+                                    decompressPlugin,decompressers,len,temp_cache,cache_size))) \
                     return _hpatch_FALSE; \
-                temp_cache+=cacheSize; }
+                temp_cache+=cache_size; }
 
             if (!isInterleaved){
-                __getStreamClip(&dataClip,0,dataLen,cache_size);
-                __getStreamClip(&instClip,1,instLen,cache_size);
-                __getStreamClip(&addrClip,2,addrLen,cache_size);
+                __getStreamClip(&dataClip,0,dataLen);
+                __getStreamClip(&instClip,1,instLen);
+                __getStreamClip(&addrClip,2,addrLen);
             }else{
-                __getStreamClip(&instClip,0,instLen,cache_size*3);
+                __getStreamClip(&instClip,0,instLen);
             }
             assert(curDiffOffset==windowOffset);
-            if (!vcpatch_checksum_begin(&checksumer,outCache))
+            if (!vcpatch_checksum_begin(&checksumer,&outCache))
                 return _hpatch_FALSE;
-            ret=_vcpatch_delta(outCache,targetLen,srcData,srcPos,srcLen,
+            ret=_vcpatch_delta(&outCache,targetLen,srcData,srcPos,srcLen,
                                isInterleaved?&instClip:&dataClip,&instClip,
                                isInterleaved?&instClip:&addrClip);
-            if ((!vcpatch_checksum_end(&checksumer,outCache))||(!ret))
+            
+            if (!_TOutStreamCache_flush(&outCache))
+                ret=_hpatch_FALSE;
+            if ((!vcpatch_checksum_end(&checksumer,&outCache))||(!ret))
                 return _hpatch_FALSE;
         }
     }
 
-    if (!_TOutStreamCache_flush(outCache))
-        return _hpatch_FALSE;
-    if (_TOutStreamCache_isFinish(outCache)||(outCache->dstStream->streamSize==~(hpatch_StreamPos_t)0))
+    if (_TOutStreamCache_isFinish(&outCache)||(outCache.dstStream->streamSize==~(hpatch_StreamPos_t)0))
         return hpatch_TRUE;
     else
         return _hpatch_FALSE;
 }
 
-
-#define _kCacheBsDecCount (1+3)
 
 hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
                                const hpatch_TStreamInput*  oldData,
@@ -643,11 +681,9 @@ hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
     hpatch_VcDiffInfo diffInfo;
     hpatch_size_t i;
     hpatch_BOOL  result=hpatch_TRUE;
-    const hpatch_size_t cacheSize=(temp_cache_end-temp_cache)/_kCacheBsDecCount;
     _TDecompressInputStream decompressers[3];
     for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i)
         decompressers[i].decompressHandle=0;
-    if (cacheSize<hpatch_kMaxPackedUIntBytes) return _hpatch_FALSE;
     assert(out_newData!=0);
     assert(out_newData->write!=0);
     assert(oldData!=0);
@@ -664,13 +700,9 @@ hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
         decompressPlugin=0;
     }
 
-    {
-        _TOutStreamCache outCache;
-        _TOutStreamCache_init(&outCache,out_newData,temp_cache,cacheSize);
-        temp_cache+=cacheSize;
-        result=_vcpatch_window(&outCache,oldData,compressedDiff,decompressPlugin,decompressers,
-                               diffInfo.windowOffset,diffInfo.isGoogleVersion,isNeedChecksum,temp_cache,cacheSize);
-    }
+    result=_vcpatch_window(out_newData,oldData,compressedDiff,decompressPlugin,decompressers,
+                           diffInfo.windowOffset,diffInfo.isGoogleVersion,isNeedChecksum,
+                           temp_cache,temp_cache_end-temp_cache);
 
     for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i) {
         if (decompressers[i].decompressHandle){

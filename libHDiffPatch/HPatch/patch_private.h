@@ -82,7 +82,7 @@ hpatch_inline static
 void _TStreamCacheClip_init(TStreamCacheClip* sclip,const hpatch_TStreamInput* srcStream,
                             hpatch_StreamPos_t streamPos,hpatch_StreamPos_t streamPos_end,
                             unsigned char* aCache,hpatch_size_t cacheSize){
-    assert((streamPos<=streamPos_end)&&(streamPos_end<=srcStream->streamSize));
+    assert((streamPos<=streamPos_end)&&(streamPos_end<=(srcStream?srcStream->streamSize:0)));
     sclip->streamPos=streamPos;
     sclip->streamPos_end=streamPos_end;
     sclip->srcStream=srcStream;
@@ -144,11 +144,18 @@ typedef struct {
 static hpatch_inline void _TOutStreamCache_init(_TOutStreamCache* self,const hpatch_TStreamOutput*  dstStream,
                                                 unsigned char* aCache,hpatch_size_t aCacheSize){
     self->writeToPos=0;
+    self->cacheCur=0;
     self->dstStream=dstStream;
     self->cacheBuf=aCache;
-    self->cacheCur=0;
     self->cacheEnd=aCacheSize;
 }
+hpatch_inline static
+void _TOutStreamCache_resetCache(_TOutStreamCache* self,unsigned char* aCache,hpatch_size_t aCacheSize){
+    assert(0==self->cacheCur);
+    self->cacheBuf=aCache;
+    self->cacheEnd=aCacheSize;
+}
+
 static hpatch_inline hpatch_StreamPos_t _TOutStreamCache_leaveSize(const _TOutStreamCache* self){
     return self->dstStream->streamSize-self->writeToPos;
 }
