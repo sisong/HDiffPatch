@@ -58,23 +58,179 @@ static void _getSrcWindow(const TCovers& covers,hpatch_StreamPos_t* out_srcPos,h
     *out_srcEnd=srcEnd;
 }
 
-static void _select_code(std::vector<unsigned char>& inst,std::vector<unsigned char>& addr,
-                         const TCovers& covers,hpatch_StreamPos_t targetLen){
-    hpatch_StreamPos_t same_array[vcdiff_s_same*256]={0};
-    hpatch_StreamPos_t near_array[vcdiff_s_near]={0};
-    hpatch_StreamPos_t here=0;
-    hpatch_StreamPos_t near_index=0;
-    const vcdiff_code_table_t code_table=get_vcdiff_code_table_default();
-    const size_t count=covers.coverCount();
 
-    for (size_t i=0;i<count;++i){
-        TCover c; covers.covers(i,&c);
-        //todo:
-        
+static const hpatch_byte _code_NULL_MODE = 255;
+static inline bool _code_is_empty(hpatch_byte type) { return type==vcdiff_code_NOOP; }
+struct vccode_t{
+    hpatch_byte         type;
+    hpatch_byte         mode;
+    hpatch_StreamPos_t  size;
+    hpatch_StreamPos_t  addr;
+    inline vccode_t(){ set_empty(); }
+    inline bool is_empty()const { return _code_is_empty(type); }
+    inline void set_empty(){
+        type=vcdiff_code_NOOP;
+        mode=_code_NULL_MODE;
+        size=hpatch_kNullStreamPos;
+        addr=hpatch_kNullStreamPos;
     }
-    if (here<targetLen)
-     ;//todo:
-}
+    inline void set_add_code(hpatch_StreamPos_t _size){
+        type=vcdiff_code_ADD;
+        mode=_code_NULL_MODE;
+        size=_size;
+        addr=hpatch_kNullStreamPos;
+    }
+    inline void set_copy_code(hpatch_StreamPos_t _size,hpatch_byte _mode,hpatch_StreamPos_t _addr){
+        type=vcdiff_code_COPY;
+        mode=_mode;
+        size=_size;
+        addr=_addr;
+    }
+};
+
+struct vc_encoder{
+    vc_encoder(std::vector<unsigned char>& inst,std::vector<unsigned char>& addr)
+    :near_array(&_self_hear_near_array[2]),near_index(0),here(0),out_inst(inst),out_addr(addr){
+        memset(same_array,0,sizeof(same_array));
+        memset(_self_hear_near_array,0,sizeof(_self_hear_near_array));
+    }
+    
+    void encode(const TCovers& covers,hpatch_StreamPos_t targetLen,
+                hpatch_StreamPos_t srcWindowPos,hpatch_StreamPos_t srcWindowLen){
+        assert(here==0);
+        const size_t count=covers.coverCount();
+        for (size_t i=0;i<=count;++i){
+            TCover c;
+            if (i<count){
+                covers.covers(i,&c);
+            }else{
+                c.oldPos=srcWindowPos;
+                c.newPos=targetLen;
+                c.length=0;
+            }
+            if (here<c.newPos){
+                curCode.set_add_code(c.newPos-here);
+                emit_code();
+                here=c.newPos;
+            }
+            if (c.length>0){
+                hpatch_StreamPos_t addr=c.oldPos-srcWindowPos;
+                hpatch_StreamPos_t subAddr=addr;
+                hpatch_byte mode=_get_mode(srcWindowLen,&subAddr);
+                curCode.set_copy_code(c.length,mode,subAddr);
+                emit_code();
+                here=c.newPos+c.length;
+                vcdiff_update_addr(same_array,near_array,&near_index,addr);
+            }
+        }
+        assert(curCode.is_empty());
+        emit_code();
+        assert(prevCode.is_empty());
+    }
+private:
+    hpatch_StreamPos_t same_array[vcdiff_s_same*256];
+    hpatch_StreamPos_t _self_hear_near_array[2+vcdiff_s_near];
+    hpatch_StreamPos_t* near_array;
+    hpatch_StreamPos_t near_index;
+    hpatch_StreamPos_t here;
+    std::vector<unsigned char>& out_inst;
+    std::vector<unsigned char>& out_addr;
+    vccode_t  prevCode;
+    vccode_t  curCode;
+
+    inline void _emit_inst(hpatch_byte inst){
+        out_inst.push_back(inst);
+    }
+    inline void _emit_addr(hpatch_byte mode,hpatch_StreamPos_t addr){
+        if (mode<(2+vcdiff_s_near))
+            packUInt(out_addr,addr);
+        else
+            out_addr.push_back((hpatch_byte)addr);
+    }
+    inline void _emit_size(hpatch_StreamPos_t size){
+        packUInt(out_inst,size);
+    }
+    hpatch_byte _get_mode(hpatch_StreamPos_t srcWindowLen,hpatch_StreamPos_t* paddr){
+        hpatch_StreamPos_t addr=*paddr;
+        _self_hear_near_array[1]=addr*2-(srcWindowLen+here);
+        hpatch_StreamPos_t minSubAddr=addr;
+        hpatch_byte        minSubi=0;
+        for (hpatch_byte i=0;i<(2+vcdiff_s_near);i++){
+            hpatch_StreamPos_t subAddr=addr-_self_hear_near_array[i];
+            if (subAddr<=127){
+                *paddr=subAddr;
+                return i;
+            }
+            if (subAddr<minSubAddr){
+                minSubAddr=subAddr;
+                minSubi=i;
+            }
+        }
+        size_t samei=(size_t)(addr%(vcdiff_s_same*256));
+        if (same_array[samei]==addr){
+            *paddr=samei%256;
+            return (hpatch_byte)(samei/256)+(2+vcdiff_s_near);
+        }
+        *paddr=minSubAddr;
+        return minSubi;
+    }
+
+    void emit_code(){
+        const hpatch_byte _type_pos=curCode.type;
+        if (prevCode.is_empty())
+            std::swap(prevCode,curCode);
+        if (prevCode.is_empty()) return;
+        if (curCode.is_empty()&&(!_code_is_empty(_type_pos))) return;
+        switch (prevCode.type){
+            case vcdiff_code_ADD: {
+                if ((prevCode.size<=4)&&(curCode.type==vcdiff_code_COPY)){ // encode 2 type?
+                    if ((curCode.size==4)&&(curCode.mode>=6)){
+                        _emit_inst((hpatch_byte)(235+(curCode.mode-6)*4+(prevCode.size-1)));
+                        _emit_addr(curCode.mode,curCode.addr);
+                        prevCode.set_empty();
+                        curCode.set_empty();
+                        break;
+                    }else if ((2>=(hpatch_StreamPos_t)(curCode.size-4))&&(curCode.mode<6)){
+                        _emit_inst((hpatch_byte)(163+curCode.mode*12+(prevCode.size-1)*3+(curCode.size-4)));
+                        _emit_addr(curCode.mode,curCode.addr);
+                        prevCode.set_empty();
+                        curCode.set_empty();
+                        break;
+                    }
+                }
+                //encode 1 type
+                if (prevCode.size<=17) {
+                    _emit_inst((hpatch_byte)(prevCode.size+1));
+                }else{
+                    _emit_inst(1);
+                    _emit_size(prevCode.size);
+                }
+                prevCode=curCode;
+                curCode.set_empty();
+            } break;
+            case vcdiff_code_COPY: {
+                if ((prevCode.size==4)&&(curCode.size==1)&&(curCode.type==vcdiff_code_ADD)){ // encode 2 type?
+                    _emit_inst(247+prevCode.mode);
+                    _emit_addr(prevCode.mode,prevCode.addr);
+                    prevCode.set_empty();
+                    curCode.set_empty();
+                    break;
+                }
+                //encode 1 type
+                if (14>=(hpatch_StreamPos_t)(prevCode.size-4)){ // 4--18
+                    _emit_inst((hpatch_byte)(19+prevCode.mode*16+(prevCode.size-3)));
+                }else{
+                    _emit_inst(19+prevCode.mode*16);
+                    _emit_size(prevCode.size);
+                }
+                _emit_addr(prevCode.mode,prevCode.addr);
+                prevCode=curCode;
+                curCode.set_empty();
+            } break;
+        }
+    }
+};
+
 
 static inline void _flushBuf(TDiffStream& outDiff,std::vector<unsigned char>& buf){
     outDiff.pushBack(buf.data(),buf.size());
@@ -93,13 +249,14 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
         buf.push_back(0);// Hdr_Indicator: No compression, no custom code table
         _flushBuf(outDiff,buf);
     }
+    
+    hpatch_StreamPos_t srcPos,srcEnd;
     {//only one window
         {
-            hpatch_StreamPos_t srcPos,srcEnd;
             _getSrcWindow(covers,&srcPos,&srcEnd);
             if (srcPos<srcEnd){
                 buf.push_back(VCD_SOURCE); //Win_Indicator
-                packUInt(buf,(hpatch_StreamPos_t)(srcEnd-srcPos));//srcLen
+                packUInt(buf,(hpatch_StreamPos_t)(srcEnd-srcPos));
                 packUInt(buf,srcPos);//srcPos
             }else{
                 buf.push_back(0); //Win_Indicator, no src window
@@ -109,6 +266,7 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
         const hpatch_StreamPos_t targetLen=newData->streamSize;
         hpatch_StreamPos_t deltaLen=targetLen+(targetLen/8)+256;
         TPlaceholder deltaLen_pos=outDiff.packUInt_pos(deltaLen); //need update deltaLen!
+        const hpatch_StreamPos_t deltaDataBeginPos=outDiff.getWritedPos();
         const hpatch_StreamPos_t dataLen=TNewDataDiffStream::getDataSize(covers,targetLen);
         hpatch_StreamPos_t Delta_Indicator_pos;
         {
@@ -122,15 +280,18 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
         {
             std::vector<unsigned char> inst;
             std::vector<unsigned char> addr;
-            _select_code(inst,addr,covers,targetLen);
+            {
+                vc_encoder encoder(inst,addr);
+                encoder.encode(covers,targetLen,srcPos,srcEnd-srcPos);
+            }
 
             packUInt(buf,dataLen);
             packUInt(buf,inst.size());
             packUInt(buf,addr.size());
             _flushBuf(outDiff,buf);
-            deltaLen=dataLen+inst.size()+addr.size();
+            deltaLen=(outDiff.getWritedPos()-deltaDataBeginPos) + dataLen+inst.size()+addr.size();
             outDiff.packUInt_update(deltaLen_pos,deltaLen);
-            
+
             TNewDataDiffStream _newDataDiff(covers,newData);
             outDiff.pushStream(&_newDataDiff);
             outDiff.pushBack(inst.data(),inst.size());
