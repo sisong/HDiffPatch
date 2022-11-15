@@ -321,6 +321,7 @@
     <ClCompile Include="..\..\..\lzma\C\XzCrc64.c" />
     <ClCompile Include="..\..\..\lzma\C\XzCrc64Opt.c" />
     <ClCompile Include="..\..\..\lzma\C\XzDec.c" />
+    <ClCompile Include="..\..\..\lzma\C\XzEnc.c" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="..\..\..\lzma\Asm\x86\LzFindOpt.asm">

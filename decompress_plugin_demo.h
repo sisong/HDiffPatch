@@ -39,7 +39,7 @@
 //  tuzDecompressPlugin;
 
 // _bz2DecompressPlugin_unsz  : support for bspatch_with_cache()
-// _7zXZDecompressPlugin      : support for vcpatch_with_cache(), diffData created by "xdelta3 -S lzma ..."
+// _7zXZDecompressPlugin      : support for vcpatch_with_cache(), diffData created by "xdelta3 -S lzma ..." or "hdiffz -XD ..."
 
 #include <stdlib.h> //malloc free
 #include <stdio.h>  //fprintf
@@ -642,10 +642,17 @@ static void __dec_free(void* _, void* address){
 #   include "7zCrc.h" // CrcGenerateTable()
 #endif
 
+#ifndef _init_CompressPlugin_7zXZ_DEF
+#   define _init_CompressPlugin_7zXZ_DEF
     static int _init_CompressPlugin_7zXZ(){
-        CrcGenerateTable();
+        static hpatch_BOOL _isInit=hpatch_FALSE;
+        if (!_isInit){
+            CrcGenerateTable();
+            _isInit=hpatch_TRUE;
+        }
         return 0;
     }
+#endif
     
     typedef struct _7zXZ_TDecompress{
         ISzAlloc           memAllocBase;

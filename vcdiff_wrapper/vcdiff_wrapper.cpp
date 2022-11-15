@@ -242,11 +242,16 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
                              const vcdiff_TCompress* compressPlugin,bool isZeroSubDiff=false){
     std::vector<unsigned char> buf;
     TDiffStream outDiff(out_diff);
+    const hdiff_TCompress* compress=0;
     {//head
         pushBack(buf,kVcDiffType,sizeof(kVcDiffType));
         buf.push_back(kVcDiffVersion);
-        assert((compressPlugin==0)||(compressPlugin->compress_type==kVcDiff_compressorID_no));
-        buf.push_back(0);// Hdr_Indicator: No compression, no custom code table
+        const bool isHaveCompresser=(compressPlugin!=0)&&(compressPlugin->compress_type!=kVcDiff_compressorID_no);
+        buf.push_back(isHaveCompresser?1:0);// Hdr_Indicator: VCD_DECOMPRESS? no custom code table
+        if (isHaveCompresser){
+            compress=compressPlugin->compress;
+            buf.push_back(compressPlugin->compress_type);
+        }
         _flushBuf(outDiff,buf);
     }
     
@@ -267,15 +272,9 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
         hpatch_StreamPos_t deltaLen=targetLen+(targetLen/8)+256;
         TPlaceholder deltaLen_pos=outDiff.packUInt_pos(deltaLen); //need update deltaLen!
         const hpatch_StreamPos_t deltaDataBeginPos=outDiff.getWritedPos();
-        const hpatch_StreamPos_t dataLen=TNewDataDiffStream::getDataSize(covers,targetLen);
-        hpatch_StreamPos_t Delta_Indicator_pos;
-        {
-            packUInt(buf,targetLen);
-            assert((compressPlugin==0)||(compressPlugin->compress_type==kVcDiff_compressorID_no));
-            buf.push_back(0);// Delta_Indicator
-            _flushBuf(outDiff,buf);
-            Delta_Indicator_pos=outDiff.getWritedPos()-1;
-        }
+        outDiff.packUInt(targetLen);
+        hpatch_byte Delta_Indicator=0;
+        TPlaceholder Delta_Indicator_pos=outDiff.packUInt_pos(Delta_Indicator); //need update
 
         {
             std::vector<unsigned char> inst;
@@ -284,18 +283,43 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
                 vc_encoder encoder(inst,addr);
                 encoder.encode(covers,targetLen,srcPos,srcEnd-srcPos);
             }
-
-            packUInt(buf,dataLen);
-            packUInt(buf,inst.size());
-            packUInt(buf,addr.size());
-            _flushBuf(outDiff,buf);
-            deltaLen=(outDiff.getWritedPos()-deltaDataBeginPos) + dataLen+inst.size()+addr.size();
-            outDiff.packUInt_update(deltaLen_pos,deltaLen);
-
             TNewDataDiffStream _newDataDiff(covers,newData);
-            outDiff.pushStream(&_newDataDiff);
-            outDiff.pushBack(inst.data(),inst.size());
-            outDiff.pushBack(addr.data(),addr.size());
+            TPlaceholder dataLen_pos=outDiff.packUInt_pos(_newDataDiff.streamSize);
+            TPlaceholder instLen_pos=outDiff.packUInt_pos(inst.size());
+            TPlaceholder addrLen_pos=outDiff.packUInt_pos(addr.size());
+            deltaLen=(outDiff.getWritedPos()-deltaDataBeginPos);
+
+            if (compress==0){
+                deltaLen+=_newDataDiff.streamSize+inst.size()+addr.size();
+                outDiff.packUInt_update(deltaLen_pos,deltaLen);
+
+                outDiff.pushStream(&_newDataDiff);
+                outDiff.pushBack(inst.data(),inst.size());
+                outDiff.pushBack(addr.data(),addr.size());
+            }else{
+                hpatch_TStreamInput _instStream;
+                hpatch_TStreamInput _addrStream;
+                mem_as_hStreamInput(&_instStream,inst.data(),inst.data()+inst.size());
+                mem_as_hStreamInput(&_addrStream,addr.data(),addr.data()+addr.size());
+                hpatch_StreamPos_t dataLen=outDiff.packUInt(_newDataDiff.streamSize);
+                hpatch_StreamPos_t dataLenCm=outDiff.pushStream(&_newDataDiff,compress);
+                dataLen+=dataLenCm;
+                hpatch_StreamPos_t instLen=outDiff.packUInt(inst.size());
+                hpatch_StreamPos_t instLenCm=outDiff.pushStream(&_instStream,compress);
+                instLen+=instLenCm;
+                hpatch_StreamPos_t addrLen=outDiff.packUInt(addr.size());
+                hpatch_StreamPos_t addrLenCm=outDiff.pushStream(&_addrStream,compress);
+                addrLen+=addrLenCm;
+
+                Delta_Indicator = ((dataLenCm<_newDataDiff.streamSize)?(1<<0):0)
+                                | ((instLenCm<inst.size())?(1<<1):0) | ((addrLenCm<addr.size())?(1<<2):0);
+                outDiff.packUInt_update(Delta_Indicator_pos,Delta_Indicator);
+                deltaLen+=dataLen+instLen+addrLen;
+                outDiff.packUInt_update(deltaLen_pos,deltaLen);
+                outDiff.packUInt_update(dataLen_pos,dataLen);
+                outDiff.packUInt_update(instLen_pos,instLen);
+                outDiff.packUInt_update(addrLen_pos,addrLen);
+            }
         }
     }
 }

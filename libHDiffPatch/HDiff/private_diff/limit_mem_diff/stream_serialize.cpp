@@ -681,11 +681,12 @@ void TDiffStream::pushBack(const unsigned char* src,size_t n){
 }
 
 
-void TDiffStream::packUInt(hpatch_StreamPos_t uValue){
+size_t TDiffStream::packUInt(hpatch_StreamPos_t uValue){
     unsigned char  codeBuf[hpatch_kMaxPackedUIntBytes];
     unsigned char* codeEnd=codeBuf;
     check(hpatch_packUInt(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,uValue));
     pushBack(codeBuf,(size_t)(codeEnd-codeBuf));
+    return codeEnd-codeBuf;
 }
 
 void TDiffStream::_packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize){

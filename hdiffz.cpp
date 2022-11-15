@@ -180,12 +180,20 @@ static void printUsage(){
            "      when patch, and support step by step patching when step by step downloading!\n"
            "      stepSize>=" _HDIFFPATCH_EXPAND_AND_QUOTE(hpatch_kStreamCacheSize) ", DEFAULT -SD-256k, recommended 64k,2m etc...\n"
 #if (_IS_NEED_BSDIFF)
-        "  -BSD \n"
-        "      create diffFile compatible with bsdiff4, unsupport input directory(folder).\n"
+           "  -BSD\n"
+           "      create diffFile compatible with bsdiff4, unsupport input directory(folder).\n"
 #endif
 #if (_IS_NEED_VCDIFF)
-        "  -VCD \n"
-        "      create diffFile compatible with VCDIFF, unsupport input directory(folder).\n"
+           "  -VCD[-compressLevel[-dictSize]]\n"
+           "      create diffFile compatible with VCDIFF, unsupport input directory(folder).\n"
+           "      DEFAULT not compress, out format same as $open-vcdiff delta ... or $xdelta3 -S -e -n ...\n"
+           "      if set compressLevel, out format same as $xdelta3 -S lzma -e -n ...\n"
+           "      compress by 7zXZ(xz), compressLevel in {0..9}, DEFAULT level 7;\n"
+           "      dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m\n"
+#   if (_IS_USED_MULTITHREAD)
+           "      support compress by multi-thread parallel, fast!\n"
+#   endif
+           "      NOTE: out diffFile used large source & target window size!\n"
 #endif
 #if (_IS_USED_MULTITHREAD)
            "  -p-parallelThreadNumber\n"
@@ -652,7 +660,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
                                         (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),defaultDictSize),"-c-lzma-?"){
         static TCompressPlugin_lzma _lzmaCompressPlugin=lzmaCompressPlugin;
         _lzmaCompressPlugin.compress_level=(int)compressLevel;
-        _lzmaCompressPlugin.dict_size=(int)dictSize;
+        _lzmaCompressPlugin.dict_size=(UInt32)dictSize;
         *out_compressPlugin=&_lzmaCompressPlugin.base; }}
 #endif
 #ifdef _CompressPlugin_lzma2
@@ -661,7 +669,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
                                         (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),defaultDictSize),"-c-lzma2-?"){
         static TCompressPlugin_lzma2 _lzma2CompressPlugin=lzma2CompressPlugin;
         _lzma2CompressPlugin.compress_level=(int)compressLevel;
-        _lzma2CompressPlugin.dict_size=(int)dictSize;
+        _lzma2CompressPlugin.dict_size=(UInt32)dictSize;
         *out_compressPlugin=&_lzma2CompressPlugin.base; }}
 #endif
 #ifdef _CompressPlugin_lz4
@@ -786,7 +794,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         }
         switch (op[1]) {
             case 'm':{ //diff in memory
-                _options_check((diffSets.isDiffInMem==_kNULL_VALUE)&&((op[2]=='-')||(op[2]=='\0')),"-m");
+                _options_check((diffSets.isDiffInMem==_kNULL_VALUE)&&((op[2]=='\0')||(op[2]=='-')),"-m");
                 diffSets.isDiffInMem=hpatch_TRUE;
                 if (op[2]=='-'){
                     const char* pnum=op+3;
@@ -797,7 +805,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 }
             } break;
             case 's':{
-                _options_check((diffSets.isDiffInMem==_kNULL_VALUE),"-s");
+                _options_check((diffSets.isDiffInMem==_kNULL_VALUE)&&((op[2]=='\0')||(op[2]=='-')),"-s");
                 _options_check((diffSets.matchBlockSize==_kNULL_SIZE),"-block must run with -m");
                 diffSets.isDiffInMem=hpatch_FALSE; //diff by stream
                 if (op[2]=='-'){
@@ -830,8 +838,23 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #endif
 #if (_IS_NEED_VCDIFF)
             case 'V':{
-                _options_check((diffSets.isVcDiff==_kNULL_VALUE)
-                               &&(op[2]=='C')&&(op[3]=='D')&&(op[4]=='\0'),"-VCD");
+                _options_check((diffSets.isVcDiff==_kNULL_VALUE)&&(op[2]=='C')&&(op[3]=='D')
+                               &&((op[4]=='\0')||(op[4]=='-')),"-VCD");
+                _options_check((compressPlugin==0),"-VCD compress support 7zXZ, unsupport -c-*");
+                if (op[4]=='-'){
+                    size_t compressLevel;
+                    size_t dictSize;
+                    const char* isMatchedType=0;
+                    _options_check(_tryGetCompressSet(&isMatchedType,op+1,op+4,"VCD",0,
+                                    &compressLevel,0,9,7, &dictSize,1<<12,
+                                    (sizeof(size_t)<=4)?(1<<27):((size_t)3<<29),(1<<20)*8),"-VCD-?");
+
+                    _init_CompressPlugin_7zXZ();
+                    static TCompressPlugin_7zXZ xzCompressPlugin=_7zXZCompressPlugin;
+                    xzCompressPlugin.compress_level=(int)compressLevel;
+                    xzCompressPlugin.dict_size=(UInt32)dictSize;
+                    compressPlugin=&xzCompressPlugin.base;
+                }
                 diffSets.isVcDiff=hpatch_TRUE;
             } break;
 #endif
@@ -1247,12 +1270,8 @@ clear:
 #if (_IS_NEED_VCDIFF)
 static hpatch_BOOL getVcDiffDecompressPlugin(hpatch_TDecompress* out_decompressPlugin,
                                              hpatch_byte compressID){
-    static hpatch_BOOL _isInit=hpatch_FALSE;
     const hpatch_TDecompress* decompressPlugin=0;
-    if (!_isInit){
-        _init_CompressPlugin_7zXZ();
-        _isInit=hpatch_TRUE;
-    }
+    _init_CompressPlugin_7zXZ();
 
     memset(out_decompressPlugin,0,sizeof(*out_decompressPlugin));
     switch (compressID){
@@ -1268,7 +1287,17 @@ static hpatch_BOOL getVcDiffDecompressPlugin(hpatch_TDecompress* out_decompressP
     }
     return hpatch_TRUE;
 }
-#endif
+
+#define _CompressPluginForVcDiff(vcdiffCompressPlugin,compressPlugin) \
+    vcdiff_TCompress _vcdiffCompressPlugin; \
+    vcdiffCompressPlugin=0; \
+    if (compressPlugin){ \
+        check(0==strcmp(compressPlugin->compressType(),"7zXZ"),HDIFF_OPTIONS_ERROR,"-VCD compressType"); \
+        _vcdiffCompressPlugin.compress_type=kVcDiff_compressorID_7zXZ; \
+        _vcdiffCompressPlugin.compress=compressPlugin; \
+        vcdiffCompressPlugin=&_vcdiffCompressPlugin; }
+
+#endif //_IS_NEED_VCDIFF
 
 #define _check_on_error(errorType) { \
     if (result==HDIFF_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
@@ -1304,8 +1333,10 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
 #endif
 #if (_IS_NEED_VCDIFF)
             if (diffSets.isVcDiff){
+                vcdiff_TCompress* vcdiffCompressPlugin;
+                _CompressPluginForVcDiff(vcdiffCompressPlugin,compressPlugin);
                 create_vcdiff_block(newMem.data(),newMem.data_end(),oldMem.data(),oldMem.data_end(),&diffData_out.base,
-                                    compressPlugin,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch,
+                                    vcdiffCompressPlugin,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch,
                                     diffSets.matchBlockSize,diffSets.threadNum);   
             }else
 #endif
@@ -1449,8 +1480,10 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
 #endif
 #if (_IS_NEED_VCDIFF)
             if (diffSets.isVcDiff){
+                vcdiff_TCompress* vcdiffCompressPlugin;
+                _CompressPluginForVcDiff(vcdiffCompressPlugin,compressPlugin);
                 create_vcdiff_stream(&newData.base,&oldData.base, &diffData_out.base,
-                                     compressPlugin,diffSets.matchBlockSize,diffSets.threadNum);   
+                                     vcdiffCompressPlugin,diffSets.matchBlockSize,diffSets.threadNum);   
             }else
 #endif
             if (diffSets.isSingleCompressedDiff)

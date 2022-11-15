@@ -206,7 +206,7 @@ struct TDiffStream{
     ~TDiffStream();
     
     void pushBack(const unsigned char* src,size_t n);
-    void packUInt(hpatch_StreamPos_t uValue);
+    size_t packUInt(hpatch_StreamPos_t uValue);
     inline TPlaceholder packUInt_pos(hpatch_StreamPos_t uValue){
         hpatch_StreamPos_t pos=writePos;
         packUInt(uValue);

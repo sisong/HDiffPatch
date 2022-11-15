@@ -777,12 +777,8 @@ static const hpatch_TDecompress* __find_decompressPlugin(const char* compressTyp
 #if (_IS_NEED_VCDIFF)
 static hpatch_BOOL getVcDiffDecompressPlugin(hpatch_TDecompress* out_decompressPlugin,
                                              hpatch_byte compressID,hpatch_byte* out_compressType){
-    static hpatch_BOOL _isInit=hpatch_FALSE;
     const hpatch_TDecompress* decompressPlugin=0;
-    if (!_isInit){
-        _init_CompressPlugin_7zXZ();
-        _isInit=hpatch_TRUE;
-    }
+    _init_CompressPlugin_7zXZ();
 
     out_compressType[0]='\0';
     memset(out_decompressPlugin,0,sizeof(*out_decompressPlugin));
