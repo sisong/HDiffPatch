@@ -331,7 +331,8 @@ void _create_vcdiff(const unsigned char* newData,const unsigned char* cur_newDat
                     ICoverLinesListener* coverLinesListener,size_t threadNum){
     std::vector<hpatch_TCover_sz> covers;
     get_match_covers_by_sstring(newData,cur_newData_end,oldData,cur_oldData_end,covers,
-                                kMinSingleMatchScore,isUseBigCacheMatch,coverLinesListener,threadNum);
+                                kMinSingleMatchScore,isUseBigCacheMatch,coverLinesListener,
+                                threadNum,false);
     const TCovers _covers((void*)covers.data(),covers.size(),
                           sizeof(*covers.data())==sizeof(hpatch_TCover32));
     

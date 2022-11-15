@@ -188,11 +188,11 @@ void get_match_covers_by_sstring(const unsigned char* newData,const unsigned cha
                                  hpatch_TOutputCovers* out_covers,
                                  int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                  bool isUseBigCacheMatch=false,ICoverLinesListener* listener=0,
-                                 size_t threadNum=1);
+                                 size_t threadNum=1,bool isCanExtendCover=true);
 void get_match_covers_by_sstring(const unsigned char* newData,const unsigned char* newData_end,
                                  const unsigned char* oldData,const unsigned char* oldData_end,
                                  std::vector<hpatch_TCover_sz>& out_covers,
                                  int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                  bool isUseBigCacheMatch=false,ICoverLinesListener* listener=0,
-                                 size_t threadNum=1);
+                                 size_t threadNum=1,bool isCanExtendCover=true);
 #endif
