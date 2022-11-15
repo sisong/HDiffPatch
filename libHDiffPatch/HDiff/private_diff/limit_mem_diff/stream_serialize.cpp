@@ -722,28 +722,29 @@ hpatch_StreamPos_t TDiffStream::pushStream(const hpatch_TStreamInput* stream,
                                            const hdiff_TCompress* compressPlugin,
                                            const TPlaceholder& update_compress_sizePos,
                                            bool isMustCompress,const hpatch_StreamPos_t cancelSizeOnCancelCompress){
+    hpatch_StreamPos_t compressed_size=0;
+    check(writePos>=cancelSizeOnCancelCompress);
+    check(stream->streamSize>=cancelSizeOnCancelCompress);
     if ((compressPlugin)&&(isMustCompress||(stream->streamSize>=1+cancelSizeOnCancelCompress))){
         hpatch_StreamPos_t kLimitOutCodeSize=isMustCompress?compressPlugin->maxCompressedSize(stream->streamSize+1)
                                             :(stream->streamSize-(1+cancelSizeOnCancelCompress));
         TCompressedStream  out_stream(out_diff,writePos,kLimitOutCodeSize);
-        hpatch_StreamPos_t compressed_size=compressPlugin->compress(compressPlugin,&out_stream,stream);
+        compressed_size=compressPlugin->compress(compressPlugin,&out_stream,stream);
         if (out_stream.is_overLimit()||(compressed_size==0)||(compressed_size>kLimitOutCodeSize)){
+            check(!isMustCompress);
             compressed_size=0;//NOTICE: compress is canceled
-            writePos-=cancelSizeOnCancelCompress;//revoke some data
-            _pushStream(stream);
         }else{
-            writePos+=compressed_size;
+            writePos+=compressed_size; //compress ok
         }
-        if (!update_compress_sizePos.isNullPos())
-            packUInt_update(update_compress_sizePos,compressed_size);
-        return (compressed_size==0)?stream->streamSize:compressed_size;
-    }else if (stream->streamSize>0){
-        _pushStream(stream);
-        return stream->streamSize;
-    }else{
-        return 0;
     }
 
+    if (compressed_size==0){
+        writePos-=cancelSizeOnCancelCompress;//revoke some data
+        _pushStream(stream);
+    }
+    if (!update_compress_sizePos.isNullPos())
+        packUInt_update(update_compress_sizePos,compressed_size);
+    return (compressed_size==0)?stream->streamSize:compressed_size;
 }
 
 void TStreamClip::reset(const hpatch_TStreamInput* stream,

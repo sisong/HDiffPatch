@@ -223,8 +223,8 @@ struct TDiffStream{
                                   bool isMustCompress=false,const hpatch_StreamPos_t cancelSizeOnCancelCompress=0){
                 TPlaceholder nullPos(0,0); return pushStream(stream,compressPlugin,nullPos,
                                                              isMustCompress,cancelSizeOnCancelCompress); }
-    void pushStream(const hpatch_TStreamInput* stream){
-                            TPlaceholder nullPos(0,0); pushStream(stream,0,nullPos); }
+    hpatch_StreamPos_t pushStream(const hpatch_TStreamInput* stream){
+                _pushStream(stream); return stream->streamSize; }
     hpatch_StreamPos_t getWritedPos()const{ return writePos; }
 private:
     const hpatch_TStreamOutput*  out_diff;

@@ -239,10 +239,15 @@ static inline void _flushBuf(TDiffStream& outDiff,std::vector<unsigned char>& bu
 
 static hpatch_StreamPos_t compressVcDiffData(TDiffStream& outDiff,const hdiff_TCompress* compress,const hpatch_TStreamInput* data){
     hpatch_StreamPos_t uncompressSize=data->streamSize;
-    hpatch_StreamPos_t pkSize=outDiff.packUInt(uncompressSize);
-    hpatch_StreamPos_t outSize=outDiff.pushStream(data,compress,false,pkSize);
-    if (outSize!=uncompressSize) _check(pkSize+outSize<uncompressSize,"compressVcDiffData outSize");
-    return  (outSize==uncompressSize)?uncompressSize:(pkSize+outSize);
+    if (uncompressSize>=4){ //try compress, must uncompressSize>=1
+        hpatch_StreamPos_t pkSize=outDiff.packUInt(uncompressSize);
+        hpatch_StreamPos_t outSize=outDiff.pushStream(data,compress,false,pkSize);
+        if (outSize!=uncompressSize)
+            _check(pkSize+outSize<uncompressSize,"compressVcDiffData outSize");
+        return  (outSize==uncompressSize)?uncompressSize:(pkSize+outSize);
+    }else{
+        return outDiff.pushStream(data);
+    }
 }
 
 static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
