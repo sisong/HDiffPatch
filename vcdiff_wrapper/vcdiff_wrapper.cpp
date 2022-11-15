@@ -237,6 +237,14 @@ static inline void _flushBuf(TDiffStream& outDiff,std::vector<unsigned char>& bu
     buf.clear();
 }
 
+static hpatch_StreamPos_t compressVcDiffData(TDiffStream& outDiff,const hdiff_TCompress* compress,const hpatch_TStreamInput* data){
+    hpatch_StreamPos_t uncompressSize=data->streamSize;
+    hpatch_StreamPos_t pkSize=outDiff.packUInt(uncompressSize);
+    hpatch_StreamPos_t outSize=outDiff.pushStream(data,compress,false,pkSize);
+    if (outSize!=uncompressSize) _check(pkSize+outSize<uncompressSize,"compressVcDiffData outSize");
+    return  (outSize==uncompressSize)?uncompressSize:(pkSize+outSize);
+}
+
 static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                              const TCovers& covers,const hpatch_TStreamOutput* out_diff,
                              const vcdiff_TCompress* compressPlugin,bool isZeroSubDiff=false){
@@ -301,18 +309,12 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
                 hpatch_TStreamInput _addrStream;
                 mem_as_hStreamInput(&_instStream,inst.data(),inst.data()+inst.size());
                 mem_as_hStreamInput(&_addrStream,addr.data(),addr.data()+addr.size());
-                hpatch_StreamPos_t dataLen=outDiff.packUInt(_newDataDiff.streamSize);
-                hpatch_StreamPos_t dataLenCm=outDiff.pushStream(&_newDataDiff,compress);
-                dataLen+=dataLenCm;
-                hpatch_StreamPos_t instLen=outDiff.packUInt(inst.size());
-                hpatch_StreamPos_t instLenCm=outDiff.pushStream(&_instStream,compress);
-                instLen+=instLenCm;
-                hpatch_StreamPos_t addrLen=outDiff.packUInt(addr.size());
-                hpatch_StreamPos_t addrLenCm=outDiff.pushStream(&_addrStream,compress);
-                addrLen+=addrLenCm;
+                hpatch_StreamPos_t dataLen=compressVcDiffData(outDiff,compress,&_newDataDiff);
+                hpatch_StreamPos_t instLen=compressVcDiffData(outDiff,compress,&_instStream);
+                hpatch_StreamPos_t addrLen=compressVcDiffData(outDiff,compress,&_addrStream);
 
-                Delta_Indicator = ((dataLenCm<_newDataDiff.streamSize)?(1<<0):0)
-                                | ((instLenCm<inst.size())?(1<<1):0) | ((addrLenCm<addr.size())?(1<<2):0);
+                Delta_Indicator = ((dataLen<_newDataDiff.streamSize)?(1<<0):0)
+                                | ((instLen<inst.size())?(1<<1):0) | ((addrLen<addr.size())?(1<<2):0);
                 outDiff.packUInt_update(Delta_Indicator_pos,Delta_Indicator);
                 deltaLen+=dataLen+instLen+addrLen;
                 outDiff.packUInt_update(deltaLen_pos,deltaLen);

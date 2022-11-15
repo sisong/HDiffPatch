@@ -721,14 +721,15 @@ void TDiffStream::_pushStream(const hpatch_TStreamInput* stream){
 hpatch_StreamPos_t TDiffStream::pushStream(const hpatch_TStreamInput* stream,
                                            const hdiff_TCompress* compressPlugin,
                                            const TPlaceholder& update_compress_sizePos,
-                                           bool isMustCompress){
-    if ((compressPlugin)&&(isMustCompress||(stream->streamSize>0))){
-        hpatch_StreamPos_t kLimitOutCodeSize=isMustCompress?compressPlugin->maxCompressedSize(stream->streamSize+1):(stream->streamSize-1);
+                                           bool isMustCompress,const hpatch_StreamPos_t cancelSizeOnCancelCompress){
+    if ((compressPlugin)&&(isMustCompress||(stream->streamSize>=1+cancelSizeOnCancelCompress))){
+        hpatch_StreamPos_t kLimitOutCodeSize=isMustCompress?compressPlugin->maxCompressedSize(stream->streamSize+1)
+                                            :(stream->streamSize-(1+cancelSizeOnCancelCompress));
         TCompressedStream  out_stream(out_diff,writePos,kLimitOutCodeSize);
-        hpatch_StreamPos_t compressed_size=
-                                compressPlugin->compress(compressPlugin,&out_stream,stream);
+        hpatch_StreamPos_t compressed_size=compressPlugin->compress(compressPlugin,&out_stream,stream);
         if (out_stream.is_overLimit()||(compressed_size==0)||(compressed_size>kLimitOutCodeSize)){
             compressed_size=0;//NOTICE: compress is canceled
+            writePos-=cancelSizeOnCancelCompress;//revoke some data
             _pushStream(stream);
         }else{
             writePos+=compressed_size;
