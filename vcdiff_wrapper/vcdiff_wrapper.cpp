@@ -33,10 +33,30 @@
 #include "../libHDiffPatch/HPatch/patch.h"
 #include <stdexcept>  //std::runtime_error
 #define _check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
-static const unsigned char kVcDiffType[3]={('V'|(1<<7)),('C'|(1<<7)),('D'|(1<<7))};
+static const hpatch_byte kVcDiffType[3]={('V'|(1<<7)),('C'|(1<<7)),('D'|(1<<7))};
 #define kVcDiffVersion 0
 
 namespace hdiff_private{
+
+static size_t fixRedundentEncoding(std::vector<hpatch_byte>& buf,hpatch_StreamPos_t buf_pos,
+                                   const TPlaceholder& update_pos,hpatch_StreamPos_t updateLen){
+    const size_t pkSize=hpatch_packUInt_size(updateLen);
+    const size_t upkSize=(size_t)update_pos.size();
+    assert(pkSize<=upkSize);
+    const size_t retSize=upkSize-pkSize;
+    if (retSize==0) return 0;
+    // [             buf             ]
+    //          [update_pos-buf_pos]
+    //              [    pkSize    ]
+    size_t upki=(size_t)(update_pos.pos-buf_pos);
+    size_t pki=upki+retSize;
+    hpatch_byte* bufpki=buf.data()+pki;
+    hpatch_byte* bufpki_end=bufpki+pkSize;
+    _check(hpatch_packUInt(&bufpki,bufpki_end,updateLen),"update packed len error!");
+    _check(bufpki==bufpki_end,"update packed len error!");
+    memmove(buf.data()+retSize,buf.data(),upki);
+    return retSize;
+}
 
 static void _getSrcWindow(const TCovers& covers,hpatch_StreamPos_t* out_srcPos,hpatch_StreamPos_t* out_srcEnd){
     const size_t count=covers.coverCount();
@@ -89,7 +109,7 @@ struct vccode_t{
 };
 
 struct vc_encoder{
-    vc_encoder(std::vector<unsigned char>& inst,std::vector<unsigned char>& addr)
+    vc_encoder(std::vector<hpatch_byte>& inst,std::vector<hpatch_byte>& addr)
     :near_array(&_self_hear_near_array[2]),near_index(0),here(0),out_inst(inst),out_addr(addr){
         memset(same_array,0,sizeof(same_array));
         memset(_self_hear_near_array,0,sizeof(_self_hear_near_array));
@@ -133,8 +153,8 @@ private:
     hpatch_StreamPos_t* near_array;
     hpatch_StreamPos_t near_index;
     hpatch_StreamPos_t here;
-    std::vector<unsigned char>& out_inst;
-    std::vector<unsigned char>& out_addr;
+    std::vector<hpatch_byte>& out_inst;
+    std::vector<hpatch_byte>& out_addr;
     vccode_t  prevCode;
     vccode_t  curCode;
 
@@ -232,7 +252,7 @@ private:
 };
 
 
-static inline void _flushBuf(TDiffStream& outDiff,std::vector<unsigned char>& buf){
+static inline void _flushBuf(TDiffStream& outDiff,std::vector<hpatch_byte>& buf){
     outDiff.pushBack(buf.data(),buf.size());
     buf.clear();
 }
@@ -253,86 +273,107 @@ static hpatch_StreamPos_t compressVcDiffData(TDiffStream& outDiff,const hdiff_TC
 static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                              const TCovers& covers,const hpatch_TStreamOutput* out_diff,
                              const vcdiff_TCompress* compressPlugin,bool isZeroSubDiff=false){
-    std::vector<unsigned char> buf;
+    std::vector<hpatch_byte> buf;
     TDiffStream outDiff(out_diff);
     const hdiff_TCompress* compress=0;
+    TPlaceholder appHeadLen_pos(0,0);
     {//head
         pushBack(buf,kVcDiffType,sizeof(kVcDiffType));
         buf.push_back(kVcDiffVersion);
         const bool isHaveCompresser=(compressPlugin!=0)&&(compressPlugin->compress_type!=kVcDiff_compressorID_no);
-        buf.push_back(isHaveCompresser?1:0);// Hdr_Indicator: VCD_DECOMPRESS? no custom code table
+        const bool isNeedAppHeader=isHaveCompresser; // for fixRedundentEncoding
+        hpatch_byte Hdr_Indicator = ((isHaveCompresser?1:0)<<0) // VCD_DECOMPRESS
+                                  | (0<<1) // VCD_CODETABLE, no custom code table
+                                  | ((isNeedAppHeader?1:0)<<2); //VCD_APPHEADER
+        buf.push_back(Hdr_Indicator); 
         if (isHaveCompresser){
             compress=compressPlugin->compress;
             buf.push_back(compressPlugin->compress_type);
         }
         _flushBuf(outDiff,buf);
+        if (isNeedAppHeader)
+            appHeadLen_pos=outDiff.packUInt_pos(0);
     }
     
     hpatch_StreamPos_t srcPos,srcEnd;
-    {//only one window
-        {
-            _getSrcWindow(covers,&srcPos,&srcEnd);
-            if (srcPos<srcEnd){
-                buf.push_back(VCD_SOURCE); //Win_Indicator
-                packUInt(buf,(hpatch_StreamPos_t)(srcEnd-srcPos));
-                packUInt(buf,srcPos);//srcPos
-            }else{
-                buf.push_back(0); //Win_Indicator, no src window
-            }
-            _flushBuf(outDiff,buf);
+    //only one window
+    {
+        _getSrcWindow(covers,&srcPos,&srcEnd);
+        if (srcPos<srcEnd){
+            buf.push_back(VCD_SOURCE); //Win_Indicator
+            packUInt(buf,(hpatch_StreamPos_t)(srcEnd-srcPos));
+            packUInt(buf,srcPos);//srcPos
+        }else{
+            buf.push_back(0); //Win_Indicator, no src window
         }
-        const hpatch_StreamPos_t targetLen=newData->streamSize;
-        hpatch_StreamPos_t deltaLen=targetLen+(targetLen/8)+256;
-        TPlaceholder deltaLen_pos=outDiff.packUInt_pos(deltaLen); //need update deltaLen!
-        const hpatch_StreamPos_t deltaDataBeginPos=outDiff.getWritedPos();
-        outDiff.packUInt(targetLen);
-        hpatch_byte Delta_Indicator=0;
-        TPlaceholder Delta_Indicator_pos=outDiff.packUInt_pos(Delta_Indicator); //need update
+        _flushBuf(outDiff,buf);
+    }
 
+    const hpatch_StreamPos_t targetLen=newData->streamSize;
+    std::vector<hpatch_byte> inst;  inst.swap(buf);
+    std::vector<hpatch_byte> addr;
+    {
+        vc_encoder encoder(inst,addr);
+        encoder.encode(covers,targetLen,srcPos,srcEnd-srcPos);
+    }
+    TNewDataDiffStream _newDataDiff(covers,newData);
+    hpatch_StreamPos_t deltaLen = hpatch_packUInt_size(targetLen)+1+hpatch_packUInt_size(_newDataDiff.streamSize)
+                                 +hpatch_packUInt_size(inst.size())+hpatch_packUInt_size(addr.size())
+                                 +_newDataDiff.streamSize+inst.size()+addr.size();
+    const TPlaceholder deltaLen_pos=outDiff.packUInt_pos(deltaLen); //need update when compress
+    outDiff.packUInt(targetLen);
+    hpatch_byte Delta_Indicator=0;
+    TPlaceholder Delta_Indicator_pos=outDiff.packUInt_pos(Delta_Indicator); //need update when compress
+    
+    const TPlaceholder dataLen_pos=outDiff.packUInt_pos(_newDataDiff.streamSize); //need update when compress
+    const TPlaceholder instLen_pos=outDiff.packUInt_pos(inst.size()); //need update when compress
+    const TPlaceholder addrLen_pos=outDiff.packUInt_pos(addr.size()); //need update when compress
+    if (compress==0){
+        outDiff.pushStream(&_newDataDiff);
+        outDiff.pushBack(inst.data(),inst.size());
+        outDiff.pushBack(addr.data(),addr.size());
+    }else{
+        hpatch_TStreamInput _instStream;
+        hpatch_TStreamInput _addrStream;
+        mem_as_hStreamInput(&_instStream,inst.data(),inst.data()+inst.size());
+        mem_as_hStreamInput(&_addrStream,addr.data(),addr.data()+addr.size());
+        hpatch_StreamPos_t dataLen=compressVcDiffData(outDiff,compress,&_newDataDiff);
+        hpatch_StreamPos_t instLen=compressVcDiffData(outDiff,compress,&_instStream);
+        hpatch_StreamPos_t addrLen=compressVcDiffData(outDiff,compress,&_addrStream);
+        deltaLen = hpatch_packUInt_size(targetLen)+1+hpatch_packUInt_size(dataLen)
+                                        +hpatch_packUInt_size(instLen)+hpatch_packUInt_size(addrLen)
+                                        +dataLen+instLen+addrLen;
+        Delta_Indicator = ((dataLen<_newDataDiff.streamSize)?(1<<0):0)
+                        | ((instLen<inst.size())?(1<<1):0) | ((addrLen<addr.size())?(1<<2):0);
+        outDiff.packUInt_update(Delta_Indicator_pos,Delta_Indicator);
+        outDiff.packUInt_update(deltaLen_pos,deltaLen);
+        outDiff.packUInt_update(dataLen_pos,dataLen);
+        outDiff.packUInt_update(instLen_pos,instLen);
+        outDiff.packUInt_update(addrLen_pos,addrLen);
+
+        //fixRedundentEncoding by VCD_APPHEADER
         {
-            std::vector<unsigned char> inst;
-            std::vector<unsigned char> addr;
-            {
-                vc_encoder encoder(inst,addr);
-                encoder.encode(covers,targetLen,srcPos,srcEnd-srcPos);
-            }
-            TNewDataDiffStream _newDataDiff(covers,newData);
-            TPlaceholder dataLen_pos=outDiff.packUInt_pos(_newDataDiff.streamSize);
-            TPlaceholder instLen_pos=outDiff.packUInt_pos(inst.size());
-            TPlaceholder addrLen_pos=outDiff.packUInt_pos(addr.size());
-            deltaLen=(outDiff.getWritedPos()-deltaDataBeginPos);
-
-            if (compress==0){
-                deltaLen+=_newDataDiff.streamSize+inst.size()+addr.size();
-                outDiff.packUInt_update(deltaLen_pos,deltaLen);
-
-                outDiff.pushStream(&_newDataDiff);
-                outDiff.pushBack(inst.data(),inst.size());
-                outDiff.pushBack(addr.data(),addr.size());
-            }else{
-                hpatch_TStreamInput _instStream;
-                hpatch_TStreamInput _addrStream;
-                mem_as_hStreamInput(&_instStream,inst.data(),inst.data()+inst.size());
-                mem_as_hStreamInput(&_addrStream,addr.data(),addr.data()+addr.size());
-                hpatch_StreamPos_t dataLen=compressVcDiffData(outDiff,compress,&_newDataDiff);
-                hpatch_StreamPos_t instLen=compressVcDiffData(outDiff,compress,&_instStream);
-                hpatch_StreamPos_t addrLen=compressVcDiffData(outDiff,compress,&_addrStream);
-
-                Delta_Indicator = ((dataLen<_newDataDiff.streamSize)?(1<<0):0)
-                                | ((instLen<inst.size())?(1<<1):0) | ((addrLen<addr.size())?(1<<2):0);
-                outDiff.packUInt_update(Delta_Indicator_pos,Delta_Indicator);
-                deltaLen+=dataLen+instLen+addrLen;
-                outDiff.packUInt_update(deltaLen_pos,deltaLen);
-                outDiff.packUInt_update(dataLen_pos,dataLen);
-                outDiff.packUInt_update(instLen_pos,instLen);
-                outDiff.packUInt_update(addrLen_pos,addrLen);
+            const TPlaceholder update_pos(appHeadLen_pos.pos,addrLen_pos.pos_end);
+            buf.resize((size_t)update_pos.size());
+            outDiff.stream_read(update_pos,buf.data());
+            size_t appHeadLen=0;
+            appHeadLen+=fixRedundentEncoding(buf,update_pos.pos-appHeadLen,addrLen_pos,addrLen);
+            appHeadLen+=fixRedundentEncoding(buf,update_pos.pos-appHeadLen,instLen_pos,instLen);
+            appHeadLen+=fixRedundentEncoding(buf,update_pos.pos-appHeadLen,dataLen_pos,dataLen);
+            appHeadLen+=fixRedundentEncoding(buf,update_pos.pos-appHeadLen,deltaLen_pos,deltaLen);
+            
+            assert(appHeadLen<128);
+            if (appHeadLen>0){
+                buf[0]=(hpatch_byte)appHeadLen; //update len
+                outDiff.stream_update(update_pos,buf.data());
             }
         }
+
     }
 }
 
-void _create_vcdiff(const unsigned char* newData,const unsigned char* cur_newData_end,const unsigned char* newData_end,
-                    const unsigned char* oldData,const unsigned char* cur_oldData_end,const unsigned char* oldData_end,
+void _create_vcdiff(const hpatch_byte* newData,const hpatch_byte* cur_newData_end,const hpatch_byte* newData_end,
+                    const hpatch_byte* oldData,const hpatch_byte* cur_oldData_end,const hpatch_byte* oldData_end,
                     const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                     int kMinSingleMatchScore,bool isUseBigCacheMatch,
                     ICoverLinesListener* coverLinesListener,size_t threadNum){
@@ -355,8 +396,8 @@ void _create_vcdiff(const unsigned char* newData,const unsigned char* cur_newDat
 
 using namespace hdiff_private;
 
-void create_vcdiff(const unsigned char* newData,const unsigned char* newData_end,
-                   const unsigned char* oldData,const unsigned char* oldData_end,
+void create_vcdiff(const hpatch_byte* newData,const hpatch_byte* newData_end,
+                   const hpatch_byte* oldData,const hpatch_byte* oldData_end,
                    const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                    int kMinSingleMatchScore,bool isUseBigCacheMatch,
                    ICoverLinesListener* coverLinesListener,size_t threadNum){
@@ -371,9 +412,9 @@ void create_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput*
     TAutoMem oldAndNewData;
     loadOldAndNewStream(oldAndNewData,oldData,newData);
     size_t old_size=oldData?(size_t)oldData->streamSize:0;
-    unsigned char* pOldData=oldAndNewData.data();
-    unsigned char* pNewData=pOldData+old_size;
-    unsigned char* pNewDataEnd=pNewData+(size_t)newData->streamSize;
+    hpatch_byte* pOldData=oldAndNewData.data();
+    hpatch_byte* pNewData=pOldData+old_size;
+    hpatch_byte* pNewDataEnd=pNewData+(size_t)newData->streamSize;
     _create_vcdiff(pNewData,pNewDataEnd,pNewDataEnd,pOldData,pOldData+old_size,pOldData+old_size,
                    out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,
                    coverLinesListener,threadNum);
@@ -388,8 +429,8 @@ void create_vcdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStrea
 }
 
 
-void create_vcdiff_block(unsigned char* newData,unsigned char* newData_end,
-                         unsigned char* oldData,unsigned char* oldData_end,
+void create_vcdiff_block(hpatch_byte* newData,hpatch_byte* newData_end,
+                         hpatch_byte* oldData,hpatch_byte* oldData_end,
                          const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                          int kMinSingleMatchScore,bool isUseBigCacheMatch,
                          size_t matchBlockSize,size_t threadNum){
@@ -410,8 +451,8 @@ void create_vcdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStream
     TAutoMem oldAndNewData;
     loadOldAndNewStream(oldAndNewData,oldData,newData);
     size_t old_size=oldData?(size_t)oldData->streamSize:0;
-    unsigned char* pOldData=oldAndNewData.data();
-    unsigned char* pNewData=pOldData+old_size;
+    hpatch_byte* pOldData=oldAndNewData.data();
+    hpatch_byte* pNewData=pOldData+old_size;
     create_vcdiff_block(pNewData,pNewData+(size_t)newData->streamSize,pOldData,pOldData+old_size,
                         out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,
                         matchBlockSize,threadNum);
@@ -427,9 +468,9 @@ bool check_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* 
     _test_rt(out_newData.isWriteFinish());
     return true;
 }
-bool check_vcdiff(const unsigned char* newData,const unsigned char* newData_end,
-                  const unsigned char* oldData,const unsigned char* oldData_end,
-                  const unsigned char* diffData,const unsigned char* diffData_end,
+bool check_vcdiff(const hpatch_byte* newData,const hpatch_byte* newData_end,
+                  const hpatch_byte* oldData,const hpatch_byte* oldData_end,
+                  const hpatch_byte* diffData,const hpatch_byte* diffData_end,
                   hpatch_TDecompress* decompressPlugin){
     hdiff_TStreamInput newStream;
     hdiff_TStreamInput oldStream;

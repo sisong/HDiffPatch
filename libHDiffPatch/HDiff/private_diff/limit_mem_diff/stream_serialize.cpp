@@ -704,6 +704,26 @@ void TDiffStream::packUInt_update(const TPlaceholder& pos,hpatch_StreamPos_t uVa
     writePos=writePosBack;
 }
 
+void TDiffStream::stream_read(const TPlaceholder& pos,hpatch_byte* out_data){
+    assert(pos.pos<=pos.pos_end);
+    assert(pos.size()==(size_t)pos.size());
+    check(pos.pos_end<=writePos);
+    checki(out_diff->read_writed!=0,"TDiffStream::stream_read() out_diff can't read error!");
+    checki(out_diff->read_writed(out_diff,pos.pos,out_data,out_data+(size_t)pos.size()),
+            "TDiffStream::stream_read() out_diff read error!");
+}
+void TDiffStream::stream_update(const TPlaceholder& pos,const hpatch_byte* in_data){
+    assert(pos.pos<=pos.pos_end);
+    assert(pos.size()==(size_t)pos.size());
+    check(pos.pos_end<=writePos);
+
+    hpatch_StreamPos_t writePosBack=writePos;
+    writePos=pos.pos;
+    pushBack(in_data,(size_t)pos.size());
+    assert(writePos==pos.pos_end);
+    writePos=writePosBack;
+}
+
 void TDiffStream::_pushStream(const hpatch_TStreamInput* stream){
     unsigned char* buf=_temp_mem.data();
     hpatch_StreamPos_t sumReadedLen=0;

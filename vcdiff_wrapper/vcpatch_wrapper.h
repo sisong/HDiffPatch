@@ -52,18 +52,18 @@ typedef struct hpatch_VcDiffInfo{
 } hpatch_VcDiffInfo;
 
 hpatch_BOOL getIsVcDiff(const hpatch_TStreamInput* diffData);
-hpatch_BOOL getIsVcDiff_mem(const unsigned char* diffData,const unsigned char* diffData_end);
+hpatch_BOOL getIsVcDiff_mem(const hpatch_byte* diffData,const hpatch_byte* diffData_end);
 
 hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamInput* diffStream,
                           hpatch_BOOL isNeedWindowSize);
-hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const unsigned char* diffData,
-                              const unsigned char* diffData_end,hpatch_BOOL isNeedWindowSize);
+hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const hpatch_byte* diffData,
+                              const hpatch_byte* diffData_end,hpatch_BOOL isNeedWindowSize);
 
 hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
                                const hpatch_TStreamInput*  oldData,
                                const hpatch_TStreamInput*  diffStream, //create by vcdiff or hdiffz -VCD
                                hpatch_TDecompress* decompressPlugin,hpatch_BOOL isNeedChecksum,
-                               unsigned char* temp_cache,unsigned char* temp_cache_end);
+                               hpatch_byte* temp_cache,hpatch_byte* temp_cache_end);
 
 #ifdef __cplusplus
 }

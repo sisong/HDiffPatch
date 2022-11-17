@@ -226,6 +226,8 @@ struct TDiffStream{
     hpatch_StreamPos_t pushStream(const hpatch_TStreamInput* stream){
                 _pushStream(stream); return stream->streamSize; }
     hpatch_StreamPos_t getWritedPos()const{ return writePos; }
+    void stream_read(const TPlaceholder& pos,hpatch_byte* out_data);
+    void stream_update(const TPlaceholder& pos,const hpatch_byte* in_data);
 private:
     const hpatch_TStreamOutput*  out_diff;
     hpatch_StreamPos_t     writePos;
