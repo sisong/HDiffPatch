@@ -47,7 +47,7 @@ typedef struct hpatch_VcDiffInfo{
     vcdiff_compressType compressorID;
     //WindowInfo
     hpatch_StreamPos_t  maxSrcWindowsSize;
-    hpatch_StreamPos_t  maxSrcAddTargetWindowsSize;
+    hpatch_StreamPos_t  maxTargetWindowsSize;
     hpatch_StreamPos_t  sumTargetWindowsSize; //==newDataSize
 } hpatch_VcDiffInfo;
 

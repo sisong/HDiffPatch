@@ -1013,8 +1013,9 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         hpatch_size_t      mustAppendMemSize=0;
 #if (_IS_NEED_VCDIFF)
         if (isVcDiff){
-            maxWindowSize=(vcdiffInfo.maxSrcAddTargetWindowsSize<maxWindowSize)?
-                    vcdiffInfo.maxSrcAddTargetWindowsSize:vcdiffInfo.maxSrcWindowsSize;
+            hpatch_StreamPos_t maxSrcTargetSize=vcdiffInfo.maxSrcWindowsSize+vcdiffInfo.maxTargetWindowsSize;
+            maxWindowSize=(maxSrcTargetSize<=maxWindowSize+64*(1<<20))?
+                    maxSrcTargetSize:vcdiffInfo.maxSrcWindowsSize;
         }
 #endif
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
