@@ -172,17 +172,27 @@ hpatch_StreamPos_t TCoversStream::getDataSize(const TCovers& covers){
     return cover_buf_size;
 }
 
-void TNewDataDiffStream::_init(const hpatch_TStreamInput* _newData,hpatch_StreamPos_t newDataDiff_size){
-    newData=_newData;
+void TNewDataDiffStream::_init(hpatch_StreamPos_t newDataDiff_size){
     curNewPos=0;
     curNewPos_end=0;
     lastNewEnd=0;
     readedCoverCount=0;
     _readFromPos_back=0;
+    _coveri=0;
+    _newDataPos=0;
     this->streamImport=this;
     this->streamSize=newDataDiff_size;
     this->read=_read;
     this->_private_reserved=0;
+}
+
+void TNewDataDiffStream::_initByRange(size_t coveri,hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd){
+    _init(getDataSizeByRange(covers,coveri,newDataPos,newDataPosEnd));
+    _coveri=coveri;
+    _newDataPos=newDataPos;
+
+    readedCoverCount=_coveri;
+    lastNewEnd=_newDataPos;
 }
 
 hpatch_BOOL TNewDataDiffStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
@@ -191,8 +201,8 @@ hpatch_BOOL TNewDataDiffStream::_read(const hpatch_TStreamInput* stream,hpatch_S
     if (readFromPos==0){
         self->curNewPos=0;
         self->curNewPos_end=0;
-        self->lastNewEnd=0;
-        self->readedCoverCount=0;
+        self->readedCoverCount=self->_coveri;
+        self->lastNewEnd=self->_newDataPos;
     }else{
         checki(self->_readFromPos_back==readFromPos,"TNewDataDiffStream::read() readFromPos error!");
     }
@@ -227,6 +237,32 @@ hpatch_BOOL TNewDataDiffStream::_read(const hpatch_TStreamInput* stream,hpatch_S
     }
     return hpatch_TRUE;
 };
+ 
+hpatch_StreamPos_t TNewDataDiffStream::getDataSizeByRange(const TCovers& covers,size_t coveri,
+                                                          hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd){
+    size_t n=covers.coverCount();
+    hpatch_StreamPos_t newDataDiff_size=0;
+    hpatch_StreamPos_t lastNewEnd=newDataPos;
+    for (size_t i=coveri;i<n;++i) {
+        TCover cover;
+        covers.covers(i,&cover);
+        assert(cover.newPos>=lastNewEnd);
+        hpatch_StreamPos_t inc=cover.newPos-lastNewEnd;
+        if (lastNewEnd+inc>=newDataPosEnd)
+            inc=newDataPosEnd-lastNewEnd;
+        newDataDiff_size+=inc;
+        if (lastNewEnd+inc==newDataPosEnd)
+            return newDataDiff_size;
+        lastNewEnd=cover.newPos+cover.length;
+        if (lastNewEnd>=newDataPosEnd)
+            return newDataDiff_size;
+    }
+
+    assert(newDataPosEnd>=lastNewEnd);
+    hpatch_StreamPos_t inc=newDataPosEnd-lastNewEnd;
+    newDataDiff_size+=inc;
+    return newDataDiff_size;
+}
 
 hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_StreamPos_t newDataSize){
     size_t n=covers.coverCount();

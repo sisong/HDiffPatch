@@ -88,12 +88,19 @@ private:
 
 struct TNewDataDiffStream:public hpatch_TStreamInput{
     inline TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
-                              hpatch_StreamPos_t newDataDiff_size):covers(_covers) { _init(_newData,newDataDiff_size); }
+                              hpatch_StreamPos_t newDataDiff_size)
+            :covers(_covers),newData(_newData) { _init(newDataDiff_size); }
     inline TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData)
-        :covers(_covers) { _init(_newData,getDataSize(_covers,_newData->streamSize)); }
+        :covers(_covers),newData(_newData) { _init(getDataSize(_covers,_newData->streamSize)); }
+    inline TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
+                              size_t coveri,hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd)
+        :covers(_covers),newData(_newData){ _initByRange(coveri,newDataPos,newDataPosEnd); }
     static hpatch_StreamPos_t getDataSize(const TCovers& covers,hpatch_StreamPos_t newDataSize);
 private:
-    void _init(const hpatch_TStreamInput* _newData,hpatch_StreamPos_t newDataDiff_size);
+    static hpatch_StreamPos_t getDataSizeByRange(const TCovers& covers,size_t coveri,
+                                                 hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd);
+    void _init(hpatch_StreamPos_t newDataDiff_size);
+    void _initByRange(size_t coveri,hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd);
     const TCovers&              covers;
     const hpatch_TStreamInput*  newData;
     hpatch_StreamPos_t          curNewPos;
@@ -101,6 +108,11 @@ private:
     hpatch_StreamPos_t          lastNewEnd;
     size_t                      readedCoverCount;
     hpatch_StreamPos_t          _readFromPos_back;
+
+    //by range
+    size_t                      _coveri;
+    hpatch_StreamPos_t          _newDataPos;
+
     static hpatch_BOOL _read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                              unsigned char* out_data,unsigned char* out_data_end);
 };

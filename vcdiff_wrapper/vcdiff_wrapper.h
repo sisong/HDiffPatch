@@ -35,6 +35,8 @@ struct vcdiff_TCompress{
     vcdiff_compressType    compress_type;
 };
 
+static const size_t vcdiff_kMaxTargetWindowsSize=(1<<20)*16;
+
 // create diffFile compatible with VCDIFF(RFC3284)
 //  format: https://www.ietf.org/rfc/rfc3284.txt
 void create_vcdiff(const hpatch_byte* newData,const hpatch_byte* newData_end,
