@@ -29,11 +29,24 @@
 #define hdiff_vcdiff_wrapper_h
 #include "../libHDiffPatch/HDiff/diff.h"
 #include "vcpatch_wrapper.h"
-
-struct vcdiff_TCompress{
-    const hdiff_TCompress* compress;
+#ifdef __cplusplus
+extern "C" {
+#endif
+#define vcdiff_compressHandle void*
+typedef struct{
     vcdiff_compressType    compress_type;
-};
+    const hdiff_TCompress*       compress;
+    vcdiff_compressHandle (*compress_open)(const hdiff_TCompress* compressPlugin);
+    hpatch_StreamPos_t  (*compress_encode)(vcdiff_compressHandle compressHandle,
+                                           const hpatch_TStreamOutput* out_code,
+                                           const hpatch_TStreamInput*  in_data,
+                                           hpatch_BOOL isWriteHead,hpatch_BOOL isWriteEnd);
+    hpatch_BOOL          (*compress_close)(const hdiff_TCompress* compressPlugin,
+                                           vcdiff_compressHandle compressHandle);
+} vcdiff_TCompress;
+#ifdef __cplusplus
+}
+#endif
 
 static const size_t vcdiff_kMaxTargetWindowsSize=(1<<20)*16;
 

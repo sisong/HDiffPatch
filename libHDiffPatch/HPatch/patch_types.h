@@ -193,6 +193,7 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
         //decompress_part() must out (out_part_data_end-out_part_data), otherwise error return hpatch_FALSE
         hpatch_BOOL    (*decompress_part)(hpatch_decompressHandle decompressHandle,
                                           unsigned char* out_part_data,unsigned char* out_part_data_end);
+        //reset_code add new compressed data; for support vcpatch, can NULL
         hpatch_BOOL         (*reset_code)(hpatch_decompressHandle decompressHandle,
                                           hpatch_StreamPos_t dataSize,
                                           const struct hpatch_TStreamInput* codeStream,

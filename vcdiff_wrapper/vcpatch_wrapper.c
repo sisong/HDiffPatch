@@ -49,6 +49,9 @@ static const hpatch_byte kVcDiffType[3]={('V'|(1<<7)),('C'|(1<<7)),('D'|(1<<7))}
 #define     kVcDiffGoogleVersion    'S'
 #define     kVcDiffMinHeadLen       (sizeof(kVcDiffType)+1+1)
 
+static const char* kHDiffzAppHead_a="$hdiffz-VCDIFF&7zXZ#a";
+#define kHDiffzAppHeadLen   21 // = strlen(kHDiffzAppHead_a);
+
 #define _clip_unpackUInt64(_clip,_result) { \
     if (!_TStreamCacheClip_unpackUIntWithTag(_clip,_result,0)) \
         return _hpatch_FALSE; \
@@ -292,7 +295,7 @@ hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamIn
             return _hpatch_FALSE; //unsupport compressor ID
     }
     if (Hdr_Indicator&(1<<1)) // VCD_CODETABLE
-        return _hpatch_FALSE; //unsupport code table
+        return _hpatch_FALSE; // unsupport code table
     if (Hdr_Indicator&(1<<2)) // VCD_APPHEADER
         _clip_unpackUInt64(&diffClip,&out_diffinfo->appHeadDataLen);
     out_diffinfo->appHeadDataOffset=_TStreamCacheClip_readPosOfSrcStream(&diffClip);
@@ -304,6 +307,15 @@ hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamIn
             return _hpatch_FALSE; //data size error
     }
 #endif
+    assert(kHDiffzAppHeadLen==strlen(kHDiffzAppHead_a));
+    assert(kHDiffzAppHeadLen<=_kWindowCacheSize);
+    if (out_diffinfo->appHeadDataLen==kHDiffzAppHeadLen){
+        const hpatch_byte* pAppHead=_TStreamCacheClip_accessData(&diffClip,kHDiffzAppHeadLen);
+        if (pAppHead==0)
+            return _hpatch_FALSE;
+        if (0==memcmp(pAppHead,kHDiffzAppHead_a,kHDiffzAppHeadLen))
+            out_diffinfo->isHDiffzAppHead_a=hpatch_TRUE;
+    }
     if (isNeedWindowSize){
         return _getVcDiffWindowSizes(out_diffinfo,diffStream);
     }else{

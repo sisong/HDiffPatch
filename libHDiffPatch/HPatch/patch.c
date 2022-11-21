@@ -571,7 +571,7 @@ hpatch_BOOL getStreamClip(TStreamCacheClip* out_clip,_TDecompressInputStream* ou
             out_stream->IInputStream.streamSize=dataSize;
             out_stream->IInputStream.read=_decompress_read;
             out_stream->decompressPlugin=decompressPlugin;
-            if (!out_stream->decompressHandle){
+            if (out_stream->decompressHandle==0){
                 out_stream->decompressHandle=decompressPlugin->open(decompressPlugin,dataSize,stream,
                                                                     curStreamPos,curStreamPos+compressedSize);
                 if (!out_stream->decompressHandle) return _hpatch_FALSE;
