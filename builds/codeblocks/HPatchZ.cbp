@@ -93,10 +93,43 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../libmd5/md5.h" />
+		<Unit filename="../../../lzma/C/7zCrc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/7zCrcOpt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Bra.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Bra86.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/BraIA64.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/CpuArch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Delta.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../lzma/C/Lzma2Dec.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/LzmaDec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Sha256.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Xz.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/XzCrc64.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/XzDec.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/adler32.c">
@@ -203,6 +236,9 @@
 		</Unit>
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h" />
 		<Unit filename="../../libHDiffPatch/HPatch/patch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../vcdiff_wrapper/vcpatch_wrapper.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Extensions>

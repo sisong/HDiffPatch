@@ -353,7 +353,7 @@ void TNewDataSubDiffStream::readTo(unsigned char* out_data,unsigned char* out_da
             continue;
         }
         
-        size_t len=std::min(curDataLen,readLen);
+        size_t len=(size_t)std::min(curDataLen,(hpatch_StreamPos_t)readLen);
         if ((!isZeroSubDiff)&&(curReadOldPos!=_kNullPos)){
             check(newData->read(newData,curReadNewPos,out_data,out_data+len));
             _subData(out_data,len,oldData,curReadOldPos,_cache.data(),_cache.size());

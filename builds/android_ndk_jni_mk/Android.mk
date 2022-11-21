@@ -43,7 +43,8 @@ Hdp_Files := $(HDP_PATH)/file_for_patch.c \
 Src_Files := $(LOCAL_PATH)/hpatch_jni.c \
              $(LOCAL_PATH)/hpatch.c
 
-DEF_FLAGS := -Os -D_IS_NEED_BSDIFF=0 -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_DEFAULT_CompressPlugin=0
+DEF_FLAGS := -Os -D_IS_NEED_BSDIFF=0 -D_IS_NEED_VCDIFF=0
+DEF_FLAGS += -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_DEFAULT_CompressPlugin=0
 DEF_FLAGS += -D_CompressPlugin_zlib
 ifeq ($(LZMA),0)
 else

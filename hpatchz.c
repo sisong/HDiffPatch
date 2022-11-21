@@ -53,9 +53,6 @@
 #ifndef _IS_NEED_VCDIFF
 #   define _IS_NEED_VCDIFF 1
 #endif
-#if (_IS_NEED_VCDIFF)
-#   define _CompressPlugin_7zXZ
-#endif
 #ifndef _IS_NEED_SFX
 #   define _IS_NEED_SFX 1
 #endif
@@ -74,6 +71,9 @@
 #   define _CompressPlugin_lzma
 #   define _CompressPlugin_lzma2
 #   define _CompressPlugin_zstd
+#if (_IS_NEED_VCDIFF)
+#   define _CompressPlugin_7zXZ
+#endif
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
@@ -774,20 +774,22 @@ static const hpatch_TDecompress* __find_decompressPlugin(const char* compressTyp
 static hpatch_BOOL getVcDiffDecompressPlugin(hpatch_TDecompress* out_decompressPlugin,
                                              const hpatch_VcDiffInfo* vcdInfo,hpatch_byte* out_compressType){
     const hpatch_TDecompress* decompressPlugin=0;
-    _init_CompressPlugin_7zXZ();
 
     out_compressType[0]='\0';
     memset(out_decompressPlugin,0,sizeof(*out_decompressPlugin));
     switch (vcdInfo->compressorID){
         case 0: return hpatch_TRUE;
+#ifdef _CompressPlugin_7zXZ
         case kVcDiff_compressorID_7zXZ:{
             static const char* _7zXZCompressType="7zXZ";
+            _init_CompressPlugin_7zXZ();
             if (vcdInfo->isHDiffzAppHead_a)
                 decompressPlugin=&_7zXZDecompressPlugin_a;
             else
                 decompressPlugin=&_7zXZDecompressPlugin;
             memcpy(out_compressType,_7zXZCompressType,strlen(_7zXZCompressType)+1);
         } break;
+#endif
         default: return hpatch_FALSE; //now unsupport
     }
     if (strlen(out_compressType)>0)
@@ -1017,7 +1019,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
 #if (_IS_NEED_VCDIFF)
         if (isVcDiff){
             hpatch_StreamPos_t maxSrcTargetSize=vcdiffInfo.maxSrcWindowsSize+vcdiffInfo.maxTargetWindowsSize;
-            maxWindowSize=(maxSrcTargetSize<=maxWindowSize+64*(1<<20))?
+            maxWindowSize=((!vcdiffInfo.isHDiffzAppHead_a)&&(maxSrcTargetSize<=maxWindowSize+64*(1<<20)))?
                     maxSrcTargetSize:vcdiffInfo.maxSrcWindowsSize;
         }
 #endif

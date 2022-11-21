@@ -15,6 +15,8 @@ CL  	 := 0
 M32      := 0
 # build for out min size
 MINS     := 0
+# support VCDIFF? 
+VCD      := 1
 # support bsdiff&bspatch?
 BSD      := 1
 ifeq ($(OS),Windows_NT) # mingw?
@@ -47,10 +49,12 @@ else
     dirDiffPatch/dir_patch/new_dir_output.o \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o
 endif
+
 ifeq ($(BSD),0)
 else
 	HPATCH_OBJ += bsdiff_wrapper/bspatch_wrapper.o
 endif
+
 MD5_PATH := ../libmd5
 ifeq ($(DIR_DIFF),0)
 else
@@ -59,28 +63,55 @@ else
 	HPATCH_OBJ += $(MD5_PATH)/md5.o
   endif
 endif
+
 LZMA_PATH := ../lzma/C
 ifeq ($(LZMA),0)
 else # https://www.7-zip.org  https://github.com/sisong/lzma
   HPATCH_OBJ += $(LZMA_PATH)/LzmaDec.o \
-  				$(LZMA_PATH)/Lzma2Dec.o 
+  				$(LZMA_PATH)/Lzma2Dec.o \
+  				$(LZMA_PATH)/CpuArch.o \
+  				$(LZMA_PATH)/Alloc.o
   ifeq ($(ARM64ASM),0)
   else
   	HPATCH_OBJ += $(LZMA_PATH)/../Asm/arm64/LzmaDecOpt.o
   endif
+  ifeq ($(MT),0)  
+  else  
+    HPATCH_OBJ+=$(LZMA_PATH)/MtDec.o \
+				$(LZMA_PATH)/Threads.o
+  endif
   HDIFF_OBJ  += $(LZMA_PATH)/LzFind.o \
   				$(LZMA_PATH)/LzFindOpt.o \
-  				$(LZMA_PATH)/CpuArch.o \
   				$(LZMA_PATH)/LzmaEnc.o \
 				$(LZMA_PATH)/Lzma2Enc.o  
   ifeq ($(MT),0)  
   else  
     HDIFF_OBJ+= $(LZMA_PATH)/LzFindMt.o \
-  				$(LZMA_PATH)/MtCoder.o \
-  				$(LZMA_PATH)/MtDec.o \
-				$(LZMA_PATH)/Threads.o
+  				$(LZMA_PATH)/MtCoder.o
   endif
 endif
+ifeq ($(VCD),0)
+else
+  HPATCH_OBJ += vcdiff_wrapper/vcpatch_wrapper.o
+  HDIFF_OBJ  += vcdiff_wrapper/vcdiff_wrapper.o
+  ifeq ($(LZMA),0)
+  else
+	HPATCH_OBJ+=$(LZMA_PATH)/7zCrc.o \
+				$(LZMA_PATH)/7zCrcOpt.o \
+				$(LZMA_PATH)/Bra.o \
+				$(LZMA_PATH)/Bra86.o \
+				$(LZMA_PATH)/BraIA64.o \
+				$(LZMA_PATH)/Delta.o \
+				$(LZMA_PATH)/Sha256.o \
+				$(LZMA_PATH)/Sha256Opt.o \
+				$(LZMA_PATH)/Xz.o \
+				$(LZMA_PATH)/XzCrc64.o \
+				$(LZMA_PATH)/XzCrc64Opt.o \
+				$(LZMA_PATH)/XzDec.o
+	HDIFF_OBJ +=$(LZMA_PATH)/XzEnc.o
+  endif
+endif
+
 ZSTD_PATH := ../zstd/lib
 ifeq ($(ZSTD),1) # https://github.com/facebook/zstd
   HPATCH_OBJ += $(ZSTD_PATH)/common/debug.o \
@@ -112,6 +143,7 @@ ifeq ($(ZSTD),1) # https://github.com/facebook/zstd
 				$(ZSTD_PATH)/compress/zstdmt_compress.o
   endif
 endif
+
 BZ2_PATH := ../bzip2
 ifeq ($(BZIP2),1) # http://www.bzip.org  https://github.com/sisong/bzip2
   HPATCH_OBJ += $(BZ2_PATH)/blocksort.o \
@@ -122,6 +154,7 @@ ifeq ($(BZIP2),1) # http://www.bzip.org  https://github.com/sisong/bzip2
   				$(BZ2_PATH)/huffman.o \
   				$(BZ2_PATH)/randtable.o
 endif
+
 ZLIB_PATH := ../zlib
 ifeq ($(ZLIB),1) # http://zlib.net  https://github.com/sisong/zlib  
   HPATCH_OBJ += $(ZLIB_PATH)/adler32.o \
@@ -229,9 +262,18 @@ ifeq ($(BSD),0)
 else
 	DEF_FLAGS += -D_IS_NEED_BSDIFF=1
 endif
+ifeq ($(VCD),0)
+	DEF_FLAGS += -D_IS_NEED_VCDIFF=0
+else
+	DEF_FLAGS += -D_IS_NEED_VCDIFF=1
+endif
 ifeq ($(LZMA),0)
 else
   DEF_FLAGS += -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 -I$(LZMA_PATH)
+  ifeq ($(VCD),0)
+  else
+    DEF_FLAGS += -D_CompressPlugin_7zXZ
+  endif
   ifeq ($(ARM64ASM),0)
   else
     DEF_FLAGS += -D_LZMA_DEC_OPT
@@ -267,11 +309,11 @@ endif
 ifeq ($(ZSTD),2)
   PATCH_LINK += -lzstd		# link zstd
 endif
-DIFF_LINK  := $(PATCH_LINK)
 ifeq ($(MT),0)
 else
-  DIFF_LINK += -lpthread	# link pthread
+  PATCH_LINK += -lpthread	# link pthread
 endif
+DIFF_LINK  := $(PATCH_LINK)
 ifeq ($(M32),0)
 else
   DIFF_LINK += -m32

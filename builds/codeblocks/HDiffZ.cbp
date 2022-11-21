@@ -97,10 +97,28 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../libmd5/md5.h" />
+		<Unit filename="../../../lzma/C/7zCrc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/7zCrcOpt.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../lzma/C/Alloc.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../lzma/C/Bra.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Bra86.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/BraIA64.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../lzma/C/CpuArch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Delta.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/LzFind.c">
@@ -133,7 +151,22 @@
 		<Unit filename="../../../lzma/C/MtDec.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../lzma/C/Sha256.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../lzma/C/Threads.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/Xz.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/XzCrc64.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/XzDec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/XzEnc.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/adler32.c">
@@ -338,6 +371,10 @@
 		<Unit filename="../../libParallel/parallel_channel.h" />
 		<Unit filename="../../libParallel/parallel_import.cpp" />
 		<Unit filename="../../libParallel/parallel_import.h" />
+		<Unit filename="../../vcdiff_wrapper/vcdiff_wrapper.cpp" />
+		<Unit filename="../../vcdiff_wrapper/vcpatch_wrapper.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Extensions>
 			<envvars />
 			<code_completion />

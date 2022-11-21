@@ -105,7 +105,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/obj/_/_/_/%(RelativeDir)/</ObjectFileName>
@@ -121,7 +121,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/obj/_/_/_/%(RelativeDir)/</ObjectFileName>
@@ -136,7 +136,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -149,6 +149,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/obj/_/_/_/%(RelativeDir)/</ObjectFileName>
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -161,7 +162,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -175,11 +176,13 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
@@ -215,6 +218,8 @@
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
     <ClCompile Include="..\..\libParallel\parallel_channel.cpp" />
     <ClCompile Include="..\..\libParallel\parallel_import.cpp" />
+    <ClCompile Include="..\..\vcdiff_wrapper\vcdiff_wrapper.cpp" />
+    <ClCompile Include="..\..\vcdiff_wrapper\vcpatch_wrapper.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\libHDiffPatch\HDiff\diff.h" />

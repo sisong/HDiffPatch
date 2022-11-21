@@ -55,9 +55,6 @@
 #ifndef _IS_NEED_VCDIFF
 #   define _IS_NEED_VCDIFF 1
 #endif
-#if (_IS_NEED_VCDIFF)
-#   define _CompressPlugin_7zXZ
-#endif
 
 #ifndef _IS_NEED_DEFAULT_CompressPlugin
 #   define _IS_NEED_DEFAULT_CompressPlugin 1
@@ -73,6 +70,9 @@
 #   define _CompressPlugin_lzma  // better compresser
 #   define _CompressPlugin_lzma2 // better compresser
 #   define _CompressPlugin_zstd  // better compresser / faster decompresser
+#if (_IS_NEED_VCDIFF)
+#   define _CompressPlugin_7zXZ  //only for VCDIFF
+#endif
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
@@ -184,14 +184,20 @@ static void printUsage(){
            "      create diffFile compatible with bsdiff4, unsupport input directory(folder).\n"
 #endif
 #if (_IS_NEED_VCDIFF)
+#   ifdef _CompressPlugin_7zXZ
            "  -VCD[-compressLevel[-dictSize]]\n"
            "      create diffFile compatible with VCDIFF, unsupport input directory(folder).\n"
            "      DEFAULT no compress, out format same as $open-vcdiff delta ... or $xdelta3 -S -e -n ...\n"
            "      if set compressLevel, out format same as $xdelta3 -S lzma -e -n ...\n"
            "      compress by 7zXZ(xz), compressLevel in {0..9}, DEFAULT level 7;\n"
            "      dictSize can like 4096 or 4k or 4m or 16m etc..., DEFAULT 8m\n"
-#   if (_IS_USED_MULTITHREAD)
+#       if (_IS_USED_MULTITHREAD)
            "      support compress by multi-thread parallel.\n"
+#       endif
+#   else
+           "  -VCD\n"
+           "      create diffFile compatible with VCDIFF, unsupport input directory(folder).\n"
+           "      out format same as $open-vcdiff delta ... or $xdelta3 -S -e -n ...\n"
 #   endif
            "      NOTE: out diffFile used large source window size!\n"
 #endif
@@ -837,6 +843,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
 #endif
 #if (_IS_NEED_VCDIFF)
+#   ifdef _CompressPlugin_7zXZ
             case 'V':{
                 _options_check((diffSets.isVcDiff==_kNULL_VALUE)&&(op[2]=='C')&&(op[3]=='D')
                                &&((op[4]=='\0')||(op[4]=='-')),"-VCD");
@@ -857,6 +864,14 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 }
                 diffSets.isVcDiff=hpatch_TRUE;
             } break;
+#   else
+            case 'V':{
+                _options_check((diffSets.isVcDiff==_kNULL_VALUE)&&(op[2]=='C')&&(op[3]=='D')
+                               &&(op[4]=='\0'),"-VCD");
+                _options_check((compressPlugin==0),"-VCD unsupport -c-*");
+                diffSets.isVcDiff=hpatch_TRUE;
+            } break;
+#   endif
 #endif
             case '?':
             case 'h':{
@@ -1271,18 +1286,20 @@ clear:
 static hpatch_BOOL getVcDiffDecompressPlugin(hpatch_TDecompress* out_decompressPlugin,
                                              const hpatch_VcDiffInfo* vcdInfo){
     const hpatch_TDecompress* decompressPlugin=0;
-    _init_CompressPlugin_7zXZ();
-
     memset(out_decompressPlugin,0,sizeof(*out_decompressPlugin));
+
     switch (vcdInfo->compressorID){
         case 0: return hpatch_TRUE;
+#ifdef _CompressPlugin_7zXZ
         case kVcDiff_compressorID_7zXZ:{
+            _init_CompressPlugin_7zXZ();
             if (vcdInfo->isHDiffzAppHead_a)
                 decompressPlugin=&_7zXZDecompressPlugin_a;
             else
                 decompressPlugin=&_7zXZDecompressPlugin;
         } break;
-        default: return hpatch_FALSE; //now unsupport
+#endif
+        default: return hpatch_FALSE; //unsupport
     }
     if (decompressPlugin){
         *out_decompressPlugin=*decompressPlugin;
@@ -1291,17 +1308,24 @@ static hpatch_BOOL getVcDiffDecompressPlugin(hpatch_TDecompress* out_decompressP
     return hpatch_TRUE;
 }
 
+#ifdef _CompressPlugin_7zXZ
 #define _CompressPluginForVcDiff(vcdiffCompressPlugin,compressPlugin) \
     vcdiff_TCompress _vcdiffCompressPlugin; \
     vcdiffCompressPlugin=0; \
     if (compressPlugin){ \
-        check(0==strcmp(compressPlugin->compressType(),"7zXZ"),HDIFF_OPTIONS_ERROR,"-VCD compressType"); \
+        check(0==strcmp(compressPlugin->compressType(),"7zXZ"),HDIFF_OPTIONS_ERROR,"-VCD unsupport compressType"); \
         _vcdiffCompressPlugin.compress_type=kVcDiff_compressorID_7zXZ; \
         _vcdiffCompressPlugin.compress=compressPlugin; \
         _vcdiffCompressPlugin.compress_open=_7zXZ_compress_open; \
         _vcdiffCompressPlugin.compress_encode=_7zXZ_compress_encode; \
         _vcdiffCompressPlugin.compress_close=_7zXZ_compress_close; \
         vcdiffCompressPlugin=&_vcdiffCompressPlugin; }
+#else
+#define _CompressPluginForVcDiff(vcdiffCompressPlugin,compressPlugin) \
+    vcdiffCompressPlugin=0; \
+    if (compressPlugin){ \
+        check(hpatch_FALSE,HDIFF_OPTIONS_ERROR,"-VCD unsupport compress"); }
+#endif
 
 #endif //_IS_NEED_VCDIFF
 
