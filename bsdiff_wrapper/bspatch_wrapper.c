@@ -180,8 +180,8 @@ hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
     hpatch_size_t           i;
     hpatch_BOOL  result=hpatch_TRUE;
     hpatch_StreamPos_t  diffPos0;
-    const hpatch_size_t cacheSize=(temp_cache_end-temp_cache)/_kCacheBsDecCount;
-    if (cacheSize<8) return _hpatch_FALSE;
+    hpatch_TStreamInput  _oldDataCache;
+    hpatch_size_t cacheSize;
     assert(decompressPlugin!=0);
     assert(out_newData!=0);
     assert(out_newData->write!=0);
@@ -195,6 +195,19 @@ hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
         return _hpatch_FALSE;
     for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i)
         decompressers[i].decompressHandle=0;
+
+    cacheSize=(temp_cache_end-temp_cache);
+    if (cacheSize>=(oldData->streamSize+_kCacheBsDecCount*hpatch_kStreamCacheSize)){//can cache old?
+        cacheSize=(hpatch_size_t)oldData->streamSize;
+        if (!oldData->read(oldData,0,temp_cache,temp_cache+cacheSize))
+            return _hpatch_FALSE;
+        mem_as_hStreamInput(&_oldDataCache,temp_cache,temp_cache+cacheSize);
+        oldData=&_oldDataCache;
+        temp_cache+=cacheSize;
+        cacheSize=(temp_cache_end-temp_cache);
+    }
+    cacheSize=cacheSize/_kCacheBsDecCount;
+    if (cacheSize<8) return _hpatch_FALSE;
 
     diffPos0=diffInfo.headSize;
     if (!getStreamClip(&ctrlClip,&decompressers[0],
