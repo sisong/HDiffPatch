@@ -95,7 +95,15 @@ special options:
       when patch, and support step by step patching when step by step downloading!
       stepSize>=(1024*4), DEFAULT -SD-256k, recommended 64k,2m etc...
   -BSD
-      create diffFile compatible with bsdiff, unsupport input directory(folder).
+      create diffFile compatible with bsdiff4, unsupport input directory(folder).
+  -VCD[-compressLevel[-dictSize]]
+      create diffFile compatible with VCDIFF, unsupport input directory(folder).
+      DEFAULT no compress, out format same as $open-vcdiff delta ... or $xdelta3 -S -e -n ...
+      if set compressLevel, out format same as $xdelta3 -S lzma -e -n ...
+      compress by 7zXZ(xz), compressLevel in {0..9}, DEFAULT level 7;
+      dictSize can like 4096 or 4k or 4m or 16m etc..., DEFAULT 8m
+      support compress by multi-thread parallel.
+      NOTE: out diffFile used large source window size!
   -p-parallelThreadNumber
       if parallelThreadNumber>1 then open multi-thread Parallel mode;
       DEFAULT -p-4; requires more memory!
@@ -179,18 +187,20 @@ memory options:
       DEFAULT -s-4m; oldPath loaded as Stream;
       cacheSize can like 262144 or 256k or 512m or 2g etc....
       requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.
-      if diffFile is single compressed diffData, then requires
+      if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires
         (cacheSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
-        see: hdiffz -SD-stepSize option.
-      if diffFile is bsdiff diffData, then requires
+      if diffFile is created by hdiffz -BSD,bsdiff, hdiffz -VCD,xdelta,open-vcdiff, then requires
         (cacheSize + 3*decompress buffer size)+O(1) bytes of memory;
-        see: hdiffz -BSD option.
+      if diffFile is VCDIFF: if created by hdiffz -VCD, then recommended patch by -s;
+          if created by xdelta,open-vcdiff, then recommended patch by -m.
   -m  oldPath all loaded into Memory;
       requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory.
-      if diffFile is single compressed diffData, then requires
+      if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires
         (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory.
-      if diffFile is bsdiff diffData, then requires
+      if diffFile is created by hdiffz -BSD,bsdiff, then requires
         (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.
+      if diffFile is VCDIFF(created by hdiffz -VCD,xdelta,open-vcdiff), then requires
+        (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.
 special options:
   -C-checksumSets
       set Checksum data for directory patch, DEFAULT -C-new-copy;
@@ -201,6 +211,8 @@ special options:
         -C-copy         checksum new files copy from old same files;
         -C-no           no checksum;
         -C-all          same as: -C-diff-old-new-copy;
+  -C-no or -C-new
+      if diffFile is VCDIFF, then to close or open checksum, DEFAULT -C-new.
   -n-maxOpenFileNumber
       limit Number of open files at same time when stream directory patch;
       maxOpenFileNumber>=8, DEFAULT -n-24, the best limit value by different
@@ -259,7 +271,12 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
-   
+#### v4.5 API, vcdiff wrapper: 
+* **create_vcdiff()**
+* **create_vcdiff_stream()**
+* **vcpatch_with_cache()**
+* **create_bsdiff_stream()** for bsdiff
+
 ---
 ## HDiffPatch vs BsDiff & xdelta:
 case list:

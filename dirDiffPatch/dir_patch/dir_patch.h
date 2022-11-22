@@ -29,8 +29,16 @@
 #ifndef DirPatch_dir_patch_h
 #define DirPatch_dir_patch_h
 #include "dir_patch_types.h"
-#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
+    typedef struct TDirPatchChecksumSet{
+        hpatch_TChecksum*   checksumPlugin;
+        hpatch_BOOL         isCheck_oldRefData;
+        hpatch_BOOL         isCheck_newRefData;  
+        hpatch_BOOL         isCheck_copyFileData;
+        hpatch_BOOL         isCheck_dirDiffData;
+    } TDirPatchChecksumSet;
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "ref_stream.h"
 #include "new_stream.h"
 #include "res_handle_limit.h"
@@ -92,14 +100,6 @@ hpatch_BOOL getIsDirDiffFile(const char* diffFileName){
     
     struct hpatch_TFileStreamInput;
     struct hpatch_TFileStreamOutput;
-    
-    typedef struct TDirPatchChecksumSet{
-        hpatch_TChecksum*   checksumPlugin;
-        hpatch_BOOL         isCheck_oldRefData;
-        hpatch_BOOL         isCheck_newRefData;  
-        hpatch_BOOL         isCheck_copyFileData;
-        hpatch_BOOL         isCheck_dirDiffData;
-    } TDirPatchChecksumSet;
     
 typedef struct TDirPatcher{
     TDirDiffInfo                dirDiffInfo;

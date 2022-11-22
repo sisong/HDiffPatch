@@ -164,6 +164,10 @@ static void printUsage(){
            " then requires\n"
            "        (cacheSize + 3*decompress buffer size)+O(1) bytes of memory;\n"
 #endif
+#if (_IS_NEED_VCDIFF)
+           "      if diffFile is VCDIFF: if created by hdiffz -VCD, then recommended patch by -s;\n"
+           "          if created by xdelta,open-vcdiff, then recommended patch by -m.\n"
+#endif
            "  -m  oldPath all loaded into Memory;\n"
            "      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory.\n"
            "      if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires\n"
@@ -187,14 +191,16 @@ static void printUsage(){
            "        -C-copy         checksum new files copy from old same files;\n"
            "        -C-no           no checksum;\n"
            "        -C-all          same as: -C-diff-old-new-copy;\n"
+#endif
+#if (_IS_NEED_VCDIFF)
+           "  -C-no or -C-new\n"
+           "      if diffFile is VCDIFF, then to close or open checksum, DEFAULT -C-new.\n"
+#endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory patch;\n"
            "      maxOpenFileNumber>=8, DEFAULT -n-24, the best limit value by different\n"
            "        operating system.\n"
-#endif
-#if (_IS_NEED_VCDIFF)
-           "  -C-no or -C-new\n"
-           "      if diffFile is VCDIFF, then to close or open checksum.\n"
 #endif
            "  -f  Force overwrite, ignore write path already exists;\n"
            "      DEFAULT (no -f) not overwrite and then return error;\n"
