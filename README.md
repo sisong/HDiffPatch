@@ -189,17 +189,17 @@ memory options:
       requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires
         (cacheSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
-      if diffFile is created by hdiffz -BSD,bsdiff, hdiffz -VCD,xdelta,open-vcdiff, then requires
+      if diffFile is created by hdiffz -BSD,bsdiff4, hdiffz -VCD,xdelta3,open-vcdiff, then requires
         (cacheSize + 3*decompress buffer size)+O(1) bytes of memory;
       if diffFile is VCDIFF: if created by hdiffz -VCD, then recommended patch by -s;
-          if created by xdelta,open-vcdiff, then recommended patch by -m.
+          if created by xdelta3,open-vcdiff, then recommended patch by -m.
   -m  oldPath all loaded into Memory;
       requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires
         (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory.
-      if diffFile is created by hdiffz -BSD,bsdiff, then requires
+      if diffFile is created by hdiffz -BSD,bsdiff4, then requires
         (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.
-      if diffFile is VCDIFF(created by hdiffz -VCD,xdelta,open-vcdiff), then requires
+      if diffFile is VCDIFF(created by hdiffz -VCD,xdelta3,open-vcdiff), then requires
         (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.
 special options:
   -C-checksumSets

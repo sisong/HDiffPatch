@@ -130,7 +130,7 @@
       需要的内存大小: (cacheSize + 4*解压缩缓冲区)+O(1)
       而如果diffFile是单压缩流的补丁文件(用hdiffz -SD-stepSize所创建)
         那需要的内存大小: (cacheSize+ stepSize + 1*解压缩缓冲区)+O(1);
-      如果diffFile是用hdiffz -BSD、bsdiff、hdiffz -VCD、xdelta、open-vcdiff所创建
+      如果diffFile是用hdiffz -BSD、bsdiff4、hdiffz -VCD、xdelta3、open-vcdiff所创建
         那需要的内存大小: (cacheSize + 3*解压缩缓冲区);
       如果diffFile是VCDIFF格式补丁文件： 如果是用hdiffz -VCD创建，那推荐用-s模式；
         如果是xdelta、open-vcdiff所创建，那推荐用-m模式。
@@ -138,9 +138,9 @@
       需要的内存大小: (oldFileSize + 4*解压缩缓冲区)+O(1)
       而如果diffFile是单压缩流的补丁文件(用hdiffz -SD-stepSize所创建)
         那需要的内存大小: (oldFileSize+ stepSize + 1*解压缩缓冲区)+O(1);
-      如果diffFile是用hdiffz -BSD、bsdiff所创建
+      如果diffFile是用hdiffz -BSD、bsdiff4所创建
         那需要的内存大小: (oldFileSize + 3*解压缩缓冲区);
-      如果diffFile是VCDIFF格式补丁文件(用hdiffz -VCD、xdelta、open-vcdiff所创建)
+      如果diffFile是VCDIFF格式补丁文件(用hdiffz -VCD、xdelta3、open-vcdiff所创建)
         那需要的内存大小: (源窗口大小+目标窗口大小 + 3*解压缩缓冲区);
 其他选项:
   -C-checksumSets

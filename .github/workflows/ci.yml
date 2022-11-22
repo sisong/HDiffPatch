@@ -57,11 +57,8 @@ jobs:
           xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hpatchz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin
           xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme unitTest -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin
 
-  ndk-build:
-    strategy:
-      matrix:
-        platform: [macos-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
+  macos-ndk-build:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - uses: nttld/setup-ndk@v1.0.6
@@ -72,6 +69,20 @@ jobs:
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           cd ./builds/android_ndk_jni_mk
           ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
+
+  windows-ndk-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: nttld/setup-ndk@v1.0.6
+        with:
+          ndk-version: r16b
+      - name: buildByAndroidNDK
+        run: |
+          git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
+          git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
+          cd ./builds/android_ndk_jni_mk
+          ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk BSD=1 VCD=1 BZIP2=1
 
   ubuntu-ndk-build:
     runs-on: ubuntu-latest
@@ -84,9 +95,10 @@ jobs:
         run: |
           sudo apt install libncurses5
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
+          git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
           git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
           cd ./builds/android_ndk_jni_mk
-          ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk ZSTD=1
+          ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk BSD=1 VCD=1 BZIP2=1 ZSTD=1
 
   vc-build:
     runs-on: windows-latest

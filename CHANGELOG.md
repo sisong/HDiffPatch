@@ -5,7 +5,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 ## [v4.5.0](https://github.com/sisong/HDiffPatch/tree/v4.5.0) - 2022-11-23
 ### Added
 * cmdline added option "-VCD[-compressLevel[-dictSize]]", create diffFile compatible with VCDIFF format;
-* cmdline hpatchz support apply VCDIFF format diffFile, created by hdiffz -VCD,xdelta,open-vcdiff;
+* cmdline hpatchz support apply VCDIFF format diffFile, created by hdiffz -VCD,xdelta3,open-vcdiff;
 * add function create_vcdiff(),create_vcdiff_stream(), vcpatch_with_cache();
 * cmdline option "-BSD" support run with -s (before only supported -m), to fast create diffFile compatible with bsdiff4;
 * add function create_bsdiff_stream(), same as create_bsdiff(), but can control memory requires and run speed by different kMatchBlockSize value;

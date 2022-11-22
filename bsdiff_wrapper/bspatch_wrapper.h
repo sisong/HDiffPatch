@@ -47,7 +47,7 @@ hpatch_BOOL getBsDiffInfo_mem(hpatch_BsDiffInfo* out_diffinfo,const unsigned cha
 
 hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
                                const hpatch_TStreamInput*  oldData,
-                               const hpatch_TStreamInput*  compressedDiff, //create by bsdiff or hdiffz -BSD
+                               const hpatch_TStreamInput*  compressedDiff, //create by bsdiff4 or hdiffz -BSD
                                hpatch_TDecompress* decompressPlugin, // ==&_bz2DecompressPlugin_unsz in "decompress_plugin_demo.h"
                                unsigned char* temp_cache,unsigned char* temp_cache_end);
 

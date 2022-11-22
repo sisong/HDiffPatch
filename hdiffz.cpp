@@ -87,7 +87,7 @@
 #   include "bsdiff_wrapper/bsdiff_wrapper.h"
 #   include "bsdiff_wrapper/bspatch_wrapper.h"
 #   ifndef _CompressPlugin_bz2
-#       define _CompressPlugin_bz2  //bsdiff need bz2
+#       define _CompressPlugin_bz2  //bsdiff4 need bz2
 #   endif
 #endif
 #if (_IS_NEED_VCDIFF)
@@ -1017,7 +1017,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     if (diffSets.isBsDiff){
         _options_check(!diffSets.isSingleCompressedDiff,"-SD -BSD -VCD can only set one");        
         if (compressPlugin!=0){
-            _options_check(0==strcmp(compressPlugin->compressType(),"bz2"),"bsdiff must run with -c-bz2");
+            _options_check(0==strcmp(compressPlugin->compressType(),"bz2"),"bsdiff4 must run with -c-bz2");
         }else{
             static TCompressPlugin_bz2 _bz2CompressPlugin=bz2CompressPlugin;
             compressPlugin=&_bz2CompressPlugin.base;
@@ -1141,7 +1141,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (isUseDirDiff){
 #if (_IS_NEED_BSDIFF)
-            _options_check(!diffSets.isBsDiff,"bsdiff unsupport dir diff");
+            _options_check(!diffSets.isBsDiff,"bsdiff4 unsupport dir diff");
 #endif
 #if (_IS_NEED_VCDIFF)
             _options_check(!diffSets.isVcDiff,"VCDIFF unsupport dir diff");
@@ -1427,7 +1427,7 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
                 *saved_decompressPlugin=_bz2DecompressPlugin_unsz;
                 isBsDiff=hpatch_TRUE;
                 if (!diffSets.isDoDiff)
-                    printf("test bsdiff's diffData!\n");
+                    printf("test bsdiff4's diffData!\n");
 #endif
 #if (_IS_NEED_VCDIFF)
             }else if (getVcDiffInfo_mem(&vcdiffInfo,diffMem.data(),diffMem.data_end(),hpatch_FALSE)){
@@ -1570,7 +1570,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
                 *saved_decompressPlugin=_bz2DecompressPlugin_unsz;
                 isBsDiff=hpatch_TRUE;
                 if (!diffSets.isDoDiff)
-                    printf("test bsdiff's diffData!\n");
+                    printf("test bsdiff4's diffData!\n");
 #endif
 #if (_IS_NEED_VCDIFF)
             }else if (getVcDiffInfo(&vcdiffInfo,&diffData_in.base,hpatch_FALSE)){
@@ -1632,7 +1632,7 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
             printf("create single compressed diffData!\n");
 #if (_IS_NEED_BSDIFF)
         if (diffSets.isBsDiff)
-            printf("create bsdiff diffData!\n");
+            printf("create bsdiff4 diffData!\n");
 #endif
 #if (_IS_NEED_VCDIFF)
         if (diffSets.isVcDiff)

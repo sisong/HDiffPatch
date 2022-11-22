@@ -34,9 +34,9 @@ extern "C" {
 
 typedef enum{
     kVcDiff_compressorID_no   = 0,   // no compress
-    //kVcDiff_compressorID_djw  = 1, // now unspport, used by $xdelta -S djw ...
-    kVcDiff_compressorID_7zXZ = 2,   // compress by 7zXZ, compatible with $xdelta -S lzma ...
-    //kVcDiff_compressorID_fgk  =16, // now unspport, used by $xdelta -S fgk ...
+    //kVcDiff_compressorID_djw  = 1, // now unspport, used by $xdelta3 -S djw ...
+    kVcDiff_compressorID_7zXZ = 2,   // compress by 7zXZ, compatible with $xdelta3 -S lzma ...
+    //kVcDiff_compressorID_fgk  =16, // now unspport, used by $xdelta3 -S fgk ...
 } vcdiff_compressType;
 
 typedef struct hpatch_VcDiffInfo{
@@ -62,7 +62,7 @@ hpatch_BOOL getVcDiffInfo_mem(hpatch_VcDiffInfo* out_diffinfo,const hpatch_byte*
 
 hpatch_BOOL vcpatch_with_cache(const hpatch_TStreamOutput* out_newData,
                                const hpatch_TStreamInput*  oldData,
-                               const hpatch_TStreamInput*  diffStream, //create by vcdiff or hdiffz -VCD
+                               const hpatch_TStreamInput*  diffStream, //create by open-vcdiff or xdelta3(-S,-S lzma) or hdiffz -VCD
                                hpatch_TDecompress* decompressPlugin,hpatch_BOOL isNeedChecksum,
                                hpatch_byte* temp_cache,hpatch_byte* temp_cache_end);
 
