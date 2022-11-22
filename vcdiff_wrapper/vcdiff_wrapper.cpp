@@ -395,13 +395,13 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
     TVcCompress compressList[3];
     compressList[0].compressPlugin=compressPlugin; 
     compressList[1].compressPlugin=compressPlugin; 
-    compressList[2].compressPlugin=compressPlugin;
+    compressList[2].compressPlugin=compressPlugin;        
+    hpatch_StreamPos_t srcPos,srcEnd;
+    _getSrcWindow(covers,0,covers.coverCount(),&srcPos,&srcEnd);
     while (targetPos<targetPosEnd){
         size_t coveriEnd;
         const hpatch_StreamPos_t targetLen=_getTargetWindow(targetPos,targetPosEnd,covers,coveri,&coveriEnd,kMaxTargetWindowsSize);
-        hpatch_StreamPos_t srcPos,srcEnd;
-        {
-            _getSrcWindow(covers,coveri,coveriEnd,&srcPos,&srcEnd);
+        {//used same one lagre srcWindowSize
             if (srcPos<srcEnd){
                 buf.push_back(VCD_SOURCE); //Win_Indicator
                 packUInt(buf,(hpatch_StreamPos_t)(srcEnd-srcPos));
