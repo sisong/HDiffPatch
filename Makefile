@@ -272,7 +272,7 @@ else
   DEF_FLAGS += -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 -I$(LZMA_PATH)
   ifeq ($(VCD),0)
   else
-    DEF_FLAGS += -D_CompressPlugin_7zXZ
+    DEF_FLAGS += -D_CompressPlugin_7zXZ -DUSE_CRC_EMU
   endif
   ifeq ($(ARM64ASM),0)
   else
