@@ -31,7 +31,7 @@ Alternatively, get the optional library headers (+bzip2 library) and build compl
 if need lzma zstd md5 support, Try:    
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
-$ git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+$ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
 $ make
 ```    
@@ -41,7 +41,7 @@ Tip: You can use `$ make -j` to compile in parallel
 Before you build `builds/vc/HDiffPatch.sln` with [`Visual Studio`](https://visualstudio.microsoft.com), first get the libraries into sibling folders, like so: 
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
-$ git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+$ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
 $ git clone https://github.com/sisong/bzip2.git  ../bzip2
@@ -296,6 +296,7 @@ case list:
 **test Program**:   
 **xdelta** diff with `-e -n -f -s {old} {new} {pat}`   
 **xdelta** patch with `-d -f -s {old} {pat} {new}`   
+add **hpatchz**4.5 test: `hpatchz -m -f {old} {xdelta3-pat} {new}`   
 **xdelta -B** diff with `-B {oldSize} -e -n -f -s {old} {new} {pat}`   
 **xdelta -B** patch with `-B {oldSize} -d -f -s {old} {pat} {new}`   
 **bsdiff** diff with `{old} {new} {pat}`   
@@ -316,7 +317,9 @@ case list:
 |bzip2|31.76%|
 |lzma2|28.47%|
 |xdelta3|12.18%|212M|6.9MB/s|84M|98M|54MB/s|
+|xdelta3+hpatchz|12.18%|212M|6.9MB/s|58M|81M|167MB/s|
 |xdelta3 -B|7.35%|442M|19.5MB/s|197M|534M|174MB/s|
+|xdelta3 -B+hpatchz|7.35%|442M|19.5MB/s|154M|518M|423MB/s|
 |bsdiff|6.63%|1263M|2.3MB/s|298M|1043M|120MB/s|
 |hdiffz -BSD|5.67%|596M|15.8MB/s|12M|14M|131MB/s|
 |hdiffz bzip2|5.77%|596M|17.4MB/s|7M|7M|208MB/s|
@@ -379,7 +382,9 @@ case list:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|arm Kirin980 speed|
 |:----|----:|----:|----:|----:|----:|----:|----:|
 |xdelta3|59.92%|228M|2.9MB/s|100M|100M|159MB/s|
+|xdelta3+hpatchz|59.92%|228M|2.9MB/s|72M|84M|456MB/s|
 |xdelta3 -B|59.51%|440M|3.1MB/s|206M|548M|157MB/s|
+|xdelta3 -B+hpatchz|59.51%|440M|3.1MB/s|129M|384M|400MB/s|
 |bsdiff|59.76%|1035M|1.0MB/s|243M|751M|42MB/s|
 |hdiffz -BSD|59.50%|523M|5.4MB/s|13M|14M|44MB/s|
 |hdiffz bzip2|59.51%|523M|5.5MB/s|7M|9M|57MB/s|
