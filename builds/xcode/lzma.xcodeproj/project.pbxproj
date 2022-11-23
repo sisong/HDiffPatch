@@ -7,6 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0DA2A8D82910E6D4000E86E1 /* Bra86.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8CC2910E6D4000E86E1 /* Bra86.c */; };
+		0DA2A8D92910E6D4000E86E1 /* 7zCrc.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8CD2910E6D4000E86E1 /* 7zCrc.c */; };
+		0DA2A8DA2910E6D4000E86E1 /* XzCrc64.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8CE2910E6D4000E86E1 /* XzCrc64.c */; };
+		0DA2A8DB2910E6D4000E86E1 /* XzEnc.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8CF2910E6D4000E86E1 /* XzEnc.c */; };
+		0DA2A8DC2910E6D4000E86E1 /* 7zCrcOpt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8D02910E6D4000E86E1 /* 7zCrcOpt.c */; };
+		0DA2A8DD2910E6D4000E86E1 /* Sha256Opt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8D12910E6D4000E86E1 /* Sha256Opt.c */; };
+		0DA2A8DE2910E6D4000E86E1 /* Xz.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8D22910E6D4000E86E1 /* Xz.c */; };
+		0DA2A8DF2910E6D4000E86E1 /* BraIA64.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8D32910E6D4000E86E1 /* BraIA64.c */; };
+		0DA2A8E02910E6D4000E86E1 /* Bra.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8D42910E6D4000E86E1 /* Bra.c */; };
+		0DA2A8E12910E6D4000E86E1 /* XzCrc64Opt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8D52910E6D4000E86E1 /* XzCrc64Opt.c */; };
+		0DA2A8E22910E6D4000E86E1 /* XzDec.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8D62910E6D4000E86E1 /* XzDec.c */; };
+		0DA2A8E32910E6D4000E86E1 /* Sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8D72910E6D4000E86E1 /* Sha256.c */; };
+		0DA2A8E7292B985C000E86E1 /* Delta.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8E6292B985C000E86E1 /* Delta.c */; };
 		0DF53939275C5CBC00FEC71C /* CpuArch.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DF53938275C5CBC00FEC71C /* CpuArch.c */; };
 		0DF5393B275C5CF800FEC71C /* LzFindOpt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DF5393A275C5CF800FEC71C /* LzFindOpt.c */; };
 		0DF5393D275C5D3400FEC71C /* Threads.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DF5393C275C5D3400FEC71C /* Threads.c */; };
@@ -37,6 +50,19 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0DA2A8CC2910E6D4000E86E1 /* Bra86.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Bra86.c; path = ../../../lzma/C/Bra86.c; sourceTree = "<group>"; };
+		0DA2A8CD2910E6D4000E86E1 /* 7zCrc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = 7zCrc.c; path = ../../../lzma/C/7zCrc.c; sourceTree = "<group>"; };
+		0DA2A8CE2910E6D4000E86E1 /* XzCrc64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = XzCrc64.c; path = ../../../lzma/C/XzCrc64.c; sourceTree = "<group>"; };
+		0DA2A8CF2910E6D4000E86E1 /* XzEnc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = XzEnc.c; path = ../../../lzma/C/XzEnc.c; sourceTree = "<group>"; };
+		0DA2A8D02910E6D4000E86E1 /* 7zCrcOpt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = 7zCrcOpt.c; path = ../../../lzma/C/7zCrcOpt.c; sourceTree = "<group>"; };
+		0DA2A8D12910E6D4000E86E1 /* Sha256Opt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Sha256Opt.c; path = ../../../lzma/C/Sha256Opt.c; sourceTree = "<group>"; };
+		0DA2A8D22910E6D4000E86E1 /* Xz.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Xz.c; path = ../../../lzma/C/Xz.c; sourceTree = "<group>"; };
+		0DA2A8D32910E6D4000E86E1 /* BraIA64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = BraIA64.c; path = ../../../lzma/C/BraIA64.c; sourceTree = "<group>"; };
+		0DA2A8D42910E6D4000E86E1 /* Bra.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Bra.c; path = ../../../lzma/C/Bra.c; sourceTree = "<group>"; };
+		0DA2A8D52910E6D4000E86E1 /* XzCrc64Opt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = XzCrc64Opt.c; path = ../../../lzma/C/XzCrc64Opt.c; sourceTree = "<group>"; };
+		0DA2A8D62910E6D4000E86E1 /* XzDec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = XzDec.c; path = ../../../lzma/C/XzDec.c; sourceTree = "<group>"; };
+		0DA2A8D72910E6D4000E86E1 /* Sha256.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Sha256.c; path = ../../../lzma/C/Sha256.c; sourceTree = "<group>"; };
+		0DA2A8E6292B985C000E86E1 /* Delta.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Delta.c; path = ../../../lzma/C/Delta.c; sourceTree = "<group>"; };
 		0DF53938275C5CBC00FEC71C /* CpuArch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = CpuArch.c; path = ../../../lzma/C/CpuArch.c; sourceTree = "<group>"; };
 		0DF5393A275C5CF800FEC71C /* LzFindOpt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LzFindOpt.c; path = ../../../lzma/C/LzFindOpt.c; sourceTree = "<group>"; };
 		0DF5393C275C5D3400FEC71C /* Threads.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Threads.c; path = ../../../lzma/C/Threads.c; sourceTree = "<group>"; };
@@ -81,6 +107,19 @@
 		D690ABC51F208EA80089DC57 = {
 			isa = PBXGroup;
 			children = (
+				0DA2A8E6292B985C000E86E1 /* Delta.c */,
+				0DA2A8CD2910E6D4000E86E1 /* 7zCrc.c */,
+				0DA2A8D02910E6D4000E86E1 /* 7zCrcOpt.c */,
+				0DA2A8D42910E6D4000E86E1 /* Bra.c */,
+				0DA2A8CC2910E6D4000E86E1 /* Bra86.c */,
+				0DA2A8D32910E6D4000E86E1 /* BraIA64.c */,
+				0DA2A8D72910E6D4000E86E1 /* Sha256.c */,
+				0DA2A8D12910E6D4000E86E1 /* Sha256Opt.c */,
+				0DA2A8D22910E6D4000E86E1 /* Xz.c */,
+				0DA2A8CE2910E6D4000E86E1 /* XzCrc64.c */,
+				0DA2A8D52910E6D4000E86E1 /* XzCrc64Opt.c */,
+				0DA2A8D62910E6D4000E86E1 /* XzDec.c */,
+				0DA2A8CF2910E6D4000E86E1 /* XzEnc.c */,
 				0DF53938275C5CBC00FEC71C /* CpuArch.c */,
 				0DF5393C275C5D3400FEC71C /* Threads.c */,
 				D65A4966220929A7001638A6 /* Threads.h */,
@@ -202,18 +241,31 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0DA2A8D92910E6D4000E86E1 /* 7zCrc.c in Sources */,
 				D65A497822092E06001638A6 /* MtCoder.c in Sources */,
 				D65A497122092DD9001638A6 /* Lzma2Enc.c in Sources */,
+				0DA2A8E12910E6D4000E86E1 /* XzCrc64Opt.c in Sources */,
+				0DA2A8E7292B985C000E86E1 /* Delta.c in Sources */,
 				D65B8E012090C84400DBBEEE /* LzmaDec.c in Sources */,
+				0DA2A8DD2910E6D4000E86E1 /* Sha256Opt.c in Sources */,
+				0DA2A8E22910E6D4000E86E1 /* XzDec.c in Sources */,
 				D65B8E002090C84400DBBEEE /* LzFind.c in Sources */,
+				0DA2A8DF2910E6D4000E86E1 /* BraIA64.c in Sources */,
 				0DF53939275C5CBC00FEC71C /* CpuArch.c in Sources */,
 				D65B8E022090C84400DBBEEE /* LzmaEnc.c in Sources */,
 				D65A497322092DD9001638A6 /* Lzma2Dec.c in Sources */,
 				0DF5393F275C5DAA00FEC71C /* Lzma2DecMt.c in Sources */,
+				0DA2A8E02910E6D4000E86E1 /* Bra.c in Sources */,
 				D65A497B22092E06001638A6 /* MtDec.c in Sources */,
+				0DA2A8DE2910E6D4000E86E1 /* Xz.c in Sources */,
 				D65A497E2209B3E7001638A6 /* Alloc.c in Sources */,
+				0DA2A8DC2910E6D4000E86E1 /* 7zCrcOpt.c in Sources */,
 				0DF5393D275C5D3400FEC71C /* Threads.c in Sources */,
+				0DA2A8D82910E6D4000E86E1 /* Bra86.c in Sources */,
 				0DF5393B275C5CF800FEC71C /* LzFindOpt.c in Sources */,
+				0DA2A8E32910E6D4000E86E1 /* Sha256.c in Sources */,
+				0DA2A8DA2910E6D4000E86E1 /* XzCrc64.c in Sources */,
+				0DA2A8DB2910E6D4000E86E1 /* XzEnc.c in Sources */,
 				D65A496322092987001638A6 /* LzFindMt.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

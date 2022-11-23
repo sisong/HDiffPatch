@@ -38,7 +38,15 @@
       创建单压缩流的补丁文件, 这样patch时就只需要一个解压缩缓冲区, 并且可以支持边下载边patch;
       压缩步长stepSize>=(1024*4), 默认为256k, 推荐64k,2m等。
   -BSD
-      创建一个和bsdiff兼容的补丁, 不支持参数为文件夹。
+      创建一个和bsdiff4兼容的补丁, 不支持参数为文件夹。
+  -VCD[-compressLevel[-dictSize]]
+      创建一个标准规范VCDIFF格式的补丁, 不支持参数为文件夹。
+      默认输出补丁不带压缩, 格式和 $open-vcdiff delta ... 或 $xdelta3 -S -e -n ... 命令输出的补丁格式兼容；
+      如果设置了压缩级别compressLevel, 那输出格式和 $xdelta3 -S lzma -e -n ...命令输出的补丁格式兼容；
+      压缩输出时补丁文件使用7zXZ(xz)算法压缩, compressLevel可以选择0到9, 默认级别7；
+      压缩字典大小dictSize可以设置为 4096, 4k, 4m, 16m等, 默认为8m
+      支持多线程并行压缩。
+      注意: 输出的补丁的格式中可能使用了巨大的源窗口大小!
   -p-parallelThreadNumber
       设置线程数parallelThreadNumber>1时,开启多线程并行模式;
       默认为4;需要占用较多的内存。
@@ -120,18 +128,20 @@
       默认选项,并且默认设置为-s-4m; oldPath所有文件被当作文件流来加载;
       cacheSize可以设置为262144 或 256k, 512m, 2g等
       需要的内存大小: (cacheSize + 4*解压缩缓冲区)+O(1)
-      而如果diffFile是单压缩流的补丁文件
+      而如果diffFile是单压缩流的补丁文件(用hdiffz -SD-stepSize所创建)
         那需要的内存大小: (cacheSize+ stepSize + 1*解压缩缓冲区)+O(1);
-        参见: hdiffz -SD-stepSize 选项。
-      如果diffFile是bsdiff补丁文件
+      如果diffFile是用hdiffz -BSD、bsdiff4、hdiffz -VCD、xdelta3、open-vcdiff所创建
         那需要的内存大小: (cacheSize + 3*解压缩缓冲区);
-        参见: hdiffz -BSD 选项。
+      如果diffFile是VCDIFF格式补丁文件： 如果是用hdiffz -VCD创建，那推荐用-s模式；
+        如果是xdelta、open-vcdiff所创建，那推荐用-m模式。
   -m  oldPath所有文件数据被加载到内存中;
       需要的内存大小: (oldFileSize + 4*解压缩缓冲区)+O(1)
-      而如果diffFile是单压缩流的补丁文件
+      而如果diffFile是单压缩流的补丁文件(用hdiffz -SD-stepSize所创建)
         那需要的内存大小: (oldFileSize+ stepSize + 1*解压缩缓冲区)+O(1);
-      如果diffFile是bsdiff补丁文件
+      如果diffFile是用hdiffz -BSD、bsdiff4所创建
         那需要的内存大小: (oldFileSize + 3*解压缩缓冲区);
+      如果diffFile是VCDIFF格式补丁文件(用hdiffz -VCD、xdelta3、open-vcdiff所创建)
+        那需要的内存大小: (源窗口大小+目标窗口大小 + 3*解压缩缓冲区);
 其他选项:
   -C-checksumSets
       为文件夹patch设置校验方式, 默认设置为 -C-new-copy;
@@ -142,6 +152,8 @@
         -C-copy         校验从旧版本直接copy到新版本的文件;
         -C-no           不执行校验;
         -C-all          等价于: -C-diff-old-new-copy;
+  -C-no 或 -C-new
+      如果diffFile是VCDIFF格式补丁文件, 使用该选项可以关闭或打开校验，默认打开.
   -n-maxOpenFileNumber
       为文件夹间的-s模式patch设置最大允许同时打开的文件数;
       maxOpenFileNumber>=8, 默认为24; 合适的限制值可能不同系统下不同。

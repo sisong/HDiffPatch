@@ -124,7 +124,7 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_
         unpackToSize(&out_info->checksumByteSize,headClip);
         out_info->checksumOffset=_TStreamCacheClip_readPosOfSrcStream(headClip);
         if (out_isAppendContinue){
-            if (_TStreamCacheClip_streamSize(headClip) <= out_info->checksumByteSize*4){
+            if (_TStreamCacheClip_leaveSize(headClip) <= out_info->checksumByteSize*4){
                 *out_isAppendContinue=hpatch_TRUE;
                 return hpatch_TRUE; //need more diffData, not error
             }else{
@@ -395,7 +395,7 @@ hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decomp
            "TDirPatcher_loadDirData() readSamePairListTo");
     //read newExecuteList
     check(readIncListTo(&headStream,(size_t*)self->_newDir.newExecuteList,head->newExecuteCount,head->newPathCount));
-    check(_TStreamCacheClip_streamSize(&headStream)==self->dirDiffHead.privateReservedDataSize);
+    check(_TStreamCacheClip_leaveSize(&headStream)==self->dirDiffHead.privateReservedDataSize);
 clear:
     if (decompresser.decompressHandle){
         if (!decompressPlugin->close(decompressPlugin,decompresser.decompressHandle))

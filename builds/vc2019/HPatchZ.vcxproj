@@ -376,6 +376,7 @@
     <ClCompile Include="..\..\hpatchz.c" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\limit_mem_diff\adler_roll.c" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
+    <ClCompile Include="..\..\vcdiff_wrapper\vcpatch_wrapper.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\dirDiffPatch\file_for_dirPatch.h" />

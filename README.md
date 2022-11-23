@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.4.2-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.5.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -31,7 +31,7 @@ Alternatively, get the optional library headers (+bzip2 library) and build compl
 if need lzma zstd md5 support, Try:    
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
-$ git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+$ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
 $ make
 ```    
@@ -41,7 +41,7 @@ Tip: You can use `$ make -j` to compile in parallel
 Before you build `builds/vc/HDiffPatch.sln` with [`Visual Studio`](https://visualstudio.microsoft.com), first get the libraries into sibling folders, like so: 
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
-$ git clone -b fix-make-build https://github.com/sisong/lzma.git ../lzma
+$ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
 $ git clone https://github.com/sisong/bzip2.git  ../bzip2
@@ -95,7 +95,15 @@ special options:
       when patch, and support step by step patching when step by step downloading!
       stepSize>=(1024*4), DEFAULT -SD-256k, recommended 64k,2m etc...
   -BSD
-      create diffFile compatible with bsdiff, unsupport input directory(folder).
+      create diffFile compatible with bsdiff4, unsupport input directory(folder).
+  -VCD[-compressLevel[-dictSize]]
+      create diffFile compatible with VCDIFF, unsupport input directory(folder).
+      DEFAULT no compress, out format same as $open-vcdiff delta ... or $xdelta3 -S -e -n ...
+      if set compressLevel, out format same as $xdelta3 -S lzma -e -n ...
+      compress by 7zXZ(xz), compressLevel in {0..9}, DEFAULT level 7;
+      dictSize can like 4096 or 4k or 4m or 16m etc..., DEFAULT 8m
+      support compress by multi-thread parallel.
+      NOTE: out diffFile used large source window size!
   -p-parallelThreadNumber
       if parallelThreadNumber>1 then open multi-thread Parallel mode;
       DEFAULT -p-4; requires more memory!
@@ -179,18 +187,20 @@ memory options:
       DEFAULT -s-4m; oldPath loaded as Stream;
       cacheSize can like 262144 or 256k or 512m or 2g etc....
       requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.
-      if diffFile is single compressed diffData, then requires
+      if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires
         (cacheSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
-        see: hdiffz -SD-stepSize option.
-      if diffFile is bsdiff diffData, then requires
+      if diffFile is created by hdiffz -BSD,bsdiff4, hdiffz -VCD,xdelta3,open-vcdiff, then requires
         (cacheSize + 3*decompress buffer size)+O(1) bytes of memory;
-        see: hdiffz -BSD option.
+      if diffFile is VCDIFF: if created by hdiffz -VCD, then recommended patch by -s;
+          if created by xdelta3,open-vcdiff, then recommended patch by -m.
   -m  oldPath all loaded into Memory;
       requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory.
-      if diffFile is single compressed diffData, then requires
+      if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires
         (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory.
-      if diffFile is bsdiff diffData, then requires
+      if diffFile is created by hdiffz -BSD,bsdiff4, then requires
         (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.
+      if diffFile is VCDIFF(created by hdiffz -VCD,xdelta3,open-vcdiff), then requires
+        (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.
 special options:
   -C-checksumSets
       set Checksum data for directory patch, DEFAULT -C-new-copy;
@@ -201,6 +211,8 @@ special options:
         -C-copy         checksum new files copy from old same files;
         -C-no           no checksum;
         -C-all          same as: -C-diff-old-new-copy;
+  -C-no or -C-new
+      if diffFile is VCDIFF, then to close or open checksum, DEFAULT -C-new.
   -n-maxOpenFileNumber
       limit Number of open files at same time when stream directory patch;
       maxOpenFileNumber>=8, DEFAULT -n-24, the best limit value by different
@@ -259,7 +271,12 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
-   
+#### v4.5 API, vcdiff wrapper: 
+* **create_vcdiff()**
+* **create_vcdiff_stream()**
+* **vcpatch_with_cache()**
+* **create_bsdiff_stream()** for bsdiff
+
 ---
 ## HDiffPatch vs BsDiff & xdelta:
 case list:
@@ -279,6 +296,7 @@ case list:
 **test Program**:   
 **xdelta** diff with `-e -n -f -s {old} {new} {pat}`   
 **xdelta** patch with `-d -f -s {old} {pat} {new}`   
+add **hpatchz**4.5 test: `hpatchz -m -f {old} {xdelta3-pat} {new}`   
 **xdelta -B** diff with `-B {oldSize} -e -n -f -s {old} {new} {pat}`   
 **xdelta -B** patch with `-B {oldSize} -d -f -s {old} {pat} {new}`   
 **bsdiff** diff with `{old} {new} {pat}`   
@@ -299,7 +317,9 @@ case list:
 |bzip2|31.76%|
 |lzma2|28.47%|
 |xdelta3|12.18%|212M|6.9MB/s|84M|98M|54MB/s|
+|xdelta3+hpatchz|12.18%|212M|6.9MB/s|58M|81M|167MB/s|
 |xdelta3 -B|7.35%|442M|19.5MB/s|197M|534M|174MB/s|
+|xdelta3 -B+hpatchz|7.35%|442M|19.5MB/s|154M|518M|423MB/s|
 |bsdiff|6.63%|1263M|2.3MB/s|298M|1043M|120MB/s|
 |hdiffz -BSD|5.67%|596M|15.8MB/s|12M|14M|131MB/s|
 |hdiffz bzip2|5.77%|596M|17.4MB/s|7M|7M|208MB/s|
@@ -362,7 +382,9 @@ case list:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|arm Kirin980 speed|
 |:----|----:|----:|----:|----:|----:|----:|----:|
 |xdelta3|59.92%|228M|2.9MB/s|100M|100M|159MB/s|
+|xdelta3+hpatchz|59.92%|228M|2.9MB/s|72M|84M|456MB/s|
 |xdelta3 -B|59.51%|440M|3.1MB/s|206M|548M|157MB/s|
+|xdelta3 -B+hpatchz|59.51%|440M|3.1MB/s|129M|384M|400MB/s|
 |bsdiff|59.76%|1035M|1.0MB/s|243M|751M|42MB/s|
 |hdiffz -BSD|59.50%|523M|5.4MB/s|13M|14M|44MB/s|
 |hdiffz bzip2|59.51%|523M|5.5MB/s|7M|9M|57MB/s|

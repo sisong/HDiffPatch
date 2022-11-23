@@ -85,6 +85,17 @@ hpatch_BOOL getBsDiffInfo_mem(hpatch_BsDiffInfo* out_diffinfo,const unsigned cha
     return getBsDiffInfo(out_diffinfo,&diffStream);
 }
 
+hpatch_BOOL getIsBsDiff(const hpatch_TStreamInput* diffData){
+    hpatch_BsDiffInfo diffinfo;
+    return getBsDiffInfo(&diffinfo,diffData);
+}
+
+hpatch_BOOL getIsBsDiff_mem(const unsigned char* diffData,const unsigned char* diffData_end){
+    hpatch_TStreamInput diffStream;
+    mem_as_hStreamInput(&diffStream,diffData,diffData_end);
+    return getIsBsDiff(&diffStream);
+}
+
 static hpatch_BOOL _patch_add_old_with_sub(_TOutStreamCache* outCache,TStreamCacheClip* subClip,
                                            const hpatch_TStreamInput* old,hpatch_uint64_t oldPos,
                                            hpatch_uint64_t addLength,unsigned char* aCache,hpatch_size_t aCacheSize){
@@ -101,18 +112,16 @@ static hpatch_BOOL _patch_add_old_with_sub(_TOutStreamCache* outCache,TStreamCac
     return hpatch_TRUE;
 }
 
-hpatch_BOOL bspatchByClip(const hpatch_TStreamOutput* out_newData,const hpatch_TStreamInput* oldData,
+hpatch_BOOL bspatchByClip(_TOutStreamCache* outCache,const hpatch_TStreamInput* oldData,
                           TStreamCacheClip* ctrlClip,TStreamCacheClip* subClip,TStreamCacheClip* newDataDiffClip,
                           unsigned char* temp_cache,hpatch_size_t cache_size){
-    const hpatch_uint64_t newDataSize=out_newData->streamSize;
+    const hpatch_uint64_t newDataSize=_TOutStreamCache_leaveSize(outCache);
 #ifdef __RUN_MEM_SAFE_CHECK
     const hpatch_uint64_t oldDataSize=oldData->streamSize;
 #endif
-    _TOutStreamCache    outCache;
     hpatch_uint64_t     newPosBack=0;
     hpatch_uint64_t     oldPosBack=0;
     assert(cache_size>=8);
-    _TOutStreamCache_init(&outCache,out_newData,temp_cache+cache_size,cache_size);
     
     while (newPosBack<newDataSize){
         hpatch_uint64_t coverLen;
@@ -130,7 +139,7 @@ hpatch_BOOL bspatchByClip(const hpatch_TStreamOutput* out_newData,const hpatch_T
         if (oldPosBack>oldDataSize) return _hpatch_FALSE;
         if (coverLen>(hpatch_uint64_t)(oldDataSize-oldPosBack)) return _hpatch_FALSE;
 #endif
-        if (!_patch_add_old_with_sub(&outCache,subClip,oldData,oldPosBack,coverLen,
+        if (!_patch_add_old_with_sub(outCache,subClip,oldData,oldPosBack,coverLen,
                                      temp_cache,cache_size)) return _hpatch_FALSE;
         oldPosBack+=coverLen+skipOldLen;
         newPosBack+=coverLen;
@@ -138,14 +147,14 @@ hpatch_BOOL bspatchByClip(const hpatch_TStreamOutput* out_newData,const hpatch_T
 #ifdef __RUN_MEM_SAFE_CHECK
             if (skipNewLen>(hpatch_uint64_t)(newDataSize-newPosBack)) return _hpatch_FALSE;
 #endif
-            if (!_patch_copy_diff_by_outCache(&outCache,newDataDiffClip,skipNewLen)) return _hpatch_FALSE;
+            if (!_TOutStreamCache_copyFromClip(outCache,newDataDiffClip,skipNewLen)) return _hpatch_FALSE;
             newPosBack+=skipNewLen;
         }
     }
 
-    if (!_TOutStreamCache_flush(&outCache))
+    if (!_TOutStreamCache_flush(outCache))
         return _hpatch_FALSE;
-    if (_TOutStreamCache_isFinish(&outCache)
+    if (_TOutStreamCache_isFinish(outCache)
         && (newPosBack==newDataSize) )
         return hpatch_TRUE;
     else
@@ -171,8 +180,8 @@ hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
     hpatch_size_t           i;
     hpatch_BOOL  result=hpatch_TRUE;
     hpatch_StreamPos_t  diffPos0;
-    const hpatch_size_t cacheSize=(temp_cache_end-temp_cache)/_kCacheBsDecCount;
-    if (cacheSize<8) return _hpatch_FALSE;
+    hpatch_TStreamInput  _oldDataCache;
+    hpatch_size_t cacheSize;
     assert(decompressPlugin!=0);
     assert(out_newData!=0);
     assert(out_newData->write!=0);
@@ -187,20 +196,41 @@ hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
     for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i)
         decompressers[i].decompressHandle=0;
 
+    cacheSize=(temp_cache_end-temp_cache);
+    if (cacheSize>=(oldData->streamSize+_kCacheBsDecCount*hpatch_kStreamCacheSize)){//can cache old?
+        cacheSize=(hpatch_size_t)oldData->streamSize;
+        if (!oldData->read(oldData,0,temp_cache,temp_cache+cacheSize))
+            return _hpatch_FALSE;
+        mem_as_hStreamInput(&_oldDataCache,temp_cache,temp_cache+cacheSize);
+        oldData=&_oldDataCache;
+        temp_cache+=cacheSize;
+        cacheSize=(temp_cache_end-temp_cache);
+    }
+    cacheSize=cacheSize/_kCacheBsDecCount;
+    if (cacheSize<8) return _hpatch_FALSE;
+
     diffPos0=diffInfo.headSize;
     if (!getStreamClip(&ctrlClip,&decompressers[0],
                        _kUnknowMaxSize,diffInfo.ctrlDataSize,compressedDiff,&diffPos0,
-                       decompressPlugin,temp_cache+cacheSize*0,cacheSize)) _clear_return(_hpatch_FALSE);
+                       decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE);
+    temp_cache+=cacheSize;
     if (!getStreamClip(&subClip,&decompressers[1],
                        _kUnknowMaxSize,diffInfo.subDataSize,compressedDiff,&diffPos0,
-                       decompressPlugin,temp_cache+cacheSize*1,cacheSize)) _clear_return(_hpatch_FALSE);
+                       decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE);
+    temp_cache+=cacheSize;
     if (!getStreamClip(&newDataDiffClip,&decompressers[2],
                        _kUnknowMaxSize,compressedDiff->streamSize-diffPos0,compressedDiff,&diffPos0,
-                       decompressPlugin,temp_cache+cacheSize*2,cacheSize)) _clear_return(_hpatch_FALSE);
+                       decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE);
+    temp_cache+=cacheSize;
     assert(diffPos0==compressedDiff->streamSize);
 
-    result=bspatchByClip(out_newData,oldData,&ctrlClip,&subClip,&newDataDiffClip,
-                         temp_cache+cacheSize*3,cacheSize);
+    {
+        _TOutStreamCache outCache;
+        _TOutStreamCache_init(&outCache,out_newData,temp_cache,cacheSize);
+        temp_cache+=cacheSize;
+        result=bspatchByClip(&outCache,oldData,&ctrlClip,&subClip,&newDataDiffClip,
+                            temp_cache,cacheSize);
+    }
 
 clear:
     for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i) {

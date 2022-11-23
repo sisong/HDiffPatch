@@ -35,9 +35,8 @@
 #include "_clock_for_demo.h"
 #include "_atosize.h"
 #include "file_for_patch.h"
-
-#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dirDiffPatch/dir_patch/dir_patch.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
 #include "hpatch_dir_listener.h"
 #endif
 
@@ -49,6 +48,9 @@
 #endif
 #ifndef _IS_NEED_BSDIFF
 #   define _IS_NEED_BSDIFF 1
+#endif
+#ifndef _IS_NEED_VCDIFF
+#   define _IS_NEED_VCDIFF 1
 #endif
 #ifndef _IS_NEED_SFX
 #   define _IS_NEED_SFX 1
@@ -68,6 +70,9 @@
 #   define _CompressPlugin_lzma
 #   define _CompressPlugin_lzma2
 #   define _CompressPlugin_zstd
+#if (_IS_NEED_VCDIFF)
+#   define _CompressPlugin_7zXZ
+#endif
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
@@ -80,8 +85,11 @@
 #if (_IS_NEED_BSDIFF)
 #   include "bsdiff_wrapper/bspatch_wrapper.h"
 #   ifndef _CompressPlugin_bz2
-#       define _CompressPlugin_bz2  //bsdiff need bz2
+#       define _CompressPlugin_bz2  //bsdiff4 need bz2
 #   endif
+#endif
+#if (_IS_NEED_VCDIFF)
+#   include "vcdiff_wrapper/vcpatch_wrapper.h"
 #endif
 
 #include "decompress_plugin_demo.h"
@@ -142,21 +150,34 @@ static void printUsage(){
            "      DEFAULT -s-4m; oldPath loaded as Stream;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc....\n"
            "      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.\n"
-           "      if diffFile is single compressed diffData, then requires\n"
+           "      if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires\n"
            "        (cacheSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;\n"
-           "        see: hdiffz -SD-stepSize option.\n"
+#if (_IS_NEED_BSDIFF||_IS_NEED_VCDIFF)
+           "      if diffFile is created by"
 #if (_IS_NEED_BSDIFF)
-           "      if diffFile is bsdiff diffData, then requires\n"
+           " hdiffz -BSD,bsdiff4,"
+#endif
+#if (_IS_NEED_VCDIFF)
+           " hdiffz -VCD,xdelta3,open-vcdiff,"
+#endif
+           " then requires\n"
            "        (cacheSize + 3*decompress buffer size)+O(1) bytes of memory;\n"
-           "        see: hdiffz -BSD option.\n"
+#endif
+#if (_IS_NEED_VCDIFF)
+           "      if diffFile is VCDIFF: if created by hdiffz -VCD, then recommended patch by -s;\n"
+           "          if created by xdelta3,open-vcdiff, then recommended patch by -m.\n"
 #endif
            "  -m  oldPath all loaded into Memory;\n"
            "      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory.\n"
-           "      if diffFile is single compressed diffData, then requires\n"
+           "      if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires\n"
            "        (oldFileSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory.\n"
 #if (_IS_NEED_BSDIFF)
-           "      if diffFile is bsdiff diffData, then requires\n"
+           "      if diffFile is created by hdiffz -BSD,bsdiff4, then requires\n"
            "        (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.\n"
+#endif
+#if (_IS_NEED_VCDIFF)
+           "      if diffFile is VCDIFF(created by hdiffz -VCD,xdelta3,open-vcdiff), then requires\n"
+           "        (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.\n"
 #endif
            "special options:\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -169,6 +190,12 @@ static void printUsage(){
            "        -C-copy         checksum new files copy from old same files;\n"
            "        -C-no           no checksum;\n"
            "        -C-all          same as: -C-diff-old-new-copy;\n"
+#endif
+#if (_IS_NEED_VCDIFF)
+           "  -C-no or -C-new\n"
+           "      if diffFile is VCDIFF, then to close or open checksum, DEFAULT -C-new.\n"
+#endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory patch;\n"
            "      maxOpenFileNumber>=8, DEFAULT -n-24, the best limit value by different\n"
@@ -221,6 +248,7 @@ typedef enum THPatchResult {
     HPATCH_RENAMEPATH_ERROR, // 15
     HPATCH_SPATCH_ERROR,
     HPATCH_BSPATCH_ERROR,
+    HPATCH_VCPATCH_ERROR,
 
     HPATCH_DECOMPRESSER_OPEN_ERROR=20,
     HPATCH_DECOMPRESSER_CLOSE_ERROR,
@@ -259,7 +287,7 @@ int hpatch_cmd_line(int argc, const char * argv[]);
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
-           hpatch_StreamPos_t diffDataSize);
+           hpatch_StreamPos_t diffDataSize,hpatch_BOOL vcpatch_isChecksum);
 #if (_IS_NEED_DIR_DIFF_PATCH)
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
@@ -287,31 +315,35 @@ int main(int argc, const char * argv[]){
 #   endif
 #endif
 
-#if (_IS_NEED_DIR_DIFF_PATCH)
+#if ((_IS_NEED_DIR_DIFF_PATCH)||(_IS_NEED_VCDIFF))
 static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checksumSet){
     while (hpatch_TRUE) {
         const char* pend=findUntilEnd(psets,'-');
         size_t len=(size_t)(pend-psets);
         if (len==0) return hpatch_FALSE; //error no set
-        if        ((len==4)&&(0==memcmp(psets,"diff",len))){
-            checksumSet->isCheck_dirDiffData=hpatch_TRUE;
-        }else  if ((len==3)&&(0==memcmp(psets,"old",len))){
-            checksumSet->isCheck_oldRefData=hpatch_TRUE;
-        }else  if ((len==3)&&(0==memcmp(psets,"new",len))){
+        if ((len==3)&&(0==memcmp(psets,"new",len))){
             checksumSet->isCheck_newRefData=hpatch_TRUE;
-        }else  if ((len==4)&&(0==memcmp(psets,"copy",len))){
-            checksumSet->isCheck_copyFileData=hpatch_TRUE;
-        }else  if ((len==3)&&(0==memcmp(psets,"all",len))){
+        }else if ((len==3)&&(0==memcmp(psets,"all",len))){
             checksumSet->isCheck_dirDiffData=hpatch_TRUE;
             checksumSet->isCheck_oldRefData=hpatch_TRUE;
             checksumSet->isCheck_newRefData=hpatch_TRUE;
             checksumSet->isCheck_copyFileData=hpatch_TRUE;
-        }else  if ((len==2)&&(0==memcmp(psets,"no",len))){
+        }else if ((len==2)&&(0==memcmp(psets,"no",len))){
             checksumSet->isCheck_dirDiffData=hpatch_FALSE;
             checksumSet->isCheck_oldRefData=hpatch_FALSE;
             checksumSet->isCheck_newRefData=hpatch_FALSE;
             checksumSet->isCheck_copyFileData=hpatch_FALSE;
-        }else{
+        }else
+#if (_IS_NEED_DIR_DIFF_PATCH)
+        if       ((len==4)&&(0==memcmp(psets,"diff",len))){
+            checksumSet->isCheck_dirDiffData=hpatch_TRUE;
+        }else if ((len==3)&&(0==memcmp(psets,"old",len))){
+            checksumSet->isCheck_oldRefData=hpatch_TRUE;
+        }else if ((len==4)&&(0==memcmp(psets,"copy",len))){
+            checksumSet->isCheck_copyFileData=hpatch_TRUE;
+        }else
+#endif
+        {
             return hpatch_FALSE;//error unknow set
         }
         if (*pend=='\0')
@@ -365,8 +397,11 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     size_t      patchCacheSize=0;
 #if (_IS_NEED_DIR_DIFF_PATCH)
     size_t      kMaxOpenFileNumber=_kNULL_SIZE; //only used in stream dir patch
+#endif
+#if ((_IS_NEED_DIR_DIFF_PATCH)||(_IS_NEED_VCDIFF))
     TDirPatchChecksumSet checksumSet={0,hpatch_FALSE,hpatch_TRUE,hpatch_TRUE,hpatch_FALSE}; //DEFAULT
 #endif
+    hpatch_BOOL vcpatch_isChecksum=hpatch_TRUE;
     #define kMax_arg_values_size 3
     const char* arg_values[kMax_arg_values_size]={0};
     int         arg_values_size=0;
@@ -437,13 +472,15 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 _options_check((isForceOverwrite==_kNULL_VALUE)&&(op[2]=='\0'),"-f");
                 isForceOverwrite=hpatch_TRUE;
             } break;
-#if (_IS_NEED_DIR_DIFF_PATCH)
+#if ((_IS_NEED_DIR_DIFF_PATCH)||(_IS_NEED_VCDIFF))
             case 'C':{
                 const char* psets=op+3;
                 _options_check((op[2]=='-'),"-C-?");
                 memset(&checksumSet,0,sizeof(checksumSet));//all set false
                 _options_check(_toChecksumSet(psets,&checksumSet),"-C-?");
             } break;
+#endif
+#if (_IS_NEED_DIR_DIFF_PATCH)
             case 'n':{
                 const char* pnum=op+3;
                 _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n");
@@ -501,6 +538,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_patch;
     if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_min;
+#endif
+#if (_IS_NEED_VCDIFF)
+    vcpatch_isChecksum=checksumSet.isCheck_newRefData;
 #endif
     
     if (isLoadOldAll==_kNULL_VALUE){
@@ -603,7 +643,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #endif
             {
                 return hpatch(oldPath,diffFileName,outNewPath,isLoadOldAll,
-                              patchCacheSize,diffDataOffert,diffDataSize);
+                              patchCacheSize,diffDataOffert,diffDataSize,vcpatch_isChecksum);
             }
         }else
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -632,7 +672,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #endif
             {
                 result=hpatch(oldPath,diffFileName,newTempName,isLoadOldAll,
-                              patchCacheSize,diffDataOffert,diffDataSize);
+                              patchCacheSize,diffDataOffert,diffDataSize,vcpatch_isChecksum);
             }
             if (result==HPATCH_SUCCESS){
                 _return_check(hpatch_removeFile(oldPath),
@@ -734,6 +774,39 @@ static const hpatch_TDecompress* __find_decompressPlugin(const char* compressTyp
     return 0;
 }
 
+
+#if (_IS_NEED_VCDIFF)
+static hpatch_BOOL getVcDiffDecompressPlugin(hpatch_TDecompress* out_decompressPlugin,
+                                             const hpatch_VcDiffInfo* vcdInfo,char* out_compressType){
+    const hpatch_TDecompress* decompressPlugin=0;
+
+    out_compressType[0]='\0';
+    memset(out_decompressPlugin,0,sizeof(*out_decompressPlugin));
+    switch (vcdInfo->compressorID){
+        case 0: return hpatch_TRUE;
+#ifdef _CompressPlugin_7zXZ
+        case kVcDiff_compressorID_7zXZ:{
+            static const char* _7zXZCompressType="7zXZ";
+            _init_CompressPlugin_7zXZ();
+            if (vcdInfo->isHDiffzAppHead_a)
+                decompressPlugin=&_7zXZDecompressPlugin_a;
+            else
+                decompressPlugin=&_7zXZDecompressPlugin;
+            memcpy(out_compressType,_7zXZCompressType,strlen(_7zXZCompressType)+1);
+        } break;
+#endif
+        default: return hpatch_FALSE; //now unsupport
+    }
+    if (strlen(out_compressType)>0)
+        printf("hpatchz run vcpatch with decompress plugin: \"%s\"\n",out_compressType);
+    if (decompressPlugin){
+        *out_decompressPlugin=*decompressPlugin;
+        out_decompressPlugin->decError=hpatch_dec_ok;
+    }
+    return hpatch_TRUE;
+}
+#endif
+
 static hpatch_BOOL getDecompressPlugin(const hpatch_compressedDiffInfo* diffInfo,
                                        hpatch_TDecompress* out_decompressPlugin){
     const hpatch_TDecompress* decompressPlugin=0;
@@ -823,10 +896,9 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
     return temp_cache;
 }
 
-
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
-           hpatch_StreamPos_t diffDataSize){
+           hpatch_StreamPos_t diffDataSize,hpatch_BOOL vcpatch_isChecksum){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
@@ -837,6 +909,10 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
 #if (_IS_NEED_BSDIFF)
     hpatch_BOOL isBsDiff=hpatch_FALSE;
     hpatch_BsDiffInfo    bsdiffInfo;
+#endif
+#if (_IS_NEED_VCDIFF)
+    hpatch_BOOL isVcDiff=hpatch_FALSE;
+    hpatch_VcDiffInfo    vcdiffInfo;
 #endif
     hpatch_TDecompress   _decompressPlugin={0};
     hpatch_TDecompress*  decompressPlugin=&_decompressPlugin;
@@ -885,9 +961,9 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
                 diffInfo.compressedCount=(sdiffInfo.compressType[0]!='\0')?1:0;
                 diffInfo.newDataSize=sdiffInfo.newDataSize;
                 diffInfo.oldDataSize=sdiffInfo.oldDataSize;
-                patchCacheSize+=(size_t)sdiffInfo.stepMemSize;
-                if (patchCacheSize<sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3)
-                    patchCacheSize=(size_t)sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3;
+                check(sdiffInfo.stepMemSize==(size_t)sdiffInfo.stepMemSize,HPATCH_MEM_ERROR,"stepMemSize too large");
+                if (patchCacheSize<hpatch_kStreamCacheSize*3)
+                    patchCacheSize=hpatch_kStreamCacheSize*3;
                 isSingleStreamDiff=hpatch_TRUE;
                 printf("patch single compressed diffData!\n");
             }else
@@ -902,7 +978,22 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
                 diffInfo.newDataSize=bsdiffInfo.newDataSize;
                 diffInfo.oldDataSize=poldData->streamSize; //not saved oldDataSize
                 isBsDiff=hpatch_TRUE;
-                printf("patch bsdiff diffData!\n");
+                printf("patch bsdiff4 diffData!\n");
+            }else
+#endif
+#if (_IS_NEED_VCDIFF)
+            if (getVcDiffInfo(&vcdiffInfo,&diffData.base,hpatch_TRUE)){
+                if (getVcDiffDecompressPlugin(decompressPlugin,&vcdiffInfo,diffInfo.compressType)){
+                    if (decompressPlugin->open) diffInfo.compressedCount=3;
+                    else diffInfo.compressedCount=0;
+                }else{
+                    LOG_ERR("can not decompress VCDIFF compressID \"%d\" data ERROR!\n",vcdiffInfo.compressorID);
+                    check_on_error(HPATCH_COMPRESSTYPE_ERROR);
+                }
+                diffInfo.newDataSize=vcdiffInfo.sumTargetWindowsSize;
+                diffInfo.oldDataSize=poldData->streamSize; //not saved oldDataSize
+                isVcDiff=hpatch_TRUE;
+                printf("patch VCDIFF diffData!\n");
             }else
 #endif
                 check(hpatch_FALSE,HPATCH_HDIFFINFO_ERROR,"is hdiff file? get diffInfo");
@@ -921,10 +1012,28 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     }
     check(hpatch_TFileStreamOutput_open(&newData, outNewFileName,savedNewSize),
           HPATCH_OPENWRITE_ERROR,"open out newFile for write");
+#if (_IS_NEED_VCDIFF)
+    if (isVcDiff)
+        hpatch_TFileStreamOutput_setRandomOut(&newData,hpatch_TRUE);
+#endif
     printf("oldDataSize : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
-           poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
-    
-    temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,0,poldData->streamSize, &temp_cache_size);
+            poldData->streamSize,diffData.base.streamSize,newData.base.streamSize);
+    {
+        hpatch_StreamPos_t maxWindowSize=poldData->streamSize;
+        hpatch_size_t      mustAppendMemSize=0;
+#if (_IS_NEED_VCDIFF)
+        if (isVcDiff){
+            hpatch_StreamPos_t maxSrcTargetSize=vcdiffInfo.maxSrcWindowsSize+vcdiffInfo.maxTargetWindowsSize;
+            maxWindowSize=((!vcdiffInfo.isHDiffzAppHead_a)&&(maxSrcTargetSize<=maxWindowSize+64*(1<<20)))?
+                    maxSrcTargetSize:vcdiffInfo.maxSrcWindowsSize;
+        }
+#endif
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+        if (isSingleStreamDiff)
+            mustAppendMemSize=(size_t)sdiffInfo.stepMemSize;
+#endif
+        temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,mustAppendMemSize,maxWindowSize, &temp_cache_size);
+    }
     check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory");
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
     if (isSingleStreamDiff){
@@ -941,6 +1050,13 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         if (!bspatch_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
                                 temp_cache,temp_cache+temp_cache_size))
             patch_result=HPATCH_BSPATCH_ERROR;
+    }else
+#endif
+#if (_IS_NEED_VCDIFF)
+    if (isVcDiff){
+        if (!vcpatch_with_cache(&newData.base,poldData,&diffData.base,decompressPlugin,
+                                vcpatch_isChecksum,temp_cache,temp_cache+temp_cache_size))
+            patch_result=HPATCH_VCPATCH_ERROR;
     }else
 #endif
     {

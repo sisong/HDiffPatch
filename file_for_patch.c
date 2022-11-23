@@ -391,8 +391,8 @@ hpatch_BOOL _import_fileReopenWrite(const char* fileName_utf8,hpatch_FileHandle*
 
 #define _ferr_return()          { _update_ferr(self->fileError);   return hpatch_FALSE; }
 #define _ferr_returnv(v)        { _update_ferrv(self->fileError,v); return hpatch_FALSE; }
-#define _rw_ferr_return()       { self->m_fpos=~(hpatch_StreamPos_t)0; _ferr_return(); }
-#define _rw_ferr_returnv(v)     { self->m_fpos=~(hpatch_StreamPos_t)0; _ferr_returnv(v); }
+#define _rw_ferr_return()       { self->m_fpos=hpatch_kNullStreamPos; _ferr_return(); }
+#define _rw_ferr_returnv(v)     { self->m_fpos=hpatch_kNullStreamPos; _ferr_returnv(v); }
 
     static hpatch_BOOL _TFileStreamInput_read_file(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                                                    TByte* out_data,TByte* out_data_end){
@@ -451,7 +451,7 @@ hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self){
             ||(writeToPos>self->base.streamSize-writeLen)) _ferr_returnv(EFBIG);
         if (self->is_in_readModel){
             self->is_in_readModel=hpatch_FALSE;
-            self->m_fpos=~(hpatch_StreamPos_t)0;
+            self->m_fpos=hpatch_kNullStreamPos;
         }
         if (writeToPos!=self->m_fpos){
             if (self->is_random_out){
@@ -476,7 +476,7 @@ hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self){
         if (!self->is_in_readModel){
             if (!hpatch_TFileStreamOutput_flush(self)) _rw_ferr_return();
             self->is_in_readModel=hpatch_TRUE;
-            self->m_fpos=~(hpatch_StreamPos_t)0;
+            self->m_fpos=hpatch_kNullStreamPos;
         }
         return _TFileStreamInput_read_file(in_stream,readFromPos,out_data,out_data_end);
     }

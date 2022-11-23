@@ -39,12 +39,15 @@ typedef struct hpatch_BsDiffInfo{
     hpatch_StreamPos_t  newDataSize;
 } hpatch_BsDiffInfo;
 
+hpatch_BOOL getIsBsDiff(const hpatch_TStreamInput* diffData);
+hpatch_BOOL getIsBsDiff_mem(const unsigned char* diffData,const unsigned char* diffData_end);
+
 hpatch_BOOL getBsDiffInfo(hpatch_BsDiffInfo* out_diffinfo,const hpatch_TStreamInput* diffStream);
 hpatch_BOOL getBsDiffInfo_mem(hpatch_BsDiffInfo* out_diffinfo,const unsigned char* diffData,const unsigned char* diffData_end);
 
 hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
                                const hpatch_TStreamInput*  oldData,
-                               const hpatch_TStreamInput*  compressedDiff, //create by bsdiff or hdiffz -BSD
+                               const hpatch_TStreamInput*  compressedDiff, //create by bsdiff4 or hdiffz -BSD
                                hpatch_TDecompress* decompressPlugin, // ==&_bz2DecompressPlugin_unsz in "decompress_plugin_demo.h"
                                unsigned char* temp_cache,unsigned char* temp_cache_end);
 

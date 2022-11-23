@@ -125,6 +125,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -141,6 +142,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -154,7 +156,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\lzma\C\7zCrc.c" />
+    <ClCompile Include="..\..\..\lzma\C\7zCrcOpt.c" />
+    <ClCompile Include="..\..\..\lzma\C\Bra.c" />
+    <ClCompile Include="..\..\..\lzma\C\Bra86.c" />
+    <ClCompile Include="..\..\..\lzma\C\BraIA64.c" />
     <ClCompile Include="..\..\..\lzma\C\CpuArch.c" />
+    <ClCompile Include="..\..\..\lzma\C\Delta.c" />
     <ClCompile Include="..\..\..\lzma\C\LzFindOpt.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -169,7 +177,14 @@
     <ClCompile Include="..\..\..\lzma\C\LzmaEnc.c" />
     <ClCompile Include="..\..\..\lzma\C\MtCoder.c" />
     <ClCompile Include="..\..\..\lzma\C\MtDec.c" />
+    <ClCompile Include="..\..\..\lzma\C\Sha256.c" />
+    <ClCompile Include="..\..\..\lzma\C\Sha256Opt.c" />
     <ClCompile Include="..\..\..\lzma\C\Threads.c" />
+    <ClCompile Include="..\..\..\lzma\C\Xz.c" />
+    <ClCompile Include="..\..\..\lzma\C\XzCrc64.c" />
+    <ClCompile Include="..\..\..\lzma\C\XzCrc64Opt.c" />
+    <ClCompile Include="..\..\..\lzma\C\XzDec.c" />
+    <ClCompile Include="..\..\..\lzma\C\XzEnc.c" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="..\..\..\lzma\Asm\x86\LzFindOpt.asm">

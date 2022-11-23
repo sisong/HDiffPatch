@@ -10,6 +10,7 @@
 		0D571A5C275CE9CE00672D57 /* libzstd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D571A5B275CE9CE00672D57 /* libzstd.a */; };
 		0D571A5D275CE9CE00672D57 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFE2077B9240039C38B /* liblzma.a */; };
 		0D571A62275CEAE900672D57 /* bspatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A61275CEAE900672D57 /* bspatch_wrapper.c */; };
+		0DA2A8E52910E70D000E86E1 /* vcpatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8E42910E70D000E86E1 /* vcpatch_wrapper.c */; };
 		D6241AE521DE47EC00E2846A /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AE321DE47EC00E2846A /* new_stream.c */; };
 		D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */ = {isa = PBXBuildFile; fileRef = D64B4BEE2077AAAA0039C38B /* hpatchz.c */; };
 		D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BF82077B9090039C38B /* libz.tbd */; };
@@ -39,6 +40,7 @@
 /* Begin PBXFileReference section */
 		0D571A5B275CE9CE00672D57 /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D571A61275CEAE900672D57 /* bspatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bspatch_wrapper.c; path = ../../bsdiff_wrapper/bspatch_wrapper.c; sourceTree = "<group>"; };
+		0DA2A8E42910E70D000E86E1 /* vcpatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vcpatch_wrapper.c; path = ../../vcdiff_wrapper/vcpatch_wrapper.c; sourceTree = "<group>"; };
 		D6241AE321DE47EC00E2846A /* new_stream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = new_stream.c; sourceTree = "<group>"; };
 		D6241AE421DE47EC00E2846A /* new_stream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = new_stream.h; sourceTree = "<group>"; };
 		D639ACD9208334A800811BB3 /* _atosize.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _atosize.h; path = ../../_atosize.h; sourceTree = "<group>"; };
@@ -107,6 +109,7 @@
 				D67D3BEF21D3C5870050632A /* dir_patch */,
 				D6BD9BC917578601004886DE /* HPatch */,
 				0D571A61275CEAE900672D57 /* bspatch_wrapper.c */,
+				0DA2A8E42910E70D000E86E1 /* vcpatch_wrapper.c */,
 				D64B4BF32077AB550039C38B /* decompress_plugin_demo.h */,
 				D6BAF6F521F2E34600C30C0A /* checksum_plugin_demo.h */,
 				D64B4BF22077AB550039C38B /* _clock_for_demo.h */,
@@ -235,6 +238,7 @@
 				D6BAF70321F2F61B00C30C0A /* adler_roll.c in Sources */,
 				D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */,
 				D6C9A9A623D03F4B00AC50F8 /* dir_patch_tools.c in Sources */,
+				0DA2A8E52910E70D000E86E1 /* vcpatch_wrapper.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
