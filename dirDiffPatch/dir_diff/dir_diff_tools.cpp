@@ -39,7 +39,7 @@ namespace hdiff_private{
     
     void CChecksum::append(const hpatch_TStreamInput* data,hpatch_StreamPos_t begin,hpatch_StreamPos_t end){
         if (!_handle) return;
-        TAutoMem buf(hpatch_kFileIOBufBetterSize);
+        TAutoMem buf(hdiff_kFileIOBufBestSize);
         while (begin<end){
             size_t len=buf.size();
             if (len>(end-begin))

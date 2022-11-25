@@ -54,7 +54,7 @@ namespace hdiff_private{
             streamImport=this;
             read=_read;
             streamSize=(covers.coverCount()-1)*(hpatch_StreamPos_t)(3*8);
-            buf.reserve(hpatch_kFileIOBufBetterSize);
+            buf.reserve(hdiff_kFileIOBufBestSize);
         }
     private:
         hpatch_StreamPos_t curPos;
@@ -65,7 +65,7 @@ namespace hdiff_private{
         void _updateBuf(){
             buf.clear();
             bufi=0;
-            while ((curi+1<covers.coverCount())&&((buf.size()+3*8)<=hpatch_kFileIOBufBetterSize)){
+            while ((curi+1<covers.coverCount())&&((buf.size()+3*8)<=hdiff_kFileIOBufBestSize)){
                 TCover c,cnext;
                 covers.covers(curi++,&c);
                 covers.covers(curi,&cnext);

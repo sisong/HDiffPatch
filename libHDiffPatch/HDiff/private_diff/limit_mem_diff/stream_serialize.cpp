@@ -32,7 +32,7 @@
 
 #define checki(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define check(value) checki(value,"check "#value" error!")
-#define kSubDiffCacheSize (hpatch_kFileIOBufBetterSize*4)
+#define kSubDiffCacheSize hdiff_kFileIOBufBestSize
 
 namespace hdiff_private{
 

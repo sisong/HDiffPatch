@@ -30,6 +30,7 @@
 #define HDiff_diff_types_h
 #include "../HPatch/patch_types.h"
 #include <utility> //std::pair
+#define hdiff_kFileIOBufBestSize (1024*512)
 namespace hdiff_private{
 
     template<class TCover>
