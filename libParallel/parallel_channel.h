@@ -43,13 +43,13 @@ struct CHLocker{
 #   include <mutex>
     struct CAutoLocker:public _TLockerBox_name {
         inline CAutoLocker(HLocker _locker)
-            :_TLockerBox_name(*(std::mutex*)_locker){ }
+            :_TLockerBox_name(){ if (_locker) { _TLockerBox_name _t(*(std::mutex*)_locker); _t.swap(*this); }  }
         inline ~CAutoLocker(){ }
     };
 #else
     struct CAutoLocker:public TLockerBox {
-        inline CAutoLocker(HLocker _locker){ locker=_locker; locker_enter(locker); }
-        inline ~CAutoLocker(){ locker_leave(locker); }
+        inline CAutoLocker(HLocker _locker){ locker=_locker; if (locker) locker_enter(locker); }
+        inline ~CAutoLocker(){ if (locker) locker_leave(locker); }
     };
 #endif
 
