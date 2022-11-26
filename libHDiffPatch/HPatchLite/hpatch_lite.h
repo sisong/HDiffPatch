@@ -15,8 +15,8 @@ extern "C" {
 //-----------------------------------------------------------------------------------------------------------------
 // hpatch_lite by stream: hpatch_lite_open()+hpatch_lite_patch() compiled by Mbed Studio is 662 bytes
 //   hdiffpatch v4.2.3, other patcher compiled by Mbed Studio:
-//      patch_single_stream() 2356 bytes (_IS_NEED_MIN_CODE_SIZE=1,hpatch_StreamPos_t=hpatch_uint32_t)
-//      patch_decompress_with_cache() 2846 bytes (_IS_NEED_CACHE_OLD_BY_COVERS=0,_IS_NEED_MIN_CODE_SIZE=1,hpatch_StreamPos_t=hpatch_uint32_t)
+//      patch_single_stream() 2356 bytes (hpatch_StreamPos_t=hpatch_uint32_t)
+//      patch_decompress_with_cache() 2846 bytes (_IS_NEED_CACHE_OLD_BY_COVERS=0,hpatch_StreamPos_t=hpatch_uint32_t)
 
 //diff_data must created by create_lite_diff()
 

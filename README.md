@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.5.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.5.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -9,11 +9,14 @@
 
 a C\C++ library and command-line tools for Diff & Patch between binary files or directories(folder); cross-platform; runs fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
    
-( NOTE: This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
-( if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite](https://github.com/sisong/HPatchLite) )   
-( update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )   
-( ApkDiffPath can't be used by Android app store, because it requires re-signing apks;   
-[sfpatcher](https://github.com/sisong/sfpatcher) (like [archive-patcher](https://github.com/google/archive-patcher)) not require re-signing apks, is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory. )   
+if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite](https://github.com/sisong/HPatchLite), + [tinyuz](https://github.com/sisong/tinyuz) can run on 1KB RAM devices!   
+
+update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch), to create smaller delta/differential! NOTE: *ApkDiffPath can't be used by Android app store, because it requires re-signing apks.*   
+
+[sfpatcher](https://github.com/sisong/sfpatcher) (like [archive-patcher](https://github.com/google/archive-patcher)) not require re-signing apks, is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
+
+   
+NOTE: *This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
    
 ---
 ## Releases/Binaries
@@ -25,7 +28,7 @@ a C\C++ library and command-line tools for Diff & Patch between binary files or 
 ### Linux or MacOS X ###
 Try:   
 `$ make LZMA=0 ZSTD=0 MD5=0`   
-if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again.   install bzip2: `$ apt-get install libbz2` or `$ sudo apt-get install libbz2-dev` or `$ yum -y install bzip2` or `$ brew install bzip2` ...   
+bzip2 : if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again.   install bzip2: `$ apt-get install libbz2` or `$ sudo apt-get install libbz2-dev` or `$ yum -y install bzip2` or `$ brew install bzip2` ...   
 Alternatively, get the optional library headers (+bzip2 library) and build completely: `$ git clone https://github.com/sisong/bzip2.git ../bzip2 && pushd ../bzip2 && make && sudo make install && popd`   
    
 if need lzma zstd md5 support, Try:    
@@ -35,10 +38,10 @@ $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
 $ make
 ```    
-Tip: You can use `$ make -j` to compile in parallel
+Tip: You can use `$ make -j` to compile in parallel.
    
 ### Windows ###
-Before you build `builds/vc/HDiffPatch.sln` with [`Visual Studio`](https://visualstudio.microsoft.com), first get the libraries into sibling folders, like so: 
+Before you build `builds/vc/HDiffPatch.sln` by [`Visual Studio`](https://visualstudio.microsoft.com), first get the libraries into sibling folders, like so: 
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
