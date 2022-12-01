@@ -92,7 +92,7 @@ void create_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                    const hpatch_TStreamOutput* out_diff,
                                    const hdiff_TCompress* compressPlugin=0,
                                    size_t kMatchBlockSize=kMatchBlockSize_default,
-                                   size_t threadNum=1);
+                                   const hdiff_TMTSets_s* mtsets=0);
 
 //return patch_decompress(oldData+diff)==newData?
 bool check_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
@@ -151,7 +151,7 @@ void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,
                                           const hdiff_TCompress* compressPlugin=0,
                                           size_t kMatchBlockSize=kMatchBlockSize_default,
                                           size_t patchStepMemSize=kDefaultPatchStepMemSize,
-                                          size_t threadNum=1);
+                                          const hdiff_TMTSets_s* mtsets=0);
 
 //return patch_single_?(oldData+diff)==newData?
 bool check_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
@@ -177,7 +177,7 @@ void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
 
 //same as create?compressed_diff_stream(), but not serialize diffData, only got covers
 void get_match_covers_by_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,size_t threadNum);
+                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,const hdiff_TMTSets_s* mtsets);
 void get_match_covers_by_block(const unsigned char* newData,const unsigned char* newData_end,
                                const unsigned char* oldData,const unsigned char* oldData_end,
                                hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,size_t threadNum);

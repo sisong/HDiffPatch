@@ -62,7 +62,7 @@ class TDigestMatcher{
 public:
     //throw std::runtime_error when data->read error or kMatchBlockSize error;
     TDigestMatcher(const hpatch_TStreamInput* oldData,const hpatch_TStreamInput* newData,
-                   size_t kMatchBlockSize,size_t threadNum);
+                   size_t kMatchBlockSize,const hdiff_TMTSets_s& mtsets);
     void search_cover(hpatch_TOutputCovers* out_covers);
     ~TDigestMatcher();
 private:
@@ -76,7 +76,7 @@ private:
     std::vector<uint32_t>       m_sorted_limit;
     std::vector<size_t>         m_sorted_larger;
     bool                        m_isUseLargeSorted;
-    const size_t                m_threadNum;
+    const hdiff_TMTSets_s       m_mtsets;
     TAutoMem                    m_mem;
     size_t                      m_newCacheSize;
     size_t                      m_oldCacheSize;

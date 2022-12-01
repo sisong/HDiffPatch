@@ -130,6 +130,14 @@ extern "C"
         hpatch_BOOL (*next_search_block_MT)(ICoverLinesListener* listener,hdiff_TRange* out_newRange);//must thread safe
     };
 
+    struct hdiff_TMTSets_s{ // used by $hdiff -s
+        size_t threadNum;
+        size_t threadNumForSearch; // NOTE: muti-thread search need frequent random disk read
+        bool   newDataIsMTSafe;
+        bool   oldDataIsMTSafe;
+    };
+
+    static const hdiff_TMTSets_s hdiff_TMTSets_s_kEmpty={1,1,false,false};
     
 #ifdef __cplusplus
 }

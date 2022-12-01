@@ -67,7 +67,7 @@ void create_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput*
 // create diffFile by stream compatible with VCDIFF
 void create_vcdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                           const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin=0,
-                          size_t kMatchBlockSize=kMatchBlockSize_default,size_t threadNum=1);
+                          size_t kMatchBlockSize=kMatchBlockSize_default,const hdiff_TMTSets_s* mtsets=0);
 
 bool check_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                   const hpatch_TStreamInput* diffData,hpatch_TDecompress* decompressPlugin);

@@ -218,9 +218,9 @@ void create_bsdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput*
 
 void create_bsdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                           const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
-                          size_t kMatchBlockSize,size_t threadNum){
+                          size_t kMatchBlockSize,const hdiff_TMTSets_s* mtsets){
     TCoversBuf covers(newData->streamSize,oldData->streamSize);
-    get_match_covers_by_block(newData,oldData,&covers,kMatchBlockSize,threadNum);
+    get_match_covers_by_block(newData,oldData,&covers,kMatchBlockSize,mtsets);
     if (covers._isCover32)
         _to_bsdiff_covers(covers.m_covers_limit,(hpatch_uint32_t)newData->streamSize);
     else

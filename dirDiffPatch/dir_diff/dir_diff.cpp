@@ -485,14 +485,15 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
             _pushv(out_diff);
         }
     }else{
+        const hdiff_TMTSets_s mtsets={hdiffSets.threadNum,hdiffSets.threadNumSearch_s,false,false};
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
         if (hdiffSets.isSingleCompressedDiff){
             create_single_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
                                                  compressPlugin,hdiffSets.matchBlockSize,
-                                                 hdiffSets.patchStepMemSize,hdiffSets.threadNum);
+                                                 hdiffSets.patchStepMemSize,&mtsets);
         }else{
             create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                          compressPlugin,hdiffSets.matchBlockSize,hdiffSets.threadNum);
+                                          compressPlugin,hdiffSets.matchBlockSize,&mtsets);
         }
         diffDataSize=ofStream.outSize;
         if (checksumByteSize>0){
