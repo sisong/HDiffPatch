@@ -50,6 +50,12 @@
   -p-parallelThreadNumber
       设置线程数parallelThreadNumber>1时,开启多线程并行模式;
       默认为4;需要占用较多的内存。
+  -p-search-searchThreadNumber
+      必须和-s[-matchBlockSize]配合使用;
+      默认情况下搜索线程数searchThreadNumber的值和parallelThreadNumber相同;
+      但当matchBlockSize较小时，多线程搜索需要频繁的随机磁盘读取，
+      所以有些时候多线程搜索反而比单线程搜索还慢很多!
+      如果设置searchThreadNumber<=1，可以关闭多线程搜索模式。
   -c-compressType[-compressLevel]
       设置补丁数据使用的压缩算法和压缩级别等, 默认不压缩;
       补丁另存时,使用新的压缩参数设置来输出新补丁;
