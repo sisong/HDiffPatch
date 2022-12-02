@@ -465,17 +465,20 @@ public:
     }
 
 template <class TIndex>
-static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
-                         const TIndex* left,const TIndex* right,
-                         TOldStreamCache& oldStream,TNewStreamCache& newStream,
-                         const TCover& lastCover,TCover* out_curCover){
+static const TIndex* getBestMatchi(const adler_uint_t* blocksBase,size_t blocksSize,
+                                   const TIndex** _left,const TIndex** _right,
+                                   TNewStreamCache& newStream,const TCover& lastCover,
+                                   size_t* _digests_eq_n){
     const size_t kMatchBlockSize=newStream.kMatchBlockSize;
     size_t max_digests_n=upperCount(kMinTrustMatchedLength,kMatchBlockSize);
     size_t _data_max_digests_n=newStream.dataLength()/kMatchBlockSize;
     if (max_digests_n>_data_max_digests_n) max_digests_n=_data_max_digests_n;
     
     const TIndex* best=0;
-    size_t digests_eq_n=1;
+    const TIndex*& left=*_left;
+    const TIndex*& right=*_right;
+    size_t& digests_eq_n=*_digests_eq_n;
+    digests_eq_n=1;
     //缩小[left best right)范围,留下最多2个(因为签名匹配并不保证一定相等,2个的话应该就够了?);
     if (right-left>1){
         //寻找最长的签名匹配位置(也就是最有可能的最长匹配位置);
@@ -544,7 +547,15 @@ static bool getBestMatch(const adler_uint_t* blocksBase,size_t blocksSize,
             }
         }
     }
-    
+    return best;
+}
+
+template <class TIndex>
+static bool getBestMatch(const TIndex* left,const TIndex* right,const TIndex* best,
+                         TOldStreamCache& oldStream,TNewStreamCache& newStream,
+                         const TCover& lastCover,size_t digests_eq_n,TCover* out_curCover){
+    assert(best!=0);
+    const size_t kMatchBlockSize=newStream.kMatchBlockSize;
     const hpatch_StreamPos_t newPos=newStream.pos();
     bool isMatched=false;
     hpatch_StreamPos_t  bestLen=0;
@@ -628,13 +639,16 @@ static void tm_search_cover(const adler_uint_t* blocksBase,
             { if (newStream.roll()) continue; else break; }//finish
         
         hpatch_StreamPos_t newPosNext=newStream.pos()+1;
+        size_t digests_eq_n;
+        const TIndex* besti=getBestMatchi(blocksBase,blocksSize,&range.first,&range.second,
+                                          newStream,lastCover,&digests_eq_n);
         {
     #if (_IS_USED_MULTITHREAD)
             CAutoLocker _autoDataLocker(_mtsets.oldDataIsMTSafe?0:_dataLocker);
     #endif
             TCover  curCover;
-            if (getBestMatch(blocksBase,blocksSize,range.first,range.second,
-                             oldStream,newStream,lastCover,&curCover)){
+            if (getBestMatch(range.first,range.second,besti,oldStream,newStream,
+                             lastCover,digests_eq_n,&curCover)){
                 tryLink(lastCover,curCover,oldStream,newStream);
                 if (curCover.length>=kMinMatchedLength){//matched
                     TCover _cover;
