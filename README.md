@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.5.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.5.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -9,11 +9,14 @@
 
 a C\C++ library and command-line tools for Diff & Patch between binary files or directories(folder); cross-platform; runs fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
    
-( NOTE: This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools. )   
-( if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite](https://github.com/sisong/HPatchLite) )   
-( update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch)! )   
-( ApkDiffPath can't be used by Android app store, because it requires re-signing apks;   
-[sfpatcher](https://github.com/sisong/sfpatcher) (like [archive-patcher](https://github.com/google/archive-patcher)) not require re-signing apks, is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory. )   
+if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite](https://github.com/sisong/HPatchLite), + [tinyuz](https://github.com/sisong/tinyuz) can run on 1KB RAM devices!   
+
+update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch), to create smaller delta/differential! NOTE: *ApkDiffPath can't be used by Android app store, because it requires re-signing apks.*   
+
+[sfpatcher](https://github.com/sisong/sfpatcher) (like [archive-patcher](https://github.com/google/archive-patcher)) not require re-signing apks, is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
+
+   
+NOTE: *This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
    
 ---
 ## Releases/Binaries
@@ -25,7 +28,7 @@ a C\C++ library and command-line tools for Diff & Patch between binary files or 
 ### Linux or MacOS X ###
 Try:   
 `$ make LZMA=0 ZSTD=0 MD5=0`   
-if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again.   install bzip2: `$ apt-get install libbz2` or `$ sudo apt-get install libbz2-dev` or `$ yum -y install bzip2` or `$ brew install bzip2` ...   
+bzip2 : if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again.   install bzip2: `$ apt-get install libbz2` or `$ sudo apt-get install libbz2-dev` or `$ yum -y install bzip2` or `$ brew install bzip2` ...   
 Alternatively, get the optional library headers (+bzip2 library) and build completely: `$ git clone https://github.com/sisong/bzip2.git ../bzip2 && pushd ../bzip2 && make && sudo make install && popd`   
    
 if need lzma zstd md5 support, Try:    
@@ -35,10 +38,10 @@ $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
 $ make
 ```    
-Tip: You can use `$ make -j` to compile in parallel
+Tip: You can use `$ make -j` to compile in parallel.
    
 ### Windows ###
-Before you build `builds/vc/HDiffPatch.sln` with [`Visual Studio`](https://visualstudio.microsoft.com), first get the libraries into sibling folders, like so: 
+Before you build `builds/vc/HDiffPatch.sln` by [`Visual Studio`](https://visualstudio.microsoft.com), first get the libraries into sibling folders, like so: 
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
@@ -55,7 +58,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
    
 
 ---
-## command line usage Chinese version: [命令行使用说明中文版](README_cmdline_cn.md)
+### command line usage Chinese version: [命令行使用说明中文版](README_cmdline_cn.md)
    
 ## **diff** command line usage:   
 diff     usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
@@ -107,6 +110,12 @@ special options:
   -p-parallelThreadNumber
       if parallelThreadNumber>1 then open multi-thread Parallel mode;
       DEFAULT -p-4; requires more memory!
+  -p-search-searchThreadNumber
+      must run with -s[-matchBlockSize];
+      DEFAULT searchThreadNumber same as parallelThreadNumber;
+      but multi-thread search need frequent random disk reads when matchBlockSize
+      is small, so some times multi-thread maybe much slower than single-thread!
+      if (searchThreadNumber<=1) then to close multi-thread search mode.
   -c-compressType[-compressLevel]
       set outDiffFile Compress type, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
@@ -264,71 +273,106 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **patch_single_stream_mem()**
 * **patch_single_compressed_diff()**
 * **patch_single_stream_diff()**
-#### v4.1 API, bsdiff wrapper:
-* **create_bsdiff()**
-* **bspatch_with_cache()**
-#### v4.2 API, optimized hpatch on MCU,NB-IoT... (demo [HPatchLite](https://github.com/sisong/HPatchLite)): 
+####  hpatch lite API, optimized hpatch on MCU,NB-IoT... (demo [HPatchLite](https://github.com/sisong/HPatchLite)): 
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
-#### v4.5 API, vcdiff wrapper: 
+#### bsdiff wrapper API:
+* **create_bsdiff()**
+* **create_bsdiff_stream()** 
+* **bspatch_with_cache()**
+####  vcdiff wrapper API: 
 * **create_vcdiff()**
 * **create_vcdiff_stream()**
 * **vcpatch_with_cache()**
-* **create_bsdiff_stream()** for bsdiff
 
 ---
 ## HDiffPatch vs BsDiff & xdelta:
 case list:
 | |newFile <-- oldFile|newSize|oldSize|
 |----:|:----|----:|----:|
-|1|apache-maven-2.2.1-src.tar <-- 2.0.11-src.tar|5150720|4689920|
-|2|httpd_2.4.4-netware-bin.tar <-- 2.2.24-netware-bin.tar|22612480|17059328|
-|3|httpd-2.4.4-src.tar <-- 2.2.24-src.tar|31809536|37365760|
-|4|Firefox-21.0-mac-en-US.app.tar <-- 20.0-mac-en-US.app.tar|98740736|96340480|
-|5|emacs-24.3.tar <-- 23.4.tar|185528320|166420480|
-|6|eclipse-java-juno-SR2-macosx-cocoa-x86_64.tar <-- SR2-macosx-cocoa.tar|178595840|178800640|
-|7|gcc-4.8.0.tar <-- 4.7.0.tar|552775680|526745600|
+|1|7-Zip_22.01.win.tar <-- 7-Zip_21.07.win.tar|5908992|5748224|
+|2|Chrome_107.0.5304.122-x64-Stable.win.tar <-- 106.0.5249.119|278658560|273026560|
+|3|cpu-z_2.03-en.win.tar <-- cpu-z_2.02-en.win.tar|8718336|8643072|
+|4|curl_7.86.0.src.tar <-- curl_7.85.0.src.tar|26275840|26030080|
+|5|douyin_1.5.1.mac.tar <-- douyin_1.4.2.mac.tar|407940608|407642624|
+|6|Emacs_28.2-universal.mac.tar <-- Emacs_27.2-3-universal.mac.tar|196380160|257496064|
+|7|FFmpeg-n_5.1.2.src.tar <-- FFmpeg-n_4.4.3.src.tar|80527360|76154880|
+|8|gcc_12.2.0.src.tar <-- gcc_11.3.0.src.tar|865884160|824309760|
+|9|git_2.33.0-intel-universal-mavericks.mac.tar <-- 2.31.0|73302528|70990848|
+|10|go_1.19.3.linux-amd64.tar <-- go_1.19.2.linux-amd64.tar|468835840|468796416|
+|11|jdk_x64_mac_openj9_16.0.1_9_openj9-0.26.0.tar <-- 9_15.0.2_7-0.24.0|363765760|327188480|
+|12|jre_1.8.0_351-linux-x64.tar <-- jre_1.8.0_311-linux-x64.tar|267796480|257996800|
+|13|linux_5.19.9.src.tar <-- linux_5.15.80.src.tar|1269637120|1138933760|
+|14|Minecraft_175.win.tar <-- Minecraft_172.win.tar|166643200|180084736|
+|15|OpenOffice_4.1.13.mac.tar <-- OpenOffice_4.1.10.mac.tar|408364032|408336896|
+|16|postgresql_15.1.src.tar <-- postgresql_14.6.src.tar|151787520|147660800|
+|17|QQ_9.6.9.win.tar <-- QQ_9.6.8.win.tar|465045504|464837120|
+|18|tensorflow_2.10.1.src.tar <-- tensorflow_2.8.4.src.tar|275548160|259246080|
+|19|VSCode-win32-x64_1.73.1.tar <-- VSCode-win32-x64_1.69.2.tar|364025856|340256768|
+|20|WeChat_3.8.0.41.win.tar <-- WeChat_3.8.0.33.win.tar|505876992|505018368|
    
 
 **test PC**: Windows11, CPU Ryzen 5800H, SSD Disk, Memroy 8G*2 DDR4 3200MHz   
-**Program version**: HDiffPatch4.1, BsDiff4.3, xdelta3.1   
+**Program version**: HDiffPatch4.5.1, BsDiff4.3, xdelta3.1   
 **test Program**:   
-**xdelta** diff with `-e -n -f -s {old} {new} {pat}`   
+**xdelta** diff with `-S lzma -e -9 -n -f -s {old} {new} {pat}`   
 **xdelta** patch with `-d -f -s {old} {pat} {new}`   
-add **hpatchz**4.5 test: `hpatchz -m -f {old} {xdelta3-pat} {new}`   
-**xdelta -B** diff with `-B {oldSize} -e -n -f -s {old} {new} {pat}`   
+add **hpatchz** test: `hpatchz -m -f {old} {xdelta3-pat} {new}`   
+**xdelta -B** diff with `-S lzma -B {oldSize} -e -9 -n -f -s {old} {new} {pat}`   
 **xdelta -B** patch with `-B {oldSize} -d -f -s {old} {pat} {new}`   
+add **hpatchz** test: `hpatchz -m -f {old} {xdelta3-B-pat} {new}`   
 **bsdiff** diff with `{old} {new} {pat}`   
 **bspatch** patch with `{old} {new} {pat}`   
-**hdiffz -BSD** diff with `-m-6 -BSD -block -d -f -p-1 {old} {new} {pat}`   
-**hdiffz -bzip2** diff with `-m-6 -SD -block -d -f -p-1 -c-bzip2-9 {old} {new} {pat}`   
-**hdiffz -zlib** diff with `-m-6 -SD -block -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
-**hdiffz -lzma2** diff with `-m-6 -SD -block -d -f -p-1 -c-lzma2-9-16m {old} {new} {pat}`   
-**hdiffz -zstd** diff with `-m-6 -SD -block -d -f -p-1 -c-zstd-20-24 {old} {new} {pat}`   
+add **hpatchz** test: `hpatchz -m -f {old} {bsdiff-pat} {new}`   
+**hdiffz -BSD** diff with `-m-6 -BSD -d -f -p-1 {old} {new} {pat}`   
+**hdiffz -bzip2** diff with `-m-6 -SD -d -f -p-1 -c-bzip2-9 {old} {new} {pat}`   
+**hdiffz -zlib** diff with `-m-6 -SD -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
+**hdiffz -lzma2** diff with `-m-6 -SD -d -f -p-1 -c-lzma2-9-16m {old} {new} {pat}`   
+**hdiffz -zstd** diff with `-m-6 -SD -d -f -p-1 -c-zstd-21-24 {old} {new} {pat}`   
 **hdiffz -s -zlib** diff with `-s-64 -SD -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
 **hdiffz -s -lzma2** diff with `-s-64 -SD -d -f -p-1 -c-lzma2-9-16m {old} {new} {pat}`   
 **hdiffz -s -zstd-17** diff with `-s-64 -SD -d -f -p-1 -c-zstd-17-24 {old} {new} {pat}`   
-**hpatchz** patch with `-s-256k -f {old} {pat} {new}`   
+all **hdiffz** add test with -p-8   
+ **hpatchz** patch with `-s-3m -f {old} {pat} {new}`   
+add **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
+ zstd patch with `-d -f --memory=2000MB --patch-from={old} {pat} -o {new}`   
    
 **test result average**:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|
 |:----|----:|----:|----:|----:|----:|----:|
-|bzip2|31.76%|
-|lzma2|28.47%|
-|xdelta3|12.18%|212M|6.9MB/s|84M|98M|54MB/s|
-|xdelta3+hpatchz|12.18%|212M|6.9MB/s|58M|81M|167MB/s|
-|xdelta3 -B|7.35%|442M|19.5MB/s|197M|534M|174MB/s|
-|xdelta3 -B+hpatchz|7.35%|442M|19.5MB/s|154M|518M|423MB/s|
-|bsdiff|6.63%|1263M|2.3MB/s|298M|1043M|120MB/s|
-|hdiffz -BSD|5.67%|596M|15.8MB/s|12M|14M|131MB/s|
-|hdiffz bzip2|5.77%|596M|17.4MB/s|7M|7M|208MB/s|
-|hdiffz zlib|5.93%|596M|17.4MB/s|4M|4M|374MB/s|
-|hdiffz lzma2|5.02%|597M|13.2MB/s|12M|20M|321MB/s|
-|hdiffz -zstd|5.22%|660M|12.3MB/s|13M|20M|383MB/s|
-|hdiffz -s zlib|8.13%|44M|40.7MB/s|4M|4M|436MB/s|
-|hdiffz -s lzma2|6.39%|119M|17.4MB/s|13M|20M|337MB/s|
-|hdiffz -s zstd-17|6.82%|73M|24.1MB/s|13M|20M|464MB/s|
+|bzip2-9 |33.67%||16.8MB/s|||44MB/s|
+|zlib-9 |36.53%||15.9MB/s|||421MB/s|
+|lzma2-9-16m |25.85%||3.9MB/s|||162MB/s|
+|zstd-21-24 |27.21%||2.7MB/s|||619MB/s|
+||
+|zstd --patch-from|7.96%|2798M|2.4MB/s|631M|2303M|647MB/s|
+|xdelta3|13.60%|409M|4.7MB/s|86M|102M|95MB/s|
+|xdelta3 +hpatchz -m|13.60%|409M|4.7MB/s|72M|82M|280MB/s|
+|xdelta3 -B |9.63%|2282M|7.3MB/s|460M|2070M|159MB/s|
+|xdelta3 -B +hpatchz -m|9.63%|2282M|7.3MB/s|317M|1100M|345MB/s|
+|bsdiff |8.17%|2773M|1.9MB/s|637M|2312M|121MB/s|
+|bsdiff +hpatchz -m|8.17%|2773M|1.9MB/s|321M|1101M|141MB/s|
+|hdiffz p1 -BSD |7.72%|1215M|10.9MB/s|14M|14M|124MB/s|
+|hdiffz p8 -BSD |7.72%|1191M|22.0MB/s|14M|14M|123MB/s|
+|hdiffz p1 -bzip2 |7.96%|1215M|11.6MB/s|7M|7M|182MB/s|
+|hdiffz p8 -pbzip2 |7.95%|1191M|30.5MB/s|7M|7M|177MB/s|
+|hdiffz p1 -zlib |7.79%|1214M|11.6MB/s|4M|4M|415MB/s|
+|hdiffz p8 -zlib |7.79%|1191M|30.5MB/s|4M|4M|409MB/s|
+|hdiffz p1 -lzma2 |6.44%|1212M|9.2MB/s|17M|20M|312MB/s|
+|hdiffz p8 -lzma2 |6.44%|1192M|23.2MB/s|17M|20M|309MB/s|
+|hdiffz p1 -zstd |6.74%|1217M|9.0MB/s|16M|21M|422MB/s|
+|hdiffz p8 -zstd |6.74%|1531M|16.7MB/s|16M|21M|418MB/s|
+|hdiffz -s p1 -BSD |11.96%|91M|33.3MB/s|14M|14M|105MB/s|
+|hdiffz -s p8 -BSD |11.96%|95M|40.6MB/s|14M|14M|105MB/s|
+|hdiffz -s p1 -bzip2 |11.96%|91M|39.9MB/s|7M|7M|137MB/s|
+|hdiffz -s p8 -pbzip2 |11.97%|107M|108.7MB/s|7M|7M|133MB/s|
+|hdiffz -s p1 -zlib |12.52%|90M|35.2MB/s|4M|4M|439MB/s|
+|hdiffz -s p8 -zlib |12.53%|95M|104.4MB/s|4M|4M|434MB/s|
+|hdiffz -s p1 -lzma2 |9.11%|170M|13.7MB/s|17M|20M|289MB/s|
+|hdiffz -s p8 -lzma2 |9.13%|370M|34.7MB/s|17M|20M|286MB/s|
+|hdiffz -s p1 -zstd-17 |9.99%|103M|19.8MB/s|18M|21M|482MB/s|
+|hdiffz -s p8 -zstd-17 |9.99%|775M|30.4MB/s|18M|21M|481MB/s|
    
 
 ## input Apk Files for test: 
@@ -371,34 +415,46 @@ case list:
 **changed test Program**:   
 **hdiffz ...** `-m-6 -SD` changed to `-m-1 -SD-2m -cache`, `-s-64 -SD` changed to `-s-16 -SD-2m`   
 **hdiffz ...** lzma2 dict size `16m` changed to `8m`, zstd dict bit `24` changed to `23`   
-**hdiffz** added diff with `-m-1 -SD-2m -cache -block -d -f -p-1 {old} {new} {pat}`   
-**hdiffz -s** added diff with `-s-16 -SD-2m -d -f -p-1 {old} {new} {pat}`   
-**sfpatcher -1 -zstd** diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-1 -block -cache -d {old} {new} {pat}`, patch with `-lp -p-8 {old} {pat} {new}`   
-**sfpatcher -2 -lzma2** diff with `-o-2 -c-lzma2-9-4m -m-2 -step-2m -lp-8m -p-1 -block -cache -d {old} {new} {pat}`, patch with `-lp -p-8 {old} {pat} {new}`   
-**sfpatcher -3 -lzma2** diff with `-o-3 -c-lzma2-9-4m -m-4 -step-2m -lp-8m -p-1 -block -cache -d {old} {new} {pat}`, patch with `-lp -p-8 {old} {pat} {new}`   
+**sfpatcher -1 -zstd** diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
+**sfpatcher -2 -lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
+**sfpatcher -3 -lzma2** diff with `-o-3 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
+ sfpatcher patch with `-lp -p-8 {old} {pat} {new}`   
 ( [sfpatcher](https://github.com/sisong/sfpatcher) optimized diff&patch between apk files )  
 
 **test result average**:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|arm Kirin980 speed|
 |:----|----:|----:|----:|----:|----:|----:|----:|
-|xdelta3|59.92%|228M|2.9MB/s|100M|100M|159MB/s|
-|xdelta3+hpatchz|59.92%|228M|2.9MB/s|72M|84M|456MB/s|
-|xdelta3 -B|59.51%|440M|3.1MB/s|206M|548M|157MB/s|
-|xdelta3 -B+hpatchz|59.51%|440M|3.1MB/s|129M|384M|400MB/s|
-|bsdiff|59.76%|1035M|1.0MB/s|243M|751M|42MB/s|
-|hdiffz -BSD|59.50%|523M|5.4MB/s|13M|14M|44MB/s|
-|hdiffz bzip2|59.51%|523M|5.5MB/s|7M|9M|57MB/s|
-|hdiffz|59.87%|523M|7.5MB/s|4M|5M|780MB/s|268MB/s|
-|hdiffz zlib|59.10%|523M|6.9MB/s|4M|5M|587MB/s|226MB/s|
-|hdiffz zstd|58.74%|612M|5.0MB/s|13M|14M|680MB/s|265MB/s|
-|hdiffz lzma2|58.67%|523M|3.7MB/s|12M|13M|285MB/s|
-|hdiffz -s|60.46%|133M|31.8MB/s|3M|4M|806MB/s|
-|hdiffz -s zlib|59.52%|133M|23.5MB/s|3M|4M|608MB/s|
-|hdiffz -s zstd-17|59.27%|136M|9.7MB/s|12M|12M|763MB/s|
-|hdiffz -s lzma2|59.03%|147M|5.9MB/s|11M|12M|288MB/s|
-|sf_diff -1 zstd|31.70%|774M|2.8MB/s|19M|22M|394MB/s|218MB/s|
-|sf_diff -2 lzma2|27.53%|859M|2.5MB/s|21M|29M|107MB/s|59MB/s|
-|sf_diff -3 lzma2|23.73%|976M|2.3MB/s|24M|29M|66MB/s|36MB/s|
+|zstd --patch-from|58.81%|2248M|3.0MB/s|234M|741M|670MB/s|
+|xdelta3|59.68%|422M|2.7MB/s|98M|99M|162MB/s|
+|xdelta3 +hpatchz -m|59.68%|422M|2.7MB/s|69M|81M|472MB/s|
+|xdelta3 -B |59.26%|953M|3.0MB/s|204M|547M|161MB/s|
+|xdelta3 -B +hpatchz -m|59.26%|953M|3.0MB/s|126M|381M|407MB/s|
+|bsdiff |59.76%|1035M|1.0MB/s|243M|751M|43MB/s|
+|bsdiff +hpatchz -m|59.76%|1035M|1.0MB/s|128M|383M|45MB/s|
+|bsdiff +hpatchz -s|59.76%|1035M|1.0MB/s|14M|14M|44MB/s|
+|hdiffz p1 -BSD|59.50%|522M|5.9MB/s|14M|14M|44MB/s|
+|hdiffz p8 -BSD|59.52%|527M|11.5MB/s|14M|14M|44MB/s|
+|hdiffz p1 -bzip2|59.51%|522M|6.0MB/s|8M|9M|57MB/s|
+|hdiffz p8 -pbzip2|59.53%|527M|19.6MB/s|7M|9M|54MB/s|
+|hdiffz p1 -zlib|59.10%|522M|7.2MB/s|5M|6M|588MB/s|226MB/s|
+|hdiffz p8 -zlib|59.12%|527M|22.0MB/s|5M|6M|595MB/s|
+|hdiffz p1 -lzma2|58.66%|537M|3.7MB/s|21M|22M|285MB/s|
+|hdiffz p8 -lzma2|58.68%|610M|13.7MB/s|21M|22M|288MB/s|
+|hdiffz p1 -zstd|58.73%|546M|4.9MB/s|21M|22M|684MB/s|265MB/s|
+|hdiffz p8 -zstd|58.75%|1315M|9.3MB/s|21M|22M|676MB/s|
+|hdiffz -s p1 -BSD|60.00%|131M|13.8MB/s|14M|14M|44MB/s|
+|hdiffz -s p8 -BSD|60.00%|135M|18.9MB/s|14M|14M|44MB/s|
+|hdiffz -s p1 -bzip2|59.98%|131M|14.4MB/s|6M|7M|59MB/s|
+|hdiffz -s p8 -pbzip2|59.98%|143M|59.7MB/s|6M|7M|55MB/s|
+|hdiffz -s p1 -zlib|59.52%|131M|24.3MB/s|4M|4M|596MB/s|
+|hdiffz -s p8 -zlib|59.52%|135M|85.4MB/s|4M|4M|594MB/s|
+|hdiffz -s p1 -lzma2|59.02%|208M|5.7MB/s|20M|20M|279MB/s|
+|hdiffz -s p8 -lzma2|59.02%|373M|25.5MB/s|20M|20M|281MB/s|
+|hdiffz -s p1 -zstd-17|59.26%|137M|9.2MB/s|20M|21M|730MB/s|
+|hdiffz -s p8 -zstd-17|59.26%|871M|13.3MB/s|20M|21M|734MB/s|
+|sf_diff -o-1 p8 -zstd|31.61%|982M|5.2MB/s|16M|20M|382MB/s|218MB/s|
+|sf_diff -o-2 p8 -lzma2|27.30%|859M|6.5MB/s|19M|27M|105MB/s|59MB/s|
+|sf_diff -o-3 p8 -lzma2|23.54%|973M|5.9MB/s|22M|27M|64MB/s|36MB/s|
 
 ---
 ## Contact

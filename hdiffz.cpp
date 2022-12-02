@@ -205,6 +205,12 @@ static void printUsage(){
            "  -p-parallelThreadNumber\n"
            "      if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
            "      DEFAULT -p-4; requires more memory!\n"
+           "  -p-search-searchThreadNumber\n"
+           "      must run with -s[-matchBlockSize];\n"
+           "      DEFAULT searchThreadNumber same as parallelThreadNumber;\n"
+           "      but multi-thread search need frequent random disk reads when matchBlockSize\n"
+           "      is small, so some times multi-thread maybe much slower than single-thread!\n"
+           "      if (searchThreadNumber<=1) then to close multi-thread search mode.\n"
 #endif
            "  -c-compressType[-compressLevel]\n"
            "      set outDiffFile Compress type, DEFAULT uncompress;\n"
@@ -738,8 +744,7 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
 #define _kNULL_VALUE    ((hpatch_BOOL)(-1))
 #define _kNULL_SIZE     (~(size_t)0)
 
-#define _THREAD_NUMBER_NULL     0
-#define _THREAD_NUMBER_MIN      1
+#define _THREAD_NUMBER_NULL     _kNULL_SIZE
 #define _THREAD_NUMBER_DEFUALT  kDefaultCompressThreadNumber
 #define _THREAD_NUMBER_MAX      (1<<8)
 
@@ -759,6 +764,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     diffSets.isUseBigCacheMatch =_kNULL_VALUE;
     diffSets.matchBlockSize=_kNULL_SIZE;
     diffSets.threadNum=_THREAD_NUMBER_NULL;
+    diffSets.threadNumSearch_s=_THREAD_NUMBER_NULL;
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
@@ -898,10 +904,17 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
 #if (_IS_USED_MULTITHREAD)
             case 'p':{
-                _options_check((diffSets.threadNum==_THREAD_NUMBER_NULL)&&(op[2]=='-'),"-p-?");
-                const char* pnum=op+3;
-                _options_check(a_to_size(pnum,strlen(pnum),&diffSets.threadNum),"-p-?");
-                _options_check(diffSets.threadNum>=_THREAD_NUMBER_MIN,"-p-?");
+                _options_check((op[2]=='-'),"-p?");
+                if ((op[3]=='s')){
+                    _options_check((diffSets.threadNumSearch_s==_THREAD_NUMBER_NULL)&&
+                        (op[4]=='e')&&(op[5]=='a')&&(op[6]=='r')&&(op[7]=='c')&&(op[8]=='h')&&(op[9]=='-'),"-p-search?");
+                    const char* pnum=op+10;
+                    _options_check(a_to_size(pnum,strlen(pnum),&diffSets.threadNumSearch_s),"-p-search-?");
+                }else{
+                    _options_check(diffSets.threadNum==_THREAD_NUMBER_NULL,"-p-?");
+                    const char* pnum=op+3;
+                    _options_check(a_to_size(pnum,strlen(pnum),&diffSets.threadNum),"-p-?");
+                }
             } break;
 #endif
             case 'b':{
@@ -1046,6 +1059,14 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         diffSets.threadNum=_THREAD_NUMBER_DEFUALT;
     else if (diffSets.threadNum>_THREAD_NUMBER_MAX)
         diffSets.threadNum=_THREAD_NUMBER_MAX;
+    else if (diffSets.threadNum<1)
+        diffSets.threadNum=1;
+    if (diffSets.threadNumSearch_s==_THREAD_NUMBER_NULL)
+        diffSets.threadNumSearch_s=diffSets.threadNum;
+    else if (diffSets.threadNumSearch_s>_THREAD_NUMBER_MAX)
+        diffSets.threadNumSearch_s=_THREAD_NUMBER_MAX;
+    else if (diffSets.threadNumSearch_s<1)
+        diffSets.threadNumSearch_s=1;
     if (compressPlugin!=0){
         compressPlugin->setParallelThreadNumber(compressPlugin,(int)diffSets.threadNum);
     }
@@ -1498,6 +1519,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
     printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            oldData.base.streamSize,newData.base.streamSize);
     if (diffSets.isDoDiff){
+        const hdiff_TMTSets_s mtsets={diffSets.threadNum,diffSets.threadNumSearch_s,false,false};
         check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,hpatch_kNullStreamPos),
               HDIFF_OPENWRITE_ERROR,"open out diffFile");
         hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
@@ -1505,7 +1527,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
 #if (_IS_NEED_BSDIFF)
             if (diffSets.isBsDiff){
                 create_bsdiff_stream(&newData.base,&oldData.base, &diffData_out.base,
-                                     compressPlugin,diffSets.matchBlockSize,diffSets.threadNum);   
+                                     compressPlugin,diffSets.matchBlockSize,&mtsets);   
             }else
 #endif
 #if (_IS_NEED_VCDIFF)
@@ -1513,16 +1535,16 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
                 vcdiff_TCompress* vcdiffCompressPlugin;
                 _CompressPluginForVcDiff(vcdiffCompressPlugin,compressPlugin);
                 create_vcdiff_stream(&newData.base,&oldData.base, &diffData_out.base,
-                                     vcdiffCompressPlugin,diffSets.matchBlockSize,diffSets.threadNum);   
+                                     vcdiffCompressPlugin,diffSets.matchBlockSize,&mtsets);   
             }else
 #endif
             if (diffSets.isSingleCompressedDiff)
                 create_single_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
                                                      compressPlugin,diffSets.matchBlockSize,
-                                                     diffSets.patchStepMemSize,diffSets.threadNum);
+                                                     diffSets.patchStepMemSize,&mtsets);
             else
                 create_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
-                                              compressPlugin,diffSets.matchBlockSize,diffSets.threadNum);
+                                              compressPlugin,diffSets.matchBlockSize,&mtsets);
             diffData_out.base.streamSize=diffData_out.out_length;
         }catch(const std::exception& e){
             check(!newData.fileError,HDIFF_OPENREAD_ERROR,"read newFile");

@@ -48,7 +48,7 @@ private:
     hpatch_StreamPos_t          lastOldEnd;
     hpatch_StreamPos_t          lastNewEnd;
     hpatch_StreamPos_t          _readFromPos_back;
-    enum { kCodeBufSize = hpatch_kFileIOBufBetterSize };
+    enum { kCodeBufSize = hdiff_kFileIOBufBestSize };
     
     static hpatch_BOOL _read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                              unsigned char* out_data,unsigned char* out_data_end);
@@ -243,7 +243,7 @@ struct TDiffStream{
 private:
     const hpatch_TStreamOutput*  out_diff;
     hpatch_StreamPos_t     writePos;
-    enum{ kBufSize=hpatch_kFileIOBufBetterSize };
+    enum{ kBufSize=hdiff_kFileIOBufBestSize };
     TAutoMem               _temp_mem;
     
     void _packUInt_limit(hpatch_StreamPos_t uValue,size_t limitOutSize);

@@ -50,11 +50,11 @@ static std::string  cmp_hash_type    =  "fadler64";
 #define cmp_hash_combine(ph,rightHash,rightLen) { (*(ph))=fast_adler64_by_combine(*(ph),rightHash,rightLen); }
 
 static cmp_hash_value_t getStreamHash(const hpatch_TStreamInput* stream,const std::string& errorTag){
-    TAutoMem  mem(hpatch_kFileIOBufBetterSize);
+    TAutoMem  mem(hdiff_kFileIOBufBestSize);
     cmp_hash_value_t result;
     cmp_hash_begin(&result);
     for (hpatch_StreamPos_t pos=0; pos<stream->streamSize;) {
-        size_t readLen=hpatch_kFileIOBufBetterSize;
+        size_t readLen=hdiff_kFileIOBufBestSize;
         if (pos+readLen>stream->streamSize)
             readLen=(size_t)(stream->streamSize-pos);
         check(stream->read(stream,pos,mem.data(),mem.data()+readLen),
@@ -79,9 +79,9 @@ static bool fileData_isSame(const std::string& file_x,const std::string& file_y,
     CFileStreamInput f_y(file_y);
     if (f_x.base.streamSize!=f_y.base.streamSize)
         return false;
-    TAutoMem  mem(hpatch_kFileIOBufBetterSize*2);
+    TAutoMem  mem(hdiff_kFileIOBufBestSize*2);
     for (hpatch_StreamPos_t pos=0; pos<f_x.base.streamSize;) {
-        size_t readLen=hpatch_kFileIOBufBetterSize;
+        size_t readLen=hdiff_kFileIOBufBestSize;
         if (pos+readLen>f_x.base.streamSize)
             readLen=(size_t)(f_x.base.streamSize-pos);
         check(f_x.base.read(&f_x.base,pos,mem.data(),mem.data()+readLen),
@@ -485,14 +485,15 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
             _pushv(out_diff);
         }
     }else{
+        const hdiff_TMTSets_s mtsets={hdiffSets.threadNum,hdiffSets.threadNumSearch_s,false,false};
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
         if (hdiffSets.isSingleCompressedDiff){
             create_single_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
                                                  compressPlugin,hdiffSets.matchBlockSize,
-                                                 hdiffSets.patchStepMemSize,hdiffSets.threadNum);
+                                                 hdiffSets.patchStepMemSize,&mtsets);
         }else{
             create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                          compressPlugin,hdiffSets.matchBlockSize,hdiffSets.threadNum);
+                                          compressPlugin,hdiffSets.matchBlockSize,&mtsets);
         }
         diffDataSize=ofStream.outSize;
         if (checksumByteSize>0){
@@ -519,7 +520,7 @@ struct CDirPatchListener:public IDirPatchListener{
                                const std::vector<std::string>& oldList,
                                const std::vector<std::string>& newList)
     :_oldSet(oldList.begin(),oldList.end()),_newSet(newList.begin(),newList.end()),
-    _buf(hpatch_kFileIOBufBetterSize){
+    _buf(hdiff_kFileIOBufBestSize){
         _dirSet.insert(getParentDir(newRootDir));
         this->listenerImport=this;
         this->makeNewDir=_makeNewDir;
@@ -675,7 +676,7 @@ bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const
     }
 
     //mem
-    size_t      temp_cache_size=hpatch_kFileIOBufBetterSize*4;
+    size_t      temp_cache_size=hdiff_kFileIOBufBestSize*4;
     if (dirDiffInfo->isSingleCompressedDiff)
         temp_cache_size+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
     TAutoMem    p_temp_mem(temp_cache_size);
