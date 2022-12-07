@@ -160,13 +160,21 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 #endif
         
         {//newSyncInfoSize
-            self->newSyncInfoSize = head.size() + sizeof(self->newSyncInfoSize)
-                                    + privateExternDataSize + externDataSize + buf.size();
+            self->newSyncInfoSize = head.size()+privateExternDataSize+externDataSize+buf.size();
             self->newSyncInfoSize +=(self->savedRollHashByteSize+self->savedStrongChecksumByteSize)
                                     *(TNewDataSyncInfo_blockCount(self)-self->samePairCount);
             self->newSyncInfoSize += self->kStrongChecksumByteSize+self->kStrongChecksumByteSize;
+            {
+                hpatch_uint pksize=hpatch_packUInt_size(self->newSyncInfoSize);
+                self->newSyncInfoSize+=pksize;
+                if (hpatch_packUInt_size(self->newSyncInfoSize)>pksize){
+                    assert(hpatch_packUInt_size(self->newSyncInfoSize)==pksize+1);
+                    self->newSyncInfoSize++;
+                    assert(hpatch_packUInt_size(self->newSyncInfoSize)==pksize+1);
+                }
+            }
+            packUInt(head,self->newSyncInfoSize);
         }
-        pushUInt(head,self->newSyncInfoSize);
         //end head info
     }
     hpatch_StreamPos_t kBlockCount=TNewDataSyncInfo_blockCount(self);
