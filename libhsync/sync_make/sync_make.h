@@ -33,8 +33,8 @@
 #include "../sync_client/sync_client_type.h"
 #include "dict_compress_plugin.h"
 
-static const uint32_t kMatchBlockSize_default   = 1024*2;
-static const uint32_t kMatchBlockSize_min       = 64;
+static const uint32_t kSyncBlockSize_default   = 1024*2;
+static const uint32_t kSyncBlockSize_min       = 64;
 static const size_t kSafeHashClashBit_default = 32;
 
 //create out_hsyni
@@ -42,13 +42,13 @@ static const size_t kSafeHashClashBit_default = 32;
 //    newData which is not found in client's oldData;
 //  client's oldData can be different for different clients;
 //  out_hsyni will be loaded into memory when client sync_patch;
-//  out_hsyni's size becomes smaller when kMatchBlockSize increases,
+//  out_hsyni's size becomes smaller when kSyncBlockSize increases,
 //    but the part of newData's size that need download becomes larger;
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_hsyni,
                       hpatch_TChecksum*           strongChecksumPlugin,
                       const hsync_TDictCompress*  compressPlugin=0,
-                      uint32_t kMatchBlockSize=kMatchBlockSize_default,
+                      uint32_t kSyncBlockSize=kSyncBlockSize_default,
                       size_t kSafeHashClashBit=kSafeHashClashBit_default,
                       size_t threadNum=1);
 
@@ -59,7 +59,7 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_hsynz,
                       hpatch_TChecksum*           strongChecksumPlugin,
                       const hsync_TDictCompress*  compressPlugin,
-                      uint32_t kMatchBlockSize=kMatchBlockSize_default,
+                      uint32_t kSyncBlockSize=kSyncBlockSize_default,
                       size_t kSafeHashClashBit=kSafeHashClashBit_default,
                       size_t threadNum=1);
 

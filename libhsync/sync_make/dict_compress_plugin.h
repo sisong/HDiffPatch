@@ -40,13 +40,14 @@ extern "C" {
         //return type tag; strlen(result)<=hpatch_kMaxPluginTypeLength; (Note:result lifetime)
         const char*                  (*compressType)(void);//ascii cstring,cannot contain '&'
         //return the max compressed size, if input dataSize data;
-        size_t                  (*maxCompressedSize)(size_t in_dataSize);
+        hpatch_StreamPos_t      (*maxCompressedSize)(hpatch_StreamPos_t in_dataSize);
         size_t                           (*dictSize)(const struct hsync_TDictCompress* dictCompressPlugin);
         hsync_dictCompressHandle (*dictCompressOpen)(const struct hsync_TDictCompress* dictCompressPlugin);
         void                    (*dictCompressClose)(const struct hsync_TDictCompress* dictCompressPlugin,
                                                      hsync_dictCompressHandle dictHandle);
         size_t                       (*dictCompress)(hsync_dictCompressHandle dictHandle,hpatch_byte* out_code,hpatch_byte* out_codeEnd,
-                                                     const hpatch_byte* in_dict,const hpatch_byte* in_dictEnd_and_dataBegin,const hpatch_byte* in_dataEnd);
+                                                     const hpatch_byte* in_dict,const hpatch_byte* in_dictEnd_and_dataBegin,
+                                                     const hpatch_byte* in_dataEnd,hpatch_BOOL dict_isReset,hpatch_BOOL in_isEnd);
     } hsync_TDictCompress;
 
 #ifdef __cplusplus

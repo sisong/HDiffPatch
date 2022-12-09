@@ -43,11 +43,11 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 class CNewDataSyncInfo :public TNewDataSyncInfo{
 public:
     inline uint32_t blockCount()const{
-        hpatch_StreamPos_t result=getSyncBlockCount(this->newDataSize,this->kMatchBlockSize);
+        hpatch_StreamPos_t result=getSyncBlockCount(this->newDataSize,this->kSyncBlockSize);
         checkv(result==(uint32_t)result);
         return (uint32_t)result; }
     CNewDataSyncInfo(hpatch_TChecksum* strongChecksumPlugin,const hsync_TDictCompress* compressPlugin,
-                     hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize,size_t kSafeHashClashBit);
+                     hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,size_t kSafeHashClashBit);
     ~CNewDataSyncInfo(){}
 private:
     std::string                 _compressType;

@@ -40,8 +40,8 @@ extern "C" {
 static const size_t kSafeHashClashBit_min = 20; //for safe
 
 hpatch_inline static
-hpatch_StreamPos_t getSyncBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize){
-    return (newDataSize+(kMatchBlockSize-1))/kMatchBlockSize; }
+hpatch_StreamPos_t getSyncBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize){
+    return (newDataSize+(kSyncBlockSize-1))/kSyncBlockSize; }
 
 
 typedef struct TSameNewBlockPair{
@@ -56,7 +56,7 @@ typedef struct TNewDataSyncInfo{
     size_t                  savedStrongChecksumByteSize;
     size_t                  savedRollHashByteSize;
     size_t                  dictSize;
-    uint32_t                kMatchBlockSize;
+    uint32_t                kSyncBlockSize;
     uint32_t                samePairCount;
     uint8_t                 isDirSyncInfo;
     hpatch_StreamPos_t      newDataSize;      // newData version size;
@@ -90,7 +90,7 @@ typedef struct TNeedSyncInfos{
     hpatch_StreamPos_t          newSyncDataSize; // new data size or .hsynz file size
     hpatch_StreamPos_t          newSyncInfoSize; // .hsyni file size
     hpatch_StreamPos_t          localDiffDataSize; // local diff data
-    uint32_t                    kMatchBlockSize;
+    uint32_t                    kSyncBlockSize;
     uint32_t                    blockCount;
     uint32_t                    needSyncBlockCount;
     hpatch_StreamPos_t          needSyncSumSize; // all need download from new data or .hsynz file

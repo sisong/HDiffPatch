@@ -45,7 +45,8 @@ extern "C" {
         //dictDecompress() must out (out_dataEnd-out_dataBegin), otherwise error return hpatch_FALSE
         hpatch_BOOL                    (*dictDecompress)(hpatch_decompressHandle dictHandle,
                                                          const unsigned char* in_code,const unsigned char* in_codeEnd,
-                                                         const unsigned char* in_dict,unsigned char* in_dictEnd_and_out_dataBegin,unsigned char* out_dataEnd);
+                                                         const unsigned char* in_dict,unsigned char* in_dictEnd_and_out_dataBegin,
+                                                         unsigned char* out_dataEnd,hpatch_BOOL dict_isReset,hpatch_BOOL out_isEnd);
     } hsync_TDictDecompress;
 
 #ifdef __cplusplus

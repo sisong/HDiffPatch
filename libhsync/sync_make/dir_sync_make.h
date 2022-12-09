@@ -37,7 +37,7 @@ struct IDirSyncListener{
     virtual ~IDirSyncListener(){}
     virtual bool isExecuteFile(const std::string& fileName) { return false; }
     virtual void syncRefInfo(const char* rootDirPath,size_t pathCount,hpatch_StreamPos_t refFileSize,
-                             uint32_t kMatchBlockSize,bool isSafeHashClash){}
+                             uint32_t kSyncBlockSize,bool isSafeHashClash){}
 };
 
 void create_dir_sync_data(IDirSyncListener*         listener,
@@ -47,7 +47,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
                           hpatch_TChecksum*         strongChecksumPlugin,
                           const hsync_TDictCompress* compressPlugin,
                           size_t                    kMaxOpenFileNumber,
-                          uint32_t kMatchBlockSize=kMatchBlockSize_default,
+                          uint32_t kSyncBlockSize=kSyncBlockSize_default,
                           size_t kSafeHashClashBit=kSafeHashClashBit_default,
                           size_t threadNum=1);
 

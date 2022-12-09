@@ -103,7 +103,7 @@ static int _sync_patch_2file(ISyncInfoListener* listener,IReadSyncDataListener* 
     result=TNewDataSyncInfo_open_by_file(&newSyncInfo,newSyncInfoFile,listener);
     check_r(result==kSyncClient_ok,result);
     check_r(oldFilesStream.open(oldManifest.pathList,kMaxOpenFileNumber,
-                                newSyncInfo.kMatchBlockSize), kSyncClient_oldDirFilesOpenError);
+                                newSyncInfo.kSyncBlockSize), kSyncClient_oldDirFilesOpenError);
     if (outNewFile){
         check_r(_open_continue_out(isOutNewContinue,outNewFile,&out_newData,&_newDataContinue,newSyncInfo.newDataSize),
                isOutNewContinue?kSyncClient_newFileReopenWriteError:kSyncClient_newFileCreateError);
@@ -165,7 +165,7 @@ static int _sync_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListen
     result=TNewDataSyncInfo_open_by_file(&newSyncInfo,newSyncInfoFile,syncListener);
     check_r(result==kSyncClient_ok,result);
     check_r(newSyncInfo.isDirSyncInfo,kSyncClient_newSyncInfoTypeError);
-    kAlignSize=newSyncInfo.kMatchBlockSize;
+    kAlignSize=newSyncInfo.kSyncBlockSize;
     if (outNewDir)
         check_r(newDirOut.openDir(&newSyncInfo,outNewDir,patchListener,&out_newData,kAlignSize),
                 kSyncClient_newDirOpenError);

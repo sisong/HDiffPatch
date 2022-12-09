@@ -38,15 +38,15 @@ TNewDataSyncInfo_init(TNewDataSyncInfo* self) { memset(self,0,sizeof(*self)); }
     
 hpatch_inline static
 hpatch_StreamPos_t TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self){
-        return getSyncBlockCount(self->newDataSize,self->kMatchBlockSize); }
+        return getSyncBlockCount(self->newDataSize,self->kSyncBlockSize); }
 
 hpatch_inline static
 uint32_t TNewDataSyncInfo_newDataBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
     uint32_t blockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
     if (blockIndex+1!=blockCount)
-        return self->kMatchBlockSize;
+        return self->kSyncBlockSize;
     else
-        return (uint32_t)(self->newDataSize-self->kMatchBlockSize*blockIndex);
+        return (uint32_t)(self->newDataSize-self->kSyncBlockSize*blockIndex);
 }
 hpatch_inline static
 uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){

@@ -94,13 +94,13 @@ protected:
 
 struct TOldDataCache_base {
     TOldDataCache_base(const hpatch_TStreamInput* oldStream,hpatch_StreamPos_t oldRollBegin,
-                       hpatch_StreamPos_t oldRollEnd,uint32_t kMatchBlockSize,
+                       hpatch_StreamPos_t oldRollEnd,uint32_t kSyncBlockSize,
                        hpatch_TChecksum* strongChecksumPlugin,void* _mt=0)
     :m_oldStream(oldStream),m_readedPos(oldRollBegin),m_oldRollEnd(oldRollEnd),
-    m_strongChecksum_buf(0),m_cur(0),m_kMatchBlockSize(kMatchBlockSize),m_checksumByteSize(0),
+    m_strongChecksum_buf(0),m_cur(0),m_kSyncBlockSize(kSyncBlockSize),m_checksumByteSize(0),
     m_strongChecksumPlugin(strongChecksumPlugin),m_checksumHandle(0),m_mt(_mt){
-        size_t cacheSize=(size_t)kMatchBlockSize*2;
-        check((cacheSize>>1)==kMatchBlockSize,"TOldDataCache mem error!");
+        size_t cacheSize=(size_t)kSyncBlockSize*2;
+        check((cacheSize>>1)==kSyncBlockSize,"TOldDataCache mem error!");
         cacheSize=(cacheSize>=hpatch_kFileIOBufBetterSize)?cacheSize:hpatch_kFileIOBufBetterSize;
         hpatch_StreamPos_t maxDataSize=oldRollPosEnd()-oldRollBegin;
         if (cacheSize>maxDataSize) cacheSize=(size_t)maxDataSize;
@@ -118,7 +118,7 @@ struct TOldDataCache_base {
         if (m_checksumHandle)
             m_strongChecksumPlugin->close(m_strongChecksumPlugin,m_checksumHandle);
     }
-    inline hpatch_StreamPos_t oldRollPosEnd()const{ return m_oldRollEnd+m_kMatchBlockSize-1; }
+    inline hpatch_StreamPos_t oldRollPosEnd()const{ return m_oldRollEnd+m_kSyncBlockSize-1; }
     // all:[          oldDataSize         +     backZeroLen    ]
     //                 ^                         ^
     //            oldRollBegin               oldRollEnd
@@ -157,7 +157,7 @@ struct TOldDataCache_base {
 
     inline bool isEnd()const{ return m_cur==0; }
     inline const TByte* calcPartStrongChecksum(size_t outPartSize){
-        return _calcPartStrongChecksum(m_cur,m_kMatchBlockSize,outPartSize); }
+        return _calcPartStrongChecksum(m_cur,m_kSyncBlockSize,outPartSize); }
     inline const TByte* strongChecksum()const{//must after do calcPartStrongChecksum()
         return m_strongChecksum_buf+m_checksumByteSize; }
     inline size_t strongChecksumByteSize()const{ return m_checksumByteSize; }
@@ -169,7 +169,7 @@ protected:
     TAutoMem                m_cache;
     TByte*                  m_strongChecksum_buf;
     TByte*                  m_cur;
-    uint32_t                m_kMatchBlockSize;
+    uint32_t                m_kSyncBlockSize;
     uint32_t                m_checksumByteSize;
     hpatch_TChecksum*       m_strongChecksumPlugin;
     hpatch_checksumHandle   m_checksumHandle;
@@ -187,12 +187,12 @@ protected:
 
 struct TOldDataCache:public TOldDataCache_base {
     inline TOldDataCache(const hpatch_TStreamInput* oldStream,hpatch_StreamPos_t oldRollBegin,
-                         hpatch_StreamPos_t oldRollEnd,uint32_t kMatchBlockSize,
+                         hpatch_StreamPos_t oldRollEnd,uint32_t kSyncBlockSize,
                          hpatch_TChecksum* strongChecksumPlugin,void* _mt=0)
-            :TOldDataCache_base(oldStream,oldRollBegin,oldRollEnd,kMatchBlockSize,
+            :TOldDataCache_base(oldStream,oldRollBegin,oldRollEnd,kSyncBlockSize,
                                 strongChecksumPlugin,_mt){
                 if (isEnd()) return;
-                m_roolHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kMatchBlockSize);
+                m_roolHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kSyncBlockSize);
             }
     void _cache(){
         TOldDataCache_base::_cache();
@@ -201,9 +201,9 @@ struct TOldDataCache:public TOldDataCache_base {
     }
     inline tm_roll_uint hashValue()const{ return m_roolHash; }
     inline void roll(){
-        const TByte* curIn=m_cur+m_kMatchBlockSize;
+        const TByte* curIn=m_cur+m_kSyncBlockSize;
         if (curIn!=m_cache.data_end()){
-            m_roolHash=roll_hash_roll(m_roolHash,m_kMatchBlockSize,*m_cur,*curIn);
+            m_roolHash=roll_hash_roll(m_roolHash,m_kSyncBlockSize,*m_cur,*curIn);
             ++m_cur;
         }else{
             _cache();
@@ -256,7 +256,7 @@ static void _rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,
                        hpatch_StreamPos_t oldRollEnd,void* _mt=0){
     TIndex_comp0 icomp0(rd.newSyncInfo->rollHashs,rd.newSyncInfo->savedRollHashByteSize);
     TOldDataCache oldData(rd.oldStream,oldRollBegin,oldRollEnd,
-                          rd.newSyncInfo->kMatchBlockSize,rd.strongChecksumPlugin,_mt);
+                          rd.newSyncInfo->kSyncBlockSize,rd.strongChecksumPlugin,_mt);
     uint8_t part[sizeof(tm_roll_uint)]={0};
     const size_t savedRollHashByteSize=rd.newSyncInfo->savedRollHashByteSize;
     const TBloomFilter<tm_roll_uint>& filter=*(TBloomFilter<tm_roll_uint>*)rd.filter;

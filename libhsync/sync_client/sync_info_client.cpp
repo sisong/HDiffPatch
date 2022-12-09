@@ -299,7 +299,7 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
         check((self->savedStrongChecksumByteSize<=self->kStrongChecksumByteSize),
               kSyncClient_strongChecksumByteSizeError);
         check(_clip_unpackToSize_t(&self->savedRollHashByteSize,&clip),kSyncClient_newSyncInfoDataError);
-        check(_clip_unpackToUInt32(&self->kMatchBlockSize,&clip),kSyncClient_newSyncInfoDataError);
+        check(_clip_unpackToUInt32(&self->kSyncBlockSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackToUInt32(&self->samePairCount,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackToByte(&self->isDirSyncInfo,&clip),kSyncClient_newSyncInfoDataError);
         check(newIsDir_byType==self->isDirSyncInfo, kSyncClient_newSyncInfoTypeError);
@@ -442,7 +442,8 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
             decompresser.decompressHandle=decompressPlugin->dictDecompressOpen(decompressPlugin);
             check((decompresser.decompressHandle!=0),kSyncClient_decompressOpenError);
             check(decompressPlugin->dictDecompress(decompresser.decompressHandle,codeBuf,codeBuf+compressDataSize,
-                                                   decompressBuf,decompressBuf,decompressBuf+uncompressDataSize),
+                                                   decompressBuf,decompressBuf,decompressBuf+uncompressDataSize,
+                                                   hpatch_TRUE,hpatch_TRUE),
                   kSyncClient_decompressError);
             
             codeClip=&_cmCodeClip;

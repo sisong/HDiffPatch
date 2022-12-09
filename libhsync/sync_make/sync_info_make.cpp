@@ -67,7 +67,8 @@ namespace sync_private{
         hsync_dictCompressHandle  compressHandle=compressPlugin->dictCompressOpen(compressPlugin);
         checkv(compressHandle!=0);
         size_t compressedSize=compressPlugin->dictCompress(compressHandle,cmbuf.data(),cmbuf.data()+cmbuf.size(),
-                                                           buf.data(),buf.data(),buf.data()+buf.size());
+                                                           buf.data(),buf.data(),buf.data()+buf.size(),
+                                                           hpatch_TRUE,hpatch_TRUE);
         compressPlugin->dictCompressClose(compressPlugin,compressHandle);
         if ((compressedSize>0)&&(compressedSize<buf.size())){
             cmbuf.resize(compressedSize);
@@ -140,7 +141,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
         packUInt(head,self->kStrongChecksumByteSize);
         packUInt(head,self->savedStrongChecksumByteSize);
         packUInt(head,self->savedRollHashByteSize);
-        packUInt(head,self->kMatchBlockSize);
+        packUInt(head,self->kSyncBlockSize);
         packUInt(head,self->samePairCount);
         pushUInt(head,self->isDirSyncInfo);
         pushUInt(head,isSavedSizes);
@@ -205,7 +206,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 }
 
 CNewDataSyncInfo::CNewDataSyncInfo(hpatch_TChecksum* strongChecksumPlugin,const hsync_TDictCompress* compressPlugin,
-                                   hpatch_StreamPos_t newDataSize,uint32_t kMatchBlockSize,size_t kSafeHashClashBit){
+                                   hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,size_t kSafeHashClashBit){
     TNewDataSyncInfo_init(this);
     if (compressPlugin){
         this->_compressType.assign(compressPlugin->compressType());
@@ -215,9 +216,9 @@ CNewDataSyncInfo::CNewDataSyncInfo(hpatch_TChecksum* strongChecksumPlugin,const 
     this->_strongChecksumType.assign(strongChecksumPlugin->checksumType());
     this->strongChecksumType=this->_strongChecksumType.c_str();
     this->kStrongChecksumByteSize=(uint32_t)strongChecksumPlugin->checksumByteSize();
-    this->kMatchBlockSize=kMatchBlockSize;
+    this->kSyncBlockSize=kSyncBlockSize;
     this->newDataSize=newDataSize;
-    getNeedHashByte(kSafeHashClashBit,newDataSize,kMatchBlockSize,this->kStrongChecksumByteSize,
+    getNeedHashByte(kSafeHashClashBit,newDataSize,kSyncBlockSize,this->kStrongChecksumByteSize,
                     &this->savedRollHashByteSize,&this->savedStrongChecksumByteSize);
     //mem
     const size_t kBlockCount=this->blockCount();
