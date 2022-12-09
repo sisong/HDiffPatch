@@ -3,7 +3,7 @@
 //  Created by housisong on 2019-09-17.
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2020 HouSisong
+ Copyright (c) 2019-2022 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -96,7 +96,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 #if ( ! (_IS_NEED_DIR_DIFF_PATCH) )
     checkv(!self->isDirSyncInfo);
 #endif
-    const char* kVersionType=self->isDirSyncInfo?"HDirSync20":"HSync20";
+    const char* kVersionType=self->isDirSyncInfo?"HDirSync22":"HSync22";
     if (compressPlugin)
         checkv(0==strcmp(compressPlugin->compressType(),self->compressType));
     else
@@ -117,10 +117,10 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     size_t dir_newPathSumCharSize=0;
     if (self->isDirSyncInfo){
         checkv(!self->dir_newNameList_isCString);
-        dir_newPathSumCharSize=pushNameList(buf,self->dir_utf8NewRootPath,
-                                            (std::string*)self->dir_utf8NewNameList,self->dir_newPathCount);
         packList(buf,self->dir_newSizeList,self->dir_newPathCount);
         packIncList(buf,self->dir_newExecuteIndexList,self->dir_newExecuteCount);
+        dir_newPathSumCharSize=pushNameList(buf,self->dir_utf8NewRootPath,
+                                            (std::string*)self->dir_utf8NewNameList,self->dir_newPathCount);
     }
 #endif
 
@@ -136,6 +136,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     std::vector<TByte> head;
     {//head
         pushTypes(head,kVersionType,compressPlugin?compressPlugin->compressType():0,strongChecksumPlugin);
+        packUInt(head,dictSize);
         packUInt(head,self->kStrongChecksumByteSize);
         packUInt(head,self->savedStrongChecksumByteSize);
         packUInt(head,self->savedRollHashByteSize);
@@ -145,7 +146,6 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
         pushUInt(head,isSavedSizes);
         packUInt(head,self->newDataSize);
         packUInt(head,self->newSyncDataSize);
-        packUInt(head,dictSize);
         packUInt(head,privateExternDataSize);
         packUInt(head,externDataSize);
         packUInt(head,uncompressDataSize);

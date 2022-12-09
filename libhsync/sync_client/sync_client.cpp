@@ -3,7 +3,7 @@
 //  Created by housisong on 2019-09-18.
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2020 HouSisong
+ Copyright (c) 2019-2022 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -71,8 +71,8 @@ struct _TWriteDatas {
     TSyncDiffData*              continueDiffData;
     uint32_t                    needSyncBlockCount;
     bool                        isLocalPatch;
-    hpatch_TDecompress*         decompressPlugin;
     hpatch_TChecksum*           strongChecksumPlugin;
+    hsync_TDictDecompress*      decompressPlugin;
     IReadSyncDataListener*      syncDataListener;
 };
     
@@ -100,8 +100,9 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
     int _inClear=0;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     const uint32_t kMatchBlockSize=newSyncInfo->kMatchBlockSize;
-    TByte*             dataBuf=0;
+    TByte*             _memBuf=0;
     TByte*             checksumSync_buf=0;
+    hsync_dictDecompressHandle decompressHandle=0;
     hpatch_checksumHandle checksumSync=0;
     hpatch_StreamPos_t posInNewSyncData=0;
     hpatch_StreamPos_t posInNeedSyncData=0;
@@ -110,21 +111,29 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
     bool isNeedSync;
     bool isOnDiffContinue =(wd.continueDiffData!=0);
     bool isOnNewDataContinue =(wd.newDataContinue!=0);
-    size_t _memSize=kMatchBlockSize*(wd.decompressPlugin?2:1)
+    const size_t dictSize=wd.newSyncInfo->dictSize;
+    const size_t _memSize=kMatchBlockSize*(wd.decompressPlugin?2:1)+dictSize
                         +newSyncInfo->kStrongChecksumByteSize
                         +checkChecksumBufByteSize(newSyncInfo->kStrongChecksumByteSize);
-    dataBuf=(TByte*)malloc(_memSize);
-    check(dataBuf!=0,kSyncClient_memError);
+    _memBuf=(TByte*)malloc(_memSize);
+    check(_memBuf!=0,kSyncClient_memError);
+    TByte* const dictBuf=_memBuf;
+    TByte* const dataBuf=dictBuf+dictSize;
+    if (dictSize>0)
+        memset(dictBuf,0,dictSize+kMatchBlockSize);
     {//checksum newSyncData
-        checksumSync_buf=dataBuf+_memSize-(newSyncInfo->kStrongChecksumByteSize
+        checksumSync_buf=_memBuf+_memSize-(newSyncInfo->kStrongChecksumByteSize
                                            +checkChecksumBufByteSize(newSyncInfo->kStrongChecksumByteSize));
         checksumSync=strongChecksumPlugin->open(strongChecksumPlugin);
         check(checksumSync!=0,kSyncClient_strongChecksumOpenError);
     }
-    for (uint32_t syncSize,newDataSize=0,i=0; i<kBlockCount; ++i, outNewDataPos+=newDataSize,
+    for (uint32_t syncSize=0,newDataSize=0,i=0; i<kBlockCount; ++i, outNewDataPos+=newDataSize,
             posInNewSyncData+=syncSize,posInNeedSyncData+=isNeedSync?syncSize:0){
+        if (dictSize>0)
+            memmove(dictBuf,dictBuf+kMatchBlockSize,dictSize);
         syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
         newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
+        check(syncSize<=newDataSize,kSyncClient_newSyncInfoDataError);
         const hpatch_StreamPos_t curSyncPos=wd.newBlockDataInOldPoss[i];
         isNeedSync=(curSyncPos==kBlockType_needSync);
         if (isOnNewDataContinue){ //copy from newDataContinue
@@ -152,8 +161,13 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
                 }
             }
             if (/*wd.out_newStream&&*/(syncSize<newDataSize)){// need deccompress
-                check(hpatch_deccompress_mem(wd.decompressPlugin,buf,buf+syncSize,
-                                             dataBuf,dataBuf+newDataSize),kSyncClient_decompressError);
+                if (decompressHandle==0){
+                    decompressHandle=wd.decompressPlugin->dictDecompressOpen(wd.decompressPlugin);
+                    check(decompressHandle,kSyncClient_decompressOpenError);
+                }
+                check(wd.decompressPlugin->dictDecompress(decompressHandle,buf,buf+syncSize,
+                                                          dictBuf,dataBuf,dataBuf+newDataSize),
+                      kSyncClient_decompressError);
             }
         }else{//copy from old
             assert(curSyncPos<oldDataSize);
@@ -181,12 +195,13 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
             }
         }
     }
-    assert(outNewDataPos==newSyncInfo->newDataSize);
-    assert(posInNewSyncData==newSyncInfo->newSyncDataSize);
+    check(outNewDataPos==newSyncInfo->newDataSize,kSyncClient_newDataSizeError);
+    assert(posInNewSyncData==newSyncInfo->newSyncDataSize);//checked in readSavedSizesTo()
 clear:
     _inClear=1;
+    if (decompressHandle) wd.decompressPlugin->dictDecompressClose(wd.decompressPlugin,decompressHandle);
     if (checksumSync) strongChecksumPlugin->close(strongChecksumPlugin,checksumSync);
-    if (dataBuf) free(dataBuf);
+    if (_memBuf) free(_memBuf);
     return result;
 }
 
@@ -232,7 +247,7 @@ int _sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListe
                 const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,
                 const hpatch_TStreamOutput* out_diffStream,const hpatch_TStreamInput* diffContinue,int threadNum){
     assert(listener!=0);
-    hpatch_TDecompress* decompressPlugin=0;
+    hsync_TDictDecompress* decompressPlugin=0;
     hpatch_TChecksum*   strongChecksumPlugin=0;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     TNeedSyncInfosImport needSyncInfo; memset(&needSyncInfo,0,sizeof(needSyncInfo));
@@ -248,7 +263,7 @@ int _sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListe
             &&(newSyncInfo->_decompressPlugin->is_can_open(newSyncInfo->compressType))){
             decompressPlugin=newSyncInfo->_decompressPlugin;
         }else{
-            decompressPlugin=listener->findDecompressPlugin(listener,newSyncInfo->compressType);
+            decompressPlugin=listener->findDecompressPlugin(listener,newSyncInfo->compressType,newSyncInfo->dictSize);
             check(decompressPlugin!=0,kSyncClient_noDecompressPluginError);
         }
     }

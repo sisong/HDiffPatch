@@ -3,7 +3,7 @@
 //  Created by housisong on 2019-09-18.
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2020 HouSisong
+ Copyright (c) 2019-2022 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -146,10 +146,10 @@ int _checkNewSyncInfoType(TStreamCacheClip* newSyncInfo_clip,hpatch_BOOL* out_ne
     int _inClear=0;
     check(_TStreamCacheClip_readType_end(newSyncInfo_clip,'&',tempType),
           kSyncClient_newSyncInfoTypeError);
-    if (0==strcmp(tempType,"HSync20"))
+    if (0==strcmp(tempType,"HSync22"))
         *out_newIsDir=hpatch_FALSE;
 #if (_IS_NEED_DIR_DIFF_PATCH)
-    else if (0==strcmp(tempType,"HDirSync20"))
+    else if (0==strcmp(tempType,"HDirSync22"))
         *out_newIsDir=hpatch_TRUE;
 #endif
     else //unknow type
@@ -229,10 +229,15 @@ static bool readPartHashTo(TStreamCacheClip* clip,TByte* partHash,size_t partSiz
     return true;
 }
 
+    typedef struct{
+        hsync_TDictDecompress*     decompressPlugin;
+        hsync_dictDecompressHandle decompressHandle;
+    } _TDictDecompressInputStream;
+
 static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
                                   ISyncInfoListener *listener){
     assert(self->_import==0);
-    hpatch_TDecompress* decompressPlugin=0;
+    hsync_TDictDecompress* decompressPlugin=0;
     hpatch_TChecksum*   strongChecksumPlugin=0;
     TStreamCacheClip    clip;
     int result=kSyncClient_ok;
@@ -250,8 +255,7 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
     hpatch_StreamPos_t externDataSize=0;
     hpatch_StreamPos_t uncompressDataSize=0;
     hpatch_StreamPos_t compressDataSize=0;
-    TByte*             decompressBuf=0;
-    _TDecompressInputStream decompresser;
+    _TDictDecompressInputStream decompresser;
     TChecksumInputStream  checksumInputStream;
     const bool isChecksumNewSyncInfo=true;
     uint8_t isSavedSizes=0;
@@ -271,11 +275,7 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
         }
         {//read compressType
             check(_TStreamCacheClip_readType_end(&clip,'&',compressType),kSyncClient_noDecompressPluginError);
-            if (strlen(compressType)>0){
-                decompressPlugin=listener->findDecompressPlugin(listener,compressType);
-                check(decompressPlugin!=0,kSyncClient_noDecompressPluginError);
-                self->_decompressPlugin=decompressPlugin;
-            }
+
         }
         {//read strongChecksumType
             check(_TStreamCacheClip_readType_end(&clip,'\0',tempType),kSyncClient_noStrongChecksumPluginError);
@@ -284,6 +284,12 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
             checksumType=strongChecksumPlugin->checksumType();
             check(0==strcmp(tempType,checksumType),kSyncClient_noStrongChecksumPluginError);
             self->_strongChecksumPlugin=strongChecksumPlugin;
+        }
+        check(_clip_unpackToSize_t(&self->dictSize,&clip), kSyncClient_newSyncInfoDataError);
+        if (strlen(compressType)>0){
+            decompressPlugin=listener->findDecompressPlugin(listener,compressType,self->dictSize);
+            check(decompressPlugin!=0,kSyncClient_noDecompressPluginError);
+            self->_decompressPlugin=decompressPlugin;
         }
         
         check(_clip_unpackToSize_t(&self->kStrongChecksumByteSize,&clip),kSyncClient_newSyncInfoDataError);
@@ -300,7 +306,6 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
         check(_clip_unpackToByte(&isSavedSizes,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newDataSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newSyncDataSize,&clip),kSyncClient_newSyncInfoDataError);
-        check(_clip_unpackToSize_t(&self->dictSize,&clip), kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&privateExternDataSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&externDataSize,&clip),kSyncClient_newSyncInfoDataError);
         
@@ -325,15 +330,15 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
         }
         headEndPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
     }
+    hpatch_StreamPos_t memSize;
     {//mem
+        size_t headMaxSize=sizeof(hpatch_StreamPos_t)*5+ strlen(compressType)+1+strlen(checksumType)+1
+                +self->kStrongChecksumByteSize+checkChecksumBufByteSize(self->kStrongChecksumByteSize);
         TByte* curMem=0;
-        hpatch_StreamPos_t memSize=strlen(compressType)+1+strlen(checksumType)+1 + externDataSize
-                        +self->kStrongChecksumByteSize+checkChecksumBufByteSize(self->kStrongChecksumByteSize);
-        memSize+=(self->savedRollHashByteSize+self->savedStrongChecksumByteSize)*(hpatch_StreamPos_t)kBlockCount;
+        memSize=headMaxSize;
         memSize+=self->samePairCount*sizeof(TSameNewBlockPair);
-        if (decompressPlugin)
+        if (isSavedSizes)
             memSize+=sizeof(uint32_t)*(hpatch_StreamPos_t)kBlockCount;
-
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
             self->dir_newNameList_isCString=hpatch_TRUE;
@@ -342,52 +347,61 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
                     +sizeof(size_t)*self->dir_newExecuteCount;
         }
 #endif
+        memSize+=(self->savedRollHashByteSize+self->savedStrongChecksumByteSize)*(hpatch_StreamPos_t)kBlockCount;
+
+        const size_t _kSafeTempMemSize=uncompressDataSize+compressDataSize+headMaxSize+1024;
+        if ((compressDataSize>0)&&(memSize<_kSafeTempMemSize))
+            memSize=_kSafeTempMemSize;
         check(memSize==(size_t)memSize,kSyncClient_memError);
         curMem=(TByte*)malloc((size_t)memSize);
         check(curMem!=0,kSyncClient_memError);
         self->_import=curMem;
-        self->samePairList=(TSameNewBlockPair*)curMem;
-        curMem+=self->samePairCount*sizeof(TSameNewBlockPair);
-        self->partChecksums=curMem;
-        curMem+=self->savedStrongChecksumByteSize*(size_t)kBlockCount;
+
+        if (decompressPlugin!=0){
+            self->compressType=(const char*)curMem;
+            curMem+=strlen(compressType)+1;
+            memcpy((TByte*)self->compressType,compressType,strlen(compressType)+1);
+        }
+        self->strongChecksumType=(const char*)curMem;
+        curMem+=strlen(checksumType)+1;
+        memcpy((TByte*)self->strongChecksumType,checksumType,curMem-(TByte*)self->strongChecksumType);
+
+        curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
         self->infoFullChecksum=curMem;
         curMem+=self->kStrongChecksumByteSize;
         self->savedNewDataCheckChecksum=curMem;
         curMem+=checkChecksumBufByteSize(self->kStrongChecksumByteSize);
-#if (_IS_NEED_DIR_DIFF_PATCH)
-        if (self->isDirSyncInfo){
-            self->dir_newSizeList=(hpatch_StreamPos_t*)curMem;
-            curMem+=sizeof(hpatch_StreamPos_t)*self->dir_newPathCount;
-            self->dir_utf8NewNameList=(const char**)curMem;
-            curMem+=sizeof(const char*)*self->dir_newPathCount;
-            self->dir_newExecuteIndexList=(size_t*)curMem;
-            curMem+=sizeof(size_t)*self->dir_newExecuteCount;
-        }
-#endif
-        self->rollHashs=curMem;
-        curMem+=self->savedRollHashByteSize*(size_t)kBlockCount;
+        
+        curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
+        self->samePairList=(TSameNewBlockPair*)curMem;
+        curMem+=self->samePairCount*sizeof(TSameNewBlockPair);
         if (isSavedSizes){
             self->savedSizes=(uint32_t*)curMem;
             curMem+=sizeof(uint32_t)*(size_t)kBlockCount;
         }
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
+            curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
+            self->dir_newSizeList=(hpatch_StreamPos_t*)curMem;
+            curMem+=sizeof(hpatch_StreamPos_t)*self->dir_newPathCount;
+            self->dir_utf8NewNameList=(const char**)curMem;
+            curMem+=sizeof(const char*)*self->dir_newPathCount;
+            self->dir_newExecuteIndexList=(size_t*)curMem;
+            curMem+=sizeof(size_t)*self->dir_newExecuteCount;
             if (self->dir_newPathCount>0){
                 ((const char**)self->dir_utf8NewNameList)[0]=(char*)curMem;
                 curMem+=dir_newPathSumCharSize;
             }
         }
 #endif
-        self->strongChecksumType=(const char*)curMem;
-        curMem+=strlen(checksumType)+1;
-        memcpy((TByte*)self->strongChecksumType,checksumType,curMem-(TByte*)self->strongChecksumType);
-        if (decompressPlugin!=0){
-            self->compressType=(const char*)curMem;
-            memcpy((TByte*)self->compressType,compressType,strlen(compressType)+1);
-        }
-        curMem+=strlen(compressType)+1;
-        curMem+=externDataSize;
-        assert(curMem==(TByte*)self->_import + memSize);
+
+        curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
+        self->rollHashs=curMem;
+        curMem+=self->savedRollHashByteSize*(size_t)kBlockCount;
+        curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
+        self->partChecksums=curMem;
+        curMem+=self->savedStrongChecksumByteSize*(size_t)kBlockCount;
+        assert(curMem<=(TByte*)self->_import+memSize);
     }
     if (isChecksumNewSyncInfo){
         //reload clip for infoFullChecksum
@@ -411,23 +425,29 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
               kSyncClient_newSyncInfoDataError);
     }
     {// compressed? buf
-        #define _clear_decompresser(_decompresser,_decompressBuf) \
+        #define _clear_decompresser(_decompresser) \
                     if (_decompresser.decompressHandle){   \
-                        check(decompressPlugin->close(decompressPlugin, \
-                            _decompresser.decompressHandle),kSyncClient_decompressError); \
-                        _decompresser.decompressHandle=0; } \
-                    if (_decompressBuf) { free(_decompressBuf); _decompressBuf=0; }
+                        decompressPlugin->dictDecompressClose(decompressPlugin,_decompresser.decompressHandle); \
+                        _decompresser.decompressHandle=0; }
         TStreamCacheClip _cmCodeClip;
         TStreamCacheClip* codeClip=0;
-        if (compressDataSize>0){
-            codeClip=&_cmCodeClip;
-            decompressBuf=(TByte*)malloc(kFileIOBufBetterSize);
-            check(decompressBuf!=0,kSyncClient_memError);
+        if (compressDataSize>0) {
+            TByte*  decompressBuf=(TByte*)self->_import+(memSize-uncompressDataSize);
+            hpatch_byte* codeBuf=decompressBuf-compressDataSize;
             hpatch_StreamPos_t curPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
             const hpatch_TStreamInput* inStream=isChecksumNewSyncInfo?&checksumInputStream:newSyncInfo;
-            check(getStreamClip(codeClip,&decompresser,uncompressDataSize,compressDataSize,
-                                inStream,&curPos,decompressPlugin,
-                                decompressBuf,kFileIOBufBetterSize),kSyncClient_decompressError);
+            
+            check(inStream->read(inStream,curPos,codeBuf,codeBuf+compressDataSize),kSyncClient_newSyncInfoDataError);
+            decompresser.decompressPlugin=decompressPlugin;
+            decompresser.decompressHandle=decompressPlugin->dictDecompressOpen(decompressPlugin);
+            check((decompresser.decompressHandle!=0),kSyncClient_decompressOpenError);
+            check(decompressPlugin->dictDecompress(decompresser.decompressHandle,codeBuf,codeBuf+compressDataSize,
+                                                   decompressBuf,decompressBuf,decompressBuf+uncompressDataSize),
+                  kSyncClient_decompressError);
+            
+            codeClip=&_cmCodeClip;
+            _TStreamCacheClip_init(codeClip,0,0,0,decompressBuf,uncompressDataSize);
+            codeClip->cacheBegin=0;
         }else{
             codeClip=&clip;
         }
@@ -442,6 +462,12 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
         
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
+            //dir_newSizeList
+            check(readListTo(codeClip,self->dir_newSizeList,self->dir_newPathCount),
+                  kSyncClient_newSyncInfoDataError);
+            //dir_newExecuteIndexList
+            check(readIncListTo(codeClip,self->dir_newExecuteIndexList,self->dir_newExecuteCount,
+                                self->dir_newPathCount),kSyncClient_newSyncInfoDataError);
             //dir_utf8NewNameList
             if (self->dir_newPathCount>0){
                 char* charsBuf=((char**)self->dir_utf8NewNameList)[0];
@@ -453,16 +479,10 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
                                   (const char**)self->dir_utf8NewNameList,self->dir_newPathCount),
                       kSyncClient_newSyncInfoDataError);
             }
-            //dir_newSizeList
-            check(readListTo(codeClip,self->dir_newSizeList,self->dir_newPathCount),
-                  kSyncClient_newSyncInfoDataError);
-            //dir_newExecuteIndexList
-            check(readIncListTo(codeClip,self->dir_newExecuteIndexList,self->dir_newExecuteCount,
-                                self->dir_newPathCount),kSyncClient_newSyncInfoDataError);
         }
 #endif
         if (compressDataSize>0){
-            _clear_decompresser(decompresser,decompressBuf);
+            _clear_decompresser(decompresser);
             hpatch_StreamPos_t curPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
             const hpatch_TStreamInput* inStream=isChecksumNewSyncInfo?&checksumInputStream:newSyncInfo;
             _TStreamCacheClip_init(&clip,inStream,curPos+compressDataSize,inStream->streamSize,
@@ -492,7 +512,7 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
           ==newSyncInfo->streamSize, kSyncClient_newSyncInfoDataError);
 clear:
     _inClear=1;
-    _clear_decompresser(decompresser,decompressBuf);
+    _clear_decompresser(decompresser);
     if (result!=kSyncClient_ok) TNewDataSyncInfo_close(self);
     if (temp_cache) free(temp_cache);
     return result;

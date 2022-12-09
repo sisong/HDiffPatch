@@ -31,20 +31,11 @@
 #include "../../libHDiffPatch/HPatch/patch_types.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
 #include "../../dirDiffPatch/dir_patch/dir_patch_types.h"
+#include "dict_decompress_plugin.h"
 #include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define HSYNC_VERSION_MAJOR    0
-#define HSYNC_VERSION_MINOR    1
-#define HSYNC_VERSION_RELEASE  0
-
-#define _HSYNC_VERSION          HSYNC_VERSION_MAJOR.HSYNC_VERSION_MINOR.HSYNC_VERSION_RELEASE
-#define _HSYNC_QUOTE(str) #str
-#define _HSYNC_EXPAND_AND_QUOTE(str) _HSYNC_QUOTE(str)
-#define HSYNC_VERSION_STRING   _HSYNC_EXPAND_AND_QUOTE(_HSYNC_VERSION)
-
 
 static const size_t kSafeHashClashBit_min = 20; //for safe
 
@@ -87,7 +78,7 @@ typedef struct TNewDataSyncInfo{
     size_t*                 dir_newExecuteIndexList;
 #endif
     hpatch_TChecksum*       _strongChecksumPlugin;
-    hpatch_TDecompress*     _decompressPlugin;
+    hsync_TDictDecompress*  _decompressPlugin;
     void*                   _import;
 } TNewDataSyncInfo;
 

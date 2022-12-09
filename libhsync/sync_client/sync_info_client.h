@@ -66,12 +66,14 @@ typedef enum TSyncClient_resultType{
     kSyncClient_checksumSyncDataError,
     kSyncClient_newDataCheckChecksumError,
     kSyncClient_noDecompressPluginError,
-    kSyncClient_decompressError,            // 35
+    kSyncClient_decompressOpenError,        // 35
+    kSyncClient_decompressError,
+    kSyncClient_newDataSizeError,
     kSyncClient_diffFileCreateError,
     kSyncClient_diffFileReopenWriteError,
-    kSyncClient_diffFileCloseError,
+    kSyncClient_diffFileCloseError,         // 40
     kSyncClient_diffFileOpenError,
-    kSyncClient_saveDiffError,              // 40
+    kSyncClient_saveDiffError,             
     kSyncClient_loadDiffError,
     
     //_IS_NEED_DIR_DIFF_PATCH
@@ -85,13 +87,13 @@ typedef enum TSyncClient_resultType{
 } TNewDataSyncInfo_resultType;
 
 typedef struct ISyncInfoListener{
-    void*                 infoImport;
-    hpatch_TDecompress* (*findDecompressPlugin)(ISyncInfoListener* listener,const char* compressType);
-    hpatch_TChecksum*   (*findChecksumPlugin)  (ISyncInfoListener* listener,const char* strongChecksumType);
+    void*                    infoImport;
+    hsync_TDictDecompress* (*findDecompressPlugin)(ISyncInfoListener* listener,const char* compressType,size_t dictSize);
+    hpatch_TChecksum*      (*findChecksumPlugin)  (ISyncInfoListener* listener,const char* strongChecksumType);
     //loadedNewSyncInfo can null
-    void                (*loadedNewSyncInfo)   (ISyncInfoListener* listener,TNewDataSyncInfo* newSyncInfo);
+    void                   (*loadedNewSyncInfo)   (ISyncInfoListener* listener,TNewDataSyncInfo* newSyncInfo);
     //needSyncInfo can null
-    void                (*needSyncInfo)(ISyncInfoListener* listener,const TNeedSyncInfos* needSyncInfo);
+    void                   (*needSyncInfo)        (ISyncInfoListener* listener,const TNeedSyncInfos* needSyncInfo);
 } ISyncInfoListener;
 
 int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,
