@@ -48,14 +48,14 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
                                const hpatch_TStreamInput*  newData,
                                const hpatch_TStreamOutput* out_newSyncInfo,
                                const hpatch_TStreamOutput* out_newSyncData,
-                               const hsync_TDictCompress* compressPlugin,size_t threadNum);
+                               hsync_TDictCompress* compressPlugin,size_t threadNum);
 
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const TManifest&          newManifest,
                           const char*               out_hsyni_file,
                           const char*               out_hsynz_file,
                           hpatch_TChecksum*         strongChecksumPlugin,
-                          const hsync_TDictCompress* compressPlugin,
+                          hsync_TDictCompress*      compressPlugin,
                           size_t                    kMaxOpenFileNumber,
                           uint32_t kSyncBlockSize,size_t kSafeHashClashBit,size_t threadNum){
     assert(listener!=0);

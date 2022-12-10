@@ -45,7 +45,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
                           const char*               out_hsyni_file, // .hsyni
                           const char*               out_hsynz_file, // .hsynz
                           hpatch_TChecksum*         strongChecksumPlugin,
-                          const hsync_TDictCompress* compressPlugin,
+                          hsync_TDictCompress*      compressPlugin,
                           size_t                    kMaxOpenFileNumber,
                           uint32_t kSyncBlockSize=kSyncBlockSize_default,
                           size_t kSafeHashClashBit=kSafeHashClashBit_default,

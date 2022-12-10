@@ -41,7 +41,7 @@ extern "C" {
         const char*                  (*compressType)(void);//ascii cstring,cannot contain '&'
         //return the max compressed size, if input dataSize data;
         hpatch_StreamPos_t      (*maxCompressedSize)(hpatch_StreamPos_t in_dataSize);
-        size_t                           (*dictSize)(const struct hsync_TDictCompress* dictCompressPlugin);
+        size_t                  (*getDictSizeByData)(struct hsync_TDictCompress* dictCompressPlugin,hpatch_StreamPos_t dataSize);
         hsync_dictCompressHandle (*dictCompressOpen)(const struct hsync_TDictCompress* dictCompressPlugin);
         void                    (*dictCompressClose)(const struct hsync_TDictCompress* dictCompressPlugin,
                                                      hsync_dictCompressHandle dictHandle);

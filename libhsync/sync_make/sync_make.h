@@ -47,7 +47,7 @@ static const size_t kSafeHashClashBit_default = 32;
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_hsyni,
                       hpatch_TChecksum*           strongChecksumPlugin,
-                      const hsync_TDictCompress*  compressPlugin=0,
+                      hsync_TDictCompress*  compressPlugin=0,
                       uint32_t kSyncBlockSize=kSyncBlockSize_default,
                       size_t kSafeHashClashBit=kSafeHashClashBit_default,
                       size_t threadNum=1);
@@ -58,7 +58,7 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_hsyni,
                       const hpatch_TStreamOutput* out_hsynz,
                       hpatch_TChecksum*           strongChecksumPlugin,
-                      const hsync_TDictCompress*  compressPlugin,
+                      hsync_TDictCompress*  compressPlugin,
                       uint32_t kSyncBlockSize=kSyncBlockSize_default,
                       size_t kSafeHashClashBit=kSafeHashClashBit_default,
                       size_t threadNum=1);
