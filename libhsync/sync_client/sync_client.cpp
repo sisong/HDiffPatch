@@ -32,10 +32,18 @@
 #include "sync_diff_data.h"
 #include <stdexcept>
 namespace sync_private{
-
+#define _kMinCacheBlockDictMemSize ((1<<10)*256)
+#define _kMinCacheBlockDictSize_r  4    // dictSize/_kMinCacheBlockDictSize_r
 #define check(v,errorCode) \
             do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
                             if (!_inClear) goto clear; } }while(0)
+
+static size_t _getBlockDict(size_t dictSize,uint32_t kSyncBlockSize){
+    if (dictSize==0) return 0;
+    size_t bestMem=_kMinCacheBlockDictMemSize;
+    if (bestMem<(dictSize/_kMinCacheBlockDictSize_r)) bestMem=dictSize/_kMinCacheBlockDictSize_r;
+    return (bestMem+kSyncBlockSize/2)/kSyncBlockSize;
+}
 
 bool _open_continue_out(hpatch_BOOL& isOutContinue,const char* outFile,hpatch_TFileStreamOutput* out_stream,
                         hpatch_TStreamInput* continue_stream,hpatch_StreamPos_t maxContinueLength){
@@ -112,15 +120,17 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
     bool isOnDiffContinue =(wd.continueDiffData!=0);
     bool isOnNewDataContinue =(wd.newDataContinue!=0);
     const size_t dictSize=wd.newSyncInfo->dictSize;
+    const size_t blockDict=_getBlockDict(dictSize,kSyncBlockSize); //cache block count in dict
     const size_t _memSize=kSyncBlockSize*(wd.decompressPlugin?2:1)+dictSize
+                        +kSyncBlockSize*blockDict
                         +newSyncInfo->kStrongChecksumByteSize
                         +checkChecksumBufByteSize(newSyncInfo->kStrongChecksumByteSize);
     _memBuf=(TByte*)malloc(_memSize);
     check(_memBuf!=0,kSyncClient_memError);
-    TByte* const dictBuf=_memBuf;
-    TByte* const dataBuf=dictBuf+dictSize;
+    TByte* const blockDictBuf=_memBuf;
+    size_t       blockDictBuf_i=blockDict;
     if (dictSize>0)
-        memset(dictBuf,0,dictSize+kSyncBlockSize);
+        memset(blockDictBuf+kSyncBlockSize*(blockDict+1),0,dictSize);
     {//checksum newSyncData
         checksumSync_buf=_memBuf+_memSize-(newSyncInfo->kStrongChecksumByteSize
                                            +checkChecksumBufByteSize(newSyncInfo->kStrongChecksumByteSize));
@@ -130,8 +140,16 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
     hpatch_BOOL dict_isReset=hpatch_TRUE;
     for (uint32_t syncSize=0,newDataSize=0,i=0; i<kBlockCount; ++i, outNewDataPos+=newDataSize,
             posInNewSyncData+=syncSize,posInNeedSyncData+=isNeedSync?syncSize:0){
-        if (dictSize>0)
-            memmove(dictBuf,dictBuf+kSyncBlockSize,dictSize);
+        if (dictSize>0){
+            if (blockDictBuf_i==blockDict){
+                memmove(blockDictBuf,blockDictBuf+kSyncBlockSize*(blockDict+1),dictSize);
+                blockDictBuf_i=0;
+            }else{
+                ++blockDictBuf_i;
+            }
+        }
+        TByte* const dictBuf=blockDictBuf+kSyncBlockSize*blockDictBuf_i;
+        TByte* const dataBuf=dictBuf+dictSize;
         syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
         newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
         check(syncSize<=newDataSize,kSyncClient_newSyncInfoDataError);
