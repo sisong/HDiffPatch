@@ -28,6 +28,7 @@
  */
 #include "sync_info_make.h"
 #include "sync_make_hash_clash.h" // isCanUse32bitRollHash
+#include "../sync_client/sync_info_client.h" // TNewDataSyncInfo_dir_saveHeadTo
 using namespace hdiff_private;
 namespace sync_private{
 
@@ -99,18 +100,13 @@ static void _saveDirHeadTo(const TNewDataSyncInfo_dir* self,std::vector<hpatch_b
     packUInt(out_buf,self->dir_newPathSumCharSize);
 }
 
-void TNewDataSyncInfo_dir_saveTo(TNewDataSyncInfo_dir* self,std::vector<hpatch_byte>& out_buf){
-    self->dir_newPathSumCharSize=0;
-    {
-        packIncList(out_buf,self->dir_newExecuteIndexList,self->dir_newExecuteCount);
-        packList(out_buf,self->dir_newSizeList,self->dir_newPathCount);
-        checkv(!self->dir_newNameList_isCString);
-        self->dir_newPathSumCharSize=pushNameList(out_buf,self->dir_utf8NewRootPath,
-                                                 (std::string*)self->dir_utf8NewNameList,self->dir_newPathCount);
-    }
+void TNewDataSyncInfo_dirWithHead_saveTo(TNewDataSyncInfo_dir* self,std::vector<hpatch_byte>& out_buf){
+    size_t pos=out_buf.size();
+    TNewDataSyncInfo_dir_saveTo(self,out_buf);
+
     std::vector<hpatch_byte> head;
     _saveDirHeadTo(self,head);
-    out_buf.insert(out_buf.begin(),head.begin(),head.end());
+    out_buf.insert(out_buf.begin()+pos,head.begin(),head.end());
 }
 #endif
 

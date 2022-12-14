@@ -81,7 +81,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     dirInfo.dir_newSizeList=newSizeList.data();
     dirInfo.dir_newExecuteCount=newExecuteList.size();
     dirInfo.dir_newExecuteIndexList=newExecuteList.data();
-    TNewDataSyncInfo_dir_saveTo(&dirInfo,dirInfoSavedData);
+    TNewDataSyncInfo_dirWithHead_saveTo(&dirInfo,dirInfoSavedData);
 
     CFileResHandleLimit resLimit(kMaxOpenFileNumber,newList.size()+1);
     hpatch_StreamPos_t maxNewSize=dirInfoSavedData.size();

@@ -56,8 +56,6 @@ int sync_local_patch_2file(ISyncInfoListener* listener,const char* inDiffFile,
 
 struct IDirSyncPatchListener:public ISyncInfoListener{
     void*       patchImport;
-    hpatch_BOOL (*patchBegin) (struct IDirSyncPatchListener* listener,
-                               const TNewDataSyncInfo* newSyncInfo,TNewDirOutput* newDirOutput);
     hpatch_BOOL (*patchFinish)(struct IDirSyncPatchListener* listener,hpatch_BOOL isPatchSuccess,
                                const TNewDataSyncInfo* newSyncInfo,TNewDirOutput* newDirOutput);
 };

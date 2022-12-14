@@ -32,9 +32,25 @@
 #include "../../libHDiffPatch/HPatch/patch_private.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../dirDiffPatch/dir_patch/dir_patch_tools.h"
+#include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
 #endif
-namespace sync_private{
+#if (_IS_NEED_DIR_DIFF_PATCH)
+void TNewDataSyncInfo_dir_saveTo(TNewDataSyncInfo_dir* self,std::vector<hpatch_byte>& out_buf){
+    self->dir_newPathSumCharSize=0;
+    {
+        hdiff_private::packIncList(out_buf,self->dir_newExecuteIndexList,self->dir_newExecuteCount);
+        hdiff_private::packList(out_buf,self->dir_newSizeList,self->dir_newPathCount);
+        checkv(!self->dir_newNameList_isCString);
+        self->dir_newPathSumCharSize=hdiff_private::pushNameList(out_buf,self->dir_utf8NewRootPath,
+                                        (std::string*)self->dir_utf8NewNameList,self->dir_newPathCount);
+    }
+}
+#endif
 
+namespace sync_private{
+#ifdef  check
+# undef check
+#endif
 #define check(v,errorCode) \
             do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
                             if (!_inClear) goto clear; } }while(0)
@@ -234,6 +250,15 @@ static bool readPartHashTo(TStreamCacheClip* clip,TByte* partHash,size_t partSiz
         hsync_dictDecompressHandle decompressHandle;
     } _TDictDecompressInputStream;
 
+#if (_IS_NEED_DIR_DIFF_PATCH)
+static hpatch_BOOL _readDirHead(TNewDataSyncInfo_dir* dirInfo,TStreamCacheClip* clip){
+    if (!_clip_unpackToSize_t(&dirInfo->dir_newExecuteCount,clip)) return hpatch_FALSE;
+    if (!_clip_unpackToSize_t(&dirInfo->dir_newPathCount,clip)) return hpatch_FALSE;
+    if (!_clip_unpackToSize_t(&dirInfo->dir_newPathSumCharSize,clip)) return hpatch_FALSE;
+    return hpatch_TRUE;
+}
+#endif
+
 static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
                                   ISyncInfoListener *listener){
     assert(self->_import==0);
@@ -298,8 +323,6 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
         check(_clip_unpackToSize_t(&self->savedRollHashByteSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackToUInt32(&self->kSyncBlockSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackToUInt32(&self->samePairCount,&clip),kSyncClient_newSyncInfoDataError);
-        check(_clip_unpackToByte(&self->isDirSyncInfo,&clip),kSyncClient_newSyncInfoDataError);
-        check(newIsDir_byType==self->isDirSyncInfo, kSyncClient_newSyncInfoTypeError);
         check(_clip_unpackToByte(&isSavedSizes,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newDataSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newSyncDataSize,&clip),kSyncClient_newSyncInfoDataError);
@@ -311,12 +334,12 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
         check((compressDataSize==0)||(compressDataSize<uncompressDataSize),kSyncClient_newSyncInfoDataError);
         if (compressDataSize>0) check(decompressPlugin!=0,kSyncClient_newSyncInfoDataError);
         
+        check(_clip_unpackToByte(&self->isDirSyncInfo,&clip),kSyncClient_newSyncInfoDataError);
+        check(newIsDir_byType==self->isDirSyncInfo, kSyncClient_newSyncInfoTypeError);
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
             check(_clip_unpackToSize_t(&self->dirInfoSavedSize,&clip),kSyncClient_newSyncInfoDataError);
-            check(_clip_unpackToSize_t(&self->dirInfo.dir_newExecuteCount,&clip),kSyncClient_newSyncInfoDataError);
-            check(_clip_unpackToSize_t(&self->dirInfo.dir_newPathCount,&clip),kSyncClient_newSyncInfoDataError);
-            check(_clip_unpackToSize_t(&self->dirInfo.dir_newPathSumCharSize,&clip),kSyncClient_newSyncInfoDataError);
+            check(_readDirHead(&self->dirInfo,&clip),kSyncClient_newSyncInfoDataError);
         }
 #endif
         check(_clip_unpackUIntTo(&self->newSyncInfoSize,&clip),kSyncClient_newSyncInfoDataError);
@@ -495,6 +518,40 @@ clear:
     if (temp_cache) free(temp_cache);
     return result;
 }
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
+int TNewDataSyncInfo_dir_load(TNewDataSyncInfo_dir* self,const hpatch_byte* buf,size_t bufSize){
+    int result=kSyncClient_ok;
+    int _inClear=0;
+    TStreamCacheClip _clip;
+    TStreamCacheClip* clip=&_clip;
+    _TStreamCacheClip_init(clip,0,0,0,(hpatch_byte*)buf,bufSize);
+    clip->cacheBegin=0;
+
+    check(_readDirHead(self,clip),kSyncClient_savedNewDirInfoDataError);
+
+    //dir_newExecuteIndexList
+    check(readIncListTo(clip,self->dir_newExecuteIndexList,self->dir_newExecuteCount,
+                        self->dir_newPathCount),kSyncClient_savedNewDirInfoDataError);
+    //dir_newSizeList
+    check(readListTo(clip,self->dir_newSizeList,self->dir_newPathCount),
+            kSyncClient_savedNewDirInfoDataError);
+    //dir_utf8NewNameList
+    if (self->dir_newPathCount>0){
+        char* charsBuf=((char**)self->dir_utf8NewNameList)[0];
+        check(_TStreamCacheClip_readDataTo(clip,(TByte*)charsBuf,
+                                           (TByte*)charsBuf+self->dir_newPathSumCharSize),
+              kSyncClient_savedNewDirInfoDataError);
+        formatDirTagForLoad(charsBuf,charsBuf+self->dir_newPathSumCharSize);
+        check(clipCStrsTo(charsBuf,charsBuf+self->dir_newPathSumCharSize,
+                            (const char**)self->dir_utf8NewNameList,self->dir_newPathCount),
+                kSyncClient_savedNewDirInfoDataError);
+    }
+clear:
+    _inClear=1;
+    return result;
+}
+#endif
 
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self){
     if (self==0) return;

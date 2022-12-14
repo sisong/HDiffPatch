@@ -29,6 +29,9 @@
 #ifndef sync_info_client_h
 #define sync_info_client_h
 #include "sync_client_type.h"
+#if (_IS_NEED_DIR_DIFF_PATCH)
+#include <vector>
+#endif
 
 typedef enum TSyncClient_resultType{
     kSyncClient_ok=0,
@@ -77,11 +80,13 @@ typedef enum TSyncClient_resultType{
     kSyncClient_loadDiffError,
     
     //_IS_NEED_DIR_DIFF_PATCH
-    kSyncClient_oldDirOpenError=51,
+    kSyncClient_oldDirOpenError=50,
     kSyncClient_oldDirFilesOpenError,
     kSyncClient_oldDirFilesCloseError,
-    kSyncClient_newDirOpenError,
-    kSyncClient_newDirCloseError, // 55
+    kSyncClient_savedNewDirInfoDataError,
+    kSyncClient_newDirOpenInfoError,
+    kSyncClient_newDirOpenError,  // 55
+    kSyncClient_newDirCloseError, 
     kSyncClient_newDirPatchBeginError,
     kSyncClient_newDirPatchFinishError,
 } TNewDataSyncInfo_resultType;
@@ -104,5 +109,10 @@ void TNewDataSyncInfo_close       (TNewDataSyncInfo* self);
 
 int  checkNewSyncInfoType_by_file(const char* newSyncInfoFile,hpatch_BOOL* out_newIsDir);
 int  checkNewSyncInfoType(const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL* out_newIsDir);
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
+void TNewDataSyncInfo_dir_saveTo(TNewDataSyncInfo_dir* self,std::vector<hpatch_byte>& out_buf);
+int  TNewDataSyncInfo_dir_load(TNewDataSyncInfo_dir* outDirInfo,const hpatch_byte* buf,size_t bufSize);
+#endif
 
 #endif // sync_info_client_h
