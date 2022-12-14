@@ -65,16 +65,28 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     const std::vector<std::string>& newList=newManifest.pathList;
     std::vector<hpatch_StreamPos_t> newSizeList;
     std::vector<size_t> newExecuteList; //for linux etc
-    
+
     for (size_t newi=0; newi<newList.size(); ++newi) {
         if ((!isDirName(newList[newi]))&&(listener->isExecuteFile(newList[newi])))
             newExecuteList.push_back(newi);
     }
-
     getRefList(newList,newSizeList);
-    CFileResHandleLimit resLimit(kMaxOpenFileNumber,newList.size());
-    hpatch_StreamPos_t maxNewSize=0;
+
+    TNewDataSyncInfo_dir     dirInfo={0};
+    std::vector<hpatch_byte> dirInfoSavedData;
+    dirInfo.dir_newPathCount=newList.size();
+    dirInfo.dir_newNameList_isCString=hpatch_FALSE;
+    dirInfo.dir_utf8NewNameList=newList.data();
+    dirInfo.dir_utf8NewRootPath=newManifest.rootPath.c_str();
+    dirInfo.dir_newSizeList=newSizeList.data();
+    dirInfo.dir_newExecuteCount=newExecuteList.size();
+    dirInfo.dir_newExecuteIndexList=newExecuteList.data();
+    TNewDataSyncInfo_dir_saveTo(&dirInfo,dirInfoSavedData);
+
+    CFileResHandleLimit resLimit(kMaxOpenFileNumber,newList.size()+1);
+    hpatch_StreamPos_t maxNewSize=dirInfoSavedData.size();
     {
+        resLimit.addBufRes(dirInfoSavedData.data(),dirInfoSavedData.size());
         for (size_t i=0; i<newSizeList.size(); ++i) {
             hpatch_StreamPos_t newSize=newSizeList[i];
             maxNewSize=(newSize>maxNewSize)?newSize:maxNewSize;
@@ -90,7 +102,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     resLimit.open();
     CRefStream newRefStream;
     const size_t kAlignSize=kSyncBlockSize;
-    newRefStream.open(resLimit.limit.streamList,newList.size(),kAlignSize);
+    newRefStream.open(resLimit.limit.streamList,resLimit.limit.streamCount,kAlignSize);
     
     bool isSafeHashClash=getStrongForHashClash(kSafeHashClashBit,newRefStream.stream->streamSize,kSyncBlockSize,
                                                strongChecksumPlugin->checksumByteSize());
@@ -101,13 +113,8 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     CNewDataSyncInfo  newDataSyncInfo(strongChecksumPlugin,compressPlugin,
                                       newRefStream.stream->streamSize,kSyncBlockSize,kSafeHashClashBit);
     newDataSyncInfo.isDirSyncInfo=hpatch_TRUE;
-    newDataSyncInfo.dir_newPathCount=newList.size();
-    newDataSyncInfo.dir_newNameList_isCString=hpatch_FALSE;
-    newDataSyncInfo.dir_utf8NewNameList=newList.data();
-    newDataSyncInfo.dir_utf8NewRootPath=newManifest.rootPath.c_str();
-    newDataSyncInfo.dir_newSizeList=newSizeList.data();
-    newDataSyncInfo.dir_newExecuteCount=newExecuteList.size();
-    newDataSyncInfo.dir_newExecuteIndexList=newExecuteList.data();
+    newDataSyncInfo.dirInfo=dirInfo;
+    newDataSyncInfo.dirInfoSavedSize=dirInfoSavedData.size();
     
     CFileStreamOutput out_newSyncInfo(out_hsyni_file,~(hpatch_StreamPos_t)0);
     CFileStreamOutput out_newSyncData(out_hsynz_file,~(hpatch_StreamPos_t)0);

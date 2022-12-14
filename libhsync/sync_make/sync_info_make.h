@@ -36,7 +36,10 @@
 #include "dict_compress_plugin.h"
 
 namespace sync_private{
-    
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
+void TNewDataSyncInfo_dir_saveTo(TNewDataSyncInfo_dir* self,std::vector<hpatch_byte>& out_buf);
+#endif
 void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* out_stream,
                              const hsync_TDictCompress* compressPlugin,hsync_dictCompressHandle dictHandle,size_t dictSize);
 

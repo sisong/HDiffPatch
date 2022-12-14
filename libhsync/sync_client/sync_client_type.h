@@ -49,7 +49,21 @@ typedef struct TSameNewBlockPair{
     uint32_t  sameIndex; // sameIndex < curIndex;
 } TSameNewBlockPair;
 
-typedef struct TNewDataSyncInfo{
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
+typedef struct{
+    size_t                  dir_newPathCount;
+    uint8_t                 dir_newNameList_isCString;
+    const void*             dir_utf8NewNameList;//is const char** or const std::string* type
+    const char*             dir_utf8NewRootPath;
+    hpatch_StreamPos_t*     dir_newSizeList;
+    size_t                  dir_newPathSumCharSize;
+    size_t                  dir_newExecuteCount;
+    size_t*                 dir_newExecuteIndexList;
+} TNewDataSyncInfo_dir;
+#endif
+
+typedef struct{
     const char*             compressType;
     const char*             strongChecksumType;
     size_t                  kStrongChecksumByteSize;
@@ -69,13 +83,8 @@ typedef struct TNewDataSyncInfo{
     uint8_t*                rollHashs;
     uint8_t*                partChecksums;
 #if (_IS_NEED_DIR_DIFF_PATCH)
-    size_t                  dir_newPathCount;
-    uint8_t                 dir_newNameList_isCString;
-    const void*             dir_utf8NewNameList;//is const char** or const std::string* type
-    const char*             dir_utf8NewRootPath;
-    hpatch_StreamPos_t*     dir_newSizeList;
-    size_t                  dir_newExecuteCount;
-    size_t*                 dir_newExecuteIndexList;
+    TNewDataSyncInfo_dir    dirInfo;
+    size_t                  dirInfoSavedSize;
 #endif
     hpatch_TChecksum*       _strongChecksumPlugin;
     hsync_TDictDecompress*  _decompressPlugin;

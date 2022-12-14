@@ -68,7 +68,7 @@ struct _TCompress{
         size_t result=compressPlugin->dictCompress(dictCompressHandle,cmbuf.data(),
                                                    cmbuf.data()+cmbuf.size(),data,dictEnd,dataEnd,
                                                    dict_isReset,in_isEnd);
-        checkv(result>0);
+        //checkv(result>0);
         if (result>=(size_t)(dataEnd-dictEnd))
             result=0;
         return result;

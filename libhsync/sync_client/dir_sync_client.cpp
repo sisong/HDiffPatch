@@ -122,17 +122,18 @@ clear:
 
 struct CNewDirOut{
     inline CNewDirOut(){ TNewDirOutput_init(&_newDir); }
-    bool openDir(TNewDataSyncInfo* newSyncInfo,const char* outNewDir,IDirPatchListener* listener,
+    bool openDir(const TNewDataSyncInfo* newSyncInfo,const char* outNewDir,IDirPatchListener* listener,
                  const hpatch_TStreamOutput** out_newDirStream,size_t kAlignSize){
+        const TNewDataSyncInfo_dir* dirInfo=&newSyncInfo->dirInfo;
         assert(_newDir._newRootDir==0);
-        assert(newSyncInfo->dir_newNameList_isCString);
-        _newDir.newUtf8PathList=(const char* const *)newSyncInfo->dir_utf8NewNameList;
-        _newDir.newExecuteList=newSyncInfo->dir_newExecuteIndexList;
-        _newDir.newRefSizeList=newSyncInfo->dir_newSizeList;
+        assert(dirInfo->dir_newNameList_isCString);
+        _newDir.newUtf8PathList=(const char* const *)dirInfo->dir_utf8NewNameList;
+        _newDir.newExecuteList=dirInfo->dir_newExecuteIndexList;
+        _newDir.newRefSizeList=dirInfo->dir_newSizeList;
         _newDir.newDataSize=newSyncInfo->newDataSize;
-        _newDir.newPathCount=newSyncInfo->dir_newPathCount;
-        _newDir.newRefFileCount=newSyncInfo->dir_newPathCount;
-        _newDir.newExecuteCount=newSyncInfo->dir_newExecuteCount;
+        _newDir.newPathCount=dirInfo->dir_newPathCount;
+        _newDir.newRefFileCount=dirInfo->dir_newPathCount;
+        _newDir.newExecuteCount=dirInfo->dir_newExecuteCount;
         _newDir._newRootDir=_tempbuf;
         _newDir._newRootDir_bufEnd=_newDir._newRootDir+sizeof(_tempbuf);
         _newDir._newRootDir_end=setDirPath(_newDir._newRootDir,_newDir._newRootDir_bufEnd,outNewDir);

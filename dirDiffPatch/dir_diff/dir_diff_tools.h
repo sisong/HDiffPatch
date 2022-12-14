@@ -136,21 +136,26 @@ struct TOffsetStreamOutput:public hpatch_TStreamOutput{
 struct CFileResHandleLimit{
     CFileResHandleLimit(size_t _limitMaxOpenCount,size_t resCount);
     inline ~CFileResHandleLimit() { close(); }
+    void addBufRes(const hpatch_byte* bufRes,size_t bufResSize); //only support one
     void addRes(const std::string& fileName,hpatch_StreamPos_t fileSize);
     void open();
     bool closeFileHandles();
     void close();
     
     struct CFile:public hpatch_TFileStreamInput{
-        std::string  fileName;
+        std::string          fileName;
+        CFileResHandleLimit* owner;
     };
     hpatch_TResHandleLimit          limit;
     std::vector<CFile>              fileList;
     std::vector<hpatch_IResHandle>  resList;
     size_t                          limitMaxOpenCount;
     size_t                          curInsert;
+    const hpatch_byte*              bufRes;
+    size_t                          bufResSize;
     static hpatch_BOOL openRes(struct hpatch_IResHandle* res,hpatch_TStreamInput** out_stream);
     static hpatch_BOOL closeRes(struct hpatch_IResHandle* res,const hpatch_TStreamInput* stream);
+    void _addRes(const std::string& fileName,hpatch_StreamPos_t fileSize);
 };
 
 struct CRefStream:public hpatch_TRefStream{

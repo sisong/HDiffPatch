@@ -92,9 +92,34 @@ namespace sync_private{
         assert(curPair==samePairCount);
     }
     
+#if (_IS_NEED_DIR_DIFF_PATCH)
+static void _saveDirHeadTo(const TNewDataSyncInfo_dir* self,std::vector<hpatch_byte>& out_buf){
+    packUInt(out_buf,self->dir_newExecuteCount);
+    packUInt(out_buf,self->dir_newPathCount);
+    packUInt(out_buf,self->dir_newPathSumCharSize);
+}
+
+void TNewDataSyncInfo_dir_saveTo(TNewDataSyncInfo_dir* self,std::vector<hpatch_byte>& out_buf){
+    self->dir_newPathSumCharSize=0;
+    {
+        packIncList(out_buf,self->dir_newExecuteIndexList,self->dir_newExecuteCount);
+        packList(out_buf,self->dir_newSizeList,self->dir_newPathCount);
+        checkv(!self->dir_newNameList_isCString);
+        self->dir_newPathSumCharSize=pushNameList(out_buf,self->dir_utf8NewRootPath,
+                                                 (std::string*)self->dir_utf8NewNameList,self->dir_newPathCount);
+    }
+    std::vector<hpatch_byte> head;
+    _saveDirHeadTo(self,head);
+    out_buf.insert(out_buf.begin(),head.begin(),head.end());
+}
+#endif
+
 void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* out_stream,
                              const hsync_TDictCompress* compressPlugin,hsync_dictCompressHandle dictHandle,size_t dictSize){
-#if ( ! (_IS_NEED_DIR_DIFF_PATCH) )
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    if (self->isDirSyncInfo)
+        checkv(self->dirInfoSavedSize>0);
+#else
     checkv(!self->isDirSyncInfo);
 #endif
     const char* kVersionType=self->isDirSyncInfo?"HDirSync22":"HSync22";
@@ -114,17 +139,6 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     if (isSavedSizes)
         saveSavedSizes(buf,self);
 
-#if (_IS_NEED_DIR_DIFF_PATCH)
-    size_t dir_newPathSumCharSize=0;
-    if (self->isDirSyncInfo){
-        checkv(!self->dir_newNameList_isCString);
-        packList(buf,self->dir_newSizeList,self->dir_newPathCount);
-        packIncList(buf,self->dir_newExecuteIndexList,self->dir_newExecuteCount);
-        dir_newPathSumCharSize=pushNameList(buf,self->dir_utf8NewRootPath,
-                                            (std::string*)self->dir_utf8NewNameList,self->dir_newPathCount);
-    }
-#endif
-
     //compress buf
     size_t uncompressDataSize=buf.size();
     size_t compressDataSize=0;
@@ -143,7 +157,6 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
         packUInt(head,self->savedRollHashByteSize);
         packUInt(head,self->kSyncBlockSize);
         packUInt(head,self->samePairCount);
-        pushUInt(head,self->isDirSyncInfo);
         pushUInt(head,isSavedSizes);
         packUInt(head,self->newDataSize);
         packUInt(head,self->newSyncDataSize);
@@ -151,12 +164,11 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
         packUInt(head,externDataSize);
         packUInt(head,uncompressDataSize);
         packUInt(head,compressDataSize);
-        
+        pushUInt(head,self->isDirSyncInfo);
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
-            packUInt(head,dir_newPathSumCharSize);
-            packUInt(head,self->dir_newPathCount);
-            packUInt(head,self->dir_newExecuteCount);
+            packUInt(head,self->dirInfoSavedSize);
+            _saveDirHeadTo(&self->dirInfo,head);
         }
 #endif
         
@@ -204,6 +216,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
         assert(outPos==self->newSyncInfoSize);
     }
 }
+
 
 CNewDataSyncInfo::CNewDataSyncInfo(hpatch_TChecksum* strongChecksumPlugin,const hsync_TDictCompress* compressPlugin,
                                    hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,size_t kSafeHashClashBit){
