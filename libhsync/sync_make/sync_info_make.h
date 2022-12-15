@@ -34,6 +34,7 @@
 #include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
 #include "../sync_client/sync_client_type.h"
 #include "dict_compress_plugin.h"
+#include "sync_hsynz_plugin.h"
 
 namespace sync_private{
 
@@ -57,6 +58,8 @@ private:
     std::string                 _strongChecksumType;
     hdiff_private::TAutoMem     _mem;
 };
+
+void getHsynzPluginDefault(hsync_THsynz* out_hsynzPlugin);
 
 }//namespace sync_private
 #endif // hsync_info_make_h

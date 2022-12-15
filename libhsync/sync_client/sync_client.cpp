@@ -112,7 +112,7 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
     TByte*             checksumSync_buf=0;
     hsync_dictDecompressHandle decompressHandle=0;
     hpatch_checksumHandle checksumSync=0;
-    hpatch_StreamPos_t posInNewSyncData=0;
+    hpatch_StreamPos_t posInNewSyncData=newSyncInfo->newSyncDataOffsert;
     hpatch_StreamPos_t posInNeedSyncData=0;
     hpatch_StreamPos_t outNewDataPos=0;
     const hpatch_StreamPos_t oldDataSize=wd.oldStream->streamSize;

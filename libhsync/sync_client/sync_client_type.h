@@ -75,6 +75,7 @@ typedef struct{
     uint8_t                 isDirSyncInfo;
     hpatch_StreamPos_t      newDataSize;      // newData version size;
     hpatch_StreamPos_t      newSyncDataSize;  // .hsynz size ,saved newData or complessed newData
+    hpatch_StreamPos_t      newSyncDataOffsert;
     hpatch_StreamPos_t      newSyncInfoSize;  // .hsyni size ,saved newData's info
     unsigned char*          savedNewDataCheckChecksum; // out new data's strongChecksum's checksum
     unsigned char*          infoFullChecksum; // this info data's strongChecksum

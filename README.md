@@ -288,7 +288,7 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 
 ---
 ## HDiffPatch vs BsDiff & xdelta:
-case list:
+case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgUIZxYac5_uflNoN)):   
 | |newFile <-- oldFile|newSize|oldSize|
 |----:|:----|----:|----:|
 |1|7-Zip_22.01.win.tar <-- 7-Zip_21.07.win.tar|5908992|5748224|

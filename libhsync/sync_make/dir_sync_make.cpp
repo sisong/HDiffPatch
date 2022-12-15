@@ -48,15 +48,17 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
                                const hpatch_TStreamInput*  newData,
                                const hpatch_TStreamOutput* out_newSyncInfo,
                                const hpatch_TStreamOutput* out_newSyncData,
-                               hsync_TDictCompress* compressPlugin,size_t threadNum);
+                               hsync_TDictCompress* compressPlugin,
+                               hsync_THsynz* hsynzPlugin,size_t threadNum);
 
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const TManifest&          newManifest,
                           const char*               out_hsyni_file,
                           const char*               out_hsynz_file,
+                          size_t                    kMaxOpenFileNumber,
                           hpatch_TChecksum*         strongChecksumPlugin,
                           hsync_TDictCompress*      compressPlugin,
-                          size_t                    kMaxOpenFileNumber,
+                          hsync_THsynz*             hsynzPlugin,
                           uint32_t kSyncBlockSize,size_t kSafeHashClashBit,size_t threadNum){
     assert(listener!=0);
     assert((out_hsynz_file!=0)&&(strlen(out_hsynz_file)>0));
@@ -120,7 +122,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     CFileStreamOutput out_newSyncData(out_hsynz_file,~(hpatch_StreamPos_t)0);
     
     _private_create_sync_data(&newDataSyncInfo, newRefStream.stream,&out_newSyncInfo.base,
-                              &out_newSyncData.base, compressPlugin,threadNum);
+                              &out_newSyncData.base, compressPlugin,hsynzPlugin,threadNum);
 }
 
 

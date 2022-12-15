@@ -51,15 +51,12 @@ namespace sync_private{
     
     static void saveSavedSizes(std::vector<TByte> &buf, TNewDataSyncInfo *self) {
         const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
-        hpatch_StreamPos_t sumSavedSize=0;
         for (uint32_t i=0; i<kBlockCount; ++i){
             uint32_t savedSize=self->savedSizes[i];
-            sumSavedSize+=savedSize;
             if (savedSize==TNewDataSyncInfo_newDataBlockSize(self,i))
                 savedSize=0;
             packUInt(buf,savedSize);
         }
-        assert(sumSavedSize==self->newSyncDataSize);
     }
     
     static void _compressBuf(std::vector<TByte> &buf, const hsync_TDictCompress *compressPlugin) {
@@ -118,7 +115,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 #else
     checkv(!self->isDirSyncInfo);
 #endif
-    const char* kVersionType=self->isDirSyncInfo?"HDirSync22":"HSync22";
+    const char* kVersionType=self->isDirSyncInfo?"HDirSyni22":"HSyni22";
     if (compressPlugin)
         checkv(0==strcmp(compressPlugin->compressType(),self->compressType));
     else
@@ -148,14 +145,15 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     {//head
         pushTypes(head,kVersionType,compressPlugin?compressPlugin->compressType():0,strongChecksumPlugin);
         packUInt(head,dictSize);
+        packUInt(head,self->newSyncDataSize);
+        packUInt(head,self->newSyncDataOffsert);
+        packUInt(head,self->newDataSize);
+        packUInt(head,self->kSyncBlockSize);
         packUInt(head,self->kStrongChecksumByteSize);
         packUInt(head,self->savedStrongChecksumByteSize);
         packUInt(head,self->savedRollHashByteSize);
-        packUInt(head,self->kSyncBlockSize);
         packUInt(head,self->samePairCount);
         pushUInt(head,isSavedSizes);
-        packUInt(head,self->newDataSize);
-        packUInt(head,self->newSyncDataSize);
         packUInt(head,privateExternDataSize);
         packUInt(head,externDataSize);
         packUInt(head,uncompressDataSize);
@@ -250,6 +248,34 @@ CNewDataSyncInfo::CNewDataSyncInfo(hpatch_TChecksum* strongChecksumPlugin,const 
     }
     assert(curMem==_mem.data_end());
 }
+
+
+static hpatch_StreamPos_t _hsynz_write_head(struct hsync_THsynz* zPlugin,
+                                            const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t curOutPos,
+                                            bool isDirSync,hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,
+                                            hpatch_TChecksum* strongChecksumPlugin,hsync_TDictCompress* compressPlugin){
+    const char* kVersionType=isDirSync?"HDirSynz22":"HSynz22";
+    std::vector<TByte> head;
+    pushTypes(head,kVersionType,compressPlugin?compressPlugin->compressType():0,strongChecksumPlugin);
+    packUInt(head,newDataSize);
+    packUInt(head,kSyncBlockSize);
+    packUInt(head,strongChecksumPlugin->checksumByteSize());
+    checkv(out_stream->write(out_stream,curOutPos,head.data(),head.data()+head.size()));
+    return curOutPos+head.size();
+}
+static hpatch_StreamPos_t _hsynz_write_end(struct hsync_THsynz* zPlugin,
+                                           const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t curOutPos,
+                                           const hpatch_byte* newDataCheckChecksum,size_t checksumSize){
+    checkv(out_stream->write(out_stream,curOutPos,newDataCheckChecksum,newDataCheckChecksum+checksumSize));
+    return curOutPos+checksumSize;
+}
+void getHsynzPluginDefault(hsync_THsynz* out_hsynzPlugin){
+    checkv(out_hsynzPlugin!=0);
+    out_hsynzPlugin->hsynz_write_head=_hsynz_write_head;
+    out_hsynzPlugin->hsynz_readed_data=0;
+    out_hsynzPlugin->hsynz_write_end=_hsynz_write_end;
+}
+
 
 }//namespace sync_private
 

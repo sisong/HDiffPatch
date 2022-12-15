@@ -32,6 +32,7 @@
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 #include "../sync_client/sync_client_type.h"
 #include "dict_compress_plugin.h"
+#include "sync_hsynz_plugin.h"
 
 static const uint32_t kSyncBlockSize_default   = 1024*2;
 static const uint32_t kSyncBlockSize_min       = 64;
@@ -47,7 +48,7 @@ static const size_t kSafeHashClashBit_default = 32;
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_hsyni,
                       hpatch_TChecksum*           strongChecksumPlugin,
-                      hsync_TDictCompress*  compressPlugin=0,
+                      hsync_TDictCompress* compressPlugin=0,
                       uint32_t kSyncBlockSize=kSyncBlockSize_default,
                       size_t kSafeHashClashBit=kSafeHashClashBit_default,
                       size_t threadNum=1);
@@ -58,7 +59,8 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_hsyni,
                       const hpatch_TStreamOutput* out_hsynz,
                       hpatch_TChecksum*           strongChecksumPlugin,
-                      hsync_TDictCompress*  compressPlugin,
+                      hsync_TDictCompress*        compressPlugin,
+                      hsync_THsynz* hsynzPlugin=0,
                       uint32_t kSyncBlockSize=kSyncBlockSize_default,
                       size_t kSafeHashClashBit=kSafeHashClashBit_default,
                       size_t threadNum=1);
