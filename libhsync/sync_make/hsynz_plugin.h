@@ -1,4 +1,4 @@
-//  sync_hsynz_plugin.h
+//  hsynz_plugin.h
 //  sync_make
 //  Created by housisong on 2022-12-15.
 /*
@@ -26,8 +26,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef sync_hsynz_plugin_h
-#define sync_hsynz_plugin_h
+#ifndef hsynz_plugin_h
+#define hsynz_plugin_h
 #include "../../libHDiffPatch/HPatch/patch_types.h"
 #ifdef __cplusplus
 extern "C" {
@@ -44,7 +44,7 @@ extern "C" {
         void              (*hsynz_readed_data)(struct hsync_THsynz* zPlugin,
                                                const hpatch_byte* newData,size_t dataSize);
         //return new curOutPos
-        hpatch_StreamPos_t  (*hsynz_write_end)(struct hsync_THsynz* zPlugin,
+        hpatch_StreamPos_t (*hsynz_write_foot)(struct hsync_THsynz* zPlugin,
                                                const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t curOutPos,
                                                const hpatch_byte* newDataCheckChecksum,size_t checksumSize);
     } hsync_THsynz;
@@ -52,4 +52,4 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-#endif // sync_hsynz_plugin_h
+#endif // hsynz_plugin_h

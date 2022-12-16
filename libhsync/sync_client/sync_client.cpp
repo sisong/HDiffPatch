@@ -119,9 +119,9 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
     bool isNeedSync;
     bool isOnDiffContinue =(wd.continueDiffData!=0);
     bool isOnNewDataContinue =(wd.newDataContinue!=0);
-    const size_t dictSize=wd.newSyncInfo->dictSize;
-    const size_t blockDict=_getBlockDict(dictSize,kSyncBlockSize); //cache block count in dict
-    const size_t _memSize=kSyncBlockSize*(wd.decompressPlugin?2:1)+dictSize
+    const size_t kDictSize=wd.newSyncInfo->dictSize;
+    const size_t blockDict=_getBlockDict(kDictSize,kSyncBlockSize); //cache block count in dict
+    const size_t _memSize=kSyncBlockSize*(wd.decompressPlugin?3:1)+kDictSize
                         +kSyncBlockSize*blockDict
                         +newSyncInfo->kStrongChecksumByteSize
                         +checkChecksumBufByteSize(newSyncInfo->kStrongChecksumByteSize);
@@ -129,8 +129,6 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
     check(_memBuf!=0,kSyncClient_memError);
     TByte* const blockDictBuf=_memBuf;
     size_t       blockDictBuf_i=blockDict;
-    if (dictSize>0)
-        memset(blockDictBuf+kSyncBlockSize*(blockDict+1),0,dictSize);
     {//checksum newSyncData
         checksumSync_buf=_memBuf+_memSize-(newSyncInfo->kStrongChecksumByteSize
                                            +checkChecksumBufByteSize(newSyncInfo->kStrongChecksumByteSize));
@@ -140,19 +138,20 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
     hpatch_BOOL dict_isReset=hpatch_TRUE;
     for (uint32_t syncSize=0,newDataSize=0,i=0; i<kBlockCount; ++i, outNewDataPos+=newDataSize,
             posInNewSyncData+=syncSize,posInNeedSyncData+=isNeedSync?syncSize:0){
-        if (dictSize>0){
+        if (kDictSize>0){
             if (blockDictBuf_i==blockDict){
-                memmove(blockDictBuf,blockDictBuf+kSyncBlockSize*(blockDict+1),dictSize);
+                memmove(blockDictBuf,blockDictBuf+kSyncBlockSize*(blockDict+1),kDictSize);
                 blockDictBuf_i=0;
             }else{
                 ++blockDictBuf_i;
             }
         }
         TByte* const dictBuf=blockDictBuf+kSyncBlockSize*blockDictBuf_i;
-        TByte* const dataBuf=dictBuf+dictSize;
+        TByte* const dataBuf=dictBuf+kDictSize;
+        const bool isCompressedBlock=TNewDataSyncInfo_syncBlockIsCompressed(newSyncInfo,i);
         syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
         newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
-        check(syncSize<=newDataSize,kSyncClient_newSyncInfoDataError);
+        check(syncSize<=kSyncBlockSize*2,kSyncClient_newSyncInfoDataError);
         const hpatch_StreamPos_t curSyncPos=wd.newBlockDataInOldPoss[i];
         isNeedSync=(curSyncPos==kBlockType_needSync);
         if (isOnNewDataContinue){ //copy from newDataContinue
@@ -160,7 +159,7 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
             check(wd.newDataContinue->read(wd.newDataContinue,outNewDataPos,dataBuf,dataBuf+newDataSize),
                   kSyncClient_newFileReopenReadError);
         }else if (isNeedSync){ //download or read from diff data
-            TByte* buf=(syncSize<newDataSize)?(dataBuf+kSyncBlockSize):dataBuf;
+            TByte* buf=isCompressedBlock?(dataBuf+kSyncBlockSize):dataBuf;
             /*if ((wd.out_newStream)||(wd.out_diffStream))*/{//download data
                 if (isOnDiffContinue){ //read from local data
                     if (!wd.continueDiffData->readSyncData(wd.continueDiffData,i,posInNewSyncData,
@@ -180,17 +179,19 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
                     wd.outDiffDataPos+=syncSize;
                 }
             }
-            if (/*wd.out_newStream&&*/(syncSize<newDataSize)){// need deccompress
+            if (/*wd.out_newStream&&*/isCompressedBlock){// need deccompress
                 if (decompressHandle==0){
                     decompressHandle=wd.decompressPlugin->dictDecompressOpen(wd.decompressPlugin);
                     check(decompressHandle,kSyncClient_decompressOpenError);
                 }
+                
+                const size_t curDictSize=(kDictSize<=outNewDataPos)?kDictSize:(size_t)outNewDataPos;
                 check(wd.decompressPlugin->dictDecompress(decompressHandle,buf,buf+syncSize,
-                                                          dictBuf,dataBuf,dataBuf+newDataSize,
+                                                          dataBuf-curDictSize,dataBuf,dataBuf+newDataSize,
                                                           dict_isReset,i+1==kBlockCount),
                       kSyncClient_decompressError);
             }
-            dict_isReset=!(syncSize<newDataSize);
+            dict_isReset=(!isCompressedBlock);
         }else{//copy from old
             dict_isReset=hpatch_TRUE;
             assert(curSyncPos<oldDataSize);

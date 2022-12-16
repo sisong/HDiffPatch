@@ -32,7 +32,7 @@
 #include "../../libHDiffPatch/HDiff/diff_types.h"
 #include "../sync_client/sync_client_type.h"
 #include "dict_compress_plugin.h"
-#include "sync_hsynz_plugin.h"
+#include "hsynz_plugin.h"
 
 static const uint32_t kSyncBlockSize_default   = 1024*2;
 static const uint32_t kSyncBlockSize_min       = 64;

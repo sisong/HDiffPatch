@@ -52,10 +52,7 @@ namespace sync_private{
     static void saveSavedSizes(std::vector<TByte> &buf, TNewDataSyncInfo *self) {
         const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
         for (uint32_t i=0; i<kBlockCount; ++i){
-            uint32_t savedSize=self->savedSizes[i];
-            if (savedSize==TNewDataSyncInfo_newDataBlockSize(self,i))
-                savedSize=0;
-            packUInt(buf,savedSize);
+            packUInt(buf,self->savedSizes[i]);
         }
     }
     
@@ -67,8 +64,11 @@ namespace sync_private{
         size_t compressedSize=compressPlugin->dictCompress(compressHandle,cmbuf.data(),cmbuf.data()+cmbuf.size(),
                                                            buf.data(),buf.data(),buf.data()+buf.size(),
                                                            hpatch_TRUE,hpatch_TRUE);
+        checkv(compressedSize!=kDictCompressError);
+        if ((compressedSize==kDictCompressCancel)||(compressedSize>=buf.size()))
+            compressedSize=0; //cancel compress
         compressPlugin->dictCompressClose(compressPlugin,compressHandle);
-        if ((compressedSize>0)&&(compressedSize<buf.size())){
+        if (compressedSize>0){
             cmbuf.resize(compressedSize);
             buf.swap(cmbuf);
         }
@@ -108,7 +108,7 @@ void TNewDataSyncInfo_dirWithHead_saveTo(TNewDataSyncInfo_dir* self,std::vector<
 #endif
 
 void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* out_stream,
-                             const hsync_TDictCompress* compressPlugin,hsync_dictCompressHandle dictHandle,size_t dictSize){
+                             const hsync_TDictCompress* compressPlugin){
 #if (_IS_NEED_DIR_DIFF_PATCH)
     if (self->isDirSyncInfo)
         checkv(self->dirInfoSavedSize>0);
@@ -125,7 +125,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 
     const size_t privateExternDataSize=0; //reserved ,now empty
     const size_t externDataSize=0;//reserved ,now empty
-    const uint8_t isSavedSizes=(self->savedSizes)!=0?1:0;
+    const uint8_t isSavedSizes=(self->savedSizes)?1:0;
     std::vector<TByte> buf;
     
     saveSamePairList(buf,self->samePairList,self->samePairCount);
@@ -144,7 +144,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     std::vector<TByte> head;
     {//head
         pushTypes(head,kVersionType,compressPlugin?compressPlugin->compressType():0,strongChecksumPlugin);
-        packUInt(head,dictSize);
+        packUInt(head,self->dictSize);
         packUInt(head,self->newSyncDataSize);
         packUInt(head,self->newSyncDataOffsert);
         packUInt(head,self->newDataSize);
@@ -263,9 +263,9 @@ static hpatch_StreamPos_t _hsynz_write_head(struct hsync_THsynz* zPlugin,
     checkv(out_stream->write(out_stream,curOutPos,head.data(),head.data()+head.size()));
     return curOutPos+head.size();
 }
-static hpatch_StreamPos_t _hsynz_write_end(struct hsync_THsynz* zPlugin,
-                                           const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t curOutPos,
-                                           const hpatch_byte* newDataCheckChecksum,size_t checksumSize){
+static hpatch_StreamPos_t _hsynz_write_foot(struct hsync_THsynz* zPlugin,
+                                            const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t curOutPos,
+                                            const hpatch_byte* newDataCheckChecksum,size_t checksumSize){
     checkv(out_stream->write(out_stream,curOutPos,newDataCheckChecksum,newDataCheckChecksum+checksumSize));
     return curOutPos+checksumSize;
 }
@@ -273,7 +273,7 @@ void getHsynzPluginDefault(hsync_THsynz* out_hsynzPlugin){
     checkv(out_hsynzPlugin!=0);
     out_hsynzPlugin->hsynz_write_head=_hsynz_write_head;
     out_hsynzPlugin->hsynz_readed_data=0;
-    out_hsynzPlugin->hsynz_write_end=_hsynz_write_end;
+    out_hsynzPlugin->hsynz_write_foot=_hsynz_write_foot;
 }
 
 

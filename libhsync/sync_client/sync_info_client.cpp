@@ -218,10 +218,8 @@ static bool readSavedSizesTo(TStreamCacheClip* codeClip,TNewDataSyncInfo* self){
     for (uint32_t i=0; i<kBlockCount; ++i){
         uint32_t savedSize=0;
         if (!_clip_unpackToUInt32(&savedSize,codeClip)) return false;
-        if (savedSize==0)
-            savedSize=TNewDataSyncInfo_newDataBlockSize(self,i);
         self->savedSizes[i]=savedSize;
-        sumSavedSize+=savedSize;
+        sumSavedSize+=(savedSize>0)?savedSize:TNewDataSyncInfo_newDataBlockSize(self,i);
     }
     if (sumSavedSize>self->newSyncDataSize) return false;
     return true;

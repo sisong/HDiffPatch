@@ -49,8 +49,12 @@ uint32_t TNewDataSyncInfo_newDataBlockSize(const TNewDataSyncInfo* self,uint32_t
         return (uint32_t)(self->newDataSize-self->kSyncBlockSize*blockIndex);
 }
 hpatch_inline static
+bool TNewDataSyncInfo_syncBlockIsCompressed(const TNewDataSyncInfo* self,uint32_t blockIndex){
+    return (self->savedSizes)&&(self->savedSizes[blockIndex]);
+}
+hpatch_inline static
 uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
-    if (self->savedSizes)
+    if (TNewDataSyncInfo_syncBlockIsCompressed(self,blockIndex))
         return self->savedSizes[blockIndex];
     else
         return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);

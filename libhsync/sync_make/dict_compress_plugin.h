@@ -50,6 +50,9 @@ extern "C" {
                                                      const hpatch_byte* in_dataEnd,hpatch_BOOL dict_isReset,hpatch_BOOL in_isEnd);
     } hsync_TDictCompress;
 
+    #define  kDictCompressCancel   (~(size_t)0)
+    #define  kDictCompressError     ((size_t)0)
+
 #ifdef __cplusplus
 }
 #endif
