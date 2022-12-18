@@ -107,7 +107,7 @@ void create_dir_sync_data(IDirSyncListener*         listener,
     newRefStream.open(resLimit.limit.streamList,resLimit.limit.streamCount,kAlignSize);
     
     bool isSafeHashClash=getStrongForHashClash(kSafeHashClashBit,newRefStream.stream->streamSize,kSyncBlockSize,
-                                               strongChecksumPlugin->checksumByteSize());
+                                               strongChecksumPlugin->checksumByteSize()*8);
     listener->syncRefInfo(newManifest.rootPath.c_str(),newList.size(),newRefStream.stream->streamSize,
                           kSyncBlockSize,isSafeHashClash);
     checkv(isSafeHashClash); //warning as error

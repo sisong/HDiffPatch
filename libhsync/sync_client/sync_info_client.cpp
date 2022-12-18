@@ -225,20 +225,41 @@ static bool readSavedSizesTo(TStreamCacheClip* codeClip,TNewDataSyncInfo* self){
     return true;
 }
 
-static bool readPartHashTo(TStreamCacheClip* clip,TByte* partHash,size_t partSize,
+static bool readPartHashTo(TStreamCacheClip* clip,TByte* partHash,size_t partBits,
                            TSameNewBlockPair* samePairList,size_t samePairCount,uint32_t kBlockCount){
     uint32_t curPair=0;
     TByte* curPartChecksum=partHash;
-    for (size_t i=0; i<kBlockCount; ++i,curPartChecksum+=partSize){
+    const size_t partBytes=_bitsToBytes(partBits);
+    size_t bitsValue=0;
+    size_t bitsCount=0;
+    const size_t highBit=(partBits&7)?(partBits&7):8;
+    for (size_t i=0; i<kBlockCount; ++i,curPartChecksum+=partBytes){
         if ((curPair<samePairCount)&&(i==samePairList[curPair].curIndex)){
             size_t sameIndex=samePairList[curPair].sameIndex;
-            memcpy(curPartChecksum,partHash+sameIndex*partSize,partSize);
+            memcpy(curPartChecksum,partHash+sameIndex*partBytes,partBytes);
             ++curPair;
         }else{
-            if (!_TStreamCacheClip_readDataTo(clip,curPartChecksum,curPartChecksum+partSize))
-                return false;
+            for (size_t j=0;j<partBytes;++j){
+                if (bitsCount<8){//read a byte
+                    hpatch_byte v;
+                    if (!_TStreamCacheClip_readDataTo(clip,&v,(&v)+1))
+                            return false;
+                    bitsValue|=(((size_t)v)<<bitsCount);
+                    bitsCount+=8;
+                }
+                if (j==0){
+                    curPartChecksum[j]=bitsValue&((1<<highBit)-1);
+                    bitsValue>>=highBit;
+                    bitsCount-=highBit;
+                }else{
+                    curPartChecksum[j]=(hpatch_byte)bitsValue;
+                    bitsValue>>=8;
+                    bitsCount-=8;
+                }
+            }
         }
     }
+    assert(bitsValue==0);
     if (curPair!=samePairCount) return false;
     return true;
 }
@@ -319,10 +340,13 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
         check(_clip_unpackToSize_t(&self->kStrongChecksumByteSize,&clip),kSyncClient_newSyncInfoDataError);
         check(strongChecksumPlugin->checksumByteSize()==self->kStrongChecksumByteSize,
               kSyncClient_strongChecksumByteSizeError);
-        check(_clip_unpackToSize_t(&self->savedStrongChecksumByteSize,&clip),kSyncClient_newSyncInfoDataError);
+        check(_clip_unpackToSize_t(&self->savedStrongChecksumBits,&clip),kSyncClient_newSyncInfoDataError);
+        self->savedStrongChecksumByteSize=_bitsToBytes(self->savedStrongChecksumBits);
         check((self->savedStrongChecksumByteSize<=self->kStrongChecksumByteSize),
               kSyncClient_strongChecksumByteSizeError);
-        check(_clip_unpackToSize_t(&self->savedRollHashByteSize,&clip),kSyncClient_newSyncInfoDataError);
+        check(_clip_unpackToSize_t(&self->savedRollHashBits,&clip),kSyncClient_newSyncInfoDataError);
+        check((size_t)(self->savedRollHashBits-1)<sizeof(uint64_t)*8,kSyncClient_newSyncInfoDataError);
+        self->savedRollHashByteSize=_bitsToBytes(self->savedRollHashBits);
         check(_clip_unpackToUInt32(&self->samePairCount,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackToByte(&isSavedSizes,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&privateExternDataSize,&clip),kSyncClient_newSyncInfoDataError);
@@ -490,10 +514,10 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
         }
     }
     //rollHashs
-    check(readPartHashTo(&clip,self->rollHashs,self->savedRollHashByteSize,self->samePairList,
+    check(readPartHashTo(&clip,self->rollHashs,self->savedRollHashBits,self->samePairList,
                          self->samePairCount,kBlockCount), kSyncClient_newSyncInfoDataError);
     //partStrongChecksums
-    check(readPartHashTo(&clip,self->partChecksums,self->savedStrongChecksumByteSize,
+    check(readPartHashTo(&clip,self->partChecksums,self->savedStrongChecksumBits,
                          self->samePairList,self->samePairCount,
                          kBlockCount), kSyncClient_newSyncInfoDataError);
 

@@ -66,18 +66,18 @@ inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
                                       adler_data_t out_data,adler_data_t in_data){
                                         return fast_adler64_roll(adler,blockSize,out_data,in_data); }
     
-#define kStrongChecksumByteSize_min     4
+#define kStrongChecksumBits_min    (4*8)
     
 hpatch_inline static
-void toPartChecksum(unsigned char* out_partChecksum,size_t outPartSize,
+void toPartChecksum(unsigned char* out_partChecksum,size_t outPartBits,
                     const unsigned char* checksum,size_t kChecksumByteSize){
-    assert(outPartSize<=kChecksumByteSize);
+    const size_t outPartBytes=_bitsToBytes(outPartBits);
+    assert(outPartBytes<=kChecksumByteSize);
     if (out_partChecksum!=checksum)
-        memmove(out_partChecksum,checksum,outPartSize);
-    for (size_t oi=0,i=outPartSize;i<kChecksumByteSize; ++i,++oi) {
-        if (oi==outPartSize) oi=0;
-        out_partChecksum[oi]^=checksum[i];
-    }
+        memmove(out_partChecksum,checksum,outPartBytes);
+    size_t lasti=(outPartBits>>3);
+    if (outPartBytes>lasti)
+        out_partChecksum[lasti]&=((1<<(outPartBits&7))-1);
 }
 
 static hpatch_inline
@@ -126,7 +126,7 @@ void checkChecksumEnd(unsigned char* checkChecksumBuf,size_t kStrongChecksumByte
 
     
 static hpatch_inline
-void writeRollHash(uint8_t* out_part,uint64_t partRollHash,size_t savedRollHashByteSize){
+void writeRollHashBytes(uint8_t* out_part,uint64_t partRollHash,size_t savedRollHashByteSize){
     switch (savedRollHashByteSize) {
         case 8: *out_part++=(uint8_t)(partRollHash>>56);
         case 7: *out_part++=(uint8_t)(partRollHash>>48);
@@ -144,7 +144,7 @@ void writeRollHash(uint8_t* out_part,uint64_t partRollHash,size_t savedRollHashB
 }
   
 static hpatch_inline
-uint64_t readRollHash(const uint8_t* part,size_t savedRollHashByteSize){
+uint64_t readRollHashBytes(const uint8_t* part,size_t savedRollHashByteSize){
     uint64_t partRollHash=0;
     switch (savedRollHashByteSize) {
         case 8: partRollHash|=((uint64_t)*part++)<<56;
@@ -161,51 +161,30 @@ uint64_t readRollHash(const uint8_t* part,size_t savedRollHashByteSize){
             return partRollHash;
     }
 }
-    
-template<int byte> static hpatch_inline
-uint64_t _tm_toSavedPartRollHash(uint64_t rollHash){
-    const uint64_t kLowMask=(1<<(byte*4))-1;
-    const uint64_t kHighMask=(kLowMask<<32);
-    const int kHighShl=32-byte*4;
-    return ((rollHash&kHighMask)>>kHighShl) | (rollHash & kLowMask);
-}
 
 static hpatch_inline
-uint64_t toSavedPartRollHash(uint64_t rollHash,size_t savedRollHashByteSize){
-    switch (savedRollHashByteSize) {
-        case 8: return rollHash;
-        case 7: return _tm_toSavedPartRollHash<7>(rollHash);
-        case 6: return _tm_toSavedPartRollHash<6>(rollHash);
-        case 5: return _tm_toSavedPartRollHash<5>(rollHash);
-        case 4: return _tm_toSavedPartRollHash<4>(rollHash);
-        case 3: return _tm_toSavedPartRollHash<3>(rollHash);
-        case 2: return _tm_toSavedPartRollHash<2>(rollHash);
-        case 1: return _tm_toSavedPartRollHash<1>(rollHash);
-        default:
-            assert(false);
-            return 0;
+uint64_t toSavedPartRollHash(uint64_t rollHash,size_t savedRollHashBits){
+    if (savedRollHashBits<64)
+        return ((rollHash>>savedRollHashBits)^rollHash) & ((((uint64_t)1)<<savedRollHashBits)-1);
+    else
+        return rollHash;
+}
+
+hpatch_inline static unsigned int upper_ilog2(uint64_t v){
+    const unsigned int _kMaxBit=sizeof(v)*8;
+    unsigned int bit=1;
+    while ((((uint64_t)1)<<bit)<v){ 
+        ++bit;
+        if (bit==_kMaxBit) break;
     }
-}
-
-static hpatch_inline
-void toSavedPartRollHash(uint8_t* save_rollHash,uint64_t rollHash,size_t savedRollHashByteSize){
-    uint64_t partHash=toSavedPartRollHash(rollHash,savedRollHashByteSize);
-    writeRollHash(save_rollHash,partHash,savedRollHashByteSize);
-}
-
-
-hpatch_inline static unsigned int upper_ilog2(long double v){
-    unsigned int bit=0;
-    long double p=1;
-    while (p<v){ ++bit; p*=2; }
     return bit;
 }
     
 hpatch_inline static
 unsigned int getBetterCacheBlockTableBit(uint32_t blockCount){
-    const int kMinBit = 8;
-    const int kMaxBit = 23;
-    int result=(int)upper_ilog2((1<<kMinBit)+blockCount)-2;
+    const unsigned int kMinBit = 8;
+    const unsigned int kMaxBit = 23; //for limit cache memory size
+    int result=(int)upper_ilog2((1<<kMinBit)+(uint64_t)blockCount)-2;
     result=(result<kMinBit)?kMinBit:result;
     result=(result>kMaxBit)?kMaxBit:result;
     return result;

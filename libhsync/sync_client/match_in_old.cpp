@@ -156,8 +156,8 @@ struct TOldDataCache_base {
     }
 
     inline bool isEnd()const{ return m_cur==0; }
-    inline const TByte* calcPartStrongChecksum(size_t outPartSize){
-        return _calcPartStrongChecksum(m_cur,m_kSyncBlockSize,outPartSize); }
+    inline const TByte* calcPartStrongChecksum(size_t outPartBits){
+        return _calcPartStrongChecksum(m_cur,m_kSyncBlockSize,outPartBits); }
     inline const TByte* strongChecksum()const{//must after do calcPartStrongChecksum()
         return m_strongChecksum_buf+m_checksumByteSize; }
     inline size_t strongChecksumByteSize()const{ return m_checksumByteSize; }
@@ -175,12 +175,12 @@ protected:
     hpatch_checksumHandle   m_checksumHandle;
     void*                   m_mt;
 
-    inline const TByte* _calcPartStrongChecksum(const TByte* buf,size_t bufSize,size_t outPartSize){
+    inline const TByte* _calcPartStrongChecksum(const TByte* buf,size_t bufSize,size_t outPartBits){
         TByte* strongChecksum=m_strongChecksum_buf+m_checksumByteSize;
         m_strongChecksumPlugin->begin(m_checksumHandle);
         m_strongChecksumPlugin->append(m_checksumHandle,buf,buf+bufSize);
         m_strongChecksumPlugin->end(m_checksumHandle,strongChecksum,strongChecksum+m_checksumByteSize);
-        toPartChecksum(m_strongChecksum_buf,outPartSize,strongChecksum,m_checksumByteSize);
+        toPartChecksum(m_strongChecksum_buf,outPartBits,strongChecksum,m_checksumByteSize);
         return m_strongChecksum_buf;
     }
 };
@@ -215,14 +215,15 @@ protected:
 
 static void matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,
                        const uint32_t* range_begin,const uint32_t* range_end,TOldDataCache_base& oldData,
-                       const TByte* partChecksums,size_t outPartChecksumSize,TByte* newDataCheckChecksum,void* _mt=0){
+                       const TByte* partChecksums,size_t outPartChecksumBits,TByte* newDataCheckChecksum,void* _mt=0){
     const TByte* oldPartStrongChecksum=0;
+    const size_t outPartChecksumSize=_bitsToBytes(outPartChecksumBits);
     bool isMatched=false;
     do {
         uint32_t newBlockIndex=*range_begin;
         if (out_newBlockDataInOldPoss[newBlockIndex]==kBlockType_needSync){
             if (oldPartStrongChecksum==0)
-                oldPartStrongChecksum=oldData.calcPartStrongChecksum(outPartChecksumSize);
+                oldPartStrongChecksum=oldData.calcPartStrongChecksum(outPartChecksumBits);
             const TByte* newPairStrongChecksum=partChecksums+newBlockIndex*outPartChecksumSize;
             if (0==memcmp(oldPartStrongChecksum,newPairStrongChecksum,outPartChecksumSize)){
                 isMatched=true;
@@ -254,19 +255,21 @@ struct _TMatchDatas{
     
 static void _rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,
                        hpatch_StreamPos_t oldRollEnd,void* _mt=0){
+    if (rd.oldStream->streamSize<rd.newSyncInfo->kSyncBlockSize)
+        return;
     TIndex_comp0 icomp0(rd.newSyncInfo->rollHashs,rd.newSyncInfo->savedRollHashByteSize);
     TOldDataCache oldData(rd.oldStream,oldRollBegin,oldRollEnd,
                           rd.newSyncInfo->kSyncBlockSize,rd.strongChecksumPlugin,_mt);
     uint8_t part[sizeof(tm_roll_uint)]={0};
-    const size_t savedRollHashByteSize=rd.newSyncInfo->savedRollHashByteSize;
+    const size_t savedRollHashBits=rd.newSyncInfo->savedRollHashBits;
     const TBloomFilter<tm_roll_uint>& filter=*(TBloomFilter<tm_roll_uint>*)rd.filter;
     for (;!oldData.isEnd();oldData.roll()) {
         tm_roll_uint digest=oldData.hashValue();
-        digest=toSavedPartRollHash(digest,savedRollHashByteSize);
+        digest=toSavedPartRollHash(digest,savedRollHashBits);
         if (!filter.is_hit(digest)) continue;
         
         const uint32_t* ti_pos=&rd.sorted_newIndexs_table[digest>>rd.kTableHashShlBit];
-        writeRollHash(part,digest,savedRollHashByteSize);
+        writeRollHashBytes(part,digest,rd.newSyncInfo->savedRollHashByteSize);
         TIndex_comp0::TDigest digest_value(part);
         std::pair<const uint32_t*,const uint32_t*>
         //range=std::equal_range(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,digest_value,icomp);
@@ -274,7 +277,7 @@ static void _rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,
                                rd.sorted_newIndexs+ti_pos[1],digest_value,icomp0);
         if (range.first!=range.second){
             matchRange(rd.out_newBlockDataInOldPoss,range.first,range.second,oldData,
-                       rd.newSyncInfo->partChecksums,rd.newSyncInfo->savedStrongChecksumByteSize,
+                       rd.newSyncInfo->partChecksums,rd.newSyncInfo->savedStrongChecksumBits,
                        rd.newSyncInfo->savedNewDataCheckChecksum,_mt);
         }
     }
@@ -284,6 +287,7 @@ static void matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
     const TNewDataSyncInfo* newSyncInfo=matchDatas.newSyncInfo;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     const size_t savedRollHashByteSize=newSyncInfo->savedRollHashByteSize;
+    const size_t savedRollHashBits=newSyncInfo->savedRollHashBits;
     
     TAutoMem _mem_sorted(kBlockCount*(size_t)sizeof(uint32_t));
     uint32_t* sorted_newIndexs=(uint32_t*)_mem_sorted.data();
@@ -292,7 +296,7 @@ static void matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
         const uint8_t* partRollHash=newSyncInfo->rollHashs;
         for (uint32_t i=0; i<kBlockCount; ++i,partRollHash+=savedRollHashByteSize){
             sorted_newIndexs[i]=i;
-            filter.insert(readRollHash(partRollHash,savedRollHashByteSize));
+            filter.insert(readRollHashBytes(partRollHash,savedRollHashByteSize));
         }
         TIndex_comp01 icomp01(newSyncInfo->rollHashs,savedRollHashByteSize,
                               newSyncInfo->partChecksums,newSyncInfo->savedStrongChecksumByteSize);
@@ -301,8 +305,8 @@ static void matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
     
     //optimize for std::equal_range
     unsigned int kTableBit =getBetterCacheBlockTableBit(kBlockCount);
-    if (kTableBit>savedRollHashByteSize*8) kTableBit=(unsigned int)savedRollHashByteSize*8;
-    const unsigned int kTableHashShlBit=(int)(newSyncInfo->savedRollHashByteSize*8-kTableBit);
+    if (kTableBit>savedRollHashBits) kTableBit=(unsigned int)savedRollHashBits;
+    const unsigned int kTableHashShlBit=(int)(newSyncInfo->savedRollHashBits-kTableBit);
     TAutoMem _mem_table((size_t)sizeof(uint32_t)*((1<<kTableBit)+1));
     uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
     {
@@ -311,7 +315,7 @@ static void matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
         uint8_t part[sizeof(tm_roll_uint)]={0};
         for (uint32_t i=0; i<((uint32_t)1<<kTableBit); ++i) {
             tm_roll_uint digest=((tm_roll_uint)i)<<kTableHashShlBit;
-            writeRollHash(part,digest,savedRollHashByteSize);
+            writeRollHashBytes(part,digest,savedRollHashByteSize);
             TIndex_comp0::TDigest digest_value(part);
             pos=std::lower_bound(pos,sorted_newIndexs+kBlockCount,digest_value,icomp0);
             sorted_newIndexs_table[i]=(uint32_t)(pos-sorted_newIndexs);

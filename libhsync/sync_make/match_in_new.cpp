@@ -91,14 +91,15 @@ void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
     for (uint32_t i=0; i<kBlockCount; ++i){
         sorted_newIndexs[i]=i;
     }
-    TIndex_comp icomp(newSyncInfo->rollHashs,newSyncInfo->savedRollHashByteSize);
+    const size_t savedRollHashByteSize=newSyncInfo->savedRollHashByteSize;
+    const size_t savedRollHashBits=newSyncInfo->savedRollHashBits;
+    TIndex_comp icomp(newSyncInfo->rollHashs,savedRollHashByteSize);
     std::sort(sorted_newIndexs,sorted_newIndexs+kBlockCount,icomp);
     
     //optimize for std::equal_range
-    const size_t savedRollHashByteSize=newSyncInfo->savedRollHashByteSize;
     unsigned int kTableBit =getBetterCacheBlockTableBit(kBlockCount);
-    if (kTableBit>savedRollHashByteSize*8) kTableBit=(unsigned int)savedRollHashByteSize*8;
-    const unsigned int kTableHashShlBit=(unsigned int)(savedRollHashByteSize*8-kTableBit);
+    if (kTableBit>savedRollHashBits) kTableBit=(unsigned int)savedRollHashBits;
+    const unsigned int kTableHashShlBit=(unsigned int)(savedRollHashBits-kTableBit);
     TAutoMem _mem_table((size_t)sizeof(uint32_t)*((1<<kTableBit)+1));
     uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
     {
@@ -106,7 +107,7 @@ void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
         uint8_t part[sizeof(tm_roll_uint)]={0};
         for (uint32_t i=0; i<((uint32_t)1<<kTableBit); ++i) {
             tm_roll_uint digest=((tm_roll_uint)i)<<kTableHashShlBit;
-            writeRollHash(part,digest,savedRollHashByteSize);
+            writeRollHashBytes(part,digest,savedRollHashByteSize);
             TIndex_comp::TDigest digest_value(part,0);
             pos=std::lower_bound(pos,sorted_newIndexs+kBlockCount,digest_value,icomp);
             sorted_newIndexs_table[i]=(uint32_t)(pos-sorted_newIndexs);
@@ -114,13 +115,13 @@ void matchNewDataInNew(TNewDataSyncInfo* newSyncInfo){
         sorted_newIndexs_table[((size_t)1<<kTableBit)]=kBlockCount;
     }
 
-    TIndex_comp dcomp(newSyncInfo->rollHashs,newSyncInfo->savedRollHashByteSize);
+    TIndex_comp dcomp(newSyncInfo->rollHashs,savedRollHashByteSize);
     uint32_t matchedCount=0;
     const unsigned char* curChecksum=partChecksums;
     for (uint32_t i=0; i<kBlockCount; ++i,curChecksum+=newSyncInfo->savedStrongChecksumByteSize){
         TIndex_comp::TDigest digest_value(newSyncInfo->rollHashs,i);
-        tm_roll_uint digest=readRollHash(newSyncInfo->rollHashs+i*newSyncInfo->savedRollHashByteSize,
-                                             newSyncInfo->savedRollHashByteSize);
+        tm_roll_uint digest=readRollHashBytes(newSyncInfo->rollHashs+i*savedRollHashByteSize,
+                                              savedRollHashByteSize);
         const uint32_t* ti_pos=&sorted_newIndexs_table[digest>>kTableHashShlBit];
         std::pair<const uint32_t*,const uint32_t*>
             //range=std::equal_range(sorted_newIndexs,sorted_newIndexs+kBlockCount,digest_value,dcomp);

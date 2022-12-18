@@ -69,6 +69,8 @@ typedef struct{
     size_t                  kStrongChecksumByteSize;
     size_t                  savedStrongChecksumByteSize;
     size_t                  savedRollHashByteSize;
+    size_t                  savedStrongChecksumBits;
+    size_t                  savedRollHashBits;
     size_t                  dictSize;
     uint32_t                kSyncBlockSize;
     uint32_t                samePairCount;
@@ -91,6 +93,8 @@ typedef struct{
     hsync_TDictDecompress*  _decompressPlugin;
     void*                   _import;
 } TNewDataSyncInfo;
+
+#define _bitsToBytes(bits) (((bits)+7)>>3)
 
 struct TNeedSyncInfos;
 typedef void (*TSync_getBlockInfoByIndex)(const struct TNeedSyncInfos* needSyncInfos,uint32_t blockIndex,

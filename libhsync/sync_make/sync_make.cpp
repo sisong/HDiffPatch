@@ -82,8 +82,8 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
     std::vector<TByte>      buf(kDictSize+kSyncBlockSize,0);
     const size_t            checksumByteSize=strongChecksumPlugin->checksumByteSize();
     checkv((checksumByteSize==(uint32_t)checksumByteSize)
-          &&(checksumByteSize>=kStrongChecksumByteSize_min)
-          &&(checksumByteSize%sizeof(uint32_t)==0));
+          &&(checksumByteSize%sizeof(uint32_t)==0)
+          &&(checksumByteSize*8>=kStrongChecksumBits_min));
     CChecksum checksumBlockData(strongChecksumPlugin,false);
     
     const bool is_hsynz_readed_data=(cd.out_hsynz&&cd.hsynzPlugin&&cd.hsynzPlugin->hsynz_readed_data);
@@ -107,7 +107,7 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
                 memset(dataBuf+dataLen,0,backZeroLen);
         }
         
-        uint64_t rollHash=roll_hash_start((uint64_t*)0,dataBuf,kSyncBlockSize);
+        const uint64_t rollHash=roll_hash_start((uint64_t*)0,dataBuf,kSyncBlockSize);
         //strong hash
         checksumBlockData.appendBegin();
         checksumBlockData.append(dataBuf,dataBuf+kSyncBlockSize);
@@ -119,11 +119,12 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
         checkv(compressedSize==(uint32_t)compressedSize);
         
         {//save data order by workIndex
-            toSavedPartRollHash(out_hsyni->rollHashs+i*out_hsyni->savedRollHashByteSize,
-                                rollHash,out_hsyni->savedRollHashByteSize);
+            const uint64_t _partRollHash=toSavedPartRollHash(rollHash,out_hsyni->savedRollHashBits);
+            writeRollHashBytes(out_hsyni->rollHashs+i*out_hsyni->savedRollHashByteSize,
+                               _partRollHash,out_hsyni->savedRollHashByteSize);
             checkChecksumAppendData(cd.out_hsyni->savedNewDataCheckChecksum,i,
                                     checksumBlockData.checksum.data(),checksumByteSize);
-            toPartChecksum(checksumBlockData.checksum.data(),out_hsyni->savedStrongChecksumByteSize,
+            toPartChecksum(checksumBlockData.checksum.data(),out_hsyni->savedStrongChecksumBits,
                            checksumBlockData.checksum.data(),checksumByteSize);
             memcpy(out_hsyni->partChecksums+i*out_hsyni->savedStrongChecksumByteSize,
                    checksumBlockData.checksum.data(),out_hsyni->savedStrongChecksumByteSize);

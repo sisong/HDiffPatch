@@ -92,7 +92,7 @@ struct _TWriteDatas {
     strongChecksumPlugin->end(checksumSync,checksumSync_buf+newSyncInfo->savedStrongChecksumByteSize,    \
                               checksumSync_buf+newSyncInfo->savedStrongChecksumByteSize \
                                   +newSyncInfo->kStrongChecksumByteSize);\
-    toPartChecksum(checksumSync_buf,newSyncInfo->savedStrongChecksumByteSize, \
+    toPartChecksum(checksumSync_buf,newSyncInfo->savedStrongChecksumBits, \
                    checksumSync_buf+newSyncInfo->savedStrongChecksumByteSize, \
                    newSyncInfo->kStrongChecksumByteSize);   \
     check(0==memcmp(checksumSync_buf,   \

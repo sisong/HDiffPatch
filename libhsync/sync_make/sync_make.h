@@ -36,7 +36,7 @@
 
 static const uint32_t kSyncBlockSize_default   = 1024*2;
 static const uint32_t kSyncBlockSize_min       = 64;
-static const size_t kSafeHashClashBit_default = 32;
+static const size_t kSafeHashClashBit_default = 24;
 
 //create out_hsyni
 //  all clients need download out_hsyni, and dowload part of 
