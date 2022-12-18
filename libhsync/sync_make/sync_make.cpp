@@ -82,7 +82,6 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
     std::vector<TByte>      buf(kDictSize+kSyncBlockSize,0);
     const size_t            checksumByteSize=strongChecksumPlugin->checksumByteSize();
     checkv((checksumByteSize==(uint32_t)checksumByteSize)
-          &&(checksumByteSize%sizeof(uint32_t)==0)
           &&(checksumByteSize*8>=kStrongChecksumBits_min));
     CChecksum checksumBlockData(strongChecksumPlugin,false);
     
