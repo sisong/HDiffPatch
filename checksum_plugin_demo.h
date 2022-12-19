@@ -377,4 +377,102 @@ static hpatch_TChecksum blake3ChecksumPlugin={ _blake3_checksumType,_blake3_chec
                                                _blake3_close,_blake3_begin,_blake3_append,_blake3_end};
 #endif//_ChecksumPlugin_blake3
 
+#ifdef  _ChecksumPlugin_curl_md5
+#if (_IsNeedIncludeDefaultChecksumHead)
+#ifdef __cplusplus
+extern "C" {
+#endif
+#   include "curl_md5.h" // https://github.com/curl/curl/blob/master/lib/curl_md5.h
+#ifdef __cplusplus
+}
+#endif
+#endif
+static const struct MD5_params* _curl_MD5_params=&Curl_DIGEST_MD5[0];
+static const char* _md5_checksumType(void){
+    static const char* type="md5";
+    return type;
+}
+static size_t _md5_checksumByteSize(void){
+    return _curl_MD5_params->md5_resultlen;
+}
+static hpatch_checksumHandle _md5_open(hpatch_TChecksum* plugin){
+    return malloc(_curl_MD5_params->md5_ctxtsize);
+}
+static void _md5_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
+    if (handle) free(handle);
+}
+static void  _md5_begin(hpatch_checksumHandle handle){
+    CURLcode ret=_curl_MD5_params->md5_init_func(handle);
+    assert(ret==CURLE_OK);
+}
+static void _md5_append(hpatch_checksumHandle handle,
+                          const unsigned char* part_data,const unsigned char* part_data_end){
+    while (part_data!=part_data_end) {
+        size_t dataSize=(size_t)(part_data_end-part_data);
+        int  len=(int)((~(unsigned int)0)>>1);
+        //assert(len>0);
+        if ((unsigned int)len>dataSize)
+            len=(int)dataSize;
+        _curl_MD5_params->md5_update_func(handle,part_data,len);
+        part_data+=len;
+    }
+}
+static void _md5_end(hpatch_checksumHandle handle,
+                       unsigned char* checksum,unsigned char* checksum_end){
+    assert(_curl_MD5_params->md5_resultlen==checksum_end-checksum);
+    _curl_MD5_params->md5_final_func(checksum,handle);
+}
+static hpatch_TChecksum md5ChecksumPlugin={ _md5_checksumType,_md5_checksumByteSize,_md5_open,
+                                            _md5_close,_md5_begin,_md5_append,_md5_end};
+#endif//_ChecksumPlugin_curl_md5
+
+#ifdef  _ChecksumPlugin_curl_sha256
+#if (_IsNeedIncludeDefaultChecksumHead)
+#ifdef __cplusplus
+extern "C" {
+#endif
+#   include "curl_sha256.h" // https://github.com/curl/curl/blob/master/lib/curl_sha256.h
+#ifdef __cplusplus
+}
+#endif
+#endif
+static const struct HMAC_params* _curl_sha256_params=&Curl_HMAC_SHA256[0];
+static const char* _sha256_checksumType(void){
+    static const char* type="sha256";
+    return type;
+}
+static size_t _sha256_checksumByteSize(void){
+    return _curl_sha256_params->hmac_resultlen;
+}
+static hpatch_checksumHandle _sha256_open(hpatch_TChecksum* plugin){
+    return malloc(_curl_sha256_params->hmac_ctxtsize);
+}
+static void _sha256_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
+    if (handle) free(handle);
+}
+static void  _sha256_begin(hpatch_checksumHandle handle){
+    CURLcode ret=_curl_sha256_params->hmac_hinit(handle);
+    assert(ret==CURLE_OK);
+}
+static void _sha256_append(hpatch_checksumHandle handle,
+                           const unsigned char* part_data,const unsigned char* part_data_end){
+    while (part_data!=part_data_end) {
+        size_t dataSize=(size_t)(part_data_end-part_data);
+        int  len=(int)((~(unsigned int)0)>>1);
+        //assert(len>0);
+        if ((unsigned int)len>dataSize)
+            len=(int)dataSize;
+        _curl_sha256_params->hmac_hupdate(handle,part_data,len);
+        part_data+=len;
+    }
+}
+static void _sha256_end(hpatch_checksumHandle handle,
+                       unsigned char* checksum,unsigned char* checksum_end){
+    assert(_curl_sha256_params->hmac_resultlen==checksum_end-checksum);
+    _curl_sha256_params->hmac_hfinal(checksum,handle);
+}
+static hpatch_TChecksum sha256ChecksumPlugin={ _sha256_checksumType,_sha256_checksumByteSize,_sha256_open,
+                                               _sha256_close,_sha256_begin,_sha256_append,_sha256_end};
+#endif//_ChecksumPlugin_curl_sha256
+
 #endif

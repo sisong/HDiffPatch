@@ -186,7 +186,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 #endif
         
         {//newSyncInfoSize
-            const size_t savedBCount=kBlockCount-self->samePairCount;
+            const hpatch_StreamPos_t savedBCount=kBlockCount-self->samePairCount;
             self->newSyncInfoSize = head.size()+privateExternDataSize+externDataSize+buf.size();
             self->newSyncInfoSize +=_bitsToBytes(self->savedRollHashBits*savedBCount)
                                     +_bitsToBytes(self->savedStrongChecksumBits*savedBCount);
