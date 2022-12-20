@@ -183,6 +183,10 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
                 if (decompressHandle==0){
                     decompressHandle=wd.decompressPlugin->dictDecompressOpen(wd.decompressPlugin);
                     check(decompressHandle,kSyncClient_decompressOpenError);
+                    if (wd.decompressPlugin->dictDecompressInfo){
+                        check(wd.decompressPlugin->dictDecompressInfo(wd.decompressPlugin,decompressHandle,
+                          newSyncInfo->decompressInfo,newSyncInfo->decompressInfo+newSyncInfo->decompressInfoSize),kSyncClient_decompressInfoError);
+                    }
                 }
                 
                 const size_t curDictSize=(kDictSize<=outNewDataPos)?kDictSize:(size_t)outNewDataPos;

@@ -333,6 +333,11 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
             self->_decompressPlugin=decompressPlugin;
         }
         
+        check(_clip_unpackToByte(&self->decompressInfoSize,&clip),kSyncClient_newSyncInfoDataError);
+        check(self->decompressInfoSize<=kDecompressInfoMaxSize,kSyncClient_newSyncInfoDataError);
+        check(_TStreamCacheClip_readDataTo(&clip,self->decompressInfo,
+                self->decompressInfo+self->decompressInfoSize),kSyncClient_newSyncInfoDataError);
+        
         check(_clip_unpackUIntTo(&self->newSyncDataSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newSyncDataOffsert,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newDataSize,&clip),kSyncClient_newSyncInfoDataError);

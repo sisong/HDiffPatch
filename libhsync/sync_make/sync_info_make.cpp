@@ -164,6 +164,8 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
     {//head
         pushTypes(head,kVersionType,compressPlugin?compressPlugin->compressType():0,strongChecksumPlugin);
         packUInt(head,self->dictSize);
+        packUInt(head,self->decompressInfoSize);
+        pushBack(head,self->decompressInfo,self->decompressInfoSize);
         packUInt(head,self->newSyncDataSize);
         packUInt(head,self->newSyncDataOffsert);
         packUInt(head,self->newDataSize);

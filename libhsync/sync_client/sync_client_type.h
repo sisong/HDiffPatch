@@ -37,6 +37,7 @@
 extern "C" {
 #endif
 
+static const size_t kDecompressInfoMaxSize = 32;
 static const size_t kSafeHashClashBit_min = 20; //for safe
 
 hpatch_inline static
@@ -75,6 +76,8 @@ typedef struct{
     uint32_t                kSyncBlockSize;
     uint32_t                samePairCount;
     uint8_t                 isDirSyncInfo;
+    uint8_t                 decompressInfoSize;
+    uint8_t                 decompressInfo[kDecompressInfoMaxSize];
     hpatch_StreamPos_t      newDataSize;      // newData version size;
     hpatch_StreamPos_t      newSyncDataSize;  // .hsynz size ,saved newData or complessed newData
     hpatch_StreamPos_t      newSyncDataOffsert;

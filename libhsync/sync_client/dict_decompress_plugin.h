@@ -42,6 +42,8 @@ extern "C" {
         hsync_dictDecompressHandle (*dictDecompressOpen)(struct hsync_TDictDecompress* decompressPlugin);
         void                      (*dictDecompressClose)(struct hsync_TDictDecompress* decompressPlugin,
                                                          hsync_dictDecompressHandle dictHandle);
+        hpatch_BOOL                (*dictDecompressInfo)(const struct hsync_TDictDecompress* decompressPlugin,hsync_dictDecompressHandle dictHandle,
+                                                         const hpatch_byte* in_info,const hpatch_byte* in_infoEnd);
         //dictDecompress() must out (out_dataEnd-out_dataBegin), otherwise error return hpatch_FALSE
         hpatch_BOOL                    (*dictDecompress)(hpatch_decompressHandle dictHandle,
                                                          const unsigned char* in_code,const unsigned char* in_codeEnd,

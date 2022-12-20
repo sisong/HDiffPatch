@@ -45,12 +45,23 @@ struct _TCreateDatas {
 
 struct _TCompress{
     inline _TCompress(const hsync_TDictCompress* _compressPlugin,
-                      uint32_t _kSyncBlockSize)
+                      uint32_t _kSyncBlockSize,TNewDataSyncInfo* out_hsyni)
     :compressPlugin(_compressPlugin),dictCompressHandle(0),kSyncBlockSize(_kSyncBlockSize){
+        assert(out_hsyni->decompressInfoSize==0);
         if (compressPlugin!=0){
             dictCompressHandle=compressPlugin->dictCompressOpen(compressPlugin);
             checkv(dictCompressHandle!=0);
             cmbuf.resize((size_t)(compressPlugin->maxCompressedSize(kSyncBlockSize)));
+            if (compressPlugin->dictCompressInfo){
+                size_t decompressInfoSize=compressPlugin->dictCompressInfo(compressPlugin,dictCompressHandle,
+                                            &out_hsyni->decompressInfo[0],&out_hsyni->decompressInfo[0]+sizeof(out_hsyni->decompressInfo));
+                checkv(decompressInfoSize!=kDictCompressError);
+                if (decompressInfoSize!=kDictCompressCancel){
+                    assert(decompressInfoSize==(uint8_t)decompressInfoSize);
+                    checkv(decompressInfoSize<=sizeof(out_hsyni->decompressInfo));
+                    out_hsyni->decompressInfoSize=(uint8_t)decompressInfoSize;
+                }
+            }
         }
     }
     inline ~_TCompress(){ if (dictCompressHandle) compressPlugin->dictCompressClose(compressPlugin,dictCompressHandle); }
@@ -75,7 +86,7 @@ struct _TCompress{
 static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0){
     TNewDataSyncInfo*       out_hsyni=cd.out_hsyni;
     const uint32_t          kSyncBlockSize=out_hsyni->kSyncBlockSize;
-    _TCompress              compress(cd.compressPlugin,kSyncBlockSize);
+    _TCompress              compress(cd.compressPlugin,kSyncBlockSize,out_hsyni);
     hpatch_TChecksum*       strongChecksumPlugin=out_hsyni->_strongChecksumPlugin;
     const uint32_t          kBlockCount=(uint32_t)getSyncBlockCount(out_hsyni->newDataSize,kSyncBlockSize);
     const size_t            kDictSize=cd.out_hsyni->dictSize;
