@@ -488,11 +488,10 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
             
             check(inStream->read(inStream,curPos,codeBuf,codeBuf+compressDataSize),kSyncClient_newSyncInfoDataError);
             decompresser.decompressPlugin=decompressPlugin;
-            decompresser.decompressHandle=decompressPlugin->dictDecompressOpen(decompressPlugin);
+            decompresser.decompressHandle=decompressPlugin->dictDecompressOpen(decompressPlugin,1,uncompressDataSize,0,0);
             check((decompresser.decompressHandle!=0),kSyncClient_decompressOpenError);
-            check(decompressPlugin->dictDecompress(decompresser.decompressHandle,codeBuf,codeBuf+compressDataSize,
-                                                   decompressBuf,decompressBuf,decompressBuf+uncompressDataSize,
-                                                   hpatch_TRUE,hpatch_TRUE),
+            check(decompressPlugin->dictDecompress(decompresser.decompressHandle,0,codeBuf,codeBuf+compressDataSize,
+                                                   decompressBuf,decompressBuf+uncompressDataSize),
                   kSyncClient_decompressError);
             
             codeClip=&_cmCodeClip;
