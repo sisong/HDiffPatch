@@ -65,18 +65,24 @@ extern "C" {
 
     #define _kMinCacheBlockDictMemSize ((1<<10)*256)
     #define _kMinCacheBlockDictSize_r  4    // dictSize/_kMinCacheBlockDictSize_r
-    static size_t _getCacheBlockDictSize(size_t dictSize,size_t kBlockCount,size_t kBlockSize){
+    //return 0 or >=dictSize
+    static size_t _getCacheBlockDictSizeUp(size_t dictSize,size_t kBlockCount,size_t kBlockSize,
+                                           const size_t bestMinDictMemSize){
         size_t bestMem;
         size_t blockCount;
-        if (kBlockCount<=1) 
+        if (kBlockCount<=1)
             return 0; //not need cache
         bestMem=dictSize+dictSize/_kMinCacheBlockDictSize_r;
         if (bestMem<_kMinCacheBlockDictMemSize)
             bestMem=_kMinCacheBlockDictMemSize;
-        blockCount=(bestMem+kBlockSize/2)/kBlockSize;
+        blockCount=(bestMem+kBlockSize-1)/kBlockSize;
         if (blockCount>=kBlockCount)
             blockCount=kBlockCount-1;
         return blockCount*kBlockSize;
+    }
+    
+    static size_t _getCacheBlockDictSize(size_t dictSize,size_t kBlockCount,size_t kBlockSize){
+        return _getCacheBlockDictSizeUp(dictSize,kBlockCount,kBlockSize,_kMinCacheBlockDictMemSize);
     }
 
     static 
@@ -93,15 +99,19 @@ extern "C" {
         }
     }
     static hpatch_inline 
-    hpatch_BOOL _CacheBlockDict_isNeedResetDict(const _CacheBlockDict_t* self,size_t blockIndex){
-        hpatch_BOOL result=(self->uncompressCur>self->uncompress)&&(blockIndex>self->block_dec_i);
+    hpatch_BOOL _CacheBlockDict_isHaveDict(const _CacheBlockDict_t* self){
+        return (self->uncompressCur>self->uncompress);
+    }
+    static hpatch_inline 
+    hpatch_BOOL _CacheBlockDict_isMustResetDict(const _CacheBlockDict_t* self,size_t blockIndex){
+        hpatch_BOOL result=_CacheBlockDict_isHaveDict(self)&&(blockIndex>self->block_dec_i);
         assert(blockIndex>=self->block_dec_i);
         if (result) assert(blockIndex==self->block_cache_i);
         return result;
     }
     static hpatch_inline 
     void _CacheBlockDict_usedDict(_CacheBlockDict_t* self,size_t blockIndex,
-                                hpatch_byte** out_dict,size_t* out_dictSize){
+                                  hpatch_byte** out_dict,size_t* out_dictSize){
         size_t dsize=self->uncompressCur-self->uncompress;
         if (dsize>self->dictSize) dsize=self->dictSize;
         *out_dict=self->uncompressCur-dsize;

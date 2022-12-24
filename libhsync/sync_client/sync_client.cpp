@@ -174,6 +174,7 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
                 }
             }
             if (/*wd.out_newStream&&*/isCompressedBlock){// need deccompress
+                assert(lastCompressedIndex==i);
                 check(wd.decompressPlugin->dictDecompress(decompressHandle,i,buf,buf+syncSize,
                                                           dataBuf,dataBuf+newDataSize),
                       kSyncClient_decompressError);

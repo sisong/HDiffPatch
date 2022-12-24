@@ -41,19 +41,35 @@ extern "C" {
         const char*                  (*compressType)(void);//ascii cstring,cannot contain '&'
         //return the max compressed size, if input dataSize data;
         hpatch_StreamPos_t      (*maxCompressedSize)(hpatch_StreamPos_t in_dataSize);
-        size_t                  (*getDictSizeByData)(struct hsync_TDictCompress* dictCompressPlugin,hpatch_StreamPos_t dataSize);
-        hsync_dictCompressHandle (*dictCompressOpen)(const struct hsync_TDictCompress* dictCompressPlugin);
-        void                    (*dictCompressClose)(const struct hsync_TDictCompress* dictCompressPlugin,
+        size_t                (*limitDictSizeByData)(struct hsync_TDictCompress* compressPlugin,size_t blockCount,size_t blockSize);
+        hsync_dictCompressHandle (*dictCompressOpen)(struct hsync_TDictCompress* compressPlugin,size_t blockCount,size_t blockSize);
+        void                    (*dictCompressClose)(struct hsync_TDictCompress* compressPlugin,
                                                      hsync_dictCompressHandle dictHandle);
-        size_t                   (*dictCompressInfo)(const struct hsync_TDictCompress* dictCompressPlugin,hsync_dictCompressHandle dictHandle,
+        //if not need send info to decompressor, dictCompressInfo can NULL
+        size_t                   (*dictCompressInfo)(const struct hsync_TDictCompress* compressPlugin,hsync_dictCompressHandle dictHandle,
                                                      hpatch_byte* out_info,hpatch_byte* out_infoEnd);
-        size_t                       (*dictCompress)(hsync_dictCompressHandle dictHandle,hpatch_byte* out_code,hpatch_byte* out_codeEnd,
-                                                     const hpatch_byte* in_dict,const hpatch_byte* in_dictEnd_and_dataBegin,
-                                                     const hpatch_byte* in_dataEnd,hpatch_BOOL dict_isReset,hpatch_BOOL in_isEnd);
+        hpatch_byte*           (*getResetDictBuffer)(hsync_dictCompressHandle dictHandle,size_t blockIndex,
+                                                     size_t* out_dictSize);
+        size_t                       (*dictCompress)(hsync_dictCompressHandle dictHandle,size_t blockIndex,
+                                                     hpatch_byte* out_code,hpatch_byte* out_codeEnd,
+                                                     const hpatch_byte* in_dataBegin,const hpatch_byte* in_dataEnd);
     } hsync_TDictCompress;
 
     #define  kDictCompressCancel   (~(size_t)0)
     #define  kDictCompressError     ((size_t)0)
+
+    
+    static hpatch_byte* _CacheBlockDict_getResetDictBuffer(_CacheBlockDict_t* self,size_t blockIndex,
+                                                           size_t* out_dictSize){
+        size_t dictSize=self->dictSize;
+        hpatch_StreamPos_t prefixSize=(hpatch_StreamPos_t)blockIndex*self->blockSize;
+        assert(self->uncompress);
+        assert(prefixSize>0);
+        if (dictSize>prefixSize) dictSize=prefixSize;
+        *out_dictSize=dictSize;
+        self->uncompressCur=self->uncompress+dictSize;
+        return self->uncompressCur;
+    }
 
 #ifdef __cplusplus
 }
