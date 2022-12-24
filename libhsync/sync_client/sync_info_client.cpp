@@ -59,20 +59,20 @@ namespace sync_private{
     _TStreamCacheClip_unpackUIntWithTag(sclip,puint,0)
 
 template<class Type_t>
-static hpatch_BOOL __clip_unpackToType_t(Type_t* out_v,TStreamCacheClip* clip){
+static hpatch_BOOL __clip_unpackToType_t(Type_t* out_v,TStreamCacheClip* clip,hpatch_uint kTagBit=0){
     if (sizeof(Type_t)==sizeof(hpatch_StreamPos_t)){
-        return _clip_unpackUIntTo((hpatch_StreamPos_t*)out_v,clip);
+        return _TStreamCacheClip_unpackUIntWithTag(clip,(hpatch_StreamPos_t*)out_v,kTagBit);
     }else{
         hpatch_StreamPos_t v;
-        hpatch_BOOL ret=_clip_unpackUIntTo(&v,clip);
+        hpatch_BOOL ret=_TStreamCacheClip_unpackUIntWithTag(clip,&v,kTagBit);
         Type_t tv=(Type_t)v;
         *out_v=tv;
         return ret&&(tv==v);
     }
 }
 
-inline static hpatch_BOOL _clip_unpackToUInt32(uint32_t* out_v,TStreamCacheClip* clip){
-    return __clip_unpackToType_t<uint32_t>(out_v,clip);
+inline static hpatch_BOOL _clip_unpackToUInt32(uint32_t* out_v,TStreamCacheClip* clip,hpatch_uint kTagBit=0){
+    return __clip_unpackToType_t<uint32_t>(out_v,clip,kTagBit);
 }
 inline static hpatch_BOOL _clip_unpackToSize_t(size_t* out_v,TStreamCacheClip* clip){
     return __clip_unpackToType_t<size_t>(out_v,clip);
@@ -212,12 +212,29 @@ static bool readSamePairListTo(TStreamCacheClip* codeClip,TSameNewBlockPair* sam
     return true;
 }
 
+static bool _clip_readSavedSize(uint32_t* value,uint32_t* tag,TStreamCacheClip* codeClip){
+    const hpatch_byte* buf=_TStreamCacheClip_accessData(codeClip,1);
+    if (buf==0) return false;
+    *tag=buf[0]>>7;
+    return _clip_unpackToUInt32(value,codeClip,1);
+}
 static bool readSavedSizesTo(TStreamCacheClip* codeClip,TNewDataSyncInfo* self){
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
+    uint32_t backSize=0;
     hpatch_StreamPos_t sumSavedSize=0;
     for (uint32_t i=0; i<kBlockCount; ++i){
-        uint32_t savedSize=0;
-        if (!_clip_unpackToUInt32(&savedSize,codeClip)) return false;
+        uint32_t savedSize;
+        uint32_t highTag;
+        if (!_clip_readSavedSize(&savedSize,&highTag,codeClip)) return false;
+        if (highTag==0){
+            savedSize+=backSize;
+            backSize=savedSize;
+        }else if (savedSize>0){
+            savedSize=backSize-savedSize;
+            backSize=savedSize;
+        }else{
+            backSize=self->kSyncBlockSize;
+        }
         self->savedSizes[i]=savedSize;
         sumSavedSize+=(savedSize>0)?savedSize:TNewDataSyncInfo_newDataBlockSize(self,i);
     }
