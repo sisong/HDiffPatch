@@ -86,7 +86,7 @@ static hpatch_BOOL _TResHandleLimit_read(const hpatch_TStreamInput* stream,hpatc
 }
 
 hpatch_BOOL hpatch_TResHandleLimit_open(hpatch_TResHandleLimit* self,size_t limitMaxOpenCount,
-                                 hpatch_IResHandle* resList,size_t resCount){
+                                        hpatch_IResHandle* resList,size_t resCount){
     unsigned char* curMem=0;
     size_t i=0;
     size_t memSize=resCount*(sizeof(const hpatch_TStreamInput*)

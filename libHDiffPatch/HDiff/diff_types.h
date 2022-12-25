@@ -135,9 +135,10 @@ extern "C"
         size_t threadNumForSearch; // NOTE: muti-thread search need frequent random disk read
         bool   newDataIsMTSafe;
         bool   oldDataIsMTSafe;
+        bool   newAndOldDataIsMTSameRes; //for dir diff
     };
 
-    static const hdiff_TMTSets_s hdiff_TMTSets_s_kEmpty={1,1,false,false};
+    static const hdiff_TMTSets_s hdiff_TMTSets_s_kEmpty={1,1,false,false,false};
     
 #ifdef __cplusplus
 }
