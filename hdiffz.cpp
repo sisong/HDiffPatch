@@ -1519,7 +1519,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
     printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            oldData.base.streamSize,newData.base.streamSize);
     if (diffSets.isDoDiff){
-        const hdiff_TMTSets_s mtsets={diffSets.threadNum,diffSets.threadNumSearch_s,false,false};
+        const hdiff_TMTSets_s mtsets={diffSets.threadNum,diffSets.threadNumSearch_s,false,false,false};
         check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,hpatch_kNullStreamPos),
               HDIFF_OPENWRITE_ERROR,"open out diffFile");
         hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);

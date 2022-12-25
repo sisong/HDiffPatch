@@ -1213,7 +1213,7 @@ void get_match_covers_by_block(const unsigned char* newData,const unsigned char*
     mem_as_hStreamInput(&oldData_stream,oldData,oldData_end);
     hdiff_TStreamInput newData_stream;
     mem_as_hStreamInput(&newData_stream,newData,newData_end);
-    hdiff_TMTSets_s mtsets={threadNum,threadNum,true,true};
+    hdiff_TMTSets_s mtsets={threadNum,threadNum,true,true,false};
     get_match_covers_by_block(&newData_stream,&oldData_stream,out_covers,kMatchBlockSize,&mtsets);
 }
 
