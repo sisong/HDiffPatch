@@ -283,7 +283,7 @@ ifeq ($(ZSTD),0)
 else
     DEF_FLAGS += -D_CompressPlugin_zstd
 	ifeq ($(ZSTD),1)
-      DEF_FLAGS += -DZSTD_DISABLE_ASM -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 \
+      DEF_FLAGS += -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 -DZSTD_DISABLE_ASM=1 -DZSTDLIB_VISIBLE= -DZSTDLIB_HIDDEN= \
 	    -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
 	endif
 endif

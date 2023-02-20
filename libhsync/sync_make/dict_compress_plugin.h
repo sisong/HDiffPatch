@@ -65,7 +65,7 @@ extern "C" {
         hpatch_StreamPos_t prefixSize=(hpatch_StreamPos_t)blockIndex*self->blockSize;
         assert(self->uncompress);
         assert(prefixSize>0);
-        if (dictSize>prefixSize) dictSize=prefixSize;
+        if (dictSize>prefixSize) dictSize=(size_t)prefixSize;
         *out_dictSize=dictSize;
         self->uncompressCur=self->uncompress+dictSize;
         return self->uncompressCur;

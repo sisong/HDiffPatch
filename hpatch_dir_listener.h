@@ -91,7 +91,8 @@ static hpatch_BOOL _dirPatchFinish(IHPatchDirListener* listener,hpatch_BOOL isPa
     IDirPathList executeList;
     if (!isPatchSuccess) return hpatch_TRUE;
     TDirPatcher_getNewExecuteList(dirPatcher,&executeList);
-    return _dirPatch_setIsExecuteFile(&executeList);
+    _dirPatch_setIsExecuteFile(&executeList);
+    return hpatch_TRUE;
 }
 
 static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,_openNewFile,_closeNewFile},

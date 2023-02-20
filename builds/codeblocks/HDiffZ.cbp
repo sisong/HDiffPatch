@@ -63,7 +63,11 @@
 			<Add option="-D_IS_USED_PTHREAD=1" />
 			<Add option="-D_ChecksumPlugin_md5" />
 			<Add option="-DZSTD_MULTITHREAD=1" />
-			<Add option="-DZSTD_DISABLE_ASM" />
+			<Add option="-DZSTD_HAVE_WEAK_SYMBOLS=0" />
+			<Add option="-DZSTD_TRACE=0" />
+			<Add option="-DZSTD_DISABLE_ASM=1" />
+			<Add option="-DZSTDLIB_VISIBLE=" />
+			<Add option="-DZSTDLIB_HIDDEN=" />
 			<Add directory="../../../lzma/C/" />
 			<Add directory="../../../zstd/lib" />
 			<Add directory="../../../libmd5" />

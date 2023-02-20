@@ -41,7 +41,6 @@ namespace sync_private{
 
 typedef unsigned char TByte;
 typedef uint64_t tm_roll_uint;
-const size_t kBestClipSize=256*1024;
 
 struct TIndex_comp0{
     inline explicit TIndex_comp0(const uint8_t* _hashs,size_t _byteSize)
@@ -192,25 +191,25 @@ struct TOldDataCache:public TOldDataCache_base {
             :TOldDataCache_base(oldStream,oldRollBegin,oldRollEnd,kSyncBlockSize,
                                 strongChecksumPlugin,_mt){
                 if (isEnd()) return;
-                m_roolHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kSyncBlockSize);
+                m_rollHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kSyncBlockSize);
             }
     void _cache(){
         TOldDataCache_base::_cache();
         if (isEnd()) return;
         roll();
     }
-    inline tm_roll_uint hashValue()const{ return m_roolHash; }
+    inline tm_roll_uint hashValue()const{ return m_rollHash; }
     inline void roll(){
         const TByte* curIn=m_cur+m_kSyncBlockSize;
         if (curIn!=m_cache.data_end()){
-            m_roolHash=roll_hash_roll(m_roolHash,m_kSyncBlockSize,*m_cur,*curIn);
+            m_rollHash=roll_hash_roll(m_rollHash,m_kSyncBlockSize,*m_cur,*curIn);
             ++m_cur;
         }else{
             _cache();
         }
     }
 protected:
-    tm_roll_uint            m_roolHash;
+    tm_roll_uint            m_rollHash;
 };
 
 static void matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,
