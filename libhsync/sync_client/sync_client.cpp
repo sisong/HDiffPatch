@@ -83,6 +83,7 @@ struct _TWriteDatas {
     uint32_t                    needSyncBlockCount;
     bool                        isLocalPatch;
     hpatch_TChecksum*           strongChecksumPlugin;
+    hpatch_checksumHandle       checkChecksum;
     hsync_TDictDecompress*      decompressPlugin;
     IReadSyncDataListener*      syncDataListener;
 };
@@ -201,7 +202,8 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
             if (isNeedChecksumAppend|isOnNewDataContinue)
                 _checkSumNewDataBuf();
             if (isNeedChecksumAppend)
-                checkChecksumAppendData(newSyncInfo->savedNewDataCheckChecksum, i,
+                checkChecksumAppendData(newSyncInfo->savedNewDataCheckChecksum,i,
+                                        strongChecksumPlugin,wd.checkChecksum,
                                         checksumSync_buf+wd.newSyncInfo->savedStrongChecksumByteSize,
                                         newSyncInfo->kStrongChecksumByteSize);
             if ((!isOnNewDataContinue)&&wd.out_newStream){
@@ -264,6 +266,7 @@ int _sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListe
     assert(listener!=0);
     hsync_TDictDecompress* decompressPlugin=0;
     hpatch_TChecksum*   strongChecksumPlugin=0;
+    hpatch_checksumHandle checkChecksum=0;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     TNeedSyncInfosImport needSyncInfo; memset(&needSyncInfo,0,sizeof(needSyncInfo));
     hpatch_StreamPos_t* newBlockDataInOldPoss=0;
@@ -295,6 +298,7 @@ int _sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListe
     }
 
     checkChecksumInit(newSyncInfo->savedNewDataCheckChecksum,newSyncInfo->kStrongChecksumByteSize);
+    checkChecksum=strongChecksumPlugin->open(strongChecksumPlugin);
     //matched in oldData
     newBlockDataInOldPoss=(hpatch_StreamPos_t*)malloc(kBlockCount*(size_t)sizeof(hpatch_StreamPos_t));
     check(newBlockDataInOldPoss!=0,kSyncClient_memError);
@@ -362,6 +366,7 @@ int _sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListe
         writeDatas.needSyncBlockCount=needSyncInfo.needSyncBlockCount;
         writeDatas.decompressPlugin=decompressPlugin;
         writeDatas.strongChecksumPlugin=strongChecksumPlugin;
+        writeDatas.checkChecksum=checkChecksum;
         writeDatas.syncDataListener=syncDataListener;
         writeDatas.continueDiffData=diffContinue?&continueDiffData:0;
         writeDatas.isLocalPatch=(diffData!=0);
@@ -380,6 +385,7 @@ int _sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListe
         syncDataListener->readSyncDataEnd(syncDataListener);
 clear:
     _inClear=1;
+    if (checkChecksum) strongChecksumPlugin->close(strongChecksumPlugin,checkChecksum);
     if (newBlockDataInOldPoss) free(newBlockDataInOldPoss);
     return result;
 }

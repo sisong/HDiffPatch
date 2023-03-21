@@ -41,6 +41,7 @@ struct _TCreateDatas {
     TNewDataSyncInfo*           out_hsyni;
     const hpatch_TStreamOutput* out_hsynz;
     hpatch_StreamPos_t          curOutPos;
+    hpatch_checksumHandle       checkChecksum;
 };
 
 struct _TCompress{
@@ -124,6 +125,7 @@ static void mt_create_sync_data(_TCreateDatas& cd,void* _mt=0,int threadIndex=0)
             writeRollHashBytes(out_hsyni->rollHashs+i*out_hsyni->savedRollHashByteSize,
                                _partRollHash,out_hsyni->savedRollHashByteSize);
             checkChecksumAppendData(cd.out_hsyni->savedNewDataCheckChecksum,i,
+                                    strongChecksumPlugin,cd.checkChecksum,
                                     checksumBlockData.checksum.data(),checksumByteSize);
             toPartChecksum(checksumBlockData.checksum.data(),out_hsyni->savedStrongChecksumBits,
                            checksumBlockData.checksum.data(),checksumByteSize);
@@ -160,6 +162,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
         hsynzPlugin=&_hsynzPlugin;
     }
 
+    CChecksum      _checkChecksum(newSyncInfo->_strongChecksumPlugin,false);
     _TCreateDatas  createDatas;
     createDatas.newData=newData;
     createDatas.compressPlugin=compressPlugin;
@@ -167,6 +170,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
     createDatas.out_hsynz=out_hsynz;
     createDatas.hsynzPlugin=hsynzPlugin;
     createDatas.curOutPos=0;
+    createDatas.checkChecksum=_checkChecksum._handle;
     const bool is_hsynzPlugin=(out_hsynz&&hsynzPlugin);
     if (is_hsynzPlugin){
         createDatas.curOutPos=hsynzPlugin->hsynz_write_head(hsynzPlugin,out_hsynz,createDatas.curOutPos,newSyncInfo->isDirSyncInfo,
