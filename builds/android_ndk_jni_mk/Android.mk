@@ -86,7 +86,7 @@ endif
 Src_Files := $(LOCAL_PATH)/hpatch_jni.c \
              $(LOCAL_PATH)/hpatch.c
 
-DEF_FLAGS := -Os -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_DEFAULT_CompressPlugin=0
+DEF_FLAGS := -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_DEFAULT_CompressPlugin=0
 DEF_FLAGS += -D_CompressPlugin_zlib
 ifeq ($(BSD),0)
   DEF_FLAGS += -D_IS_NEED_BSDIFF=0
@@ -100,7 +100,7 @@ else
 endif
 ifeq ($(BZIP2),0)
 else
-  DEF_FLAGS += -D_CompressPlugin_bz2 -I$(BZ2_PATH)
+  DEF_FLAGS += -D_CompressPlugin_bz2 -DBZ_NO_STDIO -I$(BZ2_PATH)
 endif
 ifeq ($(LZMA),0)
 else
@@ -123,6 +123,6 @@ endif
 
 LOCAL_SRC_FILES  := $(Src_Files) $(Bz2_Files) $(Lzma_Files) $(Zstd_Files) $(Hdp_Files)
 LOCAL_LDLIBS     := -llog -lz
-LOCAL_CFLAGS     := -DANDROID_NDK -DNDEBUG $(DEF_FLAGS)
+LOCAL_CFLAGS     := -Os -DANDROID_NDK -DNDEBUG $(DEF_FLAGS)
 include $(BUILD_SHARED_LIBRARY)
 

@@ -43,6 +43,9 @@
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
 #endif
+#ifndef _IS_NEED_CMDLINE
+#   define  _IS_NEED_CMDLINE 1
+#endif
 #ifndef _IS_NEED_SINGLE_STREAM_DIFF
 #   define _IS_NEED_SINGLE_STREAM_DIFF 1
 #endif
@@ -121,6 +124,7 @@
 #include "checksum_plugin_demo.h"
 #endif
 
+#if (_IS_NEED_CMDLINE)
 static void printVersion(){
     printf("HDiffPatch::hpatchz v" HDIFFPATCH_VERSION_STRING "\n");
 }
@@ -228,6 +232,7 @@ static void printUsage(){
     printHelpInfo();
     printf("\n");
 }
+#endif// _IS_NEED_CMDLINE
 
 typedef enum THPatchResult {
     HPATCH_SUCCESS=0,
@@ -283,8 +288,6 @@ typedef enum THPatchResult {
 #endif
 } THPatchResult;
 
-int hpatch_cmd_line(int argc, const char * argv[]);
-
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
            hpatch_StreamPos_t diffDataSize,hpatch_BOOL vcpatch_isChecksum);
@@ -300,6 +303,7 @@ hpatch_BOOL getDiffDataOffertInSfx(hpatch_StreamPos_t* out_diffDataOffert,hpatch
 #endif
 
 #if (_IS_NEED_MAIN)
+int hpatch_cmd_line(int argc, const char * argv[]);
 #   if (_IS_USED_WIN32_UTF8_WAPI)
 int wmain(int argc,wchar_t* argv_w[]){
     char* argv_utf8[hpatch_kPathMaxSize*3/sizeof(char*)];
@@ -368,6 +372,7 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
 #define _kNULL_VALUE    (-1)
 #define _kNULL_SIZE     (~(size_t)0)
 
+#if (_IS_NEED_CMDLINE)
 #define _isSwapToPatchTag(tag) (0==strcmp("--patch",tag))
 
 int isSwapToPatchMode(int argc,const char* argv[]){
@@ -711,7 +716,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #endif
     }
 }
-
+#endif //_IS_NEED_CMDLINE
 
 #define  check_on_error(errorType) { \
     if (result==HPATCH_SUCCESS) result=errorType; if (!_isInClear){ goto clear; } }
