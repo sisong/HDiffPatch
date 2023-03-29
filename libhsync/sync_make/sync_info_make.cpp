@@ -142,7 +142,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 #else
     checkv(!self->isDirSyncInfo);
 #endif
-    const char* kVersionType=self->isDirSyncInfo?"HDirSyni22":"HSyni22";
+    const char* kVersionType=self->isDirSyncInfo?"HDirSyni23":"HSyni23";
     if (compressPlugin)
         checkv(0==strcmp(compressPlugin->compressType(),self->compressType));
     else
@@ -287,7 +287,7 @@ static hpatch_StreamPos_t _hsynz_write_head(struct hsync_THsynz* zPlugin,
                                             const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t curOutPos,
                                             bool isDirSync,hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,
                                             hpatch_TChecksum* strongChecksumPlugin,hsync_TDictCompress* compressPlugin){
-    const char* kVersionType=isDirSync?"HDirSynz22":"HSynz22";
+    const char* kVersionType=isDirSync?"HDirSynz23":"HSynz23";
     std::vector<TByte> head;
     pushTypes(head,kVersionType,compressPlugin?compressPlugin->compressType():0,strongChecksumPlugin);
     packUInt(head,newDataSize);

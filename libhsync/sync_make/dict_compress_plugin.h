@@ -42,6 +42,9 @@ extern "C" {
         //return the max compressed size, if input dataSize data;
         hpatch_StreamPos_t      (*maxCompressedSize)(hpatch_StreamPos_t in_dataSize);
         size_t                (*limitDictSizeByData)(struct hsync_TDictCompress* compressPlugin,size_t blockCount,size_t blockSize);
+        size_t              (*getBestWorkBlockCount)(struct hsync_TDictCompress* compressPlugin,size_t blockCount,
+                                                     size_t blockSize,size_t defaultWorkBlockCount);
+        size_t                        (*getDictSize)(struct hsync_TDictCompress* compressPlugin);
         hsync_dictCompressHandle (*dictCompressOpen)(struct hsync_TDictCompress* compressPlugin,size_t blockCount,size_t blockSize);
         void                    (*dictCompressClose)(struct hsync_TDictCompress* compressPlugin,
                                                      hsync_dictCompressHandle dictHandle);
@@ -64,11 +67,12 @@ extern "C" {
         size_t dictSize=self->dictSize;
         hpatch_StreamPos_t prefixSize=(hpatch_StreamPos_t)blockIndex*self->blockSize;
         assert(self->uncompress);
-        assert(prefixSize>0);
+        assert(prefixSize>=0);
         if (dictSize>prefixSize) dictSize=(size_t)prefixSize;
+        self->block_cache_i=blockIndex;
         *out_dictSize=dictSize;
         self->uncompressCur=self->uncompress+dictSize;
-        return self->uncompressCur;
+        return self->uncompress;
     }
 
 #ifdef __cplusplus

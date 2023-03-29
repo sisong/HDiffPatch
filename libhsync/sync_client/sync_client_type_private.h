@@ -85,9 +85,9 @@ size_t checkChecksumBufByteSize(size_t kStrongChecksumByteSize){
         return kStrongChecksumByteSize*3; }
 static hpatch_inline
 void checkChecksumInit(unsigned char* checkChecksumBuf,size_t kStrongChecksumByteSize){
+        unsigned char* d_xor=checkChecksumBuf+kStrongChecksumByteSize;
         assert(kStrongChecksumByteSize>0);
-        memset(checkChecksumBuf+kStrongChecksumByteSize,0,
-                    checkChecksumBufByteSize(kStrongChecksumByteSize)-kStrongChecksumByteSize); }
+        memset(d_xor,0xFF,kStrongChecksumByteSize); }
 
     static hpatch_inline
     void _writeUInt32(unsigned char* dst,uint32_t v){

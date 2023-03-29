@@ -94,13 +94,18 @@ struct CFileStreamOutput:public hpatch_TFileStreamOutput{
 };
 
 struct CChecksum{
+    inline explicit CChecksum():_checksumPlugin(0),_handle(0){}
     inline explicit CChecksum(hpatch_TChecksum* checksumPlugin,bool autoBegin=true)
-    :_checksumPlugin(checksumPlugin),_handle(0){
+    :_checksumPlugin(0),_handle(0){ init(checksumPlugin,autoBegin); }
+    inline void init(hpatch_TChecksum* checksumPlugin,bool autoBegin){
+        checkv(_checksumPlugin==0);
+        _checksumPlugin=checksumPlugin;
         if (checksumPlugin){
             _handle=checksumPlugin->open(checksumPlugin);
             checkv(_handle!=0);
             if (autoBegin) appendBegin();
-        } }
+        }
+    }
     inline ~CChecksum(){ if (_handle) _checksumPlugin->close(_checksumPlugin,_handle); }
     inline void append(const unsigned char* data,const unsigned char* data_end){
         if (_handle) _checksumPlugin->append(_handle,data,data_end); }

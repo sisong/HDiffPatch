@@ -162,10 +162,10 @@ int _checkNewSyncInfoType(TStreamCacheClip* newSyncInfo_clip,hpatch_BOOL* out_ne
     int _inClear=0;
     check(_TStreamCacheClip_readType_end(newSyncInfo_clip,'&',tempType),
           kSyncClient_newSyncInfoTypeError);
-    if (0==strcmp(tempType,"HSyni22"))
+    if (0==strcmp(tempType,"HSyni23"))
         *out_newIsDir=hpatch_FALSE;
 #if (_IS_NEED_DIR_DIFF_PATCH)
-    else if (0==strcmp(tempType,"HDirSyni22"))
+    else if (0==strcmp(tempType,"HDirSyni23"))
         *out_newIsDir=hpatch_TRUE;
 #endif
     else //unknow type
