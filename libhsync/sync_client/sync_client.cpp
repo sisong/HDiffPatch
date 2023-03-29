@@ -213,7 +213,7 @@ static int writeToNewOrDiff(_TWriteDatas& wd) {
         }
     }
     check(outNewDataPos==newSyncInfo->newDataSize,kSyncClient_newDataSizeError);
-    assert(posInNewSyncData==newSyncInfo->newSyncDataSize);//checked in readSavedSizesTo()
+    assert(posInNewSyncData+newSyncInfo->kStrongChecksumByteSize==newSyncInfo->newSyncDataSize);//checked in readSavedSizesTo()
 clear:
     _inClear=1;
     if (decompressHandle) wd.decompressPlugin->dictDecompressClose(wd.decompressPlugin,decompressHandle);

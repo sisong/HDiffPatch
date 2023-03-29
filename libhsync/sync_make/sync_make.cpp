@@ -30,7 +30,7 @@
 #include "sync_make_hash_clash.h"
 #include "sync_info_make.h"
 #include "match_in_new.h"
-#include "..\..\libParallel\parallel_channel.h"
+#include "../../libParallel/parallel_channel.h"
 #include <vector>
 using namespace hdiff_private;
 using namespace sync_private;
@@ -330,8 +330,8 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
 #if (_IS_USED_MULTITHREAD)
 static void _create_sync_data_mt(int threadIndex,void* _mt){
     TMt& mt=*(TMt*)_mt;
-    TThreadData& td=mt.threadDataList[threadIndex];
     TMtByChannel::TAutoThreadEnd __auto_thread_end(mt);
+    TThreadData& td=mt.threadDataList[threadIndex];
     while (true){
         TWorkBuf* workData=mt.getWorkPart();
         if (workData==0)

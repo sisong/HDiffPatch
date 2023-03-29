@@ -34,12 +34,12 @@
 //sync_patch(oldStream+syncDataListener) to out_newStream
 int sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
-               const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,int threadNum=1);
+               const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,int threadNum);
 
 //sync patch(oldFile+syncDataListener) to outNewFile
 int sync_patch_file2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                          const char* oldFile,const char* newSyncInfoFile,
-                         const char* outNewFile,hpatch_BOOL isOutNewContinue,int threadNum=1);
+                         const char* outNewFile,hpatch_BOOL isOutNewContinue,int threadNum);
 
 
 //sync_patch can split to two steps: sync_local_diff + sync_local_patch
@@ -49,23 +49,23 @@ int sync_patch_file2file(ISyncInfoListener* listener,IReadSyncDataListener* sync
 //  if (diffContinue) then continue download
 int sync_local_diff(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                     const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
-                    const hpatch_TStreamOutput* out_diffStream,const hpatch_TStreamInput* diffContinue,int threadNum=1);
+                    const hpatch_TStreamOutput* out_diffStream,const hpatch_TStreamInput* diffContinue,int threadNum);
 
 //patch(oldStream+in_diffStream) to out_newStream
 int sync_local_patch(ISyncInfoListener* listener,const hpatch_TStreamInput* in_diffStream,
                      const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
-                     const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,int threadNum=1);
+                     const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,int threadNum);
 
 
 //download diff data from syncDataListener to outDiffFile
 //  if (isOutDiffContinue) then continue download
 int sync_local_diff_file2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                               const char* oldFile,const char* newSyncInfoFile,
-                              const char* outDiffFile,hpatch_BOOL isOutDiffContinue,int threadNum=1);
+                              const char* outDiffFile,hpatch_BOOL isOutDiffContinue,int threadNum);
 
 //patch(oldFile+inDiffFile) to outNewFile
 int sync_local_patch_file2file(ISyncInfoListener* listener,const char* inDiffFile,
                                const char* oldFile,const char* newSyncInfoFile,
-                               const char* outNewFile,hpatch_BOOL isOutNewContinue,int threadNum=1);
+                               const char* outNewFile,hpatch_BOOL isOutNewContinue,int threadNum);
 
 #endif // sync_client_h
