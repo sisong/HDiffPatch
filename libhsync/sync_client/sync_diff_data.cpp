@@ -43,7 +43,7 @@ namespace sync_private{
         vec.insert(vec.end(),_buf,cur); \
     }while(0)
 
-static const char* kSyncDiffType="HSynd22";
+static const char* kSyncDiffType="HSynd23";
 static const size_t kNeedSyncMaxRleValue=(1<<11)-1;
 
 #define _pushNeedSync(){ \

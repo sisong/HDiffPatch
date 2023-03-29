@@ -106,6 +106,11 @@ struct TChecksumInputStream:public hpatch_TStreamInput {
             _checksumPlugin->begin(_checksum);
         return _checksum!=0;
     }
+    bool reopen(){
+        if (_checksum)
+            _checksumPlugin->begin(_checksum);
+        return _checksum!=0;
+    }
     TByte* finish(){
         _checksumPlugin->end(_checksum,_checksumBuf,_checksumBuf+_checksumByteSize);
         return _checksumBuf;
@@ -399,7 +404,7 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
     hpatch_StreamPos_t memSize;
     {//mem
         size_t headMaxSize=sizeof(hpatch_StreamPos_t)*5+ strlen(compressType)+1+strlen(checksumType)+1
-                +self->kStrongChecksumByteSize+checkChecksumBufByteSize(self->kStrongChecksumByteSize);
+                +self->kStrongChecksumByteSize*2+checkChecksumBufByteSize(self->kStrongChecksumByteSize);
         TByte* curMem=0;
         memSize=headMaxSize;
         memSize+=self->samePairCount*sizeof(TSameNewBlockPair);
@@ -433,7 +438,9 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
         memcpy((TByte*)self->strongChecksumType,checksumType,curMem-(TByte*)self->strongChecksumType);
 
         curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
-        self->infoFullChecksum=curMem;
+        self->infoChecksum=curMem;
+        curMem+=self->kStrongChecksumByteSize;
+        self->infoPartHashChecksum=curMem;
         curMem+=self->kStrongChecksumByteSize;
         self->savedNewDataCheckChecksum=curMem;
         curMem+=checkChecksumBufByteSize(self->kStrongChecksumByteSize);
@@ -534,6 +541,21 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
                                    temp_cache,kFileIOBufBetterSize);
         }
     }
+    {//info Checksum
+        const hpatch_StreamPos_t infoChecksumPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
+        check(newSyncInfo->read(newSyncInfo,infoChecksumPos,self->infoChecksum,
+                                self->infoChecksum+self->kStrongChecksumByteSize),
+              kSyncClient_newSyncInfoDataError);
+        self->infoChecksumEndPos=infoChecksumPos+self->kStrongChecksumByteSize;
+
+        TByte* strongChecksumInfo=checksumInputStream.finish();
+        assert(self->kStrongChecksumByteSize==checksumInputStream.checksumByteSize());
+        check(0==memcmp(strongChecksumInfo,self->infoChecksum,self->kStrongChecksumByteSize),
+              kSyncClient_newSyncInfoChecksumError);
+
+        check(checksumInputStream.reopen(),kSyncClient_strongChecksumOpenError);
+        _TStreamCacheClip_skipData(&clip,self->kStrongChecksumByteSize);
+    }
     //rollHashs
     check(readPartHashTo(&clip,self->rollHashs,self->savedRollHashBits,self->samePairList,
                          self->samePairCount,kBlockCount), kSyncClient_newSyncInfoDataError);
@@ -542,15 +564,15 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
                          self->samePairList,self->samePairCount,
                          kBlockCount), kSyncClient_newSyncInfoDataError);
 
-    if (isChecksumNewSyncInfo){ //infoFullChecksum
+    if (isChecksumNewSyncInfo){ //info partHash Checksum
         const hpatch_StreamPos_t infoChecksumPos=_TStreamCacheClip_readPosOfSrcStream(&clip);
-        check(newSyncInfo->read(newSyncInfo,infoChecksumPos,self->infoFullChecksum,
-                                self->infoFullChecksum+self->kStrongChecksumByteSize),
+        check(newSyncInfo->read(newSyncInfo,infoChecksumPos,self->infoPartHashChecksum,
+                                self->infoPartHashChecksum+self->kStrongChecksumByteSize),
               kSyncClient_newSyncInfoDataError);
         
         TByte* strongChecksumInfo=checksumInputStream.finish();
         assert(self->kStrongChecksumByteSize==checksumInputStream.checksumByteSize());
-        check(0==memcmp(strongChecksumInfo,self->infoFullChecksum,self->kStrongChecksumByteSize),
+        check(0==memcmp(strongChecksumInfo,self->infoPartHashChecksum,self->kStrongChecksumByteSize),
               kSyncClient_newSyncInfoChecksumError);
     }
     check(_TStreamCacheClip_readPosOfSrcStream(&clip)+self->kStrongChecksumByteSize

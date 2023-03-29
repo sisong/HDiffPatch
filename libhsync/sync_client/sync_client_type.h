@@ -82,8 +82,10 @@ typedef struct{
     hpatch_StreamPos_t      newSyncDataSize;  // .hsynz size ,saved newData or complessed newData
     hpatch_StreamPos_t      newSyncDataOffsert;
     hpatch_StreamPos_t      newSyncInfoSize;  // .hsyni size ,saved newData's info
+    hpatch_StreamPos_t      infoChecksumEndPos; //saved infoChecksum data end pos in stream
     unsigned char*          savedNewDataCheckChecksum; // out new data's strongChecksum's checksum
-    unsigned char*          infoFullChecksum; // this info data's strongChecksum
+    unsigned char*          infoChecksum; // this info data's strongChecksum
+    unsigned char*          infoPartHashChecksum; // this info data's strongChecksum
     TSameNewBlockPair*      samePairList;
     uint32_t*               savedSizes;
     uint8_t*                rollHashs;
