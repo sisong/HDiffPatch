@@ -3,7 +3,7 @@
 //  Created by housisong on 2019-09-18.
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2020 HouSisong
+ Copyright (c) 2019-2023 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -101,18 +101,18 @@ typedef struct ISyncInfoListener{
     void                   (*needSyncInfo)        (ISyncInfoListener* listener,const TNeedSyncInfos* needSyncInfo);
 } ISyncInfoListener;
 
-int  TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,
-                                   ISyncInfoListener* listener);
-int  TNewDataSyncInfo_open        (TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
-                                   ISyncInfoListener* listener);
-void TNewDataSyncInfo_close       (TNewDataSyncInfo* self);
+TSyncClient_resultType TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,
+                                                     ISyncInfoListener* listener);
+TSyncClient_resultType TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+                                             ISyncInfoListener* listener);
+void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
 
-int  checkNewSyncInfoType_by_file(const char* newSyncInfoFile,hpatch_BOOL* out_newIsDir);
-int  checkNewSyncInfoType(const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL* out_newIsDir);
+TSyncClient_resultType  checkNewSyncInfoType_by_file(const char* newSyncInfoFile,hpatch_BOOL* out_newIsDir);
+TSyncClient_resultType  checkNewSyncInfoType(const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL* out_newIsDir);
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
 void TNewDataSyncInfo_dir_saveTo(TNewDataSyncInfo_dir* self,std::vector<hpatch_byte>& out_buf);
-int  TNewDataSyncInfo_dir_load(TNewDataSyncInfo_dir* outDirInfo,const hpatch_byte* buf,size_t bufSize);
+TSyncClient_resultType TNewDataSyncInfo_dir_load(TNewDataSyncInfo_dir* outDirInfo,const hpatch_byte* buf,size_t bufSize);
 #endif
 
 #endif // sync_info_client_h

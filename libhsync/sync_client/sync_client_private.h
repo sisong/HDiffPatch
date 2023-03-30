@@ -33,7 +33,8 @@
 struct hpatch_TFileStreamOutput;
 namespace sync_private{
     struct TSyncDiffData;
-    int _sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,TSyncDiffData* diffData,
+    TSyncClient_resultType
+        _sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,TSyncDiffData* diffData,
                     const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
                     const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,
                     const hpatch_TStreamOutput* out_diffStream,const hpatch_TStreamInput* diffContinue,int threadNum);

@@ -3,7 +3,7 @@
 //  Created by housisong on 2019-09-18.
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2022 HouSisong
+ Copyright (c) 2019-2023 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -166,9 +166,9 @@ hpatch_BOOL _clip_readUIntTo(TUInt* result,TStreamCacheClip* sclip){
 using namespace sync_private;
 
 
-int _checkNewSyncInfoType(TStreamCacheClip* newSyncInfo_clip,hpatch_BOOL* out_newIsDir){
+TSyncClient_resultType _checkNewSyncInfoType(TStreamCacheClip* newSyncInfo_clip,hpatch_BOOL* out_newIsDir){
     char  tempType[hpatch_kMaxPluginTypeLength+1];
-    int result=kSyncClient_ok;
+    TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     check(_TStreamCacheClip_readType_end(newSyncInfo_clip,'&',tempType),
           kSyncClient_newSyncInfoTypeError);
@@ -185,17 +185,17 @@ clear:
     return result;
 }
 
-int checkNewSyncInfoType(const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL* out_newIsDir){
+TSyncClient_resultType checkNewSyncInfoType(const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL* out_newIsDir){
     TStreamCacheClip    clip;
     TByte temp_cache[hpatch_kMaxPluginTypeLength+1];
     _TStreamCacheClip_init(&clip,newSyncInfo,0,newSyncInfo->streamSize,temp_cache,sizeof(temp_cache));
     return _checkNewSyncInfoType(&clip,out_newIsDir);
 }
 
-int checkNewSyncInfoType_by_file(const char* newSyncInfoFile,hpatch_BOOL* out_newIsDir){
+TSyncClient_resultType checkNewSyncInfoType_by_file(const char* newSyncInfoFile,hpatch_BOOL* out_newIsDir){
     hpatch_TFileStreamInput  newSyncInfo;
     hpatch_TFileStreamInput_init(&newSyncInfo);
-    int result=kSyncClient_ok;
+    TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoFile), kSyncClient_newSyncInfoOpenError);
     result=checkNewSyncInfoType(&newSyncInfo.base,out_newIsDir);
@@ -305,13 +305,14 @@ static hpatch_BOOL _readDirHead(TNewDataSyncInfo_dir* dirInfo,TStreamCacheClip* 
 }
 #endif
 
-static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
-                                  ISyncInfoListener *listener){
+static TSyncClient_resultType
+    _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+                           ISyncInfoListener *listener){
     assert(self->_import==0);
     hsync_TDictDecompress* decompressPlugin=0;
     hpatch_TChecksum*   strongChecksumPlugin=0;
     TStreamCacheClip    clip;
-    int result=kSyncClient_ok;
+    TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
 
     hpatch_BOOL newIsDir_byType=hpatch_FALSE;
@@ -543,7 +544,7 @@ static int _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInp
             assert(self->savedSizes==0);
         if (compressDataSize>0)
             _clear_decompresser(decompresser);
-        }
+    }
     if (isChecksumNewSyncInfo){//info Checksum
         check(newSyncInfo->read(newSyncInfo,checksumInputStream.streamSize,self->infoChecksum,
                                 self->infoChecksum+self->kStrongChecksumByteSize),
@@ -596,8 +597,8 @@ clear:
 }
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
-int TNewDataSyncInfo_dir_load(TNewDataSyncInfo_dir* self,const hpatch_byte* buf,size_t bufSize){
-    int result=kSyncClient_ok;
+TSyncClient_resultType TNewDataSyncInfo_dir_load(TNewDataSyncInfo_dir* self,const hpatch_byte* buf,size_t bufSize){
+    TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     TStreamCacheClip _clip;
     TStreamCacheClip* clip=&_clip;
@@ -635,19 +636,19 @@ void TNewDataSyncInfo_close(TNewDataSyncInfo* self){
     TNewDataSyncInfo_init(self);
 }
 
-int TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
-                          ISyncInfoListener* listener){
-    int result=_TNewDataSyncInfo_open(self,newSyncInfo,listener);
+TSyncClient_resultType TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+                                             ISyncInfoListener* listener){
+    TSyncClient_resultType result=_TNewDataSyncInfo_open(self,newSyncInfo,listener);
     if ((result==kSyncClient_ok)&&listener->loadedNewSyncInfo)
         listener->loadedNewSyncInfo(listener,self);
     return result;
 }
 
-int TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,
-                                  ISyncInfoListener *listener){
+TSyncClient_resultType TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,
+                                                     ISyncInfoListener *listener){
     hpatch_TFileStreamInput  newSyncInfo;
     hpatch_TFileStreamInput_init(&newSyncInfo);
-    int result=kSyncClient_ok;
+    TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoFile), kSyncClient_newSyncInfoOpenError);
     result=_TNewDataSyncInfo_open(self,&newSyncInfo.base,listener);

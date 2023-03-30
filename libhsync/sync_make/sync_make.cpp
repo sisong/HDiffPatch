@@ -3,7 +3,7 @@
 //  Created by housisong on 2019-09-17.
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2022 HouSisong
+ Copyright (c) 2019-2023 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -182,7 +182,7 @@ namespace{
             TWorkBuf* workBuf=(TWorkBuf*)read_chan.accept(true);
             if ((workBuf==0)||(kBlockCount==workBlockEnd)) return 0;
 
-            CAutoLocker _auto_locker(_locker.locker);
+            CAutoLocker _auto_locker(workpLocker.locker);
             if (kBlockCount==workBlockEnd) return 0;
             workBuf->blockBegin=workBlockEnd;
             workBlockEnd+=bestWorkBlockCount;

@@ -3,7 +3,7 @@
 //  Created by housisong on 2019-10-05.
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2020 HouSisong
+ Copyright (c) 2019-2023 HouSisong
 
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -111,7 +111,8 @@ struct CFilesStream{
 };
 
 
-static int _sync_patch_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,TSyncDiffData* diffData,
+static TSyncClient_resultType
+           _sync_patch_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,TSyncDiffData* diffData,
                              const TManifest& oldManifest,const char* newSyncInfoFile,
                              const char* outNewFile,hpatch_BOOL isOutNewContinue,
                              const hpatch_TStreamOutput* out_diffStream,const hpatch_TStreamInput* diffContinue,
@@ -120,7 +121,7 @@ static int _sync_patch_2file(ISyncInfoListener* listener,IReadSyncDataListener* 
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     kMaxOpenFileNumber-=2; // for newSyncInfoFile & outNewFile
 
-    int result=kSyncClient_ok;
+    TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     TNewDataSyncInfo            newSyncInfo;
     hpatch_TFileStreamOutput    out_newData;
@@ -215,7 +216,7 @@ struct CNewDirOut{
     hpatch_TStreamOutput* _stream_dir;
     hpatch_byte*          _dirInfoBuf;
     size_t                _dirInfoAlignSize;
-    int                   errResult;
+    TSyncClient_resultType  errResult;
     inline void _clear_dirInfo(){
         if (_dirInfoBuf){
             free(_dirInfoBuf);
@@ -261,7 +262,8 @@ struct CNewDirOut{
     }
 };
 
-static int _sync_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListener* syncListener,
+static TSyncClient_resultType
+           _sync_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListener* syncListener,
                             IReadSyncDataListener* syncDataListener,TSyncDiffData* diffData,
                             const TManifest& oldManifest,const char* newSyncInfoFile,
                             const char* outNewDir,const hpatch_TStreamOutput* out_diffStream,
@@ -270,7 +272,7 @@ static int _sync_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListen
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     kMaxOpenFileNumber-=2; // for newSyncInfoFile & outNewFile
 
-    int result=kSyncClient_ok;
+    TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     TNewDataSyncInfo            newSyncInfo;
     const hpatch_TStreamOutput* out_newData=0;
@@ -309,7 +311,8 @@ clear:
 }
 using namespace sync_private;
 
-int sync_patch_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
+TSyncClient_resultType
+    sync_patch_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                      const TManifest& oldManifest,const char* newSyncInfoFile,
                      const char* outNewFile,hpatch_BOOL isOutNewContinue,
                      size_t kMaxOpenFileNumber,int threadNum){
@@ -317,10 +320,11 @@ int sync_patch_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncData
                              outNewFile,isOutNewContinue,0,0,kMaxOpenFileNumber,threadNum);
 }
 
-int sync_local_diff_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
+TSyncClient_resultType
+    sync_local_diff_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                           const TManifest& oldManifest,const char* newSyncInfoFile,const char* outDiffFile,
                           hpatch_BOOL isOutDiffContinue,size_t kMaxOpenFileNumber,int threadNum){
-    int result=kSyncClient_ok;
+    TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     hpatch_TFileStreamOutput out_diffData;
     hpatch_TFileStreamOutput_init(&out_diffData);
@@ -344,10 +348,11 @@ clear:
     return result;
 }
 
-int sync_local_patch_2file(ISyncInfoListener* listener,const char* inDiffFile,
+TSyncClient_resultType
+    sync_local_patch_2file(ISyncInfoListener* listener,const char* inDiffFile,
                            const TManifest& oldManifest,const char* newSyncInfoFile,const char* outNewFile,
                            size_t kMaxOpenFileNumber,int threadNum){
-    int result=kSyncClient_ok;
+    TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     TSyncDiffData diffData;
     hpatch_TFileStreamInput in_diffData;
@@ -364,7 +369,8 @@ clear:
 }
 
 
-int sync_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListener* syncListener,
+TSyncClient_resultType
+    sync_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListener* syncListener,
                     IReadSyncDataListener* syncDataListener,
                     const TManifest& oldManifest,const char* newSyncInfoFile,const char* outNewDir,
                     size_t kMaxOpenFileNumber,int threadNum){
@@ -372,11 +378,12 @@ int sync_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListener* sync
                             kMaxOpenFileNumber,threadNum);
 }
 
-int sync_local_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListener* syncListener,
+TSyncClient_resultType
+    sync_local_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListener* syncListener,
                           const char* inDiffFile,
                           const TManifest& oldManifest,const char* newSyncInfoFile,const char* outNewDir,
                           size_t kMaxOpenFileNumber,int threadNum){
-    int result=kSyncClient_ok;
+    TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     TSyncDiffData diffData;
     hpatch_TFileStreamInput in_diffData;
