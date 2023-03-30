@@ -48,14 +48,14 @@ namespace{
         inline explicit TMt(struct _TMatchDatas& _matchDatas)
             :matchDatas(_matchDatas),curWorki(0){}
         CHLocker readLocker;
-        CHLocker writeLocker;
+        CHLocker workiLocker;
         CHLocker checkLocker;
         volatile size_t      curWorki;
         struct _TMatchDatas& matchDatas;
 
         inline bool getWorki(size_t worki){
             if (curWorki>worki) return false;
-            CAutoLocker _auto_locker(_locker.locker);
+            CAutoLocker _auto_locker(workiLocker.locker);
             if (curWorki==worki){
                 ++curWorki;
                 return true;

@@ -157,6 +157,7 @@ namespace{
         uint32_t bestWorkBlockCount;
         CHLocker readLocker;
         CHLocker writeLocker;
+        CHLocker workpLocker;
         CHLocker checkLocker;
         TWorkBuf* workFilished;
         volatile uint32_t workBlockEnd;

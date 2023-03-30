@@ -97,8 +97,10 @@ namespace sync_private{
             if ((curPair<samePairCount)&&(i==samePairList[curPair].curIndex))
                 { ++curPair; continue; }
             for (size_t j=0;j<partBytes;++j){
+                const size_t vbit=(j==0)?highBit:8;
+                assert(partHash[j]<(1<<vbit));
                 bitsValue|=(((size_t)partHash[j])<<bitsCount);
-                bitsCount+=((j==0)?highBit:8);
+                bitsCount+=vbit;
                 if (bitsCount>=8){
                     buf.push_back((hpatch_byte)bitsValue);
                     bitsValue>>=8;

@@ -75,9 +75,8 @@ void toPartChecksum(unsigned char* out_partChecksum,size_t outPartBits,
     assert(outPartBytes<=kChecksumByteSize);
     if (out_partChecksum!=checksum)
         memmove(out_partChecksum,checksum,outPartBytes);
-    size_t lasti=(outPartBits>>3);
-    if (outPartBytes>lasti)
-        out_partChecksum[lasti]&=((1<<(outPartBits&7))-1);
+    if (outPartBytes*8>outPartBits)
+        out_partChecksum[0]&=((1<<(outPartBits&7))-1);
 }
 
 static hpatch_inline
