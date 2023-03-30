@@ -38,7 +38,9 @@ extern "C" {
 #endif
 
 static const size_t kDecompressInfoMaxSize = 32;
-static const size_t kSafeHashClashBit_min = 20; //for safe
+static const size_t _kNeedMinRollHashBits   = 8;
+static const size_t _kNeedMinStrongHashBits = 16;
+static const size_t kSafeHashClashBit_min   = 14; //for safe
 
 hpatch_inline static
 hpatch_StreamPos_t getSyncBlockCount(hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize){

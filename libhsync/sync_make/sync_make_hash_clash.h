@@ -32,7 +32,6 @@
 #include "../sync_client/sync_client_type_private.h"
 
 namespace sync_private{
-    const size_t _kNeedMinRollHashBits  = 8;
     const size_t _kMaxRollHashBits      = 8*sizeof(uint64_t);
     
     hpatch_inline static
@@ -47,7 +46,7 @@ namespace sync_private{
     
     hpatch_inline static
     size_t getNeedHashBits(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize){
-        const size_t _kNeedMinHashBits=_kNeedMinRollHashBits+kSafeHashClashBit_min;
+        const size_t _kNeedMinHashBits=_kNeedMinRollHashBits+_kNeedMinStrongHashBits;
         size_t compareCountBit=_estimateCompareCountBit(newDataSize,kSyncBlockSize);
         size_t result=compareCountBit+kSafeHashClashBit;
         return (result>=_kNeedMinHashBits)?result:_kNeedMinHashBits;
@@ -64,12 +63,18 @@ namespace sync_private{
         else if (rollHashBits>_kMaxRollHashBits) rollHashBits=_kMaxRollHashBits;
         assert(rollHashBits<=result);
         size_t strongHashBits=result-rollHashBits;
-        if (strongHashBits<kSafeHashClashBit_min){
-            size_t moveBits=(kSafeHashClashBit_min-1-strongHashBits)/2;
-            if (moveBits+_kNeedMinRollHashBits>rollHashBits)
-                moveBits=rollHashBits-_kNeedMinRollHashBits;
+        if (strongHashBits<=_kNeedMinStrongHashBits){
+            size_t moveBits=_kNeedMinStrongHashBits-strongHashBits;
+            assert(rollHashBits>=moveBits+_kNeedMinRollHashBits);
             rollHashBits-=moveBits;
             strongHashBits+=moveBits;
+        }else{
+            size_t moveBits=(strongHashBits-_kNeedMinStrongHashBits+2)/3;
+            moveBits=(moveBits<=_kNeedMinRollHashBits)?moveBits:_kNeedMinRollHashBits;
+            if (rollHashBits+moveBits>=_kMaxRollHashBits)
+                moveBits=_kMaxRollHashBits-rollHashBits;
+            strongHashBits-=moveBits;
+            rollHashBits+=moveBits;
         }
         if (strongHashBits>kStrongHashBits){
             strongHashBits=kStrongHashBits;
