@@ -35,7 +35,7 @@
 #include "hsynz_plugin.h"
 
 static const uint32_t kSyncBlockSize_default   = 1024*2;
-static const uint32_t kSyncBlockSize_min       = 64;
+static const uint32_t kSyncBlockSize_min       = 128;
 static const size_t kSafeHashClashBit_default = 24;
 
 //create out_hsyni

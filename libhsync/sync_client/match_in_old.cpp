@@ -40,9 +40,11 @@ namespace sync_private{
 #define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define checkv(value)     check(value,"check "#value" error!")
 
+#define     kIsSkipMatchedBlock     true      //true: speed++, but patchSize+
+static const size_t kBestReadSize  =1024*256; //for sequence read
 #if (_IS_USED_MULTITHREAD)
+static const size_t kBestMTClipSize=1*1024*1024; //for muti-thread read once
 struct _TMatchDatas;
-const size_t kBestClipSize=1*1024*1024;
 namespace{
     struct TMt:public TMtByChannel{
         inline explicit TMt(struct _TMatchDatas& _matchDatas)
@@ -127,9 +129,13 @@ struct TOldDataCache_base {
     m_strongChecksumPlugin(strongChecksumPlugin),m_checksumHandle(0),m_mt(_mt){
         size_t cacheSize=(size_t)kSyncBlockSize*2;
         check((cacheSize>>1)==kSyncBlockSize,"TOldDataCache mem error!");
-        cacheSize=(cacheSize>=hpatch_kFileIOBufBetterSize)?cacheSize:hpatch_kFileIOBufBetterSize;
+        cacheSize=(cacheSize>=kBestReadSize)?cacheSize:kBestReadSize;
         hpatch_StreamPos_t maxDataSize=oldRollPosEnd()-oldRollBegin;
         if (cacheSize>maxDataSize) cacheSize=(size_t)maxDataSize;
+#if (_IS_USED_MULTITHREAD)
+        if (_mt)
+            cacheSize=(size_t)maxDataSize;
+#endif
 
         m_checksumHandle=strongChecksumPlugin->open(strongChecksumPlugin);
         checkv(m_checksumHandle!=0);
@@ -231,20 +237,30 @@ struct TOldDataCache:public TOldDataCache_base {
                 if (isEnd()) return;
                 m_rollHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kSyncBlockSize);
             }
-    void _cache(){
+    bool _cacheAndRoll(){
         TOldDataCache_base::_cache();
-        if (isEnd()) return;
-        roll();
+        if (isEnd()) return false;
+        return roll();
     }
     inline tm_roll_uint hashValue()const{ return m_rollHash; }
-    inline void roll(){
+    inline bool roll(){
         const TByte* curIn=m_cur+m_kSyncBlockSize;
         if (curIn!=m_cache.data_end()){
             m_rollHash=roll_hash_roll(m_rollHash,m_kSyncBlockSize,*m_cur,*curIn);
             ++m_cur;
+            return true;
         }else{
-            _cache();
+            return _cacheAndRoll();
         }
+    }
+    bool nextBlock(){
+        m_cur+=m_kSyncBlockSize;
+        if (m_cur+m_kSyncBlockSize>m_cache.data_end()){
+            TOldDataCache_base::_cache();
+            if (isEnd()) return false;
+        }
+        m_rollHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kSyncBlockSize);
+        return true;
     }
 protected:
     tm_roll_uint            m_rollHash;
@@ -252,7 +268,7 @@ protected:
 
 typedef volatile hpatch_StreamPos_t volStreamPos_t;
 
-static void matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,
+static bool matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,
                        const uint32_t* range_begin,const uint32_t* range_end,TOldDataCache_base& oldData,
                        const TByte* partChecksums,size_t outPartChecksumBits,TByte* newDataCheckChecksum,void* _mt=0){
     const TByte* oldPartStrongChecksum=0;
@@ -273,7 +289,7 @@ static void matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,
                     TMt* mt=(TMt*)_mt;
                     CAutoLocker _autoLocker(mt?mt->checkLocker.locker:0);
                     if ((*pNewBlockDataInOldPos)!=kBlockType_needSync)
-                        return;  // other thread done
+                        return isMatched;  // other thread done
 #endif                
                     (*pNewBlockDataInOldPos)=curPos;
                     checkChecksumAppendData(newDataCheckChecksum,newBlockIndex,
@@ -283,11 +299,12 @@ static void matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,
                 }
             }else{
                 if (isMatched)
-                    return;
+                    return isMatched;
             }
         }
         ++range_begin;
     }while (range_begin!=range_end);
+    return isMatched;
 }
 
 
@@ -299,6 +316,7 @@ struct _TMatchDatas{
     const void*         filter;
     const uint32_t*     sorted_newIndexs;
     const uint32_t*     sorted_newIndexs_table;
+    size_t              kBlockCount;
     unsigned int        kTableHashShlBit;
     uint32_t            threadNum;
 };
@@ -313,22 +331,30 @@ static void _rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,
     uint8_t part[sizeof(tm_roll_uint)]={0};
     const size_t savedRollHashBits=rd.newSyncInfo->savedRollHashBits;
     const TBloomFilter<tm_roll_uint>& filter=*(TBloomFilter<tm_roll_uint>*)rd.filter;
-    for (;!oldData.isEnd();oldData.roll()) {
+    while (true) {
         tm_roll_uint digest=oldData.hashValue();
         digest=toSavedPartRollHash(digest,savedRollHashBits);
-        if (!filter.is_hit(digest)) continue;
+        if (!filter.is_hit(digest))
+            { if (oldData.roll()) continue; else break; }//finish
         
         const uint32_t* ti_pos=&rd.sorted_newIndexs_table[digest>>rd.kTableHashShlBit];
         writeRollHashBytes(part,digest,rd.newSyncInfo->savedRollHashByteSize);
         TIndex_comp0::TDigest digest_value(part);
         std::pair<const uint32_t*,const uint32_t*>
-        //range=std::equal_range(sorted_newIndexs,sorted_newIndexs+sortedBlockCount,digest_value,icomp);
+        //range=std::equal_range(rd.sorted_newIndexs,rd.sorted_newIndexs+rd.kBlockCount,digest_value,icomp0);
         range=std::equal_range(rd.sorted_newIndexs+ti_pos[0],
                                rd.sorted_newIndexs+ti_pos[1],digest_value,icomp0);
-        if (range.first!=range.second){
-            matchRange(rd.out_newBlockDataInOldPoss,range.first,range.second,oldData,
-                       rd.newSyncInfo->partChecksums,rd.newSyncInfo->savedStrongChecksumBits,
-                       rd.newSyncInfo->savedNewDataCheckChecksum,_mt);
+        if (range.first==range.second)
+            { if (oldData.roll()) continue; else break; }//finish
+        
+        bool isMatched=matchRange(rd.out_newBlockDataInOldPoss,range.first,range.second,oldData,
+                                  rd.newSyncInfo->partChecksums,rd.newSyncInfo->savedStrongChecksumBits,
+                                  rd.newSyncInfo->savedNewDataCheckChecksum,_mt);
+        if (kIsSkipMatchedBlock&&isMatched){
+            if (!oldData.nextBlock())
+                break;//finish
+        }else{
+            if (oldData.roll()) continue; else break;
         }
     }
 }
@@ -338,7 +364,7 @@ static void _rollMatch_mt(int threadIndex,void* workData){
     TMt& mt=*(TMt*)workData;
     TMtByChannel::TAutoThreadEnd __auto_thread_end(mt);
 
-    hpatch_StreamPos_t clipSize=kBestClipSize;
+    hpatch_StreamPos_t clipSize=kBestMTClipSize;
     hpatch_StreamPos_t _minClipSize=(hpatch_StreamPos_t)(mt.matchDatas.newSyncInfo->kSyncBlockSize)*4;
     if (clipSize<_minClipSize) clipSize=_minClipSize;
     uint32_t threadNum=mt.matchDatas.threadNum;
@@ -404,10 +430,11 @@ static void _matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
 
     matchDatas.filter=&filter;
     matchDatas.sorted_newIndexs=sorted_newIndexs;
+    matchDatas.kBlockCount=kBlockCount;
     matchDatas.sorted_newIndexs_table=sorted_newIndexs_table;
     matchDatas.kTableHashShlBit=kTableHashShlBit;
 #if (_IS_USED_MULTITHREAD)
-    const hpatch_StreamPos_t _bestWorkCount=matchDatas.oldStream->streamSize/kBestClipSize;
+    const hpatch_StreamPos_t _bestWorkCount=matchDatas.oldStream->streamSize/kBestMTClipSize;
     threadNum=(_bestWorkCount<=threadNum)?(int)_bestWorkCount:threadNum;
     if (threadNum>1){
         matchDatas.threadNum=threadNum;
