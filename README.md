@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.5.2-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.6.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -22,6 +22,11 @@ NOTE: *This library does not deal with file metadata, such as file last wirte ti
 ## Releases/Binaries
 [Download from latest release](https://github.com/sisong/HDiffPatch/releases) : Command line app for Windows, Linux, MacOS; and .so patch lib for Android.     
 ( release files build by projects in path `HDiffPatch/builds` )   
+use cmdline to create a delta:   
+`$hdiffz -m-6 -SD -c-zstd-21-24 -d oldPath newPath outDiffFile`   
+if file'size is very large, try changing `-m-6` to `-s-64`   
+apply the delta:   
+`$hpatchz oldPath diffFile outNewPath`   
 
 ## Build it yourself
 `$ cd <dir>/HDiffPatch`   
@@ -285,6 +290,21 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **create_vcdiff()**
 * **create_vcdiff_stream()**
 * **vcpatch_with_cache()**
+####  hsync API, diff&patch by sync (demo [hsync](https://github.com/sisong/hsync)): 
+* **create_sync_data()**
+* **create_dir_sync_data()**
+* **sync_patch()**
+* **sync_patch_file2file()**
+* **sync_local_diff()**
+* **sync_local_diff_file2file()**
+* **sync_local_patch()**
+* **sync_local_patch_file2file()**
+* **sync_patch_2dir()**
+* **sync_patch_2file()**
+* **sync_local_diff_2dir()**
+* **sync_local_diff_2file()**
+* **sync_local_patch_2dir()**
+* **sync_local_patch_2file()**
 
 ---
 ## HDiffPatch vs BsDiff & xdelta:
