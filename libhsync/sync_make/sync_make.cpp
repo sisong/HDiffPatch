@@ -58,7 +58,7 @@ struct _TCompress{
         checkv(kSyncBlockSize==0);
         compressPlugin=_compressPlugin;
         kSyncBlockSize=_kSyncBlockSize;
-        kMaxCompressedSize=_compressPlugin?_compressPlugin->maxCompressedSize(_kSyncBlockSize):0;
+        kMaxCompressedSize=_compressPlugin?(size_t)_compressPlugin->maxCompressedSize(_kSyncBlockSize):0;
         if (compressPlugin!=0){
             dictCompressHandle=compressPlugin->dictCompressOpen(compressPlugin,kSyncBlockCount,_kSyncBlockSize);
             checkv(dictCompressHandle!=0);

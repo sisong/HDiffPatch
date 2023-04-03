@@ -74,13 +74,14 @@ static void _packMatchedPoss(const hpatch_StreamPos_t* newBlockDataInOldPoss,uin
     _pushNeedSync();
 }
 
-bool _saveSyncDiffData(const hpatch_StreamPos_t* newBlockDataInOldPoss,uint32_t kBlockCount,uint32_t kBlockSize,
-                       hpatch_StreamPos_t oldDataSize,const TByte* newDataCheckChecksum,size_t checksumByteSize,
-                       const hpatch_TStreamOutput* out_diffStream,hpatch_StreamPos_t* out_diffDataPos){
+hpatch_BOOL _saveSyncDiffData(const hpatch_StreamPos_t* newBlockDataInOldPoss,uint32_t kBlockCount,uint32_t kBlockSize,
+                              hpatch_StreamPos_t oldDataSize,const TByte* newDataCheckChecksum,size_t checksumByteSize,
+                              const hpatch_TStreamOutput* out_diffStream,hpatch_BOOL isMinDiff,hpatch_StreamPos_t* out_diffDataPos){
     assert(checksumByteSize==(uint32_t)checksumByteSize);
     try {
         std::vector<TByte> possBuf;
-        _packMatchedPoss(newBlockDataInOldPoss,kBlockCount,kBlockSize,possBuf);
+        if (!isMinDiff)
+            _packMatchedPoss(newBlockDataInOldPoss,kBlockCount,kBlockSize,possBuf);
         
         std::vector<TByte> headBuf;
         headBuf.insert(headBuf.end(),kSyncDiffType,kSyncDiffType+strlen(kSyncDiffType)+1); //with '\0'
@@ -91,18 +92,18 @@ bool _saveSyncDiffData(const hpatch_StreamPos_t* newBlockDataInOldPoss,uint32_t 
         _pushV(headBuf,possBuf.size(),0,0);
         hpatch_StreamPos_t curWritePos=0;
         if (!out_diffStream->write(out_diffStream,curWritePos,headBuf.data(),
-                                   headBuf.data()+headBuf.size())) return false;
+                                   headBuf.data()+headBuf.size())) return hpatch_FALSE;
         curWritePos+=headBuf.size();
         if (!out_diffStream->write(out_diffStream,curWritePos,newDataCheckChecksum,
-                                   newDataCheckChecksum+checksumByteSize)) return false;
+                                   newDataCheckChecksum+checksumByteSize)) return hpatch_FALSE;
         curWritePos+=checksumByteSize;
         if (!out_diffStream->write(out_diffStream,curWritePos,possBuf.data(),
-                                   possBuf.data()+possBuf.size())) return false;
+                                   possBuf.data()+possBuf.size())) return hpatch_FALSE;
         curWritePos+=possBuf.size();
         *out_diffDataPos=curWritePos;
-        return true;
+        return hpatch_TRUE;
     } catch (...) {
-        return false;
+        return hpatch_FALSE;
     }
 }
 
@@ -119,7 +120,7 @@ TSyncDiffData::~TSyncDiffData(){
 
 static hpatch_BOOL _TSyncDiffData_readSyncData(IReadSyncDataListener* listener,uint32_t blockIndex,
                                                hpatch_StreamPos_t posInNewSyncData,hpatch_StreamPos_t posInNeedSyncData,
-                                               uint32_t syncDataSize,unsigned char* out_syncDataBuf){
+                                               unsigned char* out_syncDataBuf,uint32_t syncDataSize){
     TSyncDiffData* self=(TSyncDiffData*)listener->readSyncDataImport;
     if (self->diffDataPos0+posInNeedSyncData+syncDataSize>self->in_diffStream->streamSize)
         return hpatch_FALSE;
@@ -211,26 +212,33 @@ hpatch_BOOL _TSyncDiffData_readOldPoss(TSyncDiffData* self,hpatch_StreamPos_t* o
     if (localPoss.checksumByteSize!=checksumByteSize) return hpatch_FALSE;
     if (0!=memcmp(localPoss.savedNewDataCheckChecksum,newDataCheckChecksum,checksumByteSize))
         return hpatch_FALSE;
+    if (self->isMinDiff)
+        return hpatch_TRUE;
+
     //read
     for (uint32_t i=0;i<kBlockCount; ++i){
         hpatch_StreamPos_t pos;
-        if (!_syncDiffLocalPoss_nextOldPos(&localPoss,&pos)) return false;
+        if (!_syncDiffLocalPoss_nextOldPos(&localPoss,&pos)) return hpatch_FALSE;
         if ((pos==kBlockType_needSync)|(pos<oldDataSize))
             out_newBlockDataInOldPoss[i]=pos;
         else
-            return false;
+            return hpatch_FALSE;
     }
     return 0!=_syncDiffLocalPoss_isFinish(&localPoss);
 }
 
-bool _TSyncDiffData_load(TSyncDiffData* self,const hpatch_TStreamInput* in_diffStream){
+hpatch_BOOL _TSyncDiffData_load(TSyncDiffData* self,const hpatch_TStreamInput* in_diffStream){
     assert(self->readSyncDataImport==0);
     assert(self->localPoss.packedOldPoss==0);
     self->readSyncDataImport=self;
     self->readSyncData=_TSyncDiffData_readSyncData;
     self->in_diffStream=in_diffStream;
     self->diffDataPos0=0;
-    return 0!=_loadPoss(&self->localPoss,in_diffStream,&self->diffDataPos0);
+    if (!_loadPoss(&self->localPoss,in_diffStream,&self->diffDataPos0))
+        return hpatch_FALSE;
+    self->isMinDiff=(self->localPoss.kBlockCount>0)&&
+                    (self->localPoss.packedOldPoss==self->localPoss.packedOldPossEnd);
+    return hpatch_TRUE;
 }
 
 } //namespace sync_private

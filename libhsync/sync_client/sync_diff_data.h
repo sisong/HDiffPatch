@@ -31,9 +31,9 @@
 #include "sync_client_type.h"
 namespace sync_private{
 
-bool _saveSyncDiffData(const hpatch_StreamPos_t* newBlockDataInOldPoss,uint32_t kBlockCount,uint32_t kBlockSize,
-                       hpatch_StreamPos_t oldDataSize,const unsigned char* newDataCheckChecksum,size_t checksumByteSize,
-                       const hpatch_TStreamOutput* out_diffStream,hpatch_StreamPos_t* out_diffDataPos);
+hpatch_BOOL _saveSyncDiffData(const hpatch_StreamPos_t* newBlockDataInOldPoss,uint32_t kBlockCount,uint32_t kBlockSize,
+                              hpatch_StreamPos_t oldDataSize,const unsigned char* newDataCheckChecksum,size_t checksumByteSize,
+                              const hpatch_TStreamOutput* out_diffStream,hpatch_BOOL isMinDiff,hpatch_StreamPos_t* out_diffDataPos);
 
 
     struct TSyncDiffLocalPoss{
@@ -53,11 +53,12 @@ bool _saveSyncDiffData(const hpatch_StreamPos_t* newBlockDataInOldPoss,uint32_t 
     struct TSyncDiffData:public IReadSyncDataListener{
         const hpatch_TStreamInput*  in_diffStream;
         TSyncDiffLocalPoss          localPoss;
+        hpatch_BOOL                 isMinDiff;
         hpatch_StreamPos_t          diffDataPos0;
         TSyncDiffData();
         ~TSyncDiffData();
     };
-    bool _TSyncDiffData_load(TSyncDiffData* self,const hpatch_TStreamInput* in_diffStream);
+    hpatch_BOOL _TSyncDiffData_load(TSyncDiffData* self,const hpatch_TStreamInput* in_diffStream);
     hpatch_BOOL _TSyncDiffData_readOldPoss(TSyncDiffData* self,hpatch_StreamPos_t* out_newBlockDataInOldPoss,
                                            uint32_t kBlockCount,uint32_t kBlockSize,hpatch_StreamPos_t oldDataSize,
                                            const unsigned char* newDataCheckChecksum,size_t checksumByteSize);

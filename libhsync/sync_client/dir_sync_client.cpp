@@ -115,7 +115,7 @@ static TSyncClient_resultType
            _sync_patch_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,TSyncDiffData* diffData,
                              const TManifest& oldManifest,const char* newSyncInfoFile,
                              const char* outNewFile,hpatch_BOOL isOutNewContinue,
-                             const hpatch_TStreamOutput* out_diffStream,const hpatch_TStreamInput* diffContinue,
+                             const hpatch_TStreamOutput* out_diffStream,hpatch_BOOL isMinDiff,const hpatch_TStreamInput* diffContinue,
                              size_t kMaxOpenFileNumber,int threadNum){
     assert(listener!=0);
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
@@ -141,7 +141,8 @@ static TSyncClient_resultType
         if (isOutNewContinue) newDataContinue=&_newDataContinue;
     }
     result=_sync_patch(listener,syncDataListener,diffData,oldFilesStream.refStream.stream,&newSyncInfo,
-                       outNewFile?&out_newData.base:0,newDataContinue,out_diffStream,diffContinue,threadNum);
+                       outNewFile?&out_newData.base:0,newDataContinue,
+                       out_diffStream,isMinDiff,diffContinue,threadNum);
     check_r(oldFilesStream.closeFileHandles(),kSyncClient_oldDirFilesCloseError);
 clear:
     _inClear=1;
@@ -293,7 +294,8 @@ static TSyncClient_resultType
             kSyncClient_oldDirFilesOpenError);
 
     result=_sync_patch(syncListener,syncDataListener,diffData,
-                       oldFilesStream.refStream.stream,&newSyncInfo,out_newData,0,0,0,threadNum);
+                       oldFilesStream.refStream.stream,&newSyncInfo,out_newData,0,
+                       0,hpatch_FALSE,0,threadNum);
     if (newDirOut.errResult!=kSyncClient_ok)
         result=newDirOut.errResult;
     check_r(newDirOut.closeFileHandles(),kSyncClient_newDirCloseError);
@@ -317,13 +319,14 @@ TSyncClient_resultType
                      const char* outNewFile,hpatch_BOOL isOutNewContinue,
                      size_t kMaxOpenFileNumber,int threadNum){
     return _sync_patch_2file(listener,syncDataListener,0,oldManifest,newSyncInfoFile,
-                             outNewFile,isOutNewContinue,0,0,kMaxOpenFileNumber,threadNum);
+                             outNewFile,isOutNewContinue,0,hpatch_FALSE,0,kMaxOpenFileNumber,threadNum);
 }
 
 TSyncClient_resultType
     sync_local_diff_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
-                          const TManifest& oldManifest,const char* newSyncInfoFile,const char* outDiffFile,
-                          hpatch_BOOL isOutDiffContinue,size_t kMaxOpenFileNumber,int threadNum){
+                          const TManifest& oldManifest,const char* newSyncInfoFile,
+                          const char* outDiffFile,hpatch_BOOL isMinDiff,hpatch_BOOL isOutDiffContinue,
+                          size_t kMaxOpenFileNumber,int threadNum){
     TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     hpatch_TFileStreamOutput out_diffData;
@@ -336,7 +339,7 @@ TSyncClient_resultType
     if (isOutDiffContinue) diffContinue=&_diffContinue;
     
     result=_sync_patch_2file(listener,syncDataListener,0,oldManifest,newSyncInfoFile,0,hpatch_FALSE,
-                             &out_diffData.base,diffContinue,kMaxOpenFileNumber,threadNum);
+                             &out_diffData.base,isMinDiff,diffContinue,kMaxOpenFileNumber,threadNum);
     /*if ((result==kSyncClient_ok)&&isOutDiffContinue
         &&(out_diffData.out_length>0)&&(out_diffData.out_length<diffContinue->streamSize)){
         check_r(hpatch_TFileStreamOutput_truncate(&out_diffData,out_diffData.out_length),
@@ -361,7 +364,7 @@ TSyncClient_resultType
             kSyncClient_diffFileOpenError);
     check_r(_TSyncDiffData_load(&diffData,&in_diffData.base),kSyncClient_loadDiffError);
     return _sync_patch_2file(listener,0,&diffData,oldManifest,newSyncInfoFile,outNewFile,hpatch_FALSE,
-                             0,0,kMaxOpenFileNumber,threadNum);
+                             0,hpatch_FALSE,0,kMaxOpenFileNumber,threadNum);
 clear:
     _inClear=1;
     check_r(hpatch_TFileStreamInput_close(&in_diffData),kSyncClient_diffFileCloseError);

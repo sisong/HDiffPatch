@@ -506,8 +506,6 @@ static void _matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
 void matchNewDataInOld(hpatch_StreamPos_t* out_newBlockDataInOldPoss,const TNewDataSyncInfo* newSyncInfo,
                        const hpatch_TStreamInput* oldStream,hpatch_TChecksum* strongChecksumPlugin,int threadNum){
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
-    for (uint32_t i=0; i<kBlockCount; ++i)
-        out_newBlockDataInOldPoss[i]=kBlockType_needSync;
     
     _TMatchDatas matchDatas; memset(&matchDatas,0,sizeof(matchDatas));
     matchDatas.out_newBlockDataInOldPoss=out_newBlockDataInOldPoss;

@@ -33,11 +33,13 @@
 struct hpatch_TFileStreamOutput;
 namespace sync_private{
     struct TSyncDiffData;
+
     TSyncClient_resultType
         _sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,TSyncDiffData* diffData,
                     const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
                     const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,
-                    const hpatch_TStreamOutput* out_diffStream,const hpatch_TStreamInput* diffContinue,int threadNum);
+                    const hpatch_TStreamOutput* out_diffStream,hpatch_BOOL isMinDiff,
+                    const hpatch_TStreamInput* diffContinue,int threadNum);
     
     bool _open_continue_out(hpatch_BOOL& isOutContinue,const char* outFile,hpatch_TFileStreamOutput* out_stream,
                             hpatch_TStreamInput* continue_stream,hpatch_StreamPos_t maxContinueLength);
