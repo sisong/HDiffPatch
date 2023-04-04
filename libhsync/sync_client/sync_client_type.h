@@ -111,10 +111,10 @@ typedef struct TNeedSyncInfos{
     hpatch_StreamPos_t          newSyncDataSize; // new data size or .hsynz file size
     hpatch_StreamPos_t          newSyncInfoSize; // .hsyni file size
     hpatch_StreamPos_t          localDiffDataSize; // local diff data
+    hpatch_StreamPos_t          needSyncSumSize; // all need download from new data or .hsynz file
     uint32_t                    kSyncBlockSize;
     uint32_t                    blockCount;
     uint32_t                    needSyncBlockCount;
-    hpatch_StreamPos_t          needSyncSumSize; // all need download from new data or .hsynz file
     TSync_getBlockInfoByIndex   getBlockInfoByIndex;
     void*                       import; //private
 } TNeedSyncInfos;
@@ -132,9 +132,9 @@ typedef struct IReadSyncDataListener{
 } IReadSyncDataListener;
 
 typedef struct TSyncDownloadPlugin{
-    //download part of file
-    hpatch_BOOL (*download_part_open) (IReadSyncDataListener* out_listener,const char* file_url);
-    hpatch_BOOL (*download_part_close)(IReadSyncDataListener* listener);
+    //download range of file
+    hpatch_BOOL (*download_range_open) (IReadSyncDataListener* out_listener,const char* file_url);
+    hpatch_BOOL (*download_range_close)(IReadSyncDataListener* listener);
     //download file
     hpatch_BOOL (*download_file)      (const char* file_url,const hpatch_TStreamOutput* out_stream,
                                        hpatch_StreamPos_t continueDownloadPos);

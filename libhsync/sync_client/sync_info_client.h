@@ -64,6 +64,7 @@ typedef enum TSyncClient_resultType{
     kSyncClient_syncDataCloseError,
     kSyncClient_readSyncDataBeginError,
     kSyncClient_readSyncDataError,          // 35
+    kSyncClient_noReadSyncDataError,
     kSyncClient_noStrongChecksumPluginError,
 
     kSyncClient_strongChecksumByteSizeError=40,

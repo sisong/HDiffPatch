@@ -8,13 +8,16 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 
 a C\C++ library and command-line tools for Diff & Patch between binary files or directories(folder); cross-platform; runs fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
+
+HDiffPatch defines its own patch file format, which is also compatible with the [bsdiff4](https://daemonology.net/bsdiff) patch format and partially compatible with the [open-vcdiff](https://github.com/google/open-vcdiff) and [xdelta3](https://github.com/jmacd/xdelta) patch file format VCDIFF(RFC 3284).
    
-if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite](https://github.com/sisong/HPatchLite), + [tinyuz](https://github.com/sisong/tinyuz) can run on 1KB RAM devices!   
+if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite](https://github.com/sisong/HPatchLite) (+ [tinyuz](https://github.com/sisong/tinyuz)), can run on 1KB RAM devices!   
 
 update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch), to create smaller delta/differential! NOTE: *ApkDiffPath can't be used by Android app store, because it requires re-signing apks before diff.*   
 
 [sfpatcher](https://github.com/sisong/sfpatcher) not require re-signing apks (like [archive-patcher](https://github.com/google/archive-patcher)), is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
 
+if you not have the old versions(too many or not obtain or have been modified), thus cannot create the patch in advance. you can see demo [hsync](https://github.com/sisong/hsync) (like [zsync](http://zsync.moria.org.uk)), the new version is only need released once and the owners of the old version get the information about the new version and do the diff&patch themselves. hsync support zstd compressor & run faster than zsync.
    
 NOTE: *This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
    
@@ -278,7 +281,7 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **patch_single_stream_mem()**
 * **patch_single_compressed_diff()**
 * **patch_single_stream_diff()**
-####  hpatch lite API, optimized hpatch on MCU,NB-IoT... (demo [HPatchLite](https://github.com/sisong/HPatchLite)): 
+#### hpatch lite API, optimized hpatch on MCU,NB-IoT... (demo [HPatchLite](https://github.com/sisong/HPatchLite)): 
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
@@ -286,25 +289,19 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **create_bsdiff()**
 * **create_bsdiff_stream()** 
 * **bspatch_with_cache()**
-####  vcdiff wrapper API: 
+#### vcdiff wrapper API: 
 * **create_vcdiff()**
 * **create_vcdiff_stream()**
 * **vcpatch_with_cache()**
-####  hsync API, diff&patch by sync (demo [hsync](https://github.com/sisong/hsync)): 
+#### hsync API, diff&patch by sync (demo [hsync](https://github.com/sisong/hsync)): 
 * **create_sync_data()**
 * **create_dir_sync_data()**
 * **sync_patch()**
-* **sync_patch_file2file()**
+* **sync_patch_...()**
 * **sync_local_diff()**
-* **sync_local_diff_file2file()**
+* **sync_local_diff_...()**
 * **sync_local_patch()**
-* **sync_local_patch_file2file()**
-* **sync_patch_2dir()**
-* **sync_patch_2file()**
-* **sync_local_diff_2dir()**
-* **sync_local_diff_2file()**
-* **sync_local_patch_2dir()**
-* **sync_local_patch_2file()**
+* **sync_local_patch_...()**
 
 ---
 ## HDiffPatch vs BsDiff & xdelta:
@@ -357,6 +354,12 @@ all **hdiffz** add test with -p-8
  **hpatchz** patch with `-s-3m -f {old} {pat} {new}`   
 add **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
  zstd patch with `-d -f --memory=2000MB --patch-from={old} {pat} -o {new}`   
+add **hsync** test, make sync info by `hsync_make {new} {out_newi} {out_newz}`,    
+client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`   
+**hsync p1 -zlib** run hsync_make with `-s-1536 -p-1 -c-zlib-9`   
+**hsync p8 -zlib** run hsync_make with `-s-1536 -p-8 -c-zlib-9` (run `hsync_demo` with `-p-8`)   
+**hsync p1 -zstd** run hsync_make with `-s-1536 -p-1 -c-zstd-21-24`
+**hsync p8 -zstd** run hsync_make with `-s-1536 -p-1 -c-zstd-21-24` (run `hsync_demo` with `-p-8`)   
    
 **test result average**:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|
@@ -393,7 +396,11 @@ add **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old}
 |hdiffz -s p8 -lzma2 |9.13%|370M|34.7MB/s|17M|20M|286MB/s|
 |hdiffz -s p1 -zstd-17 |9.99%|103M|19.8MB/s|18M|21M|482MB/s|
 |hdiffz -s p8 -zstd-17 |9.99%|775M|30.4MB/s|18M|21M|481MB/s|
-   
+|hsync p1 -zlib|19.85%|8M|13.7MB/s|8M|26M|140MB/s|
+|hsync p8 -zlib|19.85%|31M|86.9MB/s|15M|35M|207MB/s|
+|hsync p1 -zstd|14.87%|533M|1.3MB/s|25M|38M|155MB/s|
+|hsync p8 -zstd|14.86%|3432M|5.2MB/s|25M|38M|249MB/s|
+    
 
 ## input Apk Files for test: 
 case list:
@@ -435,6 +442,8 @@ case list:
 **changed test Program**:   
 **hdiffz ...** `-m-6 -SD` changed to `-m-1 -SD-2m -cache`, `-s-64 -SD` changed to `-s-16 -SD-2m`   
 **hdiffz ...** lzma2 dict size `16m` changed to `8m`, zstd dict bit `24` changed to `23`   
+**hsync ...** make `-s-1536` changed to `-s-1k`   
+add **hsync p1**, **hsync p8** make without compressor   
 **sfpatcher -1 -zstd** diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
 **sfpatcher -2 -lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
 **sfpatcher -3 -lzma2** diff with `-o-3 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
@@ -472,9 +481,17 @@ case list:
 |hdiffz -s p8 -lzma2|59.02%|373M|25.5MB/s|20M|20M|281MB/s|
 |hdiffz -s p1 -zstd-17|59.26%|137M|9.2MB/s|20M|21M|730MB/s|
 |hdiffz -s p8 -zstd-17|59.26%|871M|13.3MB/s|20M|21M|734MB/s|
+|hsync p1|64.78%|4M|495.4MB/s|4M|12M|156MB/s|
+|hsync p8|64.78%|25M|1279.0MB/s|12M|20M|257MB/s|
+|hsync p1 -zlib|62.65%|5M|20.0MB/s|5M|13M|156MB/s|
+|hsync p8 -zlib|62.65%|29M|122.5MB/s|12M|21M|259MB/s|
+|hsync p1 -zstd|62.02%|534M|2.2MB/s|24M|30M|161MB/s|
+|hsync p8 -zstd|62.02%|3435M|7.6MB/s|24M|30M|261MB/s|
+|sf_diff -o-1 p1 -zstd|31.70%|774M|2.8MB/s|16M|20M|227MB/s|119MB/s|
 |sf_diff -o-1 p8 -zstd|31.61%|982M|5.2MB/s|16M|20M|382MB/s|218MB/s|
 |sf_diff -o-2 p8 -lzma2|27.30%|859M|6.5MB/s|19M|27M|105MB/s|59MB/s|
 |sf_diff -o-3 p8 -lzma2|23.54%|973M|5.9MB/s|22M|27M|64MB/s|36MB/s|
+    
 
 ---
 ## Contact

@@ -371,7 +371,8 @@ TSyncClient_resultType
     if (syncDataListener->readSyncDataBegin)
         check(syncDataListener->readSyncDataBegin(syncDataListener,&needSyncInfo),
               kSyncClient_readSyncDataBeginError);
-    /*if (out_newStream||out_diffStream)*/{
+
+    if (syncDataListener->readSyncData){
         _TWriteDatas writeDatas;
         writeDatas.out_newStream=out_newStream;
         writeDatas.newDataContinue=newDataContinue;
@@ -396,6 +397,9 @@ TSyncClient_resultType
                             newSyncInfo->savedNewDataCheckChecksum,newSyncInfo->kStrongChecksumByteSize),
                   kSyncClient_newDataCheckChecksumError);
         }
+    }else{
+        check((out_newStream==0)&&(out_diffStream==0),
+              kSyncClient_noReadSyncDataError);
     }
     
     if (syncDataListener->readSyncDataEnd)
