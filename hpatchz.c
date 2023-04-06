@@ -119,6 +119,8 @@
 #   define _ChecksumPlugin_fadler128// ?  81 bit effective
 #   define _ChecksumPlugin_md5      //   128 bit
 #   define _ChecksumPlugin_blake3   //   256 bit
+#   define _ChecksumPlugin_xxh3     //    64 bit fast
+#   define _ChecksumPlugin_xxh128   //   128 bit fast
 #endif
 
 #include "checksum_plugin_demo.h"
@@ -868,6 +870,12 @@ static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char
 #endif
 #ifdef _ChecksumPlugin_blake3
     __setChecksum(&blake3ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_xxh3
+    __setChecksum(&xxh3ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_xxh128
+    __setChecksum(&xxh128ChecksumPlugin);
 #endif
     return hpatch_FALSE;
 }
