@@ -34,12 +34,14 @@
 //sync_patch(oldStream+syncDataListener) to out_newStream
 TSyncClient_resultType sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                                   const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
-                                  const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,int threadNum);
+                                  const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,
+                                  const hpatch_TStreamOutput* out_diffInfoStream,const hpatch_TStreamInput* diffInfoContinue,int threadNum);
 
 //sync patch(oldFile+syncDataListener) to outNewFile
 TSyncClient_resultType sync_patch_file2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                                             const char* oldFile,const char* newSyncInfoFile,
-                                            const char* outNewFile,hpatch_BOOL isOutNewContinue,int threadNum);
+                                            const char* outNewFile,hpatch_BOOL isOutNewContinue,
+                                            const char* cacheDiffInfoFile,int threadNum);
 
 
 //sync_patch can split to two steps: sync_local_diff + sync_local_patch
@@ -47,10 +49,9 @@ TSyncClient_resultType sync_patch_file2file(ISyncInfoListener* listener,IReadSyn
 
 //download diff data from syncDataListener to out_diffStream
 //  if (diffContinue) then continue download
-//  NOTE: isMinDiff now need set false; if (isMinDiff) then diff&patch run as single-thread.
 TSyncClient_resultType sync_local_diff(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                                        const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
-                                       const hpatch_TStreamOutput* out_diffStream,hpatch_BOOL isMinDiff,
+                                       const hpatch_TStreamOutput* out_diffStream,TSyncDiffType diffType,
                                        const hpatch_TStreamInput* diffContinue,int threadNum);
 
 //patch(oldStream+in_diffStream) to out_newStream
@@ -61,10 +62,9 @@ TSyncClient_resultType sync_local_patch(ISyncInfoListener* listener,const hpatch
 
 //download diff data from syncDataListener to outDiffFile
 //  if (isOutDiffContinue) then continue download
-//  NOTE: isMinDiff now need set false; if (isMinDiff) then diff&patch run as single-thread.
 TSyncClient_resultType sync_local_diff_file2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                                                  const char* oldFile,const char* newSyncInfoFile,
-                                                 const char* outDiffFile,hpatch_BOOL isMinDiff,
+                                                 const char* outDiffFile,TSyncDiffType diffType,
                                                  hpatch_BOOL isOutDiffContinue,int threadNum);
 
 //patch(oldFile+inDiffFile) to outNewFile

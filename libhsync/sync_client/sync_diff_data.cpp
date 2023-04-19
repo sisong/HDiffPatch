@@ -76,15 +76,16 @@ static void _packMatchedPoss(const hpatch_StreamPos_t* newBlockDataInOldPoss,uin
 
 hpatch_BOOL _saveSyncDiffData(const hpatch_StreamPos_t* newBlockDataInOldPoss,uint32_t kBlockCount,uint32_t kBlockSize,
                               hpatch_StreamPos_t oldDataSize,const TByte* newDataCheckChecksum,size_t checksumByteSize,
-                              const hpatch_TStreamOutput* out_diffStream,hpatch_BOOL isMinDiff,hpatch_StreamPos_t* out_diffDataPos){
+                              const hpatch_TStreamOutput* out_diffStream,TSyncDiffType diffType,hpatch_StreamPos_t* out_diffDataPos){
     assert(checksumByteSize==(uint32_t)checksumByteSize);
     try {
         std::vector<TByte> possBuf;
-        if (!isMinDiff)
+        if (diffType!=kSyncDiff_data)
             _packMatchedPoss(newBlockDataInOldPoss,kBlockCount,kBlockSize,possBuf);
         
         std::vector<TByte> headBuf;
         headBuf.insert(headBuf.end(),kSyncDiffType,kSyncDiffType+strlen(kSyncDiffType)+1); //with '\0'
+        _pushV(headBuf,diffType,0,0);
         _pushV(headBuf,kBlockCount,0,0);
         _pushV(headBuf,kBlockSize,0,0);
         _pushV(headBuf,oldDataSize,0,0);
@@ -136,7 +137,7 @@ static hpatch_BOOL _TSyncDiffData_readSyncData(IReadSyncDataListener* listener,u
     dst=(dstT)v;  }while(0)
 
 static hpatch_BOOL _loadPoss(TSyncDiffLocalPoss* self,const hpatch_TStreamInput* in_diffStream,
-                             hpatch_StreamPos_t* out_diffDataPos){
+                             TSyncDiffType* out_diffType,hpatch_StreamPos_t* out_diffDataPos){
     assert(self->packedOldPoss==0);
     size_t              packedOldPossSize;
     TStreamCacheClip    clip;
@@ -147,6 +148,8 @@ static hpatch_BOOL _loadPoss(TSyncDiffLocalPoss* self,const hpatch_TStreamInput*
         char saved_type[hpatch_kMaxPluginTypeLength+1];
         if (!_TStreamCacheClip_readType_end(&clip,'\0',saved_type)) return hpatch_FALSE;
         if (0!=strcmp(saved_type,kSyncDiffType)) return hpatch_FALSE;//unsupport type
+        _loadV(*out_diffType,TSyncDiffType,&clip);
+        if ((*out_diffType)>_kSyncDiff_TYPE_MAX_) return hpatch_FALSE;//unsupport diff type
     }
     _loadV(self->kBlockCount,uint32_t,&clip);
     _loadV(self->kBlockSize,uint32_t,&clip);
@@ -212,10 +215,10 @@ hpatch_BOOL _TSyncDiffData_readOldPoss(TSyncDiffData* self,hpatch_StreamPos_t* o
     if (localPoss.checksumByteSize!=checksumByteSize) return hpatch_FALSE;
     if (0!=memcmp(localPoss.savedNewDataCheckChecksum,newDataCheckChecksum,checksumByteSize))
         return hpatch_FALSE;
-    if (self->isMinDiff)
+    if (self->diffType==kSyncDiff_data)
         return hpatch_TRUE;
 
-    //read
+    //read poss
     for (uint32_t i=0;i<kBlockCount; ++i){
         hpatch_StreamPos_t pos;
         if (!_syncDiffLocalPoss_nextOldPos(&localPoss,&pos)) return hpatch_FALSE;
@@ -234,10 +237,8 @@ hpatch_BOOL _TSyncDiffData_load(TSyncDiffData* self,const hpatch_TStreamInput* i
     self->readSyncData=_TSyncDiffData_readSyncData;
     self->in_diffStream=in_diffStream;
     self->diffDataPos0=0;
-    if (!_loadPoss(&self->localPoss,in_diffStream,&self->diffDataPos0))
+    if (!_loadPoss(&self->localPoss,in_diffStream,&self->diffType,&self->diffDataPos0))
         return hpatch_FALSE;
-    self->isMinDiff=(self->localPoss.kBlockCount>0)&&
-                    (self->localPoss.packedOldPoss==self->localPoss.packedOldPossEnd);
     return hpatch_TRUE;
 }
 

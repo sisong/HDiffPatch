@@ -261,16 +261,11 @@ typedef struct hpatch_TFileStreamOutput{ //is hpatch_TFileStreamInput !
     hpatch_FileHandle   m_file;
     hpatch_StreamPos_t  m_fpos;
     hpatch_StreamPos_t  m_offset; //now not used
-#if (_HPATCH_IS_USED_errno)
-    int                 fileError; // 0: no error; other: saved errno value;
-#else
-    hpatch_BOOL         fileError;
-#endif
+    hpatch_FileError_t  fileError; // 0: no error; other: saved errno value;
     //
     hpatch_BOOL         is_random_out;
     hpatch_BOOL         is_in_readModel;
     hpatch_StreamPos_t  out_length;
-    
 } hpatch_TFileStreamOutput;
 
 hpatch_inline

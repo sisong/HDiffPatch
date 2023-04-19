@@ -140,6 +140,13 @@ typedef struct TSyncDownloadPlugin{
                                        hpatch_StreamPos_t continueDownloadPos);
 } TSyncDownloadPlugin;
 
+typedef enum TSyncDiffType{
+    kSyncDiff_default=0, // out diff (info+data)
+    kSyncDiff_info,      // out diff info, for optimize continue speed
+    kSyncDiff_data,      // out diff data, for test download file size; NOTE: now only support run with single thread
+} TSyncDiffType;
+#define _kSyncDiff_TYPE_MAX_ kSyncDiff_data
+
 #ifdef __cplusplus
 }
 #endif
