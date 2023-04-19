@@ -331,7 +331,7 @@ case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgUIZxYac5_ufl
    
 
 **test PC**: Windows11, CPU Ryzen 5800H, SSD Disk, Memroy 8G*2 DDR4 3200MHz   
-**Program version**: HDiffPatch4.5.1, BsDiff4.3, xdelta3.1   
+**Program version**: HDiffPatch4.6.0, BsDiff4.3, xdelta3.1 zstd1.5.2  
 **test Program**:   
 **xdelta** diff with `-S lzma -e -9 -n -f -s {old} {new} {pat}`   
 **xdelta** patch with `-d -f -s {old} {pat} {new}`   
@@ -343,23 +343,22 @@ add **hpatchz** test: `hpatchz -m -f {old} {xdelta3-B-pat} {new}`
 **bspatch** patch with `{old} {new} {pat}`   
 add **hpatchz** test: `hpatchz -m -f {old} {bsdiff-pat} {new}`   
 **hdiffz -BSD** diff with `-m-6 -BSD -d -f -p-1 {old} {new} {pat}`   
-**hdiffz -bzip2** diff with `-m-6 -SD -d -f -p-1 -c-bzip2-9 {old} {new} {pat}`   
 **hdiffz -zlib** diff with `-m-6 -SD -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
 **hdiffz -lzma2** diff with `-m-6 -SD -d -f -p-1 -c-lzma2-9-16m {old} {new} {pat}`   
 **hdiffz -zstd** diff with `-m-6 -SD -d -f -p-1 -c-zstd-21-24 {old} {new} {pat}`   
 **hdiffz -s -zlib** diff with `-s-64 -SD -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
 **hdiffz -s -lzma2** diff with `-s-64 -SD -d -f -p-1 -c-lzma2-9-16m {old} {new} {pat}`   
-**hdiffz -s -zstd-17** diff with `-s-64 -SD -d -f -p-1 -c-zstd-17-24 {old} {new} {pat}`   
+**hdiffz -s -zstd** diff with `-s-64 -SD -d -f -p-1 -c-zstd-21-24 {old} {new} {pat}`   
 all **hdiffz** add test with -p-8   
  **hpatchz** patch with `-s-3m -f {old} {pat} {new}`   
 add **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
- zstd patch with `-d -f --memory=2000MB --patch-from={old} {pat} -o {new}`   
+ zstd patch with `-d -f --memory=2047MB --patch-from={old} {pat} -o {new}`   
 add **hsync** test, make sync info by `hsync_make {new} {out_newi} {out_newz}`,    
 client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`   
 **hsync p1 -zlib** run hsync_make with `-s-1536 -p-1 -c-zlib-9`   
 **hsync p8 -zlib** run hsync_make with `-s-1536 -p-8 -c-zlib-9` (run `hsync_demo` with `-p-8`)   
-**hsync p1 -zstd** run hsync_make with `-s-1536 -p-1 -c-zstd-21-24`
-**hsync p8 -zstd** run hsync_make with `-s-1536 -p-1 -c-zstd-21-24` (run `hsync_demo` with `-p-8`)   
+**hsync p1 -zstd** run hsync_make with `-s-1536 -p-1 -c-zstd-21-24`   
+**hsync p8 -zstd** run hsync_make with `-s-1536 -p-8 -c-zstd-21-24` (run `hsync_demo` with `-p-8`)   
    
 **test result average**:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|
@@ -372,125 +371,116 @@ client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`
 |zstd --patch-from|7.96%|2798M|2.4MB/s|631M|2303M|647MB/s|
 |xdelta3|13.60%|409M|4.7MB/s|86M|102M|95MB/s|
 |xdelta3 +hpatchz -m|13.60%|409M|4.7MB/s|72M|82M|280MB/s|
-|xdelta3 -B |9.63%|2282M|7.3MB/s|460M|2070M|159MB/s|
+|xdelta3 -B|9.63%|2282M|7.3MB/s|460M|2070M|159MB/s|
 |xdelta3 -B +hpatchz -m|9.63%|2282M|7.3MB/s|317M|1100M|345MB/s|
 |bsdiff |8.17%|2773M|1.9MB/s|637M|2312M|121MB/s|
 |bsdiff +hpatchz -m|8.17%|2773M|1.9MB/s|321M|1101M|141MB/s|
-|hdiffz p1 -BSD |7.72%|1215M|10.9MB/s|14M|14M|124MB/s|
-|hdiffz p8 -BSD |7.72%|1191M|22.0MB/s|14M|14M|123MB/s|
-|hdiffz p1 -bzip2 |7.96%|1215M|11.6MB/s|7M|7M|182MB/s|
-|hdiffz p8 -pbzip2 |7.95%|1191M|30.5MB/s|7M|7M|177MB/s|
-|hdiffz p1 -zlib |7.79%|1214M|11.6MB/s|4M|4M|415MB/s|
-|hdiffz p8 -zlib |7.79%|1191M|30.5MB/s|4M|4M|409MB/s|
-|hdiffz p1 -lzma2 |6.44%|1212M|9.2MB/s|17M|20M|312MB/s|
-|hdiffz p8 -lzma2 |6.44%|1192M|23.2MB/s|17M|20M|309MB/s|
-|hdiffz p1 -zstd |6.74%|1217M|9.0MB/s|16M|21M|422MB/s|
-|hdiffz p8 -zstd |6.74%|1531M|16.7MB/s|16M|21M|418MB/s|
-|hdiffz -s p1 -BSD |11.96%|91M|33.3MB/s|14M|14M|105MB/s|
-|hdiffz -s p8 -BSD |11.96%|95M|40.6MB/s|14M|14M|105MB/s|
-|hdiffz -s p1 -bzip2 |11.96%|91M|39.9MB/s|7M|7M|137MB/s|
-|hdiffz -s p8 -pbzip2 |11.97%|107M|108.7MB/s|7M|7M|133MB/s|
-|hdiffz -s p1 -zlib |12.52%|90M|35.2MB/s|4M|4M|439MB/s|
-|hdiffz -s p8 -zlib |12.53%|95M|104.4MB/s|4M|4M|434MB/s|
-|hdiffz -s p1 -lzma2 |9.11%|170M|13.7MB/s|17M|20M|289MB/s|
-|hdiffz -s p8 -lzma2 |9.13%|370M|34.7MB/s|17M|20M|286MB/s|
-|hdiffz -s p1 -zstd-17 |9.99%|103M|19.8MB/s|18M|21M|482MB/s|
-|hdiffz -s p8 -zstd-17 |9.99%|775M|30.4MB/s|18M|21M|481MB/s|
-|hsync p1 -zlib|19.85%|8M|13.7MB/s|8M|26M|140MB/s|
-|hsync p8 -zlib|19.85%|31M|86.9MB/s|15M|35M|207MB/s|
-|hsync p1 -zstd|14.87%|533M|1.3MB/s|25M|38M|155MB/s|
-|hsync p8 -zstd|14.86%|3432M|5.2MB/s|25M|38M|249MB/s|
+|hdiffz p1 -BSD|7.72%|1215M|10.9MB/s|14M|14M|124MB/s|
+|hdiffz p8 -BSD|7.72%|1191M|22.0MB/s|14M|14M|123MB/s|
+|hdiffz p1 -zlib|7.79%|1214M|11.6MB/s|4M|4M|415MB/s|
+|hdiffz p8 -zlib|7.79%|1191M|30.5MB/s|4M|4M|409MB/s|
+|hdiffz p1 -lzma2|6.44%|1212M|9.2MB/s|17M|20M|312MB/s|
+|hdiffz p8 -lzma2|6.44%|1192M|23.2MB/s|17M|20M|309MB/s|
+|hdiffz p1 -zstd|6.74%|1217M|9.0MB/s|16M|21M|422MB/s|
+|hdiffz p8 -zstd|6.74%|1531M|16.7MB/s|16M|21M|418MB/s|
+|hdiffz -s p1 -BSD|11.96%|91M|33.3MB/s|14M|14M|105MB/s|
+|hdiffz -s p8 -BSD|11.96%|95M|40.6MB/s|14M|14M|105MB/s|
+|hdiffz -s p1 -zlib|12.52%|90M|35.2MB/s|4M|4M|439MB/s|
+|hdiffz -s p8 -zlib|12.53%|95M|104.4MB/s|4M|4M|434MB/s|
+|hdiffz -s p1 -lzma2|9.11%|170M|13.7MB/s|17M|20M|289MB/s|
+|hdiffz -s p8 -lzma2|9.13%|370M|34.7MB/s|17M|20M|286MB/s|
+|hdiffz -s p1 -zstd|9.60%|195M|10.9MB/s|18M|21M|454MB/s|
+|hdiffz -s p8 -zstd|9.60%|976M|17.1MB/s|18M|21M|462MB/s|
+|hsync p1 -zlib|19.85%|8M|13.6MB/s|8M|26M|161MB/s|
+|hsync p8 -zlib|19.85%|31M|88.2MB/s|15M|35M|235MB/s|
+|hsync p1 -zstd|14.87%|533M|1.2MB/s|25M|38M|180MB/s|
+|hsync p8 -zstd|14.86%|3432M|5.1MB/s|25M|38M|278MB/s|
     
 
 ## input Apk Files for test: 
 case list:
 | |app|newFile <-- oldFile|newSize|oldSize|
 |----:|:---:|:----|----:|----:|
-|1|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.MobileTicket.png" width="36">|12306_5.2.11.apk <-- 5.1.2.apk| 61120025|66209244|
-|2|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.eg.android.AlipayGphone.png" width="36">|alipay10.1.99.apk <-- 10.1.95.apk|94178674|90951351|
-|3|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.eg.android.AlipayGphone.png" width="36">|alipay10.2.0.apk <-- 10.1.99.apk|95803005|94178674|
-|4|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.baidu.BaiduMap.png" width="36">|baidumaps10.25.0.apk <-- 10.24.12.apk|95539893|104527191|
-|5|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.baidu.BaiduMap.png" width="36">|baidumaps10.25.5.apk <-- 10.25.0.apk|95526276|95539893|
-|6|<img src="https://github.com/sisong/sfpatcher/raw/master/img/tv.danmaku.bili.png" width="36">|bilibili6.15.0.apk <-- 6.14.0.apk|74783182|72067209|
-|7|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.android.chrome.png" width="36">|chrome-64-0-3282-137.apk <-- 64-0-3282-123.apk|43879588|43879588|
-|8|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.android.chrome.png" width="36">|chrome-65-0-3325-109.apk <-- 64-0-3282-137.apk|43592997|43879588|
-|9|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sdu.didi.psnger.png" width="36">|didi6.0.2.apk <-- 6.0.0.apk|100866981|91462767|
-|10|<img src="https://github.com/sisong/sfpatcher/raw/master/img/org.mozilla.firefox.png" width="36">|firefox68.10.0.apk <-- 68.9.0.apk|43543846|43531470|
-|11|<img src="https://github.com/sisong/sfpatcher/raw/master/img/org.mozilla.firefox.png" width="36">|firefox68.10.1.apk <-- 68.10.0.apk|43542786|43543846|
-|12|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.maps.png" width="36">|google-maps-9-71-0.apk <-- 9-70-0.apk|50568872|51304768|
-|13|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.maps.png" width="36">|google-maps-9-72-0.apk <-- 9-71-0.apk|54342938|50568872|
-|14|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.jingdong.app.mall.png" width="36">|jd9.0.0.apk <-- 8.5.12.apk|96891703|94233891|
-|15|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.jingdong.app.mall.png" width="36">|jd9.0.8.apk <-- 9.0.0.apk|97329322|96891703|
-|16|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.tmgp.jnbg2.png" width="36">|jinianbeigu2_1.12.4.apk <-- 1.12.3.apk|171611658|159691189|
-|17|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.blizzard.wtcg.hearthstone.cn.png" width="36">|lushichuanshuo19.4.71003.apk <-- 19.2.69054.apk|93799693|93442621|
-|18|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sankuai.meituan.png" width="36">|meituan10.9.401.apk <-- 10.9.203.apk|88956726|89384406|
-|19|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.netease.mc.png" width="36">|minecraft1.17.30.apk <-- 1.17.20.apk|373025314|370324338|
-|20|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.netease.mc.png" width="36">|minecraft1.18.10.apk <-- 1.17.30.apk|401075178|373025314|
-|21|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.popcap.pvz2cthd.png" width="36">|popcap.pvz2_2.4.84.1010.apk <-- 2.4.84.1009.apk|387572492|386842079|
-|22|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.supercell.clashofclans.png" width="36">|supercell.clashofclans13.369.3.apk <-- 13.180.18.apk|152896934|149011539|
-|23|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.outfit7.talkingtomgoldrun.png" width="36">|tangmumaopaoku4.8.0.971.apk <-- 4.6.0.913.apk|105486308|104732413|
-|24|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.taobao.taobao.png" width="36">|taobao9.8.0.apk <-- 9.7.2.apk|178734456|176964070|
-|25|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.taobao.taobao.png" width="36">|taobao9.9.1.apk <-- 9.8.0.apk|184437315|178734456|
-|26|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.ss.android.ugc.aweme.png" width="36">|tiktok11.5.0.apk <-- 11.3.0.apk|88544106|87075000|
-|27|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.translate.png" width="36">|translate6.9.0.apk <-- 6.8.0.apk|28171978|28795243|
-|28|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.translate.png" width="36">|translate6.9.1.apk <-- 6.9.0.apk|31290990|28171978|
-|29|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mm.png" width="36">|weixin7.0.15.apk <-- 7.0.14.apk|148405483|147695111|
-|30|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mm.png" width="36">|weixin7.0.16.apk <-- 7.0.15.apk|158906413|148405483|
-|31|<img src="https://github.com/sisong/sfpatcher/raw/master/img/cn.wps.moffice_eng.png" width="36">|wps12.5.2.apk <-- 12.5.1.apk|51293286|51136905|
-|32|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tanwan.yscqlyzf.png" width="36">|yuanshichuanqi1.3.608.apk <-- 1.3.607.apk|192578139|192577253|
+|1|<img src="https://github.com/sisong/sfpatcher/raw/master/img/cn.wps.moffice_eng.png" width="36">|cn.wps.moffice_eng_13.30.0.apk <-- 13.29.0|95904918|94914262|
+|2|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.achievo.vipshop.png" width="36">|com.achievo.vipshop_7.80.2.apk <-- 7.79.9|127395632|120237937|
+|3|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.adobe.reader.png" width="36">|com.adobe.reader_22.9.0.24118.apk <-- 22.8.1.23587|27351437|27087718|
+|4|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.alibaba.android.rimet.png" width="36">|com.alibaba.android.rimet_6.5.50.apk <-- 6.5.45|195314449|193489159|
+|5|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.amazon.mShop.android.shopping.png" width="36">|com.amazon.mShop.android.shopping_24.18.2.apk <-- 24.18.0|76328858|76287423|
+|6|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.baidu.BaiduMap.png" width="36">|com.baidu.BaiduMap_16.5.0.apk <-- 16.4.5|131382821|132308374|
+|7|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.dragon.read.png" width="36">|com.dragon.read_5.5.3.33.apk <-- 5.5.1.32|45112658|43518658|
+|8|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.ebay.mobile.png" width="36">|com.ebay.mobile_6.80.0.1.apk <-- 6.79.0.1|61202587|61123285|
+|9|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.eg.android.AlipayGphone.png" width="36">|com.eg.android.AlipayGphone_10.3.0.apk <-- 10.2.96|122073135|119046208|
+|10|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.apps.translate.png" width="36">|com.google.android.apps.translate_6.46.0.apk <-- 6.45.0|48892967|48843378|
+|11|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.google.android.googlequicksearchbox.png" width="36">|com.google.android.googlequicksearchbox_13.38.11.apk <-- 13.37.10|190539272|189493966|
+|12|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.jingdong.app.mall.png" width="36">|com.jingdong.app.mall_11.3.2.apk <-- 11.3.0|101098430|100750191|
+|13|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.netease.cloudmusic.png" width="36">|com.netease.cloudmusic_8.8.45.apk <-- 8.8.40|181914846|181909451|
+|14|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.reddit.frontpage.png" width="36">|com.reddit.frontpage_2022.36.0.apk <-- 2022.34.0|50205119|47854461|
+|15|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sankuai.meituan.takeoutnew.png" width="36">|com.sankuai.meituan.takeoutnew_7.94.3.apk <-- 7.92.2|74965893|74833926|
+|16|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sankuai.meituan.png" width="36">|com.sankuai.meituan_12.4.207.apk <-- 12.4.205|93613732|93605911|
+|17|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.sina.weibo.png" width="36">|com.sina.weibo_12.10.0.apk <-- 12.9.5|156881776|156617913|
+|18|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.smile.gifmaker.png" width="36">|com.smile.gifmaker_10.8.40.27845.apk <-- 10.8.30.27728|102403847|101520138|
+|19|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.ss.android.article.news.png" width="36">|com.ss.android.article.news_9.0.7.apk <-- 9.0.6|54444003|53947221|
+|20|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.ss.android.ugc.aweme.png" width="36">|com.ss.android.ugc.aweme_22.6.0.apk <-- 22.5.0|171683897|171353597|
+|21|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.taobao.taobao.png" width="36">|com.taobao.taobao_10.18.10.apk <-- 10.17.0|117218670|117111874|
+|22|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mm.png" width="36">|com.tencent.mm_8.0.28.apk <-- 8.0.27|266691829|276603782|
+|23|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mobileqq.png" width="36">|com.tencent.mobileqq_8.9.15.apk <-- 8.9.13|311322716|310529631|
+|24|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mtt.png" width="36">|com.tencent.mtt_13.2.0.0045.apk <-- 13.2.0.0103|97296757|97342747|
+|25|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tripadvisor.tripadvisor.png" width="36">|com.tripadvisor.tripadvisor_49.5.apk <-- 49.3|28744498|28695346|
+|26|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.twitter.android.png" width="36">|com.twitter.android_9.61.0.apk <-- 9.58.2|36141840|35575484|
+|27|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.ubercab.png" width="36">|com.ubercab_4.442.10002.apk <-- 4.439.10002|69923232|64284150|
+|28|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.ximalaya.ting.android.png" width="36">|com.ximalaya.ting.android_9.0.66.3.apk <-- 9.0.62.3|115804845|113564876|
+|29|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.xunmeng.pinduoduo.png" width="36">|com.xunmeng.pinduoduo_6.30.0.apk <-- 6.29.1|30896833|30951567|
+|30|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.youdao.dict.png" width="36">|com.youdao.dict_9.2.29.apk <-- 9.2.28|110624682|110628778|
+|31|<img src="https://github.com/sisong/sfpatcher/raw/master/img/org.mozilla.firefox.png" width="36">|org.mozilla.firefox_105.2.0.apk <-- 105.1.0|83078464|83086656|
+|32|<img src="https://github.com/sisong/sfpatcher/raw/master/img/tv.danmaku.bili.png" width="36">|tv.danmaku.bili_7.1.0.apk <-- 7.0.0|104774723|104727005|
    
+
 **changed test Program**:   
 **hdiffz ...** `-m-6 -SD` changed to `-m-1 -SD-2m -cache`, `-s-64 -SD` changed to `-s-16 -SD-2m`   
 **hdiffz ...** lzma2 dict size `16m` changed to `8m`, zstd dict bit `24` changed to `23`   
 **hsync ...** make `-s-1536` changed to `-s-1k`   
 add **hsync p1**, **hsync p8** make without compressor   
+add **archive-patcher** v1.0, diff with `--generate --old {old} --new {new} --patch {pat}`,   
+  patch with `--apply --old {old} --patch {pat} --new {new}`   
+  NOTE: archive-patcher's delta file compressed by lzma2-9-8m, diff&patch time not include compress&decompress delta file's memory&time.   
 **sfpatcher -1 -zstd** diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
 **sfpatcher -2 -lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
-**sfpatcher -3 -lzma2** diff with `-o-3 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
  sfpatcher patch with `-lp -p-8 {old} {pat} {new}`   
-( [sfpatcher](https://github.com/sisong/sfpatcher) optimized diff&patch between apk files )  
+( [archive-patcher](https://github.com/google/archive-patcher), [sfpatcher](https://github.com/sisong/sfpatcher) optimized diff&patch between apk files )  
 
 **test result average**:
-|Program|compress|diff mem|speed|patch mem|max mem|speed|arm Kirin980 speed|
-|:----|----:|----:|----:|----:|----:|----:|----:|
-|zstd --patch-from|58.81%|2248M|3.0MB/s|234M|741M|670MB/s|
-|xdelta3|59.68%|422M|2.7MB/s|98M|99M|162MB/s|
-|xdelta3 +hpatchz -m|59.68%|422M|2.7MB/s|69M|81M|472MB/s|
-|xdelta3 -B |59.26%|953M|3.0MB/s|204M|547M|161MB/s|
-|xdelta3 -B +hpatchz -m|59.26%|953M|3.0MB/s|126M|381M|407MB/s|
-|bsdiff |59.76%|1035M|1.0MB/s|243M|751M|43MB/s|
-|bsdiff +hpatchz -m|59.76%|1035M|1.0MB/s|128M|383M|45MB/s|
-|bsdiff +hpatchz -s|59.76%|1035M|1.0MB/s|14M|14M|44MB/s|
-|hdiffz p1 -BSD|59.50%|522M|5.9MB/s|14M|14M|44MB/s|
-|hdiffz p8 -BSD|59.52%|527M|11.5MB/s|14M|14M|44MB/s|
-|hdiffz p1 -bzip2|59.51%|522M|6.0MB/s|8M|9M|57MB/s|
-|hdiffz p8 -pbzip2|59.53%|527M|19.6MB/s|7M|9M|54MB/s|
-|hdiffz p1 -zlib|59.10%|522M|7.2MB/s|5M|6M|588MB/s|226MB/s|
-|hdiffz p8 -zlib|59.12%|527M|22.0MB/s|5M|6M|595MB/s|
-|hdiffz p1 -lzma2|58.66%|537M|3.7MB/s|21M|22M|285MB/s|
-|hdiffz p8 -lzma2|58.68%|610M|13.7MB/s|21M|22M|288MB/s|
-|hdiffz p1 -zstd|58.73%|546M|4.9MB/s|21M|22M|684MB/s|265MB/s|
-|hdiffz p8 -zstd|58.75%|1315M|9.3MB/s|21M|22M|676MB/s|
-|hdiffz -s p1 -BSD|60.00%|131M|13.8MB/s|14M|14M|44MB/s|
-|hdiffz -s p8 -BSD|60.00%|135M|18.9MB/s|14M|14M|44MB/s|
-|hdiffz -s p1 -bzip2|59.98%|131M|14.4MB/s|6M|7M|59MB/s|
-|hdiffz -s p8 -pbzip2|59.98%|143M|59.7MB/s|6M|7M|55MB/s|
-|hdiffz -s p1 -zlib|59.52%|131M|24.3MB/s|4M|4M|596MB/s|
-|hdiffz -s p8 -zlib|59.52%|135M|85.4MB/s|4M|4M|594MB/s|
-|hdiffz -s p1 -lzma2|59.02%|208M|5.7MB/s|20M|20M|279MB/s|
-|hdiffz -s p8 -lzma2|59.02%|373M|25.5MB/s|20M|20M|281MB/s|
-|hdiffz -s p1 -zstd-17|59.26%|137M|9.2MB/s|20M|21M|730MB/s|
-|hdiffz -s p8 -zstd-17|59.26%|871M|13.3MB/s|20M|21M|734MB/s|
-|hsync p1|64.78%|4M|495.4MB/s|4M|12M|156MB/s|
-|hsync p8|64.78%|25M|1279.0MB/s|12M|20M|257MB/s|
-|hsync p1 -zlib|62.65%|5M|20.0MB/s|5M|13M|156MB/s|
-|hsync p8 -zlib|62.65%|29M|122.5MB/s|12M|21M|259MB/s|
-|hsync p1 -zstd|62.02%|534M|2.2MB/s|24M|30M|161MB/s|
-|hsync p8 -zstd|62.02%|3435M|7.6MB/s|24M|30M|261MB/s|
-|sf_diff -o-1 p1 -zstd|31.70%|774M|2.8MB/s|16M|20M|227MB/s|119MB/s|
-|sf_diff -o-1 p8 -zstd|31.61%|982M|5.2MB/s|16M|20M|382MB/s|218MB/s|
-|sf_diff -o-2 p8 -lzma2|27.30%|859M|6.5MB/s|19M|27M|105MB/s|59MB/s|
-|sf_diff -o-3 p8 -lzma2|23.54%|973M|5.9MB/s|22M|27M|64MB/s|36MB/s|
+|Program|compress|diff mem|speed|patch mem|max mem|speed|
+|:----|----:|----:|----:|----:|----:|----:|
+|zstd --patch-from|53.18%|2199M|2.9MB/s|209M|596M|624MB/s|
+|xdelta3|54.51%|422M|2.5MB/s|98M|99M|103MB/s|
+|xdelta3 +hpatchz -m|54.51%|422M|2.5MB/s|70M|81M|331MB/s|
+|bsdiff|53.84%|931M|1.0MB/s|218M|605M|40MB/s|
+|bsdiff +hpatchz -s|53.84%|931M|1.0MB/s|14M|14M|40MB/s|
+|hdiffz p1 -BSD|53.68%|509M|4.9MB/s|14M|14M|40MB/s|
+|hdiffz p8 -BSD|53.70%|514M|9.2MB/s|14M|14M|40MB/s|
+|hdiffz p1 -zlib|53.21%|509M|6.2MB/s|5M|6M|382MB/s|
+|hdiffz p8 -zlib|53.22%|514M|18.2MB/s|5M|6M|380MB/s|
+|hdiffz p1 -lzma2|52.92%|525M|3.3MB/s|21M|22M|195MB/s|
+|hdiffz p8 -lzma2|52.94%|557M|11.2MB/s|21M|22M|196MB/s|
+|hdiffz p1 -zstd|53.04%|537M|4.2MB/s|21M|22M|428MB/s|
+|hdiffz p8 -zstd|53.05%|1251M|7.8MB/s|21M|22M|433MB/s|
+|hdiffz -s p1 -zlib|53.73%|118M|20.0MB/s|4M|6M|380MB/s|
+|hdiffz -s p8 -zlib|53.73%|122M|62.5MB/s|4M|6M|378MB/s|
+|hdiffz -s p1 -lzma2|53.30%|197M|5.2MB/s|20M|22M|195MB/s|
+|hdiffz -s p8 -lzma2|53.30%|309M|20.9MB/s|20M|22M|195MB/s|
+|hdiffz -s p1 -zstd|53.44%|221M|8.1MB/s|20M|22M|452MB/s|
+|hdiffz -s p8 -zstd|53.44%|1048M|11.1MB/s|20M|22M|448MB/s|
+|hsync p1|62.43%|4M|855.2MB/s|4M|10M|169MB/s|
+|hsync p8|62.43%|24M|1285.8MB/s|12M|18M|289MB/s|
+|hsync p1 -zlib|58.67%|5M|18.6MB/s|4M|11M|168MB/s|
+|hsync p8 -zlib|58.67%|29M|107.2MB/s|12M|19M|282MB/s|
+|hsync p1 -zstd|57.92%|534M|2.1MB/s|24M|28M|168MB/s|
+|hsync p8 -zstd|57.92%|3434M|7.3MB/s|24M|28M|291MB/s|
+|archive-patcher +lzma2|31.68%|3278M|0.7MB/s|759M|788M|15MB/s|
+|sf_diff -o-1 p1 -zstd|31.08%|818M|1.8MB/s|15M|19M|154MB/s|
+|sf_diff -o-1 p8 -zstd|31.07%|1026M|3.1MB/s|18M|25M|307MB/s|
+|sf_diff -o-2 p1 -lzma2|24.11%|976M|1.6MB/s|15M|20M|28MB/s|
+|sf_diff -o-2 p8 -lzma2|24.15%|967M|3.3MB/s|20M|26M|79MB/s|
     
 
 ---
