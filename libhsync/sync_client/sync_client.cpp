@@ -126,12 +126,12 @@ static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd) {
     size_t lastCompressedIndex=_indexOfCompressedSyncBlock(newSyncInfo,wd.newBlockDataInOldPoss,0);
      if (lastCompressedIndex>=kBlockCount)
         wd.decompressPlugin=0;
-    const size_t _memSize=kSyncBlockSize*(wd.decompressPlugin?3:1)
+    const size_t _memSize=(size_t)kSyncBlockSize*(wd.decompressPlugin?3:1)
                         +newSyncInfo->kStrongChecksumByteSize
                         +checkChecksumBufByteSize(newSyncInfo->kStrongChecksumByteSize);
     _memBuf=(TByte*)malloc(_memSize);
     check(_memBuf!=0,kSyncClient_memError);
-    checksumSync_buf=_memBuf+kSyncBlockSize*(wd.decompressPlugin?3:1);
+    checksumSync_buf=_memBuf+(size_t)kSyncBlockSize*(wd.decompressPlugin?3:1);
     {//checksum newSyncData
         checksumSync=strongChecksumPlugin->open(strongChecksumPlugin);
         check(checksumSync!=0,kSyncClient_strongChecksumOpenError);
@@ -147,7 +147,7 @@ static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd) {
         const bool isCompressedBlock=TNewDataSyncInfo_syncBlockIsCompressed(newSyncInfo,i);
         syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
         newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
-        check(syncSize<=kSyncBlockSize*2,kSyncClient_newSyncInfoDataError);
+        check(syncSize<=(size_t)kSyncBlockSize*2,kSyncClient_newSyncInfoDataError);
         const hpatch_StreamPos_t curSyncPos=wd.newBlockDataInOldPoss[i];
         isNeedSync=(curSyncPos==kBlockType_needSync);
         if (isOnNewDataContinue&&(outNewDataPos+newDataSize>wd.newDataContinue->streamSize))
@@ -281,6 +281,9 @@ TSyncClient_resultType
     TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     TSyncDiffData continueDiffData; memset(&continueDiffData,0,sizeof(continueDiffData));
+    const bool isNeedOut=(out_newStream!=0)||((out_diffStream!=0)&&(diffType!=kSyncDiff_info));
+    bool isLoadedOldPoss=false;
+    bool isReMatchInOld=false;
     
     //decompressPlugin
     if (newSyncInfo->compressType){
@@ -312,8 +315,6 @@ TSyncClient_resultType
     check(newBlockDataInOldPoss!=0,kSyncClient_memError);
     for (uint32_t i=0; i<kBlockCount; ++i)
         newBlockDataInOldPoss[i]=kBlockType_needSync;
-    bool isLoadedOldPoss=false;
-    bool isReMatchInOld=false;
     if (diffData!=0){ //local patch
         assert(syncDataListener==0);
         assert(diffContinue==0);
@@ -374,7 +375,6 @@ TSyncClient_resultType
         check(syncDataListener->readSyncDataBegin(syncDataListener,&needSyncInfo),
               kSyncClient_readSyncDataBeginError);
 
-    const bool isNeedOut=(out_newStream!=0)||((out_diffStream!=0)&&(diffType!=kSyncDiff_info));
     if (isNeedOut) 
         check(syncDataListener->readSyncData!=0,kSyncClient_noReadSyncDataError);
     if (isNeedOut){

@@ -42,11 +42,15 @@ hpatch_StreamPos_t TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self){
 
 hpatch_inline static
 uint32_t TNewDataSyncInfo_newDataBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
-    uint32_t blockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
-    if (blockIndex+1!=blockCount)
-        return self->kSyncBlockSize;
-    else
-        return (uint32_t)(self->newDataSize-self->kSyncBlockSize*blockIndex);
+    const uint32_t kSyncBlockSize=self->kSyncBlockSize;
+    const hpatch_StreamPos_t endPos=kSyncBlockSize*((hpatch_StreamPos_t)blockIndex+1);
+    if (endPos<=self->newDataSize){
+        return kSyncBlockSize;
+    }else{
+        hpatch_StreamPos_t overLen=endPos-self->newDataSize;
+        assert(overLen<kSyncBlockSize);
+        return (overLen<kSyncBlockSize)?(kSyncBlockSize-(uint32_t)overLen):0;
+    }
 }
 hpatch_inline static
 bool TNewDataSyncInfo_syncBlockIsCompressed(const TNewDataSyncInfo* self,uint32_t blockIndex){
@@ -54,6 +58,7 @@ bool TNewDataSyncInfo_syncBlockIsCompressed(const TNewDataSyncInfo* self,uint32_
 }
 hpatch_inline static
 uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
+    assert((self->kSyncBlockSize*(hpatch_StreamPos_t)blockIndex)<self->newDataSize);
     if (TNewDataSyncInfo_syncBlockIsCompressed(self,blockIndex))
         return self->savedSizes[blockIndex];
     else

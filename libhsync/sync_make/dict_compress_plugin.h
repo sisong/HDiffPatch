@@ -65,7 +65,7 @@ extern "C" {
     static hpatch_byte* _CacheBlockDict_getResetDictBuffer(_CacheBlockDict_t* self,size_t blockIndex,
                                                            size_t* out_dictSize){
         size_t dictSize=self->dictSize;
-        hpatch_StreamPos_t prefixSize=(hpatch_StreamPos_t)blockIndex*self->blockSize;
+        hpatch_StreamPos_t prefixSize=((hpatch_StreamPos_t)blockIndex)*self->blockSize;
         assert(self->uncompress);
         assert(prefixSize>=0);
         if (dictSize>prefixSize) dictSize=(size_t)prefixSize;

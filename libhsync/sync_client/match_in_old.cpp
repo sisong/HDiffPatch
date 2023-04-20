@@ -301,6 +301,8 @@ static bool matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,
                     if (newBlockOldPosBack<kMinRevSameIndex){// other thread done?
                         if ((--hitOutLimit)<=0) break;
                     }else
+#else
+                    hpatch_StreamPos_t newBlockOldPosBack=*pNewBlockDataInOldPos;
 #endif
                     {
                         while(true){ //hit

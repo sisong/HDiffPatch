@@ -164,10 +164,7 @@ ifeq ($(ZLIB),1) # http://zlib.net  https://github.com/sisong/zlib
   				$(ZLIB_PATH)/inftrees.o \
   				$(ZLIB_PATH)/trees.o \
   				$(ZLIB_PATH)/zutil.o
-  HDIFF_OBJ +=  $(ZLIB_PATH)/compress.o \
-  				$(ZLIB_PATH)/deflate.o \
-  				$(ZLIB_PATH)/infback.o \
-  				$(ZLIB_PATH)/uncompr.o
+  HDIFF_OBJ +=  $(ZLIB_PATH)/deflate.o
 endif
 
 HDIFF_OBJ += \
