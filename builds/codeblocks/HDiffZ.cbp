@@ -63,7 +63,11 @@
 			<Add option="-D_IS_USED_PTHREAD=1" />
 			<Add option="-D_ChecksumPlugin_md5" />
 			<Add option="-DZSTD_MULTITHREAD=1" />
-			<Add option="-DZSTD_DISABLE_ASM" />
+			<Add option="-DZSTD_HAVE_WEAK_SYMBOLS=0" />
+			<Add option="-DZSTD_TRACE=0" />
+			<Add option="-DZSTD_DISABLE_ASM=1" />
+			<Add option="-DZSTDLIB_VISIBLE=" />
+			<Add option="-DZSTDLIB_HIDDEN=" />
 			<Add directory="../../../lzma/C/" />
 			<Add directory="../../../zstd/lib" />
 			<Add directory="../../../libmd5" />
@@ -172,16 +176,10 @@
 		<Unit filename="../../../zlib/adler32.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="../../../zlib/compress.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="../../../zlib/crc32.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/deflate.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zlib/infback.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/inffast.c">
@@ -194,9 +192,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/trees.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="../../../zlib/uncompr.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zlib/zlib.h" />

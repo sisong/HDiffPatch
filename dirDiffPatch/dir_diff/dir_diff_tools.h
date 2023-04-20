@@ -94,13 +94,18 @@ struct CFileStreamOutput:public hpatch_TFileStreamOutput{
 };
 
 struct CChecksum{
+    inline explicit CChecksum():_checksumPlugin(0),_handle(0){}
     inline explicit CChecksum(hpatch_TChecksum* checksumPlugin,bool autoBegin=true)
-    :_checksumPlugin(checksumPlugin),_handle(0){
+    :_checksumPlugin(0),_handle(0){ init(checksumPlugin,autoBegin); }
+    inline void init(hpatch_TChecksum* checksumPlugin,bool autoBegin){
+        checkv(_checksumPlugin==0);
+        _checksumPlugin=checksumPlugin;
         if (checksumPlugin){
             _handle=checksumPlugin->open(checksumPlugin);
             checkv(_handle!=0);
             if (autoBegin) appendBegin();
-        } }
+        }
+    }
     inline ~CChecksum(){ if (_handle) _checksumPlugin->close(_checksumPlugin,_handle); }
     inline void append(const unsigned char* data,const unsigned char* data_end){
         if (_handle) _checksumPlugin->append(_handle,data,data_end); }
@@ -136,21 +141,26 @@ struct TOffsetStreamOutput:public hpatch_TStreamOutput{
 struct CFileResHandleLimit{
     CFileResHandleLimit(size_t _limitMaxOpenCount,size_t resCount);
     inline ~CFileResHandleLimit() { close(); }
+    void addBufRes(const hpatch_byte* bufRes,size_t bufResSize); //only support one
     void addRes(const std::string& fileName,hpatch_StreamPos_t fileSize);
     void open();
     bool closeFileHandles();
     void close();
     
     struct CFile:public hpatch_TFileStreamInput{
-        std::string  fileName;
+        std::string          fileName;
+        CFileResHandleLimit* owner;
     };
     hpatch_TResHandleLimit          limit;
     std::vector<CFile>              fileList;
     std::vector<hpatch_IResHandle>  resList;
     size_t                          limitMaxOpenCount;
     size_t                          curInsert;
+    const hpatch_byte*              bufRes;
+    size_t                          bufResSize;
     static hpatch_BOOL openRes(struct hpatch_IResHandle* res,hpatch_TStreamInput** out_stream);
     static hpatch_BOOL closeRes(struct hpatch_IResHandle* res,const hpatch_TStreamInput* stream);
+    void _addRes(const std::string& fileName,hpatch_StreamPos_t fileSize);
 };
 
 struct CRefStream:public hpatch_TRefStream{

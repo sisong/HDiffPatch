@@ -62,7 +62,11 @@
 			<Add option="-D_LARGEFILE_SOURCE" />
 			<Add option="-D_FILE_OFFSET_BITS=64" />
 			<Add option="-D_ChecksumPlugin_md5" />
-			<Add option="-DZSTD_DISABLE_ASM" />
+			<Add option="-DZSTD_HAVE_WEAK_SYMBOLS=0" />
+			<Add option="-DZSTD_TRACE=0" />
+			<Add option="-DZSTD_DISABLE_ASM=1" />
+			<Add option="-DZSTDLIB_VISIBLE=" />
+			<Add option="-DZSTDLIB_HIDDEN=" />
 			<Add directory="../../../lzma/C/" />
 			<Add directory="../../../zstd/lib" />
 			<Add directory="../../../libmd5" />

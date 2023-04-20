@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := hpatchz
 
 # args
-ZSTD  := 0
+ZSTD  := 1
 # if open BSD,must open BZIP2
 BSD   := 0
 VCD   := 0
@@ -86,7 +86,7 @@ endif
 Src_Files := $(LOCAL_PATH)/hpatch_jni.c \
              $(LOCAL_PATH)/hpatch.c
 
-DEF_FLAGS := -Os -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_DEFAULT_CompressPlugin=0
+DEF_FLAGS := -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_DEFAULT_CompressPlugin=0
 DEF_FLAGS += -D_CompressPlugin_zlib
 ifeq ($(BSD),0)
   DEF_FLAGS += -D_IS_NEED_BSDIFF=0
@@ -100,7 +100,7 @@ else
 endif
 ifeq ($(BZIP2),0)
 else
-  DEF_FLAGS += -D_CompressPlugin_bz2 -I$(BZ2_PATH)
+  DEF_FLAGS += -D_CompressPlugin_bz2 -DBZ_NO_STDIO -I$(BZ2_PATH)
 endif
 ifeq ($(LZMA),0)
 else
@@ -115,12 +115,14 @@ else
 endif
 ifeq ($(ZSTD),0)
 else
-  DEF_FLAGS += -D_CompressPlugin_zstd -DZSTD_DISABLE_ASM -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 \
-	    -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/decompress
+  DEF_FLAGS += -D_CompressPlugin_zstd -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 -DZSTD_DISABLE_ASM=1 -DZSTDLIB_VISIBLE= -DZSTDLIB_HIDDEN= \
+		-DDYNAMIC_BMI2=0 -DZSTD_LEGACY_SUPPORT=0 -DZSTD_LIB_DEPRECATED=0 -DHUF_FORCE_DECOMPRESS_X1=1 \
+		-DZSTD_FORCE_DECOMPRESS_SEQUENCES_SHORT=1 -DZSTD_NO_INLINE=1 -DZSTD_STRIP_ERROR_STRINGS=1 \
+		-I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/decompress
 endif
 
 LOCAL_SRC_FILES  := $(Src_Files) $(Bz2_Files) $(Lzma_Files) $(Zstd_Files) $(Hdp_Files)
 LOCAL_LDLIBS     := -llog -lz
-LOCAL_CFLAGS     := -DANDROID_NDK -DNDEBUG $(DEF_FLAGS)
+LOCAL_CFLAGS     := -Os -DANDROID_NDK -DNDEBUG $(DEF_FLAGS)
 include $(BUILD_SHARED_LIBRARY)
 

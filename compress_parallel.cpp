@@ -33,80 +33,6 @@
 #include "libParallel/parallel_channel.h"
 #include "libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
-namespace{
-struct TMt_base {
-    CChannel work_chan;
-    
-    void on_error(){
-        {
-            CAutoLocker _auto_locker(_locker.locker);
-            if (_is_on_error) return;
-            _is_on_error=true;
-        }
-        closeAndClear();
-    }
-    
-    bool start_threads(int threadCount,TThreadRunCallBackProc threadProc,void* workData,bool isUseThisThread){
-        for (int i=0;i<threadCount;++i){
-            if (isUseThisThread&&(i==threadCount-1)){
-                thread_on(1);
-                threadProc(i,workData);
-            }else{
-                thread_on(1);
-                try{
-                    thread_parallel(1,threadProc,workData,0,i);
-                }catch(...){
-                    thread_on(-1);
-                    on_error();
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-    inline void thread_end(){
-        _end_chan.send((TChanData)1,true);
-    }
-    inline  explicit TMt_base():_is_on_error(false),_is_thread_on(0) {}
-    inline ~TMt_base() { closeAndClear(); wait_all_thread_end(); _end_chan.close(); while (_end_chan.accept(false)) {} }
-    inline bool is_on_error()const{ CAutoLocker _auto_locker(_locker.locker); return _is_on_error; }
-    
-    inline void finish(){ // wait all threads exit
-        close();
-        wait_all_thread_end();
-    }
-    inline void wait_all_thread_end(){
-        while(_is_thread_on){
-            --_is_thread_on;
-            _end_chan.accept(true);
-        }
-    }
-protected:
-    CHLocker  _locker;
-    volatile bool _is_on_error;
-    
-    inline void close() {
-        work_chan.close();
-    }
-    void closeAndClear(){
-        close();
-        while(work_chan.accept(false)) {}
-    }
-private:
-    inline void thread_on(int threadNum){
-        _is_thread_on+=threadNum;
-    }
-    volatile size_t _is_thread_on;
-    CChannel  _end_chan;
-};
-
-struct _auto_thread_end_t{
-    inline  explicit _auto_thread_end_t(TMt_base& mt) :_mt(mt) {  }
-    inline ~_auto_thread_end_t() { _mt.thread_end(); }
-    TMt_base&  _mt;
-};
-}
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -139,7 +65,7 @@ struct TBlockCompressor {
     hdiff_TParallelCompress*  _pc;
 };
 
-struct TMt:public TMt_base{
+struct TMt:public TMtByChannel{
     hdiff_TParallelCompress*        pc;
     size_t                          blockDictSize;
     size_t                          blockSize;
@@ -164,7 +90,7 @@ void _threadRunCallBack(int threadIndex,void* _workData){
             mt.on_error(); break; } }
     TMt& mt=*(TMt*)_workData;
     hdiff_compressBlockHandle cbhandle=mt.blockCompressors[threadIndex].handle;
-    _auto_thread_end_t __auto_thread_end(mt);
+    TMtByChannel::TAutoThreadEnd __auto_thread_end(mt);
     while (true) {
         TWorkBuf* workBuf=(TWorkBuf*)mt.work_chan.accept(true);
         if (workBuf==0) break; //finish

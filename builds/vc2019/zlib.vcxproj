@@ -303,7 +303,6 @@
     <ClCompile Include="..\..\..\zlib\adler32.c" />
     <ClCompile Include="..\..\..\zlib\crc32.c" />
     <ClCompile Include="..\..\..\zlib\deflate.c" />
-    <ClCompile Include="..\..\..\zlib\infback.c" />
     <ClCompile Include="..\..\..\zlib\inffast.c" />
     <ClCompile Include="..\..\..\zlib\inflate.c" />
     <ClCompile Include="..\..\..\zlib\inftrees.c" />
