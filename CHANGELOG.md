@@ -2,7 +2,7 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
-## [v4.6.0](https://github.com/sisong/HDiffPatch/tree/v4.6.0) - 2023-04-?
+## [v4.6.0](https://github.com/sisong/HDiffPatch/tree/v4.6.0) - 2023-04-20
 ### Added
 * add libhsync for diff&patch by sync; see demo [hsync](https://github.com/sisong/hsync) (like [zsync](http://zsync.moria.org.uk))
 * add function create_sync_data(),create_dir_sync_data(),sync_patch(),sync_patch_...(),sync_local_diff(),sync_local_diff_...(),sync_local_patch(),sync_local_patch_...()

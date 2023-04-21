@@ -122,13 +122,14 @@ typedef struct TNeedSyncInfos{
 typedef struct IReadSyncDataListener{
     void*       readSyncDataImport;
     //readSyncDataBegin can null
-    hpatch_BOOL (*readSyncDataBegin)(IReadSyncDataListener* listener,const TNeedSyncInfos* needSyncInfo);
+    hpatch_BOOL (*readSyncDataBegin)(struct  IReadSyncDataListener* listener,const TNeedSyncInfos* needSyncInfo,
+                                     uint32_t blockIndex,hpatch_StreamPos_t posInNewSyncData,hpatch_StreamPos_t posInNeedSyncData);
     //download range data
-    hpatch_BOOL (*readSyncData)     (IReadSyncDataListener* listener,uint32_t blockIndex,
+    hpatch_BOOL (*readSyncData)     (struct IReadSyncDataListener* listener,uint32_t blockIndex,
                                      hpatch_StreamPos_t posInNewSyncData,hpatch_StreamPos_t posInNeedSyncData,
                                      unsigned char* out_syncDataBuf,uint32_t syncDataSize);
     //readSyncDataEnd can null
-    void        (*readSyncDataEnd)  (IReadSyncDataListener* listener);
+    void        (*readSyncDataEnd)  (struct IReadSyncDataListener* listener);
 } IReadSyncDataListener;
 
 typedef struct TSyncDownloadPlugin{
