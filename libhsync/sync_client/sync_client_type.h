@@ -119,6 +119,13 @@ typedef struct TNeedSyncInfos{
     void*                       import; //private
 } TNeedSyncInfos;
 
+size_t TNeedSyncInfos_getNextRanges(const TNeedSyncInfos* nsi,hpatch_StreamPos_t* dstRanges,size_t maxGetRangeLen,
+                                    uint32_t* curBlockIndex,hpatch_StreamPos_t* curPosInNewSyncData);
+static hpatch_inline
+size_t TNeedSyncInfos_getRangeCount(const TNeedSyncInfos* nsi,
+                                    uint32_t curBlockIndex,hpatch_StreamPos_t curPosInNewSyncData){
+    return TNeedSyncInfos_getNextRanges(nsi,0,~(size_t)0,&curBlockIndex,&curPosInNewSyncData); }
+
 typedef struct IReadSyncDataListener{
     void*       readSyncDataImport;
     //readSyncDataBegin can null
@@ -131,15 +138,6 @@ typedef struct IReadSyncDataListener{
     //readSyncDataEnd can null
     void        (*readSyncDataEnd)  (struct IReadSyncDataListener* listener);
 } IReadSyncDataListener;
-
-typedef struct TSyncDownloadPlugin{
-    //download range of file
-    hpatch_BOOL (*download_range_open) (IReadSyncDataListener* out_listener,const char* file_url);
-    hpatch_BOOL (*download_range_close)(IReadSyncDataListener* listener);
-    //download file
-    hpatch_BOOL (*download_file)      (const char* file_url,const hpatch_TStreamOutput* out_stream,
-                                       hpatch_StreamPos_t continueDownloadPos);
-} TSyncDownloadPlugin;
 
 typedef enum TSyncDiffType{
     kSyncDiff_default=0, // out diff (info+data)

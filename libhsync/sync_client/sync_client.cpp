@@ -461,8 +461,51 @@ clear:
     return result;
 }
 
+    struct _TRange{
+        hpatch_StreamPos_t first;
+        hpatch_StreamPos_t second;
+    };
+    static const hpatch_StreamPos_t kEmptyEndPos=~(hpatch_StreamPos_t)0;
+    static inline bool _isCanCombine(const _TRange& back_range,hpatch_StreamPos_t rangeBegin){
+        return ((rangeBegin>0)&(back_range.second+1==rangeBegin));
+    }
+    static inline void _setRange(_TRange& next_ranges,hpatch_StreamPos_t rangeBegin,hpatch_StreamPos_t rangeEnd){
+        assert(rangeBegin<rangeEnd);
+        hpatch_StreamPos_t rangLast=(rangeEnd!=kEmptyEndPos)?(rangeEnd-1):kEmptyEndPos;
+        next_ranges.first=rangeBegin;
+        next_ranges.second=rangLast;
+    }
+
 } //namespace sync_private
 using namespace  sync_private;
+
+size_t TNeedSyncInfos_getNextRanges(const TNeedSyncInfos* nsi,hpatch_StreamPos_t* _dstRanges,size_t maxGetRangeLen,
+                                    uint32_t* _curBlockIndex,hpatch_StreamPos_t* _curPosInNewSyncData){
+    _TRange* out_ranges=(_TRange*)_dstRanges;
+    _TRange  backRange={0,0};
+    uint32_t& blockIndex=*_curBlockIndex;
+    hpatch_StreamPos_t& posInNewSyncData=*_curPosInNewSyncData;
+    size_t result=0;
+    while (blockIndex<nsi->blockCount){
+        hpatch_BOOL isNeedSync;
+        uint32_t    syncSize;
+        nsi->getBlockInfoByIndex(nsi,blockIndex,&isNeedSync,&syncSize);
+        if (isNeedSync){
+            if ((result>0)&&_isCanCombine(backRange,posInNewSyncData)){
+                backRange.second+=syncSize;
+            }else if (result>=maxGetRangeLen){
+                break; //finish
+            }else{
+                _setRange(backRange,posInNewSyncData,posInNewSyncData+syncSize);
+                ++result;
+            }
+            if (out_ranges) out_ranges[result-1]=backRange;
+        }
+        posInNewSyncData+=syncSize;
+        ++blockIndex;
+    }
+    return result;
+}
 
 TSyncClient_resultType sync_patch(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
                                   const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,

@@ -29,6 +29,7 @@
 #include "sync_diff_data.h"
 #include <stdlib.h>
 #include <vector>
+#include <string>
 #include <stdexcept>
 #include "match_in_old.h"
 #include "../../libHDiffPatch/HPatch/patch_private.h"
@@ -92,15 +93,17 @@ hpatch_BOOL _saveSyncDiffData(const hpatch_StreamPos_t* newBlockDataInOldPoss,ui
         _pushV(headBuf,checksumByteSize,0,0);
         _pushV(headBuf,possBuf.size(),0,0);
         hpatch_StreamPos_t curWritePos=0;
-        if (!out_diffStream->write(out_diffStream,curWritePos,headBuf.data(),
-                                   headBuf.data()+headBuf.size())) return hpatch_FALSE;
+        if (!out_diffStream->write(out_diffStream,curWritePos,&headBuf[0],
+                                   &headBuf[0]+headBuf.size())) return hpatch_FALSE;
         curWritePos+=headBuf.size();
         if (!out_diffStream->write(out_diffStream,curWritePos,newDataCheckChecksum,
                                    newDataCheckChecksum+checksumByteSize)) return hpatch_FALSE;
         curWritePos+=checksumByteSize;
-        if (!out_diffStream->write(out_diffStream,curWritePos,possBuf.data(),
-                                   possBuf.data()+possBuf.size())) return hpatch_FALSE;
-        curWritePos+=possBuf.size();
+        if (!possBuf.empty()){
+            if (!out_diffStream->write(out_diffStream,curWritePos,&possBuf[0],
+                                       &possBuf[0]+possBuf.size())) return hpatch_FALSE;
+            curWritePos+=possBuf.size();
+        }
         *out_diffDataPos=curWritePos;
         return hpatch_TRUE;
     } catch (...) {
