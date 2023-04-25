@@ -377,8 +377,10 @@ TSyncClient_resultType
     if (diffContinue)
         needSyncInfo.localDiffDataSize=(diffContinue->streamSize-continueDiffData.diffDataPos0);
 
-    if (listener->needSyncInfo)
-        listener->needSyncInfo(listener,&needSyncInfo);
+    if (listener->onNeedSyncInfo)
+        listener->onNeedSyncInfo(listener,&needSyncInfo);
+    if (syncDataListener->onNeedSyncInfo)
+        syncDataListener->onNeedSyncInfo(syncDataListener,&needSyncInfo);
     
     if (isNeedOut) 
         check(syncDataListener->readSyncData!=0,kSyncClient_noReadSyncDataError);

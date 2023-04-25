@@ -98,10 +98,10 @@ typedef struct ISyncInfoListener{
     void*                    infoImport;
     hsync_TDictDecompress* (*findDecompressPlugin)(ISyncInfoListener* listener,const char* compressType,size_t dictSize);
     hpatch_TChecksum*      (*findChecksumPlugin)  (ISyncInfoListener* listener,const char* strongChecksumType);
-    //loadedNewSyncInfo can null
-    void                   (*loadedNewSyncInfo)   (ISyncInfoListener* listener,TNewDataSyncInfo* newSyncInfo);
-    //needSyncInfo can null
-    void                   (*needSyncInfo)        (ISyncInfoListener* listener,const TNeedSyncInfos* needSyncInfo);
+    //onLoadedNewSyncInfo can null
+    void                   (*onLoadedNewSyncInfo) (ISyncInfoListener* listener,TNewDataSyncInfo* newSyncInfo);
+    //onNeedSyncInfo can null
+    void                   (*onNeedSyncInfo)      (ISyncInfoListener* listener,const TNeedSyncInfos* needSyncInfo);
 } ISyncInfoListener;
 
 TSyncClient_resultType TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,

@@ -128,6 +128,8 @@ size_t TNeedSyncInfos_getRangeCount(const TNeedSyncInfos* nsi,
 
 typedef struct IReadSyncDataListener{
     void*       readSyncDataImport;
+    //onNeedSyncInfo can null
+    void        (*onNeedSyncInfo)   (struct  IReadSyncDataListener* listener,const TNeedSyncInfos* needSyncInfo);
     //readSyncDataBegin can null
     hpatch_BOOL (*readSyncDataBegin)(struct  IReadSyncDataListener* listener,const TNeedSyncInfos* needSyncInfo,
                                      uint32_t blockIndex,hpatch_StreamPos_t posInNewSyncData,hpatch_StreamPos_t posInNeedSyncData);

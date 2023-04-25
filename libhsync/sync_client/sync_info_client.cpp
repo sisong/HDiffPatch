@@ -639,8 +639,8 @@ void TNewDataSyncInfo_close(TNewDataSyncInfo* self){
 TSyncClient_resultType TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
                                              ISyncInfoListener* listener){
     TSyncClient_resultType result=_TNewDataSyncInfo_open(self,newSyncInfo,listener);
-    if ((result==kSyncClient_ok)&&listener->loadedNewSyncInfo)
-        listener->loadedNewSyncInfo(listener,self);
+    if ((result==kSyncClient_ok)&&listener->onLoadedNewSyncInfo)
+        listener->onLoadedNewSyncInfo(listener,self);
     return result;
 }
 
@@ -655,8 +655,8 @@ TSyncClient_resultType TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,cons
 clear:
     _inClear=1;
     check(hpatch_TFileStreamInput_close(&newSyncInfo), kSyncClient_newSyncInfoCloseError);
-    if ((result==kSyncClient_ok)&&listener->loadedNewSyncInfo)
-        listener->loadedNewSyncInfo(listener,self);
+    if ((result==kSyncClient_ok)&&listener->onLoadedNewSyncInfo)
+        listener->onLoadedNewSyncInfo(listener,self);
     return result;
 }
 
