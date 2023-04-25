@@ -551,7 +551,7 @@ TSyncClient_resultType sync_patch_file2file(ISyncInfoListener* listener,IReadSyn
         if (isOutDiffContinue) diffContinue=&_diffContinue;
     }
 
-    return _sync_patch_file2file(listener,syncDataListener,0,oldFile,newSyncInfoFile,
+    result=_sync_patch_file2file(listener,syncDataListener,0,oldFile,newSyncInfoFile,
                                  outNewFile,isOutNewContinue,
                                  cacheDiffInfoFile?&out_diffInfo.base:0,kSyncDiff_info,diffContinue,threadNum);
 clear:
