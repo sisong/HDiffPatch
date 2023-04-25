@@ -11,15 +11,18 @@ jobs:
       - name: makeInit
         run: |
           make LZMA=0 ZSTD=0 MD5=0 -j
+          make clean
       - name: makeUnDef
         run: |
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
           make DIR_DIFF=0 MT=0 BSD=0 VCD=0 ZLIB=0 BZIP2=0 -j
+          make clean
       - name: makeAll
         run: |
           make -j
+          make clean
       - name: makeByCode
         run: |
           git clone --depth=1 https://github.com/sisong/zlib.git ../zlib

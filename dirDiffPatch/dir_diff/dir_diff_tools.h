@@ -30,6 +30,7 @@
 #define hdiff_dir_diff_tools_h
 #include "dir_diff.h"
 #include <algorithm> //sort
+#include <string>
 #include "../../libHDiffPatch/HDiff/private_diff/pack_uint.h"
 #include "../../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../../libHDiffPatch/HPatch/checksum_plugin.h"
@@ -67,7 +68,8 @@ inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_Str
 }
 inline static void writeStream(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
                                const std::vector<TByte>& buf){
-    writeStream(out_stream,outPos,buf.data(),buf.data()+buf.size());
+    if (!buf.empty())
+        writeStream(out_stream,outPos,&buf[0],&buf[0]+buf.size());
 }
 
 struct CFileStreamInput:public hpatch_TFileStreamInput{
@@ -109,14 +111,14 @@ struct CChecksum{
     inline ~CChecksum(){ if (_handle) _checksumPlugin->close(_checksumPlugin,_handle); }
     inline void append(const unsigned char* data,const unsigned char* data_end){
         if (_handle) _checksumPlugin->append(_handle,data,data_end); }
-    inline void append(const std::vector<TByte>& data){ append(data.data(),data.data()+data.size()); }
+    inline void append(const std::vector<TByte>& data){ if (!data.empty()) append(&data[0],&data[0]+data.size()); }
     inline void append(const hpatch_TStreamInput* data){ append(data,0,data->streamSize); }
     void append(const hpatch_TStreamInput* data,hpatch_StreamPos_t begin,hpatch_StreamPos_t end);
     inline void appendBegin(){ if (_handle) _checksumPlugin->begin(_handle); }
     inline void appendEnd(){
         if (_handle){
             checksum.resize(_checksumPlugin->checksumByteSize());
-            _checksumPlugin->end(_handle,checksum.data(),checksum.data()+checksum.size());
+            _checksumPlugin->end(_handle,&checksum[0],&checksum[0]+checksum.size());
         }
     }
     hpatch_TChecksum*       _checksumPlugin;

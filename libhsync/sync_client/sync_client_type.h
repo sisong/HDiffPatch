@@ -119,26 +119,27 @@ typedef struct TNeedSyncInfos{
     void*                       import; //private
 } TNeedSyncInfos;
 
+size_t TNeedSyncInfos_getNextRanges(const TNeedSyncInfos* nsi,hpatch_StreamPos_t* dstRanges,size_t maxGetRangeLen,
+                                    uint32_t* curBlockIndex,hpatch_StreamPos_t* curPosInNewSyncData);
+static hpatch_inline
+size_t TNeedSyncInfos_getRangeCount(const TNeedSyncInfos* nsi,
+                                    uint32_t curBlockIndex,hpatch_StreamPos_t curPosInNewSyncData){
+    return TNeedSyncInfos_getNextRanges(nsi,0,~(size_t)0,&curBlockIndex,&curPosInNewSyncData); }
+
 typedef struct IReadSyncDataListener{
     void*       readSyncDataImport;
+    //onNeedSyncInfo can null
+    void        (*onNeedSyncInfo)   (struct  IReadSyncDataListener* listener,const TNeedSyncInfos* needSyncInfo);
     //readSyncDataBegin can null
-    hpatch_BOOL (*readSyncDataBegin)(IReadSyncDataListener* listener,const TNeedSyncInfos* needSyncInfo);
+    hpatch_BOOL (*readSyncDataBegin)(struct  IReadSyncDataListener* listener,const TNeedSyncInfos* needSyncInfo,
+                                     uint32_t blockIndex,hpatch_StreamPos_t posInNewSyncData,hpatch_StreamPos_t posInNeedSyncData);
     //download range data
-    hpatch_BOOL (*readSyncData)     (IReadSyncDataListener* listener,uint32_t blockIndex,
+    hpatch_BOOL (*readSyncData)     (struct IReadSyncDataListener* listener,uint32_t blockIndex,
                                      hpatch_StreamPos_t posInNewSyncData,hpatch_StreamPos_t posInNeedSyncData,
                                      unsigned char* out_syncDataBuf,uint32_t syncDataSize);
     //readSyncDataEnd can null
-    void        (*readSyncDataEnd)  (IReadSyncDataListener* listener);
+    void        (*readSyncDataEnd)  (struct IReadSyncDataListener* listener);
 } IReadSyncDataListener;
-
-typedef struct TSyncDownloadPlugin{
-    //download range of file
-    hpatch_BOOL (*download_range_open) (IReadSyncDataListener* out_listener,const char* file_url);
-    hpatch_BOOL (*download_range_close)(IReadSyncDataListener* listener);
-    //download file
-    hpatch_BOOL (*download_file)      (const char* file_url,const hpatch_TStreamOutput* out_stream,
-                                       hpatch_StreamPos_t continueDownloadPos);
-} TSyncDownloadPlugin;
 
 typedef enum TSyncDiffType{
     kSyncDiff_default=0, // out diff (info+data)

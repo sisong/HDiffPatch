@@ -31,6 +31,7 @@
 #include <stdlib.h> //malloc free
 #include <string.h> //size_t
 #include <stdexcept>  //std::runtime_error
+#include <string>
 namespace hdiff_private{
 
     struct TAutoMem{
