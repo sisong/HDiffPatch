@@ -224,6 +224,8 @@ hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName){
 
 
 #if defined(ANDROID) && (__ANDROID_API__ < 24)
+#include <sys/types.h>
+#include <unistd.h>
 static off64_t _import_lseek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
     int fd;
     if (feof(file))
