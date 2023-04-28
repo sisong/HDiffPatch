@@ -215,7 +215,7 @@ static bool readSamePairListTo(TStreamCacheClip* codeClip,TSameNewBlockPair* sam
         sp.curIndex=v+pre;
         if (sp.curIndex>=kBlockCount) return false;
         if (!_clip_unpackToUInt32(&v,codeClip)) return false;
-        if (v>=sp.curIndex) return false;
+        if (v>sp.curIndex) return false;
         sp.sameIndex=sp.curIndex-v;
         pre=sp.curIndex;
     }
@@ -286,7 +286,7 @@ static bool readPartHashTo(TStreamCacheClip* clip,TByte* partHash,size_t partBit
             }
         }
     }
-    assert(bitsValue==0);
+    if (bitsValue!=0) return false;
     if (curPair!=samePairCount) return false;
     return true;
 }
@@ -370,6 +370,8 @@ static TSyncClient_resultType
         check(_clip_unpackUIntTo(&self->newSyncDataOffsert,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newDataSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackToUInt32(&self->kSyncBlockSize,&clip),kSyncClient_newSyncInfoDataError);
+        check((self->kSyncBlockSize<=(self->newDataSize<=_kSyncBlockSize_min_limit?_kSyncBlockSize_min_limit:self->newDataSize))
+              &&(self->kSyncBlockSize>=_kSyncBlockSize_min_limit),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackToSize_t(&self->kStrongChecksumByteSize,&clip),kSyncClient_newSyncInfoDataError);
         check(strongChecksumPlugin->checksumByteSize()==self->kStrongChecksumByteSize,
               kSyncClient_strongChecksumByteSizeError);
@@ -395,6 +397,7 @@ static TSyncClient_resultType
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
             check(_clip_unpackToSize_t(&self->dirInfoSavedSize,&clip),kSyncClient_newSyncInfoDataError);
+            check(self->dirInfoSavedSize<self->newDataSize,kSyncClient_newSyncInfoDataError);
             check(_readDirHead(&self->dirInfo,&clip),kSyncClient_newSyncInfoDataError);
         }
 #endif

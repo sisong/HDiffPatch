@@ -354,7 +354,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
                                hsync_THsynz* hsynzPlugin,size_t threadNum){
     const uint32_t kSyncBlockSize= newSyncInfo->kSyncBlockSize;
     hpatch_TChecksum* checksumPlugin=newSyncInfo->_strongChecksumPlugin;
-    checkv(kSyncBlockSize>=kSyncBlockSize_min);
+    checkv(kSyncBlockSize>=_kSyncBlockSize_min_limit);
     if (compressPlugin) checkv(out_hsynz!=0);
     hsync_THsynz _hsynzPlugin;
     if ((hsynzPlugin==0)&&((compressPlugin!=0)||newSyncInfo->isDirSyncInfo)){
@@ -363,8 +363,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
     }
     {//check checksumByteSize
         const size_t checksumByteSize=checksumPlugin->checksumByteSize();
-        checkv((checksumByteSize==(uint32_t)checksumByteSize)
-            &&(checksumByteSize*8>=kStrongChecksumBits_min));
+        checkv((checksumByteSize<=_kStrongChecksumByteSize_max_limit)&&(checksumByteSize>=kStrongChecksumByteSize_min));
     }
 
     CChecksum      _checkChecksum(checksumPlugin,false);

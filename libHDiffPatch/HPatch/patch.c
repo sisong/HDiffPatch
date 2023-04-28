@@ -2029,6 +2029,7 @@ hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData
     return result;
 }
 
+static const size_t _kStepMemSizeLimit =(1<<20)*16;
 hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_diffInfo,
                                         const hpatch_TStreamInput* singleCompressedDiff,
                                         hpatch_StreamPos_t         diffInfo_pos){
@@ -2056,7 +2057,7 @@ hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_dif
     out_diffInfo->diffDataPos=_TStreamCacheClip_readPosOfSrcStream(diffHeadClip)-diffInfo_pos;
     if (out_diffInfo->compressedSize>out_diffInfo->uncompressedSize)
         return _hpatch_FALSE;
-    if (out_diffInfo->stepMemSize>(size_t)((~(size_t)0)-hpatch_kStreamCacheSize*_kCacheSgCount)) 
+    if (out_diffInfo->stepMemSize>(out_diffInfo->newDataSize>=_kStepMemSizeLimit?out_diffInfo->newDataSize:_kStepMemSizeLimit))
         return _hpatch_FALSE;
     if (out_diffInfo->stepMemSize>out_diffInfo->uncompressedSize)
         return _hpatch_FALSE;

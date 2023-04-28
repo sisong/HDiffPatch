@@ -256,7 +256,7 @@ struct TVectorAsStreamOutput:public hpatch_TStreamOutput{
     explicit TVectorAsStreamOutput(std::vector<unsigned char>& _dst):dst(_dst){
         this->streamImport=this;
         this->streamSize=hpatch_kNullStreamPos;
-        this->read_writed=0;
+        this->read_writed=_read;
         this->write=_write;
     }
     static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,
@@ -274,6 +274,15 @@ struct TVectorAsStreamOutput:public hpatch_TStreamOutput{
                 dst.resize((size_t)(writeToPos+writeLen));
             memcpy(&dst[(size_t)writeToPos],data,writeLen);
         }
+        return hpatch_TRUE;
+    }
+    static hpatch_BOOL _read(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
+                             unsigned char* out_data,unsigned char* out_data_end){
+        const TVectorAsStreamOutput* self=(const TVectorAsStreamOutput*)stream->streamImport;
+        const std::vector<unsigned char>& src=self->dst;
+        size_t readLen=out_data_end-out_data;
+        if (readFromPos+readLen>src.size()) return hpatch_FALSE;
+        memcpy(out_data,src.data()+(size_t)readFromPos,readLen);
         return hpatch_TRUE;
     }
     std::vector<unsigned char>& dst;

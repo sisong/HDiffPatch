@@ -38,7 +38,7 @@ namespace sync_private{
     size_t _estimateCompareCountBit(hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize){
         hpatch_StreamPos_t blockCount=getSyncBlockCount(newDataSize,kSyncBlockSize);
         const hpatch_StreamPos_t nbmul=newDataSize*blockCount;
-        if ((nbmul/blockCount)==newDataSize)
+        if ((blockCount==0)||(nbmul/blockCount)==newDataSize)
             return sync_private::upper_ilog2(nbmul);
         else
             return sync_private::upper_ilog2(newDataSize)+sync_private::upper_ilog2(blockCount);
@@ -55,7 +55,7 @@ namespace sync_private{
     size_t getSavedHashBits(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,
                             size_t kStrongHashBits,size_t* out_partRollHashBits,size_t* out_partStrongHashBits){
         const size_t result=getNeedHashBits(kSafeHashClashBit,newDataSize,kSyncBlockSize);
-        assert(kStrongHashBits>=kStrongChecksumBits_min);
+        assert(kStrongHashBits>=kStrongChecksumByteSize_min*8);
         assert(result<=kStrongHashBits+_kMaxRollHashBits);
         size_t compareCountBit=_estimateCompareCountBit(newDataSize,kSyncBlockSize);
         size_t rollHashBits=compareCountBit;
@@ -92,7 +92,7 @@ namespace sync_private{
 hpatch_inline static //check strongChecksumBits is strong enough?
 bool getStrongForHashClash(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,
                            size_t strongChecksumBits){
-    if (strongChecksumBits<kStrongChecksumBits_min)
+    if (strongChecksumBits<kStrongChecksumByteSize_min*8)
         return false;
     size_t needHashBits=sync_private::getNeedHashBits(kSafeHashClashBit,newDataSize,kSyncBlockSize);
     return sync_private::_kMaxRollHashBits+strongChecksumBits>=needHashBits;

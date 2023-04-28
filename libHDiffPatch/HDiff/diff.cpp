@@ -1014,6 +1014,11 @@ static void serialize_single_compressed_diff(const hpatch_TStreamInput* newStrea
                                              bool isZeroSubDiff,const TCovers& covers,const hpatch_TStreamOutput* out_diff,
                                              const hdiff_TCompress* compressPlugin,size_t patchStepMemSize){
     check(patchStepMemSize>=hpatch_kStreamCacheSize);
+    if (patchStepMemSize>newStream->streamSize){
+        patchStepMemSize=newStream->streamSize;
+        if (patchStepMemSize<hpatch_kStreamCacheSize)
+            patchStepMemSize=hpatch_kStreamCacheSize;
+    }
     TStepStream stepStream(newStream,oldStream,isZeroSubDiff,covers,patchStepMemSize);
     
     TDiffStream outDiff(out_diff);

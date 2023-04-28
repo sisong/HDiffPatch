@@ -41,6 +41,8 @@
 #include "../libHDiffPatch/HPatch/patch.h"
 #include "../libHDiffPatch/HPatchLite/hpatch_lite.h"
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
+#include "../libhsync/sync_make/sync_make.h"
+#include "../libhsync/sync_client/sync_client.h"
 using namespace hdiff_private;
 typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
@@ -66,6 +68,8 @@ const long kRandTestCount=20000;
 #include "../compress_plugin_demo.h"
 #include "../decompress_plugin_demo.h"
 
+#define _ChecksumPlugin_crc32
+#include "../checksum_plugin_demo.h"
 
 #ifdef  _CompressPlugin_no
     const hdiff_TCompress* compressPlugin=0;
@@ -123,6 +127,24 @@ const long kRandTestCount=20000;
     hpi_compressType compressHpiType=hpi_compressType_tuz;
 #endif
 
+#include "../dict_compress_plugin_demo.h"
+#include "../dict_decompress_plugin_demo.h"
+
+#ifdef  _CompressPlugin_no
+    const hsync_TDictCompress* dictCompressPlugin=0;
+    hsync_TDictDecompress* dictDecompressPlugin=0;
+#endif
+#ifdef  _CompressPlugin_zlib
+    const hsync_TDictCompress* dictCompressPlugin=&zlibDictCompressPlugin.base;
+    static TDictDecompressPlugin_zlib _zlibDictDecompressPlugin=zlibDictDecompressPlugin;
+    hsync_TDictDecompress* dictDecompressPlugin=&_zlibDictDecompressPlugin.base;
+#endif
+#ifdef  _CompressPlugin_zstd
+    const hsync_TDictCompress* dictCompressPlugin=&zstdDictCompressPlugin.base;
+    static TDictDecompressPlugin_zstd _zstdDictDecompressPlugin=zstdDictDecompressPlugin;
+    hsync_TDictDecompress* dictDecompressPlugin=&_zstdDictDecompressPlugin.base;
+#endif
+
 int testCompress(const char* str,const char* error_tag){
     assert(  ((compressPlugin==0)&&(decompressPlugin==0))
            ||((compressPlugin!=0)&&(decompressPlugin!=0)));
@@ -177,6 +199,177 @@ static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
     return true;
 }
 
+static hpatch_TChecksum* hsynzDefaultChecksum=&crc32ChecksumPlugin;
+
+struct TSyncInfoListener:public ISyncInfoListener{
+    inline TSyncInfoListener(){
+        infoImport=this;
+        findDecompressPlugin=0;
+        onLoadedNewSyncInfo=0;
+        onNeedSyncInfo=0;
+        findChecksumPlugin=_findChecksumPlugin;
+    }
+    static hpatch_TChecksum* _findChecksumPlugin(ISyncInfoListener* listener,const char* strongChecksumType){
+        return hsynzDefaultChecksum;
+    }
+};
+
+struct TReadSyncDataListener:public IReadSyncDataListener{
+    const std::vector<TByte>& _hzData;
+    inline explicit TReadSyncDataListener(const std::vector<TByte>& hsynzData):_hzData(hsynzData){
+        readSyncDataImport=this;
+        onNeedSyncInfo=0;
+        readSyncDataBegin=0;
+        readSyncData=_readSyncData;
+        readSyncDataEnd=0;
+    }
+    static hpatch_BOOL _readSyncData(struct IReadSyncDataListener* listener,uint32_t blockIndex,
+                                     hpatch_StreamPos_t posInNewSyncData,hpatch_StreamPos_t posInNeedSyncData,
+                                     unsigned char* out_syncDataBuf,uint32_t syncDataSize){
+        const TReadSyncDataListener* self=(const TReadSyncDataListener*)listener->readSyncDataImport;
+        const std::vector<TByte>& src=self->_hzData;
+        if (posInNewSyncData+syncDataSize>src.size()) return hpatch_FALSE;
+        memcpy(out_syncDataBuf,src.data()+(size_t)posInNewSyncData,syncDataSize);
+        return hpatch_TRUE;
+    }
+};
+
+static std::vector<TByte> _hsyniData;
+static std::vector<TByte> _hsynzData;
+static std::vector<TByte> _new_hsyniData;
+static std::vector<TByte> _new_hsynzData;
+static void _create_hsynz_diff(const TByte* newData,const TByte* newData_end,
+                               const TByte* oldData,const TByte* oldData_end,
+                               std::vector<TByte>& out_diff){
+    TSyncClient_resultType ret=kSyncClient_ok;
+    struct hpatch_TStreamInput  newStream;
+    mem_as_hStreamInput(&newStream,newData,newData_end);
+    _hsyniData.clear();
+    _hsynzData.clear();
+    _new_hsyniData.clear();
+    _new_hsynzData.clear();
+    TVectorAsStreamOutput hiStream(_hsyniData);
+    TVectorAsStreamOutput hzStream(_hsynzData);
+    create_sync_data(&newStream,&hiStream,&hzStream,hsynzDefaultChecksum,0,0,kSyncBlockSize_min);
+
+    //local diff
+    struct hpatch_TStreamInput  oldStream;
+    mem_as_hStreamInput(&oldStream,oldData,oldData_end);
+    out_diff.clear();
+    TVectorAsStreamOutput diffStream(out_diff);
+    TSyncInfoListener syncInfoListener;
+    TReadSyncDataListener readSyncDataListener(_hsynzData);
+    TNewDataSyncInfo newSyncInfo={0};
+    hiStream.streamSize=hiStream.dst.size();
+    ret=TNewDataSyncInfo_open(&newSyncInfo,(const hpatch_TStreamInput*)&hiStream,&syncInfoListener);
+    if (ret!=0) throw std::runtime_error("TNewDataSyncInfo_open() error!");
+    ret=sync_local_diff(&syncInfoListener,&readSyncDataListener,&oldStream,
+                        &newSyncInfo,&diffStream,kSyncDiff_default,0,1);
+    TNewDataSyncInfo_close(&newSyncInfo);
+    if (ret!=0) throw std::runtime_error("sync_local_diff() error!");
+}
+
+static hpatch_BOOL _hsynz_local_patch(unsigned char* out_newData,unsigned char* out_newData_end,
+                                      const unsigned char* oldData,const unsigned char* oldData_end,
+                                      const unsigned char* diff,const unsigned char* diff_end){
+    TSyncClient_resultType ret=kSyncClient_ok;
+    struct hpatch_TStreamOutput out_newStream;
+    struct hpatch_TStreamInput  oldStream;
+    struct hpatch_TStreamInput  diffStream;
+    struct hpatch_TStreamInput  hiStream;
+    mem_as_hStreamOutput(&out_newStream,out_newData,out_newData_end);
+    mem_as_hStreamInput(&oldStream,oldData,oldData_end);
+    mem_as_hStreamInput(&diffStream,diff,diff_end);
+    const std::vector<TByte>& hsyniData=_new_hsyniData.empty()?_hsyniData:_new_hsyniData;
+    mem_as_hStreamInput(&hiStream,hsyniData.data(),hsyniData.data()+hsyniData.size());
+    TSyncInfoListener syncInfoListener;
+    TNewDataSyncInfo newSyncInfo={0};
+    ret=TNewDataSyncInfo_open(&newSyncInfo,&hiStream,&syncInfoListener);
+    if (ret!=0){
+#ifdef _AttackPacth_ON
+        return hpatch_FALSE;
+#else
+        throw std::runtime_error("TNewDataSyncInfo_open() error!");
+#endif
+    }
+    ret=sync_local_patch(&syncInfoListener,&diffStream,&oldStream,&newSyncInfo,&out_newStream,0,1);
+    TNewDataSyncInfo_close(&newSyncInfo);
+    if (ret!=0){
+#ifdef _AttackPacth_ON
+        return hpatch_FALSE;
+#else
+        throw std::runtime_error("sync_local_patch() error!");
+#endif
+    }
+    return hpatch_TRUE;
+}
+
+static hpatch_BOOL _hsynz_sync_patch(unsigned char* out_newData,unsigned char* out_newData_end,
+                                     const unsigned char* oldData,const unsigned char* oldData_end){
+    TSyncClient_resultType ret=kSyncClient_ok;
+    struct hpatch_TStreamOutput out_newStream;
+    struct hpatch_TStreamInput  oldStream;
+    struct hpatch_TStreamInput  hiStream;
+    mem_as_hStreamOutput(&out_newStream,out_newData,out_newData_end);
+    mem_as_hStreamInput(&oldStream,oldData,oldData_end);
+    const std::vector<TByte>& hsyniData=_new_hsyniData.empty()?_hsyniData:_new_hsyniData;
+    const std::vector<TByte>& hsynzData=_new_hsynzData.empty()?_hsynzData:_new_hsynzData;
+    mem_as_hStreamInput(&hiStream,hsyniData.data(),hsyniData.data()+hsyniData.size());
+    TSyncInfoListener syncInfoListener;
+    TNewDataSyncInfo newSyncInfo={0};
+    TReadSyncDataListener readSyncDataListener(hsynzData);
+    ret=TNewDataSyncInfo_open(&newSyncInfo,&hiStream,&syncInfoListener);
+    if (ret!=0){
+#ifdef _AttackPacth_ON
+        return hpatch_FALSE;
+#else
+        throw std::runtime_error("TNewDataSyncInfo_open() error!");
+#endif
+    }
+    ret=sync_patch(&syncInfoListener,&readSyncDataListener,&oldStream,&newSyncInfo,&out_newStream,0,0,0,1);
+    TNewDataSyncInfo_close(&newSyncInfo);
+    if (ret!=0){
+#ifdef _AttackPacth_ON
+        return hpatch_FALSE;
+#else
+        throw std::runtime_error("sync_patch() error!");
+#endif
+    }
+    return hpatch_TRUE;
+}
+
+static std::vector<TByte> _newTempData;
+bool _check_hsynz_local_patch(const TByte* newData,const TByte* newData_end,
+                              const TByte* oldData,const TByte* oldData_end,
+                              const TByte* diff,const TByte* diff_end){
+    _newTempData.resize(newData_end-newData);
+    memset(_newTempData.data(),0,_newTempData.size());
+    if (!_hsynz_local_patch(_newTempData.data(),_newTempData.data()+_newTempData.size(),
+                            oldData,oldData_end,diff,diff_end))  return false;
+    if (0!=memcmp(_newTempData.data(),newData,_newTempData.size()))
+#ifdef _AttackPacth_ON
+        return false;
+#else
+        throw std::runtime_error("_check_hsynz_local_patch() error!");
+#endif
+    return true;
+}
+
+bool _check_hsynz_sync_patch(const TByte* newData,const TByte* newData_end,
+                             const TByte* oldData,const TByte* oldData_end){
+    _newTempData.resize(newData_end-newData);
+    memset(_newTempData.data(),0,_newTempData.size());
+    if (!_hsynz_sync_patch(_newTempData.data(),_newTempData.data()+_newTempData.size(),
+                           oldData,oldData_end))  return false;
+    if (0!=memcmp(_newTempData.data(),newData,_newTempData.size()))
+#ifdef _AttackPacth_ON
+        return false;
+#else
+        throw std::runtime_error("_check_hsynz_sync_patch() error!");
+#endif
+    return true;
+}
+
 enum TDiffType{
     kDiffO,
     kDiffZ,
@@ -184,8 +377,9 @@ enum TDiffType{
     kDiffS,
     kDiffSs,
     kDiffi,
+    kHSynz,
 };
-static const size_t kDiffTypeCount=kDiffi+1;
+static const size_t kDiffTypeCount=kHSynz+1;
 
 #ifdef _AttackPacth_ON
 
@@ -291,6 +485,10 @@ long attackPacth(TByte* out_newData,TByte* out_newData_end,
             check_lite_diff(out_newData,out_newData_end,oldData,oldData_end,
                             diffData,diffData_end,decompressPlugin);
         } break;
+        case kHSynz: {
+            _hsynz_local_patch(out_newData,out_newData_end,oldData,oldData_end,diffData,diffData_end);
+            _hsynz_sync_patch(out_newData,out_newData_end,oldData,oldData_end);
+        } break;
     }
     return 0;
 }
@@ -308,14 +506,30 @@ long attackPacth(TInt newSize,const TByte* oldData,const TByte* oldData_end,
     std::vector<TByte> new_diffData(diffSize);
     TByte* diffData=new_diffData.data();
     TByte* diffData_end=diffData+diffSize;
+    if (diffType==kHSynz){
+        _new_hsyniData.resize(_hsyniData.size());
+        _new_hsynzData.resize(_hsynzData.size());
+    }
+
     try {
         for (long i=0; i<kLoopCount; ++i) {
             sprintf(tag, "attackPacth exceptionCount=%ld testSeed=%d i=%ld",exceptionCount,seed,i);
-            memcpy(diffData,_diffData,_diffData_end-_diffData);
-            const long randCount=(long)(1+rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*diffSize/3);
-            for (long r=0; r<randCount; ++r){
-                diffData[rand()%diffSize]=rand();
+            if (diffType==kHSynz){
+                memcpy(_new_hsyniData.data(),_hsyniData.data(),_hsyniData.size());
+                memcpy(_new_hsynzData.data(),_hsynzData.data(),_hsynzData.size());
+                long randCount=(long)(1+rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*_hsyniData.size()/3);
+                for (long r=0; r<randCount; ++r)
+                    _new_hsyniData[rand()%_hsyniData.size()]=rand();
+                if (!_hsynzData.empty()){
+                    randCount=(long)(1+rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*_hsynzData.size()/3);
+                    for (long r=0; r<randCount; ++r)
+                        _new_hsynzData[rand()%_hsynzData.size()]=rand();
+                }
             }
+            memcpy(diffData,_diffData,diffSize);
+            const long randCount=(long)(1+rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX)*diffSize/3);
+            for (long r=0; r<randCount; ++r)
+                diffData[rand()%diffSize]=rand();
             exceptionCount+=attackPacth(newData,newData_end,oldData,oldData_end,diffData,diffData_end,tag,diffType);
         }
         return exceptionCount;
@@ -363,7 +577,7 @@ long test(const TByte* newData,const TByte* newData_end,
             printf("\n diffs stream error!!! tag:%s\n",tag);
             ++result;
         }else{
-            printf(" diffs stream:%ld", (long)(diffData.size()));
+            printf(" diffs(stream):%ld", (long)(diffData.size()));
 #ifdef _AttackPacth_ON
             long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
                                             diffData.data(),diffData.data()+diffData.size(),rand(),kDiffS);
@@ -404,7 +618,7 @@ long test(const TByte* newData,const TByte* newData_end,
             printf("\n diffz stream error!!! tag:%s\n",tag);
             ++result;
         }else{
-            printf(" diffz stream:%ld", (long)(diffData.size()));
+            printf(" diffz(stream):%ld", (long)(diffData.size()));
 #ifdef _AttackPacth_ON
             long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
                                             diffData.data(),diffData.data()+diffData.size(),rand(),kDiffZ);
@@ -440,7 +654,7 @@ long test(const TByte* newData,const TByte* newData_end,
             printf("\n diffo error!!! tag:%s\n",tag);
             ++result;
         }else{
-            printf(" diffo:%ld\n", (long)(diffData.size()));
+            printf(" diffo:%ld", (long)(diffData.size()));
 #ifdef _AttackPacth_ON
             long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
                                             diffData.data(),diffData.data()+diffData.size(),rand(),kDiffO);
@@ -448,10 +662,27 @@ long test(const TByte* newData,const TByte* newData_end,
 #endif
         }
     }
+    if (compressPlugin==0){//test hsynz
+        std::vector<TByte> diffData;
+        if (compressPlugin!=0) throw std::runtime_error("now not support test hsynz by compressPlugin!");
+        _create_hsynz_diff(newData,newData_end,oldData,oldData_end,diffData);
+        if (out_diffSizes) out_diffSizes[kHSynz]+=diffData.size();
+        if ((!_check_hsynz_local_patch(newData,newData_end,oldData,oldData_end,diffData.data(),diffData.data()+diffData.size()))
+            ||(!_check_hsynz_sync_patch(newData,newData_end,oldData,oldData_end))){
+            printf("\n hsynz error!!! tag:%s\n",tag);
+            ++result;
+        }else{
+            printf(" hsynz:%ld", (long)(diffData.size()));
+#ifdef _AttackPacth_ON
+            long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
+                                            diffData.data(),diffData.data()+diffData.size(),rand(),kHSynz);
+            if (exceptionCount>0) return exceptionCount;
+#endif
+        }
+    }
+    printf("\n");
     return result;
 }
-
-
 
 static inline long test(const char* newStr,const char* oldStr,const char* error_tag){
     const TByte* newData=(const TByte*)newStr;
@@ -498,7 +729,8 @@ int main(int argc, const char * argv[]){
     errorCount+=test("a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1", "asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr", "13");
 
     {
-        const char* _strData14="a123456789876543212345677654321234567765432asadsdasfefw45fg4gacasc234fervsvdfdsfef4g4gr1";
+        const char* _strData14="a1234567898765432123456776djng5;wsvdoivnkdnvdfnvnkljdfdfkjfnvdlfknvvdfnvknfnk54321234567765432asaddjbvdjvbdfbvb"
+                                "dfve.kskj3bt3jht38985iojtjn76i7khjmfgyrdjrj5jsdasfefw45fg4gacasc234fervsvdfdghn6767kk7887oklo990gr232eqwdscdsfef4g4gr1";
         const TByte* data14=(const TByte*)_strData14;
         const size_t dataSize=strlen(_strData14);
         hpatch_StreamPos_t diffSize14[kDiffTypeCount]={0};
@@ -511,12 +743,12 @@ int main(int argc, const char * argv[]){
         }
     }
 
-    const int kMaxDataSize=1024*16;
+    const int kMaxDataSize=1024*32;
     
     std::vector<int> seeds(kRandTestCount);
     srand(0);
     for (int i=0; i<kRandTestCount; ++i)
-        seeds[i]=rand();
+        seeds[i]=((unsigned int)rand())*(unsigned int)(RAND_MAX+1)+(unsigned int)rand();
 
     hpatch_StreamPos_t sumNewSize=0;
     hpatch_StreamPos_t sumOldSize=0;
@@ -541,8 +773,8 @@ int main(int argc, const char * argv[]){
         const TInt kMaxCopyCount=(TInt)sqrt((double)oldSize);
         TByte* newData=_newData.data();
         TByte* oldData=_oldData.data();
-        const TInt copyCount=0+(TInt)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount*4);
-        const TInt kMaxCopyLength=(TInt)(1+rand()*(1.0/RAND_MAX)*kMaxCopyCount*4);
+        const TInt copyCount=0+(TInt)((1-rand()*(1.0/RAND_MAX)*rand()*(1.0/RAND_MAX))*kMaxCopyCount*1);
+        const TInt kMaxCopyLength=(TInt)(1+rand()*(1.0/RAND_MAX)*kMaxCopyCount*16);
         for (TInt ci=0; ci<copyCount; ++ci) {
             const TInt length=1+(TInt)(rand()*(1.0/RAND_MAX)*kMaxCopyLength);
             if ((length>oldSize*4/5)||(length>newSize*4/5)) {
@@ -558,12 +790,12 @@ int main(int argc, const char * argv[]){
     }
 
     printf("\nchecked:%ld  errorCount:%ld\n",kRandTestCount,errorCount);
-    printf("newSize:100%% oldSize:%2.2f%% diffOsize:%2.2f%% diffZsize:%2.2f%%(s:%2.2f%%)"
-           " diffSsize:%2.2f%%(s:%2.2f%%) diffisize:%2.2f%%\n",
+    printf("newSize:100%% oldSize:%2.2f%% diffO:%2.2f%% diffZ:%2.2f%%(s:%2.2f%%)"
+           " diffS:%2.2f%%(s:%2.2f%%) diffi:%2.2f%% hsynz:%2.2f%%\n",
             sumOldSize*100.0/sumNewSize,sumDiffSizes[kDiffO]*100.0/sumNewSize,
             sumDiffSizes[kDiffZ]*100.0/sumNewSize,sumDiffSizes[kDiffZs]*100.0/sumNewSize,
             sumDiffSizes[kDiffS]*100.0/sumNewSize,sumDiffSizes[kDiffSs]*100.0/sumNewSize,
-            sumDiffSizes[kDiffi]*100.0/sumNewSize);
+            sumDiffSizes[kDiffi]*100.0/sumNewSize,sumDiffSizes[kHSynz]*100.0/sumNewSize);
     clock_t time2=clock();
     printf("\nrun time:%.1f s\n",(time2-time1)*(1.0/CLOCKS_PER_SEC));
 

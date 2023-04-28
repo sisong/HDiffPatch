@@ -38,7 +38,6 @@
 #include <sstream>
 #define  _IS_NEED_MAIN 0
 #define  _IS_NEED_PRINT_LOG 0
-#define  _IS_NEED_ORIGINAL 0
 #include "../hpatchz.c"
 
 bool        is_attack =true;

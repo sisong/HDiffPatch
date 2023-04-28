@@ -43,6 +43,7 @@ namespace sync_private{
         uint32_t pre=0;
         for (size_t i=0;i<samePairCount;++i){
             const TSameNewBlockPair& sp=samePairList[i];
+            assert(sp.curIndex>sp.sameIndex);
             packUInt(buf,(uint32_t)(sp.curIndex-pre));
             packUInt(buf,(uint32_t)(sp.curIndex-sp.sameIndex));
             pre=sp.curIndex;
@@ -253,7 +254,7 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 
 
 CNewDataSyncInfo::CNewDataSyncInfo(hpatch_TChecksum* strongChecksumPlugin,const hsync_TDictCompress* compressPlugin,
-                                   hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,size_t kSafeHashClashBit){
+                                   hpatch_StreamPos_t newDataSize,uint32_t syncBlockSize,size_t kSafeHashClashBit){
     TNewDataSyncInfo_init(this);
     if (compressPlugin){
         this->_compressType.assign(compressPlugin->compressType());
@@ -263,9 +264,11 @@ CNewDataSyncInfo::CNewDataSyncInfo(hpatch_TChecksum* strongChecksumPlugin,const 
     this->_strongChecksumType.assign(strongChecksumPlugin->checksumType());
     this->strongChecksumType=this->_strongChecksumType.c_str();
     this->kStrongChecksumByteSize=(uint32_t)strongChecksumPlugin->checksumByteSize();
-    this->kSyncBlockSize=kSyncBlockSize;
+    syncBlockSize=(syncBlockSize<=newDataSize)?syncBlockSize:(uint32_t)newDataSize;
+    syncBlockSize=(syncBlockSize<=_kSyncBlockSize_min_limit)?_kSyncBlockSize_min_limit:syncBlockSize;
+    this->kSyncBlockSize=syncBlockSize;
     this->newDataSize=newDataSize;
-    getSavedHashBits(kSafeHashClashBit,newDataSize,kSyncBlockSize,this->kStrongChecksumByteSize*8,
+    getSavedHashBits(kSafeHashClashBit,newDataSize,this->kSyncBlockSize,this->kStrongChecksumByteSize*8,
                      &this->savedRollHashBits,&this->savedStrongChecksumBits);
     this->savedRollHashByteSize=_bitsToBytes(this->savedRollHashBits);
     this->savedStrongChecksumByteSize=_bitsToBytes(this->savedStrongChecksumBits);

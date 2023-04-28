@@ -8,7 +8,6 @@
 #define _IS_NEED_DIR_DIFF_PATCH         0
 #define _IS_NEED_MAIN                   0
 #define _IS_NEED_CMDLINE                0
-#define _IS_NEED_ORIGINAL               0
 #define _IS_NEED_SFX                    0
 #define _IS_NEED_ALL_CompressPlugin     0
 #include "../../hpatchz.c"
