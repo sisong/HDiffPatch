@@ -56,9 +56,9 @@ struct _TCompress{
     void init(hsync_TDictCompress* _compressPlugin,uint32_t kSyncBlockCount,
               uint32_t _kSyncBlockSize,TNewDataSyncInfo* out_hsyni){
         checkv(kSyncBlockSize==0);
-        compressPlugin=_compressPlugin;
+        compressPlugin=(kSyncBlockCount>0)?_compressPlugin:0;
         kSyncBlockSize=_kSyncBlockSize;
-        kMaxCompressedSize=_compressPlugin?(size_t)_compressPlugin->maxCompressedSize(_kSyncBlockSize):0;
+        kMaxCompressedSize=compressPlugin?(size_t)compressPlugin->maxCompressedSize(_kSyncBlockSize):0;
         if (compressPlugin!=0){
             dictCompressHandle=compressPlugin->dictCompressOpen(compressPlugin,kSyncBlockCount,_kSyncBlockSize);
             checkv(dictCompressHandle!=0);

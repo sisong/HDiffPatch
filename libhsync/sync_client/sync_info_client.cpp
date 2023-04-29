@@ -369,6 +369,15 @@ static TSyncClient_resultType
         check(_clip_unpackUIntTo(&self->newSyncDataSize,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newSyncDataOffsert,&clip),kSyncClient_newSyncInfoDataError);
         check(_clip_unpackUIntTo(&self->newDataSize,&clip),kSyncClient_newSyncInfoDataError);
+        if (self->_decompressPlugin){
+            static const hpatch_StreamPos_t _kDictSizeSafeLimit =(1<<20)*16;
+            check((self->dictSize/2)<(self->newDataSize>=_kDictSizeSafeLimit?self->newDataSize:_kDictSizeSafeLimit),
+                kSyncClient_newSyncInfoDataError);
+            decompressPlugin=listener->findDecompressPlugin(listener,compressType,self->dictSize);
+            check(decompressPlugin!=0,kSyncClient_noDecompressPluginError);
+            self->_decompressPlugin=decompressPlugin;
+        }
+
         check(_clip_unpackToUInt32(&self->kSyncBlockSize,&clip),kSyncClient_newSyncInfoDataError);
         check((self->kSyncBlockSize<=(self->newDataSize<=_kSyncBlockSize_min_limit?_kSyncBlockSize_min_limit:self->newDataSize))
               &&(self->kSyncBlockSize>=_kSyncBlockSize_min_limit),kSyncClient_newSyncInfoDataError);

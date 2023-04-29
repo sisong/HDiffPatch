@@ -934,7 +934,6 @@ static void __dec_free(void* _, void* address){
         size_t  ret;
         size_t _input_size=ZSTD_DStreamInSize();
         size_t _output_size=ZSTD_DStreamOutSize();
-        assert(code_begin<code_end);
         self=(_zstd_TDecompress*)_dec_malloc(sizeof(_zstd_TDecompress)+_input_size+_output_size);
         if (!self) _dec_memErr_rt();
         memset(self,0,sizeof(_zstd_TDecompress));
@@ -959,7 +958,7 @@ static void __dec_free(void* _, void* address){
         if (!self->s){ _dec_onDecErr_up(); free(self); _dec_openErr_rt(); }
         ret=ZSTD_initDStream(self->s);
         if (ZSTD_isError(ret)) { ZSTD_freeDStream(self->s); _dec_onDecErr_up(); free(self); _dec_openErr_rt(); }
-        #define _ZSTD_WINDOWLOG_MAX ((sizeof(size_t)<=4)?30:31)
+        #define _ZSTD_WINDOWLOG_MAX 30
         ret=ZSTD_DCtx_setParameter(self->s,ZSTD_d_windowLogMax,_ZSTD_WINDOWLOG_MAX);
         //if (ZSTD_isError(ret)) { printf("WARNING: ZSTD_DCtx_setMaxWindowSize() error!"); }
         return self;

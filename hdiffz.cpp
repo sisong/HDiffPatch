@@ -257,7 +257,7 @@ static void printUsage(){
 #endif
 #ifdef _CompressPlugin_zstd
            "        -c-zstd[-{0..22}[-dictBits]]    DEFAULT level 20\n"
-           "            dictBits can 10--31, DEFAULT 23.\n"
+           "            dictBits can 10--30, DEFAULT 23.\n"
 #   if (_IS_USED_MULTITHREAD)
            "            support run by multi-thread parallel, fast!\n"
 #   endif
