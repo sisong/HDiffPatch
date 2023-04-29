@@ -121,4 +121,4 @@ jobs:
           git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
       - name: buildByVC
         run: |
-          msbuild builds/vc2019/HDiffPatch.sln -t:rebuild -verbosity:diag -property:Configuration=Release
+          msbuild builds/vc/HDiffPatch.sln -t:rebuild -verbosity:diag -property:Configuration=Release
