@@ -65,11 +65,13 @@ const long kRandTestCount=20000;
 
 #define IS_NOTICE_compress_canceled 0 //for test, close compress fail notice
 #define IS_REUSE_compress_handle    1 //for test, must in single thread
-#include "../compress_plugin_demo.h"
+#include "../compress_plugin_demo.h"   
 #include "../decompress_plugin_demo.h"
 
-#include "../dict_compress_plugin_demo.h"
-#include "../dict_decompress_plugin_demo.h"
+#ifndef _CompressPlugin_no
+#include "../dict_compress_plugin_demo.h"   // https://github.com/sisong/hsynz
+#include "../dict_decompress_plugin_demo.h" // https://github.com/sisong/hsynz
+#endif
 
 #define _ChecksumPlugin_crc32
 #include "../checksum_plugin_demo.h"
