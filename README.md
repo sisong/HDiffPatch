@@ -43,7 +43,7 @@ if need lzma zstd md5 support, Try:
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
-$ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
+$ git clone https://github.com/sisong/zstd.git ../zstd
 $ make
 ```    
 Tip: You can use `$ make -j` to compile in parallel.
@@ -53,7 +53,7 @@ Before you build `builds/vc/HDiffPatch.sln` by [`Visual Studio`](https://visuals
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
-$ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
+$ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
 $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 ```

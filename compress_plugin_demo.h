@@ -990,7 +990,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 
 #ifdef  _CompressPlugin_zstd
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/facebook/zstd
+#   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/sisong/zstd
 #endif
     struct TCompressPlugin_zstd{
         hdiff_TCompress base;

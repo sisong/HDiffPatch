@@ -904,7 +904,7 @@ static void __dec_free(void* _, void* address){
 #ifdef  _CompressPlugin_zstd
 #if (_IsNeedIncludeDefaultCompressHead)
 //#   define ZSTD_STATIC_LINKING_ONLY //for ZSTD_customMem
-#   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/facebook/zstd
+#   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/sisong/zstd
 #endif
     typedef struct _zstd_TDecompress{
         const struct hpatch_TStreamInput* codeStream;

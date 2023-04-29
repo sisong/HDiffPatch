@@ -113,7 +113,7 @@ else
 endif
 
 ZSTD_PATH := ../zstd/lib
-ifeq ($(ZSTD),1) # https://github.com/facebook/zstd
+ifeq ($(ZSTD),1) # https://github.com/sisong/zstd
   HPATCH_OBJ += $(ZSTD_PATH)/common/debug.o \
   				$(ZSTD_PATH)/common/entropy_common.o \
   				$(ZSTD_PATH)/common/error_private.o \

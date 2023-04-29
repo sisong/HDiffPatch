@@ -56,7 +56,7 @@ endif
 ifeq ($(ZSTD),0)
   Zstd_Files :=
 else
-  # https://github.com/facebook/zstd
+  # https://github.com/sisong/zstd
   ZSTD_PATH  := $(LOCAL_PATH)/../../../zstd/lib/
   Zstd_Files := $(ZSTD_PATH)/common/debug.c \
   				$(ZSTD_PATH)/common/entropy_common.c \

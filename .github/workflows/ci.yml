@@ -16,7 +16,7 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
-          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+          git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           make DIR_DIFF=0 MT=0 BSD=0 VCD=0 ZLIB=0 BZIP2=0 -j
           make clean
       - name: makeAll
@@ -40,7 +40,7 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
-          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+          git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
       - name: makeByClang
         run: |
           make CL=1 -j
@@ -53,7 +53,7 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
-          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+          git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
       - name: buildByXcode
         run: |
           xcodebuild -workspace builds/xcode/HDiffPatch.xcworkspace -scheme hdiffz -configuration Release OBJROOT=$PWD/bin SYMROOT=$PWD/bin
@@ -70,7 +70,7 @@ jobs:
       - name: buildByAndroidNDK
         run: |
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
-          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+          git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           cd ./builds/android_ndk_jni_mk
           ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
 
@@ -84,7 +84,7 @@ jobs:
       - name: buildByAndroidNDK
         run: |
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
-          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+          git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
           cd ./builds/android_ndk_jni_mk
           ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk BSD=1 BZIP2=1
@@ -101,7 +101,7 @@ jobs:
           sudo apt install libncurses5
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
-          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+          git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           cd ./builds/android_ndk_jni_mk
           ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk BSD=1 BZIP2=1 VCD=1
 
@@ -118,7 +118,7 @@ jobs:
           git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
-          git clone -b v1.5.2 --depth=1 https://github.com/facebook/zstd.git ../zstd
+          git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
       - name: buildByVC
         run: |
           msbuild builds/vc/HDiffPatch.sln -t:rebuild -verbosity:diag -property:Configuration=Release
