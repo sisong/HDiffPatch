@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.6.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.6.2-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -9,7 +9,7 @@
 
 a C\C++ library and command-line tools for Diff & Patch between binary files or directories(folder); cross-platform; runs fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
 
-HDiffPatch defines its own patch file format, which is also compatible with the [bsdiff4](https://daemonology.net/bsdiff) patch format and partially compatible with the [open-vcdiff](https://github.com/google/open-vcdiff) and [xdelta3](https://github.com/jmacd/xdelta) patch file format VCDIFF(RFC 3284).
+HDiffPatch defines its own patch file format, this lib is also compatible with the [bsdiff4](https://daemonology.net/bsdiff) patch format and partially compatible with the [open-vcdiff](https://github.com/google/open-vcdiff) and [xdelta3](https://github.com/jmacd/xdelta) patch file format VCDIFF(RFC 3284).
    
 if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite](https://github.com/sisong/HPatchLite) (+ [tinyuz](https://github.com/sisong/tinyuz)), can run on 1KB RAM devices!   
 
@@ -17,7 +17,7 @@ update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](ht
 
 [sfpatcher](https://github.com/sisong/sfpatcher) not require re-signing apks (like [archive-patcher](https://github.com/google/archive-patcher)), is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
 
-if you not have the old versions(too many or not obtain or have been modified), thus cannot create the patch in advance. you can see demo [hsync](https://github.com/sisong/hsync) (like [zsync](http://zsync.moria.org.uk)), the new version is only need released once and the owners of the old version get the information about the new version and do the diff&patch themselves. hsync support zstd compressor & run faster than zsync.
+if you not have the old versions(too many or not obtain or have been modified), thus cannot create the patch in advance. you can see demo [hsynz](https://github.com/sisong/hsynz) (like [zsync](http://zsync.moria.org.uk)), the new version is only need released once and the owners of the old version get the information about the new version and do the diff&patch themselves. hsynz support zstd compressor & run faster than zsync.
    
 NOTE: *This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
    
@@ -43,7 +43,7 @@ if need lzma zstd md5 support, Try:
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
-$ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
+$ git clone https://github.com/sisong/zstd.git ../zstd
 $ make
 ```    
 Tip: You can use `$ make -j` to compile in parallel.
@@ -53,7 +53,7 @@ Before you build `builds/vc/HDiffPatch.sln` by [`Visual Studio`](https://visuals
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
-$ git clone -b v1.5.2 https://github.com/facebook/zstd.git ../zstd
+$ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
 $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 ```
@@ -293,7 +293,7 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **create_vcdiff()**
 * **create_vcdiff_stream()**
 * **vcpatch_with_cache()**
-#### hsync API, diff&patch by sync (demo [hsync](https://github.com/sisong/hsync)): 
+#### hsynz API, diff&patch by sync (demo [hsynz](https://github.com/sisong/hsynz)): 
 * **create_sync_data()**
 * **create_dir_sync_data()**
 * **sync_patch()**
@@ -353,12 +353,12 @@ all **hdiffz** add test with -p-8
  **hpatchz** patch with `-s-3m -f {old} {pat} {new}`   
 add **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
  zstd patch with `-d -f --memory=2047MB --patch-from={old} {pat} -o {new}`   
-add **hsync** test, make sync info by `hsync_make {new} {out_newi} {out_newz}`,    
+add **hsynz** test, make sync info by `hsync_make {new} {out_newi} {out_newz}`,    
 client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`   
-**hsync p1 -zlib** run hsync_make with `-s-1536 -p-1 -c-zlib-9`   
-**hsync p8 -zlib** run hsync_make with `-s-1536 -p-8 -c-zlib-9` (run `hsync_demo` with `-p-8`)   
-**hsync p1 -zstd** run hsync_make with `-s-1536 -p-1 -c-zstd-21-24`   
-**hsync p8 -zstd** run hsync_make with `-s-1536 -p-8 -c-zstd-21-24` (run `hsync_demo` with `-p-8`)   
+**hsynz p1 -zlib** run hsync_make with `-s-1536 -p-1 -c-zlib-9`   
+**hsynz p8 -zlib** run hsync_make with `-s-1536 -p-8 -c-zlib-9` (run `hsync_demo` with `-p-8`)   
+**hsynz p1 -zstd** run hsync_make with `-s-1536 -p-1 -c-zstd-21-24`   
+**hsynz p8 -zstd** run hsync_make with `-s-1536 -p-8 -c-zstd-21-24` (run `hsync_demo` with `-p-8`)   
    
 **test result average**:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|
@@ -391,10 +391,10 @@ client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`
 |hdiffz -s p8 -lzma2|9.13%|370M|34.7MB/s|17M|20M|286MB/s|
 |hdiffz -s p1 -zstd|9.60%|195M|10.9MB/s|18M|21M|454MB/s|
 |hdiffz -s p8 -zstd|9.60%|976M|17.1MB/s|18M|21M|462MB/s|
-|hsync p1 -zlib|19.85%|8M|13.6MB/s|8M|26M|161MB/s|
-|hsync p8 -zlib|19.85%|31M|88.2MB/s|15M|35M|235MB/s|
-|hsync p1 -zstd|14.87%|533M|1.2MB/s|25M|38M|180MB/s|
-|hsync p8 -zstd|14.86%|3432M|5.1MB/s|25M|38M|278MB/s|
+|hsynz p1 -zlib|19.85%|8M|13.6MB/s|8M|26M|161MB/s|
+|hsynz p8 -zlib|19.85%|31M|88.2MB/s|15M|35M|235MB/s|
+|hsynz p1 -zstd|14.87%|533M|1.2MB/s|25M|38M|180MB/s|
+|hsynz p8 -zstd|14.86%|3432M|5.1MB/s|25M|38M|278MB/s|
     
 
 ## input Apk Files for test: 
@@ -438,8 +438,8 @@ case list:
 **changed test Program**:   
 **hdiffz ...** `-m-6 -SD` changed to `-m-1 -SD-2m -cache`, `-s-64 -SD` changed to `-s-16 -SD-2m`   
 **hdiffz ...** lzma2 dict size `16m` changed to `8m`, zstd dict bit `24` changed to `23`   
-**hsync ...** make `-s-1536` changed to `-s-1k`   
-add **hsync p1**, **hsync p8** make without compressor   
+**hsynz ...** make `-s-1536` changed to `-s-1k`   
+add **hsynz p1**, **hsynz p8** make without compressor   
 add **archive-patcher** v1.0, diff with `--generate --old {old} --new {new} --patch {pat}`,   
   patch with `--apply --old {old} --patch {pat} --new {new}`   
   NOTE: archive-patcher's delta file compressed by lzma2-9-8m, diff&patch time not include compress&decompress delta file's memory&time.   
@@ -470,12 +470,12 @@ add **archive-patcher** v1.0, diff with `--generate --old {old} --new {new} --pa
 |hdiffz -s p8 -lzma2|53.30%|309M|20.9MB/s|20M|22M|195MB/s|
 |hdiffz -s p1 -zstd|53.44%|221M|8.1MB/s|20M|22M|452MB/s|
 |hdiffz -s p8 -zstd|53.44%|1048M|11.1MB/s|20M|22M|448MB/s|
-|hsync p1|62.43%|4M|855.2MB/s|4M|10M|169MB/s|
-|hsync p8|62.43%|24M|1285.8MB/s|12M|18M|289MB/s|
-|hsync p1 -zlib|58.67%|5M|18.6MB/s|4M|11M|168MB/s|
-|hsync p8 -zlib|58.67%|29M|107.2MB/s|12M|19M|282MB/s|
-|hsync p1 -zstd|57.92%|534M|2.1MB/s|24M|28M|168MB/s|
-|hsync p8 -zstd|57.92%|3434M|7.3MB/s|24M|28M|291MB/s|
+|hsynz p1|62.43%|4M|855.2MB/s|4M|10M|169MB/s|
+|hsynz p8|62.43%|24M|1285.8MB/s|12M|18M|289MB/s|
+|hsynz p1 -zlib|58.67%|5M|18.6MB/s|4M|11M|168MB/s|
+|hsynz p8 -zlib|58.67%|29M|107.2MB/s|12M|19M|282MB/s|
+|hsynz p1 -zstd|57.92%|534M|2.1MB/s|24M|28M|168MB/s|
+|hsynz p8 -zstd|57.92%|3434M|7.3MB/s|24M|28M|291MB/s|
 |archive-patcher +lzma2|31.68%|3278M|0.7MB/s|759M|788M|15MB/s|
 |sf_diff -o-1 p1 -zstd|31.08%|818M|1.8MB/s|15M|19M|154MB/s|
 |sf_diff -o-1 p8 -zstd|31.07%|1026M|3.1MB/s|18M|25M|307MB/s|

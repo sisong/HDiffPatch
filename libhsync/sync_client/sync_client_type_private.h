@@ -71,7 +71,7 @@ inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
                                       adler_data_t out_data,adler_data_t in_data){
                                         return fast_adler64_roll(adler,blockSize,out_data,in_data); }
     
-#define kStrongChecksumBits_min    (4*8)
+#define kStrongChecksumByteSize_min    (4*8/8)
     
 hpatch_inline static
 void toPartChecksum(unsigned char* out_partChecksum,size_t outPartBits,

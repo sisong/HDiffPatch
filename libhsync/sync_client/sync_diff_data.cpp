@@ -158,7 +158,9 @@ static hpatch_BOOL _loadPoss(TSyncDiffLocalPoss* self,const hpatch_TStreamInput*
     _loadV(self->kBlockSize,uint32_t,&clip);
     _loadV(self->oldDataSize,hpatch_StreamPos_t,&clip);
     _loadV(self->checksumByteSize,uint32_t,&clip);
+    if (self->checksumByteSize>_kStrongChecksumByteSize_max_limit) return hpatch_FALSE;
     _loadV(packedOldPossSize,size_t,&clip);
+    if (packedOldPossSize>=_TStreamCacheClip_leaveSize(&clip)) return hpatch_FALSE;
     {  // packedOldPoss data
         self->packedOldPoss=(TByte*)malloc(packedOldPossSize+self->checksumByteSize);
         if (!self->packedOldPoss) return hpatch_FALSE;
