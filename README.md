@@ -331,7 +331,7 @@ case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgUIZxYac5_ufl
    
 
 **test PC**: Windows11, CPU Ryzen 5800H, SSD Disk, Memroy 8G*2 DDR4 3200MHz   
-**Program version**: HDiffPatch4.6.0, BsDiff4.3, xdelta3.1 zstd1.5.2  
+**Program version**: HDiffPatch4.6.0, hsynz 0.9.1, BsDiff4.3, xdelta3.1 zstd1.5.2  
 **test Program**:   
 **xdelta** diff with `-S lzma -e -9 -n -f -s {old} {new} {pat}`   
 **xdelta** patch with `-d -f -s {old} {pat} {new}`   
@@ -353,12 +353,12 @@ all **hdiffz** add test with -p-8
  **hpatchz** patch with `-s-3m -f {old} {pat} {new}`   
 add **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
  zstd patch with `-d -f --memory=2047MB --patch-from={old} {pat} -o {new}`   
-add **hsynz** test, make sync info by `hsync_make {new} {out_newi} {out_newz}`,    
+add **hsynz** test, make sync info by `hsync_make -s-2k {new} {out_newi} {out_newz}`,    
 client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`   
-**hsynz p1 -zlib** run hsync_make with `-s-1536 -p-1 -c-zlib-9`   
-**hsynz p8 -zlib** run hsync_make with `-s-1536 -p-8 -c-zlib-9` (run `hsync_demo` with `-p-8`)   
-**hsynz p1 -zstd** run hsync_make with `-s-1536 -p-1 -c-zstd-21-24`   
-**hsynz p8 -zstd** run hsync_make with `-s-1536 -p-8 -c-zstd-21-24` (run `hsync_demo` with `-p-8`)   
+**hsynz p1 -zlib** run hsync_make with `-p-1 -c-zlib-9`   
+**hsynz p8 -zlib** run hsync_make with `-p-8 -c-zlib-9` (run `hsync_demo` with `-p-8`)   
+**hsynz p1 -zstd** run hsync_make with `-p-1 -c-zstd-21-24`   
+**hsynz p8 -zstd** run hsync_make with `-p-8 -c-zstd-21-24` (run `hsync_demo` with `-p-8`)   
    
 **test result average**:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|
@@ -391,10 +391,10 @@ client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`
 |hdiffz -s p8 -lzma2|9.13%|370M|34.7MB/s|17M|20M|286MB/s|
 |hdiffz -s p1 -zstd|9.60%|195M|10.9MB/s|18M|21M|454MB/s|
 |hdiffz -s p8 -zstd|9.60%|976M|17.1MB/s|18M|21M|462MB/s|
-|hsynz p1 -zlib|19.85%|8M|13.6MB/s|8M|26M|161MB/s|
-|hsynz p8 -zlib|19.85%|31M|88.2MB/s|15M|35M|235MB/s|
-|hsynz p1 -zstd|14.87%|533M|1.2MB/s|25M|38M|180MB/s|
-|hsynz p8 -zstd|14.86%|3432M|5.1MB/s|25M|38M|278MB/s|
+|hsynz p1 -zlib|20.05%|6M|14.3MB/s|6M|21M|172MB/s|
+|hsynz p8 -zlib|20.05%|30M|89.8MB/s|13M|29M|254MB/s|
+|hsynz p1 -zstd|14.90%|532M|1.3MB/s|24M|35M|192MB/s|
+|hsynz p8 -zstd|14.90%|3349M|5.1MB/s|24M|35M|301MB/s|
     
 
 ## input Apk Files for test: 
@@ -438,12 +438,12 @@ case list:
 **changed test Program**:   
 **hdiffz ...** `-m-6 -SD` changed to `-m-1 -SD-2m -cache`, `-s-64 -SD` changed to `-s-16 -SD-2m`   
 **hdiffz ...** lzma2 dict size `16m` changed to `8m`, zstd dict bit `24` changed to `23`   
-**hsynz ...** make `-s-1536` changed to `-s-1k`   
+**hsynz ...** make `-s-2k` changed to `-s-1k`   
 add **hsynz p1**, **hsynz p8** make without compressor   
 add **archive-patcher** v1.0, diff with `--generate --old {old} --new {new} --patch {pat}`,   
   patch with `--apply --old {old} --patch {pat} --new {new}`   
   NOTE: archive-patcher's delta file compressed by lzma2-9-8m, diff&patch time not include compress&decompress delta file's memory&time.   
-**sfpatcher -1 -zstd** diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
+**sfpatcher -1 -zstd** v1.1.0 diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
 **sfpatcher -2 -lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
  sfpatcher patch with `-lp -p-8 {old} {pat} {new}`   
 ( [archive-patcher](https://github.com/google/archive-patcher), [sfpatcher](https://github.com/sisong/sfpatcher) optimized diff&patch between apk files )  
@@ -470,17 +470,17 @@ add **archive-patcher** v1.0, diff with `--generate --old {old} --new {new} --pa
 |hdiffz -s p8 -lzma2|53.30%|309M|20.9MB/s|20M|22M|195MB/s|
 |hdiffz -s p1 -zstd|53.44%|221M|8.1MB/s|20M|22M|452MB/s|
 |hdiffz -s p8 -zstd|53.44%|1048M|11.1MB/s|20M|22M|448MB/s|
-|hsynz p1|62.43%|4M|855.2MB/s|4M|10M|169MB/s|
-|hsynz p8|62.43%|24M|1285.8MB/s|12M|18M|289MB/s|
-|hsynz p1 -zlib|58.67%|5M|18.6MB/s|4M|11M|168MB/s|
-|hsynz p8 -zlib|58.67%|29M|107.2MB/s|12M|19M|282MB/s|
-|hsynz p1 -zstd|57.92%|534M|2.1MB/s|24M|28M|168MB/s|
-|hsynz p8 -zstd|57.92%|3434M|7.3MB/s|24M|28M|291MB/s|
+|hsynz p1|62.43%|4M|1243.4MB/s|4M|10M|172MB/s|
+|hsynz p8|62.43%|25M|1902.6MB/s|12M|18M|293MB/s|
+|hsynz p1 -zlib|58.67%|5M|18.5MB/s|4M|11M|170MB/s|
+|hsynz p8 -zlib|58.67%|29M|107.6MB/s|12M|19M|285MB/s|
+|hsynz p1 -zstd|57.92%|534M|2.2MB/s|24M|28M|173MB/s|
+|hsynz p8 -zstd|57.92%|3434M|7.6MB/s|24M|28M|294MB/s|
 |archive-patcher +lzma2|31.68%|3278M|0.7MB/s|759M|788M|15MB/s|
-|sf_diff -o-1 p1 -zstd|31.08%|818M|1.8MB/s|15M|19M|154MB/s|
-|sf_diff -o-1 p8 -zstd|31.07%|1026M|3.1MB/s|18M|25M|307MB/s|
-|sf_diff -o-2 p1 -lzma2|24.11%|976M|1.6MB/s|15M|20M|28MB/s|
-|sf_diff -o-2 p8 -lzma2|24.15%|967M|3.3MB/s|20M|26M|79MB/s|
+|sfpatcher -1 p1 -zstd|31.08%|818M|1.8MB/s|15M|19M|154MB/s|
+|sfpatcher -1 p8 -zstd|31.07%|1026M|3.1MB/s|18M|25M|307MB/s|
+|sfpatcher -2 p1 -lzma2|24.11%|976M|1.6MB/s|15M|20M|28MB/s|
+|sfpatcher -2 p8 -lzma2|24.15%|967M|3.3MB/s|20M|26M|79MB/s|
     
 
 ---

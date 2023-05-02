@@ -655,7 +655,7 @@ static hpatch_BOOL _src_cache_update_by_offset(src_cache_t* self,const hpatch_TS
     dstPos+=self->mem_offset;
     if (dstPos<mem_size){
         hpatch_size_t readLen=updateLen;
-        if (dstPos+readLen>mem_size) readLen=mem_size-dstPos;
+        if (dstPos+readLen>mem_size) readLen=mem_size-(hpatch_size_t)dstPos;
         if (!srcData->read(srcData,srcPos,temp_cache+(hpatch_size_t)dstPos,temp_cache+(hpatch_size_t)dstPos+readLen))
             return _hpatch_FALSE;
         srcPos+=readLen;
