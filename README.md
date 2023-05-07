@@ -424,7 +424,7 @@ case list:
 |21|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.taobao.taobao.png" width="36">|com.taobao.taobao_10.18.10.apk <-- 10.17.0|117218670|117111874|
 |22|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mm.png" width="36">|com.tencent.mm_8.0.28.apk <-- 8.0.27|266691829|276603782|
 |23|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mobileqq.png" width="36">|com.tencent.mobileqq_8.9.15.apk <-- 8.9.13|311322716|310529631|
-|24|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mtt.png" width="36">|com.tencent.mtt_13.2.0.0045.apk <-- 13.2.0.0103|97296757|97342747|
+|24|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tencent.mtt.png" width="36">|com.tencent.mtt_13.2.0.0103.apk <-- 13.2.0.0045|97342747|97296757|
 |25|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.tripadvisor.tripadvisor.png" width="36">|com.tripadvisor.tripadvisor_49.5.apk <-- 49.3|28744498|28695346|
 |26|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.twitter.android.png" width="36">|com.twitter.android_9.61.0.apk <-- 9.58.2|36141840|35575484|
 |27|<img src="https://github.com/sisong/sfpatcher/raw/master/img/com.ubercab.png" width="36">|com.ubercab_4.442.10002.apk <-- 4.439.10002|69923232|64284150|
@@ -456,11 +456,11 @@ add **archive-patcher** v1.0, diff with `--generate --old {old} --new {new} --pa
 |xdelta3 +hpatchz -m|54.51%|422M|2.5MB/s|70M|81M|331MB/s|
 |bsdiff|53.84%|931M|1.0MB/s|218M|605M|40MB/s|
 |bsdiff +hpatchz -s|53.84%|931M|1.0MB/s|14M|14M|40MB/s|
-|hdiffz p1 -BSD|53.68%|509M|4.9MB/s|14M|14M|40MB/s|
+|hdiffz p1 -BSD|53.69%|509M|4.9MB/s|14M|14M|40MB/s|
 |hdiffz p8 -BSD|53.70%|514M|9.2MB/s|14M|14M|40MB/s|
 |hdiffz p1 -zlib|53.21%|509M|6.2MB/s|5M|6M|382MB/s|
 |hdiffz p8 -zlib|53.22%|514M|18.2MB/s|5M|6M|380MB/s|
-|hdiffz p1 -lzma2|52.92%|525M|3.3MB/s|21M|22M|195MB/s|
+|hdiffz p1 -lzma2|52.93%|525M|3.3MB/s|21M|22M|195MB/s|
 |hdiffz p8 -lzma2|52.94%|557M|11.2MB/s|21M|22M|196MB/s|
 |hdiffz p1 -zstd|53.04%|537M|4.2MB/s|21M|22M|428MB/s|
 |hdiffz p8 -zstd|53.05%|1251M|7.8MB/s|21M|22M|433MB/s|
