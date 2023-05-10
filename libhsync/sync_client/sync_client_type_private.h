@@ -65,7 +65,7 @@ uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t bl
         return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);
 }
     
-inline static uint64_t roll_hash_start(uint64_t*,const adler_data_t* pdata,size_t n){
+inline static uint64_t roll_hash_start(const adler_data_t* pdata,size_t n){
                                         return fast_adler64_start(pdata,n); }
 inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
                                       adler_data_t out_data,adler_data_t in_data){
