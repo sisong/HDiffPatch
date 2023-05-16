@@ -35,6 +35,33 @@
 #endif
 */
 
+#include <sys/types.h>
+#include <fcntl.h>
+#include <sys/ioctl.h> // ioctl
+#include <linux/fs.h> //BLKGETSIZE64
+
+static hpatch_BOOL get_block_dev_size(const char *blkdev, u_int64_t *size)
+{
+	int fd;
+
+	if ((!blkdev) || (!size)) return hpatch_FALSE;
+
+	if ((fd = open(blkdev, O_RDONLY)) == -1) {
+		perror("open:");
+		return hpatch_FALSE;
+	}
+
+	if (ioctl(fd, BLKGETSIZE64, size) == -1) {
+		perror("ioctl:");
+		close(fd);
+		return hpatch_FALSE;
+	}
+
+	close(fd);
+	return hpatch_TRUE;
+}
+
+
 hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_TPathType* out_type,
                                                   hpatch_StreamPos_t* out_fileSize,size_t* out_st_mode){
 #if (_IS_USED_WIN32_UTF8_WAPI)
@@ -78,6 +105,17 @@ hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_T
     }else if ((s.st_mode&S_IFMT)==S_IFDIR){
         *out_type=kPathType_dir;
         if (out_fileSize) *out_fileSize=0;
+        if (out_st_mode) *out_st_mode=s.st_mode;
+        return hpatch_TRUE;
+    }else if ((s.st_mode&S_IFMT)==S_IFBLK){
+	u_int64_t bsize;
+	if (get_block_dev_size(path_utf8, &bsize)) {
+		if (out_fileSize) *out_fileSize=bsize;
+	} else {
+		if (out_fileSize) *out_fileSize=0;
+		return hpatch_FALSE;
+	}
+        *out_type=kPathType_file;
         if (out_st_mode) *out_st_mode=s.st_mode;
         return hpatch_TRUE;
     }else{
