@@ -10,7 +10,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 ## [v4.5.0](https://github.com/sisong/HDiffPatch/tree/v4.5.0) - 2022-11-23
 ### Added
 * cmdline added option "-VCD[-compressLevel[-dictSize]]", create diffFile compatible with VCDIFF format;
-* cmdline hpatchz support apply VCDIFF format diffFile, created by hdiffz -VCD,xdelta3,open-vcdiff;
+* cmdline hpatchz support apply VCDIFF format diffFile, created by `$hdiffz -VCD`,`$xdelta3`,`$open-vcdiff`;
 * add function create_vcdiff(),create_vcdiff_stream(), vcpatch_with_cache();
 * cmdline option "-BSD" support run with -s (before only supported -m), to fast create diffFile compatible with bsdiff4;
 * add function create_bsdiff_stream(), same as create_bsdiff(), but can control memory requires and run speed by different kMatchBlockSize value;
@@ -37,9 +37,10 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 ## [v4.1.0](https://github.com/sisong/HDiffPatch/tree/v4.1.0) - 2021-11-27
 ### Added
 * cmdline add option "-BSD", to create diffFile compatible with bsdiff4;
+* cmdline hpatchz support apply bsdiff4 format diffFile, created by `$hdiffz -BSD`,`$bsdiff`;
+* cmdline add option "-cache", optimize `$hdiffz -m` speed; note:the big cache max used O(oldFileSize) memory, and build slow.
+* cmdline add option "-block", optimize `$hdiffz -m` speed;
 * add function create_bsdiff() & bspatch_with_cache().
-* cmdline add option "-cache", optimize hdiffz -m speed; note:the big cache max used O(oldFileSize) memory, and build slow.
-* cmdline add option "-block", optimize hdiffz -m speed;
 * add function create_single_compressed_diff_block() & create_compressed_diff_block() & create_bsdiff_block().
 
 ## [v4.0.0](https://github.com/sisong/HDiffPatch/tree/v4.0.0) - 2021-06-14
@@ -73,7 +74,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v3.0.7](https://github.com/sisong/HDiffPatch/tree/v3.0.7) - 2019-12-19
 ### Fixed
-* fix a bug when create dir's manifest file without checksum (hdiffz -C-no -M...);
+* fix a bug when create dir's manifest file without checksum (`$hdiffz -C-no -M...`);
 * fix a bug when create dir's manifest file on windows operating system;
 
 ## [v3.0.6](https://github.com/sisong/HDiffPatch/tree/v3.0.6) - 2019-09-18
