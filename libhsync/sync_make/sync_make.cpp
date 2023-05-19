@@ -297,7 +297,7 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
         if (out_hsyni->savedSizes) //save compressedSize
             out_hsyni->savedSizes[i]=(uint32_t)compressedSize;
 
-        const uint64_t rollHash=roll_hash_start((uint64_t*)0,dataBuf,kSyncBlockSize);
+        const uint64_t rollHash=roll_hash_start(dataBuf,kSyncBlockSize);
         //strong hash
         checksumBlockData.appendBegin();
         checksumBlockData.append(dataBuf,dataBuf+kSyncBlockSize);

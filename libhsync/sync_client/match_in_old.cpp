@@ -236,7 +236,7 @@ struct TOldDataCache:public TOldDataCache_base {
             :TOldDataCache_base(oldStream,oldRollBegin,oldRollEnd,kSyncBlockSize,
                                 strongChecksumPlugin,_mt){
                 if (isEnd()) return;
-                m_rollHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kSyncBlockSize);
+                m_rollHash=roll_hash_start(m_cur,m_kSyncBlockSize);
             }
     bool _cacheAndRoll(){
         TOldDataCache_base::_cache();
@@ -260,7 +260,7 @@ struct TOldDataCache:public TOldDataCache_base {
             TOldDataCache_base::_cache();
             if (isEnd()) return false;
         }
-        m_rollHash=roll_hash_start((tm_roll_uint*)0,m_cur,m_kSyncBlockSize);
+        m_rollHash=roll_hash_start(m_cur,m_kSyncBlockSize);
         return true;
     }
 protected:

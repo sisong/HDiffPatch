@@ -47,6 +47,27 @@ typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
 
+#define _IS_USES_MY_RAND
+#ifdef _IS_USES_MY_RAND
+class  CMyRand {
+public:
+    unsigned int _my_holdrand;
+public:
+    inline CMyRand() :_my_holdrand(1) {}
+    inline int _my_rand() {
+        unsigned int result = _my_holdrand * 214013 + 2531011;
+        _my_holdrand = result;
+        return (result >> 16) & RAND_MAX;
+    }
+};
+static CMyRand _MyRand;
+inline int  _rand() { return  _MyRand._my_rand(); }
+inline void _srand(unsigned int seed) { _MyRand._my_holdrand = seed; }
+#else
+#define  _rand  rand
+#define  _srand srand
+#endif
+
 /* //interface
 struct THash{
     typename TValue;
@@ -108,10 +129,22 @@ struct THash_adler32h{
     inline void hash_begin() { _hv=adler32_start(0,0); }
     inline void hash(const TByte* pdata,const TByte* pdata_end)
                         { _hv=adler32_append(_hv,pdata,(pdata_end-pdata));
-                            //assert(_hv==(TValue)adler32(1,pdata,(pdata_end-pdata)));
+                            //assert(_hv==(TValue)adler32(_hv,pdata,(pdata_end-pdata)));
                         }
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
+
+template<size_t kTestBit>
+struct THash_adler32h_bit{
+    typedef uint32_t TValue;
+    inline static const char* name() { return "adler32h_bit"; }
+    TValue _hv;
+    inline void hash_begin() { _hv=adler32_start(0,0); }
+    inline void hash(const TByte* pdata,const TByte* pdata_end)
+                        { _hv=adler32_append(_hv,pdata,(pdata_end-pdata)); }
+    inline void hash_end(TValue* hv) { *hv=_hv&((1<<kTestBit)-1); }
+};
+
 
 struct THash_fadler32{
     typedef uint32_t TValue;
@@ -167,8 +200,9 @@ struct _adler128_t_cmp{
 
 const uint64_t kMaxMapNodeSize=80000000ull; //run test memory ctrl
 const size_t   kRandTestMaxSize=1024*1024*1024;//test rand data size
-const size_t   kMaxHashDataSize=256;
-      size_t   kMinClash=0; //run test max time ctrl
+    size_t   kMinHashDataSize=0;
+    size_t   kMaxHashDataSize=256;
+    size_t   kMinClash=0; //run test max time ctrl
 
 template <class THash,class TUInt,int kTestBit=sizeof(TUInt)*8,TUInt kTestMask=(TUInt)~(TUInt)0>
 void test(const TByte* data,const TByte* data_end){
@@ -182,9 +216,9 @@ void test(const TByte* data,const TByte* data_end){
     for (size_t m=0;m<clip_count;++m)
         maps[m].reserve(kMaxMapNodeSize*3/clip_count);
     unsigned int rand_seed=7;
-    srand(rand_seed);
+    _srand(rand_seed);
     if (kTestMask!=(TUInt)~(TUInt)0) printf("mask[%08X %08X] ",(int)((uint64_t)kTestMask>>32),(int)kTestMask);
-    printf("%s%s ",THash::name(),std::string(10-strlen(THash::name()),' ').c_str());
+    printf("%s%s ",THash::name(),std::string(12-strlen(THash::name()),' ').c_str());
     
     uint64_t    curClashMin=0;
     uint64_t    clashs[clip_count]={0};
@@ -197,8 +231,8 @@ void test(const TByte* data,const TByte* data_end){
         }
         curClashMin=clashMin;
         
-        size_t dlen=rand() % kMaxHashDataSize;
-        size_t dstrat=((uint64_t)rand()+((uint64_t)rand()*(RAND_MAX+1))) % ((data_end-data)-dlen);
+        size_t dlen =kMinHashDataSize+(_rand() % (kMaxHashDataSize+1-kMinHashDataSize));
+        size_t dstrat=((uint64_t)_rand()+((uint64_t)_rand()*(RAND_MAX+1))) % ((data_end-data)-dlen);
         assert(dstrat+dlen<=(size_t)(data_end-data));
         const TByte* pv    =data+dstrat;
         const TByte* pv_end=pv+dlen;
@@ -283,7 +317,7 @@ void test_fadler128(const TByte* data,const TByte* data_end){
     for (size_t m=0;m<clip_count;++m)
         maps[m].reserve(kMaxMapNodeSize*3/clip_count);
     unsigned int rand_seed=7;
-    srand(rand_seed);
+    _srand(rand_seed);
     printf("mask[%08X %08X ",(int)(kTestMask1>>32),(int)kTestMask1);
     printf("%08X %08X] ",(int)(kTestMask0>>32),(int)kTestMask0);
     printf("%s%s ",THash::name(),std::string(10-strlen(THash::name()),' ').c_str());
@@ -299,8 +333,8 @@ void test_fadler128(const TByte* data,const TByte* data_end){
         }
         curClashMin=clashMin;
         
-        size_t dlen=rand() % kMaxHashDataSize;
-        size_t dstrat=rand() % ((data_end-data) - dlen);
+        size_t dlen =kMinHashDataSize+(_rand() % (kMaxHashDataSize+1-kMinHashDataSize));
+        size_t dstrat=_rand() % ((data_end-data) - dlen);
         assert(dstrat+dlen<=(data_end-data));
         const TByte* pv    =data+dstrat;
         const TByte* pv_end=pv+dlen;
@@ -388,19 +422,58 @@ int main() {
     
     std::vector<TByte> data(kRandTestMaxSize);
     unsigned int rand_seed=0;
-    srand(rand_seed);
+    _srand(rand_seed);
     for (size_t i=0; i<data.size(); ++i) {
-        data[i]=(TByte)rand();
+        data[i]=(TByte)_rand();
     }
     const uint64_t kTestMask8=((((uint64_t)1)<<8)-1);
     const uint64_t kTestMask16=((((uint64_t)1)<<16)-1);
     const uint64_t kTestMask32=((((uint64_t)1)<<32)-1);
     const uint64_t kTestMask64=~(uint64_t)0;
-    
+
+    /* //only test adler32h by bit
+    kMinHashDataSize=1024;
+    kMaxHashDataSize=1024;
+    kMinClash=10000;
+    test<THash_adler32h_bit<1>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<2>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<3>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<4>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<5>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<6>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<7>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<8>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<9>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<10>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<11>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<12>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<13>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<14>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<15>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<16>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<17>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<18>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<19>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<20>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<21>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<22>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<23>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<24>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<25>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<26>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<27>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<28>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<29>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<30>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<31>,uint32_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h_bit<32>,uint32_t>(data.data(),data.data()+data.size());
+    return 0;
+    //*/
+
     //*
     kMinClash=100000;
-    test<THash_adler32h,uint8_t>(data.data(), data.data() + data.size());
-    test<THash_adler32h,uint16_t>(data.data(), data.data() + data.size());
+    test<THash_adler32h,uint8_t>(data.data(),data.data()+data.size());
+    test<THash_adler32h,uint16_t>(data.data(),data.data()+data.size());
     test<THash_adler32h,uint32_t>(data.data(),data.data()+data.size());
 #if (_IS_NEED_ZLIB)
     test<THash_adler32,uint32_t>(data.data(),data.data()+data.size());
@@ -431,7 +504,7 @@ int main() {
     printf("\n");
     //*/
     //*
-     printf("NOTE: test fadler64 32bit ...\n");
+    printf("NOTE: test fadler64 32bit ...\n");
     kMinClash=100000;
     test<THash_fadler64,uint64_t,32,kTestMask32>(data.data(),data.data()+data.size());
     test<THash_fadler64,uint64_t,32,kTestMask32<<32>(data.data(),data.data()+data.size());

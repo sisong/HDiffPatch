@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.6.2-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.6.3-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -17,7 +17,7 @@ update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](ht
 
 [sfpatcher](https://github.com/sisong/sfpatcher) not require re-signing apks (like [archive-patcher](https://github.com/google/archive-patcher)), is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
 
-if you not have the old versions(too many or not obtain or have been modified), thus cannot create the patch in advance. you can see demo [hsynz](https://github.com/sisong/hsynz) (like [zsync](http://zsync.moria.org.uk)), the new version is only need released once and the owners of the old version get the information about the new version and do the diff&patch themselves. hsynz support zstd compressor & run faster than zsync.
+if you not have the old versions(too many or not obtain or have been modified), thus cannot create the delta in advance. you can see demo [hsynz](https://github.com/sisong/hsynz) (like [zsync](http://zsync.moria.org.uk)), the new version is only need released once and the owners of the old version get the information about the new version and do the diff&patch themselves. hsynz support zstd compressor & run faster than zsync.
    
 NOTE: *This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
    
