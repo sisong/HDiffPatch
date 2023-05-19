@@ -64,6 +64,12 @@
 #   define  mix_ferr(_saved_errno,_throw_errno)     set_ferr(_saved_errno,_throw_errno)
 #endif
 
+#if ( __linux__ )
+# ifndef _IS_NEED_BLOCK_DEV
+#   define _IS_NEED_BLOCK_DEV 1
+# endif
+#endif
+
 #ifndef _IS_USED_WIN32_UTF8_WAPI
 #   if (defined(_WIN32) && defined(_MSC_VER))
 #       define _IS_USED_WIN32_UTF8_WAPI 1 // used utf8 string + wchar_t API

@@ -35,24 +35,24 @@
 #endif
 */
 
+#if (_IS_NEED_BLOCK_DEV)
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/ioctl.h> // ioctl
 #include <linux/fs.h> //BLKGETSIZE64
 
-static hpatch_BOOL get_block_dev_size(const char *blkdev, u_int64_t *size)
-{
+static hpatch_BOOL _get_block_dev_size(const char* blkdev,hpatch_uint64_t* bsize){
 	int fd;
+    assert(blkdev&&bsize);
 
-	if ((!blkdev) || (!size)) return hpatch_FALSE;
-
-	if ((fd = open(blkdev, O_RDONLY)) == -1) {
-		perror("open:");
+    fd=open(blkdev,O_RDONLY);
+	if (fd == -1){
+		perror("_get_block_dev_size() open");
 		return hpatch_FALSE;
 	}
 
-	if (ioctl(fd, BLKGETSIZE64, size) == -1) {
-		perror("ioctl:");
+	if (ioctl(fd,BLKGETSIZE64,bsize) == -1) {
+		perror("_get_block_dev_size() ioctl");
 		close(fd);
 		return hpatch_FALSE;
 	}
@@ -60,6 +60,7 @@ static hpatch_BOOL get_block_dev_size(const char *blkdev, u_int64_t *size)
 	close(fd);
 	return hpatch_TRUE;
 }
+#endif
 
 
 hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_TPathType* out_type,
@@ -90,6 +91,7 @@ hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_T
     rt = stat(path_utf8,&s);
 #   endif
 #endif
+    if (out_st_mode) *out_st_mode=s.st_mode;
     
     if(rt!=0){
         if (errno==ENOENT){
@@ -100,24 +102,20 @@ hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_T
     }else if ((s.st_mode&S_IFMT)==S_IFREG){
         *out_type=kPathType_file;
         if (out_fileSize) *out_fileSize=s.st_size;
-        if (out_st_mode) *out_st_mode=s.st_mode;
         return hpatch_TRUE;
     }else if ((s.st_mode&S_IFMT)==S_IFDIR){
         *out_type=kPathType_dir;
         if (out_fileSize) *out_fileSize=0;
-        if (out_st_mode) *out_st_mode=s.st_mode;
         return hpatch_TRUE;
+#if (_IS_NEED_BLOCK_DEV)
     }else if ((s.st_mode&S_IFMT)==S_IFBLK){
-	u_int64_t bsize;
-	if (get_block_dev_size(path_utf8, &bsize)) {
-		if (out_fileSize) *out_fileSize=bsize;
-	} else {
-		if (out_fileSize) *out_fileSize=0;
-		return hpatch_FALSE;
-	}
+        hpatch_uint64_t bsize=0;
+        if (!_get_block_dev_size(path_utf8, &bsize))
+            return hpatch_FALSE;
         *out_type=kPathType_file;
-        if (out_st_mode) *out_st_mode=s.st_mode;
+        if (out_fileSize) *out_fileSize=bsize;
         return hpatch_TRUE;
+#endif
     }else{
         return hpatch_FALSE; //as error; unknow how to dispose
     }
