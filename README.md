@@ -330,18 +330,20 @@ case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgUIZxYac5_ufl
 |20|WeChat_3.8.0.41.win.tar <-- WeChat_3.8.0.33.win.tar|505876992|505018368|
    
 
-**test PC**: Windows11, CPU Ryzen 5800H, SSD Disk, Memroy 8G*2 DDR4 3200MHz   
-**Program version**: HDiffPatch4.6.0, hsynz 0.9.1, BsDiff4.3, xdelta3.1 zstd1.5.2  
+**test PC**: Windows11, CPU R9-7945HX, SSD PCIe4.0x4 4T, DDR5 5200MHz 32Gx2   
+**Program version**: HDiffPatch4.6.3, hsynz 0.9.3, BsDiff4.3, xdelta3.1, zstd1.5.2  
 **test Program**:   
-**xdelta** diff with `-S lzma -e -9 -n -f -s {old} {new} {pat}`   
-**xdelta** patch with `-d -f -s {old} {pat} {new}`   
-add **hpatchz** test: `hpatchz -m -f {old} {xdelta3-pat} {new}`   
-**xdelta -B** diff with `-S lzma -B {oldSize} -e -9 -n -f -s {old} {new} {pat}`   
-**xdelta -B** patch with `-B {oldSize} -d -f -s {old} {pat} {new}`   
-add **hpatchz** test: `hpatchz -m -f {old} {xdelta3-B-pat} {new}`   
+**zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
+ zstd patch with `-d -f --memory=2047MB --patch-from={old} {pat} -o {new}`  
+**xdelta3** diff with `-S lzma -e -9 -n -f -s {old} {new} {pat}`   
+**xdelta3** patch with `-d -f -s {old} {pat} {new}`   
+& adding **hpatchz** test: `hpatchz -m -f {old} {xdelta3-pat} {new}`   
+**xdelta3 -B** diff with `-S lzma -B {oldSize} -e -9 -n -f -s {old} {new} {pat}`   
+**xdelta3 -B** patch with `-B {oldSize} -d -f -s {old} {pat} {new}`   
+& adding **hpatchz** test: `hpatchz -m -f {old} {xdelta3-B-pat} {new}`   
 **bsdiff** diff with `{old} {new} {pat}`   
 **bspatch** patch with `{old} {new} {pat}`   
-add **hpatchz** test: `hpatchz -m -f {old} {bsdiff-pat} {new}`   
+& adding **hpatchz** test: `hpatchz -m -f {old} {bsdiff-pat} {new}`   
 **hdiffz -BSD** diff with `-m-6 -BSD -d -f -p-1 {old} {new} {pat}`   
 **hdiffz -zlib** diff with `-m-6 -SD -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
 **hdiffz -lzma2** diff with `-m-6 -SD -d -f -p-1 -c-lzma2-9-16m {old} {new} {pat}`   
@@ -349,11 +351,9 @@ add **hpatchz** test: `hpatchz -m -f {old} {bsdiff-pat} {new}`
 **hdiffz -s -zlib** diff with `-s-64 -SD -d -f -p-1 -c-zlib-9 {old} {new} {pat}`   
 **hdiffz -s -lzma2** diff with `-s-64 -SD -d -f -p-1 -c-lzma2-9-16m {old} {new} {pat}`   
 **hdiffz -s -zstd** diff with `-s-64 -SD -d -f -p-1 -c-zstd-21-24 {old} {new} {pat}`   
-all **hdiffz** add test with -p-8   
- **hpatchz** patch with `-s-3m -f {old} {pat} {new}`   
-add **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
- zstd patch with `-d -f --memory=2047MB --patch-from={old} {pat} -o {new}`   
-add **hsynz** test, make sync info by `hsync_make -s-2k {new} {out_newi} {out_newz}`,    
+& adding all **hdiffz**  test with -p-8   
+**hpatchz** patch with `-s-3m -f {old} {pat} {new}`    
+**hsynz** test, make sync info by `hsync_make -s-2k {new} {out_newi} {out_newz}`,    
 client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`   
 **hsynz p1 -zlib** run hsync_make with `-p-1 -c-zlib-9`   
 **hsynz p8 -zlib** run hsync_make with `-p-8 -c-zlib-9` (run `hsync_demo` with `-p-8`)   
@@ -363,38 +363,38 @@ client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`
 **test result average**:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|
 |:----|----:|----:|----:|----:|----:|----:|
-|bzip2-9 |33.67%||16.8MB/s|||44MB/s|
-|zlib-9 |36.53%||15.9MB/s|||421MB/s|
-|lzma2-9-16m |25.85%||3.9MB/s|||162MB/s|
-|zstd-21-24 |27.21%||2.7MB/s|||619MB/s|
+|bzip2-9 |33.67%||22.9MB/s|||66MB/s|
+|zlib-9 |36.53%||19.8MB/s|||539MB/s|
+|lzma2-9-16m |25.85%||5.3MB/s|||215MB/s|
+|zstd-21-24 |27.21%||4.2MB/s|||976MB/s|
 ||
-|zstd --patch-from|7.96%|2798M|2.4MB/s|631M|2303M|647MB/s|
-|xdelta3|13.60%|409M|4.7MB/s|86M|102M|95MB/s|
-|xdelta3 +hpatchz -m|13.60%|409M|4.7MB/s|72M|82M|280MB/s|
-|xdelta3 -B|9.63%|2282M|7.3MB/s|460M|2070M|159MB/s|
-|xdelta3 -B +hpatchz -m|9.63%|2282M|7.3MB/s|317M|1100M|345MB/s|
-|bsdiff |8.17%|2773M|1.9MB/s|637M|2312M|121MB/s|
-|bsdiff +hpatchz -m|8.17%|2773M|1.9MB/s|321M|1101M|141MB/s|
-|hdiffz p1 -BSD|7.72%|1215M|10.9MB/s|14M|14M|124MB/s|
-|hdiffz p8 -BSD|7.72%|1191M|22.0MB/s|14M|14M|123MB/s|
-|hdiffz p1 -zlib|7.79%|1214M|11.6MB/s|4M|4M|415MB/s|
-|hdiffz p8 -zlib|7.79%|1191M|30.5MB/s|4M|4M|409MB/s|
-|hdiffz p1 -lzma2|6.44%|1212M|9.2MB/s|17M|20M|312MB/s|
-|hdiffz p8 -lzma2|6.44%|1192M|23.2MB/s|17M|20M|309MB/s|
-|hdiffz p1 -zstd|6.74%|1217M|9.0MB/s|16M|21M|422MB/s|
-|hdiffz p8 -zstd|6.74%|1531M|16.7MB/s|16M|21M|418MB/s|
-|hdiffz -s p1 -BSD|11.96%|91M|33.3MB/s|14M|14M|105MB/s|
-|hdiffz -s p8 -BSD|11.96%|95M|40.6MB/s|14M|14M|105MB/s|
-|hdiffz -s p1 -zlib|12.52%|90M|35.2MB/s|4M|4M|439MB/s|
-|hdiffz -s p8 -zlib|12.53%|95M|104.4MB/s|4M|4M|434MB/s|
-|hdiffz -s p1 -lzma2|9.11%|170M|13.7MB/s|17M|20M|289MB/s|
-|hdiffz -s p8 -lzma2|9.13%|370M|34.7MB/s|17M|20M|286MB/s|
-|hdiffz -s p1 -zstd|9.60%|195M|10.9MB/s|18M|21M|454MB/s|
-|hdiffz -s p8 -zstd|9.60%|976M|17.1MB/s|18M|21M|462MB/s|
-|hsynz p1 -zlib|20.05%|6M|14.3MB/s|6M|21M|172MB/s|
-|hsynz p8 -zlib|20.05%|30M|89.8MB/s|13M|29M|254MB/s|
-|hsynz p1 -zstd|14.90%|532M|1.3MB/s|24M|35M|192MB/s|
-|hsynz p8 -zstd|14.90%|3349M|5.1MB/s|24M|35M|301MB/s|
+|zstd --patch-from|7.96%|2798M|3.3MB/s|629M|2303M|828MB/s|
+|xdelta3|13.60%|409M|6.9MB/s|86M|102M|159MB/s|
+|xdelta3 +hpatchz -m|13.60%|409M|6.9MB/s|70M|82M|377MB/s|
+|xdelta3 -B|9.63%|2282M|10.9MB/s|460M|2070M|267MB/s|
+|xdelta3 -B +hpatchz -m|9.63%|2282M|10.9MB/s|315M|1100M|477MB/s|
+|bsdiff|8.17%|2773M|2.5MB/s|637M|2312M|167MB/s|
+|bsdiff +hpatchz -m|8.17%|2773M|2.5MB/s|321M|1101M|197MB/s|
+|hdiffz p1 -BSD|7.72%|1210M|13.4MB/s|14M|14M|172MB/s|
+|hdiffz p8 -BSD|7.72%|1191M|31.2MB/s|14M|14M|172MB/s|
+|hdiffz p1 -zlib|7.79%|1214M|14.4MB/s|4M|4M|564MB/s|
+|hdiffz p8 -zlib|7.79%|1190M|44.8MB/s|4M|4M|559MB/s|
+|hdiffz p1 -lzma2|6.44%|1209M|11.4MB/s|16M|20M|431MB/s|
+|hdiffz p8 -lzma2|6.44%|1191M|33.4MB/s|16M|20M|428MB/s|
+|hdiffz p1 -zstd|6.74%|1211M|11.5MB/s|16M|21M|592MB/s|
+|hdiffz p8 -zstd|6.74%|1531M|24.3MB/s|16M|21M|586MB/s|
+|hdiffz -s p1 -BSD|11.96%|91M|46.0MB/s|14M|14M|148MB/s|
+|hdiffz -s p8 -BSD|11.96%|95M|59.8MB/s|14M|14M|148MB/s|
+|hdiffz -s p1 -zlib|12.52%|91M|46.4MB/s|3M|4M|611MB/s|
+|hdiffz -s p8 -zlib|12.53%|95M|178.9MB/s|3M|4M|609MB/s|
+|hdiffz -s p1 -lzma2|9.11%|170M|18.1MB/s|17M|20M|402MB/s|
+|hdiffz -s p8 -lzma2|9.13%|370M|50.6MB/s|17M|20M|400MB/s|
+|hdiffz -s p1 -zstd|9.60%|195M|18.0MB/s|17M|21M|677MB/s|
+|hdiffz -s p8 -zstd|9.60%|976M|28.5MB/s|17M|21M|678MB/s|
+|hsynz p1 -zlib|20.05%|6M|17.7MB/s|6M|21M|160MB/s|
+|hsynz p8 -zlib|20.05%|30M|119.5MB/s|13M|29M|246MB/s|
+|hsynz p1 -zstd|14.97%|531M|1.9MB/s|24M|35M|173MB/s|
+|hsynz p8 -zstd|14.96%|3349M|10.2MB/s|24M|35M|278MB/s|
     
 
 ## input Apk Files for test: 
@@ -442,8 +442,8 @@ case list:
 add **hsynz p1**, **hsynz p8** make without compressor   
 add **archive-patcher** v1.0, diff with `--generate --old {old} --new {new} --patch {pat}`,   
   patch with `--apply --old {old} --patch {pat} --new {new}`   
-  NOTE: archive-patcher's delta file compressed by lzma2-9-8m, diff&patch time not include compress&decompress delta file's memory&time.   
-**sfpatcher -1 -zstd** v1.1.0 diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
+  NOTE: archive-patcher's delta file compressed by lzma2-9-16m, diff&patch time not include compress&decompress delta file's memory&time.   
+**sfpatcher -1 -zstd** v1.1.1 diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
 **sfpatcher -2 -lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
  sfpatcher patch with `-lp -p-8 {old} {pat} {new}`   
 ( [archive-patcher](https://github.com/google/archive-patcher), [sfpatcher](https://github.com/sisong/sfpatcher) optimized diff&patch between apk files )  
@@ -451,36 +451,37 @@ add **archive-patcher** v1.0, diff with `--generate --old {old} --new {new} --pa
 **test result average**:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|
 |:----|----:|----:|----:|----:|----:|----:|
-|zstd --patch-from|53.18%|2199M|2.9MB/s|209M|596M|624MB/s|
-|xdelta3|54.51%|422M|2.5MB/s|98M|99M|103MB/s|
-|xdelta3 +hpatchz -m|54.51%|422M|2.5MB/s|70M|81M|331MB/s|
-|bsdiff|53.84%|931M|1.0MB/s|218M|605M|40MB/s|
-|bsdiff +hpatchz -s|53.84%|931M|1.0MB/s|14M|14M|40MB/s|
-|hdiffz p1 -BSD|53.69%|509M|4.9MB/s|14M|14M|40MB/s|
-|hdiffz p8 -BSD|53.70%|514M|9.2MB/s|14M|14M|40MB/s|
-|hdiffz p1 -zlib|53.21%|509M|6.2MB/s|5M|6M|382MB/s|
-|hdiffz p8 -zlib|53.22%|514M|18.2MB/s|5M|6M|380MB/s|
-|hdiffz p1 -lzma2|52.93%|525M|3.3MB/s|21M|22M|195MB/s|
-|hdiffz p8 -lzma2|52.94%|557M|11.2MB/s|21M|22M|196MB/s|
-|hdiffz p1 -zstd|53.04%|537M|4.2MB/s|21M|22M|428MB/s|
-|hdiffz p8 -zstd|53.05%|1251M|7.8MB/s|21M|22M|433MB/s|
-|hdiffz -s p1 -zlib|53.73%|118M|20.0MB/s|4M|6M|380MB/s|
-|hdiffz -s p8 -zlib|53.73%|122M|62.5MB/s|4M|6M|378MB/s|
-|hdiffz -s p1 -lzma2|53.30%|197M|5.2MB/s|20M|22M|195MB/s|
-|hdiffz -s p8 -lzma2|53.30%|309M|20.9MB/s|20M|22M|195MB/s|
-|hdiffz -s p1 -zstd|53.44%|221M|8.1MB/s|20M|22M|452MB/s|
-|hdiffz -s p8 -zstd|53.44%|1048M|11.1MB/s|20M|22M|448MB/s|
-|hsynz p1|62.43%|4M|1243.4MB/s|4M|10M|172MB/s|
-|hsynz p8|62.43%|25M|1902.6MB/s|12M|18M|293MB/s|
-|hsynz p1 -zlib|58.67%|5M|18.5MB/s|4M|11M|170MB/s|
-|hsynz p8 -zlib|58.67%|29M|107.6MB/s|12M|19M|285MB/s|
-|hsynz p1 -zstd|57.92%|534M|2.2MB/s|24M|28M|173MB/s|
-|hsynz p8 -zstd|57.92%|3434M|7.6MB/s|24M|28M|294MB/s|
-|archive-patcher +lzma2|31.68%|3278M|0.7MB/s|759M|788M|15MB/s|
-|sfpatcher -1 p1 -zstd|31.08%|818M|1.8MB/s|15M|19M|154MB/s|
-|sfpatcher -1 p8 -zstd|31.07%|1026M|3.1MB/s|18M|25M|307MB/s|
-|sfpatcher -2 p1 -lzma2|24.11%|976M|1.6MB/s|15M|20M|28MB/s|
-|sfpatcher -2 p8 -lzma2|24.15%|967M|3.3MB/s|20M|26M|79MB/s|
+|zstd --patch-from|53.18%|2199M|3.6MB/s|209M|596M|609MB/s|
+|xdelta3|54.51%|422M|3.8MB/s|98M|99M|170MB/s|
+|xdelta3 +hpatchz -m|54.51%|422M|3.8MB/s|70M|81M|438MB/s|
+|bsdiff|53.84%|931M|1.2MB/s|218M|605M|54MB/s|
+|bsdiff+hpatchz -m|53.84%|931M|1.2MB/s|116M|310M|57MB/s|
+|bsdiff+hpatchz -s|53.84%|931M|1.2MB/s|14M|14M|54MB/s|
+|hdiffz p1 -BSD|53.69%|509M|6.8MB/s|14M|14M|55MB/s|
+|hdiffz p8 -BSD|53.70%|514M|15.3MB/s|14M|14M|55MB/s|
+|hdiffz p1 -zlib|53.21%|509M|8.2MB/s|5M|6M|514MB/s|
+|hdiffz p8 -zlib|53.22%|514M|31.1MB/s|5M|6M|512MB/s|
+|hdiffz p1 -lzma2|52.93%|525M|4.1MB/s|21M|22M|260MB/s|
+|hdiffz p8 -lzma2|52.94%|557M|18.9MB/s|21M|22M|261MB/s|
+|hdiffz p1 -zstd|53.04%|537M|5.4MB/s|21M|22M|598MB/s|
+|hdiffz p8 -zstd|53.05%|1251M|11.1MB/s|21M|22M|604MB/s|
+|hdiffz -s p1 -zlib|53.73%|118M|26.8MB/s|4M|6M|513MB/s|
+|hdiffz -s p8 -zlib|53.73%|122M|97.3MB/s|4M|6M|513MB/s|
+|hdiffz -s p1 -lzma2|53.30%|197M|6.4MB/s|20M|22M|258MB/s|
+|hdiffz -s p8 -lzma2|53.30%|309M|32.4MB/s|20M|22M|258MB/s|
+|hdiffz -s p1 -zstd|53.44%|221M|10.1MB/s|20M|22M|620MB/s|
+|hdiffz -s p8 -zstd|53.44%|1048M|14.4MB/s|20M|22M|613MB/s|
+|hsynz p1|62.43%|4M|1647.6MB/s|4M|9M|152MB/s|
+|hsynz p8|62.43%|6M|2563.7MB/s|11M|18M|270MB/s|
+|hsynz p1 -zlib|58.67%|5M|23.7MB/s|4M|11M|151MB/s|
+|hsynz p8 -zlib|58.67%|29M|141.8MB/s|12M|19M|265MB/s|
+|hsynz p1 -zstd|57.74%|534M|2.7MB/s|24M|28M|151MB/s|
+|hsynz p8 -zstd|57.74%|3434M|13.2MB/s|24M|28M|265MB/s|
+|archive-patcher|31.65%|1448M|0.9MB/s|558M|587M|14MB/s|
+|sf_diff -1 p1 -zstd|31.08%|818M|2.3MB/s|15M|19M|201MB/s|
+|sf_diff -1 p8 -zstd|31.07%|1025M|4.6MB/s|18M|25M|424MB/s|
+|sf_diff -2 p1 -lzma2|24.11%|976M|2.1MB/s|15M|20M|37MB/s|
+|sf_diff -2 p8 -lzma2|24.15%|968M|5.0MB/s|20M|26M|108MB/s|
     
 
 ---
