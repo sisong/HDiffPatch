@@ -21,7 +21,7 @@ extern "C" {
         return (size_t)((cacheMemory<kPatchCacheSize_max)?cacheMemory:kPatchCacheSize_max);
     }
 
-    JNIEXPORT int
+    JNIEXPORT jint
     Java_com_github_sisong_HPatch_patch(JNIEnv* jenv,jobject jobj,
                                         jstring oldFileName,jstring diffFileName,
                                         jstring outNewFileName,jlong cacheMemory){
