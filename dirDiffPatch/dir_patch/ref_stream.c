@@ -111,7 +111,7 @@ hpatch_BOOL _createRange(hpatch_TRefStream* self,const hpatch_TStreamInput** ref
     
     self->_refList=refList;
     self->_rangeCount=refCount;
-    self->_buf=(unsigned char*)malloc(sizeof(hpatch_StreamPos_t)*(self->_rangeCount+1));
+    self->_buf=malloc(sizeof(hpatch_StreamPos_t)*(self->_rangeCount+1));
     check(self->_buf!=0);
     self->_rangeEndList=((hpatch_StreamPos_t*)self->_buf)+1; //+1 for _rangeEndList[-1] safe
     self->_rangeEndList[-1]=0;

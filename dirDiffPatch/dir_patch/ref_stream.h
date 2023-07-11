@@ -45,7 +45,7 @@ typedef struct hpatch_TRefStream{
     size_t                      _curRangeIndex;
     size_t                      kAlignSize;
     //mem
-    unsigned char*              _buf;
+    void*                       _buf;
 } hpatch_TRefStream;
 
 hpatch_inline static

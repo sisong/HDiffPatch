@@ -728,7 +728,7 @@ hpatch_BOOL check_dirOldDataChecksum(const char* oldPath,hpatch_TStreamInput* di
                      TDirOldDataChecksum_getChecksumType(&oldCheck)));
     savedCompressType=TDirOldDataChecksum_getCompressType(&oldCheck);
     _check(((decompressPlugin==0)&&(strlen(savedCompressType)==0))||
-           decompressPlugin->is_can_open(savedCompressType));
+           (decompressPlugin&&decompressPlugin->is_can_open(savedCompressType)));
     _check(TDirOldDataChecksum_checksum(&oldCheck,decompressPlugin,checksumPlugin,oldPath));
 clear:
     if (!TDirOldDataChecksum_close(&oldCheck)) result=hpatch_FALSE;
