@@ -652,7 +652,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     };
     static int _lzma2_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
         TCompressPlugin_lzma2* plugin=(TCompressPlugin_lzma2*)compressPlugin;
-        if (threadNum>MTCODER__THREADS_MAX) threadNum=MTCODER__THREADS_MAX;
+        if (threadNum>MTCODER_THREADS_MAX) threadNum=MTCODER_THREADS_MAX;
         plugin->thread_num=threadNum;
         return threadNum;
     }
@@ -679,7 +679,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         props.lzmaProps.level=plugin->compress_level;
         props.lzmaProps.dictSize=dictSize;
         props.lzmaProps.reduceSize=in_data->streamSize;
-        props.blockSize=LZMA2_ENC_PROPS__BLOCK_SIZE__AUTO;
+        props.blockSize=LZMA2_ENC_PROPS_BLOCK_SIZE_AUTO;
         props.numTotalThreads=plugin->thread_num;
         Lzma2EncProps_Normalize(&props);
         if (SZ_OK!=Lzma2Enc_SetProps(s,&props)) _compress_error_return("Lzma2Enc_SetProps()");
@@ -746,7 +746,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     } TCompressPlugin_7zXZ;
     static int _7zXZ_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
         TCompressPlugin_lzma2* plugin=(TCompressPlugin_lzma2*)compressPlugin;
-        if (threadNum>MTCODER__THREADS_MAX) threadNum=MTCODER__THREADS_MAX;
+        if (threadNum>MTCODER_THREADS_MAX) threadNum=MTCODER_THREADS_MAX;
         plugin->thread_num=threadNum;
         return threadNum;
     }

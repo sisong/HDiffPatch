@@ -83,7 +83,7 @@ else # https://www.7-zip.org  https://github.com/sisong/lzma
   HDIFF_OBJ  += $(LZMA_PATH)/LzFind.o \
   				$(LZMA_PATH)/LzFindOpt.o \
   				$(LZMA_PATH)/LzmaEnc.o \
-				$(LZMA_PATH)/Lzma2Enc.o  
+				  $(LZMA_PATH)/Lzma2Enc.o  
   ifeq ($(MT),0)  
   else  
     HDIFF_OBJ+= $(LZMA_PATH)/LzFindMt.o \
@@ -98,6 +98,7 @@ else
   else
 	HPATCH_OBJ+=$(LZMA_PATH)/7zCrc.o \
 				$(LZMA_PATH)/7zCrcOpt.o \
+				$(LZMA_PATH)/7zStream.o \
 				$(LZMA_PATH)/Bra.o \
 				$(LZMA_PATH)/Bra86.o \
 				$(LZMA_PATH)/BraIA64.o \

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0D9523722A665D8600F299C0 /* 7zStream.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D9523712A665D8600F299C0 /* 7zStream.c */; };
 		0DA2A8D82910E6D4000E86E1 /* Bra86.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8CC2910E6D4000E86E1 /* Bra86.c */; };
 		0DA2A8D92910E6D4000E86E1 /* 7zCrc.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8CD2910E6D4000E86E1 /* 7zCrc.c */; };
 		0DA2A8DA2910E6D4000E86E1 /* XzCrc64.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8CE2910E6D4000E86E1 /* XzCrc64.c */; };
@@ -50,6 +51,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0D9523712A665D8600F299C0 /* 7zStream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = 7zStream.c; path = ../../../lzma/C/7zStream.c; sourceTree = "<group>"; };
 		0DA2A8CC2910E6D4000E86E1 /* Bra86.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Bra86.c; path = ../../../lzma/C/Bra86.c; sourceTree = "<group>"; };
 		0DA2A8CD2910E6D4000E86E1 /* 7zCrc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = 7zCrc.c; path = ../../../lzma/C/7zCrc.c; sourceTree = "<group>"; };
 		0DA2A8CE2910E6D4000E86E1 /* XzCrc64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = XzCrc64.c; path = ../../../lzma/C/XzCrc64.c; sourceTree = "<group>"; };
@@ -107,6 +109,7 @@
 		D690ABC51F208EA80089DC57 = {
 			isa = PBXGroup;
 			children = (
+				0D9523712A665D8600F299C0 /* 7zStream.c */,
 				0DA2A8E6292B985C000E86E1 /* Delta.c */,
 				0DA2A8CD2910E6D4000E86E1 /* 7zCrc.c */,
 				0DA2A8D02910E6D4000E86E1 /* 7zCrcOpt.c */,
@@ -260,6 +263,7 @@
 				0DA2A8DE2910E6D4000E86E1 /* Xz.c in Sources */,
 				D65A497E2209B3E7001638A6 /* Alloc.c in Sources */,
 				0DA2A8DC2910E6D4000E86E1 /* 7zCrcOpt.c in Sources */,
+				0D9523722A665D8600F299C0 /* 7zStream.c in Sources */,
 				0DF5393D275C5D3400FEC71C /* Threads.c in Sources */,
 				0DA2A8D82910E6D4000E86E1 /* Bra86.c in Sources */,
 				0DF5393B275C5CF800FEC71C /* LzFindOpt.c in Sources */,

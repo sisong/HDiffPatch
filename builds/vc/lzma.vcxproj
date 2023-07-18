@@ -295,6 +295,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\lzma\C\7zCrc.c" />
     <ClCompile Include="..\..\..\lzma\C\7zCrcOpt.c" />
+    <ClCompile Include="..\..\..\lzma\C\7zStream.c" />
     <ClCompile Include="..\..\..\lzma\C\Bra.c" />
     <ClCompile Include="..\..\..\lzma\C\Bra86.c" />
     <ClCompile Include="..\..\..\lzma\C\BraIA64.c" />

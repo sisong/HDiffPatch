@@ -107,6 +107,9 @@
 		<Unit filename="../../../lzma/C/7zCrcOpt.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../../lzma/C/7zStream.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../lzma/C/Alloc.c">
 			<Option compilerVar="CC" />
 		</Unit>
