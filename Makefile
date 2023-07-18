@@ -288,7 +288,7 @@ endif
 
 ifeq ($(MT),0)
   DEF_FLAGS += \
-    -D_7ZIP_ST \
+    -DZ7_ST \
     -D_IS_USED_MULTITHREAD=0
 else
   DEF_FLAGS += \

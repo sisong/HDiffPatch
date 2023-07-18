@@ -104,7 +104,7 @@ else
 endif
 ifeq ($(LZMA),0)
 else
-  DEF_FLAGS += -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 -D_7ZIP_ST -I$(LZMA_PATH)
+  DEF_FLAGS += -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 -DZ7_ST -I$(LZMA_PATH)
   ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
     DEF_FLAGS += -D_LZMA_DEC_OPT
   endif
