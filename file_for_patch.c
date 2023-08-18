@@ -27,6 +27,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
+#define _LARGEFILE64_SOURCE
+#define _FILE_OFFSET_BITS 64
 #include "file_for_patch.h"
 #include <sys/stat.h> //stat mkdir
 /*
@@ -264,8 +266,11 @@ hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName){
 #include <unistd.h>
 static off64_t _import_lseek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
     int fd;
-    if (feof(file))
+    if (feof(file)){
+        if (whence==SEEK_CUR)
+            return -1;
         rewind(file);
+    }
     setbuf(file,NULL);
     fd = fileno(file);
     if (fd<0) return -1;
@@ -274,8 +279,7 @@ static off64_t _import_lseek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos
 #endif
 
 hpatch_inline static
-hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos){
-    const int whence=SEEK_SET;
+hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos,int whence){
 #ifdef _MSC_VER
     return _fseeki64(file,seekPos,whence)==0;
 #else
@@ -283,7 +287,7 @@ hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos
 #  if __ANDROID_API__ >= 24
     return fseeko64(file,seekPos,whence)==0;
 #  else
-    if (((off64_t)seekPos)==((long)seekPos)) return fseek(file,(long)seekPos,whence)==0;
+    if ((((off64_t)seekPos)==((long)seekPos))&&(whence==SEEK_SET)) return fseek(file,(long)seekPos,whence)==0;
     else return _import_lseek64(file,seekPos,whence)>=0;
 #  endif
 # else
@@ -292,6 +296,29 @@ hpatch_BOOL _import_fileSeek64(hpatch_FileHandle file,hpatch_StreamPos_t seekPos
 #endif
 }
 
+hpatch_inline static
+hpatch_BOOL _import_fileSeek64To(hpatch_FileHandle file,hpatch_StreamPos_t seekPos){
+    return _import_fileSeek64(file,seekPos,SEEK_SET);
+}
+
+hpatch_inline static
+hpatch_BOOL _import_fileTell64(hpatch_FileHandle file,hpatch_StreamPos_t* outPos){
+#ifdef _MSC_VER
+    __int64 pos=_ftelli64(file);
+#else
+# ifdef ANDROID
+#  if __ANDROID_API__ >= 24
+    off64_t pos=ftello64(file);
+#  else
+    off64_t pos=_import_lseek64(file,0,SEEK_CUR);
+#  endif
+# else
+    off_t pos=ftello(file);
+# endif
+#endif
+    *outPos=(hpatch_StreamPos_t)pos;
+    return (pos>=0);
+}
 
 hpatch_inline static
 hpatch_BOOL _import_fileClose(hpatch_FileHandle* pfile){
@@ -355,17 +382,19 @@ hpatch_BOOL _import_fileTruncate(hpatch_FileHandle file,hpatch_StreamPos_t new_f
 }*/
 
 #if (_IS_USED_WIN32_UTF8_WAPI)
+#   define _FileModeType const wchar_t*
 #   define _kFileReadMode  L"rb"
 #   define _kFileWriteMode L"wb+"
 #   define _kFileReadWriteMode L"rb+"
 #else
+#   define _FileModeType const char*
 #   define _kFileReadMode  "rb"
 #   define _kFileWriteMode "wb+"
 #   define _kFileReadWriteMode "rb+"
 #endif
 
 #if (_IS_USED_WIN32_UTF8_WAPI)
-static hpatch_FileHandle _import_fileOpenByMode(const char* fileName_utf8,const wchar_t* mode_w){
+static hpatch_FileHandle _import_fileOpen(const char* fileName_utf8,_FileModeType mode_w){
     wchar_t fileName_w[hpatch_kPathMaxSize];
     int wsize=_utf8FileName_to_w(fileName_utf8,fileName_w,hpatch_kPathMaxSize);
     if (wsize>0) {
@@ -382,45 +411,62 @@ static hpatch_FileHandle _import_fileOpenByMode(const char* fileName_utf8,const 
 }
 #else
 hpatch_inline static
-hpatch_FileHandle _import_fileOpenByMode(const char* fileName_utf8,const char* mode){
+hpatch_FileHandle _import_fileOpen(const char* fileName_utf8,_FileModeType mode){
     return fopen(fileName_utf8,mode); }
 #endif
 
+static hpatch_FileHandle _import_fileOpenWithSize(const char* fileName_utf8,_FileModeType mode,hpatch_StreamPos_t* out_fileSize){
+    hpatch_FileHandle file=0;
+    file=_import_fileOpen(fileName_utf8,mode);
+    if ((out_fileSize==0)||(file==0)) return file;
+    
+    if (_import_fileSeek64(file,0,SEEK_END)){
+        if (_import_fileTell64(file,out_fileSize)){
+            if (_import_fileSeek64(file,0,SEEK_SET)){
+                return file;
+            }
+        }
+    }
+
+    //error clear
+    _import_fileClose(&file);
+    return 0;
+}
+
+static hpatch_inline
 hpatch_BOOL _import_fileOpenRead(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle,
-                                 hpatch_StreamPos_t* out_fileLength){
+                                 hpatch_StreamPos_t* out_fileSize){
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) { _set_errno_new(EINVAL); return hpatch_FALSE; }
-    if (out_fileLength!=0){
-        if (!hpatch_getFileSize(fileName_utf8,out_fileLength)) return hpatch_FALSE;
-    }
-    file=_import_fileOpenByMode(fileName_utf8,_kFileReadMode);
+    file=_import_fileOpenWithSize(fileName_utf8,_kFileReadMode,out_fileSize);
     if (file==0) return hpatch_FALSE;
     *out_fileHandle=file;
     return hpatch_TRUE;
 }
 
+static hpatch_inline
 hpatch_BOOL _import_fileOpenCreateOrReWrite(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle){
     hpatch_FileHandle file=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) { _set_errno_new(EINVAL); return hpatch_FALSE; }
-    file=_import_fileOpenByMode(fileName_utf8,_kFileWriteMode);
+    file=_import_fileOpen(fileName_utf8,_kFileWriteMode);
     if (file==0) return hpatch_FALSE;
     *out_fileHandle=file;
     return hpatch_TRUE;
 }
 
+static
 hpatch_BOOL _import_fileReopenWrite(const char* fileName_utf8,hpatch_FileHandle* out_fileHandle,
                                     hpatch_StreamPos_t* out_curFileWritePos){
     hpatch_FileHandle file=0;
     hpatch_StreamPos_t curFileSize=0;
     assert(out_fileHandle!=0);
     if (out_fileHandle==0) { _set_errno_new(EINVAL); return hpatch_FALSE; }
-    if (!hpatch_getFileSize(fileName_utf8,&curFileSize)) return hpatch_FALSE;
-    if (out_curFileWritePos!=0) *out_curFileWritePos=curFileSize;
-    file=_import_fileOpenByMode(fileName_utf8,_kFileReadWriteMode);
+    file=_import_fileOpenWithSize(fileName_utf8,_kFileReadWriteMode,&curFileSize);
     if (file==0) return hpatch_FALSE;
-    if (!_import_fileSeek64(file,curFileSize))  
+    if (out_curFileWritePos!=0) *out_curFileWritePos=curFileSize;
+    if (!_import_fileSeek64To(file,curFileSize))  
         { _import_fileClose_No_errno(&file); return hpatch_FALSE; }
     *out_fileHandle=file;
     return hpatch_TRUE;
@@ -442,7 +488,7 @@ hpatch_BOOL _import_fileReopenWrite(const char* fileName_utf8,hpatch_FileHandle*
         if ((readLen>self->base.streamSize)
             ||(readFromPos>self->base.streamSize-readLen)) _ferr_returnv(EFBIG);
         if (self->m_fpos!=readFromPos+self->m_offset){
-            if (!_import_fileSeek64(self->m_file,readFromPos+self->m_offset)) _rw_ferr_return();
+            if (!_import_fileSeek64To(self->m_file,readFromPos+self->m_offset)) _rw_ferr_return();
         }
         if (!_import_fileRead(self->m_file,out_data,out_data+readLen)) _rw_ferr_return();
         self->m_fpos=readFromPos+self->m_offset+readLen;
@@ -494,7 +540,7 @@ hpatch_BOOL hpatch_TFileStreamInput_close(hpatch_TFileStreamInput* self){
         if (writeToPos!=self->m_fpos){
             if (self->is_random_out){
                 if (!_import_fileFlush(self->m_file)) _rw_ferr_return(); //for lseek64 safe
-                if (!_import_fileSeek64(self->m_file,writeToPos)) _rw_ferr_return();
+                if (!_import_fileSeek64To(self->m_file,writeToPos)) _rw_ferr_return();
                 self->m_fpos=writeToPos;
             }else{
                 _ferr_returnv(ERANGE); //must continue write at self->m_fpos
