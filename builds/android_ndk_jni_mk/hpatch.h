@@ -7,8 +7,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    #define H_PATCH_EXPORT __attribute__((visibility("default")))
-    
+    #ifndef H_PATCH_EXPORT
+    #   if ( __GNUC__ >= 4 )
+        #define H_PATCH_EXPORT __attribute__((visibility("default")))
+    #   else
+        #define H_PATCH_EXPORT
+    #   endif
+    #endif
+
     // return THPatchResult, 0 is ok
     int hpatchz(const char *oldFileName,const char *diffFileName,
                 const char *outNewFileName, size_t cacheMemory) H_PATCH_EXPORT;
