@@ -274,7 +274,7 @@ else
   endif
   ifeq ($(ARM64ASM),0)
   else
-    DEF_FLAGS += -D_LZMA_DEC_OPT
+    DEF_FLAGS += -DZ7_LZMA_DEC_OPT
   endif
 endif
 ifeq ($(ZSTD),0)
