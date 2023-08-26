@@ -24,7 +24,7 @@ static size_t getCacheMemory(int64_t cacheMemory){
            withDiff:(NSString *)diffFileName
               toNew:(NSString *)outNewFileName
 {
-    return [self patchWithOld:oldFileName withDiff:diffFileName toNew:outNewFileName byMemory:-1];
+    return [hpatcher patchWithOld:oldFileName withDiff:diffFileName toNew:outNewFileName byMemory:-1];
 }
 
 + (int)patchWithOld:(NSString *)oldFileName
