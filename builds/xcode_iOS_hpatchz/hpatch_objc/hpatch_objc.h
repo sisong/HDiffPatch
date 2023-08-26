@@ -1,5 +1,5 @@
 //
-//  hpatchz_objc.h
+//  hpatch_objc.h
 //  hpatchz
 //
 //  Created by hss on 2023-08-25.

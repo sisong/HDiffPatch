@@ -1,11 +1,11 @@
 //
-//  hpatchz_objc.m
+//  hpatch_objc.m
 //  hpatchz
 //
 //  Created by hss on 2023-08-25.
 //
 
-#import "hpatchz_objc.h"
+#import "hpatch_objc.h"
 #include "../../android_ndk_jni_mk/hpatch.h"
 
 
