@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0D571A64275CEB3B00672D57 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D571A63275CEB3B00672D57 /* liblzma.a */; };
+		0D225ADB2A997B6200DBD5B1 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D225ADA2A997B6200DBD5B1 /* liblzma.a */; };
 		0D571A66275CEB3B00672D57 /* libzstd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D571A65275CEB3B00672D57 /* libzstd.a */; };
 		0D571A69275CF68900672D57 /* match_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A68275CF68900672D57 /* match_block.cpp */; };
 		0D571A6F275CF71A00672D57 /* bspatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A6B275CF71A00672D57 /* bspatch_wrapper.c */; };
@@ -57,7 +57,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0D571A63275CEB3B00672D57 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D225ADA2A997B6200DBD5B1 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D571A65275CEB3B00672D57 /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D571A68275CF68900672D57 /* match_block.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_block.cpp; sourceTree = "<group>"; };
 		0D571A6B275CF71A00672D57 /* bspatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bspatch_wrapper.c; path = ../../bsdiff_wrapper/bspatch_wrapper.c; sourceTree = "<group>"; };
@@ -155,8 +155,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0D225ADB2A997B6200DBD5B1 /* liblzma.a in Frameworks */,
 				0D571A66275CEB3B00672D57 /* libzstd.a in Frameworks */,
-				0D571A64275CEB3B00672D57 /* liblzma.a in Frameworks */,
 				D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */,
 				D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */,
 			);
@@ -351,7 +351,7 @@
 		D690ABBD1F20832E0089DC57 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				0D571A63275CEB3B00672D57 /* liblzma.a */,
+				0D225ADA2A997B6200DBD5B1 /* liblzma.a */,
 				0D571A65275CEB3B00672D57 /* libzstd.a */,
 				D690AEFC1F2097D30089DC57 /* libz.tbd */,
 				D690AEFA1F2097C90089DC57 /* libbz2.tbd */,

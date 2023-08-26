@@ -164,14 +164,14 @@ static void printUsage(){
            " hdiffz -BSD,bsdiff4,"
 #endif
 #if (_IS_NEED_VCDIFF)
-           " hdiffz -VCD,xdelta3,open-vcdiff,"
+           " hdiffz -VCD,"
 #endif
            " then requires\n"
            "        (cacheSize + 3*decompress buffer size)+O(1) bytes of memory;\n"
 #endif
 #if (_IS_NEED_VCDIFF)
-           "      if diffFile is VCDIFF: if created by hdiffz -VCD, then recommended patch by -s;\n"
-           "          if created by xdelta3,open-vcdiff, then recommended patch by -m.\n"
+           "      if diffFile is created by xdelta3,open-vcdiff, then requires\n"
+           "        (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.\n"
 #endif
            "  -m  oldPath all loaded into Memory;\n"
            "      requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory.\n"
@@ -292,7 +292,7 @@ typedef enum THPatchResult {
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
-           hpatch_StreamPos_t diffDataSize,hpatch_BOOL vcpatch_isChecksum);
+           hpatch_StreamPos_t diffDataSize,hpatch_BOOL vcpatch_isChecksum,hpatch_BOOL vcpatch_isInMem);
 #if (_IS_NEED_DIR_DIFF_PATCH)
 int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPath,
                hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t kMaxOpenFileNumber,
@@ -650,7 +650,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #endif
             {
                 return hpatch(oldPath,diffFileName,outNewPath,isLoadOldAll,
-                              patchCacheSize,diffDataOffert,diffDataSize,vcpatch_isChecksum);
+                              patchCacheSize,diffDataOffert,diffDataSize,vcpatch_isChecksum,hpatch_TRUE);
             }
         }else
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -679,7 +679,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #endif
             {
                 result=hpatch(oldPath,diffFileName,newTempName,isLoadOldAll,
-                              patchCacheSize,diffDataOffert,diffDataSize,vcpatch_isChecksum);
+                              patchCacheSize,diffDataOffert,diffDataSize,vcpatch_isChecksum,hpatch_TRUE);
             }
             if (result==HPATCH_SUCCESS){
                 _return_check(hpatch_removeFile(oldPath),
@@ -911,7 +911,7 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
-           hpatch_StreamPos_t diffDataSize,hpatch_BOOL vcpatch_isChecksum){
+           hpatch_StreamPos_t diffDataSize,hpatch_BOOL vcpatch_isChecksum,hpatch_BOOL vcpatch_isInMem){
     int     result=HPATCH_SUCCESS;
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
@@ -1006,6 +1006,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
                 diffInfo.newDataSize=vcdiffInfo.sumTargetWindowsSize;
                 diffInfo.oldDataSize=poldData->streamSize; //not saved oldDataSize
                 isVcDiff=hpatch_TRUE;
+                if ((vcpatch_isInMem)&&(!vcdiffInfo.isHDiffzAppHead_a))
+                    isLoadOldAll=hpatch_TRUE;
                 printf("patch VCDIFF diffData!\n");
             }else
 #endif

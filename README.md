@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.6.5-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.6.6-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -27,7 +27,7 @@ NOTE: *This library does not deal with file metadata, such as file last wirte ti
 ( release files build by projects in path `HDiffPatch/builds` )   
 use cmdline to create a delta:   
 `$hdiffz -m-6 -SD -c-zstd-21-24 -d oldPath newPath outDiffFile`   
-if file'size is very large, try changing `-m-6` to `-s-64`   
+if file is very large, try changing `-m-6` to `-s-64`   
 apply the delta:   
 `$hpatchz oldPath diffFile outNewPath`   
 
@@ -206,10 +206,10 @@ memory options:
       requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires
         (cacheSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
-      if diffFile is created by hdiffz -BSD,bsdiff4, hdiffz -VCD,xdelta3,open-vcdiff, then requires
+      if diffFile is created by hdiffz -BSD,bsdiff4, hdiffz -VCD, then requires
         (cacheSize + 3*decompress buffer size)+O(1) bytes of memory;
-      if diffFile is VCDIFF: if created by hdiffz -VCD, then recommended patch by -s;
-          if created by xdelta3,open-vcdiff, then recommended patch by -m.
+      if diffFile is created by xdelta3,open-vcdiff, then requires
+        (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.
   -m  oldPath all loaded into Memory;
       requires (oldFileSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires
@@ -446,11 +446,11 @@ case list:
 **sfpatcher -1 zstd** v1.1.1 diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
 **sfpatcher -2 lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
  sfpatcher patch with `-lp -p-8 {old} {pat} {new}`   
-adding test hpatchz&hsynz&sfpatcher on Android, CPU Kirin 980(2×A76 2.6G + 2×A76 1.92G + 4×A55 1.8G)   
+adding test hpatchz&hsynz&sfpatcher on Android, CPU Kirin980(2×A76 2.6G + 2×A76 1.92G + 4×A55 1.8G)   
 ( [archive-patcher](https://github.com/google/archive-patcher), [sfpatcher](https://github.com/sisong/sfpatcher) optimized diff&patch between apk files )  
 
 **test result average**:
-|Program|compress|diff mem|speed|patch mem|max mem|speed|Kirin 980|
+|Program|compress|diff mem|speed|patch mem|max mem|speed|arm Kirin980|
 |:----|----:|----:|----:|----:|----:|----:|----:|
 |zstd --patch-from|53.18%|2199M|3.6MB/s|209M|596M|609MB/s|
 |xdelta3|54.51%|422M|3.8MB/s|98M|99M|170MB/s|
