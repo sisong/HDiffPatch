@@ -5,11 +5,12 @@ LOCAL_MODULE := hpatchz
 
 # args
 ZSTD  := 1
+LZMA  := 1
+BROTLI:= 0
+VCD   := 0
 # if open BSD,must open BZIP2
 BSD   := 0
-VCD   := 0
 BZIP2 := 0
-LZMA  := 1
 
 ifeq ($(BZIP2),0)
   Bz2_Files :=
@@ -32,9 +33,9 @@ else
   LZMA_PATH  := $(LOCAL_PATH)/../../../lzma/C/
   Lzma_Files := $(LZMA_PATH)/LzmaDec.c \
                 $(LZMA_PATH)/Lzma2Dec.c
- ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
-  Lzma_Files += $(LZMA_PATH)/../Asm/arm64/LzmaDecOpt.S
- endif
+  ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+    Lzma_Files += $(LZMA_PATH)/../Asm/arm64/LzmaDecOpt.S
+  endif
   ifeq ($(VCD),0)
   else
     Lzma_Files+=$(LZMA_PATH)/7zCrc.c \
@@ -70,6 +71,22 @@ else
   				$(ZSTD_PATH)/decompress/zstd_decompress_block.c
 endif
 
+ifeq ($(BROTLI),0)
+  Brotli_Files:=
+else
+  BROTLI_PATH := $(LOCAL_PATH)/../../../brotli/c/
+  Brotli_Files:=$(BROTLI_PATH)/common/constants.c \
+                $(BROTLI_PATH)/common/context.c \
+                $(BROTLI_PATH)/common/dictionary.c \
+                $(BROTLI_PATH)/common/platform.c \
+                $(BROTLI_PATH)/common/shared_dictionary.c \
+                $(BROTLI_PATH)/common/transform.c \
+                $(BROTLI_PATH)/dec/bit_reader.c \
+                $(BROTLI_PATH)/dec/decode.c \
+                $(BROTLI_PATH)/dec/huffman.c \
+                $(BROTLI_PATH)/dec/state.c
+endif
+
 HDP_PATH  := $(LOCAL_PATH)/../../
 Hdp_Files := $(HDP_PATH)/file_for_patch.c \
              $(HDP_PATH)/libHDiffPatch/HPatch/patch.c
@@ -79,8 +96,8 @@ else
 endif
 ifeq ($(VCD),0)
 else
-  Hdp_Files += $(HDP_PATH)/vcdiff_wrapper/vcpatch_wrapper.c
-  Hdp_Files += $(HDP_PATH)/libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c
+  Hdp_Files += $(HDP_PATH)/vcdiff_wrapper/vcpatch_wrapper.c \
+               $(HDP_PATH)/libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c
 endif
 
 Src_Files := $(LOCAL_PATH)/hpatch_jni.c \
@@ -119,6 +136,10 @@ else
         -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 -DZSTD_DISABLE_ASM=1 -DZSTDLIB_VISIBLE= -DZSTDLIB_HIDDEN= \
 		-DDYNAMIC_BMI2=0 -DZSTD_LEGACY_SUPPORT=0 -DZSTD_LIB_DEPRECATED=0 -DHUF_FORCE_DECOMPRESS_X1=1 \
 		-DZSTD_FORCE_DECOMPRESS_SEQUENCES_SHORT=1 -DZSTD_NO_INLINE=1 -DZSTD_STRIP_ERROR_STRINGS=1
+endif
+ifeq ($(BROTLI),0)
+else
+  DEF_FLAGS += -D_CompressPlugin_brotli -I$(BROTLI_PATH)/include
 endif
 
 LOCAL_SRC_FILES  := $(Src_Files) $(Bz2_Files) $(Lzma_Files) $(Zstd_Files) $(Hdp_Files)
