@@ -370,7 +370,7 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
         pushBack(buf,kVcDiffType,sizeof(kVcDiffType));
         buf.push_back(kVcDiffVersion);
         const bool isHaveCompresser=(compressPlugin!=0)&&(compressPlugin->compress_type!=kVcDiff_compressorID_no);
-        const bool isHDiffzAppHead_a=isHaveCompresser;
+        const bool isHDiffzAppHead_a=true; // always add kHDiffzAppHead_a tag to out_diff
         hpatch_byte Hdr_Indicator = ((isHaveCompresser?1:0)<<0)     // VCD_DECOMPRESS
                                   | (0<<1) // VCD_CODETABLE, no custom code table
                                   | ((isHDiffzAppHead_a?1:0)<<2); // VCD_APPHEADER
