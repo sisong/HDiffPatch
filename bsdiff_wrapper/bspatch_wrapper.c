@@ -46,6 +46,11 @@ static const char* kBsDiffVersionType = "BSDIFF40";
 #define            kBsDiffVersionTypeLen 8  // ==strlen(kBsDiffVersionType);
 #define            kBsDiffHeadLen       (kBsDiffVersionTypeLen+3*8)
 
+static const char* kEsBsDiffVersionType = "ENDSLEY/BSDIFF43";
+#define            kEsBsDiffVersionTypeLen 16  // ==strlen(kEsBsDiffVersionType);
+#define            kEsBsDiffHeadLen     (kEsBsDiffVersionTypeLen+8)
+
+
 static hpatch_inline hpatch_uint32_t _readUInt32(const unsigned char* buf){
     return buf[0] | (((hpatch_uint32_t)buf[1])<<8)  |
            (((hpatch_uint32_t)buf[2])<<16)  | (((hpatch_uint32_t)buf[3])<<24) ;
@@ -65,18 +70,31 @@ hpatch_BOOL getBsDiffInfo(hpatch_BsDiffInfo* out_diffinfo,const hpatch_TStreamIn
     unsigned char* buf=&_buf[0];
     if (diffStream->streamSize<kBsDiffHeadLen)
         return _hpatch_FALSE;
-    if (!diffStream->read(diffStream,0,buf,buf+kBsDiffHeadLen))
+    if (!diffStream->read(diffStream,0,buf,buf+kBsDiffHeadLen)) // must bz2 compressed size>=8
         return _hpatch_FALSE;
-    if (0!=memcmp(buf,kBsDiffVersionType,kBsDiffVersionTypeLen))
+    if (0==memcmp(buf,kBsDiffVersionType,kBsDiffVersionTypeLen)){
+        out_diffinfo->isEsBsd=hpatch_FALSE;
+        out_diffinfo->headSize=kBsDiffHeadLen;
+    }else if (0==memcmp(buf,kEsBsDiffVersionType,kEsBsDiffVersionTypeLen)){
+        out_diffinfo->isEsBsd=hpatch_TRUE;
+        out_diffinfo->headSize=kEsBsDiffHeadLen;
+    }else{
         return _hpatch_FALSE;
-    buf+=kBsDiffVersionTypeLen;
-    out_diffinfo->headSize=kBsDiffHeadLen;
-    out_diffinfo->ctrlDataSize=readUInt64(buf);
-    out_diffinfo->subDataSize =readUInt64(buf+8);
-    out_diffinfo->newDataSize =readUInt64(buf+8*2);
+    }
+    if (out_diffinfo->isEsBsd){
+        buf+=kEsBsDiffVersionTypeLen;
+        out_diffinfo->ctrlDataSize=0;
+        out_diffinfo->subDataSize =0;
+        out_diffinfo->newDataSize =readUInt64(buf);
+    }else{
+        buf+=kBsDiffVersionTypeLen;
+        out_diffinfo->ctrlDataSize=readUInt64(buf);
+        out_diffinfo->subDataSize =readUInt64(buf+8);
+        out_diffinfo->newDataSize =readUInt64(buf+8*2);
+    }
     return (out_diffinfo->ctrlDataSize<diffStream->streamSize)&&
            (out_diffinfo->subDataSize<diffStream->streamSize)&&
-           (kBsDiffHeadLen+out_diffinfo->ctrlDataSize+out_diffinfo->subDataSize<diffStream->streamSize);
+           (out_diffinfo->headSize+out_diffinfo->ctrlDataSize+out_diffinfo->subDataSize<diffStream->streamSize);
 }
 
 hpatch_BOOL getBsDiffInfo_mem(hpatch_BsDiffInfo* out_diffinfo,const unsigned char* diffData,const unsigned char* diffData_end){
@@ -175,6 +193,8 @@ hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
     hpatch_BsDiffInfo diffInfo;
     TStreamCacheClip  ctrlClip;
     TStreamCacheClip  subClip;
+    TStreamCacheClip* _ctrlClip=&ctrlClip;
+    TStreamCacheClip* _subClip=&subClip;
     TStreamCacheClip  newDataDiffClip;
     _TDecompressInputStream decompressers[3];
     hpatch_size_t           i;
@@ -206,29 +226,38 @@ hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
         temp_cache+=cacheSize;
         cacheSize=(temp_cache_end-temp_cache);
     }
-    cacheSize=cacheSize/_kCacheBsDecCount;
+    cacheSize=cacheSize/(diffInfo.isEsBsd?_kCacheBsDecCount-2:_kCacheBsDecCount);
     if (cacheSize<8) return _hpatch_FALSE;
 
     diffPos0=diffInfo.headSize;
-    if (!getStreamClip(&ctrlClip,&decompressers[0],
-                       _kUnknowMaxSize,diffInfo.ctrlDataSize,compressedDiff,&diffPos0,
-                       decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE);
-    temp_cache+=cacheSize;
-    if (!getStreamClip(&subClip,&decompressers[1],
-                       _kUnknowMaxSize,diffInfo.subDataSize,compressedDiff,&diffPos0,
-                       decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE);
-    temp_cache+=cacheSize;
-    if (!getStreamClip(&newDataDiffClip,&decompressers[2],
-                       _kUnknowMaxSize,compressedDiff->streamSize-diffPos0,compressedDiff,&diffPos0,
-                       decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE);
-    temp_cache+=cacheSize;
+    if (diffInfo.isEsBsd){
+        if (!getStreamClip(&newDataDiffClip,&decompressers[0],
+                        _kUnknowMaxSize,compressedDiff->streamSize-diffPos0,compressedDiff,&diffPos0,
+                        decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE);
+        temp_cache+=cacheSize;
+        _ctrlClip=&newDataDiffClip;
+        _subClip=&newDataDiffClip;
+    }else{
+        if (!getStreamClip(&ctrlClip,&decompressers[0],
+                        _kUnknowMaxSize,diffInfo.ctrlDataSize,compressedDiff,&diffPos0,
+                        decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE);
+        temp_cache+=cacheSize;
+        if (!getStreamClip(&subClip,&decompressers[1],
+                        _kUnknowMaxSize,diffInfo.subDataSize,compressedDiff,&diffPos0,
+                        decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE);
+        temp_cache+=cacheSize;
+        if (!getStreamClip(&newDataDiffClip,&decompressers[2],
+                        _kUnknowMaxSize,compressedDiff->streamSize-diffPos0,compressedDiff,&diffPos0,
+                        decompressPlugin,temp_cache,cacheSize)) _clear_return(_hpatch_FALSE);
+        temp_cache+=cacheSize;
+    }
     assert(diffPos0==compressedDiff->streamSize);
 
     {
         _TOutStreamCache outCache;
         _TOutStreamCache_init(&outCache,out_newData,temp_cache,cacheSize);
         temp_cache+=cacheSize;
-        result=bspatchByClip(&outCache,oldData,&ctrlClip,&subClip,&newDataDiffClip,
+        result=bspatchByClip(&outCache,oldData,_ctrlClip,_subClip,&newDataDiffClip,
                             temp_cache,cacheSize);
     }
 

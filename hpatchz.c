@@ -987,7 +987,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
                 *decompressPlugin=_bz2DecompressPlugin_unsz;
                 decompressPlugin->decError=hpatch_dec_ok;
                 memcpy(diffInfo.compressType,bsCompressType,strlen(bsCompressType)+1);
-                diffInfo.compressedCount=3;
+                diffInfo.compressedCount=bsdiffInfo.isEsBsd?1:3;
                 diffInfo.newDataSize=bsdiffInfo.newDataSize;
                 diffInfo.oldDataSize=poldData->streamSize; //not saved oldDataSize
                 isBsDiff=hpatch_TRUE;
