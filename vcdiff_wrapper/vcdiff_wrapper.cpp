@@ -33,10 +33,20 @@
 #include "../libHDiffPatch/HPatch/patch.h"
 #include <stdexcept>  //std::runtime_error
 #include <algorithm>  //std::inplace_merge
+#include <string>
 #define _check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 static const hpatch_byte kVcDiffType[3]={('V'|(1<<7)),('C'|(1<<7)),('D'|(1<<7))};
 #define kVcDiffVersion 0
-static const char* kHDiffzAppHead_a="$hdiffz-VCDIFF&7zXZ#a";
+
+static const char* kHDiffzAppHead="$hdiffz-VCDIFF&";
+static const char* kHDiffzAppHead_version="#a";
+
+static std::string getHDiffzAppHead(const vcdiff_TCompress* compressPlugin){
+    std::string str(kHDiffzAppHead);
+    if (compressPlugin&&compressPlugin->compress)
+        str+=compressPlugin->compress->compressType();
+    return str+kHDiffzAppHead_version;
+}
 
 namespace hdiff_private{
 
@@ -370,18 +380,18 @@ static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TSt
         pushBack(buf,kVcDiffType,sizeof(kVcDiffType));
         buf.push_back(kVcDiffVersion);
         const bool isHaveCompresser=(compressPlugin!=0)&&(compressPlugin->compress_type!=kVcDiff_compressorID_no);
-        const bool isHDiffzAppHead_a=true; // always add kHDiffzAppHead_a tag to out_diff
-        hpatch_byte Hdr_Indicator = ((isHaveCompresser?1:0)<<0)     // VCD_DECOMPRESS
-                                  | (0<<1) // VCD_CODETABLE, no custom code table
-                                  | ((isHDiffzAppHead_a?1:0)<<2); // VCD_APPHEADER
-        buf.push_back(Hdr_Indicator); 
-        if (isHaveCompresser)
-            buf.push_back(compressPlugin->compress_type);
-        else
+        if (!isHaveCompresser)
             compressPlugin=0;
-        if (isHDiffzAppHead_a){
-            packUInt(buf,strlen(kHDiffzAppHead_a));
-            pushCStr(buf,kHDiffzAppHead_a);
+        hpatch_byte Hdr_Indicator = ((isHaveCompresser?1:0)<<0) // VCD_DECOMPRESS
+                                  | (0<<1)  // VCD_CODETABLE, no custom code table
+                                  | (1<<2); // VCD_APPHEADER
+        buf.push_back(Hdr_Indicator); 
+        if (isHaveCompresser)//VCD_DECOMPRESS
+            buf.push_back(compressPlugin->compress_type);
+        { //VCD_APPHEADER   // always add HDiffzAppHead tag to out_diff
+            const std::string HDiffzAppHead=getHDiffzAppHead(compressPlugin);
+            packUInt(buf,HDiffzAppHead.size());
+            pushCStr(buf,HDiffzAppHead.c_str());
         }
         _flushBuf(outDiff,buf);
     }
