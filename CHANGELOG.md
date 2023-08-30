@@ -2,10 +2,26 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v4.6.7](https://github.com/sisong/HDiffPatch/tree/v4.6.7) - 2023-08-31
+### Added
+* patch compatible with another BSDIFF format "ENDSLEY/BSDIFF43", https://github.com/mendsley/bsdiff
+
+## [v4.6.6](https://github.com/sisong/HDiffPatch/tree/v4.6.6) - 2023-08-27
+### Added
+* patch demo SDK for iOS, out lib file libhpatchz.a;
+
+## [v4.6.3](https://github.com/sisong/HDiffPatch/tree/v4.6.3) - 2023-05-19
+### Added
+* support for block devices on linux; by author [Alexander Zakharov](https://github.com/uglym8);
+
 ## [v4.6.0](https://github.com/sisong/HDiffPatch/tree/v4.6.0) - 2023-04-20
 ### Added
 * add libhsync for diff&patch by sync; see demo [hsynz](https://github.com/sisong/hsynz) (like [zsync](http://zsync.moria.org.uk))
 * add function create_sync_data(),create_dir_sync_data(),sync_patch(),sync_patch_...(),sync_local_diff(),sync_local_diff_...(),sync_local_patch(),sync_local_patch_...()
+
+## [v4.5.2](https://github.com/sisong/HDiffPatch/tree/v4.5.2) - 2022-12-25
+### Fixed
+* fix a bug when run dir_diff by muti-thread parallel;
 
 ## [v4.5.0](https://github.com/sisong/HDiffPatch/tree/v4.5.0) - 2022-11-23
 ### Added

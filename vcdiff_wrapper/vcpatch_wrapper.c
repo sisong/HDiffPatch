@@ -313,7 +313,7 @@ hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamIn
     assert(kHDiffzAppHead_maxLen<=_kWindowCacheSize);
     if ((out_diffinfo->appHeadDataLen>=kHDiffzAppHead_len+kHDiffzAppHead_version_len)
         &&(out_diffinfo->appHeadDataLen<=kHDiffzAppHead_maxLen)){
-        const hpatch_byte* pAppHead=_TStreamCacheClip_accessData(&diffClip,out_diffinfo->appHeadDataLen);
+        const hpatch_byte* pAppHead=_TStreamCacheClip_accessData(&diffClip,(size_t)out_diffinfo->appHeadDataLen);
         if (pAppHead==0)
             return _hpatch_FALSE;
         if ((0==memcmp(pAppHead,kHDiffzAppHead,kHDiffzAppHead_len))

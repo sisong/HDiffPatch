@@ -41,7 +41,7 @@
       创建一个和bsdiff4兼容的补丁, 不支持参数为文件夹。
   -VCD[-compressLevel[-dictSize]]
       创建一个标准规范VCDIFF格式的补丁, 不支持参数为文件夹。
-      默认输出补丁不带压缩, 格式和 $open-vcdiff delta ... 或 $xdelta3 -S -e -n ... 命令输出的补丁格式兼容；
+      默认输出补丁不带压缩, 格式和 $open-vcdiff ... 或 $xdelta3 -S -e -n ... 命令输出的补丁格式兼容；
       如果设置了压缩级别compressLevel, 那输出格式和 $xdelta3 -S lzma -e -n ...命令输出的补丁格式兼容；
       压缩输出时补丁文件使用7zXZ(xz)算法压缩, compressLevel可以选择0到9, 默认级别7；
       压缩字典大小dictSize可以设置为 4096, 4k, 4m, 16m等, 默认为8m
