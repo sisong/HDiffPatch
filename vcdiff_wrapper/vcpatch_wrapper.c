@@ -49,8 +49,11 @@ static const hpatch_byte kVcDiffType[3]={('V'|(1<<7)),('C'|(1<<7)),('D'|(1<<7))}
 #define     kVcDiffGoogleVersion    'S'
 #define     kVcDiffMinHeadLen       (sizeof(kVcDiffType)+1+1)
 
-static const char* kHDiffzAppHead_a="$hdiffz-VCDIFF&7zXZ#a";
-#define kHDiffzAppHeadLen   21 // = strlen(kHDiffzAppHead_a);
+static const char* kHDiffzAppHead="$hdiffz-VCDIFF&";
+static const char* kHDiffzAppHead_version="#a";
+#define kHDiffzAppHead_len          15 // = strlen(kHDiffzAppHead);
+#define kHDiffzAppHead_version_len  2  // = strlen(kHDiffzAppHead_version);
+#define kHDiffzAppHead_maxLen       (kHDiffzAppHead_len+kHDiffzAppHead_version_len+hpatch_kMaxPluginTypeLength)
 
 #define _clip_unpackUInt64(_clip,_result) { \
     if (!_TStreamCacheClip_unpackUIntWithTag(_clip,_result,0)) \
@@ -291,8 +294,6 @@ hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamIn
 
     if (Hdr_Indicator&(1<<0)){ // VCD_DECOMPRESS
         _clip_readUInt8(&diffClip,&out_diffinfo->compressorID);
-        if (out_diffinfo->compressorID!=kVcDiff_compressorID_7zXZ)
-            return _hpatch_FALSE; //unsupport compressor ID
     }
     if (Hdr_Indicator&(1<<1)) // VCD_CODETABLE
         return _hpatch_FALSE; // unsupport code table
@@ -307,13 +308,16 @@ hpatch_BOOL getVcDiffInfo(hpatch_VcDiffInfo* out_diffinfo,const hpatch_TStreamIn
             return _hpatch_FALSE; //data size error
     }
 #endif
-    assert(kHDiffzAppHeadLen==strlen(kHDiffzAppHead_a));
-    assert(kHDiffzAppHeadLen<=_kWindowCacheSize);
-    if (out_diffinfo->appHeadDataLen==kHDiffzAppHeadLen){
-        const hpatch_byte* pAppHead=_TStreamCacheClip_accessData(&diffClip,kHDiffzAppHeadLen);
+    assert(kHDiffzAppHead_len==strlen(kHDiffzAppHead));
+    assert(kHDiffzAppHead_version_len==strlen(kHDiffzAppHead_version));
+    assert(kHDiffzAppHead_maxLen<=_kWindowCacheSize);
+    if ((out_diffinfo->appHeadDataLen>=kHDiffzAppHead_len+kHDiffzAppHead_version_len)
+        &&(out_diffinfo->appHeadDataLen<=kHDiffzAppHead_maxLen)){
+        const hpatch_byte* pAppHead=_TStreamCacheClip_accessData(&diffClip,(size_t)out_diffinfo->appHeadDataLen);
         if (pAppHead==0)
             return _hpatch_FALSE;
-        if (0==memcmp(pAppHead,kHDiffzAppHead_a,kHDiffzAppHeadLen))
+        if ((0==memcmp(pAppHead,kHDiffzAppHead,kHDiffzAppHead_len))
+          &&(0==memcmp(pAppHead+out_diffinfo->appHeadDataLen-kHDiffzAppHead_version_len,kHDiffzAppHead_version,kHDiffzAppHead_version_len)))
             out_diffinfo->isHDiffzAppHead_a=hpatch_TRUE;
     }
     if (isNeedWindowSize){

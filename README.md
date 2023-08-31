@@ -1,5 +1,5 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.6.6-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.6.7-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -109,7 +109,7 @@ special options:
       create diffFile compatible with bsdiff4, unsupport input directory(folder).
   -VCD[-compressLevel[-dictSize]]
       create diffFile compatible with VCDIFF, unsupport input directory(folder).
-      DEFAULT no compress, out format same as $open-vcdiff delta ... or $xdelta3 -S -e -n ...
+      DEFAULT no compress, out format same as $open-vcdiff ... or $xdelta3 -S -e -n ...
       if set compressLevel, out format same as $xdelta3 -S lzma -e -n ...
       compress by 7zXZ(xz), compressLevel in {0..9}, DEFAULT level 7;
       dictSize can like 4096 or 4k or 4m or 16m etc..., DEFAULT 8m

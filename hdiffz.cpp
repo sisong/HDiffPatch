@@ -189,7 +189,7 @@ static void printUsage(){
 #   ifdef _CompressPlugin_7zXZ
            "  -VCD[-compressLevel[-dictSize]]\n"
            "      create diffFile compatible with VCDIFF, unsupport input directory(folder).\n"
-           "      DEFAULT no compress, out format same as $open-vcdiff delta ... or $xdelta3 -S -e -n ...\n"
+           "      DEFAULT no compress, out format same as $open-vcdiff ... or $xdelta3 -S -e -n ...\n"
            "      if set compressLevel, out format same as $xdelta3 -S lzma -e -n ...\n"
            "      compress by 7zXZ(xz), compressLevel in {0..9}, DEFAULT level 7;\n"
            "      dictSize can like 4096 or 4k or 4m or 16m etc..., DEFAULT 8m\n"
@@ -199,7 +199,7 @@ static void printUsage(){
 #   else
            "  -VCD\n"
            "      create diffFile compatible with VCDIFF, unsupport input directory(folder).\n"
-           "      out format same as $open-vcdiff delta ... or $xdelta3 -S -e -n ...\n"
+           "      out format same as $open-vcdiff ... or $xdelta3 -S -e -n ...\n"
 #   endif
            "      NOTE: out diffFile used large source window size!\n"
 #endif
