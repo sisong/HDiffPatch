@@ -689,11 +689,16 @@ void TDigestMatcher::_search_cover(const hpatch_TStreamInput* newData,hpatch_Str
 }
 
 #if (_IS_USED_MULTITHREAD)
+# if (_IS_NO_ATOMIC_U64)
+#   define uint_work size_t 
+# else
+#   define uint_work hpatch_StreamPos_t 
+# endif
 struct mt_data_t{
     CHLocker    newDataLocker;
     CHLocker    dataLocker;
-    hpatch_StreamPos_t          workCount;
-    volatile hpatch_StreamPos_t workIndex;
+    uint_work          workCount;
+    volatile uint_work workIndex;
 };
 #endif
 
@@ -702,11 +707,11 @@ void TDigestMatcher::_search_cover_thread(hpatch_TOutputCovers* out_covers,
 #if (_IS_USED_MULTITHREAD)
     const size_t kPartPepeatSize=m_kMatchBlockSize-1;
     mt_data_t& mt=*(mt_data_t*)mt_data;
-    const hpatch_StreamPos_t workCount=mt.workCount;
+    const uint_work workCount=mt.workCount;
     const hpatch_StreamPos_t rollCount=m_newData->streamSize-(m_kMatchBlockSize-1);
-    std::atomic<hpatch_StreamPos_t>& workIndex=*(std::atomic<hpatch_StreamPos_t>*)&mt.workIndex;
+    std::atomic<uint_work>& workIndex=*(std::atomic<uint_work>*)&mt.workIndex;
     while (true){
-        hpatch_StreamPos_t curWorkIndex=workIndex++;
+        uint_work curWorkIndex=workIndex++;
         if (curWorkIndex>=workCount) break;
         hpatch_StreamPos_t new_begin=rollCount*curWorkIndex/workCount;
         hpatch_StreamPos_t new_end=(curWorkIndex+1<workCount)?rollCount*(curWorkIndex+1)/workCount:rollCount;
@@ -735,7 +740,9 @@ void TDigestMatcher::search_cover(hpatch_TOutputCovers* out_covers){
         hpatch_StreamPos_t workCount=(rollCount+bestStep-1)/bestStep;
         workCount=(threadNum>workCount)?threadNum:workCount;
         mt_data_t mt_data;
-        mt_data.workCount=workCount;
+        mt_data.workCount=(uint_work)workCount;
+        if ((sizeof(mt_data.workCount)<sizeof(workCount))&&(mt_data.workCount!=workCount))
+            throw std::runtime_error("TDigestMatcher::search_cover() muti-thread workCount error!");
         mt_data.workIndex=0;
         const size_t threadCount=threadNum-1;
         std::vector<std::thread> threads(threadCount);

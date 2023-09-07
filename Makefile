@@ -5,6 +5,7 @@ MT       := 1
 ZLIB     := 2
 LZMA     := 1
 ARM64ASM := 0
+RISCV32  := 0
 # 0: not need zstd;  1: compile zstd source code;  2: used -lzstd to link zstd lib;
 ZSTD     := 1
 MD5      := 1
@@ -211,6 +212,10 @@ DEF_FLAGS := \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \
     -D_IS_NEED_ALL_ChecksumPlugin=0 \
     -D_IS_NEED_DEFAULT_ChecksumPlugin=0 
+ifeq ($(RISCV32),0)
+else
+  DEF_FLAGS += -D_IS_NO_ATOMIC_U64=1
+endif
 ifeq ($(M32),0)
 else
   DEF_FLAGS += -m32
