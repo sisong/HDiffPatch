@@ -33,6 +33,9 @@
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
 #include "../libHDiffPatch/HPatch/patch.h"
 #include <stdexcept>  //std::runtime_error
+#ifdef _MSC_VER 
+#   pragma warning (disable : 4146)
+#endif
 #define _check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 static const char* kBsDiffVersionType="BSDIFF40";
 
