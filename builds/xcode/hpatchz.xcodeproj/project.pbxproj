@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0D225B1A2A99893300DBD5B1 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D225B192A99893300DBD5B1 /* liblzma.a */; };
+		0D225C102AB01FAA00DBD5B1 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D225C0F2AB01FAA00DBD5B1 /* liblzma.a */; };
 		0D571A5C275CE9CE00672D57 /* libzstd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D571A5B275CE9CE00672D57 /* libzstd.a */; };
 		0D571A62275CEAE900672D57 /* bspatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A61275CEAE900672D57 /* bspatch_wrapper.c */; };
 		0DA2A8E52910E70D000E86E1 /* vcpatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8E42910E70D000E86E1 /* vcpatch_wrapper.c */; };
@@ -39,6 +39,7 @@
 
 /* Begin PBXFileReference section */
 		0D225B192A99893300DBD5B1 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D225C0F2AB01FAA00DBD5B1 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D571A5B275CE9CE00672D57 /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D571A61275CEAE900672D57 /* bspatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bspatch_wrapper.c; path = ../../bsdiff_wrapper/bspatch_wrapper.c; sourceTree = "<group>"; };
 		0DA2A8E42910E70D000E86E1 /* vcpatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vcpatch_wrapper.c; path = ../../vcdiff_wrapper/vcpatch_wrapper.c; sourceTree = "<group>"; };
@@ -81,7 +82,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0D225B1A2A99893300DBD5B1 /* liblzma.a in Frameworks */,
+				0D225C102AB01FAA00DBD5B1 /* liblzma.a in Frameworks */,
 				0D571A5C275CE9CE00672D57 /* libzstd.a in Frameworks */,
 				D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */,
 				D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */,
@@ -94,6 +95,7 @@
 		D64B4BF72077B9090039C38B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				0D225C0F2AB01FAA00DBD5B1 /* liblzma.a */,
 				0D225B192A99893300DBD5B1 /* liblzma.a */,
 				0D571A5B275CE9CE00672D57 /* libzstd.a */,
 				D64B4BFA2077B91A0039C38B /* libbz2.tbd */,
@@ -351,6 +353,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
+				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				SDKROOT = macosx;
 			};

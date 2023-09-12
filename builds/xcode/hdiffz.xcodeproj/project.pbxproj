@@ -595,6 +595,7 @@
 					../../../zstd/lib/,
 					../../../lzma/C/,
 				);
+				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
