@@ -57,6 +57,29 @@ namespace hdiff_private{
     }
 
     static const int kCoverMinMatchLen=5;
+
+
+    // TRefCovers: a tools for diff listener,read TCover array;
+    struct TRefCovers{
+        inline TRefCovers(const void* pcovers_,size_t coverCount_,bool isCover32_)
+        :pcovers(pcovers_),coverCount(coverCount_),isCover32(isCover32_){}
+        inline TRefCovers(const hpatch_TCover* pcovers_,size_t coverCount_)
+        :pcovers(pcovers_),coverCount(coverCount_),isCover32(false){}
+        inline hpatch_TCover operator[](size_t index)const{
+            if (isCover32){
+                const hpatch_TCover32& cover=((const hpatch_TCover32*)pcovers)[index];  
+                hpatch_TCover result={cover.oldPos,cover.newPos,cover.length}; 
+                return result; 
+            }else{
+                return ((const hpatch_TCover*)pcovers)[index]; 
+            }
+        }
+        inline size_t size()const{  return coverCount; }
+    private:
+        const void*     pcovers;
+        const size_t    coverCount;
+        const bool      isCover32;
+    };
 }
 
 #ifdef __cplusplus
