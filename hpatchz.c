@@ -40,6 +40,16 @@
 #include "hpatch_dir_listener.h"
 #endif
 
+#ifndef _IS_NEED_PRINT_LOG
+#   define _IS_NEED_PRINT_LOG   1
+#endif
+#if (_IS_NEED_PRINT_LOG)
+#   define  _log_info_utf8  hpatch_printPath_utf8
+#else
+#   define  printf(...)
+#   define  _log_info_utf8(...) do{}while(0)
+#endif
+
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
 #endif
@@ -690,7 +700,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             }else{//patch error
                 if (!hpatch_removeFile(newTempName)){
                     printf("WARNING: can't remove temp file \"");
-                    hpatch_printPath_utf8(newTempName); printf("\"\n");
+                    _log_info_utf8(newTempName); printf("\"\n");
                 }
             }
             return result;
@@ -711,7 +721,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 printf("all in outNewPath temp directory moved to oldDirectory!\n");
             }else if(!hpatch_isPathNotExist(newTempDir)){
                 printf("WARNING: not remove temp directory \"");
-                hpatch_printPath_utf8(newTempDir); printf("\"\n");
+                _log_info_utf8(newTempDir); printf("\"\n");
             }
             return result;
         }
@@ -941,9 +951,9 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     hpatch_TFileStreamInput_init(&diffData);
     hpatch_TFileStreamOutput_init(&newData);
     {//open
-        printf(    "old : \""); if (oldFileName) hpatch_printPath_utf8(oldFileName);
-        printf("\"\ndiff: \""); hpatch_printPath_utf8(diffFileName);
-        printf("\"\nout : \""); hpatch_printPath_utf8(outNewFileName);
+        printf(    "old : \""); if (oldFileName) _log_info_utf8(oldFileName);
+        printf("\"\ndiff: \""); _log_info_utf8(diffFileName);
+        printf("\"\nout : \""); _log_info_utf8(outNewFileName);
         printf("\"\n");
         if ((0==oldFileName)||(0==strlen(oldFileName))){
             mem_as_hStreamInput(&oldData.base,0,0);
@@ -1154,13 +1164,13 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             check(kPathType_file==oldType,HPATCH_PATHTYPE_ERROR,"input old path need file");
         }
         printf(        dirDiffInfo->oldPathIsDir?"old  dir: \"":"old file: \"");
-        if (oldPath) hpatch_printPath_utf8(oldPath);
+        if (oldPath) _log_info_utf8(oldPath);
         if ((oldPath)&&dirDiffInfo->oldPathIsDir&&(!hpatch_getIsDirName(oldPath))) 
             printf("%c",kPatch_dirSeparator);
         printf(                                             "\"\ndiffFile: \"");
-        hpatch_printPath_utf8(diffFileName);
+        _log_info_utf8(diffFileName);
         printf(dirDiffInfo->newPathIsDir?"\"\nout  dir: \"":"\"\nout file: \"");
-        hpatch_printPath_utf8(outNewPath);
+        _log_info_utf8(outNewPath);
         if (dirDiffInfo->newPathIsDir&&(!hpatch_getIsDirName(outNewPath))) printf("%c",kPatch_dirSeparator);
         printf("\"\n");
     }
@@ -1398,9 +1408,9 @@ int createSfx_notCheckDiffFile(const char* selfExecuteFileName,const char* diffF
     hpatch_TFileStreamInput_init(&exeData);
     hpatch_TFileStreamInput_init(&diffData);
     hpatch_TFileStreamOutput_init(&out_sfxData);
-    printf(    "selfExecute: \""); hpatch_printPath_utf8(selfExecuteFileName);
-    printf("\"\ndiffFile   : \""); hpatch_printPath_utf8(diffFileName);
-    printf("\"\nout sfxFile: \""); hpatch_printPath_utf8(out_sfxFileName);
+    printf(    "selfExecute: \""); _log_info_utf8(selfExecuteFileName);
+    printf("\"\ndiffFile   : \""); _log_info_utf8(diffFileName);
+    printf("\"\nout sfxFile: \""); _log_info_utf8(out_sfxFileName);
     printf("\"\n\n");
     {//open
         hpatch_StreamPos_t sfxFileLength=0;

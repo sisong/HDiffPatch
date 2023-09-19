@@ -127,7 +127,7 @@ extern "C"
     };
     struct IDiffResearchCover{
         void (*researchCover)(struct IDiffResearchCover* diffi,struct IDiffSearchCoverListener* listener,size_t limitCoverIndex,
-                              hpatch_StreamPos_t endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen);
+                              hpatch_StreamPos_t sameCover_endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen);
     };
     struct IDiffInsertCover{
         void* (*insertCover)(IDiffInsertCover* diffi,const void* pInsertCovers,size_t insertCoverCount,bool insertIsCover32);

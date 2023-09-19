@@ -2,6 +2,7 @@
 // Created by sisong on 2019-12-30.
 #include "hpatch.h"
 
+#define _IS_NEED_PRINT_LOG              0
 #ifndef _IS_USED_MULTITHREAD
 #define _IS_USED_MULTITHREAD            0
 #endif
@@ -18,9 +19,9 @@
 extern "C" {
 #endif
 void bz_internal_error(int errcode){
-    fprintf(stderr,"\n\nbzip2 v%s: internal error number %d.\n",
+    LOG_ERR("\n\nbzip2 v%s: internal error number %d.\n",
             BZ2_bzlibVersion(),errcode);
-    exit(3);
+    exit(HPATCH_DECOMPRESSER_DECOMPRESS_ERROR);
 }
 #ifdef __cplusplus
 }
