@@ -60,7 +60,7 @@
 			<Add option="-fexceptions" />
 			<Add option="-D_LARGEFILE_SOURCE" />
 			<Add option="-D_FILE_OFFSET_BITS=64" />
-			<Add option="-D_IS_USED_PTHREAD=1" />
+			<Add option="-D_IS_USED_CPP11THREAD=1" />
 			<Add option="-D_ChecksumPlugin_md5" />
 			<Add option="-DZSTD_MULTITHREAD=1" />
 			<Add option="-DZSTD_HAVE_WEAK_SYMBOLS=0" />

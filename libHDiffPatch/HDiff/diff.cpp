@@ -1554,12 +1554,13 @@ static void serialize_lite_diff(const TDiffData& diff,const std::vector<TOldCove
 void create_lite_diff(const unsigned char* newData,const unsigned char* newData_end,
                       const unsigned char* oldData,const unsigned char* oldData_end,
                       std::vector<hpi_byte>& out_lite_diff,const hdiffi_TCompress* compressPlugin,
-                      int kMinSingleMatchScore,bool isUseBigCacheMatch,size_t threadNum){
+                      int kMinSingleMatchScore,bool isUseBigCacheMatch,
+                      ICoverLinesListener* listener,size_t threadNum){
     static const int _kMatchScore_optim4bin=6;
     TDiffData diff;
     std::vector<TOldCover> covers;
     get_diff(newData,newData_end,oldData,oldData_end,diff,covers,
-             kMinSingleMatchScore-_kMatchScore_optim4bin,isUseBigCacheMatch,0,0,threadNum);
+             kMinSingleMatchScore-_kMatchScore_optim4bin,isUseBigCacheMatch,listener,0,threadNum);
     size_t oldPosEnd=0;
     size_t newPosEnd=0;
     if (!covers.empty()){

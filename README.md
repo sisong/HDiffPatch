@@ -1,9 +1,10 @@
 # [HDiffPatch](https://github.com/sisong/HDiffPatch)
-[![release](https://img.shields.io/badge/release-v4.6.7-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.6.8-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
 
+[![release](https://img.shields.io/github/downloads/sisong/HDiffPatch/total?color=blue)](https://github.com/sisong/HDiffPatch/releases)
 [![Build Status](https://github.com/sisong/HDiffPatch/workflows/ci/badge.svg?branch=master)](https://github.com/sisong/HDiffPatch/actions?query=workflow%3Aci+branch%3Amaster)
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
 
@@ -481,10 +482,10 @@ adding test hpatchz&hsynz&sfpatcher on Android, CPU Kirin980(2×A76 2.6G + 2×A7
 |hsynz p1 zstd|57.74%|534M|2.7MB/s|24M|28M|151MB/s|52MB/s|
 |hsynz p8 zstd|57.74%|3434M|13.2MB/s|24M|28M|265MB/s|95MB/s|
 |archive-patcher|31.65%|1448M|0.9MB/s|558M|587M|14MB/s|
-|sfpatcher-1 zstd|31.08%|818M|2.3MB/s|15M|19M|201MB/s|92MB/s|
-|sfpatcher-1 zstd|31.07%|1025M|4.6MB/s|18M|25M|424MB/s|189MB/s|
-|sfpatcher-2 lzma2|24.11%|976M|2.1MB/s|15M|20M|37MB/s|19MB/s|
-|sfpatcher-2 lzma2|24.15%|968M|5.0MB/s|20M|26M|108MB/s|45MB/s|
+|sfpatcher-1 p1 zstd|31.08%|818M|2.3MB/s|15M|19M|201MB/s|92MB/s|
+|sfpatcher-1 p8 zstd|31.07%|1025M|4.6MB/s|18M|25M|424MB/s|189MB/s|
+|sfpatcher-2 p1 lzma2|24.11%|976M|2.1MB/s|15M|20M|37MB/s|19MB/s|
+|sfpatcher-2 p8 lzma2|24.15%|968M|5.0MB/s|20M|26M|108MB/s|45MB/s|
     
 
 ---

@@ -2,17 +2,21 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v4.6.8](https://github.com/sisong/HDiffPatch/tree/v4.6.8) - 2023-11-02
+### Changed
+* hdiffz.exe&hpatchz.exe support long path on Windows OS;
+
 ## [v4.6.7](https://github.com/sisong/HDiffPatch/tree/v4.6.7) - 2023-08-31
 ### Added
 * patch compatible with another BSDIFF format "ENDSLEY/BSDIFF43", https://github.com/mendsley/bsdiff
 
 ## [v4.6.6](https://github.com/sisong/HDiffPatch/tree/v4.6.6) - 2023-08-27
 ### Added
-* patch demo SDK for iOS, out lib file libhpatchz.a;
+* patch SDK support iOS & MacOS, out lib file libhpatchz.a;
 
 ## [v4.6.3](https://github.com/sisong/HDiffPatch/tree/v4.6.3) - 2023-05-19
 ### Added
-* support for block devices on linux; by author [Alexander Zakharov](https://github.com/uglym8);
+* support block devices on linux OS; by contributor [Alexander Zakharov](https://github.com/uglym8);
 
 ## [v4.6.0](https://github.com/sisong/HDiffPatch/tree/v4.6.0) - 2023-04-20
 ### Added
@@ -91,7 +95,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 ## [v3.0.7](https://github.com/sisong/HDiffPatch/tree/v3.0.7) - 2019-12-19
 ### Fixed
 * fix a bug when create dir's manifest file without checksum (`$hdiffz -C-no -M...`);
-* fix a bug when create dir's manifest file on windows operating system;
+* fix a bug when create dir's manifest file on Windows OS;
 
 ## [v3.0.6](https://github.com/sisong/HDiffPatch/tree/v3.0.6) - 2019-09-18
 ### Fixed
@@ -103,7 +107,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v3.0.4](https://github.com/sisong/HDiffPatch/tree/v3.0.4) - 2019-09-06
 ### Fixed
-* fix dir_patch can't remove some files bug when patch to same dir on Windows operating system;
+* fix dir_patch can't remove some files bug when patch to same dir on Windows OS;
 
 ## [v3.0.0](https://github.com/sisong/HDiffPatch/tree/v3.0.0) - 2019-03-01
 ### Added
@@ -179,7 +183,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v1.1.4](https://github.com/sisong/HDiffPatch/tree/v1.1.4) - 2017-06-10
 ### Added
-* add MakeFile for support make; by author [JayXon](https://github.com/JayXon);
+* add MakeFile for support make; by contributor [JayXon](https://github.com/JayXon);
 ### Changed
 * slightly optimize diff required memory size;
 
@@ -189,7 +193,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v1.1.2](https://github.com/sisong/HDiffPatch/tree/v1.1.2) - 2016-09-01
 ### Fixed
-* fix a bug when write out diffFile on Windows operating system; by author [Wenhai Lin](https://github.com/WenhaiLin);
+* fix a bug when write out diffFile on Windows OS; by contributor [Wenhai Lin](https://github.com/WenhaiLin);
 
 ## [v1.1.0](https://github.com/sisong/HDiffPatch/tree/v1.1.0) - 2014-09-13
 ### Added

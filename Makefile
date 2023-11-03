@@ -3,6 +3,7 @@ DIR_DIFF := 1
 MT       := 1
 # 0: not need zlib;  1: compile zlib source code;  2: used -lz to link zlib lib;
 ZLIB     := 2
+# 0: not need lzma;  1: compile lzma source code;  2: used -llzma to link lzma lib;
 LZMA     := 1
 ARM64ASM := 0
 RISCV32  := 0
@@ -66,8 +67,8 @@ else
 endif
 
 LZMA_PATH := ../lzma/C
-ifeq ($(LZMA),0)
-else # https://www.7-zip.org  https://github.com/sisong/lzma
+ifeq ($(LZMA),1)
+  # https://www.7-zip.org  https://github.com/sisong/lzma
   HPATCH_OBJ += $(LZMA_PATH)/LzmaDec.o \
   				$(LZMA_PATH)/Lzma2Dec.o \
   				$(LZMA_PATH)/CpuArch.o \
@@ -272,22 +273,29 @@ else
 endif
 ifeq ($(LZMA),0)
 else
-  DEF_FLAGS += -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 -I$(LZMA_PATH)
+  DEF_FLAGS += -D_CompressPlugin_lzma -D_CompressPlugin_lzma2
   ifeq ($(VCD),0)
   else
-    DEF_FLAGS += -D_CompressPlugin_7zXZ -DUSE_CRC_EMU
+    DEF_FLAGS += -D_CompressPlugin_7zXZ
   endif
-  ifeq ($(ARM64ASM),0)
-  else
-    DEF_FLAGS += -DZ7_LZMA_DEC_OPT
+  ifeq ($(LZMA),1)
+    DEF_FLAGS += -I$(LZMA_PATH)
+    ifeq ($(ARM64ASM),0)
+    else
+      DEF_FLAGS += -DZ7_LZMA_DEC_OPT
+    endif
+    ifeq ($(VCD),0)
+    else
+      DEF_FLAGS += -DUSE_CRC_EMU
+    endif
   endif
 endif
 ifeq ($(ZSTD),0)
 else
-    DEF_FLAGS += -D_CompressPlugin_zstd
-	ifeq ($(ZSTD),1)
-      DEF_FLAGS += -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 -DZSTD_DISABLE_ASM=1 -DZSTDLIB_VISIBLE= -DZSTDLIB_HIDDEN= \
-	    -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
+  DEF_FLAGS += -D_CompressPlugin_zstd
+  ifeq ($(ZSTD),1)
+    DEF_FLAGS += -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 -DZSTD_DISABLE_ASM=1 -DZSTDLIB_VISIBLE= -DZSTDLIB_HIDDEN= \
+	               -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
 	endif
 endif
 
@@ -299,7 +307,7 @@ else
   DEF_FLAGS += \
     -DZSTD_MULTITHREAD=1 \
     -D_IS_USED_MULTITHREAD=1 \
-    -D_IS_USED_PTHREAD=1
+    -D_IS_USED_CPP11THREAD=1
 endif
 
 PATCH_LINK := 
@@ -311,6 +319,9 @@ ifeq ($(BZIP2),2)
 endif
 ifeq ($(ZSTD),2)
   PATCH_LINK += -lzstd		# link zstd
+endif
+ifeq ($(LZMA),2)
+  PATCH_LINK += -llzma		# link lzma
 endif
 ifeq ($(MT),0)
 else

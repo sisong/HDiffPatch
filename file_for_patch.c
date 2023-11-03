@@ -49,12 +49,12 @@ static hpatch_BOOL _get_block_dev_size(const char* blkdev,hpatch_uint64_t* bsize
 
     fd=open(blkdev,O_RDONLY);
 	if (fd == -1){
-		perror("_get_block_dev_size() open");
+		LOG_ERR("%s","_get_block_dev_size() open");
 		return hpatch_FALSE;
 	}
 
 	if (ioctl(fd,BLKGETSIZE64,bsize) == -1) {
-		perror("_get_block_dev_size() ioctl");
+		LOG_ERR("%s","_get_block_dev_size() ioctl");
 		close(fd);
 		return hpatch_FALSE;
 	}

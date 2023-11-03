@@ -33,6 +33,7 @@
 #include "libParallel/parallel_channel.h"
 #include "libHDiffPatch/HDiff/private_diff/mem_buf.h"
 
+namespace{
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -149,6 +150,7 @@ void _threadRunCallBack(int threadIndex,void* _workData){
     #undef _check_br
 }
 
+} // namespace
 
 hpatch_StreamPos_t parallel_compress_blocks(hdiff_TParallelCompress* pc,
                                             int threadNum,size_t blockDictSize,size_t blockSize,
