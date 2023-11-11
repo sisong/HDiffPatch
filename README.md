@@ -1,31 +1,44 @@
-# [HDiffPatch](https://github.com/sisong/HDiffPatch)
+# [HDiffPatch]
 [![release](https://img.shields.io/badge/release-v4.6.8-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
-
 [![release](https://img.shields.io/github/downloads/sisong/HDiffPatch/total?color=blue)](https://github.com/sisong/HDiffPatch/releases)
 [![Build Status](https://github.com/sisong/HDiffPatch/workflows/ci/badge.svg?branch=master)](https://github.com/sisong/HDiffPatch/actions?query=workflow%3Aci+branch%3Amaster)
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
+ english | [中文版](README_cn.md)   
 
-a C\C++ library and command-line tools for Diff & Patch between binary files or directories(folder); cross-platform; runs fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
+[HDiffPatch] is a C\C++ library and command-line tools for **diff** & **patch** between binary files or directories(folder); cross-platform; runs fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
 
-HDiffPatch defines its own patch file format, this lib is also compatible with the [bsdiff4](https://daemonology.net/bsdiff) patch format and partially compatible with the [open-vcdiff](https://github.com/google/open-vcdiff) and [xdelta3](https://github.com/jmacd/xdelta) patch file format VCDIFF(RFC 3284).
-   
-if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite](https://github.com/sisong/HPatchLite) (+ [tinyuz](https://github.com/sisong/tinyuz)), can run on 1KB RAM devices!   
+[HDiffPatch] defines its own patch file format, this lib is also compatible with the [bsdiff4] patch file format and partially compatible with the [open-vcdiff] and [xdelta3] patch file format [VCDIFF(RFC 3284)].   
 
-update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch](https://github.com/sisong/ApkDiffPatch), to create smaller delta/differential! NOTE: *ApkDiffPath can't be used by Android app store, because it requires re-signing apks before diff.*   
+if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite], +[tinyuz] decompressor can run on 1KB RAM devices!   
 
-[sfpatcher](https://github.com/sisong/sfpatcher) not require re-signing apks (like [archive-patcher](https://github.com/google/archive-patcher)), is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
+update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch], to create smaller delta/differential! NOTE: *ApkDiffPath can't be used by Android app store, because it requires re-signing apks before diff.*   
 
-if you not have the old versions(too many or not obtain or have been modified), thus cannot create the delta in advance. you can see demo [hsynz](https://github.com/sisong/hsynz) (like [zsync](http://zsync.moria.org.uk)), the new version is only need released once and the owners of the old version get the information about the new version and do the diff&patch themselves. hsynz support zstd compressor & run faster than zsync.
+[sfpatcher] not require re-signing apks (like [archive-patcher]), is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
+
+if you not have the old versions(too many or not obtain or have been modified), thus cannot create the delta in advance. you can see sync demo [hsynz] (like [zsync]), the new version is only need released once and the owners of the old version get the information about the new version and do the diff&patch themselves. hsynz support zstd compressor & run faster than zsync.
    
 NOTE: *This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
    
+
+[HDiffPatch]: https://github.com/sisong/HDiffPatch
+[hsynz]: https://github.com/sisong/hsynz
+[ApkDiffPatch]: https://github.com/sisong/ApkDiffPatch
+[sfpatcher]: https://github.com/sisong/sfpatcher
+[HPatchLite]: https://github.com/sisong/HPatchLite
+[tinyuz]: https://github.com/sisong/tinyuz
+[bsdiff4]: http://www.daemonology.net/bsdiff/
+[xdelta3]: https://github.com/jmacd/xdelta
+[open-vcdiff]: https://github.com/google/open-vcdiff
+[archive-patcher]: https://github.com/google/archive-patcher
+[zsync]: http://zsync.moria.org.uk
+[VCDIFF(RFC 3284)]: https://www.rfc-editor.org/rfc/rfc3284
+
 ---
 ## Releases/Binaries
-[Download from latest release](https://github.com/sisong/HDiffPatch/releases) : Command line app for Windows, Linux, MacOS; and .so patch lib for Android.     
-( release files build by projects in path `HDiffPatch/builds` )   
+[Download from latest release](https://github.com/sisong/HDiffPatch/releases) : Command line app for Windows, Linux, MacOS; and .so patch lib for Android.   
 use cmdline to create a delta:   
 `$hdiffz -m-6 -SD -c-zstd-21-24 -d oldPath newPath outDiffFile`   
 if file is very large, try changing `-m-6` to `-s-64`   
@@ -37,10 +50,12 @@ apply the delta:
 ### Linux or MacOS X ###
 Try:   
 `$ make LZMA=0 ZSTD=0 MD5=0`   
-bzip2 : if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again.   install bzip2: `$ apt-get install libbz2` or `$ sudo apt-get install libbz2-dev` or `$ yum -y install bzip2` or `$ brew install bzip2` ...   
-Alternatively, get the optional library headers (+bzip2 library) and build completely: `$ git clone https://github.com/sisong/bzip2.git ../bzip2 && pushd ../bzip2 && make && sudo make install && popd`   
-   
-if need lzma zstd md5 support, Try:    
+bzip2 : if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again; or download & make with libbz2 source code:
+```
+$ git clone https://github.com/sisong/bzip2.git ../bzip2
+$ make LZMA=0 ZSTD=0 MD5=0 BZIP2=1
+```
+if need lzma zstd & md5 support, Try:    
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
@@ -67,7 +82,6 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
    
 
 ---
-### command line usage Chinese version: [命令行使用说明中文版](README_cmdline_cn.md)
    
 ## **diff** command line usage:   
 diff     usage: **hdiffz** [options] **oldPath newPath outDiffFile**   
@@ -282,7 +296,7 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **patch_single_stream_mem()**
 * **patch_single_compressed_diff()**
 * **patch_single_stream_diff()**
-#### hpatch lite API, optimized hpatch on MCU,NB-IoT... (demo [HPatchLite](https://github.com/sisong/HPatchLite)): 
+#### hpatch lite API, optimized hpatch on MCU,NB-IoT... (demo [HPatchLite]): 
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
@@ -294,7 +308,7 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **create_vcdiff()**
 * **create_vcdiff_stream()**
 * **vcpatch_with_cache()**
-#### hsynz API, diff&patch by sync (demo [hsynz](https://github.com/sisong/hsynz)): 
+#### hsynz API, diff&patch by sync (demo [hsynz]): 
 * **create_sync_data()**
 * **create_dir_sync_data()**
 * **sync_patch()**
@@ -305,7 +319,7 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 * **sync_local_patch_...()**
 
 ---
-## HDiffPatch vs BsDiff & xdelta:
+## [HDiffPatch] vs [bsdiff4] & [xdelta3]:
 case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgUIZxYac5_uflNoN)):   
 | |newFile <-- oldFile|newSize|oldSize|
 |----:|:----|----:|----:|
@@ -447,8 +461,8 @@ case list:
 **sfpatcher -1 zstd** v1.1.1 diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
 **sfpatcher -2 lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
  sfpatcher patch with `-lp -p-8 {old} {pat} {new}`   
-adding test hpatchz&hsynz&sfpatcher on Android, CPU Kirin980(2×A76 2.6G + 2×A76 1.92G + 4×A55 1.8G)   
-( [archive-patcher](https://github.com/google/archive-patcher), [sfpatcher](https://github.com/sisong/sfpatcher) optimized diff&patch between apk files )  
+adding test hpatchz&hsynz&sfpatcher on Android, arm CPU Kirin980(2×A76 2.6G + 2×A76 1.92G + 4×A55 1.8G)   
+( [archive-patcher], [sfpatcher] optimized diff&patch between apk files )  
 
 **test result average**:
 |Program|compress|diff mem|speed|patch mem|max mem|speed|arm Kirin980|
