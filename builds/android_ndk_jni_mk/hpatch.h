@@ -17,7 +17,7 @@ extern "C" {
 
     // return THPatchResult, 0 is ok
     int hpatchz(const char *oldFileName,const char *diffFileName,
-                const char *outNewFileName, size_t cacheMemory) H_PATCH_EXPORT;
+                const char *outNewFileName,int64_t cacheMemory) H_PATCH_EXPORT;
 
 #ifdef __cplusplus
 }
