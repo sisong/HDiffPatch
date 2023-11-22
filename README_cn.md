@@ -8,17 +8,17 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
  中文版 | [english](README.md)   
 
-[HDiffPatch] 是一个C\C++库和命令行工具，用于在二进制文件或文件夹之间执行**diff**(创建补丁)和**patch**(打补丁)；跨平台、运行快、创建的补丁小、支持巨大的文件并且可控制diff和patch时的内存占用量。   
+[HDiffPatch] 是一个C\C++库和命令行工具，用于在二进制文件或文件夹之间执行 **diff**(创建补丁) 和 **patch**(打补丁)；跨平台、运行速度快、创建的补丁小、支持巨大的文件并且diff和patch时都可以控制内存占用量。   
 
 [HDiffPatch] 定义了自己的补丁包格式，同时这个库也完全兼容了 [bsdiff4] 的补丁包格式，并部分兼容 [open-vcdiff] 和 [xdelta3] 的补丁包格式 [VCDIFF(RFC 3284)]。   
 
-如果需要在嵌入式系统(MCU、NB-IoT)等设备上进行增量更新(OTA), 可以看看例子 [HPatchLite], +[tinyuz] 解压缩器可以在1KB内存的设备上运行!   
+如果你需要在嵌入式系统(MCU、NB-IoT)等设备上进行增量更新(OTA), 可以看看例子 [HPatchLite], +[tinyuz] 解压缩器可以在1KB内存的设备上运行!   
 
-需要更新你自己的安卓apk? 需要对Jar或Zip文件执行 diff & patch ? 可以试试 [ApkDiffPatch], 可以创建更小的补丁!  注意: *ApkDiffPath 不能被安卓应用商店作为增量更新使用，因为该算法要求在diff前对apk文件进行重新签名。*   
+需要更新你自己的安卓apk? 需要对Jar或Zip文件执行 diff 和 patch ? 可以试试 [ApkDiffPatch], 可以创建更小的补丁!  注意: *ApkDiffPath 不能被安卓应用商店作为增量更新所用，因为该算法要求在diff前对apk文件进行重新签名。*   
 
 [sfpatcher] 不要求对apk文件进行重新签名 (类似 [archive-patcher])，是为安卓应用商店专门设计优化的算法，patch速度是 archive-patcher 的xx倍，并且只需要O(1)内存。   
 
-如果你没有旧版本的数据(或者旧版本非常多或者被修改)，因此不能提前创建好所有补丁包。那你可以看看使用同步算法来进行增量更新的例子 [hsynz] (类似 [zsync])，新版本只需要发布处理一次，然后旧版本数据的拥有者可以根据获得的新版本的信息自己执行diff和patch。hsynz 支持 zstd 压缩算法并且比 zsync 速度更快。
+如果你没有旧版本的数据(或者旧版本非常多或者被修改)，因此不能提前创建好补丁包。那你可以看看使用同步算法来进行增量更新的例子 [hsynz] (类似 [zsync])，新版本只需要发布处理一次，然后旧版本数据的拥有者可以根据获得的新版本的信息自己执行diff和patch。hsynz 支持 zstd 压缩算法并且比 zsync 速度更快。
    
 注意: *本库不处理文件元数据，如文件最后写入时间、权限、链接文件等。对于这个库，文件就像一个字节流；如果需要您可以扩展此库或使用其他工具。*   
    
@@ -262,7 +262,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
    
 ---
 ## 库 API 使用说明:
-所有 **diff**和**patch** 函数在文件: `libHDiffPatch/HDiff/diff.h` & `libHDiffPatch/HPatch/patch.h`   
+**diff**和**patch** 函数在文件: `libHDiffPatch/HDiff/diff.h` & `libHDiffPatch/HPatch/patch.h`   
 **dir_diff()** 和 **dir patch** 在: `dirDiffPatch/dir_diff/dir_diff.h` & `dirDiffPatch/dir_patch/dir_patch.h`   
 ### 使用方式:
 * **create diff**(in newData,in oldData,out diffData);
@@ -316,7 +316,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 
 ---
 ## [HDiffPatch] vs [bsdiff4] & [xdelta3]:
-测试例子([从 OneDrive 下载](https://1drv.ms/u/s!Aj8ygMPeifoQgUIZxYac5_uflNoN)):   
+测试用例([从 OneDrive 下载](https://1drv.ms/u/s!Aj8ygMPeifoQgULlawtabR9lhrQ8)):   
 | |newFile <-- oldFile|newSize|oldSize|
 |----:|:----|----:|----:|
 |1|7-Zip_22.01.win.tar <-- 7-Zip_21.07.win.tar|5908992|5748224|
@@ -343,7 +343,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 
 **测试 PC**: Windows11, CPU R9-7945HX, SSD PCIe4.0x4 4T, DDR5 5200MHz 32Gx2   
 **参与测试的程序和版本**: HDiffPatch4.6.3, hsynz 0.9.3, BsDiff4.3, xdelta3.1, zstd1.5.2  
-**参与测试程序的参数**:   
+**参与测试的程序的参数**:   
 **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
  zstd patch with `-d -f --memory=2047MB --patch-from={old} {pat} -o {new}`  
 **xdelta3** diff with `-S lzma -e -9 -n -f -s {old} {new} {pat}`   

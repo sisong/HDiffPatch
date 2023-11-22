@@ -8,7 +8,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
  english | [中文版](README_cn.md)   
 
-[HDiffPatch] is a C\C++ library and command-line tools for **diff** & **patch** between binary files or directories(folder); cross-platform; runs fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
+[HDiffPatch] is a C\C++ library and command-line tools for **diff** & **patch** between binary files or directories(folder); cross-platform; fast running; create small delta/differential; support large files and limit memory requires when diff & patch.   
 
 [HDiffPatch] defines its own patch file format, this lib is also compatible with the [bsdiff4] patch file format and partially compatible with the [open-vcdiff] and [xdelta3] patch file format [VCDIFF(RFC 3284)].   
 
@@ -266,7 +266,7 @@ special options:
    
 ---
 ## library API usage:
-all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDiffPatch/HPatch/patch.h`   
+**diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDiffPatch/HPatch/patch.h`   
 **dir_diff()** & **dir patch** in: `dirDiffPatch/dir_diff/dir_diff.h` & `dirDiffPatch/dir_patch/dir_patch.h`   
 ### manual:
 * **create diff**(in newData,in oldData,out diffData);
@@ -320,7 +320,7 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 
 ---
 ## [HDiffPatch] vs [bsdiff4] & [xdelta3]:
-case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgUIZxYac5_uflNoN)):   
+case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgULlawtabR9lhrQ8)):   
 | |newFile <-- oldFile|newSize|oldSize|
 |----:|:----|----:|----:|
 |1|7-Zip_22.01.win.tar <-- 7-Zip_21.07.win.tar|5908992|5748224|

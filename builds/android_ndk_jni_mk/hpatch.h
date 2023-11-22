@@ -4,6 +4,7 @@
 #define hpatch_h
 #include <assert.h>
 #include <string.h>
+#include <stdint.h> //int64_t
 #ifdef __cplusplus
 extern "C" {
 #endif
