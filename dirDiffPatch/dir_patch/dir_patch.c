@@ -51,7 +51,7 @@ static const char* kVersionType="HDIFF19";
     *(psize)=(size_t)v; }
 
 
-hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info,
+hpatch_BOOL getDirDiffInfoByFile(TDirDiffInfo* out_info,const char* diffFileName,
                                  hpatch_StreamPos_t diffDataOffert,hpatch_StreamPos_t diffDataSize){
     hpatch_BOOL          result=hpatch_TRUE;
     hpatch_TFileStreamInput     diffData;
@@ -64,7 +64,7 @@ hpatch_BOOL getDirDiffInfoByFile(const char* diffFileName,TDirDiffInfo* out_info
         check(diffData.base.streamSize>=diffDataSize);
         diffData.base.streamSize=diffDataSize;
     }
-    result=getDirDiffInfo(&diffData.base,out_info);
+    result=getDirDiffInfo(out_info,&diffData.base);
 clear:
     if (!hpatch_TFileStreamInput_close(&diffData)) 
         { LOG_ERR("dir_patch getDirDiffInfoByFile() file close error!\n"); result=hpatch_FALSE; }
@@ -189,7 +189,7 @@ hpatch_BOOL read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_head,
     return _read_dirdiff_head(out_info,out_head,dirDiffFile,0);
 }
 
-hpatch_BOOL getDirDiffInfo(const hpatch_TStreamInput* diffFile,TDirDiffInfo* out_info){
+hpatch_BOOL getDirDiffInfo(TDirDiffInfo* out_info,const hpatch_TStreamInput* diffFile){
     _TDirDiffHead head;
     return read_dirdiff_head(out_info,&head,diffFile);
 }

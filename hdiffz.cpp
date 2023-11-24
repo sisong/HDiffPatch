@@ -1715,7 +1715,7 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
     hpatch_TDecompress* decompressPlugin=&_decompressPlugin;
     check(hpatch_TFileStreamInput_open(&diffData_in,diffFileName),HDIFF_OPENREAD_ERROR,"open diffFile");
 #if (_IS_NEED_DIR_DIFF_PATCH)
-    check(getDirDiffInfo(&diffData_in.base,&dirDiffInfo),HDIFF_OPENREAD_ERROR,"read diffFile");
+    check(getDirDiffInfo(&dirDiffInfo,&diffData_in.base),HDIFF_OPENREAD_ERROR,"read diffFile");
     isDirDiff=dirDiffInfo.isDirDiff;
     if (isDirDiff){
         diffInfo=dirDiffInfo.hdiffInfo;
@@ -1948,7 +1948,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
         hpatch_TChecksum* saved_checksumPlugin=0;
         {
             TDirDiffInfo dirinfo;
-            check(getDirDiffInfo(&diffData_in.base,&dirinfo),DIRDIFF_PATCH_ERROR,"get dir diff info");
+            check(getDirDiffInfo(&dirinfo,&diffData_in.base),DIRDIFF_PATCH_ERROR,"get dir diff info");
             check(dirinfo.isDirDiff,DIRDIFF_PATCH_ERROR,"dir diffFile data");
             check(findDecompress(saved_decompressPlugin,dirinfo.hdiffInfo.compressType),
                   DIRDIFF_PATCH_ERROR,"diff data saved compress type");

@@ -647,7 +647,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         if (isSamePath)
             _return_check(isForceOverwrite,HPATCH_PATHTYPE_ERROR,"oldPath outNewPath same path, overwrite");
 #if (_IS_NEED_DIR_DIFF_PATCH)
-        _return_check(getDirDiffInfoByFile(diffFileName,&dirDiffInfo,diffDataOffert,diffDataSize),
+        _return_check(getDirDiffInfoByFile(&dirDiffInfo,diffFileName,diffDataOffert,diffDataSize),
                       HPATCH_OPENREAD_ERROR,"input diffFile open read");
         isOutDir=(dirDiffInfo.isDirDiff)&&(dirDiffInfo.newPathIsDir);
 #endif
