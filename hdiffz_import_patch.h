@@ -34,6 +34,7 @@ extern "C" {
 
 int isSwapToPatchMode(int argc,const char* argv[]);
 int hpatch_cmd_line(int argc,const char* argv[]);
+int hpatch_printFilesInfos(int fileCount,const char* fileNames[]);
 
 #ifdef __cplusplus
 }

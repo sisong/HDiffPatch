@@ -143,13 +143,16 @@ static void printVersion(){
 
 static void printHelpInfo(){
     printf("  -h  (or -?)\n"
-           "      output usage info.\n");
+           "      print usage info.\n");
 }
+
+int hpatch_printFilesInfos(int fileCount,const char* fileNames[]);
 
 static void printUsage(){
     printVersion();
     printf("\n");
     printf("patch usage: hpatchz [options] oldPath diffFile outNewPath\n"
+           "print  info: hpatchz -info diffFile\n"
 #if (_IS_NEED_SFX)
            "create  SFX: hpatchz [-X-exe#selfExecuteFile] diffFile -X#outSelfExtractArchive\n"
            "run     SFX: selfExtractArchive [[options] oldPath -X outNewPath]\n"
@@ -161,7 +164,7 @@ static void printUsage(){
 #   endif
 #endif
            "  if oldPath is empty input parameter \"\"\n"
-           "memory options:\n"
+           "options:\n"
            "  -s[-cacheSize] \n"
            "      DEFAULT -s-4m; oldPath loaded as Stream;\n"
            "      cacheSize can like 262144 or 256k or 512m or 2g etc....\n"
@@ -195,7 +198,6 @@ static void printUsage(){
            "      if diffFile is VCDIFF(created by hdiffz -VCD,xdelta3,open-vcdiff), then requires\n"
            "        (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.\n"
 #endif
-           "special options:\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumSets\n"
            "      set Checksum data for directory patch, DEFAULT -C-new-copy;\n"
@@ -239,7 +241,9 @@ static void printUsage(){
            "        if patch output directory, will overwrite, but not delete\n"
            "          needless existing files in directory.\n"
 #endif
-           "  -v  output Version info.\n"
+           "  -info\n"
+           "      print infos of diffFile.\n"
+           "  -v  print Version info.\n"
            );
     printHelpInfo();
     printf("\n");
@@ -401,6 +405,7 @@ int isSwapToPatchMode(int argc,const char* argv[]){
 }
 
 int hpatch_cmd_line(int argc, const char * argv[]){
+    hpatch_BOOL isPrintFileInfo=_kNULL_VALUE;
     hpatch_BOOL isLoadOldAll=_kNULL_VALUE;
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
@@ -505,6 +510,11 @@ int hpatch_cmd_line(int argc, const char * argv[]){
                 _options_check((kMaxOpenFileNumber!=_kNULL_SIZE),"-n-?");
             } break;
 #endif
+            case 'i':{
+                _options_check((isPrintFileInfo==_kNULL_VALUE)&&(op[2]=='n')&&(op[3]=='f')
+                               &&(op[4]=='o')&&(op[5]=='\0'),"-info");
+                isPrintFileInfo=hpatch_TRUE;
+            } break;
             case '?':
             case 'h':{
                 _options_check((isOutputHelp==_kNULL_VALUE)&&(op[2]=='\0'),"-h");
@@ -526,6 +536,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         isOutputVersion=hpatch_FALSE;
     if (isForceOverwrite==_kNULL_VALUE)
         isForceOverwrite=hpatch_FALSE;
+    if (isPrintFileInfo==_kNULL_VALUE)
+        isPrintFileInfo=hpatch_FALSE;
 #if (_IS_NEED_SFX)
     if (isRunSFX==_kNULL_VALUE)
         isRunSFX=hpatch_FALSE;
@@ -549,6 +561,9 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         if (arg_values_size==0)
 #endif
             return 0; //ok
+    }
+    if (isPrintFileInfo){
+        return hpatch_printFilesInfos(arg_values_size,arg_values);
     }
 #if (_IS_NEED_DIR_DIFF_PATCH)
     if (kMaxOpenFileNumber==_kNULL_SIZE)
@@ -891,6 +906,77 @@ static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char
 }
 #endif
 
+
+#if (_IS_NEED_CMDLINE)
+
+#if (_IS_NEED_DIR_DIFF_PATCH)
+#include "dirDiffPatch/dir_patch/dir_patch_private.h"
+#endif
+static int _printFileInfos(const char* fileName){
+    int     result=HPATCH_SUCCESS;
+    int     _isInClear=hpatch_FALSE;
+    hpatch_BOOL isDirDiffInfo=hpatch_FALSE;
+    hpatch_compressedDiffInfo diffInfo;
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+    hpatch_BOOL isSingleCompressedDiff=hpatch_FALSE;
+    hpatch_singleCompressedDiffInfo sdiffInfo;
+#endif
+#if (_IS_NEED_BSDIFF)
+    hpatch_BOOL isBsDiff=hpatch_FALSE;
+    hpatch_BsDiffInfo    bsdiffInfo;
+#endif
+#if (_IS_NEED_VCDIFF)
+    hpatch_BOOL isVcDiff=hpatch_FALSE;
+    hpatch_VcDiffInfo    vcdiffInfo;
+#endif
+    hpatch_TFileStreamInput     diffData;
+    hpatch_TFileStreamInput_init(&diffData);
+    {//open
+        printf("\nfilename: \""); _log_info_utf8(fileName); printf("\"\n");
+        check(hpatch_TFileStreamInput_open(&diffData,fileName),
+              HPATCH_OPENREAD_ERROR,"open file for read");
+        printf("fileSize: %" PRIu64 "\n\n",diffData.base.streamSize);
+    }
+#if (_IS_NEED_DIR_DIFF_PATCH)
+    {
+        TDirDiffInfo    dirDiffInfo={0};
+        _TDirDiffHead   dirHead={0};
+        check(read_dirdiff_head(&dirDiffInfo,&dirHead,&diffData.base),HPATCH_FILEREAD_ERROR,"getDirDiffInfo() read file");
+        isDirDiffInfo=dirDiffInfo.isDirDiff;
+        if (isDirDiffInfo){
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+            if (dirDiffInfo.isSingleCompressedDiff){
+                isSingleCompressedDiff=dirDiffInfo.isSingleCompressedDiff;
+                sdiffInfo=dirDiffInfo.sdiffInfo;
+            }else
+#endif
+                diffInfo=dirDiffInfo.hdiffInfo;
+            //print dir diff
+            //todo:
+
+        }
+    }
+#endif
+clear:
+    _isInClear=hpatch_TRUE;
+    check(hpatch_TFileStreamInput_close(&diffData),HPATCH_FILECLOSE_ERROR,"file close");
+    return result;
+}
+
+int hpatch_printFilesInfos(int fileCount,const char* fileNames[]){
+    int i;
+    int result=0;
+    for (i=0;i<fileCount;++i){
+        int ret=_printFileInfos(fileNames[i]);
+        if (result==0) result=ret;
+    }
+    if (fileCount==0)
+        printf("please input diffFile for print it's infos\n");
+    return result;
+}
+#endif //_IS_NEED_CMDLINE
+
+
 #define _free_mem(p) { if (p) { free(p); p=0; } }
 
 static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,size_t mustAppendMemSize,
@@ -926,7 +1012,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     int     _isInClear=hpatch_FALSE;
     double  time0=clock_s();
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
-    hpatch_BOOL isSingleStreamDiff=hpatch_FALSE;
+    hpatch_BOOL isSingleCompressedDiff=hpatch_FALSE;
     hpatch_singleCompressedDiffInfo sdiffInfo;
 #endif
 #if (_IS_NEED_BSDIFF)
@@ -987,7 +1073,7 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
                 check(sdiffInfo.stepMemSize==(size_t)sdiffInfo.stepMemSize,HPATCH_MEM_ERROR,"stepMemSize too large");
                 if (patchCacheSize<hpatch_kStreamCacheSize*3)
                     patchCacheSize=hpatch_kStreamCacheSize*3;
-                isSingleStreamDiff=hpatch_TRUE;
+                isSingleCompressedDiff=hpatch_TRUE;
                 printf("patch single compressed diffData!\n");
             }else
 #endif
@@ -1054,14 +1140,14 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
         }
 #endif
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
-        if (isSingleStreamDiff)
+        if (isSingleCompressedDiff)
             mustAppendMemSize=(size_t)sdiffInfo.stepMemSize;
 #endif
         temp_cache=getPatchMemCache(isLoadOldAll,patchCacheSize,mustAppendMemSize,maxWindowSize, &temp_cache_size);
     }
     check(temp_cache,HPATCH_MEM_ERROR,"alloc cache memory");
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
-    if (isSingleStreamDiff){
+    if (isSingleCompressedDiff){
         check(temp_cache_size>=sdiffInfo.stepMemSize+hpatch_kStreamCacheSize*3,HPATCH_MEM_ERROR,"alloc cache memory");
         if (!patch_single_compressed_diff(&newData.base,poldData,&diffData.base,sdiffInfo.diffDataPos,
                                           sdiffInfo.uncompressedSize,sdiffInfo.compressedSize,decompressPlugin,

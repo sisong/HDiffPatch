@@ -134,7 +134,7 @@ static void printVersion(){
 
 static void printHelpInfo(){
     printf("  -h (or -?)\n"
-           "      output usage info.\n");
+           "      print usage info.\n");
 }
 
 static void printUsage(){
@@ -143,6 +143,7 @@ static void printUsage(){
     printf("diff    usage: hdiffz [options] oldPath newPath outDiffFile\n"
            "test    usage: hdiffz    -t     oldPath newPath testDiffFile\n"
            "resave  usage: hdiffz [-c-...]  diffFile outDiffFile\n"
+           "print    info: hdiffz -info diffFile\n"
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "get  manifest: hdiffz [-g#...] [-C-checksumType] inputPath -M#outManifestTxtFile\n"
            "manifest diff: hdiffz [options] -M-old#oldManifestFile -M-new#newManifestFile\n"
@@ -150,7 +151,7 @@ static void printUsage(){
            "  oldPath newPath inputPath can be file or directory(folder),\n"
 #endif
            "  oldPath can empty, and input parameter \"\"\n"
-           "memory options:\n"
+           "options:\n"
            "  -m[-matchScore]\n"
            "      DEFAULT; all file load into Memory; best diffFileSize;\n"
            "      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1)\n"
@@ -164,7 +165,6 @@ static void printUsage(){
 #endif
            ")bytes of memory;\n"
            "      matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...\n"
-           "special options:\n"
            "  -block-fastMatchBlockSize \n"
            "      must run with -m;\n"
            "      set block match befor slow byte-by-byte match, DEFAULT -block-4k;\n"
@@ -361,7 +361,9 @@ static void printUsage(){
            "      if used -f and write path is exist directory, will always return error.\n"
            "  --patch\n"
            "      swap to hpatchz mode.\n"
-           "  -v  output Version info.\n"
+           "  -info\n"
+           "      print infos of diffFile.\n"
+           "  -v  print Version info.\n"
            );
     printHelpInfo();
     printf("\n");
@@ -779,6 +781,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     diffSets.matchBlockSize=_kNULL_SIZE;
     diffSets.threadNum=_THREAD_NUMBER_NULL;
     diffSets.threadNumSearch_s=_THREAD_NUMBER_NULL;
+    hpatch_BOOL isPrintFileInfo=_kNULL_VALUE;
     hpatch_BOOL isForceOverwrite=_kNULL_VALUE;
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
@@ -893,6 +896,11 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             } break;
 #   endif
 #endif
+            case 'i':{
+                _options_check((isPrintFileInfo==_kNULL_VALUE)&&(op[2]=='n')&&(op[3]=='f')
+                               &&(op[4]=='o')&&(op[5]=='\0'),"-info");
+                isPrintFileInfo=hpatch_TRUE;
+            } break;
             case '?':
             case 'h':{
                 _options_check((isOutputHelp==_kNULL_VALUE)&&(op[2]=='\0'),"-h");
@@ -1028,6 +1036,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         isOutputVersion=hpatch_FALSE;
     if (isForceOverwrite==_kNULL_VALUE)
         isForceOverwrite=hpatch_FALSE;
+    if (isPrintFileInfo==_kNULL_VALUE)
+        isPrintFileInfo=hpatch_FALSE;
     if (isOutputHelp||isOutputVersion){
         if (isOutputHelp)
             printUsage();//with version
@@ -1035,6 +1045,9 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             printVersion();
         if (arg_values.empty())
             return 0; //ok
+    }
+    if (isPrintFileInfo){
+        return hpatch_printFilesInfos((int)arg_values.size(),arg_values.data());
     }
     if (diffSets.isSingleCompressedDiff==_kNULL_VALUE)
         diffSets.isSingleCompressedDiff=hpatch_FALSE;

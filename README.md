@@ -93,7 +93,7 @@ manifest diff: **hdiffz** [options] **-M-old#oldManifestFile -M-new#newManifestF
 ```
   oldPath newPath inputPath can be file or directory(folder),
   oldPath can empty, and input parameter ""
-memory options:
+options:
   -m[-matchScore]
       DEFAULT; all file load into Memory; best diffFileSize;
       requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1)
@@ -103,7 +103,6 @@ memory options:
       all file load as Stream; fast;
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5*parallelThreadNumber)bytes of memory;
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
-special options:
   -block-fastMatchBlockSize
       must run with -m;
       set block match befor slow byte-by-byte match, DEFAULT -block-4k;
@@ -202,9 +201,9 @@ special options:
       if used -f and write path is exist directory, will always return error.
   --patch
       swap to hpatchz mode.
-  -v  output Version info.
+  -v  print Version info.
   -h (or -?)
-      output usage info.
+      print usage info.
 ```
    
 ## **patch** command line usage:   
@@ -214,7 +213,7 @@ create  SFX: **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractAr
 run     SFX: **selfExtractArchive** [options] **oldPath -X outNewPath**   
 extract SFX: **selfExtractArchive**   (same as: selfExtractArchive -f "" -X "./")
 ```
-memory options:
+options:
   -s[-cacheSize]
       DEFAULT -s-4m; oldPath loaded as Stream;
       cacheSize can like 262144 or 256k or 512m or 2g etc....
@@ -233,7 +232,6 @@ memory options:
         (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.
       if diffFile is VCDIFF(created by hdiffz -VCD,xdelta3,open-vcdiff), then requires
         (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.
-special options:
   -C-checksumSets
       set Checksum data for directory patch, DEFAULT -C-new-copy;
       checksumSets support (can choose multiple):
@@ -259,9 +257,9 @@ special options:
         if patch output file, will always return error;
         if patch output directory, will overwrite, but not delete
           needless existing files in directory.
-  -v  output Version info.
+  -v  print Version info.
   -h  (or -?)
-      output usage info.
+      print usage info.
 ```
    
 ---
