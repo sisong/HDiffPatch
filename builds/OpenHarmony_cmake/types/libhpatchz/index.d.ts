@@ -1,0 +1,1 @@
+export const patch: (oldFileName: String, diffFileName: String, newFileName: String, cacheMemory?: number) => number;
