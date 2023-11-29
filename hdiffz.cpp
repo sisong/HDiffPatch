@@ -1738,10 +1738,7 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
 #endif
     if (getSingleCompressedDiffInfo(&singleDiffInfo,&diffData_in.base,0)){
         isSingleDiff=hpatch_TRUE;
-        diffInfo.newDataSize=singleDiffInfo.newDataSize;
-        diffInfo.oldDataSize=singleDiffInfo.oldDataSize;
-        diffInfo.compressedCount=(singleDiffInfo.compressedSize>0)?1:0;
-        memcpy(diffInfo.compressType,singleDiffInfo.compressType,strlen(singleDiffInfo.compressType)+1);
+        _singleDiffInfoToHDiffInfo(&diffInfo,&singleDiffInfo);
         printf("  resave as single stream diffFile \n");
     }else if(getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
         //ok

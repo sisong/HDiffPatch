@@ -289,6 +289,13 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
         hpatch_StreamPos_t  stepMemSize;
         char                compressType[hpatch_kMaxPluginTypeLength+1]; //ascii cstring
     } hpatch_singleCompressedDiffInfo;
+
+    hpatch_inline static void _singleDiffInfoToHDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,const hpatch_singleCompressedDiffInfo* singleDiffInfo){
+        out_diffInfo->newDataSize=singleDiffInfo->newDataSize;
+        out_diffInfo->oldDataSize=singleDiffInfo->oldDataSize;
+        out_diffInfo->compressedCount=(singleDiffInfo->compressedSize>0)?1:0;
+        memcpy(out_diffInfo->compressType,singleDiffInfo->compressType,strlen(singleDiffInfo->compressType)+1);
+    }
     
     typedef struct sspatch_listener_t{ 
         void*         import;   

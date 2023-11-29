@@ -911,6 +911,25 @@ static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "dirDiffPatch/dir_patch/dir_patch_private.h"
+
+static _printDirDiffInfos(const TDirDiffInfo* dirDiffInfo,const _TDirDiffHead* head){
+    if (!dirDiffInfo->isDirDiff) return;
+    printf("       is dirDiffInfo: true\n");
+    printf("         checksumType: \"%s\"\n",dirDiffInfo->checksumType);
+    printf("         oldPathIsDir: %s\n",dirDiffInfo->oldPathIsDir?"true":"false");
+    printf("         newPathIsDir: %s\n",dirDiffInfo->newPathIsDir?"true":"false");
+    printf("       new path count: %" PRIu64 " (fileCount:%" PRIu64 ")\n",(hpatch_StreamPos_t)head->newPathCount,
+            (hpatch_StreamPos_t)(head->sameFilePairCount+head->newRefFileCount));
+    printf("  copy from old count: %" PRIu64 " (dataSize: %" PRIu64 ")\n",
+            (hpatch_StreamPos_t)head->sameFilePairCount,head->sameFileSize);
+    printf("   ref old file count: %" PRIu64 "\n",(hpatch_StreamPos_t)head->oldRefFileCount);
+    printf("   ref new file count: %" PRIu64 "\n",(hpatch_StreamPos_t)head->newRefFileCount);
+    printf("         oldRefSize  : %" PRIu64 "\n",dirDiffInfo->hdiffInfo.oldDataSize);
+    printf("         newRefSize  : %" PRIu64 " (all newSize: %" PRIu64 ")\n",
+            dirDiffInfo->hdiffInfo.newDataSize,dirDiffInfo->hdiffInfo.newDataSize+head->sameFileSize);
+    printf("\n");
+}
+
 #endif
 static int _printFileInfos(const char* fileName){
     int     result=HPATCH_SUCCESS;
@@ -1066,14 +1085,11 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
             check(!diffData.fileError,HPATCH_FILEREAD_ERROR,"read diffFile");
 #if (_IS_NEED_SINGLE_STREAM_DIFF)
             if (getSingleCompressedDiffInfo(&sdiffInfo,&diffData.base,0)){
-                memcpy(diffInfo.compressType,sdiffInfo.compressType,strlen(sdiffInfo.compressType)+1);
-                diffInfo.compressedCount=(sdiffInfo.compressType[0]!='\0')?1:0;
-                diffInfo.newDataSize=sdiffInfo.newDataSize;
-                diffInfo.oldDataSize=sdiffInfo.oldDataSize;
+                isSingleCompressedDiff=hpatch_TRUE;
+                _singleDiffInfoToHDiffInfo(&diffInfo,&sdiffInfo);
                 check(sdiffInfo.stepMemSize==(size_t)sdiffInfo.stepMemSize,HPATCH_MEM_ERROR,"stepMemSize too large");
                 if (patchCacheSize<hpatch_kStreamCacheSize*3)
                     patchCacheSize=hpatch_kStreamCacheSize*3;
-                isSingleCompressedDiff=hpatch_TRUE;
                 printf("patch single compressed diffData!\n");
             }else
 #endif
@@ -1283,7 +1299,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         if (wantChecksumCount>0){
             if (strlen(dirDiffInfo->checksumType)==0){
                 memset(checksumSet,0,sizeof(*checksumSet));
-                printf("  NOTE: no checksum saved in diffFile,can not do checksum\n");
+                printf("  WARNING: no checksum saved in diffFile,can not do checksum\n");
             }else{
                 if (!findChecksum(&checksumSet->checksumPlugin,dirDiffInfo->checksumType)){
                     LOG_ERR("not found checksumType \"%s\" ERROR!\n",dirDiffInfo->checksumType);
@@ -1299,18 +1315,8 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
             }
         }
     }
-    {//info
-        const _TDirDiffHead* head=&dirPatcher.dirDiffHead;
-        printf("DirPatch new path count: %" PRIu64 " (fileCount:%" PRIu64 ")\n",(hpatch_StreamPos_t)head->newPathCount,
-               (hpatch_StreamPos_t)(head->sameFilePairCount+head->newRefFileCount));
-        printf("    copy from old count: %" PRIu64 " (dataSize: %" PRIu64 ")\n",
-               (hpatch_StreamPos_t)head->sameFilePairCount,head->sameFileSize);
-        printf("     ref old file count: %" PRIu64 "\n",(hpatch_StreamPos_t)head->oldRefFileCount);
-        printf("     ref new file count: %" PRIu64 "\n",(hpatch_StreamPos_t)head->newRefFileCount);
-        printf("oldRefSize  : %" PRIu64 "\ndiffDataSize: %" PRIu64 "\nnewRefSize  : %" PRIu64 " (all newSize: %" PRIu64 ")\n",
-               dirDiffInfo->hdiffInfo.oldDataSize,diffData.base.streamSize,dirDiffInfo->hdiffInfo.newDataSize,
-               dirDiffInfo->hdiffInfo.newDataSize+head->sameFileSize);
-    }
+    _printDirDiffInfos(dirDiffInfo,&dirPatcher.dirDiffHead);
+
     {//mem cache
         size_t mustAppendMemSize=0;
 #if (_IS_NEED_SINGLE_STREAM_DIFF)

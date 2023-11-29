@@ -161,10 +161,7 @@ static hpatch_BOOL _read_dirdiff_head(TDirDiffInfo* out_info,_TDirDiffHead* out_
                     memcpy(out_info->sdiffInfo.compressType,savedCompressType,savedCompressTypeLen+1); //with '\0'
                 else
                     check(0==strcmp(savedCompressType,out_info->sdiffInfo.compressType));
-                out_info->hdiffInfo.newDataSize=out_info->sdiffInfo.newDataSize;
-                out_info->hdiffInfo.oldDataSize=out_info->sdiffInfo.oldDataSize;
-                out_info->hdiffInfo.compressedCount=(out_info->sdiffInfo.compressedSize>0)?1:0;
-                memcpy(out_info->hdiffInfo.compressType,out_info->sdiffInfo.compressType,strlen(out_info->sdiffInfo.compressType)+1);
+                _singleDiffInfoToHDiffInfo(&out_info->hdiffInfo,&out_info->sdiffInfo);
             }else
 #endif
             check(getCompressedDiffInfo(&out_info->hdiffInfo,&hdiffStream.base));
