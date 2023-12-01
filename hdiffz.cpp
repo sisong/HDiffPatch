@@ -1841,14 +1841,13 @@ struct DirDiffListener:public IDirDiffListener{
     virtual void diffRefInfo(size_t oldPathCount,size_t newPathCount,size_t sameFilePairCount,
                              hpatch_StreamPos_t sameFileSize,size_t refOldFileCount,size_t refNewFileCount,
                              hpatch_StreamPos_t refOldFileSize,hpatch_StreamPos_t refNewFileSize){
-        printf("\n");
-        printf("DirDiff old path count: %" PRIu64 "\n",(hpatch_StreamPos_t)oldPathCount);
-        printf("        new path count: %" PRIu64 " (fileCount:%" PRIu64 ")\n",
+        printf("      old path count: %" PRIu64 "\n",(hpatch_StreamPos_t)oldPathCount);
+        printf("      new path count: %" PRIu64 " (fileCount:%" PRIu64 ")\n",
                (hpatch_StreamPos_t)newPathCount,(hpatch_StreamPos_t)(sameFilePairCount+refNewFileCount));
-        printf("       same file count: %" PRIu64 " (dataSize: %" PRIu64 ")\n",
+        printf("     same file count: %" PRIu64 " (dataSize: %" PRIu64 ")\n",
                (hpatch_StreamPos_t)sameFilePairCount,sameFileSize);
-        printf("    ref old file count: %" PRIu64 "\n",(hpatch_StreamPos_t)refOldFileCount);
-        printf("   diff new file count: %" PRIu64 "\n",(hpatch_StreamPos_t)refNewFileCount);
+        printf("  ref old file count: %" PRIu64 "\n",(hpatch_StreamPos_t)refOldFileCount);
+        printf(" diff new file count: %" PRIu64 "\n",(hpatch_StreamPos_t)refNewFileCount);
         printf("\nrun hdiffz:\n");
         printf("  oldRefSize  : %" PRIu64 "\n",refOldFileSize);
         printf("  newRefSize  : %" PRIu64 " (all newSize: %" PRIu64 ")\n",refNewFileSize,refNewFileSize+sameFileSize);
