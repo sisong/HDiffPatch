@@ -38,12 +38,13 @@ extern "C" {
 
 #define HDIFFPATCH_VERSION_MAJOR    4
 #define HDIFFPATCH_VERSION_MINOR    6
-#define HDIFFPATCH_VERSION_RELEASE  8
+#define HDIFFPATCH_VERSION_RELEASE  9
 
 #define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
 #define _HDIFFPATCH_QUOTE(str) #str
 #define _HDIFFPATCH_EXPAND_AND_QUOTE(str) _HDIFFPATCH_QUOTE(str)
 #define HDIFFPATCH_VERSION_STRING   _HDIFFPATCH_EXPAND_AND_QUOTE(_HDIFFPATCH_VERSION)
+#define HDIFFPATCH_VERSION_NUMBER   ((HDIFFPATCH_VERSION_MAJOR*1000+HDIFFPATCH_VERSION_MINOR)*1000+HDIFFPATCH_VERSION_RELEASE)
 
 #ifndef hpatch_int
     typedef int                 hpatch_int;
@@ -288,6 +289,13 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
         hpatch_StreamPos_t  stepMemSize;
         char                compressType[hpatch_kMaxPluginTypeLength+1]; //ascii cstring
     } hpatch_singleCompressedDiffInfo;
+
+    hpatch_inline static void _singleDiffInfoToHDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,const hpatch_singleCompressedDiffInfo* singleDiffInfo){
+        out_diffInfo->newDataSize=singleDiffInfo->newDataSize;
+        out_diffInfo->oldDataSize=singleDiffInfo->oldDataSize;
+        out_diffInfo->compressedCount=(singleDiffInfo->compressedSize>0)?1:0;
+        memcpy(out_diffInfo->compressType,singleDiffInfo->compressType,strlen(singleDiffInfo->compressType)+1);
+    }
     
     typedef struct sspatch_listener_t{ 
         void*         import;   

@@ -2,6 +2,10 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v4.6.9](https://github.com/sisong/HDiffPatch/tree/v4.6.9) - 2023-12-01
+### Added
+* cmdline hdiffz & hpatchz support option "-info diffFile", print infos of diffFile;
+
 ## [v4.6.8](https://github.com/sisong/HDiffPatch/tree/v4.6.8) - 2023-11-02
 ### Changed
 * hdiffz.exe&hpatchz.exe support long path on Windows OS;

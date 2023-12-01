@@ -334,7 +334,7 @@ else
 endif
 ifeq ($(MINS),0)
 else
-  DIFF_LINK += -Wl,--gc-sections,--as-needed
+  DIFF_LINK += -s -Wl,--gc-sections,--as-needed
 endif
 ifeq ($(CL),1)
   CXX := clang++

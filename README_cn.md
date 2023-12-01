@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.6.8-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.6.9-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -8,17 +8,17 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
  中文版 | [english](README.md)   
 
-[HDiffPatch] 是一个C\C++库和命令行工具，用于在二进制文件或文件夹之间执行**diff**(创建补丁)和**patch**(打补丁)；跨平台、运行快、创建的补丁小、支持巨大的文件并且可控制diff和patch时的内存占用量。   
+[HDiffPatch] 是一个C\C++库和命令行工具，用于在二进制文件或文件夹之间执行 **diff**(创建补丁) 和 **patch**(打补丁)；跨平台、运行速度快、创建的补丁小、支持巨大的文件并且diff和patch时都可以控制内存占用量。   
 
 [HDiffPatch] 定义了自己的补丁包格式，同时这个库也完全兼容了 [bsdiff4] 的补丁包格式，并部分兼容 [open-vcdiff] 和 [xdelta3] 的补丁包格式 [VCDIFF(RFC 3284)]。   
 
-如果需要在嵌入式系统(MCU、NB-IoT)等设备上进行增量更新(OTA), 可以看看例子 [HPatchLite], +[tinyuz] 解压缩器可以在1KB内存的设备上运行!   
+如果你需要在嵌入式系统(MCU、NB-IoT)等设备上进行增量更新(OTA), 可以看看例子 [HPatchLite], +[tinyuz] 解压缩器可以在1KB内存的设备上运行!   
 
-需要更新你自己的安卓apk? 需要对Jar或Zip文件执行 diff & patch ? 可以试试 [ApkDiffPatch], 可以创建更小的补丁!  注意: *ApkDiffPath 不能被安卓应用商店作为增量更新使用，因为该算法要求在diff前对apk文件进行重新签名。*   
+需要更新你自己的安卓apk? 需要对Jar或Zip文件执行 diff 和 patch ? 可以试试 [ApkDiffPatch], 可以创建更小的补丁!  注意: *ApkDiffPath 不能被安卓应用商店作为增量更新所用，因为该算法要求在diff前对apk文件进行重新签名。*   
 
 [sfpatcher] 不要求对apk文件进行重新签名 (类似 [archive-patcher])，是为安卓应用商店专门设计优化的算法，patch速度是 archive-patcher 的xx倍，并且只需要O(1)内存。   
 
-如果你没有旧版本的数据(或者旧版本非常多或者被修改)，因此不能提前创建好所有补丁包。那你可以看看使用同步算法来进行增量更新的例子 [hsynz] (类似 [zsync])，新版本只需要发布处理一次，然后旧版本数据的拥有者可以根据获得的新版本的信息自己执行diff和patch。hsynz 支持 zstd 压缩算法并且比 zsync 速度更快。
+如果你没有旧版本的数据(或者旧版本非常多或者被修改)，因此不能提前创建好补丁包。那你可以看看使用同步算法来进行增量更新的例子 [hsynz] (类似 [zsync])，新版本只需要发布处理一次，然后旧版本数据的拥有者可以根据获得的新版本的信息自己执行diff和patch。hsynz 支持 zstd 压缩算法并且比 zsync 速度更快。
    
 注意: *本库不处理文件元数据，如文件最后写入时间、权限、链接文件等。对于这个库，文件就像一个字节流；如果需要您可以扩展此库或使用其他工具。*   
    
@@ -88,12 +88,13 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 压缩一个文件或文件夹： **hdiffz** [-c-...]  **"" newPath outDiffFile**   
 测试补丁是否正确： **hdiffz**    -t     **oldPath newPath testDiffFile**   
 补丁使用新的压缩插件另存： **hdiffz** [-c-...]  **diffFile outDiffFile**   
+显示补丁的信息: **hdiffz** -info **diffFile**   
 创建该版本的校验清单： **hdiffz** [-g#...] [-C-checksumType] **inputPath -M#outManifestTxtFile**   
 校验输入数据后创建补丁： **hdiffz** [options] **-M-old#oldManifestFile -M-new#newManifestFile oldPath newPath outDiffFile**   
 ```
   oldPath、newPath、inputPath 可以是文件或文件夹, 
   oldPath可以为空, 输入参数为 ""
-内存选项:
+选项:
   -m[-matchScore]
       默认选项; 所有文件都会被加载到内存; 一般生成的补丁文件比较小;
       需要的内存大小:(新版本文件大小+ 旧版本文件大小*5(或*9 当旧版本文件大小>=2GB时))+O(1);
@@ -104,7 +105,6 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       需要的内存大小: O(旧版本文件大小*16/matchBlockSize+matchBlockSize*5*parallelThreadNumber);
       匹配块大小matchBlockSize>=4, 默认为64, 推荐16,32,48,1k,64k,1m等;
       一般匹配块越大,内存占用越小,速度越快,但补丁包可能变大。
-其他选项:
   -block-fastMatchBlockSize
       必须和-m配合使用;
       在使用较慢的逐字节匹配之前使用基于块的快速匹配, 默认-block-4k;
@@ -157,7 +157,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
             支持多线程并行压缩,很快。
             警告: lzma和lzma2是不同的压缩编码格式。
         -c-zstd[-{0..22}[-dictBits]]    默认级别 20
-            压缩字典比特数dictBits 可以为10到31, 默认为24。
+            压缩字典比特数dictBits 可以为10到30, 默认为23。
             支持多线程并行压缩,很快。
   -C-checksumType
       为文件夹间diff设置数据校验算法, 默认为fadler64;
@@ -198,6 +198,8 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       如果设置了-f,但路径已经存在并且是一个文件夹, 那么会始终返回错误。
   --patch
       切换到 hpatchz 模式; 可以支持hpatchz命令行的相关参数和功能。
+  -info
+      显示补丁的信息。
   -v  输出程序版本信息。
   -h 或 -?
       输出命令行帮助信息 (该说明)。
@@ -206,13 +208,15 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 ## patch 命令行用法和参数说明：  
 打补丁： **hpatchz** [options] **oldPath diffFile outNewPath**   
 解压缩一个文件或文件夹： **hpatchz** [options] **"" diffFile outNewPath**   
+显示补丁的信息: **hpatchz** -info **diffFile**   
 创建一个自释放包： **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractArchive**   
   (将目标平台的hpatchz可执行文件和补丁包文件合并成一个可执行文件, 称作自释放包SFX)   
 执行一个自释放包： **selfExtractArchive** [options] **oldPath -X outNewPath**   
   (利用自释放包来打补丁,将包中自带的补丁数据应用到oldPath上, 合成outNewPath)   
 执行一个自解压包： **selfExtractArchive**   (等价于： selfExtractArchive -f "" -X "./")
 ```
-内存选项:
+  oldPath可以为空, 输入参数为 ""
+选项:
   -s[-cacheSize]
       默认选项,并且默认设置为-s-4m; oldPath所有文件被当作文件流来加载;
       cacheSize可以设置为262144 或 256k, 512m, 2g等
@@ -231,7 +235,6 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
         那需要的内存大小: (oldFileSize + 3*解压缩缓冲区);
       如果diffFile是VCDIFF格式补丁文件(用hdiffz -VCD、xdelta3、open-vcdiff所创建)
         那需要的内存大小: (源窗口大小+目标窗口大小 + 3*解压缩缓冲区);
-其他选项:
   -C-checksumSets
       为文件夹patch设置校验方式, 默认设置为 -C-new-copy;
       校验设置支持(可以多选):
@@ -255,6 +258,8 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       如果设置了-f,但outNewPath已经存在并且是一个文件夹:
         如果patch输出一个文件, 那么会始终返回错误;
         如果patch输出一个文件夹, 那么会执行写覆盖, 但不会删除文件夹中已经存在的无关文件。
+  -info
+      显示补丁的信息。
   -v  输出程序版本信息。
   -h 或 -?
       输出命令行帮助信息 (该说明)。
@@ -262,7 +267,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
    
 ---
 ## 库 API 使用说明:
-所有 **diff**和**patch** 函数在文件: `libHDiffPatch/HDiff/diff.h` & `libHDiffPatch/HPatch/patch.h`   
+**diff**和**patch** 函数在文件: `libHDiffPatch/HDiff/diff.h` & `libHDiffPatch/HPatch/patch.h`   
 **dir_diff()** 和 **dir patch** 在: `dirDiffPatch/dir_diff/dir_diff.h` & `dirDiffPatch/dir_patch/dir_patch.h`   
 ### 使用方式:
 * **create diff**(in newData,in oldData,out diffData);
@@ -316,7 +321,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 
 ---
 ## [HDiffPatch] vs [bsdiff4] & [xdelta3]:
-测试例子([从 OneDrive 下载](https://1drv.ms/u/s!Aj8ygMPeifoQgUIZxYac5_uflNoN)):   
+测试用例([从 OneDrive 下载](https://1drv.ms/u/s!Aj8ygMPeifoQgULlawtabR9lhrQ8)):   
 | |newFile <-- oldFile|newSize|oldSize|
 |----:|:----|----:|----:|
 |1|7-Zip_22.01.win.tar <-- 7-Zip_21.07.win.tar|5908992|5748224|
@@ -343,7 +348,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 
 **测试 PC**: Windows11, CPU R9-7945HX, SSD PCIe4.0x4 4T, DDR5 5200MHz 32Gx2   
 **参与测试的程序和版本**: HDiffPatch4.6.3, hsynz 0.9.3, BsDiff4.3, xdelta3.1, zstd1.5.2  
-**参与测试程序的参数**:   
+**参与测试的程序的参数**:   
 **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
  zstd patch with `-d -f --memory=2047MB --patch-from={old} {pat} -o {new}`  
 **xdelta3** diff with `-S lzma -e -9 -n -f -s {old} {new} {pat}`   

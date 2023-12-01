@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.6.8-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.6.9-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -8,7 +8,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
  english | [中文版](README_cn.md)   
 
-[HDiffPatch] is a C\C++ library and command-line tools for **diff** & **patch** between binary files or directories(folder); cross-platform; runs fast; create small delta/differential; support large files and limit memory requires when diff & patch.   
+[HDiffPatch] is a C\C++ library and command-line tools for **diff** & **patch** between binary files or directories(folder); cross-platform; fast running; create small delta/differential; support large files and limit memory requires when diff & patch.   
 
 [HDiffPatch] defines its own patch file format, this lib is also compatible with the [bsdiff4] patch file format and partially compatible with the [open-vcdiff] and [xdelta3] patch file format [VCDIFF(RFC 3284)].   
 
@@ -88,12 +88,13 @@ diff     usage: **hdiffz** [options] **oldPath newPath outDiffFile**
 compress usage: **hdiffz** [-c-...]  **"" newPath outDiffFile**   
 test    usage: **hdiffz**    -t     **oldPath newPath testDiffFile**   
 resave  usage: **hdiffz** [-c-...]  **diffFile outDiffFile**   
+print    info: **hdiffz** -info **diffFile**   
 get  manifest: **hdiffz** [-g#...] [-C-checksumType] **inputPath -M#outManifestTxtFile**   
 manifest diff: **hdiffz** [options] **-M-old#oldManifestFile -M-new#newManifestFile oldPath newPath outDiffFile**   
 ```
   oldPath newPath inputPath can be file or directory(folder),
   oldPath can empty, and input parameter ""
-memory options:
+options:
   -m[-matchScore]
       DEFAULT; all file load into Memory; best diffFileSize;
       requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1)
@@ -103,7 +104,6 @@ memory options:
       all file load as Stream; fast;
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5*parallelThreadNumber)bytes of memory;
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
-special options:
   -block-fastMatchBlockSize
       must run with -m;
       set block match befor slow byte-by-byte match, DEFAULT -block-4k;
@@ -159,7 +159,7 @@ special options:
             support run by multi-thread parallel, fast!
             WARNING: code not compatible with it compressed by -c-lzma!
         -c-zstd[-{0..22}[-dictBits]]    DEFAULT level 20
-            dictBits can 10--31, DEFAULT 23.
+            dictBits can 10--30, DEFAULT 23.
             support run by multi-thread parallel, fast!
   -C-checksumType
       set outDiffFile Checksum type for directory diff, DEFAULT -C-fadler64;
@@ -202,19 +202,23 @@ special options:
       if used -f and write path is exist directory, will always return error.
   --patch
       swap to hpatchz mode.
-  -v  output Version info.
+  -info
+      print infos of diffFile.
+  -v  print Version info.
   -h (or -?)
-      output usage info.
+      print usage info.
 ```
    
 ## **patch** command line usage:   
 patch usage: **hpatchz** [options] **oldPath diffFile outNewPath**   
 uncompress usage: **hpatchz** [options] **"" diffFile outNewPath**   
+print  info: **hpatchz** -info **diffFile**   
 create  SFX: **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractArchive**   
 run     SFX: **selfExtractArchive** [options] **oldPath -X outNewPath**   
 extract SFX: **selfExtractArchive**   (same as: selfExtractArchive -f "" -X "./")
 ```
-memory options:
+  if oldPath is empty input parameter ""
+options:
   -s[-cacheSize]
       DEFAULT -s-4m; oldPath loaded as Stream;
       cacheSize can like 262144 or 256k or 512m or 2g etc....
@@ -233,7 +237,6 @@ memory options:
         (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.
       if diffFile is VCDIFF(created by hdiffz -VCD,xdelta3,open-vcdiff), then requires
         (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.
-special options:
   -C-checksumSets
       set Checksum data for directory patch, DEFAULT -C-new-copy;
       checksumSets support (can choose multiple):
@@ -259,14 +262,16 @@ special options:
         if patch output file, will always return error;
         if patch output directory, will overwrite, but not delete
           needless existing files in directory.
-  -v  output Version info.
+  -info
+      print infos of diffFile.
+  -v  print Version info.
   -h  (or -?)
-      output usage info.
+      print usage info.
 ```
    
 ---
 ## library API usage:
-all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDiffPatch/HPatch/patch.h`   
+**diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDiffPatch/HPatch/patch.h`   
 **dir_diff()** & **dir patch** in: `dirDiffPatch/dir_diff/dir_diff.h` & `dirDiffPatch/dir_patch/dir_patch.h`   
 ### manual:
 * **create diff**(in newData,in oldData,out diffData);
@@ -320,7 +325,7 @@ all **diff**&**patch** function in file: `libHDiffPatch/HDiff/diff.h` & `libHDif
 
 ---
 ## [HDiffPatch] vs [bsdiff4] & [xdelta3]:
-case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgUIZxYac5_uflNoN)):   
+case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgULlawtabR9lhrQ8)):   
 | |newFile <-- oldFile|newSize|oldSize|
 |----:|:----|----:|----:|
 |1|7-Zip_22.01.win.tar <-- 7-Zip_21.07.win.tar|5908992|5748224|

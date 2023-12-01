@@ -9,15 +9,6 @@
 #include "../../android_ndk_jni_mk/hpatch.h"
 
 
-static size_t getCacheMemory(int64_t cacheMemory){
-    #define kPatchCacheSize_default  (1024*256)
-    #define kPatchCacheSize_max ((int64_t)((size_t)(~(size_t)0)))
-    if (cacheMemory<0) return kPatchCacheSize_default;
-    if (sizeof(int64_t)<=sizeof(size_t)) return (size_t)cacheMemory;
-    return (size_t)((cacheMemory<kPatchCacheSize_max)?cacheMemory:kPatchCacheSize_max);
-}
-
-
 @implementation hpatcher
 
 + (int)patchWithOld:(NSString *)oldFileName
@@ -32,9 +23,10 @@ static size_t getCacheMemory(int64_t cacheMemory){
               toNew:(NSString *)outNewFileName
            byMemory:(int64_t)cacheMemory
 {
-    size_t cCacheMemory=getCacheMemory(cacheMemory);
+    #define HPATCH_OPTIONS_ERROR 1
     const char* old_cstr=(oldFileName==NULL)?0:[oldFileName UTF8String];
-    return hpatchz(old_cstr,[diffFileName UTF8String],[outNewFileName UTF8String],cCacheMemory);
+    if ((diffFileName==NULL)||(outNewFileName==NULL)) return HPATCH_OPTIONS_ERROR;
+    return hpatchz(old_cstr,[diffFileName UTF8String],[outNewFileName UTF8String],cacheMemory);
 }
 
 @end
