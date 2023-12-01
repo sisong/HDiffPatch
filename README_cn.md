@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.6.8-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.6.9-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -88,12 +88,13 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 压缩一个文件或文件夹： **hdiffz** [-c-...]  **"" newPath outDiffFile**   
 测试补丁是否正确： **hdiffz**    -t     **oldPath newPath testDiffFile**   
 补丁使用新的压缩插件另存： **hdiffz** [-c-...]  **diffFile outDiffFile**   
+显示补丁的信息: **hdiffz** -info **diffFile**   
 创建该版本的校验清单： **hdiffz** [-g#...] [-C-checksumType] **inputPath -M#outManifestTxtFile**   
 校验输入数据后创建补丁： **hdiffz** [options] **-M-old#oldManifestFile -M-new#newManifestFile oldPath newPath outDiffFile**   
 ```
   oldPath、newPath、inputPath 可以是文件或文件夹, 
   oldPath可以为空, 输入参数为 ""
-内存选项:
+选项:
   -m[-matchScore]
       默认选项; 所有文件都会被加载到内存; 一般生成的补丁文件比较小;
       需要的内存大小:(新版本文件大小+ 旧版本文件大小*5(或*9 当旧版本文件大小>=2GB时))+O(1);
@@ -104,7 +105,6 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       需要的内存大小: O(旧版本文件大小*16/matchBlockSize+matchBlockSize*5*parallelThreadNumber);
       匹配块大小matchBlockSize>=4, 默认为64, 推荐16,32,48,1k,64k,1m等;
       一般匹配块越大,内存占用越小,速度越快,但补丁包可能变大。
-其他选项:
   -block-fastMatchBlockSize
       必须和-m配合使用;
       在使用较慢的逐字节匹配之前使用基于块的快速匹配, 默认-block-4k;
@@ -157,7 +157,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
             支持多线程并行压缩,很快。
             警告: lzma和lzma2是不同的压缩编码格式。
         -c-zstd[-{0..22}[-dictBits]]    默认级别 20
-            压缩字典比特数dictBits 可以为10到31, 默认为24。
+            压缩字典比特数dictBits 可以为10到30, 默认为23。
             支持多线程并行压缩,很快。
   -C-checksumType
       为文件夹间diff设置数据校验算法, 默认为fadler64;
@@ -198,6 +198,8 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       如果设置了-f,但路径已经存在并且是一个文件夹, 那么会始终返回错误。
   --patch
       切换到 hpatchz 模式; 可以支持hpatchz命令行的相关参数和功能。
+  -info
+      显示补丁的信息。
   -v  输出程序版本信息。
   -h 或 -?
       输出命令行帮助信息 (该说明)。
@@ -206,13 +208,15 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 ## patch 命令行用法和参数说明：  
 打补丁： **hpatchz** [options] **oldPath diffFile outNewPath**   
 解压缩一个文件或文件夹： **hpatchz** [options] **"" diffFile outNewPath**   
+显示补丁的信息: **hpatchz** -info **diffFile**   
 创建一个自释放包： **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractArchive**   
   (将目标平台的hpatchz可执行文件和补丁包文件合并成一个可执行文件, 称作自释放包SFX)   
 执行一个自释放包： **selfExtractArchive** [options] **oldPath -X outNewPath**   
   (利用自释放包来打补丁,将包中自带的补丁数据应用到oldPath上, 合成outNewPath)   
 执行一个自解压包： **selfExtractArchive**   (等价于： selfExtractArchive -f "" -X "./")
 ```
-内存选项:
+  oldPath可以为空, 输入参数为 ""
+选项:
   -s[-cacheSize]
       默认选项,并且默认设置为-s-4m; oldPath所有文件被当作文件流来加载;
       cacheSize可以设置为262144 或 256k, 512m, 2g等
@@ -231,7 +235,6 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
         那需要的内存大小: (oldFileSize + 3*解压缩缓冲区);
       如果diffFile是VCDIFF格式补丁文件(用hdiffz -VCD、xdelta3、open-vcdiff所创建)
         那需要的内存大小: (源窗口大小+目标窗口大小 + 3*解压缩缓冲区);
-其他选项:
   -C-checksumSets
       为文件夹patch设置校验方式, 默认设置为 -C-new-copy;
       校验设置支持(可以多选):
@@ -255,6 +258,8 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       如果设置了-f,但outNewPath已经存在并且是一个文件夹:
         如果patch输出一个文件, 那么会始终返回错误;
         如果patch输出一个文件夹, 那么会执行写覆盖, 但不会删除文件夹中已经存在的无关文件。
+  -info
+      显示补丁的信息。
   -v  输出程序版本信息。
   -h 或 -?
       输出命令行帮助信息 (该说明)。
