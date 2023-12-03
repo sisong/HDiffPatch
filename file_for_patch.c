@@ -31,6 +31,13 @@
 #define _FILE_OFFSET_BITS 64
 #include "file_for_patch.h"
 #include <sys/stat.h> //stat mkdir
+#ifndef _IS_FOR_WINXP
+#   ifdef _USING_V110_SDK71_
+#       define _IS_FOR_WINXP 1
+#   else
+#       define _IS_FOR_WINXP 0
+#   endif
+#endif
 /*
 #ifdef _MSC_VER
 #   include <io.h>    //_chsize_s
@@ -64,6 +71,20 @@ static hpatch_BOOL _get_block_dev_size(const char* blkdev,hpatch_uint64_t* bsize
 }
 #endif
 
+#if (_IS_FOR_WINXP)
+    #define _getStatByAttributes(_path,s,rt,_getFileAttributesFunc) {       \
+        WIN32_FILE_ATTRIBUTE_DATA fad={0};   \
+        BOOL ret=_getFileAttributesFunc(_path,GetFileExInfoStandard,&fad); \
+        if (!ret) { \
+            _set_errno_new(ENOENT); \
+            rt=-1;  \
+        }else{      \
+            s.st_mode=(fad.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)?S_IFDIR:S_IFREG;  \
+            s.st_size=fad.nFileSizeLow | (((hpatch_StreamPos_t)fad.nFileSizeHigh)<<32); \
+            rt=0;   \
+        }           \
+    }
+#endif
 
 hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_TPathType* out_type,
                                                   hpatch_StreamPos_t* out_fileSize,size_t* out_st_mode){
@@ -85,10 +106,18 @@ hpatch_BOOL _hpatch_getPathStat_noEndDirSeparator(const char* path_utf8,hpatch_T
 #if (_IS_USED_WIN32_UTF8_WAPI)
     wsize=_utf8FileName_to_w(path_utf8,path_w,hpatch_kPathMaxSize);
     if (wsize<=0) return hpatch_FALSE;
-    rt = _wstat64(path_w,&s);
+    #if (_IS_FOR_WINXP)
+        _getStatByAttributes(path_w,s,rt,GetFileAttributesExW);
+    #else
+        rt = _wstat64(path_w,&s);
+    #endif
 #else
 #   ifdef _MSC_VER
-    rt = _stat64(path_utf8,&s);
+    #if (_IS_FOR_WINXP)
+        _getStatByAttributes(path_utf8,s,rt,GetFileAttributesExA);
+    #else
+        rt = _stat64(path_utf8,&s);
+    #endif
 #   else
     rt = stat(path_utf8,&s);
 #   endif

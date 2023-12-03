@@ -204,6 +204,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>longPathAware.exe.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -223,6 +224,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>longPathAware.exe.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -242,6 +244,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>longPathAware.exe.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -261,6 +264,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>
       </AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>longPathAware.exe.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -291,6 +295,7 @@
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <SubSystem>Console</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>longPathAware.exe.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -321,6 +326,7 @@
       </AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <SubSystem>Console</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>longPathAware.exe.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -351,6 +357,7 @@
       </AdditionalDependencies>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <SubSystem>Console</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>longPathAware.exe.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -382,6 +389,7 @@
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <SubSystem>Console</SubSystem>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>longPathAware.exe.manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
