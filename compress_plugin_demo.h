@@ -163,12 +163,12 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         return _zlib_compress_open_at(compressPlugin,compressLevel,compressMemLevel,out_code,
                                       (_zlib_TCompress*)self_at,_mem_buf_end-self_at);
     }
-    static int _zlib_compress_close_by(const hdiff_TCompress* compressPlugin,_zlib_TCompress* self){
-        int result=1;//true;
+    static hpatch_BOOL _zlib_compress_close_by(const hdiff_TCompress* compressPlugin,_zlib_TCompress* self){
+        hpatch_BOOL result=hpatch_TRUE;
         if (!self) return result;
         if (self->c_stream.state!=0){
             int ret=deflateEnd(&self->c_stream);
-            result=(Z_OK==ret);
+            result=(Z_OK==ret)|(Z_DATA_ERROR==ret);
         }
         memset(self,0,sizeof(_zlib_TCompress));
         return result;
