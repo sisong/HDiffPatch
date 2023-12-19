@@ -648,7 +648,7 @@ static void _xxh3_end(hpatch_checksumHandle handle,
 }
 static hpatch_TChecksum xxh3ChecksumPlugin={ _xxh3_checksumType,_xxh3_checksumByteSize,_xxh3_open,
                                              _xxh3_close,_xxh3_begin,_xxh3_append,_xxh3_end};
-#endif//_ChecksumPlugin_mbedtls_xxh3
+#endif//_ChecksumPlugin_xxh3
 
 
 #ifdef  _ChecksumPlugin_xxh128
@@ -695,6 +695,6 @@ static void _xxh128_end(hpatch_checksumHandle handle,
 }
 static hpatch_TChecksum xxh128ChecksumPlugin={ _xxh128_checksumType,_xxh128_checksumByteSize,_xxh128_open,
                                                _xxh128_close,_xxh128_begin,_xxh128_append,_xxh128_end};
-#endif//_ChecksumPlugin_mbedtls_xxh128
+#endif//_ChecksumPlugin_xxh128
 
 #endif

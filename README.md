@@ -149,7 +149,7 @@ options:
         -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9
         -c-pbzip2[-{1..9}]              (or -pbz2) DEFAULT level 8
             support run by multi-thread parallel, fast!
-            WARNING: code not compatible with it compressed by -c-bzip2!
+            NOTE: code not compatible with it compressed by -c-bzip2!
                and code size may be larger than if it compressed by -c-bzip2.
         -c-lzma[-{0..9}[-dictSize]]     DEFAULT level 7
             dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m
@@ -157,7 +157,7 @@ options:
         -c-lzma2[-{0..9}[-dictSize]]    DEFAULT level 7
             dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m
             support run by multi-thread parallel, fast!
-            WARNING: code not compatible with it compressed by -c-lzma!
+            NOTE: code not compatible with it compressed by -c-lzma!
         -c-zstd[-{0..22}[-dictBits]]    DEFAULT level 20
             dictBits can 10--30, DEFAULT 23.
             support run by multi-thread parallel, fast!

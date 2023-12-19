@@ -867,6 +867,18 @@ hpatch_BOOL _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,const char* ch
 static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType){
     *out_checksumPlugin=0;
     if (strlen(checksumType)==0) return hpatch_TRUE;
+#ifdef _ChecksumPlugin_fadler64
+    __setChecksum(&fadler64ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_xxh128
+    __setChecksum(&xxh128ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_xxh3
+    __setChecksum(&xxh3ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_md5
+    __setChecksum(&md5ChecksumPlugin);
+#endif
 #ifdef _ChecksumPlugin_crc32
     __setChecksum(&crc32ChecksumPlugin);
 #endif
@@ -879,23 +891,11 @@ static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char
 #ifdef _ChecksumPlugin_fadler32
     __setChecksum(&fadler32ChecksumPlugin);
 #endif
-#ifdef _ChecksumPlugin_fadler64
-    __setChecksum(&fadler64ChecksumPlugin);
-#endif
 #ifdef _ChecksumPlugin_fadler128
     __setChecksum(&fadler128ChecksumPlugin);
 #endif
-#ifdef _ChecksumPlugin_md5
-    __setChecksum(&md5ChecksumPlugin);
-#endif
 #ifdef _ChecksumPlugin_blake3
     __setChecksum(&blake3ChecksumPlugin);
-#endif
-#ifdef _ChecksumPlugin_xxh3
-    __setChecksum(&xxh3ChecksumPlugin);
-#endif
-#ifdef _ChecksumPlugin_xxh128
-    __setChecksum(&xxh128ChecksumPlugin);
 #endif
     return hpatch_FALSE;
 }

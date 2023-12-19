@@ -230,7 +230,7 @@ static void printUsage(){
 #   if (_IS_USED_MULTITHREAD)
            "        -c-pbzip2[-{1..9}]              (or -pbz2) DEFAULT level 8\n"
            "            support run by multi-thread parallel, fast!\n"
-           "            WARNING: code not compatible with it compressed by -c-bzip2!\n"
+           "            NOTE: code not compatible with it compressed by -c-bzip2!\n"
            "               and code size may be larger than if it compressed by -c-bzip2.\n"
 #   endif
 #endif
@@ -247,7 +247,7 @@ static void printUsage(){
 #   if (_IS_USED_MULTITHREAD)
            "            support run by multi-thread parallel, fast!\n"
 #   endif
-           "            WARNING: code not compatible with it compressed by -c-lzma!\n"
+           "            NOTE: code not compatible with it compressed by -c-lzma!\n"
 #endif
 #ifdef _CompressPlugin_lz4
            "        -c-lz4[-{1..50}]                DEFAULT level 50 (as lz4 acceleration 1)\n"
@@ -549,6 +549,18 @@ static inline hpatch_BOOL _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,
 static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType){
     *out_checksumPlugin=0;
     if (strlen(checksumType)==0) return hpatch_TRUE;
+#ifdef _ChecksumPlugin_fadler64
+    __setChecksum(&fadler64ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_xxh128
+    __setChecksum(&xxh128ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_xxh3
+    __setChecksum(&xxh3ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_md5
+    __setChecksum(&md5ChecksumPlugin);
+#endif
 #ifdef _ChecksumPlugin_crc32
     __setChecksum(&crc32ChecksumPlugin);
 #endif
@@ -561,23 +573,11 @@ static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char
 #ifdef _ChecksumPlugin_fadler32
     __setChecksum(&fadler32ChecksumPlugin);
 #endif
-#ifdef _ChecksumPlugin_fadler64
-    __setChecksum(&fadler64ChecksumPlugin);
-#endif
 #ifdef _ChecksumPlugin_fadler128
     __setChecksum(&fadler128ChecksumPlugin);
 #endif
-#ifdef _ChecksumPlugin_md5
-    __setChecksum(&md5ChecksumPlugin);
-#endif
 #ifdef _ChecksumPlugin_blake3
     __setChecksum(&blake3ChecksumPlugin);
-#endif
-#ifdef _ChecksumPlugin_xxh3
-    __setChecksum(&xxh3ChecksumPlugin);
-#endif
-#ifdef _ChecksumPlugin_xxh128
-    __setChecksum(&xxh128ChecksumPlugin);
 #endif
     return hpatch_FALSE;
 }
@@ -1075,6 +1075,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     }
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
+    if (isSetChecksum==_kNULL_VALUE)
+        isSetChecksum=hpatch_FALSE;
     if (kMaxOpenFileNumber==_kNULL_SIZE)
         kMaxOpenFileNumber=kMaxOpenFileNumber_default_diff;
     if (kMaxOpenFileNumber<kMaxOpenFileNumber_default_min)
@@ -1120,9 +1122,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (isForceRunDirDiff==_kNULL_VALUE)
             isForceRunDirDiff=hpatch_FALSE;
-        if (isSetChecksum==_kNULL_VALUE)
-            isSetChecksum=hpatch_FALSE;
-        
         if ((!manifestOld.empty())||(!manifestNew.empty())){
             isForceRunDirDiff=hpatch_TRUE;
             _options_check(manifestOut.empty()&&(!manifestNew.empty()),"-M?");
@@ -1168,16 +1167,12 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         hpatch_BOOL isUseDirDiff=isForceRunDirDiff||(kPathType_dir==oldType)||(kPathType_dir==newType);
         if (isUseDirDiff){
 #ifdef _ChecksumPlugin_fadler64
-            if (isSetChecksum==hpatch_FALSE){
+            if (isSetChecksum==hpatch_FALSE)
                 checksumPlugin=&fadler64ChecksumPlugin; //DEFAULT
-                isSetChecksum=hpatch_TRUE;
-            }
 #else
 #   ifdef _ChecksumPlugin_crc32
-            if (isSetChecksum==hpatch_FALSE){
+            if (isSetChecksum==hpatch_FALSE)
                 checksumPlugin=&crc32ChecksumPlugin; //DEFAULT
-                isSetChecksum=hpatch_TRUE;
-            }
 #   endif
 #endif
         }else
@@ -1210,19 +1205,14 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         _options_check(arg_values.size()==1,"create manifest file used one inputPath");
         _options_check(ignoreOldPathList.empty(),"-g-old unsupport run with create manifest file mode");
         _options_check(ignoreNewPathList.empty(),"-g-new unsupport run with create manifest file mode");
-        if (isSetChecksum==_kNULL_VALUE)
-            isSetChecksum=hpatch_FALSE;
+
 #ifdef _ChecksumPlugin_fadler64
-        if (isSetChecksum==hpatch_FALSE){
+        if (isSetChecksum==hpatch_FALSE)
             checksumPlugin=&fadler64ChecksumPlugin; //DEFAULT
-            isSetChecksum=hpatch_TRUE;
-        }
 #else
 #   ifdef _ChecksumPlugin_crc32
-        if (isSetChecksum==hpatch_FALSE){
+        if (isSetChecksum==hpatch_FALSE)
             checksumPlugin=&crc32ChecksumPlugin; //DEFAULT
-            isSetChecksum=hpatch_TRUE;
-        }
 #   endif
 #endif
 
