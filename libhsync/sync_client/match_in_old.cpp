@@ -275,7 +275,7 @@ static inline uint32_t _indexMapFrom(hpatch_StreamPos_t pos){
 
 typedef volatile hpatch_StreamPos_t volStreamPos_t;
 
-static bool matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,
+static bool matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,hpatch_uint32_t kBlockCount,
                        const uint32_t* range_begin,const uint32_t* range_end,TOldDataCache_base& oldData,
                        const TByte* partChecksums,size_t outPartChecksumBits,
                        TByte* newDataCheckChecksum,hpatch_StreamPos_t kMinRevSameIndex,void* _mt=0){
@@ -314,6 +314,7 @@ static bool matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,
                                 break;
                             //next same block
                             newBlockIndex=_indexMapFrom(newBlockOldPosBack);
+                            assert(newBlockIndex<kBlockCount);
                             pNewBlockDataInOldPos=&out_newBlockDataInOldPoss[newBlockIndex];
                             newBlockOldPosBack=*pNewBlockDataInOldPos;
                         }
@@ -378,7 +379,7 @@ static void _rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,
         if (range.first==range.second)
             { if (oldData.roll()) continue; else break; }//finish
         
-        bool isMatched=matchRange(rd.out_newBlockDataInOldPoss,range.first,range.second,oldData,
+        bool isMatched=matchRange(rd.out_newBlockDataInOldPoss,kBlockCount,range.first,range.second,oldData,
                                   rd.newSyncInfo->partChecksums,rd.newSyncInfo->savedStrongChecksumBits,
                                   rd.newSyncInfo->savedNewDataCheckChecksum,kMinRevSameIndex,_mt);
         if (kIsSkipMatchedBlock&&isMatched){
@@ -419,6 +420,9 @@ static void _rollMatch_mt(int threadIndex,void* workData){
 }
 #endif
 
+    static inline void _init_newBlockDataInOldPoss(hpatch_StreamPos_t* newBlockDataInOldPoss,uint32_t kBlockCount){
+        for (uint32_t i=0; i<kBlockCount; ++i) newBlockDataInOldPoss[i]=kBlockType_needSync; }
+
 static void _matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
     const TNewDataSyncInfo* newSyncInfo=matchDatas.newSyncInfo;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
@@ -426,6 +430,7 @@ static void _matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
     hpatch_StreamPos_t* out_newBlockDataInOldPoss=matchDatas.out_newBlockDataInOldPoss;
     const size_t savedRollHashByteSize=newSyncInfo->savedRollHashByteSize;
     const size_t savedRollHashBits=newSyncInfo->savedRollHashBits;
+    _init_newBlockDataInOldPoss(out_newBlockDataInOldPoss,kBlockCount);
     
     TAutoMem _mem_sorted(kMatchBlockCount*(size_t)sizeof(uint32_t));
     uint32_t* sorted_newIndexs=(uint32_t*)_mem_sorted.data();
@@ -438,8 +443,10 @@ static void _matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
         for (uint32_t i=0;i<kBlockCount;++i,partRollHash+=savedRollHashByteSize){
             if ((curPair<newSyncInfo->samePairCount)&&(i==newSyncInfo->samePairList[curPair].curIndex)){
                 uint32_t sameIndex=newSyncInfo->samePairList[curPair].sameIndex;
-                while (out_newBlockDataInOldPoss[sameIndex]!=kBlockType_needSync)
+                while (out_newBlockDataInOldPoss[sameIndex]!=kBlockType_needSync){
                     sameIndex=_indexMapFrom(out_newBlockDataInOldPoss[sameIndex]);
+                    assert(sameIndex<kBlockCount);
+                }
                 assert(sameIndex<i);
                 out_newBlockDataInOldPoss[sameIndex]=_indexMapTo(i);
                 ++curPair;

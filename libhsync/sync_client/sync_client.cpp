@@ -322,8 +322,6 @@ TSyncClient_resultType
     //matched in oldData
     newBlockDataInOldPoss=(hpatch_StreamPos_t*)malloc(kBlockCount*(size_t)sizeof(hpatch_StreamPos_t));
     check(newBlockDataInOldPoss!=0,kSyncClient_memError);
-    for (uint32_t i=0; i<kBlockCount; ++i)
-        newBlockDataInOldPoss[i]=kBlockType_needSync;
     if (diffData!=0){ //local patch
         assert(syncDataListener==0);
         assert(diffContinue==0);

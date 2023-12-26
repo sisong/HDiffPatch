@@ -49,6 +49,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h> // ioctl
 #include <linux/fs.h> //BLKGETSIZE64
+#include <unistd.h> //close
 
 static hpatch_BOOL _get_block_dev_size(const char* blkdev,hpatch_uint64_t* bsize){
 	int fd;
