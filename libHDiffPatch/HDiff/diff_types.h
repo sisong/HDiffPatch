@@ -147,7 +147,7 @@ extern "C"
         void (*search_cover_finish)(ICoverLinesListener* listener,void* pcovers,size_t* pcoverCount,bool isCover32,
                                     hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
         int (*get_max_match_deep)(const ICoverLinesListener* listener); //if null, default kDefaultMaxMatchDeepForLimit
-        // *search_block* for muti-thread parallel match,can null
+        // *search_block* for multi-thread parallel match,can null
         void (*begin_search_block)(ICoverLinesListener* listener,hpatch_StreamPos_t newSize,
                                    size_t searchBlockSize,size_t kPartPepeatSize);
         hpatch_BOOL (*next_search_block_MT)(ICoverLinesListener* listener,hdiff_TRange* out_newRange);//must thread safe
@@ -155,7 +155,7 @@ extern "C"
 
     struct hdiff_TMTSets_s{ // used by $hdiff -s
         size_t threadNum;
-        size_t threadNumForSearch; // NOTE: muti-thread search need frequent random disk read
+        size_t threadNumForSearch; // NOTE: multi-thread search need frequent random disk read
         bool   newDataIsMTSafe;
         bool   oldDataIsMTSafe;
         bool   newAndOldDataIsMTSameRes; //for dir diff

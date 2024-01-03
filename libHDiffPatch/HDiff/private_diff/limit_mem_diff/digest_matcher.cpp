@@ -742,7 +742,7 @@ void TDigestMatcher::search_cover(hpatch_TOutputCovers* out_covers){
         mt_data_t mt_data;
         mt_data.workCount=(uint_work)workCount;
         if ((sizeof(mt_data.workCount)<sizeof(workCount))&&(mt_data.workCount!=workCount))
-            throw std::runtime_error("TDigestMatcher::search_cover() muti-thread workCount error!");
+            throw std::runtime_error("TDigestMatcher::search_cover() multi-thread workCount error!");
         mt_data.workIndex=0;
         const size_t threadCount=threadNum-1;
         std::vector<std::thread> threads(threadCount);

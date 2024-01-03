@@ -485,7 +485,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
             _pushv(out_diff);
         }
     }else{
-        const bool  newAndOldDataIsMTSameRes=true; // NOTE: now resLimit not muti-thread safe 
+        const bool  newAndOldDataIsMTSameRes=true; // NOTE: now resLimit not multi-thread safe 
         const hdiff_TMTSets_s mtsets={hdiffSets.threadNum,hdiffSets.threadNumSearch_s,false,false,
                                       newAndOldDataIsMTSameRes};
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);

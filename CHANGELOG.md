@@ -29,7 +29,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v4.5.2](https://github.com/sisong/HDiffPatch/tree/v4.5.2) - 2022-12-25
 ### Fixed
-* fix a bug when run dir_diff by muti-thread parallel;
+* fix a bug when run dir_diff by multi-thread parallel;
 
 ## [v4.5.0](https://github.com/sisong/HDiffPatch/tree/v4.5.0) - 2022-11-23
 ### Added
@@ -41,7 +41,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v4.4.0](https://github.com/sisong/HDiffPatch/tree/v4.4.0) - 2022-10-09
 ### Changed
-* optimize diff -m & -s speed by muti-thread parallel, requires C++11.
+* optimize diff -m & -s speed by multi-thread parallel, requires C++11.
 
 ## [v4.3.0](https://github.com/sisong/HDiffPatch/tree/v4.3.0) - 2022-09-23
 ### Changed

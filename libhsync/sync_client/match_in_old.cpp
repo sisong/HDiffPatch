@@ -44,7 +44,7 @@ namespace sync_private{
 static const int kMatchHitOutLimit =16;       //limit match deep
 static const size_t kBestReadSize  =1024*256; //for sequence read
 #if (_IS_USED_MULTITHREAD)
-static const size_t kBestMTClipSize=1*1024*1024; //for muti-thread read once
+static const size_t kBestMTClipSize=1*1024*1024; //for multi-thread read once
 struct _TMatchDatas;
 namespace{
     struct TMt:public TMtByChannel{
