@@ -1400,7 +1400,8 @@ void resave_compressed_diff(const hpatch_TStreamInput*  in_diff,
 }
 
 
-void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
+hpatch_StreamPos_t
+     resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
                                    hpatch_TDecompress*         decompressPlugin,
                                    const hpatch_TStreamOutput* out_diff,
                                    const hdiff_TCompress*      compressPlugin,
@@ -1439,6 +1440,7 @@ void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
         TPlaceholder compressedSize_pos=outDiff.packUInt_pos(compressPlugin?diffInfo->uncompressedSize:0);
         outDiff.pushStream(&clip,compressPlugin,compressedSize_pos);
     }
+    return outDiff.getWritedPos();
 }
 
 

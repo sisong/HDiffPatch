@@ -166,7 +166,9 @@ bool check_single_compressed_diff(const hpatch_TStreamInput* newData,
 //resave single_compressed_diff
 //  decompress in_diff and recompress to out_diff
 //  throw std::runtime_error when input file error or I/O error,etc.
-void resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
+//  return new out_diff curPos
+hpatch_StreamPos_t
+     resave_single_compressed_diff(const hpatch_TStreamInput*  in_diff,
                                    hpatch_TDecompress*         decompressPlugin,
                                    const hpatch_TStreamOutput* out_diff,
                                    const hdiff_TCompress*      compressPlugin,
