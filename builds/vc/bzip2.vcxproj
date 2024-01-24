@@ -288,13 +288,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\bzip2\blocksort.c" />
-    <ClCompile Include="..\..\..\bzip2\bzlib.c" />
-    <ClCompile Include="..\..\..\bzip2\compress.c" />
-    <ClCompile Include="..\..\..\bzip2\crctable.c" />
-    <ClCompile Include="..\..\..\bzip2\decompress.c" />
-    <ClCompile Include="..\..\..\bzip2\huffman.c" />
-    <ClCompile Include="..\..\..\bzip2\randtable.c" />
+    <ClCompile Include="..\..\bzip2\blocksort.c" />
+    <ClCompile Include="..\..\bzip2\bzlib.c" />
+    <ClCompile Include="..\..\bzip2\compress.c" />
+    <ClCompile Include="..\..\bzip2\crctable.c" />
+    <ClCompile Include="..\..\bzip2\decompress.c" />
+    <ClCompile Include="..\..\bzip2\huffman.c" />
+    <ClCompile Include="..\..\bzip2\randtable.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

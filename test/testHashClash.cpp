@@ -37,10 +37,10 @@
 #define _IS_NEED_ZLIB   1
 #define _IS_NEED_MD5    0
 #if (_IS_NEED_ZLIB)
-#include "zlib.h"
+#include "../zlib/zlib.h"
 #endif
 #if (_IS_NEED_MD5)
-#include "md5.h" // https://sourceforge.net/projects/libmd5-rfc
+#include "../libmd5/md5.h" // https://sourceforge.net/projects/libmd5-rfc
 #endif
 
 typedef unsigned char   TByte;

@@ -57,7 +57,7 @@ else
 	HPATCH_OBJ += bsdiff_wrapper/bspatch_wrapper.o
 endif
 
-MD5_PATH := ../libmd5
+MD5_PATH := libmd5
 ifeq ($(DIR_DIFF),0)
 else
   ifeq ($(MD5),0)
@@ -66,7 +66,7 @@ else
   endif
 endif
 
-LZMA_PATH := ../lzma/C
+LZMA_PATH := lzma/C
 ifeq ($(LZMA),1)
   # https://www.7-zip.org  https://github.com/sisong/lzma
   HPATCH_OBJ += $(LZMA_PATH)/LzmaDec.o \
@@ -115,7 +115,7 @@ else
   endif
 endif
 
-ZSTD_PATH := ../zstd/lib
+ZSTD_PATH := zstd/lib
 ifeq ($(ZSTD),1) # https://github.com/sisong/zstd
   HPATCH_OBJ += $(ZSTD_PATH)/common/debug.o \
   				$(ZSTD_PATH)/common/entropy_common.o \
@@ -147,7 +147,7 @@ ifeq ($(ZSTD),1) # https://github.com/sisong/zstd
   endif
 endif
 
-BZ2_PATH := ../bzip2
+BZ2_PATH := bzip2
 ifeq ($(BZIP2),1) # http://www.bzip.org  https://github.com/sisong/bzip2
   HPATCH_OBJ += $(BZ2_PATH)/blocksort.o \
   				$(BZ2_PATH)/bzlib.o \
@@ -158,7 +158,7 @@ ifeq ($(BZIP2),1) # http://www.bzip.org  https://github.com/sisong/bzip2
   				$(BZ2_PATH)/randtable.o
 endif
 
-ZLIB_PATH := ../zlib
+ZLIB_PATH := zlib
 ifeq ($(ZLIB),1) # http://zlib.net  https://github.com/sisong/zlib  
   HPATCH_OBJ += $(ZLIB_PATH)/adler32.o \
   				$(ZLIB_PATH)/crc32.o \

@@ -77,7 +77,7 @@ static void __dec_free(void* _, void* address){
 
 #ifdef  _CompressPlugin_zlib
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
+#   include "zlib/zlib.h" // http://zlib.net/  https://github.com/madler/zlib
 #endif
     typedef struct _zlib_TDecompress{
         hpatch_StreamPos_t code_begin;
@@ -275,7 +275,7 @@ static void __dec_free(void* _, void* address){
     
 #ifdef  _CompressPlugin_bz2
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "bzlib.h" // http://www.bzip.org/  https://github.com/sisong/bzip2
+#   include "bzip2/bzlib.h" // http://www.bzip.org/  https://github.com/sisong/bzip2
 #endif
     typedef struct _bz2_TDecompress{
         const struct hpatch_TStreamInput* codeStream;
@@ -404,9 +404,9 @@ static void __dec_free(void* _, void* address){
 
 #if (defined _CompressPlugin_lzma) || (defined _CompressPlugin_lzma2)
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "LzmaDec.h" // "lzma/C/LzmaDec.h" https://github.com/sisong/lzma
+#   include "lzma/C/LzmaDec.h" // "lzma/C/LzmaDec.h" https://github.com/sisong/lzma
 #   ifdef _CompressPlugin_lzma2
-#       include "Lzma2Dec.h"
+#       include "lzma/C/Lzma2Dec.h"
 #   endif
 #endif
 #endif
@@ -638,8 +638,8 @@ static void __dec_free(void* _, void* address){
 
 #ifdef _CompressPlugin_7zXZ
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "Xz.h" // "lzma/C/Xz.h" https://github.com/sisong/lzma
-#   include "7zCrc.h" // CrcGenerateTable()
+#   include "lzma/C/Xz.h" // "lzma/C/Xz.h" https://github.com/sisong/lzma
+#   include "lzma/C/7zCrc.h" // CrcGenerateTable()
 #endif
 
 #ifndef _init_CompressPlugin_7zXZ_DEF
@@ -904,7 +904,7 @@ static void __dec_free(void* _, void* address){
 #ifdef  _CompressPlugin_zstd
 #if (_IsNeedIncludeDefaultCompressHead)
 //#   define ZSTD_STATIC_LINKING_ONLY //for ZSTD_customMem
-#   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/sisong/zstd
+#   include "zstd/lib/zstd.h" // "zstd/lib/zstd.h" https://github.com/sisong/zstd
 #endif
     typedef struct _zstd_TDecompress{
         const struct hpatch_TStreamInput* codeStream;

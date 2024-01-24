@@ -396,7 +396,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\libmd5\md5.c" />
+    <ClCompile Include="..\..\libmd5\md5.c" />
     <ClCompile Include="..\..\bsdiff_wrapper\bsdiff_wrapper.cpp" />
     <ClCompile Include="..\..\bsdiff_wrapper\bspatch_wrapper.c" />
     <ClCompile Include="..\..\compress_parallel.cpp" />

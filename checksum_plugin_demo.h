@@ -60,7 +60,7 @@
 
 #ifdef  _ChecksumPlugin_crc32
 #if (_IsNeedIncludeDefaultChecksumHead)
-#   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
+#   include "zlib/zlib.h" // http://zlib.net/  https://github.com/madler/zlib
 #endif
 static const char* _crc32_checksumType(void){
     static const char* type="crc32";
@@ -303,7 +303,7 @@ static hpatch_TChecksum fadler128ChecksumPlugin={ _fadler128_checksumType,_fadle
 
 #ifdef  _ChecksumPlugin_md5
 #if (_IsNeedIncludeDefaultChecksumHead)
-#   include "md5.h" // https://sourceforge.net/projects/libmd5-rfc  https://github.com/sisong/libmd5
+#   include "libmd5/md5.h" // https://sourceforge.net/projects/libmd5-rfc  https://github.com/sisong/libmd5
 #endif
 static const char* _md5_checksumType(void){
     static const char* type="md5";

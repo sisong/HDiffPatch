@@ -115,7 +115,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 
 #ifdef  _CompressPlugin_zlib
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
+#   include "zlib/zlib.h" // http://zlib.net/  https://github.com/madler/zlib
 #endif
     typedef struct{
         hdiff_TCompress base;
@@ -379,7 +379,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     
 #ifdef  _CompressPlugin_bz2
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "bzlib.h" // http://www.bzip.org/  https://github.com/sisong/bzip2
+#   include "bzip2/bzlib.h" // http://www.bzip.org/  https://github.com/sisong/bzip2
 #endif
     typedef struct{
         hdiff_TCompress base;
@@ -508,9 +508,9 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 
 #if (defined _CompressPlugin_lzma)||(defined _CompressPlugin_lzma2)||(defined _CompressPlugin_7zXZ)
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "LzmaEnc.h" // "lzma/C/LzmaEnc.h" https://github.com/sisong/lzma
+#   include "lzma/C/LzmaEnc.h" // "lzma/C/LzmaEnc.h" https://github.com/sisong/lzma
 #   ifdef _CompressPlugin_lzma2
-#       include "Lzma2Enc.h"
+#       include "lzma/C/Lzma2Enc.h"
 #   endif
 #endif
     static void * __lzma_enc_Alloc(ISzAllocPtr p, size_t size){
@@ -642,7 +642,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     
 #ifdef  _CompressPlugin_lzma2
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "MtCoder.h" // "lzma/C/MtCoder.h"   for MTCODER__THREADS_MAX
+#   include "lzma/C/MtCoder.h" // "lzma/C/MtCoder.h"   for MTCODER__THREADS_MAX
 #endif
     struct TCompressPlugin_lzma2{
         hdiff_TCompress base;
@@ -721,9 +721,9 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 
 #ifdef  _CompressPlugin_7zXZ
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "XzEnc.h" // "lzma/C/XzEnc.h" https://github.com/sisong/lzma
-#   include "MtCoder.h" // "lzma/C/MtCoder.h"   for MTCODER__THREADS_MAX
-#   include "7zCrc.h" // CrcGenerateTable()
+#   include "lzma/C/XzEnc.h" // "lzma/C/XzEnc.h" https://github.com/sisong/lzma
+#   include "lzma/C/MtCoder.h" // "lzma/C/MtCoder.h"   for MTCODER__THREADS_MAX
+#   include "lzma/C/7zCrc.h" // CrcGenerateTable()
 #endif
 
 #ifndef _init_CompressPlugin_7zXZ_DEF
@@ -990,7 +990,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
 
 #ifdef  _CompressPlugin_zstd
 #if (_IsNeedIncludeDefaultCompressHead)
-#   include "zstd.h" // "zstd/lib/zstd.h" https://github.com/sisong/zstd
+#   include "zstd/lib/zstd.h" // "zstd/lib/zstd.h" https://github.com/sisong/zstd
 #endif
     struct TCompressPlugin_zstd{
         hdiff_TCompress base;
