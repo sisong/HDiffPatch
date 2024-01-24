@@ -1,0 +1,16 @@
+Note! Here's a note on what to change!
+
+The purpose of this file is to indicate the reason for and what changes to the
+repository file may lead to some unknown bugs, and to ensure that the cause of
+certain bugs can be found in the future.
+
+[acgnFun 2024/1/24]
+
+1. Makefile
+	- Compile third-party libraries instead of referencing existing content.
+	- Change the third-party library directory location.
+2. Folders
+	- Add the third-party library directory to the source code directory.
+3. checksum_plugin_demo.h, compress_plugin_demo.h, decompress_plugin_demo.h
+	- Changed a part of the #include preprocessing directive so that
+	  the code can rediscover the header files of third-party libraries.
