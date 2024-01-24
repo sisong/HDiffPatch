@@ -2,7 +2,7 @@
 DIR_DIFF := 1
 MT       := 1
 # 0: not need zlib;  1: compile zlib source code;  2: used -lz to link zlib lib;
-ZLIB     := 2
+ZLIB     := 1
 # 0: not need lzma;  1: compile lzma source code;  2: used -llzma to link lzma lib;
 LZMA     := 1
 ARM64ASM := 0
@@ -26,7 +26,7 @@ ifeq ($(OS),Windows_NT) # mingw?
   BZIP2 := 1
 else
   # 0: not need bzip2 (must BSD=0);  1: compile bzip2 source code;  2: used -lbz2 to link bzip2 lib;
-  BZIP2 := 2
+  BZIP2 := 1
 endif
 ifeq ($(BZIP2),0)
   ifeq ($(BSD),0)
