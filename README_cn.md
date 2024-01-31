@@ -460,7 +460,8 @@ client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`
   patch with `--apply --old {old} --patch {pat} --new {new}`   
   注意: archive-patcher 统计的补丁包大小是经过了 lzma2-9-16m 压缩后的, 而 diff&patch 统计时并不包含压缩和解压缩补丁所需的内存和时间。   
 **sfpatcher -1 zstd** v1.1.1 diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
-**sfpatcher -2 lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
+& **sfpatcher -2 lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
+**sfpatcher -1 clA zstd** v1.3.0 used `$sf_normalize -cl-A` normalized apks before diff   
  sfpatcher patch with `-lp -p-8 {old} {pat} {new}`   
 adding test hpatchz&hsynz&sfpatcher on Android, arm CPU 麒麟980(2×A76 2.6G + 2×A76 1.92G + 4×A55 1.8G)   
 ( [archive-patcher]、[sfpatcher] diff&patch 时针对apk文件格式进行了优化 )  
@@ -501,6 +502,8 @@ adding test hpatchz&hsynz&sfpatcher on Android, arm CPU 麒麟980(2×A76 2.6G + 
 |sfpatcher-1 p8 zstd|31.07%|1025M|4.6MB/s|18M|25M|424MB/s|189MB/s|
 |sfpatcher-2 p1 lzma2|24.11%|976M|2.1MB/s|15M|20M|37MB/s|19MB/s|
 |sfpatcher-2 p8 lzma2|24.15%|968M|5.0MB/s|20M|26M|108MB/s|45MB/s|
+|sfpatcher-1 p1 clA zstd|21.72%|1141M|2.5MB/s|19M|22M|85MB/s|63MB/s|
+|sfpatcher-1 p8 clA zstd|21.74%|1156M|5.4MB/s|26M|29M|240MB/s|129MB/s|
     
 
 ---
