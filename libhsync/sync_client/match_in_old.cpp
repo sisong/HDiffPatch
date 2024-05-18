@@ -246,7 +246,8 @@ struct TOldDataCache:public TOldDataCache_base {
     inline tm_roll_uint hashValue()const{ return m_rollHash; }
     inline bool roll(){
         const TByte* curIn=m_cur+m_kSyncBlockSize;
-        if (curIn!=m_cache.data_end()){
+        assert(curIn>=m_cache.data());
+        if (curIn<m_cache.data_end()){
             m_rollHash=roll_hash_roll(m_rollHash,m_kSyncBlockSize,*m_cur,*curIn);
             ++m_cur;
             return true;
