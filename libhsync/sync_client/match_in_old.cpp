@@ -166,12 +166,15 @@ struct TOldDataCache_base {
     //                           ^
     //                          cur
     void _cache(){
+        if (isRollEnded()) return;
         const hpatch_StreamPos_t rollPosEnd=oldRollPosEnd();
-        if (m_readedPos >=rollPosEnd){ m_cur=0; return; } //set end tag
+        if (m_readedPos>=rollPosEnd) { _setRollEnded(); return; }//set end tag
 
         size_t needLen=m_cur-m_cache.data();
         if (m_readedPos+needLen>rollPosEnd)
             needLen=(size_t)(rollPosEnd-m_readedPos);
+        if (m_cur-needLen+m_kSyncBlockSize>m_cache.data_end()) { _setRollEnded(); return; } //set end tag
+
         memmove(m_cur-needLen,m_cur,m_cache.data_end()-m_cur);
         size_t readLen=needLen;
         if (m_readedPos+readLen>m_oldStream->streamSize){
@@ -196,7 +199,7 @@ struct TOldDataCache_base {
         m_cur-=needLen;
     }
 
-    inline bool isEnd()const{ return m_cur==0; }
+    inline bool isRollEnded()const{ return m_cur>m_cache.data_end(); }
     inline const TByte* calcPartStrongChecksum(size_t outPartBits){
         return _calcPartStrongChecksum(m_cur,m_kSyncBlockSize,outPartBits); }
     inline const TByte* strongChecksum()const{//must after do calcPartStrongChecksum()
@@ -219,6 +222,7 @@ protected:
     hpatch_checksumHandle   m_checkChecksum;
     void*                   m_mt;
 
+    inline void _setRollEnded() { m_cur=m_cache.data_end()+1; }
     inline const TByte* _calcPartStrongChecksum(const TByte* buf,size_t bufSize,size_t outPartBits){
         TByte* strongChecksum=m_strongChecksum_buf+m_checksumByteSize;
         m_strongChecksumPlugin->begin(m_checksumHandle);
@@ -235,12 +239,12 @@ struct TOldDataCache:public TOldDataCache_base {
                          hpatch_TChecksum* strongChecksumPlugin,void* _mt=0)
             :TOldDataCache_base(oldStream,oldRollBegin,oldRollEnd,kSyncBlockSize,
                                 strongChecksumPlugin,_mt){
-                if (isEnd()) return;
+                if (isRollEnded()) return;
                 m_rollHash=roll_hash_start(m_cur,m_kSyncBlockSize);
             }
     bool _cacheAndRoll(){
         TOldDataCache_base::_cache();
-        if (isEnd()) return false;
+        if (isRollEnded()) return false;
         return roll();
     }
     inline tm_roll_uint hashValue()const{ return m_rollHash; }
@@ -259,7 +263,7 @@ struct TOldDataCache:public TOldDataCache_base {
         m_cur+=m_kSyncBlockSize;
         if (m_cur+m_kSyncBlockSize>m_cache.data_end()){
             TOldDataCache_base::_cache();
-            if (isEnd()) return false;
+            if (isRollEnded()) return false;
         }
         m_rollHash=roll_hash_start(m_cur,m_kSyncBlockSize);
         return true;
