@@ -60,7 +60,16 @@
 
 #ifdef  _ChecksumPlugin_crc32
 #if (_IsNeedIncludeDefaultChecksumHead)
+# ifdef _CompressPlugin_ldef
+#   include "libdeflate.h" // https://github.com/ebiggers/libdeflate
+# else
 #   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
+# endif
+#endif
+#ifdef _CompressPlugin_ldef
+#   define _crc32 libdeflate_crc32
+#else
+#   define _crc32 crc32
 #endif
 static const char* _crc32_checksumType(void){
     static const char* type="crc32";
@@ -77,11 +86,14 @@ static void _crc32_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
 }
 static void  _crc32_begin(hpatch_checksumHandle handle){
     hpatch_uint32_t* pv=(hpatch_uint32_t*)handle;
-    *pv=(hpatch_uint32_t)crc32(0,0,0);
+    *pv=(hpatch_uint32_t)_crc32(0,0,0);
 }
 static void _crc32_append(hpatch_checksumHandle handle,
                           const unsigned char* part_data,const unsigned char* part_data_end){
     hpatch_uint32_t* pv=(hpatch_uint32_t*)handle;
+#ifdef _CompressPlugin_ldef
+    *pv=_crc32(*pv,part_data,part_data_end-part_data);
+#else
     uLong v=*pv;
     while (part_data!=part_data_end) {
         size_t dataSize=(size_t)(part_data_end-part_data);
@@ -89,10 +101,11 @@ static void _crc32_append(hpatch_checksumHandle handle,
         //assert(len>0);
         if (len>dataSize)
             len=(uInt)dataSize;
-        v=crc32(v,part_data,len);
+        v=_crc32(v,part_data,len);
         part_data+=len;
     }
     *pv=(hpatch_uint32_t)v;
+#endif
 }
 static void _crc32_end(hpatch_checksumHandle handle,
                        unsigned char* checksum,unsigned char* checksum_end){

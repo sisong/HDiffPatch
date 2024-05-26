@@ -53,6 +53,7 @@ const long kRandTestCount=20000;
 //===== select compress plugin =====
 #define _CompressPlugin_no
 //#define _CompressPlugin_zlib
+//#define _CompressPlugin_ldef
 //#define _CompressPlugin_bz2
 //#define _CompressPlugin_lzma
 //#define _CompressPlugin_lzma2
@@ -133,7 +134,11 @@ const long kRandTestCount=20000;
 #endif
 
 static hsync_TDictCompress* _getDictCompressPlugin(){
-#if defined(_CompressPlugin_zlib)
+#if defined(_CompressPlugin_ldef)
+    static TDictCompressPlugin_ldef _ldefDictCompressPlugin=ldefDictCompressPlugin;
+    _ldefDictCompressPlugin.compress_level=6;
+    return &_ldefDictCompressPlugin.base;
+#elif defined(_CompressPlugin_zlib)
     static TDictCompressPlugin_zlib _zlibDictCompressPlugin=zlibDictCompressPlugin;
     _zlibDictCompressPlugin.compress_level=6;
     return &_zlibDictCompressPlugin.base;
@@ -236,7 +241,11 @@ struct TSyncInfoListener:public ISyncInfoListener{
         return hsynzDefaultChecksum;
     }
     static hsync_TDictDecompress* _findDecompressPlugin(ISyncInfoListener* listener,const char* compressType,size_t dictSize){
-#if defined(_CompressPlugin_zlib)
+#if defined(_CompressPlugin_ldef)
+        static TDictDecompressPlugin_ldef _ldefDictDecompressPlugin=ldefDictDecompressPlugin;
+        _ldefDictDecompressPlugin.dict_bits=(hpatch_byte)_dictSizeToDictBits(dictSize);
+        return &_ldefDictDecompressPlugin.base;
+#elif defined(_CompressPlugin_zlib)
         static TDictDecompressPlugin_zlib _zlibDictDecompressPlugin=zlibDictDecompressPlugin;
         _zlibDictDecompressPlugin.dict_bits=(hpatch_byte)_dictSizeToDictBits(dictSize);
         return &_zlibDictDecompressPlugin.base;

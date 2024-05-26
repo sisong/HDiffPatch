@@ -56,6 +56,7 @@ extern "C" {
         size_t                       (*dictCompress)(hsync_dictCompressHandle dictHandle,size_t blockIndex,
                                                      hpatch_byte* out_code,hpatch_byte* out_codeEnd,
                                                      const hpatch_byte* in_dataBegin,const hpatch_byte* in_dataEnd);
+        const char*        (*compressTypeForDisplay)(void);//like compressType but just for display,can NULL
     } hsync_TDictCompress;
 
     #define  kDictCompressCancel   (~(size_t)0)
