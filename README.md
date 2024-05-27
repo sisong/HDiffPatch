@@ -351,7 +351,7 @@ case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgULlawtabR9lh
    
 
 **test PC**: Windows11, CPU R9-7945HX, SSD PCIe4.0x4 4T, DDR5 5200MHz 32Gx2   
-**Program version**: HDiffPatch4.6.3, hsynz 0.9.3, BsDiff4.3, xdelta3.1, zstd1.5.2  
+**Program version**: HDiffPatch4.6.3, hsynz 1.1.0, BsDiff4.3, xdelta3.1, zstd1.5.2  
 **test Program**:   
 **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
  zstd patch with `-d -f --memory=2047MB --patch-from={old} {pat} -o {new}`  
@@ -411,10 +411,10 @@ client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`
 |hdiffz -s p8 lzma2|9.13%|370M|50.6MB/s|17M|20M|400MB/s|
 |hdiffz -s p1 zstd|9.60%|195M|18.0MB/s|17M|21M|677MB/s|
 |hdiffz -s p8 zstd|9.60%|976M|28.5MB/s|17M|21M|678MB/s|
-|hsynz p1 zlib|20.05%|6M|17.7MB/s|6M|21M|160MB/s|
-|hsynz p8 zlib|20.05%|30M|119.5MB/s|13M|29M|246MB/s|
-|hsynz p1 zstd|14.97%|531M|1.9MB/s|24M|35M|173MB/s|
-|hsynz p8 zstd|14.96%|3349M|10.2MB/s|24M|35M|278MB/s|
+|hsynz p1 zlib|20.05%|6M|17.3MB/s|6M|22M|273MB/s|
+|hsynz p8 zlib|20.05%|30M|115.1MB/s|13M|29M|435MB/s|
+|hsynz p1 zstd|14.96%|532M|1.9MB/s|24M|34M|264MB/s|
+|hsynz p8 zstd|14.95%|3349M|10.1MB/s|24M|34M|410MB/s|
     
 
 ## input Apk Files for test: 
@@ -467,7 +467,7 @@ case list:
 & **sfpatcher -2 lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
  sfpatcher patch with `-lp -p-8 {old} {pat} {new}`   
 **sfpatcher -1 clA zstd** v1.3.0 used `$sf_normalize -cl-A` normalized apks before diff   
-adding test hpatchz&hsynz&sfpatcher on Android, arm CPU Kirin980(2×A76 2.6G + 2×A76 1.92G + 4×A55 1.8G)   
+adding test hpatchz&sfpatcher on Android, arm CPU Kirin980(2×A76 2.6G + 2×A76 1.92G + 4×A55 1.8G)   
 ( [archive-patcher], [sfpatcher] optimized diff&patch between apk files )  
 
 **test result average**:
@@ -495,12 +495,12 @@ adding test hpatchz&hsynz&sfpatcher on Android, arm CPU Kirin980(2×A76 2.6G + 2
 |hdiffz -s p8 lzma2|53.30%|309M|32.4MB/s|20M|22M|258MB/s|
 |hdiffz -s p1 zstd|53.44%|221M|10.1MB/s|20M|22M|620MB/s|
 |hdiffz -s p8 zstd|53.44%|1048M|14.4MB/s|20M|22M|613MB/s|
-|hsynz p1|62.43%|4M|1647.6MB/s|4M|9M|152MB/s|55MB/s|
-|hsynz p8|62.43%|6M|2563.7MB/s|11M|18M|270MB/s|107MB/s|
-|hsynz p1 zlib|58.67%|5M|23.7MB/s|4M|11M|151MB/s|54MB/s|
-|hsynz p8 zlib|58.67%|29M|141.8MB/s|12M|19M|265MB/s|96MB/s|
-|hsynz p1 zstd|57.74%|534M|2.7MB/s|24M|28M|151MB/s|52MB/s|
-|hsynz p8 zstd|57.74%|3434M|13.2MB/s|24M|28M|265MB/s|95MB/s|
+|hsynz p1|62.43%|4M|1533.5MB/s|4M|10M|236MB/s|
+|hsynz p8|62.43%|18M|2336.4MB/s|12M|18M|394MB/s|
+|hsynz p1 zlib|58.67%|5M|22.7MB/s|4M|11M|243MB/s|
+|hsynz p8 zlib|58.67%|29M|138.6MB/s|12M|19M|410MB/s|
+|hsynz p1 zstd|57.74%|534M|2.7MB/s|24M|28M|234MB/s|
+|hsynz p8 zstd|57.74%|3434M|13.4MB/s|24M|28M|390MB/s|
 |archive-patcher|31.65%|1448M|0.9MB/s|558M|587M|14MB/s|
 |sfpatcher-1 p1 zstd|31.08%|818M|2.3MB/s|15M|19M|201MB/s|92MB/s|
 |sfpatcher-1 p8 zstd|31.07%|1025M|4.6MB/s|18M|25M|424MB/s|189MB/s|
