@@ -40,7 +40,8 @@ namespace sync_private{
 #define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
 #define checkv(value)     check(value,"check "#value" error!")
 
-#define     kIsSkipMatchedBlock     true      //true: speed++, but patchSize+
+//kIsSkipMatchedBlock 0: roll byte by byte  1: skip matched block, speed++, but patchSize+  2: skip next matched block  3: skip continue matched block 
+#define     kIsSkipMatchedBlock     1
 static const int kMatchHitOutLimit =16;       //limit match deep
 static const size_t kBestReadSize  =1024*256; //for sequence read
 #if (_IS_USED_MULTITHREAD)
@@ -280,10 +281,15 @@ static inline uint32_t _indexMapFrom(hpatch_StreamPos_t pos){
 
 typedef volatile hpatch_StreamPos_t volStreamPos_t;
 
-static bool matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,hpatch_uint32_t kBlockCount,
+static bool matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,
                        const uint32_t* range_begin,const uint32_t* range_end,TOldDataCache_base& oldData,
                        const TByte* partChecksums,size_t outPartChecksumBits,
-                       TByte* newDataCheckChecksum,hpatch_StreamPos_t kMinRevSameIndex,void* _mt=0){
+                       TByte* newDataCheckChecksum,hpatch_StreamPos_t kMinRevSameIndex,void* _mt
+  #if (kIsSkipMatchedBlock==3)
+                       ,bool _isSkipContinue){
+  #else
+                       ){
+  #endif
     const TByte* oldPartStrongChecksum=0;
     const size_t outPartChecksumSize=_bitsToBytes(outPartChecksumBits);
     bool isMatched=false;
@@ -291,23 +297,31 @@ static bool matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,hpatch_uint
     do {
         uint32_t newBlockIndex=*range_begin;
         volStreamPos_t* pNewBlockDataInOldPos=&out_newBlockDataInOldPoss[newBlockIndex];
-        if ((*pNewBlockDataInOldPos)>=kMinRevSameIndex){
+        hpatch_StreamPos_t newBlockOldPosBack=*pNewBlockDataInOldPos;   
+      #if (kIsSkipMatchedBlock==3)
+        if (_isSkipContinue|(newBlockOldPosBack>=kMinRevSameIndex)){
+      #else
+        if (newBlockOldPosBack>=kMinRevSameIndex){
+      #endif
             if (oldPartStrongChecksum==0)
                 oldPartStrongChecksum=oldData.calcPartStrongChecksum(outPartChecksumBits);
             const TByte* newPairStrongChecksum=partChecksums+newBlockIndex*outPartChecksumSize;
             if (0==memcmp(oldPartStrongChecksum,newPairStrongChecksum,outPartChecksumSize)){
                 isMatched=true;
+              #if (kIsSkipMatchedBlock==3)
+                if (newBlockOldPosBack<kMinRevSameIndex){
+                    if ((--hitOutLimit)<=0) break;
+                }
+              #endif
                 hpatch_StreamPos_t curPos=oldData.curOldPos();
                 {
 #if (_IS_USED_MULTITHREAD)
                     TMt* mt=(TMt*)_mt;
                     CAutoLocker _autoLocker(mt?mt->checkLocker.locker:0);
-                    hpatch_StreamPos_t newBlockOldPosBack=*pNewBlockDataInOldPos;
-                    if (newBlockOldPosBack<kMinRevSameIndex){// other thread done?
+                    newBlockOldPosBack=*pNewBlockDataInOldPos;
+                    if (newBlockOldPosBack<kMinRevSameIndex){// other thread done
                         if ((--hitOutLimit)<=0) break;
                     }else
-#else
-                    hpatch_StreamPos_t newBlockOldPosBack=*pNewBlockDataInOldPos;
 #endif
                     {
                         while(true){ //hit
@@ -319,7 +333,7 @@ static bool matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,hpatch_uint
                                 break;
                             //next same block
                             newBlockIndex=_indexMapFrom(newBlockOldPosBack);
-                            assert(newBlockIndex<kBlockCount);
+                            //assert(newBlockIndex<kBlockCount);
                             pNewBlockDataInOldPos=&out_newBlockDataInOldPoss[newBlockIndex];
                             newBlockOldPosBack=*pNewBlockDataInOldPos;
                         }
@@ -349,6 +363,10 @@ struct _TMatchDatas{
     unsigned int        kTableHashShlBit;
     uint32_t            threadNum;
 };
+
+#define _DEF_isSkipContinue()  \
+            const hpatch_StreamPos_t curOldPos=oldData.curOldPos(); \
+            const bool _isSkipContinue=(curOldPos==_skipPosBack0)|(curOldPos==_skipPosBack1)|(curOldPos==_skipPosBack2)
     
 static void _rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,
                        hpatch_StreamPos_t oldRollEnd,void* _mt=0){
@@ -363,6 +381,11 @@ static void _rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,
     const size_t savedRollHashBits=rd.newSyncInfo->savedRollHashBits;
     const TBloomFilter<tm_roll_uint>& filter=*(TBloomFilter<tm_roll_uint>*)rd.filter;
     tm_roll_uint digestFull_back=~oldData.hashValue(); //not same digest
+  #if (kIsSkipMatchedBlock>=2)
+    hpatch_StreamPos_t _skipPosBack0=0;
+    hpatch_StreamPos_t _skipPosBack1=0;
+    hpatch_StreamPos_t _skipPosBack2=oldData.curOldPos();
+  #endif
     while (true) {
         tm_roll_uint digest=oldData.hashValue();
         if (digestFull_back!=digest){
@@ -383,16 +406,33 @@ static void _rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,
                                rd.sorted_newIndexs+ti_pos[1],digest_value,icomp0);
         if (range.first==range.second)
             { if (oldData.roll()) continue; else break; }//finish
-        
-        bool isMatched=matchRange(rd.out_newBlockDataInOldPoss,kBlockCount,range.first,range.second,oldData,
+
+      #if (kIsSkipMatchedBlock==3)
+        _DEF_isSkipContinue();
+      #endif
+        bool isMatched=matchRange(rd.out_newBlockDataInOldPoss,range.first,range.second,oldData,
                                   rd.newSyncInfo->partChecksums,rd.newSyncInfo->savedStrongChecksumBits,
-                                  rd.newSyncInfo->savedNewDataCheckChecksum,kMinRevSameIndex,_mt);
+                                  rd.newSyncInfo->savedNewDataCheckChecksum,kMinRevSameIndex,_mt
+      #if (kIsSkipMatchedBlock==3)
+                                  ,_isSkipContinue);
+      #else
+                                  );
+      #endif
         if (kIsSkipMatchedBlock&&isMatched){
-            if (!oldData.nextBlock())
-                break;//finish
-        }else{
-            if (oldData.roll()) continue; else break;
-        }
+          #if (kIsSkipMatchedBlock==2)
+            _DEF_isSkipContinue();
+          #endif
+          #if (kIsSkipMatchedBlock>=2)
+            _skipPosBack0=_skipPosBack1;
+            _skipPosBack1=_skipPosBack2;
+            _skipPosBack2=curOldPos+rd.newSyncInfo->kSyncBlockSize;
+            if (_isSkipContinue)
+          #endif
+            {
+                if (oldData.nextBlock()) continue; else break;
+            }//else if (!_isSkipContinue) roll
+        }//else roll
+        if (oldData.roll()) continue; else break;
     }
 }
 
