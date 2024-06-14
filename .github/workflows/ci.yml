@@ -66,13 +66,13 @@ jobs:
       - uses: actions/checkout@v2
       - uses: nttld/setup-ndk@v1.5.0
         with:
-          ndk-version: r16b
+          ndk-version: r23c
       - name: buildByAndroidNDK
         run: |
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           cd ./builds/android_ndk_jni_mk
-          ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
+          ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk APP_PLATFORM=android-16 APP_ABI=all
 
   windows-ndk-build:
     runs-on: windows-latest
