@@ -947,7 +947,7 @@ static int _getHDiffInfos(_THDiffInfos* out_diffInfos,const hpatch_TFileStreamIn
             *decompressPlugin=_bz2DecompressPlugin_unsz;
             decompressPlugin->decError=hpatch_dec_ok;
             memcpy(diffInfo->compressType,bsCompressType,strlen(bsCompressType)+1);
-            diffInfo->compressedCount=out_diffInfos->bsdiffInfo.isEsBsd?1:3;
+            diffInfo->compressedCount=out_diffInfos->bsdiffInfo.isEndsleyBsdiff?1:3;
             diffInfo->newDataSize=out_diffInfos->bsdiffInfo.newDataSize;
             diffInfo->oldDataSize=_kUnavailableSize; //not saved oldDataSize
             out_diffInfos->isBsDiff=hpatch_TRUE;
@@ -991,8 +991,8 @@ static void _printHDiffInfos(const _THDiffInfos* diffInfos,hpatch_BOOL isInDirDi
 #endif
 #if (_IS_NEED_BSDIFF)
         if (diffInfos->isBsDiff){
-            if (diffInfos->bsdiffInfo.isEsBsd)
-                typeTag="BSDiff (ENDSLEY)";
+            if (diffInfos->bsdiffInfo.isEndsleyBsdiff)
+                typeTag="BSDiff (endsley/bsdiff)";
             else
                 typeTag="BSDiff";
         }
