@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.6.10-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.7.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -122,6 +122,8 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       压缩步长stepSize>=(1024*4), 默认为256k, 推荐64k,2m等。
   -BSD
       创建一个和bsdiff4兼容的补丁, 不支持参数为文件夹。
+      支持和-SD选项一起运行(不使用其stepSize), 创建单压缩流的补丁文件，
+      兼容endsley/bsdiff格式 (https://github.com/mendsley/bsdiff)。
   -VCD[-compressLevel[-dictSize]]
       创建一个标准规范VCDIFF格式的补丁, 不支持参数为文件夹。
       默认输出补丁不带压缩, 格式和 $open-vcdiff ... 或 $xdelta3 -S -e -n ... 命令输出的补丁格式兼容；
@@ -191,6 +193,9 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       设置newPath的清单文件newManifestFile;
   -D  强制执行文件夹间的diff, 即使输入的是2个文件; 从而为文件间的补丁添加校验功能。
       默认情况下oldPath或newPath有一个是文件夹时才会执行文件夹间的diff。
+  -neq
+      打开检查: 如果newPath和oldPath的数据都相同，则返回错误；
+      默认不执行该相等检查。
   -d  只执行diff, 不要执行patch检查, 默认会执行patch检查.
   -t  只执行patch检查, 检查是否 patch(oldPath,testDiffFile)==newPath ?
   -f  强制文件写覆盖, 忽略输出的路径是否已经存在;
@@ -213,7 +218,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
   (将目标平台的hpatchz可执行文件和补丁包文件合并成一个可执行文件, 称作自释放包SFX)   
 执行一个自释放包： **selfExtractArchive** [options] **oldPath -X outNewPath**   
   (利用自释放包来打补丁,将包中自带的补丁数据应用到oldPath上, 合成outNewPath)   
-执行一个自解压包： **selfExtractArchive**   (等价于： selfExtractArchive -f "" -X "./")
+执行一个自解压包： **selfExtractArchive**  (等价于：$selfExtractArchive -f {""|".\"} -X "./")
 ```
   oldPath可以为空, 输入参数为 ""
 选项:
@@ -301,7 +306,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
-#### bsdiff 兼容包装 API:
+#### bsdiff4 和 endsley/bsdiff 兼容包装 API:
 * **create_bsdiff()**
 * **create_bsdiff_stream()** 
 * **bspatch_with_cache()**

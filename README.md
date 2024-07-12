@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.6.10-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.7.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -122,6 +122,8 @@ options:
       stepSize>=(1024*4), DEFAULT -SD-256k, recommended 64k,2m etc...
   -BSD
       create diffFile compatible with bsdiff4, unsupport input directory(folder).
+      support run with -SD (not used stepSize), then create single compressed
+      diffFile compatible with endsley/bsdiff (https://github.com/mendsley/bsdiff).
   -VCD[-compressLevel[-dictSize]]
       create diffFile compatible with VCDIFF, unsupport input directory(folder).
       DEFAULT no compress, out format same as $open-vcdiff ... or $xdelta3 -S -e -n ...
@@ -195,6 +197,9 @@ options:
       newManifestFile is created from newPath;
   -D  force run Directory diff between two files; DEFAULT (no -D) run
       directory diff need oldPath or newPath is directory.
+  -neq
+      open check: if newPath & oldPath's all datas are equal, then return error;
+      DEFAULT not check equal.
   -d  Diff only, do't run patch check, DEFAULT run patch check.
   -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ?
   -f  Force overwrite, ignore write path already exists;
@@ -215,7 +220,7 @@ uncompress usage: **hpatchz** [options] **"" diffFile outNewPath**
 print  info: **hpatchz** -info **diffFile**   
 create  SFX: **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractArchive**   
 run     SFX: **selfExtractArchive** [options] **oldPath -X outNewPath**   
-extract SFX: **selfExtractArchive**   (same as: selfExtractArchive -f "" -X "./")
+extract SFX: **selfExtractArchive**  (same as: $selfExtractArchive -f {""|".\"} -X ".\")
 ```
   if oldPath is empty input parameter ""
 options:
@@ -305,7 +310,7 @@ options:
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
-#### bsdiff wrapper API:
+#### bsdiff4 & endsley/bsdiff wrapper API:
 * **create_bsdiff()**
 * **create_bsdiff_stream()** 
 * **bspatch_with_cache()**
