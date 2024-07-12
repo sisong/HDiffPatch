@@ -2,6 +2,15 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v4.7.0](https://github.com/sisong/HDiffPatch/tree/v4.7.0) - 2024-07-12
+### Added
+* cmdline hdiffz support option "-BSD -SD", to create diffFile compatible with another BSDIFF format "ENDSLEY/BSDIFF43", https://github.com/mendsley/bsdiff ; patch support this format from v4.6.7
+* cmdline hdiffz support option "-neq"; if opened, hdiffz will refuse to created diffFile when oldData==newData.
+### Fixed
+* fixed SFX auto extract logic (SFX executable file is hpatchz file + diffFile)   
+SFX extract with default option `$selfExtractArchive -f ".\" -X ".\"` when diffFile created by directories;   
+if diffFile created by empty oldPath, then extract with default option `$selfExtractArchive -f "" -X ".\"`.   
+
 ## [v4.6.9](https://github.com/sisong/HDiffPatch/tree/v4.6.9) - 2023-12-01
 ### Added
 * cmdline hdiffz & hpatchz support option "-info diffFile", print infos of diffFile;

@@ -357,7 +357,7 @@ static void printUsage(){
            "      directory diff need oldPath or newPath is directory.\n"
 #endif //_IS_NEED_DIR_DIFF_PATCH
            "  -neq\n"
-           "      open check: if newPach & oldPach's all datas are equal, then return error; \n"
+           "      open check: if newPath & oldPath's all datas are equal, then return error; \n"
            "      DEFAULT not check equal.\n"
            "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
            "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
