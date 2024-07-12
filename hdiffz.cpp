@@ -356,6 +356,9 @@ static void printUsage(){
            "  -D  force run Directory diff between two files; DEFAULT (no -D) run \n"
            "      directory diff need oldPath or newPath is directory.\n"
 #endif //_IS_NEED_DIR_DIFF_PATCH
+           "  -neq\n"
+           "      open check: if newPach & oldPach's all datas are equal, then return error; \n"
+           "      DEFAULT not check equal.\n"
            "  -d  Diff only, do't run patch check, DEFAULT run patch check.\n"
            "  -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ? \n"
            "  -f  Force overwrite, ignore write path already exists;\n"
@@ -391,6 +394,7 @@ typedef enum THDiffResult {
     HDIFF_TEMPPATH_ERROR,
     HDIFF_DELETEPATH_ERROR, // 15
     HDIFF_RENAMEPATH_ERROR,
+    HDIFF_OLD_NEW_SAME_ERROR,//adding begin v4.7.0 ; note: now not included dir_diff(), dir_diff thow an error & return DIRDIFF_DIFF_ERROR
     
     DIRDIFF_DIFF_ERROR=101,
     DIRDIFF_PATCH_ERROR,
@@ -780,6 +784,7 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     diffSets.isDiffInMem   =_kNULL_VALUE;
     diffSets.isSingleCompressedDiff =_kNULL_VALUE;
     diffSets.isUseBigCacheMatch =_kNULL_VALUE;
+    diffSets.isCheckNotEqual =_kNULL_VALUE;
     diffSets.matchBlockSize=_kNULL_SIZE;
     diffSets.threadNum=_THREAD_NUMBER_NULL;
     diffSets.threadNumSearch_s=_THREAD_NUMBER_NULL;
@@ -978,12 +983,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 isSetChecksum=hpatch_TRUE;
                 _options_check(_getOptChecksum(&checksumPlugin,ptype,"no"),"-C-?");
             } break;
-            case 'n':{
-                _options_check((kMaxOpenFileNumber==_kNULL_SIZE)&&(op[2]=='-'),"-n")
-                const char* pnum=op+3;
-                _options_check(kmg_to_size(pnum,strlen(pnum),&kMaxOpenFileNumber),"-n-?");
-                _options_check((kMaxOpenFileNumber!=_kNULL_SIZE),"-n-?");
-            } break;
             case 'g':{
                 if (op[2]=='#'){ //-g#
                     const char* plist=op+3;
@@ -1026,6 +1025,21 @@ int hdiff_cmd_line(int argc, const char * argv[]){
                 isForceRunDirDiff=hpatch_TRUE; //force run DirDiff
             } break;
 #endif
+            case 'n':{
+                _options_check((op[2]!='\0'), "-n?");
+#if (_IS_NEED_DIR_DIFF_PATCH)
+                if (op[2]=='-'){
+                    _options_check((kMaxOpenFileNumber == _kNULL_SIZE), "-n-")
+                        const char* pnum = op + 3;
+                    _options_check(kmg_to_size(pnum, strlen(pnum), &kMaxOpenFileNumber), "-n-?");
+                    _options_check((kMaxOpenFileNumber != _kNULL_SIZE), "-n-?");
+                }else
+#endif
+                {
+                    _options_check((diffSets.isCheckNotEqual==_kNULL_VALUE)&&(op[2]=='e')&&(op[3]=='q')&&(op[4]=='\0'),"-neq");
+                    diffSets.isCheckNotEqual=hpatch_TRUE;
+                }
+            } break;
             default: {
                 _options_check(hpatch_FALSE,"-?");
             } break;
@@ -1051,6 +1065,8 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     if (isPrintFileInfo){
         return hpatch_printFilesInfos((int)arg_values.size(),arg_values.data());
     }
+    if (diffSets.isCheckNotEqual==_kNULL_VALUE)
+        diffSets.isCheckNotEqual=hpatch_FALSE;
     if (diffSets.isSingleCompressedDiff==_kNULL_VALUE)
         diffSets.isSingleCompressedDiff=hpatch_FALSE;
 #if (_IS_NEED_BSDIFF)
@@ -1389,6 +1405,9 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
     printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            (hpatch_StreamPos_t)oldMem.size(),(hpatch_StreamPos_t)newMem.size());
     if (diffSets.isDoDiff){
+        if (diffSets.isCheckNotEqual)
+            check((oldMem.size()!=newMem.size())||(0!=memcmp(oldMem.data(),newMem.data(),oldMem.size())),
+                HDIFF_OLD_NEW_SAME_ERROR,"oldFile & newFile's datas can't be equal");
         check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,hpatch_kNullStreamPos),
                 HDIFF_OPENWRITE_ERROR,"open out diffFile");
         hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);
@@ -1539,6 +1558,8 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
     printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            oldData.base.streamSize,newData.base.streamSize);
     if (diffSets.isDoDiff){
+        if (diffSets.isCheckNotEqual)
+            check(!hdiff_streamDataIsEqual(&oldData.base,&newData.base),HDIFF_OLD_NEW_SAME_ERROR,"oldFile & newFile's datas can't be equal");
         const hdiff_TMTSets_s mtsets={diffSets.threadNum,diffSets.threadNumSearch_s,false,false,false};
         check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,hpatch_kNullStreamPos),
               HDIFF_OPENWRITE_ERROR,"open out diffFile");

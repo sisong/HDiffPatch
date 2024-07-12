@@ -415,8 +415,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
-#if (_IS_NEED_SFX)
     hpatch_BOOL isRunSFX=_kNULL_VALUE;
+#if (_IS_NEED_SFX)
     const char* out_SFX=0;
     const char* selfExecuteFile=0;
 #endif
@@ -432,10 +432,6 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     const char* arg_values[kMax_arg_values_size]={0};
     int         arg_values_size=0;
     int         i;
-    if (argc<=1){
-        printUsage();
-        return HPATCH_OPTIONS_ERROR;
-    }
     for (i=1; i<argc; ++i) {
         const char* op=argv[i];
         _options_check(op!=0,"?");
@@ -542,10 +538,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         isForceOverwrite=hpatch_FALSE;
     if (isPrintFileInfo==_kNULL_VALUE)
         isPrintFileInfo=hpatch_FALSE;
-#if (_IS_NEED_SFX)
     if (isRunSFX==_kNULL_VALUE)
         isRunSFX=hpatch_FALSE;
-    if (arg_values_size==0){
+#if (_IS_NEED_SFX)
+    if ((argc<=1)&&(!isRunSFX)){
         hpatch_StreamPos_t _diffDataOffert=0;
         hpatch_StreamPos_t _diffDataSize=0;
         if (getDiffDataOffertInSfx(&_diffDataOffert,&_diffDataSize)){//autoExtractSFX
@@ -554,6 +550,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         }
     }
 #endif
+    if ((argc<=1)&&(!isRunSFX)){
+        printUsage();
+        return HPATCH_OPTIONS_ERROR;
+    }
     if (isOutputHelp||isOutputVersion){
         if (isOutputHelp)
             printUsage();//with version
