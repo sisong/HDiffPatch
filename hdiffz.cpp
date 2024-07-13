@@ -184,7 +184,7 @@ static void printUsage(){
 #if (_IS_NEED_BSDIFF)
            "  -BSD\n"
            "      create diffFile compatible with bsdiff4, unsupport input directory(folder).\n"
-           "      support run with -SD (not used stepSize), then create single compressed\n"
+           "      also support run with -SD (not used stepSize), then create single compressed\n"
            "      diffFile compatible with endsley/bsdiff (https://github.com/mendsley/bsdiff).\n"
 #endif
 #if (_IS_NEED_VCDIFF)

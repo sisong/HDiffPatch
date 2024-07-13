@@ -10,7 +10,7 @@
 
 [HDiffPatch] 是一个C\C++库和命令行工具，用于在二进制文件或文件夹之间执行 **diff**(创建补丁) 和 **patch**(打补丁)；跨平台、运行速度快、创建的补丁小、支持巨大的文件并且diff和patch时都可以控制内存占用量。   
 
-[HDiffPatch] 定义了自己的补丁包格式，同时这个库也完全兼容了 [bsdiff4] 的补丁包格式，并部分兼容 [open-vcdiff] 和 [xdelta3] 的补丁包格式 [VCDIFF(RFC 3284)]。   
+[HDiffPatch] 定义了自己的补丁包格式，同时这个库也完全兼容了 [bsdiff4] 和 [endsley/bsdiff] 的补丁包格式，并[部分兼容](https://github.com/sisong/HDiffPatch/issues/369#issuecomment-1869798843)了 [open-vcdiff] 和 [xdelta3] 的补丁包格式 [VCDIFF(RFC 3284)]。   
 
 如果你需要在嵌入式系统(MCU、NB-IoT)等设备上进行增量更新(OTA), 可以看看例子 [HPatchLite], +[tinyuz] 解压缩器可以在1KB内存的设备上运行!   
 
@@ -30,6 +30,7 @@
 [HPatchLite]: https://github.com/sisong/HPatchLite
 [tinyuz]: https://github.com/sisong/tinyuz
 [bsdiff4]: http://www.daemonology.net/bsdiff/
+[endsley/bsdiff]: https://github.com/mendsley/bsdiff
 [xdelta3]: https://github.com/jmacd/xdelta
 [open-vcdiff]: https://github.com/google/open-vcdiff
 [archive-patcher]: https://github.com/google/archive-patcher
@@ -122,7 +123,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       压缩步长stepSize>=(1024*4), 默认为256k, 推荐64k,2m等。
   -BSD
       创建一个和bsdiff4兼容的补丁, 不支持参数为文件夹。
-      支持和-SD选项一起运行(不使用其stepSize), 创建单压缩流的补丁文件，
+      也支持和-SD选项一起运行(不使用其stepSize), 从而创建单压缩流的补丁文件，
       兼容endsley/bsdiff格式 (https://github.com/mendsley/bsdiff)。
   -VCD[-compressLevel[-dictSize]]
       创建一个标准规范VCDIFF格式的补丁, 不支持参数为文件夹。
@@ -306,11 +307,11 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
-#### bsdiff4 和 endsley/bsdiff 兼容包装 API:
+#### bsdiff ([bsdiff4] & [endsley/bsdiff]) 兼容包装 API:
 * **create_bsdiff()**
 * **create_bsdiff_stream()** 
 * **bspatch_with_cache()**
-#### vcdiff 兼容包装 API: 
+#### vcdiff ([open-vcdiff] & [xdelta3]) 兼容包装 API: 
 * **create_vcdiff()**
 * **create_vcdiff_stream()**
 * **vcpatch_with_cache()**

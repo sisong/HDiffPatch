@@ -10,7 +10,7 @@
 
 [HDiffPatch] is a C\C++ library and command-line tools for **diff** & **patch** between binary files or directories(folder); cross-platform; fast running; create small delta/differential; support large files and limit memory requires when diff & patch.   
 
-[HDiffPatch] defines its own patch file format, this lib is also compatible with the [bsdiff4] patch file format and partially compatible with the [open-vcdiff] and [xdelta3] patch file format [VCDIFF(RFC 3284)].   
+[HDiffPatch] defines its own patch file format, this lib is also compatible with the [bsdiff4] & [endsley/bsdiff] patch file format and [partially compatible](https://github.com/sisong/HDiffPatch/issues/369#issuecomment-1869798843) with the [open-vcdiff] & [xdelta3] patch file format [VCDIFF(RFC 3284)].   
 
 if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite], +[tinyuz] decompressor can run on 1KB RAM devices!   
 
@@ -30,6 +30,7 @@ NOTE: *This library does not deal with file metadata, such as file last wirte ti
 [HPatchLite]: https://github.com/sisong/HPatchLite
 [tinyuz]: https://github.com/sisong/tinyuz
 [bsdiff4]: http://www.daemonology.net/bsdiff/
+[endsley/bsdiff]: https://github.com/mendsley/bsdiff
 [xdelta3]: https://github.com/jmacd/xdelta
 [open-vcdiff]: https://github.com/google/open-vcdiff
 [archive-patcher]: https://github.com/google/archive-patcher
@@ -122,7 +123,7 @@ options:
       stepSize>=(1024*4), DEFAULT -SD-256k, recommended 64k,2m etc...
   -BSD
       create diffFile compatible with bsdiff4, unsupport input directory(folder).
-      support run with -SD (not used stepSize), then create single compressed
+      also support run with -SD (not used stepSize), then create single compressed
       diffFile compatible with endsley/bsdiff (https://github.com/mendsley/bsdiff).
   -VCD[-compressLevel[-dictSize]]
       create diffFile compatible with VCDIFF, unsupport input directory(folder).
@@ -310,11 +311,11 @@ options:
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
-#### bsdiff4 & endsley/bsdiff wrapper API:
+#### bsdiff ([bsdiff4] & [endsley/bsdiff]) wrapper API:
 * **create_bsdiff()**
 * **create_bsdiff_stream()** 
 * **bspatch_with_cache()**
-#### vcdiff wrapper API: 
+#### vcdiff ([open-vcdiff] & [xdelta3]) wrapper API: 
 * **create_vcdiff()**
 * **create_vcdiff_stream()**
 * **vcpatch_with_cache()**
