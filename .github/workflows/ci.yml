@@ -72,7 +72,7 @@ jobs:
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           cd ./builds/android_ndk_jni_mk
-          ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk APP_PLATFORM=android-16 APP_ABI=all
+          ndk-build NDK_PROJECT_PATH=. NDK_APPLICATION_MK=./Application.mk APP_PLATFORM=android-16 APP_ABI=all
 
   windows-ndk-build:
     runs-on: windows-latest
@@ -87,7 +87,7 @@ jobs:
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
           cd ./builds/android_ndk_jni_mk
-          ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk BSD=1 BZIP2=1
+          ndk-build NDK_PROJECT_PATH=. NDK_APPLICATION_MK=./Application.mk BSD=1 BZIP2=1
 
   ubuntu-ndk-build:
     runs-on: ubuntu-latest
@@ -103,7 +103,7 @@ jobs:
           git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           cd ./builds/android_ndk_jni_mk
-          ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk BSD=1 BZIP2=1 VCD=1
+          ndk-build NDK_PROJECT_PATH=. NDK_APPLICATION_MK=./Application.mk BSD=1 BZIP2=1 VCD=1
 
   vc-build:
     runs-on: windows-latest

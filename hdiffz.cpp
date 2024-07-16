@@ -77,10 +77,10 @@
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_lz4   // faster compresser / faster decompresser
-#   define _CompressPlugin_lz4hc // faster decompresser
+#   define _CompressPlugin_lz4hc // compress slower & better than lz4 / (used lz4 decompresser) 
 #   define _CompressPlugin_brotli// better compresser / faster decompresser
 #   define _CompressPlugin_lzham // better compresser / decompress faster than lzma2
-#   define _CompressPlugin_tuz   // decompress requires tiny code(.text) & ram
+#   define _CompressPlugin_tuz   // slower compresser / decompress requires tiny code(.text) & ram
 #endif
 
 #if (_IS_NEED_BSDIFF)

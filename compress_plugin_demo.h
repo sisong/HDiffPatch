@@ -28,8 +28,8 @@
 #ifndef HDiff_compress_plugin_demo_h
 #define HDiff_compress_plugin_demo_h
 //compress plugin demo:
-//  zlibCompressPlugin
-//  pzlibCompressPlugin
+//  zlibCompressPlugin      // zlib's deflate encoding
+//  pzlibCompressPlugin     // compatible with zlib's deflate encoding
 //  bz2CompressPlugin
 //  pbz2CompressPlugin
 //  lzmaCompressPlugin
@@ -41,8 +41,7 @@
 //  lzhamCompressPlugin
 //  tuzCompressPlugin
 
-
-// _7zXZCompressPlugin : support for create_vcdiff(), as "xdelta3 -S lzma ..."
+// _7zXZCompressPlugin : support for create_vcdiff(), compatible with "xdelta3 -S lzma ..."
 
 #include "libHDiffPatch/HDiff/diff_types.h"
 #include "compress_parallel.h"
