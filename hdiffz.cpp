@@ -76,6 +76,7 @@
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
+#   define _CompressPlugin_ldef  // faster or better compress than zlib / (now used zlib decompresser)
 #   define _CompressPlugin_lz4   // faster compresser / faster decompresser
 #   define _CompressPlugin_lz4hc // compress slower & better than lz4 / (used lz4 decompresser) 
 #   define _CompressPlugin_brotli// better compresser / faster decompresser
@@ -223,6 +224,14 @@ static void printUsage(){
 #ifdef _CompressPlugin_zlib
            "        -c-zlib[-{1..9}[-dictBits]]     DEFAULT level 9\n"
            "            dictBits can 9--15, DEFAULT 15.\n"
+#   if (_IS_USED_MULTITHREAD)
+           "            support run by multi-thread parallel, fast!\n"
+#   endif
+#endif
+#ifdef _CompressPlugin_ldef
+           "        -c-ldef[-{1..12}]     DEFAULT level 12\n"
+           "            compatible with -c-zlib, faster or better compress than zlib;\n"
+           "            used libdeflate compressor, & dictBits always 15.\n"
 #   if (_IS_USED_MULTITHREAD)
            "            support run by multi-thread parallel, fast!\n"
 #   endif
@@ -672,6 +681,13 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         _pzlibCompressPlugin.base.windowBits=(signed char)(-(int)dictBits);
         *out_compressPlugin=&_pzlibCompressPlugin.base.base; }}
 #   endif // _IS_USED_MULTITHREAD
+#endif
+#ifdef _CompressPlugin_ldef
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"ldef","pldef",
+                                        &compressLevel,1,12,12),"-c-ldef-?"){
+        static TCompressPlugin_ldef _ldefCompressPlugin=ldefCompressPlugin;
+        _ldefCompressPlugin.compress_level=(int)compressLevel;
+        *out_compressPlugin=&_ldefCompressPlugin.base; }}
 #endif
 #ifdef _CompressPlugin_bz2
     __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"bzip2","bz2",

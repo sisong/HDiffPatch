@@ -30,6 +30,8 @@
 //compress plugin demo:
 //  zlibCompressPlugin      // zlib's deflate encoding
 //  pzlibCompressPlugin     // compatible with zlib's deflate encoding
+//  ldefCompressPlugin      // compatible with zlib's deflate encoding
+//  pldefCompressPlugin     // compatible with zlib's deflate encoding
 //  bz2CompressPlugin
 //  pbz2CompressPlugin
 //  lzmaCompressPlugin
@@ -232,11 +234,11 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         data_buf=_temp_buf+sizeof(_zlib_TCompress)+kCompressBufSize;
         if (!self) _compress_error_return("deflateInit2()");
         if (plugin->isNeedSaveWindowBits){
-            unsigned char* pchar=(unsigned char*)&plugin->windowBits;
+            const unsigned char* pchar=(const unsigned char*)&plugin->windowBits;
             if (!out_code->write(out_code,0,pchar,pchar+1)) _compress_error_return("out_code->write()");
             ++result;
         }
-        do {
+        while (readFromPos<in_data->streamSize){
             size_t readLen=kCompressBufSize;
             if (readLen>(hpatch_StreamPos_t)(in_data->streamSize-readFromPos))
                 readLen=(size_t)(in_data->streamSize-readFromPos);
@@ -246,7 +248,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
             if (!_zlib_compress_part(self,data_buf,data_buf+readLen,
                                      (readFromPos==in_data->streamSize),&result,&outStream_isCanceled))
                 _compress_error_return("_zlib_compress_part()");
-        } while (readFromPos<in_data->streamSize);
+        }
     clear:
         if (!_zlib_compress_close_by(compressPlugin,self))
             { result=kCompressFailResult; if (strlen(errAt)==0) errAt="deflateEnd()"; }
@@ -375,7 +377,90 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
             _pzlib_closeBlockCompressor,_pzlib_compressBlock} };
 #   endif // _IS_USED_MULTITHREAD
 #endif//_CompressPlugin_zlib
-    
+
+
+#ifdef  _CompressPlugin_ldef
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "libdeflate.h" // "libdeflate/libdeflate.h" https://github.com/sisong/libdeflate/tree/stream-mt based on https://github.com/ebiggers/libdeflate
+#endif
+    static const signed char _ldef_kWindowBits=-15; //always as zlib's windowBits -15
+    static const size_t _ldef_kDictSize=(1<<15);
+    static const size_t _ldef_kMax_in_border_nbytes=258;//deflate max match len
+    typedef struct{
+        hdiff_TCompress base;
+        int             compress_level; //0..12
+    } TCompressPlugin_ldef;
+
+    static hpatch_StreamPos_t _ldef_compress(const hdiff_TCompress* compressPlugin,
+                                             const hpatch_TStreamOutput* out_code,
+                                             const hpatch_TStreamInput*  in_data){
+        const TCompressPlugin_ldef* plugin=(const TCompressPlugin_ldef*)compressPlugin;
+        hpatch_StreamPos_t result=0; //writedPos
+        hpatch_StreamPos_t readFromPos=0;
+        const char*        errAt="";
+        int                 outStream_isCanceled=0;
+        unsigned char*     data_buf=0;
+        unsigned char*     code_buf=0;
+        struct libdeflate_compressor* c=0;
+        size_t in_border_nbytes=0;
+        const size_t in_step_size=600000+ 200000*plugin->compress_level;
+        const size_t _in_buf_size=_ldef_kDictSize+in_step_size+_ldef_kMax_in_border_nbytes;
+        const size_t block_bound=libdeflate_deflate_compress_bound_block(in_step_size);
+
+        data_buf=(unsigned char*)malloc(_in_buf_size+block_bound);
+        if (!data_buf) _compress_error_return("memory alloc");
+        code_buf=data_buf+_in_buf_size;
+
+        c=libdeflate_alloc_compressor(plugin->compress_level);
+        if (!c) _compress_error_return("libdeflate_alloc_compressor()");
+        
+        {//save deflate windowBits
+            const unsigned char* pchar=(const unsigned char*)&_ldef_kWindowBits;
+            if (!out_code->write(out_code,0,pchar,pchar+1)) _compress_error_return("out_code->write()");
+            ++result;
+        }
+        while (readFromPos<in_data->streamSize){
+            const size_t curDictSize=(readFromPos>0)?_ldef_kDictSize:0;
+            size_t readLen=in_step_size;
+            size_t codeLen;
+            if (readLen>(hpatch_StreamPos_t)(in_data->streamSize-readFromPos))
+                readLen=(size_t)(in_data->streamSize-readFromPos);
+            {
+                unsigned char* dst_buf=data_buf+curDictSize+in_border_nbytes;
+                size_t cur_in_border_nbytes=_ldef_kMax_in_border_nbytes;
+                if (readLen+cur_in_border_nbytes>(hpatch_StreamPos_t)(in_data->streamSize-readFromPos))
+                    cur_in_border_nbytes=(size_t)(in_data->streamSize-readFromPos-readLen);
+                if (!in_data->read(in_data,readFromPos+in_border_nbytes,dst_buf,
+                                   dst_buf+readLen+cur_in_border_nbytes-in_border_nbytes))
+                    _compress_error_return("in_data->read()");
+                in_border_nbytes=cur_in_border_nbytes;
+            }
+            readFromPos+=readLen;
+
+            codeLen=libdeflate_deflate_compress_block_continue(c,data_buf,curDictSize,readLen,in_border_nbytes,
+                        (readFromPos==in_data->streamSize),code_buf,block_bound,hpatch_FALSE);
+        
+            if (codeLen>0){
+                _stream_out_code_write(out_code,outStream_isCanceled,result,code_buf,codeLen);
+            }else
+                _compress_error_return("libdeflate_deflate_compress_block_continue()");
+            if (readFromPos<in_data->streamSize){
+                memmove(data_buf,data_buf+readLen+curDictSize-_ldef_kDictSize,_ldef_kDictSize+in_border_nbytes);
+            }
+        }
+    clear:
+        if (c) libdeflate_free_compressor(c);
+        _check_compress_result(result,outStream_isCanceled,"_ldef_compress()",errAt);
+        if (data_buf) free(data_buf);
+        return result;
+    }
+    _def_fun_compressType(_ldef_compressType,"zlib");
+    static const TCompressPlugin_ldef ldefCompressPlugin={
+        {_ldef_compressType,_default_maxCompressedSize,_default_setParallelThreadNumber,_ldef_compress},12};
+
+#endif//_CompressPlugin_ldef
+
+
 #ifdef  _CompressPlugin_bz2
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "bzlib.h" // http://www.bzip.org/  https://github.com/sisong/bzip2

@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31402.337
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35027.167
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hdiffz", "hdiffz.vcxproj", "{63934A83-25F5-4161-B19D-DFBAB1C257F1}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -26,6 +26,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "zlib.vcxproj", "{35ED7715-6B17-4225-8171-C954968D8F8C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testHashClash", "testHashClash.vcxproj", "{22873560-BDA7-4915-8C7D-DF7C380B4E55}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libdeflate", "libdeflate.vcxproj", "{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -163,6 +165,22 @@ Global
 		{22873560-BDA7-4915-8C7D-DF7C380B4E55}.Release|x64.Build.0 = Release|x64
 		{22873560-BDA7-4915-8C7D-DF7C380B4E55}.Release|x86.ActiveCfg = Release|Win32
 		{22873560-BDA7-4915-8C7D-DF7C380B4E55}.Release|x86.Build.0 = Release|Win32
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Debug|ARM.ActiveCfg = Debug|ARM
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Debug|ARM.Build.0 = Debug|ARM
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Debug|ARM64.Build.0 = Debug|ARM64
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Debug|x64.ActiveCfg = Debug|x64
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Debug|x64.Build.0 = Debug|x64
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Debug|x86.ActiveCfg = Debug|Win32
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Debug|x86.Build.0 = Debug|Win32
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Release|ARM.ActiveCfg = Release|ARM
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Release|ARM.Build.0 = Release|ARM
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Release|ARM64.ActiveCfg = Release|ARM64
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Release|ARM64.Build.0 = Release|ARM64
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Release|x64.ActiveCfg = Release|x64
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Release|x64.Build.0 = Release|x64
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Release|x86.ActiveCfg = Release|Win32
+		{4FFA1879-E1A6-4B99-B9D1-3265F48DAE0D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
