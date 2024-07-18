@@ -273,62 +273,73 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         plugin->thread_num=threadNum;
         return threadNum;
     }
-    static hdiff_compressBlockHandle _pzlib_openBlockCompressor(hdiff_TParallelCompress* pc){
-        return pc;
-    }
     static void _pzlib_closeBlockCompressor(hdiff_TParallelCompress* pc,
                                             hdiff_compressBlockHandle blockCompressor){
-        assert(blockCompressor==pc);
+        z_stream* stream=(z_stream*)blockCompressor;
+        if (!stream) return;
+        if (stream->state!=0){
+            int ret=deflateEnd(stream);
+            assert((Z_OK==ret)|(Z_DATA_ERROR==ret));
+        }
+        free(stream);
+    }
+    static hdiff_compressBlockHandle _pzlib_openBlockCompressor(hdiff_TParallelCompress* pc){
+        const TCompressPlugin_pzlib* plugin=(const TCompressPlugin_pzlib*)pc->import;
+        z_stream* stream=(z_stream*)malloc(sizeof(z_stream));
+        if (!stream) return 0;
+        memset(stream,0,sizeof(z_stream));
+        int err = deflateInit2(stream,plugin->base.compress_level,Z_DEFLATED,
+                               plugin->base.windowBits,plugin->base.mem_level,Z_DEFAULT_STRATEGY);
+        if (err!=Z_OK){//error
+            _pzlib_closeBlockCompressor(pc,stream);
+            return 0;
+        }
+        return stream;
     }
     static int _pzlib_compress2(Bytef* dest,uLongf* destLen,const unsigned char* block_data,
                                 const unsigned char* block_dictEnd,const unsigned char* block_dataEnd,
-                                int level,int mem_level,int windowBits,int isEndBlock){
-        z_stream stream;
+                                int isEndBlock,z_stream* stream){
         int err;
-        stream.next_in   = (Bytef*)block_dictEnd;
-        stream.avail_in  = (uInt)(block_dataEnd-block_dictEnd);
-        stream.next_out  = dest;
-        stream.avail_out = (uInt)*destLen;
-        stream.zalloc = 0;
-        stream.zfree  = 0;
-        stream.opaque = 0;
-        err = deflateInit2(&stream,level,Z_DEFLATED,windowBits,mem_level,Z_DEFAULT_STRATEGY);
-        if (err != Z_OK) return err;
         #define _check_zlib_err(_must_V) { if (err!=(_must_V)) goto _errorReturn; } 
+        err=deflateReset(stream);
+        _check_zlib_err(Z_OK);
+        stream->next_in   = (Bytef*)block_dictEnd;
+        stream->avail_in  = (uInt)(block_dataEnd-block_dictEnd);
+        stream->next_out  = dest;
+        stream->avail_out = (uInt)*destLen;
+        stream->total_out = 0;
         if (block_data<block_dictEnd){
-            err=deflateSetDictionary(&stream,(Bytef*)block_data,(uInt)(block_dictEnd-block_data));
+            err=deflateSetDictionary(stream,(Bytef*)block_data,(uInt)(block_dictEnd-block_data));
             _check_zlib_err(Z_OK);
         }
         if (!isEndBlock){
             int bits; 
-            err = deflate(&stream,Z_BLOCK);
+            err = deflate(stream,Z_BLOCK);
             _check_zlib_err(Z_OK);
             // add enough empty blocks to get to a byte boundary
-            err = deflatePending(&stream,Z_NULL,&bits);
+            err = deflatePending(stream,Z_NULL,&bits);
             _check_zlib_err(Z_OK);
             if (bits & 1){
-                err = deflate(&stream,Z_SYNC_FLUSH);
+                err = deflate(stream,Z_SYNC_FLUSH);
                 _check_zlib_err(Z_OK);
             } else if (bits & 7) {
                 do { // add static empty blocks
-                    err = deflatePrime(&stream, 10, 2);
+                    err = deflatePrime(stream, 10, 2);
                     _check_zlib_err(Z_OK);
-                    err = deflatePending(&stream,Z_NULL,&bits);
+                    err = deflatePending(stream,Z_NULL,&bits);
                     _check_zlib_err(Z_OK);
                 } while (bits & 7);
-                err = deflate(&stream,Z_BLOCK);
+                err = deflate(stream,Z_BLOCK);
                 _check_zlib_err(Z_OK);
             }
         }else{
-            err = deflate(&stream,Z_FINISH);
+            err = deflate(stream,Z_FINISH);
             _check_zlib_err(Z_STREAM_END);
+            err=Z_OK;
         }
-        *destLen = stream.total_out;
-        err = deflateEnd(&stream);
-        if (!isEndBlock) err=Z_OK;
+        *destLen = stream->total_out;
         return err;
     _errorReturn:
-        deflateEnd(&stream);
         return err == Z_OK ? Z_BUF_ERROR : err;
         #undef _check_zlib_err
     }
@@ -345,8 +356,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         }
         uLongf codeLen=(uLongf)(out_codeEnd-out_code);
         if (Z_OK!=_pzlib_compress2(out_code,&codeLen,block_data,block_dictEnd,block_dataEnd,
-                                   plugin->base.compress_level,plugin->base.mem_level,
-                                   plugin->base.windowBits,blockIndex+1==blockCount?1:0))
+                                   blockIndex+1==blockCount?1:0,(z_stream*)blockCompressor))
             return 0; //error
         return codeLen+(isAdding?1:0);
     }
