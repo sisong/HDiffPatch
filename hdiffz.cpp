@@ -1481,6 +1481,7 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
         hpatch_BOOL isSingleCompressedDiff=hpatch_FALSE;
 #if (_IS_NEED_BSDIFF)
         hpatch_BOOL isBsDiff=hpatch_FALSE;
+        hpatch_BOOL isSingleCompressedBsDiff=hpatch_FALSE;
 #endif
 #if (_IS_NEED_VCDIFF)
         hpatch_BOOL isVcDiff=hpatch_FALSE;
@@ -1509,11 +1510,11 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
                 if (!diffSets.isDoDiff)
                     printf("test single compressed diffData!\n");
 #if (_IS_NEED_BSDIFF)
-            }else if (getIsBsDiff_mem(diffMem.data(),diffMem.data_end(),&isSingleCompressedDiff)){
+            }else if (getIsBsDiff_mem(diffMem.data(),diffMem.data_end(),&isSingleCompressedBsDiff)){
                 *saved_decompressPlugin=_bz2DecompressPlugin_unsz;
                 isBsDiff=hpatch_TRUE;
                 if (!diffSets.isDoDiff)
-                    printf(isSingleCompressedDiff?"test endsley/bsdiff's diffData!\n":"test bsdiff4's diffData!\n");
+                    printf(isSingleCompressedBsDiff?"test endsley/bsdiff's diffData!\n":"test bsdiff4's diffData!\n");
 #endif
 #if (_IS_NEED_VCDIFF)
             }else if (getVcDiffInfo_mem(&vcdiffInfo,diffMem.data(),diffMem.data_end(),hpatch_FALSE)){
@@ -1637,6 +1638,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
         hpatch_BOOL isSingleCompressedDiff=hpatch_FALSE;
 #if (_IS_NEED_BSDIFF)
         hpatch_BOOL isBsDiff=hpatch_FALSE;
+        hpatch_BOOL isSingleCompressedBsDiff=hpatch_FALSE;
 #endif
 #if (_IS_NEED_VCDIFF)
         hpatch_BOOL isVcDiff=hpatch_FALSE;
@@ -1658,11 +1660,11 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
                 if (!diffSets.isDoDiff)
                     printf("test single compressed diffData!\n");
 #if (_IS_NEED_BSDIFF)
-            }else if (getIsBsDiff(&diffData_in.base,&isSingleCompressedDiff)){
+            }else if (getIsBsDiff(&diffData_in.base,&isSingleCompressedBsDiff)){
                 *saved_decompressPlugin=_bz2DecompressPlugin_unsz;
                 isBsDiff=hpatch_TRUE;
                 if (!diffSets.isDoDiff)
-                    printf(isSingleCompressedDiff?"test endsley/bsdiff's diffData!\n":"test bsdiff4's diffData!\n");
+                    printf(isSingleCompressedBsDiff?"test endsley/bsdiff's diffData!\n":"test bsdiff4's diffData!\n");
 #endif
 #if (_IS_NEED_VCDIFF)
             }else if (getVcDiffInfo(&vcdiffInfo,&diffData_in.base,hpatch_FALSE)){
@@ -1683,16 +1685,18 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
             else saved_decompressPlugin->decError=hpatch_dec_ok;
         }
         bool diffrt;
-        if (isSingleCompressedDiff)
-            diffrt=check_single_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
 #if (_IS_NEED_BSDIFF)
-        else if (isBsDiff)
+        if (isBsDiff)
             diffrt=check_bsdiff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
+        else
 #endif
 #if (_IS_NEED_VCDIFF)
-        else if (isVcDiff)
+        if (isVcDiff)
             diffrt=check_vcdiff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
+        else
 #endif
+        if (isSingleCompressedDiff)
+            diffrt=check_single_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
         else
             diffrt=check_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
         check(diffrt,HDIFF_PATCH_ERROR,"patch check diff data");
