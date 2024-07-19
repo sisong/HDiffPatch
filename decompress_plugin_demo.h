@@ -279,10 +279,9 @@ static void __dec_free(void* _, void* address){
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "libdeflate.h" // "libdeflate/libdeflate.h" https://github.com/sisong/libdeflate/tree/stream-mt based on https://github.com/ebiggers/libdeflate
 #endif
-    static const size_t _de_ldef_kMaxBlockLength =300000; // used 1.2MB memory, only support libdefalte; (value is libdeflate's SOFT_MAX_BLOCK_LENGTH)
-    //static const size_t _de_ldef_kMaxBlockLength =8*1024*1024; // used 32MB memory, support libdefalte & zlib ... ?
-    static const size_t _de_ldef_kDictSize = 32*1024;
-    static const size_t _de_ldef_kDataSize = _de_ldef_kMaxBlockLength*2;
+    static const size_t _de_ldef_kDictSize = 1024*32;
+    static const size_t _de_ldef_kMaxBlockSize =1024*64*10; // used 1.3MB memory, only support libdefalte; (this value must ~ > libdeflate's SOFT_MAX_BLOCK_LENGTH)
+    //static const size_t _de_ldef_kMaxBlockSize =8*1024*1024; // used 16MB memory, support libdefalte & zlib ... , also can't support all of deflate encoding!
 
     typedef struct _ldef_TDecompress{
         hpatch_StreamPos_t code_begin;
@@ -300,6 +299,7 @@ static void __dec_free(void* _, void* address){
         size_t      out_cur;
         size_t      code_cur;
     } _ldef_TDecompress;
+
     static hpatch_BOOL _ldef_is_can_open(const char* compressType){
         return (0==strcmp(compressType,"zlib"))||(0==strcmp(compressType,"pzlib"));
     }
@@ -343,9 +343,8 @@ static void __dec_free(void* _, void* address){
                                                           hpatch_StreamPos_t code_end){
         _ldef_TDecompress* self=0;
         const hpatch_StreamPos_t in_size=code_end-code_begin;
-        size_t data_buf_size=_de_ldef_kMaxBlockLength*2;
-        data_buf_size=_de_ldef_kDictSize+((data_buf_size<dataSize)?data_buf_size:(size_t)dataSize);
-        size_t code_buf_size=libdeflate_deflate_compress_bound_block(_de_ldef_kMaxBlockLength)*2;
+        const size_t data_buf_size=_de_ldef_kDictSize+((_de_ldef_kMaxBlockSize<dataSize)?_de_ldef_kMaxBlockSize:(size_t)dataSize);
+        size_t code_buf_size=libdeflate_deflate_compress_bound_block(_de_ldef_kMaxBlockSize);
         code_buf_size=(code_buf_size<in_size)?code_buf_size:(size_t)in_size;
         size_t _mem_size=sizeof(_ldef_TDecompress)+data_buf_size+code_buf_size;
         unsigned char* _mem_buf=(unsigned char*)_dec_malloc(_mem_size);
@@ -382,8 +381,6 @@ static void __dec_free(void* _, void* address){
         _ldef_TDecompress* self=(_ldef_TDecompress*)decompressHandle;
         size_t out_part_len=out_part_data_end-out_part_data;
         const size_t kDictSize=_de_ldef_kDictSize;
-        const size_t kLimitDataSize=_de_ldef_kMaxBlockLength;
-        const size_t kLimitCodeSize=self->code_buf_size>>1;
         //     [ ( dict ) |     dataBuf                 ]              [            codebuf              ]
         //     ^              ^         ^               ^              ^                     ^           ^
         //  data_buf       out_cur   data_cur     data_buf_size     code_buf              code_cur code_buf_size
@@ -400,6 +397,9 @@ static void __dec_free(void* _, void* address){
                 }
             }
 
+            size_t kLimitDataSize=_de_ldef_kMaxBlockSize/2;
+            size_t kLimitCodeSize=self->code_buf_size/2;
+        __datas_prepare:
             {//read code in
                 size_t code_len=self->code_buf_size-self->code_cur;
                 if (code_len<kLimitCodeSize){
@@ -432,13 +432,24 @@ static void __dec_free(void* _, void* address){
                 int    is_final_block_ret;
                 size_t actual_in_nbytes_ret;
                 size_t actual_out_nbytes_ret;
+                const size_t dec_state=libdeflate_deflate_decompress_get_state(self->d);
                 enum libdeflate_result ret=libdeflate_deflate_decompress_block(self->d,
                                                 self->code_buf+self->code_cur,self->code_buf_size-self->code_cur,
                                                 self->data_buf,self->data_cur,self->data_buf_size-self->data_cur,
                                                 &actual_in_nbytes_ret,&actual_out_nbytes_ret,
                                                 LIBDEFLATE_STOP_BY_ANY_BLOCK,&is_final_block_ret);
-                if (ret!=LIBDEFLATE_SUCCESS)
+                if (ret!=LIBDEFLATE_SUCCESS){
+                    if (ret!=LIBDEFLATE_BAD_DATA){
+                        if ((self->data_cur>kDictSize)
+                          ||((self->code_cur>0)&&(self->code_begin<self->code_end))){
+                            kLimitDataSize=self->data_buf_size-kDictSize;
+                            kLimitCodeSize=self->code_buf_size;
+                            libdeflate_deflate_decompress_set_state(self->d,dec_state);
+                            goto __datas_prepare; //retry by libdefalte
+                        }
+                    }
                     _dec_onDecErr_rt();
+                }
                 self->code_cur+=actual_in_nbytes_ret;
                 self->data_cur+=actual_out_nbytes_ret;
                 if (is_final_block_ret)
