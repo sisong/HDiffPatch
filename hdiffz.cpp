@@ -520,6 +520,10 @@ static hpatch_TDecompress* __find_decompressPlugin(const char* compressType){
 #ifdef  _CompressPlugin_zlib
     _try_rt_dec(zlibDecompressPlugin);
 #endif
+//NOTE: now ldefDecompressPlugin not support any all deflate encoding
+//#ifdef  _CompressPlugin_ldef
+//    _try_rt_dec(ldefDecompressPlugin);
+//#endif
 #ifdef  _CompressPlugin_bz2
     _try_rt_dec(bz2DecompressPlugin);
 #endif

@@ -28,7 +28,8 @@
 #ifndef HPatch_decompress_plugin_demo_h
 #define HPatch_decompress_plugin_demo_h
 //decompress plugin demo:
-//  zlibDecompressPlugin;
+//  zlibDecompressPlugin;   // support all deflate encoding by zlib
+//  ldefDecompressPlugin;   // NOTE: not yet fully compatible with deflate encoding, now only support (p)ldefCompressPlugin
 //  bz2DecompressPlugin;
 //  lzmaDecompressPlugin;
 //  lzma2DecompressPlugin;
@@ -272,7 +273,185 @@ static void __dec_free(void* _, void* address){
     static hpatch_TDecompress zlibDecompressPlugin_deflate={_zlib_is_can_open,_zlib_decompress_open_deflate,
                                                     _zlib_decompress_close,_zlib_decompress_part};
 #endif//_CompressPlugin_zlib
+
+
+#ifdef  _CompressPlugin_ldef
+#if (_IsNeedIncludeDefaultCompressHead)
+#   include "libdeflate.h" // "libdeflate/libdeflate.h" https://github.com/sisong/libdeflate/tree/stream-mt based on https://github.com/ebiggers/libdeflate
+#endif
+    static const size_t _de_ldef_kMaxBlockLength =300000; // used 1.2MB memory, only support libdefalte; (value is libdeflate's SOFT_MAX_BLOCK_LENGTH)
+    //static const size_t _de_ldef_kMaxBlockLength =8*1024*1024; // used 32MB memory, support libdefalte & zlib ... ?
+    static const size_t _de_ldef_kDictSize = 32*1024;
+    static const size_t _de_ldef_kDataSize = _de_ldef_kMaxBlockLength*2;
+
+    typedef struct _ldef_TDecompress{
+        hpatch_StreamPos_t code_begin;
+        hpatch_StreamPos_t code_end;
+        const struct hpatch_TStreamInput* codeStream;
+        
+        unsigned char*  data_buf;
+        size_t          data_buf_size;
+        unsigned char*  code_buf;
+        size_t          code_buf_size;
+        struct libdeflate_decompressor* d;
+        hpatch_dec_error_t  decError;
+
+        size_t      data_cur;
+        size_t      out_cur;
+        size_t      code_cur;
+    } _ldef_TDecompress;
+    static hpatch_BOOL _ldef_is_can_open(const char* compressType){
+        return (0==strcmp(compressType,"zlib"))||(0==strcmp(compressType,"pzlib"));
+    }
+
+    static _ldef_TDecompress*  _ldef_decompress_open_at(hpatch_TDecompress* decompressPlugin,
+                                                        const hpatch_TStreamInput* codeStream,
+                                                        hpatch_StreamPos_t code_begin,hpatch_StreamPos_t code_end,
+                                                        int  isSavedWindowBits,_ldef_TDecompress* self,
+                                                        size_t data_buf_size,size_t code_buf_size){
+        if (isSavedWindowBits){//load kWindowBits
+            signed char kWindowBits=0;
+            if (code_end-code_begin<1) _dec_openErr_rt();
+            if (!codeStream->read(codeStream,code_begin,(unsigned char*)&kWindowBits,
+                                  (unsigned char*)&kWindowBits+1)) return 0;
+            ++code_begin;
+            if (!((-15<=kWindowBits)&&(kWindowBits<0))) 
+                _dec_openErr_rt(); //now, unsupported these window bits
+        }
+        
+        memset(self,0,sizeof(_ldef_TDecompress));
+        self->d=libdeflate_alloc_decompressor();
+        if (!self->d) _dec_memErr_rt();
+        self->data_buf=((unsigned char*)self)+sizeof(_ldef_TDecompress);
+        self->data_buf_size=data_buf_size;
+        self->code_buf=self->data_buf+data_buf_size;
+        self->code_buf_size=code_buf_size;
+        self->codeStream=codeStream;
+        self->code_begin=code_begin;
+        self->code_end=code_end;
+
+        self->data_cur=_de_ldef_kDictSize; //empty
+        self->out_cur=_de_ldef_kDictSize;
+        self->code_cur=code_buf_size; //empty
+        return self;
+    }
+   
+    static hpatch_decompressHandle  _ldef_decompress_open(hpatch_TDecompress* decompressPlugin,
+                                                          hpatch_StreamPos_t dataSize,
+                                                          const hpatch_TStreamInput* codeStream,
+                                                          hpatch_StreamPos_t code_begin,
+                                                          hpatch_StreamPos_t code_end){
+        _ldef_TDecompress* self=0;
+        const hpatch_StreamPos_t in_size=code_end-code_begin;
+        size_t data_buf_size=_de_ldef_kMaxBlockLength*2;
+        data_buf_size=_de_ldef_kDictSize+((data_buf_size<dataSize)?data_buf_size:(size_t)dataSize);
+        size_t code_buf_size=libdeflate_deflate_compress_bound_block(_de_ldef_kMaxBlockLength)*2;
+        code_buf_size=(code_buf_size<in_size)?code_buf_size:(size_t)in_size;
+        size_t _mem_size=sizeof(_ldef_TDecompress)+data_buf_size+code_buf_size;
+        unsigned char* _mem_buf=(unsigned char*)_dec_malloc(_mem_size);
+        if (!_mem_buf) _dec_memErr_rt();
+
+        self=_ldef_decompress_open_at(decompressPlugin,codeStream,code_begin,code_end,1,
+                                      (_ldef_TDecompress*)_mem_buf,data_buf_size,code_buf_size);
+        if (!self)
+            free(_mem_buf);
+        return self;
+    }
+
+    static hpatch_BOOL _ldef_decompress_close_by(struct hpatch_TDecompress* decompressPlugin,
+                                                 _ldef_TDecompress* self){
+        hpatch_BOOL result=hpatch_TRUE;
+        if (!self) return result;
+        _dec_onDecErr_up();
+        if (self->d!=0)
+            libdeflate_free_decompressor(self->d);
+        memset(self,0,sizeof(_ldef_TDecompress));
+        return result;
+    }
     
+    static hpatch_BOOL _ldef_decompress_close(struct hpatch_TDecompress* decompressPlugin,
+                                              hpatch_decompressHandle decompressHandle){
+        _ldef_TDecompress* self=(_ldef_TDecompress*)decompressHandle;
+        hpatch_BOOL result=_ldef_decompress_close_by(decompressPlugin,self);
+        if (self) free(self);
+        return result;
+    }
+
+    static hpatch_BOOL _ldef_decompress_part(hpatch_decompressHandle decompressHandle,
+                                             unsigned char* out_part_data,unsigned char* out_part_data_end){
+        _ldef_TDecompress* self=(_ldef_TDecompress*)decompressHandle;
+        size_t out_part_len=out_part_data_end-out_part_data;
+        const size_t kDictSize=_de_ldef_kDictSize;
+        const size_t kLimitDataSize=_de_ldef_kMaxBlockLength;
+        const size_t kLimitCodeSize=self->code_buf_size>>1;
+        //     [ ( dict ) |     dataBuf                 ]              [            codebuf              ]
+        //     ^              ^         ^               ^              ^                     ^           ^
+        //  data_buf       out_cur   data_cur     data_buf_size     code_buf              code_cur code_buf_size
+        while (out_part_len) {
+            {//write data out
+                size_t out_len=self->data_cur-self->out_cur;
+                if (out_len){ //have data
+                    out_len=(out_len<out_part_len)?out_len:out_part_len;
+                    memcpy(out_part_data,self->data_buf+self->out_cur,out_len);
+                    self->out_cur+=out_len;
+                    out_part_data+=out_len;
+                    out_part_len-=out_len;
+                    continue;
+                }
+            }
+
+            {//read code in
+                size_t code_len=self->code_buf_size-self->code_cur;
+                if (code_len<kLimitCodeSize){
+                    const hpatch_StreamPos_t _codeSize=self->code_end-self->code_begin;
+                    size_t read_len=(self->code_cur<_codeSize)?self->code_cur:(size_t)_codeSize;
+                    if (read_len){
+                        unsigned char* pcode=self->code_buf+self->code_cur;
+                        unsigned char* pdst=pcode-read_len;
+                        memmove(pdst,pcode,code_len);
+                        pdst+=code_len;
+                        if (!self->codeStream->read(self->codeStream,self->code_begin,pdst,pdst+read_len))
+                            return 0; //read error
+                        self->code_begin+=read_len;
+                        self->code_cur-=read_len;
+                    }
+                }
+            }
+            {//move dict
+                size_t empty_data_len=self->data_buf_size-self->data_cur;
+                if (empty_data_len<kLimitDataSize){
+                    size_t move_offset=self->data_cur-kDictSize;
+                    if (move_offset){
+                        memmove(self->data_buf,self->data_buf+move_offset,kDictSize);
+                        self->data_cur=kDictSize;
+                        self->out_cur=kDictSize;
+                    }
+                }
+            }
+            {// decompress
+                int    is_final_block_ret;
+                size_t actual_in_nbytes_ret;
+                size_t actual_out_nbytes_ret;
+                enum libdeflate_result ret=libdeflate_deflate_decompress_block(self->d,
+                                                self->code_buf+self->code_cur,self->code_buf_size-self->code_cur,
+                                                self->data_buf,self->data_cur,self->data_buf_size-self->data_cur,
+                                                &actual_in_nbytes_ret,&actual_out_nbytes_ret,
+                                                LIBDEFLATE_STOP_BY_ANY_BLOCK,&is_final_block_ret);
+                if (ret!=LIBDEFLATE_SUCCESS)
+                    _dec_onDecErr_rt();
+                self->code_cur+=actual_in_nbytes_ret;
+                self->data_cur+=actual_out_nbytes_ret;
+                if (is_final_block_ret)
+                    libdeflate_deflate_decompress_block_reset(self->d);
+            }
+        }
+        return hpatch_TRUE;
+    }
+    static hpatch_TDecompress ldefDecompressPlugin={_ldef_is_can_open,_ldef_decompress_open,
+                                                    _ldef_decompress_close,_ldef_decompress_part};
+#endif//_CompressPlugin_ldef
+
+
 #ifdef  _CompressPlugin_bz2
 #if (_IsNeedIncludeDefaultCompressHead)
 #   include "bzlib.h" // http://www.bzip.org/  https://github.com/sisong/bzip2
