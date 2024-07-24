@@ -191,21 +191,21 @@ static void __dec_free(void* _, void* address){
         return result;
     }
 
-    static hpatch_BOOL _zlib_reset_for_next_node(_zlib_TDecompress* self){
-        //backup
-        Bytef*   next_out_back=self->d_stream.next_out;
-        Bytef*   next_in_back=self->d_stream.next_in;
-        unsigned int avail_out_back=self->d_stream.avail_out;
-        unsigned int avail_in_back=self->d_stream.avail_in;
-        //reset
-        if (Z_OK!=inflateReset(&self->d_stream)) _dec_onDecErr_rt();
-        //restore
-        self->d_stream.next_out=next_out_back;
-        self->d_stream.next_in=next_in_back;
-        self->d_stream.avail_out=avail_out_back;
-        self->d_stream.avail_in=avail_in_back;
-        return hpatch_TRUE;
-    }
+        static hpatch_BOOL _zlib_reset_for_next_node(z_stream* d_stream){
+            //backup
+            Bytef*   next_out_back=d_stream->next_out;
+            Bytef*   next_in_back=d_stream->next_in;
+            unsigned int avail_out_back=d_stream->avail_out;
+            unsigned int avail_in_back=d_stream->avail_in;
+                //reset
+            if (Z_OK!=inflateReset(d_stream)) return hpatch_FALSE;
+                //restore
+            d_stream->next_out=next_out_back;
+            d_stream->next_in=next_in_back;
+            d_stream->avail_out=avail_out_back;
+            d_stream->avail_in=avail_in_back;
+            return hpatch_TRUE;
+        }
     static hpatch_BOOL __zlib_do_inflate(hpatch_decompressHandle decompressHandle){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
         uInt avail_out_back,avail_in_back;
@@ -230,8 +230,8 @@ static void __dec_free(void* _, void* address){
                 _dec_onDecErr_rt();//error;
         }else if (ret==Z_STREAM_END){
             if (self->d_stream.avail_in+codeLen>0){ //next compress node!
-                if (!_zlib_reset_for_next_node(self))
-                    return hpatch_FALSE;//error;
+                if (!_zlib_reset_for_next_node(&self->d_stream))
+                    _dec_onDecErr_rt();//error;
             }else{//all end
                 if (self->d_stream.avail_out!=0)
                     _dec_onDecErr_rt();//error;
@@ -283,11 +283,12 @@ static void __dec_free(void* _, void* address){
 #   endif
 #endif
     static const size_t _de_ldef_kDictSize = 1024*32;
-     static const size_t _de_ldef_kMaxBlockSize =1024*32*19; // used 1.2MB memory, optimized speed for
-    //   libdefalte & zlib ..., when input deflate code compress block size<=_de_ldef_kMaxBlockSize/2;
+    static const size_t _de_ldef_kMaxBlockSize =1024*32*19; 
+    // used _de_ldef_kMaxBlockSize*2 memory; optimized speed for
+    //   libdefalte & zlib's deflate code ..., when theirs input deflate code compress block size<=_de_ldef_kMaxBlockSize/2;
     // if (_de_ldef_kMaxBlockSize>=compress block size>_de_ldef_kMaxBlockSize/2) speed will little slower;
-    // if (compress block size>_de_ldef_kMaxBlockSize)&&(_CompressPlugin_ldef_is_use_zlib!=0),
-    //   then used zlib decompressor & very slower (slower than zlib), && if (_CompressPlugin_ldef_is_use_zlib==0) will decompress fail. 
+    // if (compress block size>_de_ldef_kMaxBlockSize) && if (_CompressPlugin_ldef_is_use_zlib!=0),
+    //   then swap to zlib decompressor & very slower (slower than zlib); && if (_CompressPlugin_ldef_is_use_zlib==0) will decompress fail. 
  
     typedef struct _ldef_TDecompress{
         hpatch_StreamPos_t code_begin;
@@ -324,8 +325,7 @@ static void __dec_free(void* _, void* address){
             unsigned long shift_v;
             unsigned int shift_bit;
             zlib_inflate_shift_value(&self->d_stream,&shift_v,&shift_bit);
-            assert(shift_bit<=7);
-            assert(shift_v==(size_t)(shift_v<<3>>3));
+            if (shift_bit>>3) _dec_onDecErr_rt();
             libdeflate_deflate_decompress_set_state(self->d,(shift_v<<3)|shift_bit);
         }
         assert(self->data_cur==_de_ldef_kDictSize);
@@ -366,7 +366,7 @@ static void __dec_free(void* _, void* address){
             if (ret==Z_OK){
                 if ((self->d_stream.avail_in==avail_in_back)&&(self->d_stream.avail_out==avail_out_back))
                     _dec_onDecErr_rt();//error;
-                if (zlib_inflate_is_block_end(&self->d_stream))
+                if (zlib_inflate_is_block_end(&self->d_stream)&&(!zlib_inflate_is_last_block_end(&self->d_stream)))
                     return _ldef_swap_from_zlib(self);
             }else if (ret==Z_STREAM_END){
                 if (self->d_stream.avail_in+codeLen>0){ //next compress node!
@@ -393,9 +393,8 @@ static void __dec_free(void* _, void* address){
         }else{
             if (Z_OK!=inflateReset(&self->d_stream)) _dec_onDecErr_rt();
         }
-        assert((self->data_cur==_de_ldef_kDictSize)&&((self->code_cur==0)||(self->code_begin==self->code_end)));
         zlib_inflate_set_shift_value(&self->d_stream,(uLong)(dec_state>>3),(uInt)(dec_state&((1<<3)-1)));
-        if (Z_OK!=inflateSetDictionary(&self->d_stream,self->data_buf,_de_ldef_kDictSize)) _dec_onDecErr_rt();
+        if (Z_OK!=inflateSetDictionary(&self->d_stream,self->data_buf+self->data_cur-_de_ldef_kDictSize,_de_ldef_kDictSize)) _dec_onDecErr_rt();
         self->d_stream.next_in=self->code_buf+self->code_cur;
         self->d_stream.avail_in=(uInt)(self->code_buf_size-self->code_cur);
         return _ldef_decompress_part_by_zlib(self,out_part_data,out_part_len);
