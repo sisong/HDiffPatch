@@ -394,7 +394,7 @@ static void __dec_free(void* _, void* address){
             if (Z_OK!=inflateReset(&self->d_stream)) _dec_onDecErr_rt();
         }
         zlib_inflate_set_shift_value(&self->d_stream,(uLong)(dec_state>>3),(uInt)(dec_state&((1<<3)-1)));
-        if (Z_OK!=inflateSetDictionary(&self->d_stream,self->data_buf+self->data_cur-_de_ldef_kDictSize,_de_ldef_kDictSize)) _dec_onDecErr_rt();
+        if (Z_OK!=inflateSetDictionary(&self->d_stream,self->data_buf+self->data_cur-_de_ldef_kDictSize,(uInt)_de_ldef_kDictSize)) _dec_onDecErr_rt();
         self->d_stream.next_in=self->code_buf+self->code_cur;
         self->d_stream.avail_in=(uInt)(self->code_buf_size-self->code_cur);
         return _ldef_decompress_part_by_zlib(self,out_part_data,out_part_len);

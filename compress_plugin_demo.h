@@ -396,12 +396,12 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
     static const size_t _ldef_kDictSize=(1<<15);
     static const size_t _ldef_kMax_in_border_nbytes=258;//deflate max match len
     static size_t _ldef_getBestWorkStepSize(hpatch_StreamPos_t data_size,size_t compress_level,size_t thread_num){
-        const size_t _kMinBaseStep=300000;
-        size_t base_step_size=_kMinBaseStep+(_kMinBaseStep/2)*compress_level;
+        const size_t _kMinBaseStep=600000;
+        size_t base_step_size=1024*1024*2;
         hpatch_StreamPos_t work_count=(data_size+base_step_size-1)/base_step_size;
         if (work_count>=thread_num) return base_step_size;
         size_t step_size=(size_t)((data_size+thread_num-1)/thread_num);
-        const size_t minStep=_kMinBaseStep*2;
+        const size_t minStep=_kMinBaseStep;
         step_size=(step_size>minStep)?step_size:minStep;
         return step_size;
     }
