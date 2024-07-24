@@ -24,6 +24,12 @@
       location = "container:"
       name = "lib">
       <FileRef
+         location = "group:zlib.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:libdeflate.xcodeproj">
+      </FileRef>
+      <FileRef
          location = "group:zstd.xcodeproj">
       </FileRef>
       <FileRef

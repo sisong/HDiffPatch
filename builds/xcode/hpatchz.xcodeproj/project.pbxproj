@@ -8,12 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		0D225C102AB01FAA00DBD5B1 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D225C0F2AB01FAA00DBD5B1 /* liblzma.a */; };
+		0D5690432AB02E69006657AC /* liblibdeflate.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D5690422AB02E69006657AC /* liblibdeflate.a */; };
+		0D5690452AB02E6C006657AC /* libzlib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D5690442AB02E6C006657AC /* libzlib.a */; };
 		0D571A5C275CE9CE00672D57 /* libzstd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D571A5B275CE9CE00672D57 /* libzstd.a */; };
 		0D571A62275CEAE900672D57 /* bspatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A61275CEAE900672D57 /* bspatch_wrapper.c */; };
 		0DA2A8E52910E70D000E86E1 /* vcpatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8E42910E70D000E86E1 /* vcpatch_wrapper.c */; };
 		D6241AE521DE47EC00E2846A /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AE321DE47EC00E2846A /* new_stream.c */; };
 		D64B4BEF2077AAAA0039C38B /* hpatchz.c in Sources */ = {isa = PBXBuildFile; fileRef = D64B4BEE2077AAAA0039C38B /* hpatchz.c */; };
-		D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BF82077B9090039C38B /* libz.tbd */; };
 		D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D64B4BFA2077B91A0039C38B /* libbz2.tbd */; };
 		D67D3BF421D3C5870050632A /* ref_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BF121D3C5870050632A /* ref_stream.c */; };
 		D67D3BF521D3C5870050632A /* dir_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D67D3BF221D3C5870050632A /* dir_patch.c */; };
@@ -40,6 +41,8 @@
 /* Begin PBXFileReference section */
 		0D225B192A99893300DBD5B1 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D225C0F2AB01FAA00DBD5B1 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D5690422AB02E69006657AC /* liblibdeflate.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblibdeflate.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D5690442AB02E6C006657AC /* libzlib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlib.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D571A5B275CE9CE00672D57 /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D571A61275CEAE900672D57 /* bspatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bspatch_wrapper.c; path = ../../bsdiff_wrapper/bspatch_wrapper.c; sourceTree = "<group>"; };
 		0DA2A8E42910E70D000E86E1 /* vcpatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vcpatch_wrapper.c; path = ../../vcdiff_wrapper/vcpatch_wrapper.c; sourceTree = "<group>"; };
@@ -52,7 +55,6 @@
 		D64B4BF22077AB550039C38B /* _clock_for_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _clock_for_demo.h; path = ../../_clock_for_demo.h; sourceTree = "<group>"; };
 		D64B4BF32077AB550039C38B /* decompress_plugin_demo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = decompress_plugin_demo.h; path = ../../decompress_plugin_demo.h; sourceTree = "<group>"; };
 		D64B4BF42077AB550039C38B /* file_for_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = file_for_patch.h; path = ../../file_for_patch.h; sourceTree = "<group>"; };
-		D64B4BF82077B9090039C38B /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		D64B4BFA2077B91A0039C38B /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		D6553CB3165FA1A9009D4C44 /* hpatchz */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hpatchz; sourceTree = BUILT_PRODUCTS_DIR; };
 		D67D3BF021D3C5870050632A /* dir_patch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch.h; sourceTree = "<group>"; };
@@ -82,10 +84,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0D5690452AB02E6C006657AC /* libzlib.a in Frameworks */,
+				0D5690432AB02E69006657AC /* liblibdeflate.a in Frameworks */,
 				0D225C102AB01FAA00DBD5B1 /* liblzma.a in Frameworks */,
 				0D571A5C275CE9CE00672D57 /* libzstd.a in Frameworks */,
 				D64B4BFB2077B91A0039C38B /* libbz2.tbd in Frameworks */,
-				D64B4BF92077B9090039C38B /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -95,11 +98,12 @@
 		D64B4BF72077B9090039C38B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				0D5690442AB02E6C006657AC /* libzlib.a */,
+				0D5690422AB02E69006657AC /* liblibdeflate.a */,
 				0D225C0F2AB01FAA00DBD5B1 /* liblzma.a */,
 				0D225B192A99893300DBD5B1 /* liblzma.a */,
 				0D571A5B275CE9CE00672D57 /* libzstd.a */,
 				D64B4BFA2077B91A0039C38B /* libbz2.tbd */,
-				D64B4BF82077B9090039C38B /* libz.tbd */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -299,6 +303,8 @@
 					../../../lz4/lib/,
 					../../../zstd/lib/,
 					../../../lzma/C/,
+					../../../zlib/,
+					../../../libdeflate/,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = YES;
@@ -350,6 +356,8 @@
 					../../../lz4/lib/,
 					../../../zstd/lib/,
 					../../../lzma/C/,
+					../../../zlib/,
+					../../../libdeflate/,
 				);
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
