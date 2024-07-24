@@ -4,7 +4,11 @@ MT       := 1
 # used libdeflate?
 LDEF     := 1
 # 0: not need zlib;  1: compile zlib source code;  2: used -lz to link zlib lib;
-ZLIB     := 1
+ifeq ($(LDEF),0)
+  ZLIB     := 2
+else
+  ZLIB     := 1
+endif
 # 0: not need lzma;  1: compile lzma source code;  2: used -llzma to link lzma lib;
 LZMA     := 1
 ARM64ASM := 0

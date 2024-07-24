@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.7.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.8.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -50,17 +50,19 @@ apply the delta:
 `$ cd <dir>/HDiffPatch`   
 ### Linux or MacOS X ###
 Try:   
-`$ make LZMA=0 ZSTD=0 MD5=0`   
+`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0`   
 bzip2 : if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again; or download & make with libbz2 source code:
 ```
 $ git clone https://github.com/sisong/bzip2.git ../bzip2
-$ make LZMA=0 ZSTD=0 MD5=0 BZIP2=1
+$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 BZIP2=1
 ```
-if need lzma zstd & md5 support, Try:    
+if need lzma zstd & md5 ... default support, Try:
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
+$ git clone https://github.com/sisong/zlib.git ../zlib
+$ git clone https://github.com/sisong/libdeflate.git ../libdeflate
 $ make
 ```    
 Tip: You can use `$ make -j` to compile in parallel.
@@ -72,6 +74,7 @@ $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
+$ git clone https://github.com/sisong/libdeflate.git ../libdeflate
 $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 ```
    
@@ -149,11 +152,14 @@ options:
         -c-zlib[-{1..9}[-dictBits]]     DEFAULT level 9
             dictBits can 9--15, DEFAULT 15.
             support run by multi-thread parallel, fast!
+        -c-ldef[-{1..12}]               DEFAULT level 12
+            compatible with -c-zlib, faster or better compress than zlib;
+            used libdeflate compressor, & dictBits always 15.
+            support run by multi-thread parallel, fast!
         -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9
         -c-pbzip2[-{1..9}]              (or -pbz2) DEFAULT level 8
             support run by multi-thread parallel, fast!
             NOTE: code not compatible with it compressed by -c-bzip2!
-               and code size may be larger than if it compressed by -c-bzip2.
         -c-lzma[-{0..9}[-dictSize]]     DEFAULT level 7
             dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m
             support run by 2-thread parallel.

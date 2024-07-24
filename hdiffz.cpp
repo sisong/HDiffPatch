@@ -235,7 +235,7 @@ static void printUsage(){
 #   endif
 #endif
 #ifdef _CompressPlugin_ldef
-           "        -c-ldef[-{1..12}]     DEFAULT level 12\n"
+           "        -c-ldef[-{1..12}]               DEFAULT level 12\n"
            "            compatible with -c-zlib, faster or better compress than zlib;\n"
            "            used libdeflate compressor, & dictBits always 15.\n"
 #   if (_IS_USED_MULTITHREAD)

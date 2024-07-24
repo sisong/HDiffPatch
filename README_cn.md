@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.7.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.8.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -50,17 +50,19 @@
 `$ cd <dir>/HDiffPatch`   
 ### Linux or MacOS X ###
 试试:   
-`$ make LZMA=0 ZSTD=0 MD5=0`   
+`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0`   
 bzip2 : 如果编译失败，显示 `fatal error: bzlib.h: No such file or directory`，请使用系统的包管理器安装libbz2，然后再试一次；或者下载并使用libbz2源代码来编译:
 ```
 $ git clone https://github.com/sisong/bzip2.git ../bzip2
-$ make LZMA=0 ZSTD=0 MD5=0 BZIP2=1
+$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 BZIP2=1
 ```
-如果需要支持 lzma、zstd 和 md5，试试:    
+如果需要支持 lzma、zstd 和 md5 等 默认编译设置，试试:    
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
+$ git clone https://github.com/sisong/zlib.git ../zlib
+$ git clone https://github.com/sisong/libdeflate.git ../libdeflate
 $ make
 ```    
 提示:你可以使用 `$ make -j` 来并行编译。
@@ -72,6 +74,7 @@ $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
+$ git clone https://github.com/sisong/libdeflate.git ../libdeflate
 $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 ```
    
@@ -149,9 +152,13 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
         -c-zlib[-{1..9}[-dictBits]]     默认级别 9
             压缩字典比特数dictBits可以为9到15, 默认为15。
             支持多线程并行压缩,很快！
+        -c-ldef[-{1..12}]               默认级别 12
+            输出压缩数据格式兼容于-c-zlib, 但比zlib压缩得更快或压缩得更小;
+            使用了libdeflate压缩算法，且压缩字典比特数dictBits始终为15。
+            支持多线程并行压缩,很快！
         -c-bzip2[-{1..9}]               (或 -bz2) 默认级别 9
         -c-pbzip2[-{1..9}]              (或 -pbz2) 默认级别 8
-            支持并行压缩,生成的补丁和-c-bzip2的输出格式不同,一般也可能稍大一点。
+            支持并行压缩,生成的补丁和-c-bzip2的输出格式稍有不同。
         -c-lzma[-{0..9}[-dictSize]]     默认级别 7
             压缩字典大小dictSize可以设置为 4096, 4k, 4m, 128m等, 默认为8m
             支持2个线程并行压缩。
@@ -161,7 +168,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
             警告: lzma和lzma2是不同的压缩编码格式。
         -c-zstd[-{0..22}[-dictBits]]    默认级别 20
             压缩字典比特数dictBits 可以为10到30, 默认为23。
-            支持多线程并行压缩,很快。
+            支持多线程并行压缩,较快。
   -C-checksumType
       为文件夹间diff设置数据校验算法, 默认为fadler64;
       支持的校验选项:
