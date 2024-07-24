@@ -695,6 +695,7 @@
 					"ZSTD_DISABLE_ASM=1",
 					"ZSTDLIB_VISIBLE=",
 					"ZSTDLIB_HIDDEN=",
+					"_IS_NEED_DEFAULT_CompressPlugin=0",
                     _CompressPlugin_zlib,
                     _CompressPlugin_bz2,
                     _CompressPlugin_lzma,
