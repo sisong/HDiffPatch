@@ -60,13 +60,16 @@
 
 #ifdef  _ChecksumPlugin_crc32
 #if (_IsNeedIncludeDefaultChecksumHead)
-# ifdef _CompressPlugin_ldef
+# ifndef _IS_USED_LIBDEFLATE_CRC32
+#   define _IS_USED_LIBDEFLATE_CRC32    0
+#endif
+#if (_IS_USED_LIBDEFLATE_CRC32)
 #   include "libdeflate.h" // https://github.com/ebiggers/libdeflate
 # else
 #   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
 # endif
 #endif
-#ifdef _CompressPlugin_ldef
+#if (_IS_USED_LIBDEFLATE_CRC32)
 #   define _crc32 libdeflate_crc32
 #else
 #   define _crc32 crc32
@@ -91,7 +94,7 @@ static void  _crc32_begin(hpatch_checksumHandle handle){
 static void _crc32_append(hpatch_checksumHandle handle,
                           const unsigned char* part_data,const unsigned char* part_data_end){
     hpatch_uint32_t* pv=(hpatch_uint32_t*)handle;
-#ifdef _CompressPlugin_ldef
+#if (_IS_USED_LIBDEFLATE_CRC32)
     *pv=_crc32(*pv,part_data,part_data_end-part_data);
 #else
     uLong v=*pv;

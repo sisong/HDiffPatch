@@ -445,8 +445,7 @@ static void __dec_free(void* _, void* address){
         _ldef_TDecompress* self=0;
         const hpatch_StreamPos_t in_size=code_end-code_begin;
         const size_t data_buf_size=_de_ldef_kDictSize+((_de_ldef_kMaxBlockSize<dataSize)?_de_ldef_kMaxBlockSize:(size_t)dataSize);
-        size_t code_buf_size=libdeflate_deflate_compress_bound_block(_de_ldef_kMaxBlockSize);
-        code_buf_size=(code_buf_size<in_size)?code_buf_size:(size_t)in_size;
+        const size_t code_buf_size=(_de_ldef_kMaxBlockSize<in_size)?_de_ldef_kMaxBlockSize:(size_t)in_size;
         size_t _mem_size=sizeof(_ldef_TDecompress)+data_buf_size+code_buf_size;
         unsigned char* _mem_buf=(unsigned char*)_dec_malloc(_mem_size);
         if (!_mem_buf) _dec_memErr_rt();

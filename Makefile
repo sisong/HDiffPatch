@@ -1,8 +1,10 @@
 # args
 DIR_DIFF := 1
 MT       := 1
+# used libdeflate?
+LDEF     := 1
 # 0: not need zlib;  1: compile zlib source code;  2: used -lz to link zlib lib;
-ZLIB     := 2
+ZLIB     := 1
 # 0: not need lzma;  1: compile lzma source code;  2: used -llzma to link lzma lib;
 LZMA     := 1
 ARM64ASM := 0
@@ -28,10 +30,21 @@ else
   # 0: not need bzip2 (must BSD=0);  1: compile bzip2 source code;  2: used -lbz2 to link bzip2 lib;
   BZIP2 := 2
 endif
-ifeq ($(BZIP2),0)
-  ifeq ($(BSD),0)
+ifeq ($(BSD),0)
+else
+  ifeq ($(BZIP2),0)
+  $(error error: support bsdiff need BZIP2! set BSD=0 or BZIP2>0 continue)
+  endif
+endif
+
+ifeq ($(LDEF),0)
+else
+  ifeq ($(ZLIB),2)
+  $(error error: libdeflate not support -lz! need zlib source code, set ZLIB=1 continue)
   else
-  $(error error: support bsdiff need BZIP2! set BSD=0 continue)
+    ifeq ($(ZLIB),0)
+    $(warning warning: libdeflate can't support all of the deflate code, when no zlib source code)
+    endif
   endif
 endif
 
@@ -159,7 +172,7 @@ ifeq ($(BZIP2),1) # http://www.bzip.org  https://github.com/sisong/bzip2
 endif
 
 ZLIB_PATH := ../zlib
-ifeq ($(ZLIB),1) # http://zlib.net  https://github.com/sisong/zlib  
+ifeq ($(ZLIB),1) # https://github.com/sisong/zlib/tree/bit_pos_padding
   HPATCH_OBJ += $(ZLIB_PATH)/adler32.o \
   				$(ZLIB_PATH)/crc32.o \
   				$(ZLIB_PATH)/inffast.o \
@@ -168,6 +181,14 @@ ifeq ($(ZLIB),1) # http://zlib.net  https://github.com/sisong/zlib
   				$(ZLIB_PATH)/trees.o \
   				$(ZLIB_PATH)/zutil.o
   HDIFF_OBJ +=  $(ZLIB_PATH)/deflate.o
+endif
+
+LDEF_PATH := ../libdeflate
+ifeq ($(LDEF),1) # https://github.com/sisong/libdeflate/tree/stream-mt
+  HPATCH_OBJ += $(LDEF_PATH)/lib/deflate_decompress.o\
+                $(LDEF_PATH)/lib/utils.o \
+                $(LDEF_PATH)/lib/x86/cpu_features.o
+  HDIFF_OBJ +=  $(LDEF_PATH)/lib/deflate_compress.o
 endif
 
 HDIFF_OBJ += \
@@ -243,7 +264,19 @@ ifeq ($(ZLIB),0)
 else
     DEF_FLAGS += -D_CompressPlugin_zlib
 	ifeq ($(ZLIB),1)
-        DEF_FLAGS += -I$(ZLIB_PATH)
+    DEF_FLAGS += -I$(ZLIB_PATH)
+	endif
+endif
+ifeq ($(LDEF),0)
+else
+    DEF_FLAGS += -D_CompressPlugin_ldef
+	ifeq ($(LDEF),1)
+    DEF_FLAGS += -I$(LDEF_PATH)
+	endif
+  ifeq ($(ZLIB),1)
+    DEF_FLAGS += -D_CompressPlugin_ldef_is_use_zlib=1
+  else
+    DEF_FLAGS += -D_CompressPlugin_ldef_is_use_zlib=0
 	endif
 endif
 ifeq ($(DIR_DIFF),0)
