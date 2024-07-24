@@ -71,6 +71,8 @@
 			<Add directory="../../../lzma/C/" />
 			<Add directory="../../../zstd/lib" />
 			<Add directory="../../../libmd5" />
+			<Add directory="../../../libdeflate" />
+			<Add directory="../../../zlib" />
 		</Compiler>
 		<Linker>
 			<Add library="pthread" />
@@ -95,6 +97,18 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../bzip2/randtable.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../libdeflate/lib/deflate_compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../libdeflate/lib/deflate_decompress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../libdeflate/lib/utils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../libdeflate/lib/x86/cpu_features.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../libmd5/md5.c">
@@ -168,6 +182,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/XzCrc64.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../../lzma/C/XzCrc64Opt.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../lzma/C/XzDec.c">
