@@ -5,7 +5,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 ## [v4.8.0](https://github.com/sisong/HDiffPatch/tree/v4.8.0) - 2024-07-25
 ### Added
 * cmdline hdiffz support option "-c-ldef-{1..12}", used libdeflate compressor; compatible with -c-zlib, faster or better than zlib;
-* hpatchz added libdeflate decompressor, for optimized patch speed when diffFile is compressed by -c-zlib or -c-ldef; (default opened on PC, closed on mobile)
+ (hpatchz now default closed libdeflate decompressor)
 * add plugin ldefCompressPlugin, pldefCompressPlugin, ldefDecompressPlugin;
 ### Changed
 * released Android libhpatchz.so support Android 15 with 16KB page size;

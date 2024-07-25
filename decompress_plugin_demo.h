@@ -29,7 +29,7 @@
 #define HPatch_decompress_plugin_demo_h
 //decompress plugin demo:
 //  zlibDecompressPlugin;   // support all deflate encoding by zlib
-//  ldefDecompressPlugin;   // NOTE: not yet fully compatible with deflate encoding, now only support (p)ldefCompressPlugin
+//  ldefDecompressPlugin;   // optimized deompress speed for deflate encoding
 //  bz2DecompressPlugin;
 //  lzmaDecompressPlugin;
 //  lzma2DecompressPlugin;

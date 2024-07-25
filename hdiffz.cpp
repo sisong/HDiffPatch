@@ -517,7 +517,7 @@ static hpatch_BOOL _getIsVcDiffFile(const char* diffFileName) {
 #define _try_rt_dec(dec) { if (dec.is_can_open(compressType)) return &dec; }
 
 static hpatch_TDecompress* __find_decompressPlugin(const char* compressType){
-#if ((defined(_CompressPlugin_ldef))&&_CompressPlugin_ldef_is_use_zlib)
+#if (0) //now closed ldef decompressor// ((defined(_CompressPlugin_ldef))&&_CompressPlugin_ldef_is_use_zlib)
     //NOTE: if _CompressPlugin_ldef_is_use_zlib==0, ldefDecompressPlugin can't support all of deflate encoding, only support for (p)ldefCompressPlugin!
     //  if _CompressPlugin_ldef_is_use_zlib==1, ldefDecompressPlugin can support all of deflate encoding by zlib decompressor.
     _try_rt_dec(ldefDecompressPlugin);
