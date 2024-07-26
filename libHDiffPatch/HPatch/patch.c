@@ -1626,7 +1626,7 @@ static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
                                    _TArrayCovers* arrayCovers,hpatch_size_t maxCachedLen,hpatch_size_t sumCacheLen,
                                    TByte* old_cache,TByte* old_cache_end,TByte* cache_buf_end){
     const hpatch_size_t kMinSpaceLen   =(1<<(20+2));//跳过seekTime*speed长度的空间(SSD可以更小)时间上划得来,否则就顺序访问;
-    const hpatch_size_t kAccessPageSize=(1<<(10+2));//页面对齐访问;
+    const hpatch_size_t kAccessPageSize=4096;//磁盘页面对齐访问(只和速度有关，但影响不大);
     hpatch_BOOL result=hpatch_TRUE;
     hpatch_size_t cur_i=0,i;
     const hpatch_size_t coverCount=arrayCovers->coverCount;

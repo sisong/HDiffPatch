@@ -151,8 +151,14 @@ static hsync_TDictCompress* _getDictCompressPlugin(){
 #endif
 }
 
-#define _IS_USES_MY_RAND
-#ifdef _IS_USES_MY_RAND
+#ifndef _IS_USES_MY_RAND
+#  define _IS_USES_MY_RAND 1
+#endif
+#if (_IS_USES_MY_RAND)
+    #ifdef RAND_MAX
+    #   undef RAND_MAX
+    #endif
+    #define RAND_MAX 0x7fff
     class  CMyRand{
     public:
         unsigned int _my_holdrand;

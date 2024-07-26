@@ -103,6 +103,7 @@ extern "C"
         hpatch_StreamPos_t          (*compress)(const struct hdiff_TCompress* compressPlugin,
                                                 const hpatch_TStreamOutput*   out_code,
                                                 const hpatch_TStreamInput*    in_data);
+        const char*        (*compressTypeForDisplay)(void);//like compressType but just for display,can NULL
     } hdiff_TCompress;
     
     static hpatch_inline

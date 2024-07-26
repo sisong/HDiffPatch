@@ -510,13 +510,19 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					Z7_ST,
-					USE_CRC_EMU,
 					ZSTD_STATIC_LINKING_ONLY,
 					"ZSTD_HAVE_WEAK_SYMBOLS=0",
 					"ZSTD_TRACE=0",
 					"ZSTD_DISABLE_ASM=1",
 					"ZSTDLIB_VISIBLE=",
 					"ZSTDLIB_HIDDEN=",
+					"_IS_NEED_DEFAULT_CompressPlugin=0",
+					_CompressPlugin_zlib,
+					_CompressPlugin_bz2,
+					_CompressPlugin_lzma,
+					_CompressPluginlzma2,
+					_CompressPlugin_zstd,
+					_CompressPlugn_7zXZ,
 					"$(inherited)",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -584,13 +590,19 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					NDEBUG,
 					Z7_ST,
-					USE_CRC_EMU,
 					ZSTD_STATIC_LINKING_ONLY,
 					"ZSTD_HAVE_WEAK_SYMBOLS=0",
 					"ZSTD_TRACE=0",
 					"ZSTD_DISABLE_ASM=1",
 					"ZSTDLIB_VISIBLE=",
 					"ZSTDLIB_HIDDEN=",
+					"_IS_NEED_DEFAULT_CompressPlugin=0",
+					_CompressPlugin_zlib,
+					_CompressPlugin_bz2,
+					_CompressPlugin_lzma,
+					_CompressPluginlzma2,
+					_CompressPlugin_zstd,
+					_CompressPlugn_7zXZ,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -642,15 +654,22 @@
 				CODE_SIGN_STYLE = Automatic;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
-					Z7_LZMA_DEC_OPT,
 					Z7_ST,
-					USE_CRC_EMU,
 					ZSTD_STATIC_LINKING_ONLY,
 					"ZSTD_HAVE_WEAK_SYMBOLS=0",
 					"ZSTD_TRACE=0",
 					"ZSTD_DISABLE_ASM=1",
 					"ZSTDLIB_VISIBLE=",
 					"ZSTDLIB_HIDDEN=",
+					"_IS_NEED_DEFAULT_CompressPlugin=0",
+                    _CompressPlugin_zlib,
+                    _CompressPlugin_bz2,
+                    _CompressPlugin_lzma,
+                    _CompressPluginlzma2,
+                    _CompressPlugin_zstd,
+                    _CompressPlugn_7zXZ,
+					Z7_LZMA_DEC_OPT,
+					USE_CRC_EMU,
 					"$(inherited)",
 				);
 				OTHER_LDFLAGS = "-ObjC";
@@ -666,15 +685,22 @@
 				CODE_SIGN_STYLE = Automatic;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					NDEBUG,
-					Z7_LZMA_DEC_OPT,
 					Z7_ST,
-					USE_CRC_EMU,
 					ZSTD_STATIC_LINKING_ONLY,
 					"ZSTD_HAVE_WEAK_SYMBOLS=0",
 					"ZSTD_TRACE=0",
 					"ZSTD_DISABLE_ASM=1",
 					"ZSTDLIB_VISIBLE=",
 					"ZSTDLIB_HIDDEN=",
+					"_IS_NEED_DEFAULT_CompressPlugin=0",
+                    _CompressPlugin_zlib,
+                    _CompressPlugin_bz2,
+                    _CompressPlugin_lzma,
+                    _CompressPluginlzma2,
+                    _CompressPlugin_zstd,
+                    _CompressPlugn_7zXZ,
+					Z7_LZMA_DEC_OPT,
+					USE_CRC_EMU,
 				);
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "-ObjC";

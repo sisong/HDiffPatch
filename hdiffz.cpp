@@ -66,21 +66,31 @@
 #if (_IS_NEED_DEFAULT_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_zlib  // memory requires less
+#   define _CompressPlugin_ldef  // faster or better compress than zlib / (now used ldef+zlib decompressor)
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma  // better compresser
 #   define _CompressPlugin_lzma2 // better compresser
-#   define _CompressPlugin_zstd  // better compresser / faster decompresser
+#   define _CompressPlugin_zstd  // better compresser / faster decompressor
 #if (_IS_NEED_VCDIFF)
-#   define _CompressPlugin_7zXZ  //only for VCDIFF
+#   define _CompressPlugin_7zXZ  //only for VCDIFF, used lzma2
 #endif
+
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
-#   define _CompressPlugin_lz4   // faster compresser / faster decompresser
-#   define _CompressPlugin_lz4hc // faster decompresser
-#   define _CompressPlugin_brotli// better compresser / faster decompresser
+#   define _CompressPlugin_lz4   // faster compresser / faster decompressor
+#   define _CompressPlugin_lz4hc // compress slower & better than lz4 / (used lz4 decompressor) 
+#   define _CompressPlugin_brotli// better compresser / faster decompressor
 #   define _CompressPlugin_lzham // better compresser / decompress faster than lzma2
-#   define _CompressPlugin_tuz   // decompress requires tiny code(.text) & ram
+#   define _CompressPlugin_tuz   // slower compresser / decompress requires tiny code(.text) & ram
+#endif
+#ifdef _CompressPlugin_ldef
+#   ifndef _CompressPlugin_ldef_is_use_zlib
+#       define _CompressPlugin_ldef_is_use_zlib         1 //now ldef need zlib decompressor for any all of deflate code
+#   endif
+#   ifndef _IS_NEED_decompressor_ldef_replace_zlib
+#       define _IS_NEED_decompressor_ldef_replace_zlib  0 
+#   endif
 #endif
 
 #if (_IS_NEED_BSDIFF)
@@ -227,13 +237,20 @@ static void printUsage(){
            "            support run by multi-thread parallel, fast!\n"
 #   endif
 #endif
+#ifdef _CompressPlugin_ldef
+           "        -c-ldef[-{1..12}]               DEFAULT level 12\n"
+           "            compatible with -c-zlib, faster or better compress than zlib;\n"
+           "            used libdeflate compressor, & dictBits always 15.\n"
+#   if (_IS_USED_MULTITHREAD)
+           "            support run by multi-thread parallel, fast!\n"
+#   endif
+#endif
 #ifdef _CompressPlugin_bz2
            "        -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9\n"
 #   if (_IS_USED_MULTITHREAD)
            "        -c-pbzip2[-{1..9}]              (or -pbz2) DEFAULT level 8\n"
            "            support run by multi-thread parallel, fast!\n"
            "            NOTE: code not compatible with it compressed by -c-bzip2!\n"
-           "               and code size may be larger than if it compressed by -c-bzip2.\n"
 #   endif
 #endif
 #ifdef _CompressPlugin_lzma
@@ -503,8 +520,12 @@ static hpatch_BOOL _getIsVcDiffFile(const char* diffFileName) {
 #define _try_rt_dec(dec) { if (dec.is_can_open(compressType)) return &dec; }
 
 static hpatch_TDecompress* __find_decompressPlugin(const char* compressType){
-#ifdef  _CompressPlugin_zlib
+#if ((defined(_CompressPlugin_ldef))&&_IS_NEED_decompressor_ldef_replace_zlib)
+    _try_rt_dec(ldefDecompressPlugin);
+#else
+#  ifdef  _CompressPlugin_zlib
     _try_rt_dec(zlibDecompressPlugin);
+#  endif
 #endif
 #ifdef  _CompressPlugin_bz2
     _try_rt_dec(bz2DecompressPlugin);
@@ -653,7 +674,8 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
     size_t       dictSize=0;
     const size_t defaultDictSize=(1<<20)*8; //8m
 #endif
-#if (defined _CompressPlugin_zlib)||(defined _CompressPlugin_zstd)||(defined _CompressPlugin_brotli)||(defined _CompressPlugin_lzham)
+#if (defined _CompressPlugin_zlib)||(defined _CompressPlugin_ldef)||(defined _CompressPlugin_zstd) \
+        ||(defined _CompressPlugin_brotli)||(defined _CompressPlugin_lzham)
     size_t       dictBits=0;
     const size_t defaultDictBits=20+3; //8m
     const size_t defaultDictBits_zlib=15; //32k
@@ -671,6 +693,19 @@ static int _checkSetCompress(hdiff_TCompress** out_compressPlugin,
         _pzlibCompressPlugin.base.compress_level=(int)compressLevel;
         _pzlibCompressPlugin.base.windowBits=(signed char)(-(int)dictBits);
         *out_compressPlugin=&_pzlibCompressPlugin.base.base; }}
+#   endif // _IS_USED_MULTITHREAD
+#endif
+#ifdef _CompressPlugin_ldef
+    __getCompressSet(_tryGetCompressSet(&isMatchedType,ptype,ptypeEnd,"ldef","pldef",
+                                        &compressLevel,1,12,12, &dictBits,15,15,defaultDictBits_zlib),"-c-ldef-?"){
+#   if (!_IS_USED_MULTITHREAD)
+        static TCompressPlugin_ldef _ldefCompressPlugin=ldefCompressPlugin;
+        _ldefCompressPlugin.compress_level=(int)compressLevel;
+        *out_compressPlugin=&_ldefCompressPlugin.base; }}
+#   else
+        static TCompressPlugin_pldef _pldefCompressPlugin=pldefCompressPlugin;
+        _pldefCompressPlugin.base.compress_level=(int)compressLevel;
+        *out_compressPlugin=&_pldefCompressPlugin.base.base; }}
 #   endif // _IS_USED_MULTITHREAD
 #endif
 #ifdef _CompressPlugin_bz2
@@ -1453,6 +1488,7 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
         hpatch_BOOL isSingleCompressedDiff=hpatch_FALSE;
 #if (_IS_NEED_BSDIFF)
         hpatch_BOOL isBsDiff=hpatch_FALSE;
+        hpatch_BOOL isSingleCompressedBsDiff=hpatch_FALSE;
 #endif
 #if (_IS_NEED_VCDIFF)
         hpatch_BOOL isVcDiff=hpatch_FALSE;
@@ -1481,11 +1517,11 @@ static int hdiff_in_mem(const char* oldFileName,const char* newFileName,const ch
                 if (!diffSets.isDoDiff)
                     printf("test single compressed diffData!\n");
 #if (_IS_NEED_BSDIFF)
-            }else if (getIsBsDiff_mem(diffMem.data(),diffMem.data_end(),&isSingleCompressedDiff)){
+            }else if (getIsBsDiff_mem(diffMem.data(),diffMem.data_end(),&isSingleCompressedBsDiff)){
                 *saved_decompressPlugin=_bz2DecompressPlugin_unsz;
                 isBsDiff=hpatch_TRUE;
                 if (!diffSets.isDoDiff)
-                    printf(isSingleCompressedDiff?"test endsley/bsdiff's diffData!\n":"test bsdiff4's diffData!\n");
+                    printf(isSingleCompressedBsDiff?"test endsley/bsdiff's diffData!\n":"test bsdiff4's diffData!\n");
 #endif
 #if (_IS_NEED_VCDIFF)
             }else if (getVcDiffInfo_mem(&vcdiffInfo,diffMem.data(),diffMem.data_end(),hpatch_FALSE)){
@@ -1609,6 +1645,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
         hpatch_BOOL isSingleCompressedDiff=hpatch_FALSE;
 #if (_IS_NEED_BSDIFF)
         hpatch_BOOL isBsDiff=hpatch_FALSE;
+        hpatch_BOOL isSingleCompressedBsDiff=hpatch_FALSE;
 #endif
 #if (_IS_NEED_VCDIFF)
         hpatch_BOOL isVcDiff=hpatch_FALSE;
@@ -1630,11 +1667,11 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
                 if (!diffSets.isDoDiff)
                     printf("test single compressed diffData!\n");
 #if (_IS_NEED_BSDIFF)
-            }else if (getIsBsDiff(&diffData_in.base,&isSingleCompressedDiff)){
+            }else if (getIsBsDiff(&diffData_in.base,&isSingleCompressedBsDiff)){
                 *saved_decompressPlugin=_bz2DecompressPlugin_unsz;
                 isBsDiff=hpatch_TRUE;
                 if (!diffSets.isDoDiff)
-                    printf(isSingleCompressedDiff?"test endsley/bsdiff's diffData!\n":"test bsdiff4's diffData!\n");
+                    printf(isSingleCompressedBsDiff?"test endsley/bsdiff's diffData!\n":"test bsdiff4's diffData!\n");
 #endif
 #if (_IS_NEED_VCDIFF)
             }else if (getVcDiffInfo(&vcdiffInfo,&diffData_in.base,hpatch_FALSE)){
@@ -1655,16 +1692,18 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
             else saved_decompressPlugin->decError=hpatch_dec_ok;
         }
         bool diffrt;
-        if (isSingleCompressedDiff)
-            diffrt=check_single_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
 #if (_IS_NEED_BSDIFF)
-        else if (isBsDiff)
+        if (isBsDiff)
             diffrt=check_bsdiff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
+        else
 #endif
 #if (_IS_NEED_VCDIFF)
-        else if (isVcDiff)
+        if (isVcDiff)
             diffrt=check_vcdiff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
+        else
 #endif
+        if (isSingleCompressedDiff)
+            diffrt=check_single_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
         else
             diffrt=check_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
         check(diffrt,HDIFF_PATCH_ERROR,"patch check diff data");
@@ -1689,9 +1728,10 @@ int hdiff(const char* oldFileName,const char* newFileName,const char* outDiffFil
     hpatch_printPath_utf8(fnameInfo.c_str());
     
     if (diffSets.isDoDiff) {
-        const char* compressType="";
-        if (compressPlugin) compressType=compressPlugin->compressType();
-        printf("hdiffz run with compress plugin: \"%s\"\n",compressType);
+        const char* compressTypeTxt="";
+        if (compressPlugin) compressTypeTxt=compressPlugin->compressTypeForDisplay?
+                                compressPlugin->compressTypeForDisplay():compressPlugin->compressType();
+        printf("hdiffz run with compress plugin: \"%s\"\n",compressTypeTxt);
         if (diffSets.isSingleCompressedDiff){
       #if (_IS_NEED_BSDIFF)
           if (!diffSets.isBsDiff)
@@ -1782,9 +1822,10 @@ int hdiff_resave(const char* diffFileName,const char* outDiffFileName,
         }
     }
     {
-        const char* compressType="";
-        if (compressPlugin) compressType=compressPlugin->compressType();
-        printf("resave diffFile with compress plugin: \"%s\"\n",compressType);
+        const char* compressTypeTxt="";
+        if (compressPlugin) compressTypeTxt=compressPlugin->compressTypeForDisplay?
+                                compressPlugin->compressTypeForDisplay():compressPlugin->compressType();
+        printf("resave diffFile with compress plugin: \"%s\"\n",compressTypeTxt);
     }
 #if (_IS_NEED_DIR_DIFF_PATCH)
     if (isDirDiff){ //checksumPlugin
@@ -1911,11 +1952,12 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
     bool isManifest= (!newManifestFileName.empty());
     if (diffSets.isDoDiff) {
         const char* checksumType="";
-        const char* compressType="";
+        const char* compressTypeTxt="";
         if (checksumPlugin)
             checksumType=checksumPlugin->checksumType();
-        if (compressPlugin) compressType=compressPlugin->compressType();
-        printf("hdiffz run %sdir diff with compress plugin: \"%s\"\n",isManifest?"manifest ":"",compressType);
+        if (compressPlugin) compressTypeTxt=compressPlugin->compressTypeForDisplay?
+                                compressPlugin->compressTypeForDisplay():compressPlugin->compressType();
+        printf("hdiffz run %sdir diff with compress plugin: \"%s\"\n",isManifest?"manifest ":"",compressTypeTxt);
         printf("hdiffz run %sdir diff with checksum plugin: \"%s\"\n",isManifest?"manifest ":"",checksumType);
     }
     printf("\n");

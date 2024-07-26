@@ -31,12 +31,17 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
+			<Add option="-D_IS_NEED_DIR_DIFF_PATCH=0" />
 		</Compiler>
 		<Linker>
 			<Add library="libz" />
 			<Add library="libbz2" />
 			<Add library="libpthread" />
 		</Linker>
+		<Unit filename="../../dirDiffPatch/dir_diff/dir_diff_tools.cpp" />
+		<Unit filename="../../file_for_patch.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../libHDiffPatch/HDiff/diff.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/bytes_rle.cpp" />
 		<Unit filename="../../libHDiffPatch/HDiff/private_diff/compress_detect.cpp" />
@@ -56,6 +61,13 @@
 		</Unit>
 		<Unit filename="../../libParallel/parallel_channel.cpp" />
 		<Unit filename="../../libParallel/parallel_import.cpp" />
+		<Unit filename="../../libhsync/sync_client/match_in_old.cpp" />
+		<Unit filename="../../libhsync/sync_client/sync_client.cpp" />
+		<Unit filename="../../libhsync/sync_client/sync_diff_data.cpp" />
+		<Unit filename="../../libhsync/sync_client/sync_info_client.cpp" />
+		<Unit filename="../../libhsync/sync_make/match_in_new.cpp" />
+		<Unit filename="../../libhsync/sync_make/sync_info_make.cpp" />
+		<Unit filename="../../libhsync/sync_make/sync_make.cpp" />
 		<Unit filename="../../test/unit_test.cpp" />
 		<Extensions>
 			<envvars />

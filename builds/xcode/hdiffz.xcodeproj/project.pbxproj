@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		0D225ADB2A997B6200DBD5B1 /* liblzma.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D225ADA2A997B6200DBD5B1 /* liblzma.a */; };
+		0D5690472AB02E90006657AC /* liblibdeflate.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D5690462AB02E90006657AC /* liblibdeflate.a */; };
+		0D5690492AB02E97006657AC /* libzlib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D5690482AB02E97006657AC /* libzlib.a */; };
 		0D571A66275CEB3B00672D57 /* libzstd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D571A65275CEB3B00672D57 /* libzstd.a */; };
 		0D571A69275CF68900672D57 /* match_block.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A68275CF68900672D57 /* match_block.cpp */; };
 		0D571A6F275CF71A00672D57 /* bspatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A6B275CF71A00672D57 /* bspatch_wrapper.c */; };
@@ -31,7 +33,6 @@
 		D690ABBB1F2079E80089DC57 /* suffix_string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D690ABB21F2079E80089DC57 /* suffix_string.cpp */; };
 		D690ABBC1F2079E80089DC57 /* patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D690ABB51F2079E80089DC57 /* patch.c */; };
 		D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFA1F2097C90089DC57 /* libbz2.tbd */; };
-		D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFC1F2097D30089DC57 /* libz.tbd */; };
 		D69EECD9220BD8E2001EF085 /* compress_parallel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D69EECD8220BD8E2001EF085 /* compress_parallel.cpp */; };
 		D69EECDF220C49DE001EF085 /* parallel_channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D69EECDB220C49DE001EF085 /* parallel_channel.cpp */; };
 		D69EECE0220C49DE001EF085 /* parallel_import.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D69EECDD220C49DE001EF085 /* parallel_import.cpp */; };
@@ -58,6 +59,8 @@
 
 /* Begin PBXFileReference section */
 		0D225ADA2A997B6200DBD5B1 /* liblzma.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblzma.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D5690462AB02E90006657AC /* liblibdeflate.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = liblibdeflate.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D5690482AB02E97006657AC /* libzlib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlib.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D571A65275CEB3B00672D57 /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D571A68275CF68900672D57 /* match_block.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = match_block.cpp; sourceTree = "<group>"; };
 		0D571A6B275CF71A00672D57 /* bspatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bspatch_wrapper.c; path = ../../bsdiff_wrapper/bspatch_wrapper.c; sourceTree = "<group>"; };
@@ -155,9 +158,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0D5690492AB02E97006657AC /* libzlib.a in Frameworks */,
+				0D5690472AB02E90006657AC /* liblibdeflate.a in Frameworks */,
 				0D225ADB2A997B6200DBD5B1 /* liblzma.a in Frameworks */,
 				0D571A66275CEB3B00672D57 /* libzstd.a in Frameworks */,
-				D690AEFD1F2097D30089DC57 /* libz.tbd in Frameworks */,
 				D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -351,6 +355,8 @@
 		D690ABBD1F20832E0089DC57 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				0D5690482AB02E97006657AC /* libzlib.a */,
+				0D5690462AB02E90006657AC /* liblibdeflate.a */,
 				0D225ADA2A997B6200DBD5B1 /* liblzma.a */,
 				0D571A65275CEB3B00672D57 /* libzstd.a */,
 				D690AEFC1F2097D30089DC57 /* libz.tbd */,
@@ -535,6 +541,8 @@
 					../../../lz4/lib/,
 					../../../zstd/lib/,
 					../../../lzma/C/,
+					../../../zlib/,
+					../../../libdeflate/,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = YES;
@@ -594,6 +602,8 @@
 					../../../lz4/lib/,
 					../../../zstd/lib/,
 					../../../lzma/C/,
+					../../../zlib/,
+					../../../libdeflate/,
 				);
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;

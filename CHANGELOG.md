@@ -2,6 +2,14 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v4.8.0](https://github.com/sisong/HDiffPatch/tree/v4.8.0) - 2024-07-26
+### Added
+* cmdline hdiffz support option "-c-ldef-{1..12}"; used libdeflate compressor, compatible with -c-zlib, faster or better than zlib;
+ (hpatchz now default closed libdeflate decompressor)
+* add plugin ldefCompressPlugin, pldefCompressPlugin, ldefDecompressPlugin;
+### Changed
+* released Android libhpatchz.so support Android 15 with 16KB page size;
+
 ## [v4.7.0](https://github.com/sisong/HDiffPatch/tree/v4.7.0) - 2024-07-12
 ### Added
 * cmdline hdiffz support option "-BSD -SD", to create diffFile compatible with another BSDIFF format "ENDSLEY/BSDIFF43", https://github.com/mendsley/bsdiff ; patch support this format from v4.6.7
@@ -54,7 +62,7 @@ if diffFile created by empty oldPath, then extract with default option `$selfExt
 
 ## [v4.3.0](https://github.com/sisong/HDiffPatch/tree/v4.3.0) - 2022-09-23
 ### Changed
-* recode some patch error code: decompresser errors, file error, disk space full error, jni error
+* recode some patch error code: decompressor errors, file error, disk space full error, jni error
 
 ## [v4.2.0](https://github.com/sisong/HDiffPatch/tree/v4.2.0) - 2022-05-15
 ### Added
