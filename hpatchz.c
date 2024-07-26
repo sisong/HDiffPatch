@@ -78,8 +78,14 @@
 #endif
 #if (_IS_NEED_DEFAULT_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
-#   define _CompressPlugin_zlib
-//#   define _CompressPlugin_ldef
+#   ifndef _IS_NEED_decompressor_ldef_replace_zlib
+#       define _IS_NEED_decompressor_ldef_replace_zlib  0 
+#   endif
+#   if (_IS_NEED_decompressor_ldef_replace_zlib)
+#       define _CompressPlugin_ldef  //optimized zlib&ldef's deflate code decompress speed by libdeflate
+#   else
+#       define _CompressPlugin_zlib
+#   endif
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma
 #   define _CompressPlugin_lzma2
@@ -97,10 +103,10 @@
 #endif
 #ifdef _CompressPlugin_ldef
 #   ifndef _CompressPlugin_ldef_is_use_zlib
-#       define _CompressPlugin_ldef_is_use_zlib 1 //now ldef need zlib decompresser
+#       define _CompressPlugin_ldef_is_use_zlib         1 //now ldef need zlib decompressor for any all of deflate code
 #   endif
-#   if ((defined(_CompressPlugin_zlib))&&_CompressPlugin_ldef_is_use_zlib)
-#       //undef _CompressPlugin_zlib
+#   if (_IS_NEED_decompressor_ldef_replace_zlib&&(defined(_CompressPlugin_zlib)))
+#       undef _CompressPlugin_zlib
 #   endif
 #endif
 
@@ -790,9 +796,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #define _try_rt_dec(dec) { if (dec.is_can_open(compressType)) return &dec; }
 
 static const hpatch_TDecompress* __find_decompressPlugin(const char* compressType){
-#if (0) //now closed ldef decompressor// ((defined(_CompressPlugin_ldef))&&_CompressPlugin_ldef_is_use_zlib)
-    //NOTE: if _CompressPlugin_ldef_is_use_zlib==0, ldefDecompressPlugin can't support all of deflate encoding, only support for (p)ldefCompressPlugin!
-    //  if _CompressPlugin_ldef_is_use_zlib==1, ldefDecompressPlugin can support all of deflate encoding by zlib decompressor.
+#if ((defined(_CompressPlugin_ldef))&&_IS_NEED_decompressor_ldef_replace_zlib)
     _try_rt_dec(ldefDecompressPlugin);
 #else
 #  ifdef  _CompressPlugin_zlib

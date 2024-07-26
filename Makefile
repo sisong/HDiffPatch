@@ -11,8 +11,12 @@ else
 endif
 # 0: not need lzma;  1: compile lzma source code;  2: used -llzma to link lzma lib;
 LZMA     := 1
+# lzma decompressor used arm64 asm optimize? 
 ARM64ASM := 0
-RISCV32  := 0
+# lzma only can used software CRC? (no hardware CRC)
+USE_CRC_EMU := 0
+# supported atomic uint64?
+ATOMIC_U64 := 1
 # 0: not need zstd;  1: compile zstd source code;  2: used -lzstd to link zstd lib;
 ZSTD     := 1
 MD5      := 1
@@ -23,9 +27,9 @@ CL  	 := 0
 M32      := 0
 # build for out min size
 MINS     := 0
-# support VCDIFF? 
+# need support VCDIFF? 
 VCD      := 1
-# support bsdiff&bspatch?
+# need support bsdiff&bspatch?
 BSD      := 1
 ifeq ($(OS),Windows_NT) # mingw?
   CC    := gcc
@@ -44,7 +48,7 @@ endif
 ifeq ($(LDEF),0)
 else
   ifeq ($(ZLIB),2)
-  $(error error: libdeflate not support -lz! need zlib source code, set ZLIB=1 continue)
+  $(error error: now libdeflate decompressor not support -lz! need zlib source code, set ZLIB=1 continue)
   else
     ifeq ($(ZLIB),0)
     $(warning warning: libdeflate can't support all of the deflate code, when no zlib source code)
@@ -238,8 +242,7 @@ DEF_FLAGS := \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \
     -D_IS_NEED_ALL_ChecksumPlugin=0 \
     -D_IS_NEED_DEFAULT_ChecksumPlugin=0 
-ifeq ($(RISCV32),0)
-else
+ifeq ($(ATOMIC_U64),0)
   DEF_FLAGS += -D_IS_NO_ATOMIC_U64=1
 endif
 ifeq ($(M32),0)
@@ -321,9 +324,10 @@ else
     else
       DEF_FLAGS += -DZ7_LZMA_DEC_OPT
     endif
-    ifeq ($(VCD),0)
-    else
-      DEF_FLAGS += -DUSE_CRC_EMU
+    ifneq ($(VCD),0)
+      ifneq ($(USE_CRC_EMU),0)
+        DEF_FLAGS += -DUSE_CRC_EMU
+      endif
     endif
   endif
 endif

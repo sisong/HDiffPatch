@@ -510,7 +510,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					Z7_ST,
-					USE_CRC_EMU,
 					ZSTD_STATIC_LINKING_ONLY,
 					"ZSTD_HAVE_WEAK_SYMBOLS=0",
 					"ZSTD_TRACE=0",
@@ -591,7 +590,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					NDEBUG,
 					Z7_ST,
-					USE_CRC_EMU,
 					ZSTD_STATIC_LINKING_ONLY,
 					"ZSTD_HAVE_WEAK_SYMBOLS=0",
 					"ZSTD_TRACE=0",
@@ -657,7 +655,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					Z7_ST,
-					USE_CRC_EMU,
 					ZSTD_STATIC_LINKING_ONLY,
 					"ZSTD_HAVE_WEAK_SYMBOLS=0",
 					"ZSTD_TRACE=0",
@@ -672,6 +669,7 @@
                     _CompressPlugin_zstd,
                     _CompressPlugn_7zXZ,
 					Z7_LZMA_DEC_OPT,
+					USE_CRC_EMU,
 					"$(inherited)",
 				);
 				OTHER_LDFLAGS = "-ObjC";
@@ -688,7 +686,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					NDEBUG,
 					Z7_ST,
-					USE_CRC_EMU,
 					ZSTD_STATIC_LINKING_ONLY,
 					"ZSTD_HAVE_WEAK_SYMBOLS=0",
 					"ZSTD_TRACE=0",
@@ -703,6 +700,7 @@
                     _CompressPlugin_zstd,
                     _CompressPlugn_7zXZ,
 					Z7_LZMA_DEC_OPT,
+					USE_CRC_EMU,
 				);
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "-ObjC";

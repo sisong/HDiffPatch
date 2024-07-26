@@ -66,11 +66,11 @@
 #if (_IS_NEED_DEFAULT_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
 #   define _CompressPlugin_zlib  // memory requires less
-#   define _CompressPlugin_ldef  // faster or better compress than zlib / (now used ldef+zlib decompresser)
+#   define _CompressPlugin_ldef  // faster or better compress than zlib / (now used ldef+zlib decompressor)
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma  // better compresser
 #   define _CompressPlugin_lzma2 // better compresser
-#   define _CompressPlugin_zstd  // better compresser / faster decompresser
+#   define _CompressPlugin_zstd  // better compresser / faster decompressor
 #if (_IS_NEED_VCDIFF)
 #   define _CompressPlugin_7zXZ  //only for VCDIFF, used lzma2
 #endif
@@ -78,15 +78,18 @@
 #endif
 #if (_IS_NEED_ALL_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
-#   define _CompressPlugin_lz4   // faster compresser / faster decompresser
-#   define _CompressPlugin_lz4hc // compress slower & better than lz4 / (used lz4 decompresser) 
-#   define _CompressPlugin_brotli// better compresser / faster decompresser
+#   define _CompressPlugin_lz4   // faster compresser / faster decompressor
+#   define _CompressPlugin_lz4hc // compress slower & better than lz4 / (used lz4 decompressor) 
+#   define _CompressPlugin_brotli// better compresser / faster decompressor
 #   define _CompressPlugin_lzham // better compresser / decompress faster than lzma2
 #   define _CompressPlugin_tuz   // slower compresser / decompress requires tiny code(.text) & ram
 #endif
 #ifdef _CompressPlugin_ldef
 #   ifndef _CompressPlugin_ldef_is_use_zlib
-#       define _CompressPlugin_ldef_is_use_zlib 1 //now ldef need zlib decompresser
+#       define _CompressPlugin_ldef_is_use_zlib         1 //now ldef need zlib decompressor for any all of deflate code
+#   endif
+#   ifndef _IS_NEED_decompressor_ldef_replace_zlib
+#       define _IS_NEED_decompressor_ldef_replace_zlib  0 
 #   endif
 #endif
 
@@ -517,9 +520,7 @@ static hpatch_BOOL _getIsVcDiffFile(const char* diffFileName) {
 #define _try_rt_dec(dec) { if (dec.is_can_open(compressType)) return &dec; }
 
 static hpatch_TDecompress* __find_decompressPlugin(const char* compressType){
-#if (0) //now closed ldef decompressor// ((defined(_CompressPlugin_ldef))&&_CompressPlugin_ldef_is_use_zlib)
-    //NOTE: if _CompressPlugin_ldef_is_use_zlib==0, ldefDecompressPlugin can't support all of deflate encoding, only support for (p)ldefCompressPlugin!
-    //  if _CompressPlugin_ldef_is_use_zlib==1, ldefDecompressPlugin can support all of deflate encoding by zlib decompressor.
+#if ((defined(_CompressPlugin_ldef))&&_IS_NEED_decompressor_ldef_replace_zlib)
     _try_rt_dec(ldefDecompressPlugin);
 #else
 #  ifdef  _CompressPlugin_zlib
