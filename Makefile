@@ -16,11 +16,9 @@ ARM64ASM := 0
 # lzma only can used software CRC? (no hardware CRC)
 USE_CRC_EMU := 0
 # supported atomic uint64?
-ATOMIC_U64 := 1
 # 0: not need zstd;  1: compile zstd source code;  2: used -lzstd to link zstd lib;
 ZSTD     := 1
 MD5      := 1
-STATIC_CPP := 0
 # used clang?
 CL  	 := 0
 # build with -m32?
@@ -55,6 +53,13 @@ else
     endif
   endif
 endif
+
+STATIC_CPP := 0
+STATIC_C := 0
+# -1: no pie; 0: default;
+PIE :=0
+ATOMIC_U64 := 1
+
 
 HDIFF_OBJ  := 
 HPATCH_OBJ := \
@@ -368,6 +373,13 @@ ifeq ($(MT),0)
 else
   PATCH_LINK += -lpthread	# link pthread
 endif
+ifeq ($(PIE),-1)
+  PATCH_LINK += -no-pie
+endif
+ifeq ($(STATIC_C),0)
+else
+  PATCH_LINK += -static
+endif
 DIFF_LINK  := $(PATCH_LINK)
 ifeq ($(M32),0)
 else
@@ -386,6 +398,7 @@ ifeq ($(STATIC_CPP),0)
 else
   DIFF_LINK += -static-libstdc++
 endif
+
 
 CFLAGS   += $(DEF_FLAGS) 
 CXXFLAGS += $(DEF_FLAGS) -std=c++11
