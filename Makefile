@@ -380,23 +380,23 @@ ifeq ($(STATIC_C),0)
 else
   PATCH_LINK += -static
 endif
-DIFF_LINK  := $(PATCH_LINK)
 ifeq ($(M32),0)
 else
-  DIFF_LINK += -m32
+  PATCH_LINK += -m32
 endif
 ifeq ($(MINS),0)
 else
-  DIFF_LINK += -s -Wl,--gc-sections,--as-needed
+  PATCH_LINK += -s -Wl,--gc-sections,--as-needed
 endif
-ifeq ($(CL),1)
-  CXX := clang++
-  CC  := clang
-endif
+DIFF_LINK  := $(PATCH_LINK)
 ifeq ($(STATIC_CPP),0)
   DIFF_LINK += -lstdc++
 else
   DIFF_LINK += -static-libstdc++
+endif
+ifeq ($(CL),1)
+  CXX := clang++
+  CC  := clang
 endif
 
 
