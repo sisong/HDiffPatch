@@ -77,6 +77,7 @@ HLocker locker_new(void){
     int rt=pthread_mutex_init(self, 0);
     if (rt!=0){
         delete self;
+        self=0;
         _check_pthread(rt,"pthread_mutex_init");
     }
     return  self;

@@ -217,7 +217,7 @@ void test(const TByte* data,const TByte* data_end){
         maps[m].reserve(kMaxMapNodeSize*3/clip_count);
     unsigned int rand_seed=7;
     _srand(rand_seed);
-    if (kTestMask!=(TUInt)~(TUInt)0) printf("mask[%08X %08X] ",(int)((uint64_t)kTestMask>>32),(int)kTestMask);
+    if (kTestMask!=(TUInt)~(TUInt)0) printf("mask[%08X %08X] ",(int)(((uint64_t)kTestMask)>>32),(int)kTestMask);
     printf("%s%s ",THash::name(),std::string(12-strlen(THash::name()),' ').c_str());
     
     uint64_t    curClashMin=0;

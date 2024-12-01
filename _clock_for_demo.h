@@ -25,6 +25,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
+#ifndef HDiffPatch_clock_h
+#define HDiffPatch_clock_h
 
 //  #include <time.h>
 //  static double clock_s(){ return clock()*1.0/CLOCKS_PER_SEC; }
@@ -53,3 +55,5 @@
             return 0;
     }
 #endif
+
+#endif //HDiffPatch_clock_h

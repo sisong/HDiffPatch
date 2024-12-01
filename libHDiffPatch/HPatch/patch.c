@@ -84,7 +84,7 @@ hpatch_BOOL hpatch_packUIntWithTag(TByte** out_code,TByte* out_code_end,
     ++pcode;
     while (codeBuf!=codeEnd) {
         --codeEnd;
-        *pcode=(*codeEnd) | (((codeBuf!=codeEnd)?1:0)<<7);
+        *pcode=(*codeEnd) | (TByte)(((codeBuf!=codeEnd)?1:0)<<7);
         ++pcode;
     }
     *out_code=pcode;

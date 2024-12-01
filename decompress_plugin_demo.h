@@ -257,13 +257,16 @@ static void __dec_free(void* _, void* address){
     static hpatch_inline int _zlib_is_decompress_finish(const hpatch_TDecompress* decompressPlugin,
                                                         hpatch_decompressHandle decompressHandle){
         _zlib_TDecompress* self=(_zlib_TDecompress*)decompressHandle;
+        unsigned char _empty=0;
         while (self->code_begin!=self->code_end){ //for end tag code
-            unsigned char _empty=0;
             self->d_stream.next_out = &_empty;
             self->d_stream.avail_out=0;
-            if (!__zlib_do_inflate(self))
+            if (!__zlib_do_inflate(self)){
+                self->d_stream.next_out=0;
                 return hpatch_FALSE;//error;
+            }
         }
+        self->d_stream.next_out=0;
         return   (self->code_begin==self->code_end)
                 &(self->d_stream.avail_in==0)
                 &(self->d_stream.avail_out==0);
@@ -382,7 +385,7 @@ static void __dec_free(void* _, void* address){
         }
         return hpatch_TRUE;
     }
-    static hpatch_BOOL _ldef_swap_to_zlib(_ldef_TDecompress* self,size_t dec_state,
+    static hpatch_BOOL _ldef_swap_to_zlib(_ldef_TDecompress* self,uint16_t dec_state,
                                           unsigned char* out_part_data,size_t out_part_len){
         self->is_swap_to_zlib=hpatch_TRUE;
         if (self->d_stream.state==0){
@@ -540,7 +543,7 @@ static void __dec_free(void* _, void* address){
                 int    is_final_block_ret;
                 size_t actual_in_nbytes_ret;
                 size_t actual_out_nbytes_ret;
-                const size_t dec_state=libdeflate_deflate_decompress_get_state(self->d);
+                const uint16_t dec_state=libdeflate_deflate_decompress_get_state(self->d);
                 enum libdeflate_result ret=libdeflate_deflate_decompress_block(self->d,
                                                 self->code_buf+self->code_cur,self->code_buf_size-self->code_cur,
                                                 self->data_buf,self->data_cur,self->data_buf_size-self->data_cur,
