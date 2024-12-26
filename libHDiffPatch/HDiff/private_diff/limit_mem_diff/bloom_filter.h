@@ -30,6 +30,7 @@
 #define bloom_filter_h
 #include <string.h> //memset
 #include <assert.h>
+#include <stdint.h> //uint32_t
 #include <stdexcept>//std::runtime_error
 #include "../../../../libParallel/parallel_channel.h"
 #if (_IS_USED_MULTITHREAD)

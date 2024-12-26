@@ -1,56 +1,52 @@
 name: ci
 on: [push, pull_request]
 jobs:
-  make-build:
+  gcc-build:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
-      - name: makeInit
+      - name: make_slef
         run: |
-          make LDEF=0 LZMA=0 ZSTD=0 MD5=0 -j
+          make CC=gcc CXX=g++ BSD=0 BZIP2=0 LDEF=0 LZMA=0 ZSTD=0 MD5=0 -j
           make clean
-      - name: makeNoAll
+      - name: make_0
+        run: |
+          make CC=gcc CXX=g++ DIR_DIFF=0 MT=0 VCD=0 ZLIB=0 BSD=0 BZIP2=0 LDEF=0 LZMA=0 ZSTD=0 MD5=0 -j
+          make clean
+      - name: make_all
         run: |
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
-          make DIR_DIFF=0 MT=0 BSD=0 VCD=0 ZLIB=0 LDEF=0 BZIP2=0 -j
-          make clean
-      - name: makeNoldef
-        run: |
-          make LDEF=0 -j
-          make clean
-      - name: makeAll
-        run: |
+          git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
           git clone --depth=1 https://github.com/sisong/zlib.git ../zlib
           git clone --depth=1 https://github.com/sisong/libdeflate.git ../libdeflate
-          make -j
-          make clean
-      - name: makeByBz2Code
-        run: |
-          git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
-          make BZIP2=1 -j
+          make CC=gcc CXX=g++ BZIP2=1 -j
+          make BZIP2=1 clean
 
   clang-build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
-      - name: installClang
+      - name: make_slefByClang
         run: |
-          sudo apt-get install -y llvm clang
-      - name: initAndClone
+          make CL=1 BSD=0 BZIP2=0 LDEF=0 LZMA=0 ZSTD=0 MD5=0 -j
+          make clean
+      - name: make_allByClang
         run: |
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
+          git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
           git clone --depth=1 https://github.com/sisong/zlib.git ../zlib
           git clone --depth=1 https://github.com/sisong/libdeflate.git ../libdeflate
-      - name: makeByClang
-        run: |
-          make CL=1 -j
+          make CL=1 BZIP2=1 -j
 
   xcode-build:
     runs-on: macos-latest
@@ -107,7 +103,10 @@ jobs:
           ndk-version: r16b
       - name: buildByAndroidNDK
         run: |
-          sudo apt install libncurses5
+          curl -O http://launchpadlibrarian.net/648013231/libtinfo5_6.4-2_amd64.deb
+          sudo dpkg -i libtinfo5_6.4-2_amd64.deb
+          curl -O http://launchpadlibrarian.net/648013227/libncurses5_6.4-2_amd64.deb
+          sudo dpkg -i libncurses5_6.4-2_amd64.deb
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
@@ -118,7 +117,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: microsoft/setup-msbuild@v1.1
+      - uses: microsoft/setup-msbuild@v2
         with:
           msbuild-architecture: x64
       - name: initAndClone
