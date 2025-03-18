@@ -278,6 +278,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../../../zstd/lib/compress/zstd_compress_sequences.h" />
+		<Unit filename="../../../zstd/lib/compress/zstd_preSplit.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../../zstd/lib/compress/zstd_compress_superblock.c">
 			<Option compilerVar="CC" />
 		</Unit>

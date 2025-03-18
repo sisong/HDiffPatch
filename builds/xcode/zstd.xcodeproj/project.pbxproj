@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0D60847B27B4F04B00039D46 /* zstd_ddict.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D60847A27B4F04B00039D46 /* zstd_ddict.c */; };
+		0DE731172D320C07008FC378 /* zstd_preSplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DE731162D320C07008FC378 /* zstd_preSplit.c */; };
 		D65B8E352090C88F00DBBEEE /* zstd.h in Headers */ = {isa = PBXBuildFile; fileRef = D65B8E192090C88F00DBBEEE /* zstd.h */; };
 		D68E132A2190761100E1D5D5 /* huf_decompress.c in Sources */ = {isa = PBXBuildFile; fileRef = D68E12FA2190761000E1D5D5 /* huf_decompress.c */; };
 		D68E132B2190761100E1D5D5 /* zstd_decompress_block.h in Headers */ = {isa = PBXBuildFile; fileRef = D68E12FB2190761000E1D5D5 /* zstd_decompress_block.h */; };
@@ -64,6 +65,7 @@
 
 /* Begin PBXFileReference section */
 		0D60847A27B4F04B00039D46 /* zstd_ddict.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zstd_ddict.c; sourceTree = "<group>"; };
+		0DE731162D320C07008FC378 /* zstd_preSplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zstd_preSplit.c; sourceTree = "<group>"; };
 		D64989021F5F970F000FCC24 /* libzstd.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libzstd.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D65B8E192090C88F00DBBEEE /* zstd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = zstd.h; path = ../../../zstd/lib/zstd.h; sourceTree = "<group>"; };
 		D68E12FA2190761000E1D5D5 /* huf_decompress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = huf_decompress.c; sourceTree = "<group>"; };
@@ -167,6 +169,7 @@
 		D68E13002190761000E1D5D5 /* compress */ = {
 			isa = PBXGroup;
 			children = (
+				0DE731162D320C07008FC378 /* zstd_preSplit.c */,
 				D6E401242404EFD1006DCC68 /* zstd_compress_literals.c */,
 				D6E401232404EFD1006DCC68 /* zstd_compress_literals.h */,
 				D6E401272404EFD1006DCC68 /* zstd_compress_sequences.c */,
@@ -334,6 +337,7 @@
 				D68E134B2190761100E1D5D5 /* xxhash.c in Sources */,
 				D68E13562190761100E1D5D5 /* error_private.c in Sources */,
 				D68E13392190761100E1D5D5 /* hist.c in Sources */,
+				0DE731172D320C07008FC378 /* zstd_preSplit.c in Sources */,
 				D68E134F2190761100E1D5D5 /* pool.c in Sources */,
 				D68E13522190761100E1D5D5 /* threading.c in Sources */,
 				D68E133A2190761100E1D5D5 /* zstd_compress.c in Sources */,

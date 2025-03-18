@@ -341,6 +341,7 @@
     <ClCompile Include="..\..\..\zstd\lib\compress\zstd_compress_literals.c" />
     <ClCompile Include="..\..\..\zstd\lib\compress\zstd_compress_sequences.c" />
     <ClCompile Include="..\..\..\zstd\lib\compress\zstd_compress_superblock.c" />
+    <ClCompile Include="..\..\..\zstd\lib\compress\zstd_preSplit.c" />
     <ClCompile Include="..\..\..\zstd\lib\compress\zstd_double_fast.c" />
     <ClCompile Include="..\..\..\zstd\lib\compress\zstd_fast.c" />
     <ClCompile Include="..\..\..\zstd\lib\compress\zstd_lazy.c" />

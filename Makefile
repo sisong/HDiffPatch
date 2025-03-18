@@ -160,6 +160,7 @@ ifeq ($(ZSTD),1) # https://github.com/sisong/zstd
   				$(ZSTD_PATH)/compress/zstd_compress_literals.o \
   				$(ZSTD_PATH)/compress/zstd_compress_sequences.o \
   				$(ZSTD_PATH)/compress/zstd_compress_superblock.o \
+  				$(ZSTD_PATH)/compress/zstd_preSplit.o \
   				$(ZSTD_PATH)/compress/zstd_double_fast.o \
   				$(ZSTD_PATH)/compress/zstd_fast.o \
   				$(ZSTD_PATH)/compress/zstd_lazy.o \
