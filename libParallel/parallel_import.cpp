@@ -34,9 +34,7 @@
 #       //define PTW32_STATIC_LIB  //for static pthread lib
 #   endif
 #   include <pthread.h>
-#   ifdef __ANDROID__
-#       include <sched.h> // sched_yield()
-#   endif
+#   include <sched.h> // sched_yield()
 #endif
 #if (_IS_USED_CPP11THREAD)
 #   include <thread>
@@ -136,18 +134,10 @@ void    condvar_broadcast(HCondvar cond){
 }
 
 void this_thread_yield(){
-#ifdef __APPLE__
-    pthread_yield_np();
-#else
-#   ifdef WIN32
+#ifdef WIN32
     Sleep(0);
-#   else
-#       ifdef __ANDROID__
-            sched_yield();
-#       else
-            pthread_yield();
-#       endif
-#   endif
+#else
+    sched_yield();
 #endif
 }
 

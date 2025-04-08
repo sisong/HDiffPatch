@@ -1,4 +1,4 @@
-//patch_lite.h
+//hpatch_lite.h
 //
 /*
  The MIT License (MIT)
