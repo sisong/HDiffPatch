@@ -31,7 +31,6 @@
 #include "sync_client_type.h"
 namespace sync_private{
 
-struct TSyncDiffLocalPoss;
 static const hpatch_StreamPos_t kBlockType_needSync =~(hpatch_StreamPos_t)0; //download, default
 
 //matchNewDataInOld()
