@@ -84,7 +84,7 @@ extern "C" {
 #define  adler32_start(pdata,n) adler32_append(ADLER_INITIAL,pdata,n)
 uint32_t adler32_append(uint32_t adler,const adler_data_t* pdata,size_t n);
 uint32_t adler32_roll(uint32_t adler,size_t blockSize,adler_data_t out_data,adler_data_t in_data);
-uint32_t adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right);
+uint32_t adler32_by_combine(uint32_t adler_left,uint32_t adler_right,uint64_t len_right);
 
 #define  adler64_start(pdata,n) adler64_append(ADLER_INITIAL,pdata,n)
 uint64_t adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n);
@@ -101,7 +101,7 @@ __adler_inline static
 uint32_t fast_adler32_roll(uint32_t adler,size_t blockSize,adler_data_t out_data,adler_data_t in_data)
     __private_fast_adler_roll(__private_fast32_SUM,__private_fast32_ADLER,__private_fast32_SUMADLER,
                               uint32_t, _private_fast_adler32_table,uint16_t, adler,blockSize,out_data,in_data)
-uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right);
+uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,uint64_t len_right);
 
 #define  fast_adler64_start(pdata,n) fast_adler64_append(ADLER_INITIAL,pdata,n)
 uint64_t fast_adler64_append(uint64_t adler,const adler_data_t* pdata,size_t n);
