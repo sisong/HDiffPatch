@@ -60,6 +60,7 @@ static const int kMinMatchLen   = (_SSTRING_FAST_MATCH>kCoverMinMatchLen)?_SSTRI
 static const int kMinMatchLen   = kCoverMinMatchLen; //最小搜寻相等长度。
 #endif
 static const int kMinMatchScore = 2; //最小搜寻覆盖收益.
+static const hpatch_uint64_t kDefaultLimitCoverLen=((hpatch_uint64_t)1<<16)-1; //<=2GB-1
 
 namespace{
     
@@ -532,6 +533,47 @@ static void extend_cover(std::vector<TOldCover>& covers,size_t cover_begin,const
         assert_covers_safe(_covers,newSize,oldSize);
     }
 
+    static inline hpatch_StreamPos_t _clipLenByLimit(hpatch_StreamPos_t& clen,hpatch_StreamPos_t kMaxLen){
+        hpatch_StreamPos_t alen=clen;
+        assert(alen>kMaxLen);
+        do{
+            alen=(alen+1)>>1;
+        } while (alen>kMaxLen);
+        clen-=alen;
+        return alen;
+    }
+    static void _limitCoverLenth(std::vector<TOldCover>& covers,hpatch_StreamPos_t kMaxLen){
+        size_t csize=covers.size();
+        size_t isize=0;
+        for (size_t i=0;i<csize;++i){
+            hpatch_StreamPos_t clen=covers[i].length;
+            while (clen>kMaxLen){
+                ++isize;
+                _clipLenByLimit(clen,kMaxLen);
+            }
+        }
+        if (isize==0) return;
+
+        covers.resize(csize+isize);
+        memmove(covers.data()+isize,covers.data(),sizeof(TOldCover)*csize);
+        size_t insertIndex=0;
+        for (size_t i=isize;i<covers.size();++i){
+            hpatch_StreamPos_t clen=covers[i].length;
+            while (clen>kMaxLen){
+                --isize;
+                hpatch_StreamPos_t clipLen=_clipLenByLimit(clen,kMaxLen);
+                assert(insertIndex<i);
+                covers[insertIndex++]=TOldCover(covers[i].oldPos,covers[i].newPos,clipLen);
+                covers[i].oldPos+=clipLen;
+                covers[i].newPos+=clipLen;
+                covers[i].length-=clipLen;
+                assert(covers[i].length==clen);
+            }
+            covers[insertIndex++]=covers[i];
+        }
+        assert(isize==0);
+    }
+
 //diff结果序列化输出.
 static void serialize_diff(const TDiffData& diff,const std::vector<TOldCover>& covers,std::vector<TByte>& out_diff){
     const TUInt coverCount=(TUInt)covers.size();
@@ -916,7 +958,8 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
                      TDiffData&   out_diff,std::vector<TOldCover>& covers,
                      int kMinSingleMatchScore,
                      bool isUseBigCacheMatch,ICoverLinesListener* listener,
-                     const TSuffixString* sstring,size_t threadNum,bool isCanExtendCover=true){
+                     const TSuffixString* sstring,size_t threadNum,
+                     bool isCanExtendCover=true){
     assert(newData<=newData_end);
     assert(oldData<=oldData_end);
     TDiffData& diff=out_diff;
@@ -926,8 +969,10 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
     diff.oldData_end=oldData_end;
     
     const bool isCover32=sizeof(*covers.data())==sizeof(hpatch_TCover32);
-    if (!isCover32) 
+    if (!isCover32)
         assert(sizeof(*covers.data())==sizeof(hpatch_TCover));
+    const hpatch_StreamPos_t maxCoverLen=(listener&&listener->get_limit_cover_length)?
+                                            listener->get_limit_cover_length(listener):kDefaultLimitCoverLen;
     {
         TSuffixString _sstring_default(isUseBigCacheMatch);
         if (sstring==0){
@@ -935,6 +980,7 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
             sstring=&_sstring_default;
         }
         first_search_and_dispose_cover_MT(covers,diff,*sstring,kMinSingleMatchScore,listener,threadNum,isCanExtendCover);
+        _limitCoverLenth(covers,maxCoverLen);
         assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
         if (listener&&listener->search_cover_limit&&
                 listener->search_cover_limit(listener,covers.data(),covers.size(),isCover32)){
@@ -943,6 +989,8 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
                                     isCanExtendCover);
             listener->research_cover(listener,&diffResearchCover,covers.data(),covers.size(),isCover32);
             diffResearchCover.researchFinish();
+            _limitCoverLenth(covers,maxCoverLen);
+            assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
         }
         sstring=0;
         _sstring_default.clear();
@@ -955,6 +1003,7 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
                                &newDataSize,&oldDataSize);
         diff.newData_end=diff.newData+(size_t)newDataSize;
         diff.oldData_end=diff.oldData+(size_t)oldDataSize;
+        _limitCoverLenth(covers,maxCoverLen);
         assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
     }
     if (listener&&listener->search_cover_finish){
@@ -967,8 +1016,7 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
         covers.resize(newCoverCount);
         diff.newData_end=diff.newData+(size_t)newDataSize;
         diff.oldData_end=diff.oldData+(size_t)oldDataSize;
-    }
-    if (listener){
+        _limitCoverLenth(covers,maxCoverLen);
         assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
     }
 }

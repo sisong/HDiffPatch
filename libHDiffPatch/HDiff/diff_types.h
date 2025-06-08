@@ -29,6 +29,7 @@
 #ifndef HDiff_diff_types_h
 #define HDiff_diff_types_h
 #include "../HPatch/patch_types.h"
+#include <stdexcept> //std::runtime_error
 #include <utility> //std::pair
 #define hdiff_kFileIOBufBestSize (1024*512)
 namespace hdiff_private{
@@ -152,6 +153,7 @@ extern "C"
         void (*begin_search_block)(ICoverLinesListener* listener,hpatch_StreamPos_t newSize,
                                    size_t searchBlockSize,size_t kPartPepeatSize);
         hpatch_BOOL (*next_search_block_MT)(ICoverLinesListener* listener,hdiff_TRange* out_newRange);//must thread safe
+        hpatch_StreamPos_t (*get_limit_cover_length)(const ICoverLinesListener* listener); //if null, default kDefaultLimitCoverLen 
     };
 
     struct hdiff_TMTSets_s{ // used by $hdiff -s
