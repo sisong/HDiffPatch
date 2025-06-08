@@ -42,6 +42,24 @@ hpi_BOOL hpatch_lite_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read
 hpi_BOOL hpatch_lite_patch(hpatchi_listener_t* listener,hpi_pos_t newSize,
                            hpi_byte* temp_cache,hpi_size_t temp_cache_size);
 
+
+//-----------------------------------------------------------------------------------------------------------------
+// hpatch_lite inplace-patch by extra
+
+//if extraSafeSize==0 inplaceA format, then used hpatch_lite_patch();
+// you can add an min-write block size of storage chips to extraSafeSize, then you must use hpatchi_inplaceB()
+static hpi_force_inline hpi_BOOL hpatchi_inplaceA(hpatchi_listener_t* listener,hpi_pos_t newSize,
+                                                  hpi_byte* temp_cache,hpi_size_t temp_cache_size){
+    return hpatch_lite_patch(listener,newSize,temp_cache,temp_cache_size);
+}
+
+//if extraSafeSize>0 inplaceB format, then used some extra memory for safe size;
+//  this function is also compatible inplaceA format;
+//  you can add an min-write block size of storage chips to extraSafeSize when needed;
+//  note: temp_cache_size>=hpi_kMinCacheSize+extraSafeSize
+hpi_BOOL hpatchi_inplaceB(hpatchi_listener_t* listener,hpi_pos_t newSize,
+                          hpi_byte* temp_cache,hpi_size_t extraSafeSize_in_temp_cache,hpi_size_t temp_cache_size);
+
 #ifdef __cplusplus
 }
 #endif

@@ -45,7 +45,7 @@ void create_inplace_lite_diff(const hpi_byte* newData,const hpi_byte* newData_en
                               const hdiffi_TCompress* compressPlugin,int kMinSingleMatchScore=kLiteMatchScore_default,
                               bool isUseBigCacheMatch=false,size_t threadNum=1);
 
-static inline //inplace A format, a very simplified diffFile format;
+static inline //inplaceA format, a very simplified diffFile format;
 void create_inplaceA_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
                                const hpi_byte* oldData,const hpi_byte* oldData_end,
                                std::vector<hpi_byte>& out_inplace_lite_diff,
@@ -55,7 +55,7 @@ void create_inplaceA_lite_diff(const hpi_byte* newData,const hpi_byte* newData_e
     create_inplace_lite_diff(newData,newData_end,oldData,oldData_end,out_inplace_lite_diff,kInplaceASets,
                              compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,threadNum);
 }
-static inline //inplace B format, enable extra space(memory or disk);
+static inline //inplaceB format, enable extra space(memory or disk);
 void create_inplaceB_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
                                const hpi_byte* oldData,const hpi_byte* oldData_end,
                                std::vector<hpi_byte>& out_inplace_lite_diff,size_t extraSafeSize,
