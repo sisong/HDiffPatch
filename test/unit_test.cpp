@@ -429,6 +429,7 @@ enum TDiffType{
     kDiffS,
     kDiffSs,
     kDiffi,
+    kDiffiI, //inplace-patch
     kHSynz,
 };
 static const size_t kDiffTypeCount=kHSynz+1;
@@ -531,7 +532,7 @@ long attackPacth(TByte* out_newData,TByte* out_newData_end,
             patch_single_stream_mem(&listener,out_newData,out_newData_end,oldData,oldData_end,
                                     diffData,diffData_end,0);
         } break;
-        case kDiffi: {
+        case kDiffi: case kDiffiI: {
             hpi_compressType    compressType;
             check_lite_diff_open(diffData,diffData_end,&compressType);
             check_lite_diff(out_newData,out_newData_end,oldData,oldData_end,
@@ -703,6 +704,26 @@ long test(const TByte* newData,const TByte* newData_end,
 #endif
         }
     }
+
+    {//test diffi inplace-patch
+        std::vector<TByte> diffData;
+        hdiffi_TCompress compressPlugini={compressPlugin,compressHpiType};
+        size_t extraSafeSize=(size_t)(_rand()*(1.0/RAND_MAX)*(size_t)(oldData_end-oldData));
+        create_inplaceB_lite_diff(newData,newData_end,oldData,oldData_end,diffData,extraSafeSize,&compressPlugini);
+        if (out_diffSizes) out_diffSizes[kDiffiI]+=diffData.size();
+        if (!check_lite_diff(newData,newData_end,oldData,oldData_end,
+                             diffData.data(),diffData.data()+diffData.size(),decompressPlugin)){
+            printf("\n diffiI error!!! tag:%s\n",tag);
+            ++result;
+        }else{
+            printf(" diffiI:%ld", (long)(diffData.size()));
+#ifdef _AttackPacth_ON
+            long exceptionCount=attackPacth(newData_end-newData,oldData,oldData_end,
+                                            diffData.data(),diffData.data()+diffData.size(),_rand(),kDiffiI);
+            if (exceptionCount>0) return exceptionCount;
+#endif
+        }
+    }
     {//test diff
         std::vector<TByte> diffData;
         create_diff(newData,newData_end,oldData,oldData_end, diffData);
@@ -849,11 +870,12 @@ int main(int argc, const char * argv[]){
 
     printf("\nchecked:%ld  errorCount:%ld\n",kRandTestCount,errorCount);
     printf("newSize:100%% oldSize:%2.2f%% diffO:%2.2f%% diffZ:%2.2f%%(s:%2.2f%%)"
-           " diffS:%2.2f%%(s:%2.2f%%) diffi:%2.2f%% hsynz:%2.2f%%\n",
+           " diffS:%2.2f%%(s:%2.2f%%) diffi:%2.2f%% diffiI:%2.2f%% hsynz:%2.2f%%\n",
             sumOldSize*100.0/sumNewSize,sumDiffSizes[kDiffO]*100.0/sumNewSize,
             sumDiffSizes[kDiffZ]*100.0/sumNewSize,sumDiffSizes[kDiffZs]*100.0/sumNewSize,
             sumDiffSizes[kDiffS]*100.0/sumNewSize,sumDiffSizes[kDiffSs]*100.0/sumNewSize,
-            sumDiffSizes[kDiffi]*100.0/sumNewSize,sumDiffSizes[kHSynz]*100.0/sumNewSize);
+            sumDiffSizes[kDiffi]*100.0/sumNewSize,sumDiffSizes[kDiffiI]*100.0/sumNewSize,
+            sumDiffSizes[kHSynz]*100.0/sumNewSize);
     clock_t time2=clock();
     printf("\nrun time:%.1f s\n",(time2-time1)*(1.0/CLOCKS_PER_SEC));
 
