@@ -1500,6 +1500,7 @@ hpatch_StreamPos_t
 namespace{
     static const char*      kHPatchLite_versionType="hI";
     static const hpi_byte   kHPatchLite_versionCode=1;
+    static const hpi_byte   kHPatchLite_inplaceCode=2; //for inplace-patch, just adding extraSafeSize
 
     static inline void hpi_packUInt(std::vector<TByte>& buf,TUInt v){
         check(v==(hpi_pos_t)v);
@@ -1545,9 +1546,16 @@ namespace{
             subDiff[i]=pnew[i]-pold[i];
     }
 
+    struct TInlpacePatchSets{
+        bool        isInplacePatchByExtra;
+        hpi_size_t  extraSafeSize;
+    };
+
 static void serialize_lite_diff(const TDiffData& diff,const std::vector<TOldCover>& covers,
-                                std::vector<TByte>& out_diff,const hdiffi_TCompress* compressPlugin){
+                                std::vector<TByte>& out_diff,const hdiffi_TCompress* compressPlugin,
+                                const TInlpacePatchSets& inlpacePatchSets){
     const TUInt coverCount=(TUInt)covers.size();
+    const bool isInplacePatch= inlpacePatchSets.isInplacePatchByExtra;
     std::vector<TByte> subDiff;
     std::vector<TByte> buf;
     hpi_packUInt(buf,coverCount);
@@ -1591,11 +1599,16 @@ static void serialize_lite_diff(const TDiffData& diff,const std::vector<TOldCove
     out_diff.push_back(kHPatchLite_versionType[1]);
     out_diff.push_back(compress_buf.empty()?hpi_compressType_no:compressPlugin->compress_type);
     TUInt savedUncompressSize=compress_buf.empty()?0:buf.size();
-    out_diff.push_back((kHPatchLite_versionCode<<6)|
+    const TByte savedVersionCode=isInplacePatch?kHPatchLite_inplaceCode:kHPatchLite_versionCode;
+    out_diff.push_back((savedVersionCode<<6)|
                        (hpi_getSavedSizeBytes(newSize))|
                        (hpi_getSavedSizeBytes(savedUncompressSize)<<3));
+    if (isInplacePatch)
+        out_diff.push_back(hpi_getSavedSizeBytes(inlpacePatchSets.extraSafeSize));
     hpi_saveSize(out_diff,newSize);
     hpi_saveSize(out_diff,savedUncompressSize);
+    if (isInplacePatch)
+        hpi_saveSize(out_diff,inlpacePatchSets.extraSafeSize);
     pushBack(out_diff,compress_buf.empty()?buf:compress_buf);
 }
 
@@ -1605,7 +1618,7 @@ void create_lite_diff(const unsigned char* newData,const unsigned char* newData_
                       const unsigned char* oldData,const unsigned char* oldData_end,
                       std::vector<hpi_byte>& out_lite_diff,const hdiffi_TCompress* compressPlugin,
                       int kMinSingleMatchScore,bool isUseBigCacheMatch,
-                      ICoverLinesListener* listener,size_t threadNum){
+                      ILiteDiffListener* listener,size_t threadNum){
     static const int _kMatchScore_optim4bin=6;
     TDiffData diff;
     std::vector<TOldCover> covers;
@@ -1621,14 +1634,20 @@ void create_lite_diff(const unsigned char* newData,const unsigned char* newData_
     const size_t newSize=newData_end-newData;
     if (newPosEnd<newSize)
         covers.push_back(TOldCover(oldPosEnd,newSize,0));
-    serialize_lite_diff(diff,covers,out_lite_diff,compressPlugin);
+
+    TInlpacePatchSets inlpacePatchSets={};
+    if (listener&&listener->getInplacePatchExtraSafeSize){
+        if (listener->getInplacePatchExtraSafeSize(listener,&inlpacePatchSets.extraSafeSize))
+            inlpacePatchSets.isInplacePatchByExtra=true;
+    }
+    serialize_lite_diff(diff,covers,out_lite_diff,compressPlugin,inlpacePatchSets);
 }
 
 namespace{
 struct TPatchiListener:public hpatchi_listener_t{
     hpatch_decompressHandle decompresser;
     hpatch_TDecompress*     decompressPlugin;
-    inline TPatchiListener():decompresser(0){}
+    inline TPatchiListener():decompresser(0),newData_cur_pos(0){}
     inline ~TPatchiListener(){ if (decompresser) decompressPlugin->close(decompressPlugin,decompresser); }
     const hpi_byte* diffData_cur;
     const hpi_byte* diffData_end;
@@ -1638,6 +1657,9 @@ struct TPatchiListener:public hpatchi_listener_t{
     const hpi_byte* newData_end;
     const hpi_byte* oldData;
     const hpi_byte* oldData_end;
+    bool          isInplacePatch;
+    hpi_size_t    extraSafeSize;//for inplace-patch
+    hpatch_size_t newData_cur_pos;//for inplace-patch
 
     static hpi_BOOL _read_diff(hpi_TInputStreamHandle inputStream,hpi_byte* out_data,hpi_size_t* data_size){
         TPatchiListener& self=*(TPatchiListener*)inputStream;
@@ -1671,6 +1693,7 @@ struct TPatchiListener:public hpatchi_listener_t{
         if (0!=memcmp(self.newData_cur,data,data_size))
             return hpi_FALSE;
         self.newData_cur+=data_size;
+        self.newData_cur_pos+=data_size;
         return hpi_TRUE;
     }
     static hpi_BOOL _read_old(struct hpatchi_listener_t* listener,hpi_pos_t read_from_pos,hpi_byte* out_data,hpi_size_t data_size){
@@ -1678,10 +1701,30 @@ struct TPatchiListener:public hpatchi_listener_t{
         size_t dsize=self.oldData_end-self.oldData;
         if ((read_from_pos>dsize)|(data_size>(size_t)(dsize-read_from_pos))) return hpi_FALSE;
         memcpy(out_data,self.oldData+(size_t)read_from_pos,data_size);
+        if (self.isInplacePatch){
+            if (read_from_pos<self.newData_cur_pos)
+                return hpi_FALSE;
+        }
         return hpi_TRUE;
     }
 };
 }// end namespace
+
+static
+bool _try_open_hpatchi_and_inplace(TPatchiListener& listener,hpi_compressType* out_compress_type,
+                                   hpi_pos_t* out_newSize,hpi_pos_t* out_uncompressSize){
+    listener.isInplacePatch=false;
+    listener.extraSafeSize=0;
+    const hpi_byte* diffData_cur_bck=listener.diffData_cur;
+    if (hpatch_lite_open(&listener,listener._read_diff,out_compress_type,out_newSize,out_uncompressSize))
+        return true;
+    listener.diffData_cur=diffData_cur_bck;//reread diffData from 0 pos
+    if (hpatchi_inplace_open(&listener,listener._read_diff,out_compress_type,out_newSize,out_uncompressSize,&listener.extraSafeSize)){
+        listener.isInplacePatch=true;
+        return true;
+    }
+    return false;
+}
 
 bool check_lite_diff_open(const hpi_byte* lite_diff,const hpi_byte* lite_diff_end,
                           hpi_compressType* out_compress_type){
@@ -1690,8 +1733,8 @@ bool check_lite_diff_open(const hpi_byte* lite_diff,const hpi_byte* lite_diff_en
     listener.diffData_end=lite_diff_end;
     hpi_pos_t saved_newSize;
     hpi_pos_t saved_uncompressSize;
-    if (!hpatch_lite_open(&listener,listener._read_diff,out_compress_type,&saved_newSize,
-                          &saved_uncompressSize)) return false;
+    if (!_try_open_hpatchi_and_inplace(listener,out_compress_type,
+                                       &saved_newSize,&saved_uncompressSize)) return false;
     return true;
 }
 
@@ -1705,8 +1748,8 @@ bool check_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
     hpi_compressType _compress_type;
     hpi_pos_t saved_newSize;
     hpi_pos_t saved_uncompressSize;
-    if (!hpatch_lite_open(&listener,listener._read_diff,&_compress_type,&saved_newSize,
-                          &saved_uncompressSize)) return false;
+    if (!_try_open_hpatchi_and_inplace(listener,&_compress_type,
+                                       &saved_newSize,&saved_uncompressSize)) return false;
     if (saved_newSize!=(size_t)(newData_end-newData)) return false;
     listener.diff_data=&listener;
     listener.decompressPlugin=(_compress_type!=hpi_compressType_no)?decompressPlugin:0;
@@ -1728,10 +1771,14 @@ bool check_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
     listener.read_old=listener._read_old;
 
     const size_t kACacheBufSize=1024*32;
-    hdiff_private::TAutoMem _cache(kACacheBufSize);
+    hdiff_private::TAutoMem _cache(kACacheBufSize+listener.extraSafeSize);
     
-    if (!hpatch_lite_patch(&listener,saved_newSize,_cache.data(),(hpi_size_t)_cache.size()))
+    if (listener.isInplacePatch){
+        if (!hpatchi_inplaceB(&listener,saved_newSize,_cache.data(),listener.extraSafeSize,(hpi_size_t)_cache.size()))
+            return false;
+    }else if (!hpatch_lite_patch(&listener,saved_newSize,_cache.data(),(hpi_size_t)_cache.size())){
         return false;
+    }
     return listener.newData_cur==listener.newData_end;
 }
 

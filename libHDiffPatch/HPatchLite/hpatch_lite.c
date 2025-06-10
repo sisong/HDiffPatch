@@ -118,7 +118,7 @@ hpi_BOOL hpatch_lite_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read
     #define kHPatchLite_versionCode     1
     hpi_size_t lenn=hpi_kHeadSize;
     hpi_size_t lenu;
-    hpi_byte   buf[hpi_kHeadSize>sizeof(hpi_pos_t)?hpi_kHeadSize:sizeof(hpi_pos_t)];
+    hpi_byte   buf[(hpi_kHeadSize>sizeof(hpi_pos_t))?hpi_kHeadSize:sizeof(hpi_pos_t)];
     
     _CHECK(read_diff(diff_data,buf,&lenn));
     //HPatchLite type tag 2byte, version code(high 2bit)
@@ -189,6 +189,36 @@ hpi_BOOL hpatch_lite_patch(hpatchi_listener_t* listener,hpi_pos_t newSize,
 
 // inplace hpatchi by extra
 
+hpi_BOOL hpatchi_inplace_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read read_diff,
+                              hpi_compressType* out_compress_type,hpi_pos_t* out_newSize,
+                              hpi_pos_t* out_uncompressSize,hpi_size_t* out_extraSafeSize){
+    #define kHPatchLite_inplaceCode     2
+    hpi_size_t lenn=hpi_kInplaceHeadSize;
+    hpi_size_t lenu,lene;
+    hpi_byte   buf[(hpi_kInplaceHeadSize>sizeof(hpi_pos_t))?hpi_kInplaceHeadSize:sizeof(hpi_pos_t)];
+    
+    _CHECK(read_diff(diff_data,buf,&lenn));
+    //HPatchLite type tag 2byte, version code(high 2bit)
+    lenu=buf[3];
+    _SAFE_CHECK((lenn==hpi_kInplaceHeadSize)&(buf[0]=='h')&(buf[1]=='I')&((lenu>>6)==kHPatchLite_inplaceCode));
+    *out_compress_type=buf[2]; //compress type
+    lenn=lenu&7; //newSize bytes(low 3bit)
+    lenu=(lenu>>3)&7; //uncompressSize bytes(mid 3bit)
+    lene=buf[4];
+
+    _SAFE_CHECK((lenn<=sizeof(hpi_pos_t))&(lenu<=sizeof(hpi_pos_t))&(lene<=sizeof(hpi_size_t)));
+    _CHECK(read_diff(diff_data,buf,&lenn));
+    *out_newSize=_hpi_readSize(buf,lenn);
+    _CHECK(read_diff(diff_data,buf,&lenu));
+    *out_uncompressSize=_hpi_readSize(buf,lenu);
+    _CHECK(read_diff(diff_data,buf,&lene));
+    *out_extraSafeSize=(hpi_size_t)_hpi_readSize(buf,lene);
+    return hpi_TRUE;
+}
+
+
+//hpatchi_listener_extra_t: a first-in-first-out ring buffer
+//  always cache write_extra_size bytes latest data for _wrap_listener->write_new;
 typedef struct hpatchi_listener_extra_t{
     hpatchi_listener_t      base;
     hpatchi_listener_t*     _wrap_listener;
@@ -235,7 +265,7 @@ static hpi_BOOL _hpatchi_listener_extra_write_new(hpatchi_listener_t* listener,c
         data_size-=cur_len;
         posi=self->cached_data_pos+self->cached_data_len;
         self->cached_data_len+=cur_len;
-        while (cur_len--){//save data to chache
+        while (cur_len--){//save data to cache
             posi-=(posi<self->write_extra_size)?0:self->write_extra_size;
             self->write_extra[posi++]=*data++;
         }

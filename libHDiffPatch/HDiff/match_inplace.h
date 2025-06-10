@@ -29,7 +29,7 @@
 #define hdiff_match_inplace_h
 #include "diff_for_hpatch_lite.h"
 
-    struct TMatchInplace:public ICoverLinesListener {
+    struct TMatchInplace:public ILiteDiffListener {
         const size_t oldSize;
         const size_t newSize;
         const TInplaceSets inplaceSets;

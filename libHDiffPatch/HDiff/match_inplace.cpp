@@ -114,18 +114,27 @@ static int _get_max_match_deep(const ICoverLinesListener* listener){
     return _kMaxMatchDeepForResearch;
 }
 
-void _search_cover_finish(ICoverLinesListener* listener,void* pcovers,size_t* pcoverCount,bool isCover32,
-                          hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize){
+static void _search_cover_finish(ICoverLinesListener* listener,void* pcovers,size_t* pcoverCount,bool isCover32,
+                                 hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize){
     TMatchInplace* self=(TMatchInplace*)listener;
-    const hpatch_StreamPos_t kExtraSafeSize=self->inplaceSets.extraSafeSize;
+    if (self->curExtraSafeSize>self->inplaceSets.extraSafeSize)
+       throw std::runtime_error("TMatchInplace extraSafeSize value ERROR!");
 
     //check covers
     TRefCovers _covers(pcovers,*pcoverCount,isCover32);
     for (size_t i=0;i<_covers.size();++i){
         hpatch_TCover cover=_covers[i];
-        if (!coverInExtraSafeSize(cover,kExtraSafeSize))
+        if (!coverInExtraSafeSize(cover,self->curExtraSafeSize))
             throw std::runtime_error("TMatchInplace limit cover by extraSafeSize ERROR!");
     }
+}
+
+static bool _getInplacePatchExtraSafeSize(ILiteDiffListener* listener,hpi_size_t* out_extraSafeSize){
+    const TMatchInplace* self=(const TMatchInplace*)listener;
+    if (self->inplaceSets.isCompatibleLiteDiff)
+        return false; //not save extraSafeSize
+    *out_extraSafeSize=(hpi_size_t)self->curExtraSafeSize;
+    return true; //save extraSafeSize
 }
 
 }//namespace
@@ -133,12 +142,14 @@ void _search_cover_finish(ICoverLinesListener* listener,void* pcovers,size_t* pc
 
 TMatchInplace::TMatchInplace(size_t _oldSize,size_t _newSize,const TInplaceSets& _inplaceSets)
 :oldSize(_oldSize),newSize(_newSize),inplaceSets(_limitSets(_oldSize,_newSize,_inplaceSets)){
+    this->getInplacePatchExtraSafeSize=0;
     ICoverLinesListener* cl=this;
     memset(cl,0,sizeof(*cl));
-    search_cover_limit=_search_cover_limit;
-    research_cover=_research_cover;
-    get_max_match_deep=_get_max_match_deep;
-    search_cover_finish=_search_cover_finish;
+    this->search_cover_limit=_search_cover_limit;
+    this->research_cover=_research_cover;
+    this->get_max_match_deep=_get_max_match_deep;
+    this->search_cover_finish=_search_cover_finish;
+    this->getInplacePatchExtraSafeSize=_getInplacePatchExtraSafeSize;
 }
 
 void create_inplace_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
@@ -151,10 +162,10 @@ void create_inplace_lite_diff(const hpi_byte* newData,const hpi_byte* newData_en
                      kMinSingleMatchScore,isUseBigCacheMatch,&matchInplace,threadNum);
 
 #ifdef _DEBUG
-    printf("\n"
-           "cur extraSafeSize    : %" PRIu64 "\n",matchInplace.curExtraSafeSize);
-    printf("extraSafe data length: %" PRIu64 "\n\n",matchInplace.inExtraSafeLength);
-    printf("research  cover count: %" PRIu64 "\n",(hpatch_StreamPos_t)matchInplace.researchCount);
-    printf("research  data length: %" PRIu64 "\n",matchInplace.researchLength);
+    printf("\nDEBUG TMatchInplace info:\n"
+           "    cur extraSafeSize    : %" PRIu64 "\n",matchInplace.curExtraSafeSize);
+    printf("    extraSafe data length: %" PRIu64 "\n",matchInplace.inExtraSafeLength);
+    printf("    research  cover count: %" PRIu64 "\n",(hpatch_StreamPos_t)matchInplace.researchCount);
+    printf("    research  data length: %" PRIu64 "\n\n",matchInplace.researchLength);
 #endif
 }
