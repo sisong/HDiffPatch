@@ -2,6 +2,16 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+[HPatchLite]: https://github.com/sisong/HPatchLite
+["ENDSLEY/BSDIFF43"]: https://github.com/mendsley/bsdiff
+
+## [v4.9.0](https://github.com/sisong/HDiffPatch/tree/v4.9.0) - 2025-06-10
+### Added
+* add function create_inplace_lite_diff() & hpatchi_inplace_open(),hpatchi_inplaceB(), inplace-patch for [HPatchLite];
+### Removed
+* remove Code::Blocks build setting;
+* remove vc build setting for windows on arm32;
+
 ## [v4.8.0](https://github.com/sisong/HDiffPatch/tree/v4.8.0) - 2024-07-26
 ### Added
 * cmdline hdiffz support option "-c-ldef-{1..12}"; used libdeflate compressor, compatible with -c-zlib, faster or better than zlib;
@@ -12,7 +22,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v4.7.0](https://github.com/sisong/HDiffPatch/tree/v4.7.0) - 2024-07-12
 ### Added
-* cmdline hdiffz support option "-BSD -SD", to create diffFile compatible with another BSDIFF format ["ENDSLEY/BSDIFF43"](https://github.com/mendsley/bsdiff); (patch support this format from v4.6.7)
+* cmdline hdiffz support option "-BSD -SD", to create diffFile compatible with another BSDIFF format ["ENDSLEY/BSDIFF43"]; (patch support this format from v4.6.7)
 * cmdline hdiffz support option "-neq"; if opened, hdiffz will refuse to create diffFile when oldData==newData.
 ### Fixed
 * fixed SFX auto extract logic (SFX executable file is hpatchz file + diffFile)   
@@ -29,7 +39,7 @@ if diffFile created by empty oldPath, then extract with default option `$selfExt
 
 ## [v4.6.7](https://github.com/sisong/HDiffPatch/tree/v4.6.7) - 2023-08-31
 ### Added
-* patch compatible with another BSDIFF format ["ENDSLEY/BSDIFF43"](https://github.com/mendsley/bsdiff)
+* patch compatible with another BSDIFF format ["ENDSLEY/BSDIFF43"]
 
 ## [v4.6.6](https://github.com/sisong/HDiffPatch/tree/v4.6.6) - 2023-08-27
 ### Added
@@ -66,7 +76,7 @@ if diffFile created by empty oldPath, then extract with default option `$selfExt
 
 ## [v4.2.0](https://github.com/sisong/HDiffPatch/tree/v4.2.0) - 2022-05-15
 ### Added
-* add function create_lite_diff() & hpatch_lite_open(),hpatch_lite_patch(); optimized hpatch on MCU,NB-IoT... (demo [HPatchLite](https://github.com/sisong/HPatchLite))
+* add function create_lite_diff() & hpatch_lite_open(),hpatch_lite_patch(); optimized hpatch on MCU,NB-IoT... (demo [HPatchLite])
 * add compress&decompress plugin tuzCompressPlugin,tuzDecompressPlugin;
 
 ## [v4.1.2](https://github.com/sisong/HDiffPatch/tree/v4.1.2) - 2021-12-02
