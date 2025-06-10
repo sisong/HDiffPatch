@@ -7,7 +7,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v4.9.0](https://github.com/sisong/HDiffPatch/tree/v4.9.0) - 2025-06-10
 ### Added
-* add function create_inplace_lite_diff() & hpatchi_inplace_open(),hpatchi_inplaceB(), inplace-patch for [HPatchLite];
+* add function create_inplaceB_lite_diff() & hpatchi_inplace_open(),hpatchi_inplaceB(), inplace-patch for [HPatchLite];
 ### Removed
 * remove Code::Blocks build setting;
 * remove vc build setting for windows on arm32;

@@ -314,6 +314,9 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
+* **create_inplaceB_lite_diff()**
+* **hpatchi_inplace_open()**
+* **hpatchi_inplaceB()**
 #### bsdiff ([bsdiff4] & [endsley/bsdiff]) 兼容包装 API:
 * **create_bsdiff()**
 * **create_bsdiff_stream()** 
