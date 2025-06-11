@@ -290,7 +290,7 @@ hpatch_BOOL hpatch_TFileStreamOutput_close(hpatch_TFileStreamOutput* self);
 
 hpatch_BOOL hpatch_TFileStreamOutput_reopen(hpatch_TFileStreamOutput* self,const char* fileName_utf8,
                                             hpatch_StreamPos_t max_file_length);
-//hpatch_BOOL hpatch_TFileStreamOutput_truncate(hpatch_TFileStreamOutput* self,hpatch_StreamPos_t new_file_length);
+hpatch_BOOL hpatch_TFileStreamOutput_truncate(hpatch_TFileStreamOutput* self,hpatch_StreamPos_t new_file_length);
     
 #ifdef __cplusplus
 }

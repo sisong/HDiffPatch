@@ -397,7 +397,6 @@ hpatch_BOOL _import_fileFlush(hpatch_FileHandle writedFile){
     return (0==fflush(writedFile));
 }
 
-/* // retained data error
 hpatch_BOOL _import_fileTruncate(hpatch_FileHandle file,hpatch_StreamPos_t new_file_length){
 #ifdef _MSC_VER
     int fno=_fileno(file);
@@ -409,7 +408,7 @@ hpatch_BOOL _import_fileTruncate(hpatch_FileHandle file,hpatch_StreamPos_t new_f
     if (ftruncate(fno,new_file_length)!=0) return hpatch_FALSE;
 #endif
     return hpatch_TRUE;
-}*/
+}
 
 #if (_IS_USED_WIN32_UTF8_WAPI)
 #   define _FileModeType const wchar_t*
@@ -427,17 +426,10 @@ hpatch_BOOL _import_fileTruncate(hpatch_FileHandle file,hpatch_StreamPos_t new_f
 static hpatch_FileHandle _import_fileOpen(const char* fileName_utf8,_FileModeType mode_w){
     wchar_t fileName_w[hpatch_kPathMaxSize];
     int wsize=_utf8FileName_to_w(fileName_utf8,fileName_w,hpatch_kPathMaxSize);
-    if (wsize>0) {
-# if (_MSC_VER>=1400) // VC2005
-        hpatch_FileHandle file=0;
-        int err=_wfopen_s(&file,fileName_w,mode_w);
-        return (err==0)?file:0;
-# else
-        return _wfopen(fileName_w,mode_w);
-# endif
-    }else{
+    if (wsize>0)
+        return _wfsopen(fileName_w,mode_w,_SH_DENYNO);
+    else
         return 0;
-    }
 }
 #else
 hpatch_inline static
@@ -638,12 +630,12 @@ hpatch_BOOL hpatch_TFileStreamOutput_reopen(hpatch_TFileStreamOutput* self,const
     return hpatch_TRUE;
 }
 
-/*
+
 hpatch_BOOL hpatch_TFileStreamOutput_truncate(hpatch_TFileStreamOutput* self,hpatch_StreamPos_t new_file_length){
     if (!_import_fileTruncate(self->m_file,new_file_length)) 
         _ferr_return();
     return hpatch_TRUE;
-}*/
+}
 
 hpatch_BOOL hpatch_TFileStreamOutput_flush(hpatch_TFileStreamOutput* self){
     if (!_import_fileFlush(self->m_file)) 
