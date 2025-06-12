@@ -983,7 +983,7 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
         _limitCoverLenth(covers,maxCoverLen);
         assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
         if (listener&&listener->search_cover_limit&&
-                listener->search_cover_limit(listener,covers.data(),covers.size(),isCover32)){
+            listener->search_cover_limit(listener,covers.data(),covers.size(),isCover32)){
             TDiffResearchCover diffResearchCover(diff,covers,*sstring,kMinSingleMatchScore,
                                     listener->get_max_match_deep?listener->get_max_match_deep(listener):kDefaultMaxMatchDeepForLimit,
                                     isCanExtendCover);

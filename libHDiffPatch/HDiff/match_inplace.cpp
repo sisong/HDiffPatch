@@ -50,21 +50,17 @@ static bool _search_cover_limit(ICoverLinesListener* listener,const void* pcover
     const hpatch_StreamPos_t kExtraSafeSize=self->inplaceSets.extraSafeSize;
     std::vector<size_t> researchIndexList;
     TRefCovers covers(pcovers,coverCount,isCover32);
-    hpatch_StreamPos_t curExtraSafeSize=0;
     hpatch_StreamPos_t researchLength=0;
     hpatch_StreamPos_t inExtraSafeLength=0;
     for (size_t i=0;i<coverCount;++i){
         hpatch_TCover curCover=covers[i];
         if (coverInExtraSafeSize(curCover,kExtraSafeSize)){//ok
             inExtraSafeLength+=curCover.length;
-            if (curCover.oldPos<curCover.newPos)
-                curExtraSafeSize=std::max(curExtraSafeSize,(hpatch_StreamPos_t)(curCover.newPos-curCover.oldPos));
         }else{
             researchLength+=curCover.length;
             researchIndexList.push_back(i);
         }
     }
-    self->curExtraSafeSize=curExtraSafeSize;
     self->inExtraSafeLength=inExtraSafeLength;
     self->researchLength=researchLength;
     self->researchCount=researchIndexList.size();
@@ -117,16 +113,21 @@ static int _get_max_match_deep(const ICoverLinesListener* listener){
 static void _search_cover_finish(ICoverLinesListener* listener,void* pcovers,size_t* pcoverCount,bool isCover32,
                                  hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize){
     TMatchInplace* self=(TMatchInplace*)listener;
-    if (self->curExtraSafeSize>self->inplaceSets.extraSafeSize)
-       throw std::runtime_error("TMatchInplace extraSafeSize value ERROR!");
+    const hpatch_size_t kExtraSafeSize=self->inplaceSets.extraSafeSize;
 
     //check covers
+    hpatch_StreamPos_t minExtraSafeSize=0;
     TRefCovers _covers(pcovers,*pcoverCount,isCover32);
     for (size_t i=0;i<_covers.size();++i){
         hpatch_TCover cover=_covers[i];
-        if (!coverInExtraSafeSize(cover,self->curExtraSafeSize))
+        if (!coverInExtraSafeSize(cover,kExtraSafeSize))
             throw std::runtime_error("TMatchInplace limit cover by extraSafeSize ERROR!");
+        if (cover.oldPos<cover.newPos)
+            minExtraSafeSize=std::max(minExtraSafeSize,(hpatch_StreamPos_t)(cover.newPos-cover.oldPos));
     }
+    if (minExtraSafeSize>kExtraSafeSize)
+       throw std::runtime_error("TMatchInplace extraSafeSize value ERROR!");
+    self->curExtraSafeSize=minExtraSafeSize;
 }
 
 static bool _getInplacePatchExtraSafeSize(ILiteDiffListener* listener,hpi_size_t* out_extraSafeSize){
@@ -142,6 +143,7 @@ static bool _getInplacePatchExtraSafeSize(ILiteDiffListener* listener,hpi_size_t
 
 TMatchInplace::TMatchInplace(size_t _oldSize,size_t _newSize,const TInplaceSets& _inplaceSets)
 :oldSize(_oldSize),newSize(_newSize),inplaceSets(_limitSets(_oldSize,_newSize,_inplaceSets)){
+    this->curExtraSafeSize=inplaceSets.extraSafeSize;
     this->getInplacePatchExtraSafeSize=0;
     ICoverLinesListener* cl=this;
     memset(cl,0,sizeof(*cl));
