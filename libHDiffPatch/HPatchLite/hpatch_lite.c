@@ -118,7 +118,7 @@ hpi_BOOL hpatch_lite_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read
     #define kHPatchLite_versionCode     1
     hpi_size_t lenn=hpi_kHeadSize;
     hpi_size_t lenu;
-    hpi_byte   buf[hpi_kHeadSize>sizeof(hpi_pos_t)?hpi_kHeadSize:sizeof(hpi_pos_t)];
+    hpi_byte   buf[(hpi_kHeadSize>sizeof(hpi_pos_t))?hpi_kHeadSize:sizeof(hpi_pos_t)];
     
     _CHECK(read_diff(diff_data,buf,&lenn));
     //HPatchLite type tag 2byte, version code(high 2bit)
@@ -183,4 +183,117 @@ hpi_BOOL hpatch_lite_patch(hpatchi_listener_t* listener,hpi_pos_t newSize,
         _SAFE_CHECK((cover_length>0)|(coverCount==0));
     }
     return (newSize==newPosBack)&_cache_success_finish(&diff);
+}
+
+
+
+// inplace hpatchi by extra
+
+hpi_BOOL hpatchi_inplace_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read read_diff,
+                              hpi_compressType* out_compress_type,hpi_pos_t* out_newSize,
+                              hpi_pos_t* out_uncompressSize,hpi_size_t* out_extraSafeSize){
+    #define kHPatchLite_inplaceCode     2
+    hpi_size_t lenn=hpi_kInplaceHeadSize;
+    hpi_size_t lenu,lene;
+    hpi_byte   buf[(hpi_kInplaceHeadSize>sizeof(hpi_pos_t))?hpi_kInplaceHeadSize:sizeof(hpi_pos_t)];
+    
+    _CHECK(read_diff(diff_data,buf,&lenn));
+    //HPatchLite type tag 2byte, version code(high 2bit)
+    lenu=buf[3];
+    _SAFE_CHECK((lenn==hpi_kInplaceHeadSize)&(buf[0]=='h')&(buf[1]=='I')&((lenu>>6)==kHPatchLite_inplaceCode));
+    *out_compress_type=buf[2]; //compress type
+    lenn=lenu&7; //newSize bytes(low 3bit)
+    lenu=(lenu>>3)&7; //uncompressSize bytes(mid 3bit)
+    lene=buf[4];
+
+    _SAFE_CHECK((lenn<=sizeof(hpi_pos_t))&(lenu<=sizeof(hpi_pos_t))&(lene<=sizeof(hpi_size_t)));
+    _CHECK(read_diff(diff_data,buf,&lenn));
+    *out_newSize=_hpi_readSize(buf,lenn);
+    _CHECK(read_diff(diff_data,buf,&lenu));
+    *out_uncompressSize=_hpi_readSize(buf,lenu);
+    _CHECK(read_diff(diff_data,buf,&lene));
+    *out_extraSafeSize=(hpi_size_t)_hpi_readSize(buf,lene);
+    return hpi_TRUE;
+}
+
+
+//hpatchi_listener_extra_t: a first-in-first-out ring buffer
+//  always cache write_extra_size bytes latest data for _wrap_listener->write_new;
+typedef struct hpatchi_listener_extra_t{
+    hpatchi_listener_t      base;
+    hpatchi_listener_t*     _wrap_listener;
+    hpi_byte*  write_extra;
+    hpi_size_t write_extra_size;
+    hpi_size_t cached_data_pos;
+    hpi_size_t cached_data_len;
+} hpatchi_listener_extra_t;
+
+static hpi_BOOL _hpatchi_listener_extra_read_old(hpatchi_listener_t* listener,hpi_pos_t read_from_pos,hpi_byte* out_data,hpi_size_t data_size){
+    hpatchi_listener_extra_t* self=(hpatchi_listener_extra_t*)listener;
+    return self->_wrap_listener->read_old(self->_wrap_listener,read_from_pos,out_data,data_size);
+}
+
+static hpi_BOOL _hpatchi_listener_extra_out(hpatchi_listener_extra_t* self,hpi_size_t out_size){
+    assert(out_size<=self->cached_data_len);
+    while (out_size){
+        hpi_size_t cur_len=self->write_extra_size-self->cached_data_pos;
+        cur_len=(cur_len<=out_size)?cur_len:out_size;
+        if (!self->_wrap_listener->write_new(self->_wrap_listener,self->write_extra+self->cached_data_pos,cur_len))
+            return _hpi_FALSE;
+        self->cached_data_pos+=cur_len;
+        self->cached_data_pos-=(self->cached_data_pos<self->write_extra_size)?0:self->write_extra_size;
+        self->cached_data_len-=cur_len;
+        out_size-=cur_len;
+    }
+    return hpi_TRUE;
+}
+
+static hpi_BOOL _hpatchi_listener_extra_write_new(hpatchi_listener_t* listener,const hpi_byte* data,hpi_size_t data_size){
+    hpatchi_listener_extra_t* self=(hpatchi_listener_extra_t*)listener;
+    while (data_size){
+        hpi_size_t posi;
+        hpi_size_t cur_len=data_size+self->cached_data_len;
+        if (cur_len>self->write_extra_size){//need out cached data by _wrap_listener->write_new()
+            cur_len-=self->write_extra_size;
+            cur_len=(cur_len<=self->cached_data_len)?cur_len:self->cached_data_len;
+            if (!_hpatchi_listener_extra_out(self,cur_len)) return _hpi_FALSE;
+        }
+        assert(self->cached_data_len<self->write_extra_size);
+
+        cur_len=self->write_extra_size-self->cached_data_len;
+        cur_len=(cur_len<=data_size)?cur_len:data_size;
+        data_size-=cur_len;
+        posi=self->cached_data_pos+self->cached_data_len;
+        self->cached_data_len+=cur_len;
+        while (cur_len--){//save data to cache
+            posi-=(posi<self->write_extra_size)?0:self->write_extra_size;
+            self->write_extra[posi++]=*data++;
+        }
+    }
+    return hpi_TRUE;
+}
+
+static hpi_inline
+void _hpatchi_listener_extra_init(hpatchi_listener_extra_t* self,hpatchi_listener_t* wrap_listener,
+                                  hpi_byte* write_extra,hpi_size_t write_extra_size){
+    self->base.diff_data=wrap_listener->diff_data;
+    self->base.read_diff=wrap_listener->read_diff; 
+    self->base.read_old=_hpatchi_listener_extra_read_old;
+    self->base.write_new=_hpatchi_listener_extra_write_new; 
+    self->_wrap_listener=wrap_listener;
+    self->write_extra=write_extra;
+    self->write_extra_size=write_extra_size;
+    self->cached_data_pos=0;
+    self->cached_data_len=0;
+}
+
+hpi_BOOL hpatchi_inplaceB(hpatchi_listener_t* listener,hpi_pos_t newSize,
+                          hpi_byte* temp_cache,hpi_size_t extraSafeSize_in_temp_cache,hpi_size_t temp_cache_size){
+    hpi_BOOL result;
+    hpatchi_listener_extra_t extra_listener;
+    assert(temp_cache_size>=hpi_kMinCacheSize+extraSafeSize_in_temp_cache);
+    _hpatchi_listener_extra_init(&extra_listener,listener,temp_cache,extraSafeSize_in_temp_cache);
+    result=hpatch_lite_patch(extraSafeSize_in_temp_cache?&extra_listener.base:listener,newSize,
+                             temp_cache+extraSafeSize_in_temp_cache,temp_cache_size-extraSafeSize_in_temp_cache);
+    return result&&_hpatchi_listener_extra_out(&extra_listener,extra_listener.cached_data_len);
 }

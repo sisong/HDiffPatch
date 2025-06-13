@@ -116,7 +116,10 @@ struct THash_adler32{
     TValue _hv;
     inline void hash_begin() { _hv=(TValue)adler32(0,0,0); }
     inline void hash(const TByte* pdata,const TByte* pdata_end)
-                        { _hv=(TValue)adler32(_hv,pdata,(uInt)(pdata_end-pdata)); }
+                        { //TValue _tv=(TValue)adler32_append(_hv,pdata,(pdata_end-pdata));
+                          _hv=(TValue)adler32(_hv,pdata,(uInt)(pdata_end-pdata));
+                          //assert(_hv==_tv);
+                        }
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 #endif
@@ -128,9 +131,7 @@ struct THash_adler32h{
     TValue _hv;
     inline void hash_begin() { _hv=adler32_start(0,0); }
     inline void hash(const TByte* pdata,const TByte* pdata_end)
-                        { _hv=adler32_append(_hv,pdata,(pdata_end-pdata));
-                            //assert(_hv==(TValue)adler32(_hv,pdata,(pdata_end-pdata)));
-                        }
+                        { _hv=adler32_append(_hv,pdata,(pdata_end-pdata));}
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 
@@ -197,6 +198,41 @@ struct _adler128_t_cmp{
     }
 };
 #endif
+
+template <class THash>
+void test_speed(const TByte* data,const TByte* data_end){
+    const size_t kMinHashDataSize=0;
+    const size_t kMaxHashDataSize=1024*1024;
+    const size_t kTestCount = 1000000;
+    
+    printf("%s%s ",THash::name(),std::string(12-strlen(THash::name()),' ').c_str());
+    
+    THash th;
+    static typename THash::TValue hv;
+    unsigned int rand_seed=1;
+    _srand(rand_seed);
+    
+    double time0=clock_s();
+    size_t total_size = 0;
+    
+    for(size_t i = 0; i < kTestCount; i++) {
+        size_t dlen =kMinHashDataSize+(_rand() % (kMaxHashDataSize+1-kMinHashDataSize));
+        size_t dstrat=((uint64_t)_rand()+((uint64_t)_rand()*(RAND_MAX+1))) % ((data_end-data)-dlen);
+        assert(dstrat+dlen<=(size_t)(data_end-data));
+        const TByte* pv=data+dstrat;
+        th.hash_begin();
+        
+        th.hash(pv,pv+dlen);
+        total_size+=dlen;
+        
+        th.hash_end(&hv);
+    }
+    
+    double time_used = clock_s() - time0;
+    double speed = total_size / (time_used * 1024.0 * 1024.0); // MB/s
+    
+    printf("speed: %.1f MB/s\n", speed);
+}
 
 const uint64_t kMaxMapNodeSize=80000000ull; //run test memory ctrl
 const size_t   kRandTestMaxSize=1024*1024*1024;//test rand data size
@@ -408,6 +444,37 @@ void test_fadler128(const TByte* data,const TByte* data_end){
 #endif
 
 int main() {
+    
+    printf("init test data ...\n");
+    std::vector<TByte> data(kRandTestMaxSize);
+    unsigned int rand_seed=0;
+    _srand(rand_seed);
+    for (size_t i=0; i<data.size(); ++i) {
+        data[i]=(TByte)_rand();
+    }
+    printf("\n");
+
+    //test speed
+    printf("test hash speed ...\n");
+#if (_IS_NEED_ZLIB)
+    test_speed<THash_adler32>(data.data(),data.data()+data.size());
+    test_speed<THash_crc32>(data.data(),data.data()+data.size());
+#endif
+#if (_IS_NEED_MD5)
+    test_speed<THash_md5_128>(data.data(),data.data()+data.size());
+#endif
+    test_speed<THash_adler32h>(data.data(),data.data()+data.size());
+    test_speed<THash_adler64h>(data.data(),data.data()+data.size());
+    test_speed<THash_fadler32>(data.data(),data.data()+data.size());
+    test_speed<THash_fadler64>(data.data(),data.data()+data.size());
+#if (_IS_NEED_FAST_ADLER128)
+    test_speed<THash_fadler128>(data.data(),data.data()+data.size());
+#endif
+    printf("\n");
+
+    //test clash
+    printf("test hash clash ...\n");
+
     double bestCR_32bit =1.0/(((uint64_t)1)<<32);
     double bestCR_64bit =bestCR_32bit*bestCR_32bit;
     double bestCR_128bit=bestCR_64bit*bestCR_64bit;
@@ -419,13 +486,6 @@ int main() {
            bestCR_64bit,(((uint64_t)(~(uint64_t)0)))/10,(((uint64_t)(~(uint64_t)0)))%10+1);
     printf("128bit hash  best clash rate: %.3e (1/%.3e) \n\n",
            bestCR_128bit,1/bestCR_128bit);
-    
-    std::vector<TByte> data(kRandTestMaxSize);
-    unsigned int rand_seed=0;
-    _srand(rand_seed);
-    for (size_t i=0; i<data.size(); ++i) {
-        data[i]=(TByte)_rand();
-    }
     const uint64_t kTestMask8=((((uint64_t)1)<<8)-1);
     const uint64_t kTestMask16=((((uint64_t)1)<<16)-1);
     const uint64_t kTestMask32=((((uint64_t)1)<<32)-1);

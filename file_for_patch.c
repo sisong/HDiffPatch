@@ -30,7 +30,11 @@
 #define _LARGEFILE64_SOURCE
 #define _FILE_OFFSET_BITS 64
 #include "file_for_patch.h"
+#include <locale.h> // setlocale
 #include <sys/stat.h> //stat mkdir
+#ifdef _WIN32
+#   include <windows.h> //for file API, character encoding API
+#endif
 #ifndef _IS_FOR_WINXP
 #   ifdef _USING_V110_SDK71_
 #       define _IS_FOR_WINXP 1
@@ -38,18 +42,19 @@
 #       define _IS_FOR_WINXP 0
 #   endif
 #endif
-/*
-#ifdef _MSC_VER
-#   include <io.h>    //_chsize_s
-#endif
-*/
+#  ifdef _MSC_VER
+#   include <io.h>     //_chsize_s
+#   include <direct.h> // *mkdir *rmdir
+#  else
+#   include <unistd.h> // rmdir close ftruncate
+#  endif
+
 
 #if (_IS_NEED_BLOCK_DEV)
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/ioctl.h> // ioctl
 #include <linux/fs.h> //BLKGETSIZE64
-#include <unistd.h> //close
 
 static hpatch_BOOL _get_block_dev_size(const char* blkdev,hpatch_uint64_t* bsize){
 	int fd;
@@ -71,6 +76,67 @@ static hpatch_BOOL _get_block_dev_size(const char* blkdev,hpatch_uint64_t* bsize
 	return hpatch_TRUE;
 }
 #endif
+
+#ifdef _WIN32
+#define  _setFileErrNo_iconv() _set_errno_new(GetLastError()==ERROR_INSUFFICIENT_BUFFER?ENAMETOOLONG:EILSEQ)
+
+int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
+    int result=MultiByteToWideChar(_hpatch_kMultiBytePage,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize);
+    if (result<=0) _setFileErrNo_iconv();
+    return result; }
+int _wFileName_to_utf8(const wchar_t* fileName_w,char* out_fileName_utf8,size_t out_bSize){
+    int result=WideCharToMultiByte(_hpatch_kMultiBytePage,0,fileName_w,-1,out_fileName_utf8,(int)out_bSize,0,0);
+    if (result<=0) _setFileErrNo_iconv();
+    return result; }
+
+hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCount,
+                                char** out_fileNames_utf8,size_t out_byteSize){
+    char*   _bufEnd=((char*)out_fileNames_utf8)+out_byteSize;
+    char*   _bufCur=(char*)(&out_fileNames_utf8[fileCount]);
+    size_t i;
+    for (i=0; i<fileCount; ++i) {
+        int csize;
+        if (_bufCur>=_bufEnd) { _set_errno_new(ENAMETOOLONG); return hpatch_FALSE; } //error 
+        csize=_wFileName_to_utf8(fileNames_w[i],_bufCur,_bufEnd-_bufCur);
+        if (csize<=0) return hpatch_FALSE; //error
+        out_fileNames_utf8[i]=_bufCur;
+        _bufCur+=csize;
+    }
+    return hpatch_TRUE;
+}
+#endif
+
+#if (_IS_USED_WIN32_UTF8_WAPI)
+void SetDefaultStringLocale(){
+    setlocale(LC_CTYPE,"");
+}
+#endif
+
+int hpatch_printPath_utf8(const char* pathTxt_utf8){
+#if (_IS_USED_WIN32_UTF8_WAPI)
+    wchar_t pathTxt_w[hpatch_kPathMaxSize];
+    int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,hpatch_kPathMaxSize);
+    if (wsize>0)
+        return printf("%ls",pathTxt_w);
+    else //view unknow
+        return printf("%s",pathTxt_utf8);
+#else
+    return printf("%s",pathTxt_utf8);
+#endif
+}
+
+int hpatch_printStdErrPath_utf8(const char* pathTxt_utf8){
+#if (_IS_USED_WIN32_UTF8_WAPI)
+    wchar_t pathTxt_w[hpatch_kPathMaxSize];
+    int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,hpatch_kPathMaxSize);
+    if (wsize>0)
+        return LOG_ERR("%ls",pathTxt_w);
+    else //view unknow
+        return LOG_ERR("%s",pathTxt_utf8);
+#else
+    return LOG_ERR("%s",pathTxt_utf8);
+#endif
+}
 
 #if (_IS_FOR_WINXP)
     #define _getStatByAttributes(_path,s,rt,_getFileAttributesFunc) {       \
@@ -397,7 +463,6 @@ hpatch_BOOL _import_fileFlush(hpatch_FileHandle writedFile){
     return (0==fflush(writedFile));
 }
 
-/* // retained data error
 hpatch_BOOL _import_fileTruncate(hpatch_FileHandle file,hpatch_StreamPos_t new_file_length){
 #ifdef _MSC_VER
     int fno=_fileno(file);
@@ -409,7 +474,7 @@ hpatch_BOOL _import_fileTruncate(hpatch_FileHandle file,hpatch_StreamPos_t new_f
     if (ftruncate(fno,new_file_length)!=0) return hpatch_FALSE;
 #endif
     return hpatch_TRUE;
-}*/
+}
 
 #if (_IS_USED_WIN32_UTF8_WAPI)
 #   define _FileModeType const wchar_t*
@@ -427,17 +492,10 @@ hpatch_BOOL _import_fileTruncate(hpatch_FileHandle file,hpatch_StreamPos_t new_f
 static hpatch_FileHandle _import_fileOpen(const char* fileName_utf8,_FileModeType mode_w){
     wchar_t fileName_w[hpatch_kPathMaxSize];
     int wsize=_utf8FileName_to_w(fileName_utf8,fileName_w,hpatch_kPathMaxSize);
-    if (wsize>0) {
-# if (_MSC_VER>=1400) // VC2005
-        hpatch_FileHandle file=0;
-        int err=_wfopen_s(&file,fileName_w,mode_w);
-        return (err==0)?file:0;
-# else
-        return _wfopen(fileName_w,mode_w);
-# endif
-    }else{
+    if (wsize>0)
+        return _wfsopen(fileName_w,mode_w,_SH_DENYNO);
+    else
         return 0;
-    }
 }
 #else
 hpatch_inline static
@@ -638,12 +696,12 @@ hpatch_BOOL hpatch_TFileStreamOutput_reopen(hpatch_TFileStreamOutput* self,const
     return hpatch_TRUE;
 }
 
-/*
+
 hpatch_BOOL hpatch_TFileStreamOutput_truncate(hpatch_TFileStreamOutput* self,hpatch_StreamPos_t new_file_length){
     if (!_import_fileTruncate(self->m_file,new_file_length)) 
         _ferr_return();
     return hpatch_TRUE;
-}*/
+}
 
 hpatch_BOOL hpatch_TFileStreamOutput_flush(hpatch_TFileStreamOutput* self){
     if (!_import_fileFlush(self->m_file)) 

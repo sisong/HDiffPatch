@@ -73,7 +73,10 @@ extern "C" {
 typedef hpi_BOOL (*hpi_TInputStream_read)(hpi_TInputStreamHandle inputStream,hpi_byte* out_data,hpi_size_t* data_size);
 
 #ifndef hpi_kHeadSize
-#   define  hpi_kHeadSize       (2+1+1) //"hI" + hpi_compressType + (versionCode+newSize bytes+uncompressSize bytes) { + newSize + uncompressSize}
+#   define hpi_kHeadSize        (2+1+1) //"hI" + hpi_compressType + (versionCode+newSize bytes+uncompressSize bytes) { + newSize + uncompressSize}
+#endif
+#ifndef hpi_kInplaceHeadSize
+#   define hpi_kInplaceHeadSize (hpi_kHeadSize+1) //"hI" + hpi_compressType + (inplaceCode+newSize bytes+uncompressSize bytes) + (extraSafeSize bytes) { + newSize + uncompressSize + extraSafeSize}
 #endif
 
 #ifndef hpi_kMinCacheSize

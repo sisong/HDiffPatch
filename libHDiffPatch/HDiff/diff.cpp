@@ -60,6 +60,7 @@ static const int kMinMatchLen   = (_SSTRING_FAST_MATCH>kCoverMinMatchLen)?_SSTRI
 static const int kMinMatchLen   = kCoverMinMatchLen; //最小搜寻相等长度。
 #endif
 static const int kMinMatchScore = 2; //最小搜寻覆盖收益.
+static const hpatch_uint64_t kDefaultLimitCoverLen=((hpatch_uint64_t)1<<16)-1; //<=2GB-1
 
 namespace{
     
@@ -532,6 +533,47 @@ static void extend_cover(std::vector<TOldCover>& covers,size_t cover_begin,const
         assert_covers_safe(_covers,newSize,oldSize);
     }
 
+    static inline hpatch_StreamPos_t _clipLenByLimit(hpatch_StreamPos_t& clen,hpatch_StreamPos_t kMaxLen){
+        hpatch_StreamPos_t alen=clen;
+        assert(alen>kMaxLen);
+        do{
+            alen=(alen+1)>>1;
+        } while (alen>kMaxLen);
+        clen-=alen;
+        return alen;
+    }
+    static void _limitCoverLenth(std::vector<TOldCover>& covers,hpatch_StreamPos_t kMaxLen){
+        size_t csize=covers.size();
+        size_t isize=0;
+        for (size_t i=0;i<csize;++i){
+            hpatch_StreamPos_t clen=covers[i].length;
+            while (clen>kMaxLen){
+                ++isize;
+                _clipLenByLimit(clen,kMaxLen);
+            }
+        }
+        if (isize==0) return;
+
+        covers.resize(csize+isize);
+        memmove(covers.data()+isize,covers.data(),sizeof(TOldCover)*csize);
+        size_t insertIndex=0;
+        for (size_t i=isize;i<covers.size();++i){
+            hpatch_StreamPos_t clen=covers[i].length;
+            while (clen>kMaxLen){
+                --isize;
+                hpatch_StreamPos_t clipLen=_clipLenByLimit(clen,kMaxLen);
+                assert(insertIndex<i);
+                covers[insertIndex++]=TOldCover(covers[i].oldPos,covers[i].newPos,clipLen);
+                covers[i].oldPos+=clipLen;
+                covers[i].newPos+=clipLen;
+                covers[i].length-=clipLen;
+                assert(covers[i].length==clen);
+            }
+            covers[insertIndex++]=covers[i];
+        }
+        assert(isize==0);
+    }
+
 //diff结果序列化输出.
 static void serialize_diff(const TDiffData& diff,const std::vector<TOldCover>& covers,std::vector<TByte>& out_diff){
     const TUInt coverCount=(TUInt)covers.size();
@@ -916,7 +958,8 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
                      TDiffData&   out_diff,std::vector<TOldCover>& covers,
                      int kMinSingleMatchScore,
                      bool isUseBigCacheMatch,ICoverLinesListener* listener,
-                     const TSuffixString* sstring,size_t threadNum,bool isCanExtendCover=true){
+                     const TSuffixString* sstring,size_t threadNum,
+                     bool isCanExtendCover=true){
     assert(newData<=newData_end);
     assert(oldData<=oldData_end);
     TDiffData& diff=out_diff;
@@ -926,8 +969,10 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
     diff.oldData_end=oldData_end;
     
     const bool isCover32=sizeof(*covers.data())==sizeof(hpatch_TCover32);
-    if (!isCover32) 
+    if (!isCover32)
         assert(sizeof(*covers.data())==sizeof(hpatch_TCover));
+    const hpatch_StreamPos_t maxCoverLen=(listener&&listener->get_limit_cover_length)?
+                                            listener->get_limit_cover_length(listener):kDefaultLimitCoverLen;
     {
         TSuffixString _sstring_default(isUseBigCacheMatch);
         if (sstring==0){
@@ -935,14 +980,17 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
             sstring=&_sstring_default;
         }
         first_search_and_dispose_cover_MT(covers,diff,*sstring,kMinSingleMatchScore,listener,threadNum,isCanExtendCover);
+        _limitCoverLenth(covers,maxCoverLen);
         assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
         if (listener&&listener->search_cover_limit&&
-                listener->search_cover_limit(listener,covers.data(),covers.size(),isCover32)){
+            listener->search_cover_limit(listener,covers.data(),covers.size(),isCover32)){
             TDiffResearchCover diffResearchCover(diff,covers,*sstring,kMinSingleMatchScore,
                                     listener->get_max_match_deep?listener->get_max_match_deep(listener):kDefaultMaxMatchDeepForLimit,
                                     isCanExtendCover);
             listener->research_cover(listener,&diffResearchCover,covers.data(),covers.size(),isCover32);
             diffResearchCover.researchFinish();
+            _limitCoverLenth(covers,maxCoverLen);
+            assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
         }
         sstring=0;
         _sstring_default.clear();
@@ -955,6 +1003,7 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
                                &newDataSize,&oldDataSize);
         diff.newData_end=diff.newData+(size_t)newDataSize;
         diff.oldData_end=diff.oldData+(size_t)oldDataSize;
+        _limitCoverLenth(covers,maxCoverLen);
         assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
     }
     if (listener&&listener->search_cover_finish){
@@ -967,8 +1016,7 @@ static void get_diff(const TByte* newData,const TByte* newData_end,
         covers.resize(newCoverCount);
         diff.newData_end=diff.newData+(size_t)newDataSize;
         diff.oldData_end=diff.oldData+(size_t)oldDataSize;
-    }
-    if (listener){
+        _limitCoverLenth(covers,maxCoverLen);
         assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
     }
 }
@@ -1452,6 +1500,7 @@ hpatch_StreamPos_t
 namespace{
     static const char*      kHPatchLite_versionType="hI";
     static const hpi_byte   kHPatchLite_versionCode=1;
+    static const hpi_byte   kHPatchLite_inplaceCode=2; //for inplace-patch, just adding extraSafeSize
 
     static inline void hpi_packUInt(std::vector<TByte>& buf,TUInt v){
         check(v==(hpi_pos_t)v);
@@ -1497,9 +1546,16 @@ namespace{
             subDiff[i]=pnew[i]-pold[i];
     }
 
+    struct TInlpacePatchSets{
+        bool        isInplacePatchByExtra;
+        hpi_size_t  extraSafeSize;
+    };
+
 static void serialize_lite_diff(const TDiffData& diff,const std::vector<TOldCover>& covers,
-                                std::vector<TByte>& out_diff,const hdiffi_TCompress* compressPlugin){
+                                std::vector<TByte>& out_diff,const hdiffi_TCompress* compressPlugin,
+                                const TInlpacePatchSets& inlpacePatchSets){
     const TUInt coverCount=(TUInt)covers.size();
+    const bool isInplacePatch= inlpacePatchSets.isInplacePatchByExtra;
     std::vector<TByte> subDiff;
     std::vector<TByte> buf;
     hpi_packUInt(buf,coverCount);
@@ -1543,11 +1599,16 @@ static void serialize_lite_diff(const TDiffData& diff,const std::vector<TOldCove
     out_diff.push_back(kHPatchLite_versionType[1]);
     out_diff.push_back(compress_buf.empty()?hpi_compressType_no:compressPlugin->compress_type);
     TUInt savedUncompressSize=compress_buf.empty()?0:buf.size();
-    out_diff.push_back((kHPatchLite_versionCode<<6)|
+    const TByte savedVersionCode=isInplacePatch?kHPatchLite_inplaceCode:kHPatchLite_versionCode;
+    out_diff.push_back((savedVersionCode<<6)|
                        (hpi_getSavedSizeBytes(newSize))|
                        (hpi_getSavedSizeBytes(savedUncompressSize)<<3));
+    if (isInplacePatch)
+        out_diff.push_back(hpi_getSavedSizeBytes(inlpacePatchSets.extraSafeSize));
     hpi_saveSize(out_diff,newSize);
     hpi_saveSize(out_diff,savedUncompressSize);
+    if (isInplacePatch)
+        hpi_saveSize(out_diff,inlpacePatchSets.extraSafeSize);
     pushBack(out_diff,compress_buf.empty()?buf:compress_buf);
 }
 
@@ -1557,7 +1618,7 @@ void create_lite_diff(const unsigned char* newData,const unsigned char* newData_
                       const unsigned char* oldData,const unsigned char* oldData_end,
                       std::vector<hpi_byte>& out_lite_diff,const hdiffi_TCompress* compressPlugin,
                       int kMinSingleMatchScore,bool isUseBigCacheMatch,
-                      ICoverLinesListener* listener,size_t threadNum){
+                      ILiteDiffListener* listener,size_t threadNum){
     static const int _kMatchScore_optim4bin=6;
     TDiffData diff;
     std::vector<TOldCover> covers;
@@ -1573,14 +1634,20 @@ void create_lite_diff(const unsigned char* newData,const unsigned char* newData_
     const size_t newSize=newData_end-newData;
     if (newPosEnd<newSize)
         covers.push_back(TOldCover(oldPosEnd,newSize,0));
-    serialize_lite_diff(diff,covers,out_lite_diff,compressPlugin);
+
+    TInlpacePatchSets inlpacePatchSets={};
+    if (listener&&listener->getInplacePatchExtraSafeSize){
+        if (listener->getInplacePatchExtraSafeSize(listener,&inlpacePatchSets.extraSafeSize))
+            inlpacePatchSets.isInplacePatchByExtra=true;
+    }
+    serialize_lite_diff(diff,covers,out_lite_diff,compressPlugin,inlpacePatchSets);
 }
 
 namespace{
 struct TPatchiListener:public hpatchi_listener_t{
     hpatch_decompressHandle decompresser;
     hpatch_TDecompress*     decompressPlugin;
-    inline TPatchiListener():decompresser(0){}
+    inline TPatchiListener():decompresser(0),newData_cur_pos(0){}
     inline ~TPatchiListener(){ if (decompresser) decompressPlugin->close(decompressPlugin,decompresser); }
     const hpi_byte* diffData_cur;
     const hpi_byte* diffData_end;
@@ -1590,6 +1657,9 @@ struct TPatchiListener:public hpatchi_listener_t{
     const hpi_byte* newData_end;
     const hpi_byte* oldData;
     const hpi_byte* oldData_end;
+    bool          isInplacePatch;
+    hpi_size_t    extraSafeSize;//for inplace-patch
+    hpatch_size_t newData_cur_pos;//for inplace-patch
 
     static hpi_BOOL _read_diff(hpi_TInputStreamHandle inputStream,hpi_byte* out_data,hpi_size_t* data_size){
         TPatchiListener& self=*(TPatchiListener*)inputStream;
@@ -1623,6 +1693,7 @@ struct TPatchiListener:public hpatchi_listener_t{
         if (0!=memcmp(self.newData_cur,data,data_size))
             return hpi_FALSE;
         self.newData_cur+=data_size;
+        self.newData_cur_pos+=data_size;
         return hpi_TRUE;
     }
     static hpi_BOOL _read_old(struct hpatchi_listener_t* listener,hpi_pos_t read_from_pos,hpi_byte* out_data,hpi_size_t data_size){
@@ -1630,10 +1701,30 @@ struct TPatchiListener:public hpatchi_listener_t{
         size_t dsize=self.oldData_end-self.oldData;
         if ((read_from_pos>dsize)|(data_size>(size_t)(dsize-read_from_pos))) return hpi_FALSE;
         memcpy(out_data,self.oldData+(size_t)read_from_pos,data_size);
+        if (self.isInplacePatch){
+            if (read_from_pos<self.newData_cur_pos)
+                return hpi_FALSE;
+        }
         return hpi_TRUE;
     }
 };
 }// end namespace
+
+static
+bool _try_open_hpatchi_and_inplace(TPatchiListener& listener,hpi_compressType* out_compress_type,
+                                   hpi_pos_t* out_newSize,hpi_pos_t* out_uncompressSize){
+    listener.isInplacePatch=false;
+    listener.extraSafeSize=0;
+    const hpi_byte* diffData_cur_bck=listener.diffData_cur;
+    if (hpatch_lite_open(&listener,listener._read_diff,out_compress_type,out_newSize,out_uncompressSize))
+        return true;
+    listener.diffData_cur=diffData_cur_bck;//reread diffData from 0 pos
+    if (hpatchi_inplace_open(&listener,listener._read_diff,out_compress_type,out_newSize,out_uncompressSize,&listener.extraSafeSize)){
+        listener.isInplacePatch=true;
+        return true;
+    }
+    return false;
+}
 
 bool check_lite_diff_open(const hpi_byte* lite_diff,const hpi_byte* lite_diff_end,
                           hpi_compressType* out_compress_type){
@@ -1642,8 +1733,8 @@ bool check_lite_diff_open(const hpi_byte* lite_diff,const hpi_byte* lite_diff_en
     listener.diffData_end=lite_diff_end;
     hpi_pos_t saved_newSize;
     hpi_pos_t saved_uncompressSize;
-    if (!hpatch_lite_open(&listener,listener._read_diff,out_compress_type,&saved_newSize,
-                          &saved_uncompressSize)) return false;
+    if (!_try_open_hpatchi_and_inplace(listener,out_compress_type,
+                                       &saved_newSize,&saved_uncompressSize)) return false;
     return true;
 }
 
@@ -1657,8 +1748,8 @@ bool check_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
     hpi_compressType _compress_type;
     hpi_pos_t saved_newSize;
     hpi_pos_t saved_uncompressSize;
-    if (!hpatch_lite_open(&listener,listener._read_diff,&_compress_type,&saved_newSize,
-                          &saved_uncompressSize)) return false;
+    if (!_try_open_hpatchi_and_inplace(listener,&_compress_type,
+                                       &saved_newSize,&saved_uncompressSize)) return false;
     if (saved_newSize!=(size_t)(newData_end-newData)) return false;
     listener.diff_data=&listener;
     listener.decompressPlugin=(_compress_type!=hpi_compressType_no)?decompressPlugin:0;
@@ -1680,10 +1771,14 @@ bool check_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
     listener.read_old=listener._read_old;
 
     const size_t kACacheBufSize=1024*32;
-    hdiff_private::TAutoMem _cache(kACacheBufSize);
+    hdiff_private::TAutoMem _cache(kACacheBufSize+listener.extraSafeSize);
     
-    if (!hpatch_lite_patch(&listener,saved_newSize,_cache.data(),(hpi_size_t)_cache.size()))
+    if (listener.isInplacePatch){
+        if (!hpatchi_inplaceB(&listener,saved_newSize,_cache.data(),listener.extraSafeSize,(hpi_size_t)_cache.size()))
+            return false;
+    }else if (!hpatch_lite_patch(&listener,saved_newSize,_cache.data(),(hpi_size_t)_cache.size())){
         return false;
+    }
     return listener.newData_cur==listener.newData_end;
 }
 

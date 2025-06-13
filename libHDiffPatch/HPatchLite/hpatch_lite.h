@@ -42,6 +42,34 @@ hpi_BOOL hpatch_lite_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read
 hpi_BOOL hpatch_lite_patch(hpatchi_listener_t* listener,hpi_pos_t newSize,
                            hpi_byte* temp_cache,hpi_size_t temp_cache_size);
 
+
+//-----------------------------------------------------------------------------------------------------------------
+// hpatch_lite inplace-patch by extra: hpatchi_inplace_open()+hpatchi_inplaceB() compiled by Mbed Studio is 960 bytes
+
+//inplace-patch open
+//  diff_data created by create_inplace_lite_diff() or create_inplaceA_lite_diff() or create_inplaceB_lite_diff();
+hpi_BOOL hpatchi_inplace_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_read read_diff,
+                              hpi_compressType* out_compress_type,hpi_pos_t* out_newSize,
+                              hpi_pos_t* out_uncompressSize,hpi_size_t* out_extraSafeSize);
+
+//inplace-patch for inplaceA format
+//  diff_data created by (create_inplace_lite_diff() with extraSafeSize==0) or create_inplaceA_lite_diff();
+//  you can add an min-write block size of storage chips to extraSafeSize, then you must use hpatchi_inplaceB()
+static hpi_force_inline hpi_BOOL hpatchi_inplaceA(hpatchi_listener_t* listener,hpi_pos_t newSize,
+                                                  hpi_byte* temp_cache,hpi_size_t temp_cache_size){
+    return hpatch_lite_patch(listener,newSize,temp_cache,temp_cache_size);
+}
+
+//inplace-patch for inplaceB format
+//  used extraSafeSize extra memory for safe, prevent writing to old data areas that are still useful;
+//  diff_data created by (create_inplace_lite_diff() with extraSafeSize>0) or create_inplaceB_lite_diff();
+//  this function is also compatible apply inplaceA format;
+//  best practices: you can add an min-write block size of storage chips to extraSafeSize when needed,
+//      this simplifies the implementation of listener's read_old&write_new.
+//  note: temp_cache_size>=hpi_kMinCacheSize+extraSafeSize; hpatchi_inplaceB() used hpatch_lite_patch();
+hpi_BOOL hpatchi_inplaceB(hpatchi_listener_t* listener,hpi_pos_t newSize,
+                          hpi_byte* temp_cache,hpi_size_t extraSafeSize_in_temp_cache,hpi_size_t temp_cache_size);
+
 #ifdef __cplusplus
 }
 #endif
