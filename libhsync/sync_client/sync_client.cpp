@@ -125,8 +125,8 @@ static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd,bool& isNeed_rea
     bool isOnDiffContinue =(wd.continueDiffData!=0);
     bool isOnNewDataContinue =(wd.newDataContinue!=0);
     size_t lastCompressedIndex=_indexOfCompressedSyncBlock(newSyncInfo,wd.newBlockDataInOldPoss,0);
-     if (lastCompressedIndex>=kBlockCount)
-        wd.decompressPlugin=0;
+    if (lastCompressedIndex>=kBlockCount)
+        wd.decompressPlugin=0;//no blocks need decompress
     const size_t _memSize=(size_t)kSyncBlockSize*(wd.decompressPlugin?3:1)
                         +newSyncInfo->kStrongChecksumByteSize
                         +checkChecksumBufByteSize(newSyncInfo->kStrongChecksumByteSize);
@@ -156,6 +156,8 @@ static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd,bool& isNeed_rea
         if (isOnNewDataContinue){ //copy from newDataContinue
             check(wd.newDataContinue->read(wd.newDataContinue,outNewDataPos,dataBuf,dataBuf+newDataSize),
                   kSyncClient_newFileReopenReadError);
+            if (isCompressedBlock)
+                lastCompressedIndex=_indexOfCompressedSyncBlock(newSyncInfo,wd.newBlockDataInOldPoss,i+1);
         }else if (isNeedSync){ //download or read from diff data
             TByte* buf=isCompressedBlock?(dataBuf+kSyncBlockSize):dataBuf;
             /*if ((wd.out_newStream)||(wd.out_diffStream))*/{//download data
