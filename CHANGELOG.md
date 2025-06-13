@@ -2,10 +2,7 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
-[HPatchLite]: https://github.com/sisong/HPatchLite
-["ENDSLEY/BSDIFF43"]: https://github.com/mendsley/bsdiff
-
-## [v4.9.0](https://github.com/sisong/HDiffPatch/tree/v4.9.0) - 2025-06-10
+## [v4.9.0](https://github.com/sisong/HDiffPatch/tree/v4.9.0) - 2025-06-13
 ### Added
 * add function create_inplaceB_lite_diff() & hpatchi_inplace_open(),hpatchi_inplaceB(), inplace-patch for [HPatchLite];
 ### Removed
@@ -252,3 +249,6 @@ if diffFile created by empty oldPath, then extract with default option `$selfExt
 * create_diff(...) support create differential between two memory datas(src->dst bytes);
 * patch(...) support apply differential for update src bytes to dst bytes;
 * demo app for diff&patch between two files;
+
+[HPatchLite]: https://github.com/sisong/HPatchLite
+["ENDSLEY/BSDIFF43"]: https://github.com/mendsley/bsdiff
