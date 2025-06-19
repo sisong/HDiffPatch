@@ -80,7 +80,10 @@ typedef hpi_BOOL (*hpi_TInputStream_read)(hpi_TInputStreamHandle inputStream,hpi
 #endif
 
 #ifndef hpi_kMinCacheSize
-#   define hpi_kMinCacheSize    (1*2)
+#   define hpi_kMinCacheSize            (1*2)
+#endif
+#ifndef hpi_kMinInlpaceCacheSize
+#   define hpi_kMinInplaceCacheSize     (1*3)
 #endif
 
 typedef enum hpi_compressType{

@@ -217,15 +217,26 @@ hpi_BOOL hpatchi_inplace_open(hpi_TInputStreamHandle diff_data,hpi_TInputStream_
 }
 
 
+
+#if (_IS_WTITE_NEW_BY_PAGE!=0)
+#   define _hpi_Do4Page(code)   do{ code; }while(0)
+#else
+#   define _hpi_Do4Page(code)
+#endif //_IS_WTITE_NEW_BY_PAGE
+
 //hpatchi_listener_extra_t: a first-in-first-out ring buffer
-//  always cache write_extra_size bytes latest data for _wrap_listener->write_new;
+//  always cache kWriteExtraSize bytes latest data for _wrap_listener->write_new;
 typedef struct hpatchi_listener_extra_t{
     hpatchi_listener_t      base;
     hpatchi_listener_t*     _wrap_listener;
     hpi_byte*  write_extra;
-    hpi_size_t write_extra_size;
+    hpi_size_t kWriteExtraSize;
     hpi_size_t cached_data_pos;
     hpi_size_t cached_data_len;
+    #if (_IS_WTITE_NEW_BY_PAGE!=0)
+    hpi_size_t kPageSize;
+    hpi_size_t page_data_len; //cur page data length
+    #endif
 } hpatchi_listener_extra_t;
 
 static hpi_BOOL _hpatchi_listener_extra_read_old(hpatchi_listener_t* listener,hpi_pos_t read_from_pos,hpi_byte* out_data,hpi_size_t data_size){
@@ -233,19 +244,60 @@ static hpi_BOOL _hpatchi_listener_extra_read_old(hpatchi_listener_t* listener,hp
     return self->_wrap_listener->read_old(self->_wrap_listener,read_from_pos,out_data,data_size);
 }
 
+#if (_IS_WTITE_NEW_BY_PAGE!=0)
+    static hpi_BOOL _hpatchi_listener_page_out(hpatchi_listener_extra_t* self){
+        hpi_BOOL result=self->_wrap_listener->write_new(self->_wrap_listener,
+                            self->write_extra+self->kWriteExtraSize,self->page_data_len);
+        self->page_data_len=0;
+        return result;
+    }
+
+    static hpi_force_inline
+    hpi_BOOL _hpatchi_listener_write_page(hpatchi_listener_extra_t* self,const hpi_byte* data,hpi_size_t data_size){
+        hpi_byte* page_buf=self->write_extra+self->kWriteExtraSize;
+        while (data_size){
+            hpi_size_t cur_len=self->kPageSize-self->page_data_len;
+            if (cur_len==0){ //need out cur page
+                if (!_hpatchi_listener_page_out(self)) return _hpi_FALSE;
+                cur_len=self->kPageSize;
+            }
+            cur_len=(cur_len<=data_size)?cur_len:data_size;
+            data_size-=cur_len;
+            while (cur_len--)//save data to page
+                page_buf[self->page_data_len++]=*data++;
+        }
+        return hpi_TRUE;
+    }
+#endif //_IS_WTITE_NEW_BY_PAGE
+
 static hpi_BOOL _hpatchi_listener_extra_out(hpatchi_listener_extra_t* self,hpi_size_t out_size){
     assert(out_size<=self->cached_data_len);
     while (out_size){
-        hpi_size_t cur_len=self->write_extra_size-self->cached_data_pos;
+        hpi_size_t cur_len=self->kWriteExtraSize-self->cached_data_pos;
         cur_len=(cur_len<=out_size)?cur_len:out_size;
+    #if (_IS_WTITE_NEW_BY_PAGE!=0)
+        if (!_hpatchi_listener_write_page(self,self->write_extra+self->cached_data_pos,cur_len))
+            return _hpi_FALSE;
+    #else
         if (!self->_wrap_listener->write_new(self->_wrap_listener,self->write_extra+self->cached_data_pos,cur_len))
             return _hpi_FALSE;
+    #endif //_IS_WTITE_NEW_BY_PAGE
         self->cached_data_pos+=cur_len;
-        self->cached_data_pos-=(self->cached_data_pos<self->write_extra_size)?0:self->write_extra_size;
+        self->cached_data_pos-=(self->cached_data_pos<self->kWriteExtraSize)?0:self->kWriteExtraSize;
         self->cached_data_len-=cur_len;
         out_size-=cur_len;
     }
     return hpi_TRUE;
+}
+
+static hpi_force_inline
+hpi_BOOL _hpatchi_listener_extra_flush(hpatchi_listener_extra_t* self){
+    hpi_BOOL result=_hpatchi_listener_extra_out(self,self->cached_data_len);
+#if (_IS_WTITE_NEW_BY_PAGE!=0)
+    if (result&&(self->page_data_len))
+        result=_hpatchi_listener_page_out(self);
+#endif //_IS_WTITE_NEW_BY_PAGE
+    return result;
 }
 
 static hpi_BOOL _hpatchi_listener_extra_write_new(hpatchi_listener_t* listener,const hpi_byte* data,hpi_size_t data_size){
@@ -253,20 +305,20 @@ static hpi_BOOL _hpatchi_listener_extra_write_new(hpatchi_listener_t* listener,c
     while (data_size){
         hpi_size_t posi;
         hpi_size_t cur_len=data_size+self->cached_data_len;
-        if (cur_len>self->write_extra_size){//need out cached data by _wrap_listener->write_new()
-            cur_len-=self->write_extra_size;
+        if (cur_len>self->kWriteExtraSize){//need out cached data by _wrap_listener->write_new()
+            cur_len-=self->kWriteExtraSize;
             cur_len=(cur_len<=self->cached_data_len)?cur_len:self->cached_data_len;
             if (!_hpatchi_listener_extra_out(self,cur_len)) return _hpi_FALSE;
         }
-        assert(self->cached_data_len<self->write_extra_size);
+        assert(self->cached_data_len<self->kWriteExtraSize);
 
-        cur_len=self->write_extra_size-self->cached_data_len;
+        cur_len=self->kWriteExtraSize-self->cached_data_len;
         cur_len=(cur_len<=data_size)?cur_len:data_size;
         data_size-=cur_len;
         posi=self->cached_data_pos+self->cached_data_len;
         self->cached_data_len+=cur_len;
         while (cur_len--){//save data to cache
-            posi-=(posi<self->write_extra_size)?0:self->write_extra_size;
+            posi-=(posi<self->kWriteExtraSize)?0:self->kWriteExtraSize;
             self->write_extra[posi++]=*data++;
         }
     }
@@ -275,25 +327,40 @@ static hpi_BOOL _hpatchi_listener_extra_write_new(hpatchi_listener_t* listener,c
 
 static hpi_inline
 void _hpatchi_listener_extra_init(hpatchi_listener_extra_t* self,hpatchi_listener_t* wrap_listener,
-                                  hpi_byte* write_extra,hpi_size_t write_extra_size){
+                                  hpi_byte* write_extra,hpi_size_t kWriteExtraSize){
     self->base.diff_data=wrap_listener->diff_data;
     self->base.read_diff=wrap_listener->read_diff; 
     self->base.read_old=_hpatchi_listener_extra_read_old;
     self->base.write_new=_hpatchi_listener_extra_write_new; 
     self->_wrap_listener=wrap_listener;
     self->write_extra=write_extra;
-    self->write_extra_size=write_extra_size;
+    self->kWriteExtraSize=kWriteExtraSize;
     self->cached_data_pos=0;
     self->cached_data_len=0;
 }
 
+#if (_IS_WTITE_NEW_BY_PAGE!=0)
+hpi_BOOL hpatchi_inplaceB_by_page(hpatchi_listener_t* listener,hpi_pos_t newSize,hpi_byte* temp_cache,
+                                  hpi_size_t extraSafeSize,hpi_size_t pageSize,hpi_size_t temp_cache_size){
+#else //_IS_WTITE_NEW_BY_PAGE==0
 hpi_BOOL hpatchi_inplaceB(hpatchi_listener_t* listener,hpi_pos_t newSize,
-                          hpi_byte* temp_cache,hpi_size_t extraSafeSize_in_temp_cache,hpi_size_t temp_cache_size){
+                          hpi_byte* temp_cache,hpi_size_t extraSafeSize,hpi_size_t temp_cache_size){
+    const hpi_size_t pageSize=0;
+#endif //_IS_WTITE_NEW_BY_PAGE
     hpi_BOOL result;
     hpatchi_listener_extra_t extra_listener;
-    assert(temp_cache_size>=hpi_kMinCacheSize+extraSafeSize_in_temp_cache);
-    _hpatchi_listener_extra_init(&extra_listener,listener,temp_cache,extraSafeSize_in_temp_cache);
-    result=hpatch_lite_patch(extraSafeSize_in_temp_cache?&extra_listener.base:listener,newSize,
-                             temp_cache+extraSafeSize_in_temp_cache,temp_cache_size-extraSafeSize_in_temp_cache);
-    return result&&_hpatchi_listener_extra_out(&extra_listener,extra_listener.cached_data_len);
+    const hpi_size_t needExtra=extraSafeSize+pageSize;
+    assert(temp_cache_size>=hpi_kMinInplaceCacheSize+extraSafeSize+pageSize);
+    _hpi_Do4Page(assert(pageSize>0));
+    if (needExtra){
+        hpi_size_t cache_size=(temp_cache_size-needExtra)>>1;
+        extraSafeSize=(extraSafeSize>=cache_size)?extraSafeSize:cache_size;//for small extraSafeSize
+    }
+    _hpatchi_listener_extra_init(&extra_listener,listener,temp_cache,extraSafeSize);
+    _hpi_Do4Page(extra_listener.kPageSize=pageSize);
+    _hpi_Do4Page(extra_listener.page_data_len=0);
+    _hpi_Do4Page(extraSafeSize+=pageSize);//page buf for page data
+    result=hpatch_lite_patch(needExtra?&extra_listener.base:listener,newSize,
+                             temp_cache+extraSafeSize,temp_cache_size-extraSafeSize);
+    return result&&_hpatchi_listener_extra_flush(&extra_listener);
 }
