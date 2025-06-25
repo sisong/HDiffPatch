@@ -2,6 +2,11 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v4.10.0](https://github.com/sisong/HDiffPatch/tree/v4.10.0) - 2025-06-25
+### Added
+* add function create_hdiff_by_sign(), see demo cmdline $hsign_diff in [hsynz];
+create a hpatchz's diffFile between oldData & newData, only used oldData's hash signature file(.hsyni) & newData, not need oldData;
+
 ## [v4.9.0](https://github.com/sisong/HDiffPatch/tree/v4.9.0) - 2025-06-13
 ### Added
 * add function create_inplaceB_lite_diff() & hpatchi_inplace_open(),hpatchi_inplaceB(), inplace-patch for [HPatchLite];
@@ -48,7 +53,7 @@ if diffFile created by empty oldPath, then extract with default option `$selfExt
 
 ## [v4.6.0](https://github.com/sisong/HDiffPatch/tree/v4.6.0) - 2023-04-20
 ### Added
-* add libhsync for diff&patch by sync; see demo [hsynz](https://github.com/sisong/hsynz) (like [zsync](http://zsync.moria.org.uk))
+* add libhsync for diff&patch by sync; see demo [hsynz] (like [zsync])
 * add function create_sync_data(),create_dir_sync_data(),sync_patch(),sync_patch_...(),sync_local_diff(),sync_local_diff_...(),sync_local_patch(),sync_local_patch_...()
 
 ## [v4.5.2](https://github.com/sisong/HDiffPatch/tree/v4.5.2) - 2022-12-25
@@ -252,3 +257,5 @@ if diffFile created by empty oldPath, then extract with default option `$selfExt
 
 [HPatchLite]: https://github.com/sisong/HPatchLite
 ["ENDSLEY/BSDIFF43"]: https://github.com/mendsley/bsdiff
+[hsynz]: https://github.com/sisong/hsynz
+[zsync]: http://zsync.moria.org.uk
