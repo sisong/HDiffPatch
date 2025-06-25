@@ -39,7 +39,7 @@
             QueryPerformanceCounter(&c);
             return c.QuadPart/((double)f.QuadPart);
         }
-        return GetTickCount()/1000.0; 
+        return GetTickCount64()/1000.0; 
     }
 #else
     //Unix-like system

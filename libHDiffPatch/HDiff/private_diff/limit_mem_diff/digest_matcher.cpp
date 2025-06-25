@@ -178,7 +178,7 @@ m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_
     m_isUseLargeSorted=(_blockCount>=((hpatch_StreamPos_t)1<<32));
     const size_t blockCount=(size_t)_blockCount;
     if (blockCount!=_blockCount)
-        throw std::runtime_error("TDataDigest() oldData->streamSize/MatchBlockSize too big error!");
+        throw std::runtime_error("TDigestMatcher() oldData->streamSize/MatchBlockSize too big error!");
     m_blocks.resize(blockCount);
     if (m_isUseLargeSorted)
         m_sorted_larger.resize(blockCount);

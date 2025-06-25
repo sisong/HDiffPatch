@@ -1058,9 +1058,9 @@ void create_compressed_diff(const TByte* newData,const TByte* newData_end,
     checki(out_diff->write(out_diff,0,_out_diff.data(),_out_diff.data()+_out_diff.size()),"create_compressed_diff() out_diff->write");
 }
 
-static void serialize_single_compressed_diff(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                                             bool isZeroSubDiff,const TCovers& covers,const hpatch_TStreamOutput* out_diff,
-                                             const hdiff_TCompress* compressPlugin,size_t patchStepMemSize){
+void serialize_single_compressed_diff(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
+                                      bool isZeroSubDiff,const TCovers& covers,const hpatch_TStreamOutput* out_diff,
+                                      const hdiff_TCompress* compressPlugin,size_t patchStepMemSize){
     check(patchStepMemSize>=hpatch_kStreamCacheSize);
     if (patchStepMemSize>newStream->streamSize){
         patchStepMemSize=(size_t)newStream->streamSize;

@@ -373,9 +373,6 @@ static TSyncClient_resultType
             static const hpatch_StreamPos_t _kDictSizeSafeLimit =(1<<20)*16;
             check((self->dictSize/2)<(self->newDataSize>=_kDictSizeSafeLimit?self->newDataSize:_kDictSizeSafeLimit),
                 kSyncClient_newSyncInfoDataError);
-            decompressPlugin=listener->findDecompressPlugin(listener,compressType,self->dictSize);
-            check(decompressPlugin!=0,kSyncClient_noDecompressPluginError);
-            self->_decompressPlugin=decompressPlugin;
         }
 
         check(_clip_unpackToUInt32(&self->kSyncBlockSize,&clip),kSyncClient_newSyncInfoDataError);
