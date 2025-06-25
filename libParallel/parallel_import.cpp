@@ -34,7 +34,7 @@
 #       //define PTW32_STATIC_LIB  //for static pthread lib
 #   endif
 #   include <pthread.h>
-#   ifdef __ANDROID__
+#   if defined(__ANDROID__) || defined(__OHOS__)
 #       include <sched.h> // sched_yield()
 #   endif
 #endif
@@ -141,7 +141,7 @@ void this_thread_yield(){
 #   ifdef WIN32
     Sleep(0);
 #   else
-#       ifdef __ANDROID__
+#       if defined(__ANDROID__) || defined(__OHOS__)
             sched_yield();
 #       else
             pthread_yield();
