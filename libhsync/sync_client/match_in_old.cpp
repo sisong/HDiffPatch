@@ -180,6 +180,7 @@ static inline uint32_t _indexMapFrom(hpatch_StreamPos_t pos){
 
 typedef volatile hpatch_StreamPos_t volStreamPos_t;
 
+#if (_IS_USED_MULTITHREAD)
 struct _TMatchDatas;
 namespace{
     struct TMt:public TMtByChannel{
@@ -187,10 +188,25 @@ namespace{
             :matchDatas(_matchDatas),workIndex(0){}
         CHLocker readLocker;
         CHLocker writeLocker;
+    #if (_IS_USED_CPP_ATOMIC)
         std::atomic<size_t>  workIndex;
+    #else
+        CHLocker         workiLocker;
+        volatile size_t  workIndex;
+        inline bool getWorki(size_t worki){
+            if (workIndex>worki) return false;
+            CAutoLocker _auto_locker(workiLocker.locker);
+            if (workIndex==worki){
+                ++workIndex;
+                return true;
+            }else
+                return false;
+        }
+    #endif
         struct _TMatchDatas& matchDatas;
     };
 }
+#endif //_IS_USED_MULTITHREAD
 
 static bool matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,const uint32_t* range_begin,const uint32_t* range_end,
                        TStreamDataCache_base& oldData,const TNewDataSyncInfo* newSyncInfo,hpatch_StreamPos_t kMinRevSameIndex,void* _mt
@@ -363,10 +379,16 @@ static void _rollMatch_mt(int threadIndex,void* workData){
     size_t workCount=(size_t)((oldSize+clipSize-1)/clipSize);
     assert(workCount*clipSize>=oldSize);
     try{
+    #if (_IS_USED_CPP_ATOMIC)
         std::atomic<size_t>& workIndex=*(std::atomic<size_t>*)&mt.workIndex;
         while (true){
             size_t curWorkIndex=workIndex++;
             if (curWorkIndex>=workCount) break;
+    #else
+        for (size_t curWorkIndex=0;curWorkIndex<workCount;++curWorkIndex) {
+            if (!mt.getWorki(curWorkIndex))
+                continue;
+    #endif
             hpatch_StreamPos_t oldPosBegin=curWorkIndex*clipSize;
             hpatch_StreamPos_t oldPosEnd = oldPosBegin+clipSize;
             if (oldPosEnd>oldSize) oldPosEnd=oldSize;

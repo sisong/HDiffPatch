@@ -32,6 +32,7 @@ namespace sync_private{
 
     static  const size_t kMinMatchedLength = 16;
 
+#if (_IS_USED_MULTITHREAD)
     struct _TMatchSDatas;
     namespace{
         struct TMt:public TMtByChannel{
@@ -43,7 +44,7 @@ namespace sync_private{
             struct _TMatchSDatas& matchDatas;
         };
     }
-    
+#endif //_IS_USED_MULTITHREAD
 
 static bool matchRange(hpatch_TOutputCovers* out_covers,const uint32_t* range_begin,const uint32_t* range_end,
                        TStreamDataCache_base& newData,const TNewDataSyncInfo* oldSyncInfo,uint32_t& oldBlockIndex_bck,void* _mt){

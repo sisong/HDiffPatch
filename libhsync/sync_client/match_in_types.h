@@ -34,7 +34,12 @@
 #include "../../libParallel/parallel_channel.h"
 #include "sync_diff_data.h"
 #if (_IS_USED_MULTITHREAD)
-#include <atomic>
+# ifndef _IS_USED_CPP_ATOMIC
+#   define _IS_USED_CPP_ATOMIC  1
+# endif
+# if (_IS_USED_CPP_ATOMIC)
+#   include <atomic>
+# endif
 #endif
 using namespace hdiff_private;
 namespace sync_private{
