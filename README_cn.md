@@ -16,9 +16,14 @@
 
 需要更新你自己的安卓apk? 需要对Jar或Zip文件执行 diff 和 patch ? 可以试试 [ApkDiffPatch], 可以创建更小的补丁!  注意: *ApkDiffPath 不能被安卓应用商店作为增量更新所用，因为该算法要求在diff前对apk文件进行重新签名。*   
 
-[sfpatcher] 不要求对apk文件进行重新签名 (类似 [archive-patcher])，是为安卓应用商店专门设计优化的算法，patch速度是 archive-patcher 的xx倍，并且只需要O(1)内存。   
+[sfpatcher] 不要求对apk文件进行重新签名 (类似 [archive-patcher])，是为安卓应用商店专门设计优化的算法，可以针对apk创建更小的补丁，patch速度是 archive-patcher 的xx倍，并且只需要O(1)内存。   
 
-如果你没有旧版本的数据(或者旧版本非常多或者被修改)，因此不能提前创建好补丁包。那你可以看看使用同步算法来进行增量更新的例子 [hsynz] (类似 [zsync])，新版本只需要发布处理一次，然后旧版本数据的拥有者可以根据获得的新版本的信息自己执行diff和patch。hsynz 支持 zstd 压缩算法并且比 zsync 速度更快。
+如果你没有旧版本的数据(或者旧版本非常多或者被修改)，因此不能提前创建好补丁包。
+那你可以看看使用同步算法来进行增量更新的例子 [hsynz] (类似 [zsync])，新版本只需要发布处理一次，
+然后旧版本数据的拥有者们可以根据获得的新版本的信息自己执行diff和patch。
+hsynz 支持 zstd 压缩算法并且比 zsync 速度快得多。   
+如果你本地有新版本数据而没有旧版本的数据，但可以拿到旧版本数据的hash证书文件(.hsyni)，
+那也可以创建出一个 hpatchz 格式的补丁(类似 [rsync])；见 [hsynz] 中的 demo 命令行程序 **hsign_diff**。   
    
 注意: *本库不处理文件元数据，如文件最后写入时间、权限、链接文件等。对于这个库，文件就像一个字节流；如果需要您可以扩展此库或使用其他工具。*   
    
@@ -35,6 +40,7 @@
 [open-vcdiff]: https://github.com/google/open-vcdiff
 [archive-patcher]: https://github.com/google/archive-patcher
 [zsync]: http://zsync.moria.org.uk
+[rsync]: https://github.com/RsyncProject/rsync
 [VCDIFF(RFC 3284)]: https://www.rfc-editor.org/rfc/rfc3284
 
 ---

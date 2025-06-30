@@ -16,9 +16,14 @@ if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite], +[
 
 update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch], to create smaller delta/differential! NOTE: *ApkDiffPath can't be used by Android app store, because it requires re-signing apks before diff.*   
 
-[sfpatcher] not require re-signing apks (like [archive-patcher]), is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
+[sfpatcher] not require re-signing apks (like [archive-patcher]), is designed for Android app store, create smaller patch file for apk, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
 
-if you not have the old versions(too many or not obtain or have been modified), thus cannot create the delta in advance. you can see sync demo [hsynz] (like [zsync]), the new version is only need released once and the owners of the old version get the information about the new version and do the diff&patch themselves. hsynz support zstd compressor & run faster than zsync.
+if you not have the old versions(too many or not obtain or have been modified), thus cannot create the delta in advance.
+you can see sync demo [hsynz] (like [zsync]), the new version is only need released once,
+and the owners of the old version get the information about the new version and do the diff&patch themselves.
+hsynz support zstd compressor & run much faster than zsync.   
+if you have the new file locally & not the old file, but can get a hash certificate file(.hsyni) of the old file,
+you can also create a hpatchz format patch file(like [rsync]); see the demo cmdline **hsign_diff** in [hsynz].   
    
 NOTE: *This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
    
@@ -35,6 +40,7 @@ NOTE: *This library does not deal with file metadata, such as file last wirte ti
 [open-vcdiff]: https://github.com/google/open-vcdiff
 [archive-patcher]: https://github.com/google/archive-patcher
 [zsync]: http://zsync.moria.org.uk
+[rsync]: https://github.com/RsyncProject/rsync
 [VCDIFF(RFC 3284)]: https://www.rfc-editor.org/rfc/rfc3284
 
 ---
