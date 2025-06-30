@@ -1,25 +1,33 @@
 # args
 DIR_DIFF := 1
 MT       := 1
+# used libdeflate?
+LDEF     := 1
 # 0: not need zlib;  1: compile zlib source code;  2: used -lz to link zlib lib;
-ZLIB     := 2
+ifeq ($(LDEF),0)
+  ZLIB     := 2
+else
+  ZLIB     := 1
+endif
 # 0: not need lzma;  1: compile lzma source code;  2: used -llzma to link lzma lib;
 LZMA     := 1
+# lzma decompressor used arm64 asm optimize? 
 ARM64ASM := 0
-RISCV32  := 0
+# lzma only can used software CRC? (no hardware CRC)
+USE_CRC_EMU := 0
+# supported atomic uint64?
 # 0: not need zstd;  1: compile zstd source code;  2: used -lzstd to link zstd lib;
 ZSTD     := 1
 MD5      := 1
-STATIC_CPP := 0
 # used clang?
 CL  	 := 0
 # build with -m32?
 M32      := 0
 # build for out min size
 MINS     := 0
-# support VCDIFF? 
+# need support VCDIFF? 
 VCD      := 1
-# support bsdiff&bspatch?
+# need support bsdiff&bspatch?
 BSD      := 1
 ifeq ($(OS),Windows_NT) # mingw?
   CC    := gcc
@@ -28,12 +36,30 @@ else
   # 0: not need bzip2 (must BSD=0);  1: compile bzip2 source code;  2: used -lbz2 to link bzip2 lib;
   BZIP2 := 2
 endif
-ifeq ($(BZIP2),0)
-  ifeq ($(BSD),0)
-  else
-  $(error error: support bsdiff need BZIP2! set BSD=0 continue)
+ifeq ($(BSD),0)
+else
+  ifeq ($(BZIP2),0)
+  $(error error: support bsdiff need BZIP2! set BSD=0 or BZIP2>0 continue)
   endif
 endif
+
+ifeq ($(LDEF),0)
+else
+  ifeq ($(ZLIB),2)
+  $(error error: now libdeflate decompressor not support -lz! need zlib source code, set ZLIB=1 continue)
+  else
+    ifeq ($(ZLIB),0)
+    $(warning warning: libdeflate can't support all of the deflate code, when no zlib source code)
+    endif
+  endif
+endif
+
+STATIC_CPP := 0
+STATIC_C := 0
+# -1: no pie; 0: default;
+PIE :=0
+ATOMIC_U64 := 1
+
 
 HDIFF_OBJ  := 
 HPATCH_OBJ := \
@@ -134,6 +160,7 @@ ifeq ($(ZSTD),1) # https://github.com/sisong/zstd
   				$(ZSTD_PATH)/compress/zstd_compress_literals.o \
   				$(ZSTD_PATH)/compress/zstd_compress_sequences.o \
   				$(ZSTD_PATH)/compress/zstd_compress_superblock.o \
+  				$(ZSTD_PATH)/compress/zstd_preSplit.o \
   				$(ZSTD_PATH)/compress/zstd_double_fast.o \
   				$(ZSTD_PATH)/compress/zstd_fast.o \
   				$(ZSTD_PATH)/compress/zstd_lazy.o \
@@ -159,7 +186,7 @@ ifeq ($(BZIP2),1) # http://www.bzip.org  https://github.com/sisong/bzip2
 endif
 
 ZLIB_PATH := ../zlib
-ifeq ($(ZLIB),1) # http://zlib.net  https://github.com/sisong/zlib  
+ifeq ($(ZLIB),1) # https://github.com/sisong/zlib/tree/bit_pos_padding
   HPATCH_OBJ += $(ZLIB_PATH)/adler32.o \
   				$(ZLIB_PATH)/crc32.o \
   				$(ZLIB_PATH)/inffast.o \
@@ -168,6 +195,14 @@ ifeq ($(ZLIB),1) # http://zlib.net  https://github.com/sisong/zlib
   				$(ZLIB_PATH)/trees.o \
   				$(ZLIB_PATH)/zutil.o
   HDIFF_OBJ +=  $(ZLIB_PATH)/deflate.o
+endif
+
+LDEF_PATH := ../libdeflate
+ifeq ($(LDEF),1) # https://github.com/sisong/libdeflate/tree/stream-mt
+  HPATCH_OBJ += $(LDEF_PATH)/lib/deflate_decompress.o\
+                $(LDEF_PATH)/lib/utils.o \
+                $(LDEF_PATH)/lib/x86/cpu_features.o
+  HDIFF_OBJ +=  $(LDEF_PATH)/lib/deflate_compress.o
 endif
 
 HDIFF_OBJ += \
@@ -182,6 +217,7 @@ HDIFF_OBJ += \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.o \
+    dirDiffPatch/dir_diff/dir_diff_tools.o \
     $(HPATCH_OBJ)
 ifeq ($(DIR_DIFF),0)
   HDIFF_OBJ += libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o
@@ -191,7 +227,6 @@ ifeq ($(DIR_DIFF),0)
 else
   HDIFF_OBJ += \
     dirDiffPatch/dir_diff/dir_diff.o \
-    dirDiffPatch/dir_diff/dir_diff_tools.o \
     dirDiffPatch/dir_diff/dir_manifest.o
 endif
 ifeq ($(BSD),0)
@@ -206,6 +241,17 @@ else
     compress_parallel.o
 endif
 
+UTEST_OBJ := \
+    libHDiffPatch/HDiff/match_inplace.o \
+    libhsync/sync_client/dir_sync_client.o \
+    libhsync/sync_client/match_in_old.o \
+    libhsync/sync_client/sync_client.o \
+    libhsync/sync_client/sync_diff_data.o \
+    libhsync/sync_client/sync_info_client.o \
+    libhsync/sync_make/dir_sync_make.o \
+    libhsync/sync_make/match_in_new.o \
+    libhsync/sync_make/sync_info_make.o \
+    libhsync/sync_make/sync_make.o
 
 DEF_FLAGS := \
     -O3 -DNDEBUG -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
@@ -213,8 +259,7 @@ DEF_FLAGS := \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \
     -D_IS_NEED_ALL_ChecksumPlugin=0 \
     -D_IS_NEED_DEFAULT_ChecksumPlugin=0 
-ifeq ($(RISCV32),0)
-else
+ifeq ($(ATOMIC_U64),0)
   DEF_FLAGS += -D_IS_NO_ATOMIC_U64=1
 endif
 ifeq ($(M32),0)
@@ -243,7 +288,19 @@ ifeq ($(ZLIB),0)
 else
     DEF_FLAGS += -D_CompressPlugin_zlib
 	ifeq ($(ZLIB),1)
-        DEF_FLAGS += -I$(ZLIB_PATH)
+    DEF_FLAGS += -I$(ZLIB_PATH)
+	endif
+endif
+ifeq ($(LDEF),0)
+else
+    DEF_FLAGS += -D_CompressPlugin_ldef
+	ifeq ($(LDEF),1)
+    DEF_FLAGS += -I$(LDEF_PATH)
+	endif
+  ifeq ($(ZLIB),1)
+    DEF_FLAGS += -D_CompressPlugin_ldef_is_use_zlib=1
+  else
+    DEF_FLAGS += -D_CompressPlugin_ldef_is_use_zlib=0
 	endif
 endif
 ifeq ($(DIR_DIFF),0)
@@ -284,9 +341,10 @@ else
     else
       DEF_FLAGS += -DZ7_LZMA_DEC_OPT
     endif
-    ifeq ($(VCD),0)
-    else
-      DEF_FLAGS += -DUSE_CRC_EMU
+    ifneq ($(VCD),0)
+      ifneq ($(USE_CRC_EMU),0)
+        DEF_FLAGS += -DUSE_CRC_EMU
+      endif
     endif
   endif
 endif
@@ -294,7 +352,8 @@ ifeq ($(ZSTD),0)
 else
   DEF_FLAGS += -D_CompressPlugin_zstd
   ifeq ($(ZSTD),1)
-    DEF_FLAGS += -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 -DZSTD_DISABLE_ASM=1 -DZSTDLIB_VISIBLE= -DZSTDLIB_HIDDEN= \
+    DEF_FLAGS += -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 -DZSTD_DISABLE_ASM=1 -DZSTDLIB_HIDDEN= \
+                 -DZSTDLIB_VISIBLE= -DZDICTLIB_VISIBLE= -DZSTDERRORLIB_VISIBLE= \
 	               -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
 	endif
 endif
@@ -327,54 +386,65 @@ ifeq ($(MT),0)
 else
   PATCH_LINK += -lpthread	# link pthread
 endif
-DIFF_LINK  := $(PATCH_LINK)
+ifeq ($(PIE),-1)
+  PATCH_LINK += -no-pie
+endif
+ifeq ($(STATIC_C),0)
+else
+  PATCH_LINK += -static
+endif
 ifeq ($(M32),0)
 else
-  DIFF_LINK += -m32
+  PATCH_LINK += -m32
 endif
 ifeq ($(MINS),0)
 else
-  DIFF_LINK += -s -Wl,--gc-sections,--as-needed
+  PATCH_LINK += -s -Wl,--gc-sections,--as-needed
 endif
-ifeq ($(CL),1)
-  CXX := clang++
-  CC  := clang
-endif
+DIFF_LINK  := $(PATCH_LINK)
 ifeq ($(STATIC_CPP),0)
   DIFF_LINK += -lstdc++
 else
   DIFF_LINK += -static-libstdc++
 endif
+ifeq ($(CL),1)
+  CXX := clang++
+  CC  := clang
+endif
+
 
 CFLAGS   += $(DEF_FLAGS) 
 CXXFLAGS += $(DEF_FLAGS) -std=c++11
 
 .PHONY: all install clean
 
-all: libhdiffpatch.a hpatchz hdiffz mostlyclean
+all: libhdiffpatch.a hpatchz hdiffz unit_test mostlyclean
 
-libhdiffpatch.a: $(HDIFF_OBJ)
+_ALL_OBJs := $(HDIFF_OBJ) $(UTEST_OBJ)
+libhdiffpatch.a: $(_ALL_OBJs)
 	$(AR) rcs $@ $^
 
 hpatchz: $(HPATCH_OBJ)
 	$(CC) hpatchz.c $(HPATCH_OBJ) $(CFLAGS) $(PATCH_LINK) -o hpatchz
 hdiffz: libhdiffpatch.a
 	$(CXX) hdiffz.cpp libhdiffpatch.a $(CXXFLAGS) $(DIFF_LINK) -o hdiffz
+unit_test: libhdiffpatch.a 
+	$(CXX) ./test/unit_test.cpp libhdiffpatch.a $(DIFF_LINK) -o unit_test
 
 ifeq ($(OS),Windows_NT) # mingw?
   RM := del /Q /F
-  DEL_HDIFF_OBJ := $(subst /,\,$(HDIFF_OBJ))
+  DEL_ALL_OBJ := $(subst /,\,$(_ALL_OBJs))
 else
   RM := rm -f
-  DEL_HDIFF_OBJ := $(HDIFF_OBJ)
+  DEL_ALL_OBJ := $(_ALL_OBJs)
 endif
 INSTALL_X := install -m 0755
 INSTALL_BIN := $(DESTDIR)/usr/local/bin
 
-mostlyclean: hpatchz hdiffz
-	$(RM) $(DEL_HDIFF_OBJ)
+mostlyclean: hpatchz hdiffz unit_test
+	$(RM) $(DEL_ALL_OBJ)
 clean:
-	$(RM) libhdiffpatch.a hpatchz hdiffz $(DEL_HDIFF_OBJ)
+	$(RM) libhdiffpatch.a hpatchz hdiffz unit_test $(DEL_ALL_OBJ)
 
 install: all
 	$(INSTALL_X) hdiffz $(INSTALL_BIN)/hdiffz

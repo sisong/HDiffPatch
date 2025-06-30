@@ -92,6 +92,16 @@ public:
         push_cover=_push_cover;
         collate_covers=_collate_covers;
     }
+    explicit TCoversBuf(const TCovers& src):TCovers(0,0,src._isCover32){
+        if (src._isCover32){
+            const hpatch_TCover32* csrc=(const hpatch_TCover32*)src._covers;
+            m_covers_limit.assign(csrc,csrc+src._coverCount);
+        }else{
+            const hpatch_TCover* csrc=(const hpatch_TCover*)src._covers;
+            m_covers_larger.assign(csrc,csrc+src._coverCount);
+        }
+        update();
+    }
 private:
     template<class _TCover>
     inline void _update(std::vector<_TCover>& covers){

@@ -35,6 +35,7 @@ struct THDiffSets{
     hpatch_BOOL isSingleCompressedDiff;
     //diff in mem
     hpatch_BOOL isUseBigCacheMatch;
+    hpatch_BOOL isCheckNotEqual;
     size_t matchScore;
     size_t patchStepMemSize;
     size_t matchBlockSize;

@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.6.9-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.10.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -10,15 +10,20 @@
 
 [HDiffPatch] is a C\C++ library and command-line tools for **diff** & **patch** between binary files or directories(folder); cross-platform; fast running; create small delta/differential; support large files and limit memory requires when diff & patch.   
 
-[HDiffPatch] defines its own patch file format, this lib is also compatible with the [bsdiff4] patch file format and partially compatible with the [open-vcdiff] and [xdelta3] patch file format [VCDIFF(RFC 3284)].   
+[HDiffPatch] defines its own patch file format, this lib is also compatible with the [bsdiff4] & [endsley/bsdiff] patch file format and [partially compatible](https://github.com/sisong/HDiffPatch/issues/369#issuecomment-1869798843) with the [open-vcdiff] & [xdelta3] patch file format [VCDIFF(RFC 3284)].   
 
-if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite], +[tinyuz] decompressor can run on 1KB RAM devices!   
+if need patch (OTA) on embedded systems,MCU,NB-IoT..., see demo [HPatchLite], +[tinyuz] decompressor can run on 1KB RAM devices! HPatchLite also supports a simple inplace-patch implementation to support storage-constrained devices.   
 
 update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch], to create smaller delta/differential! NOTE: *ApkDiffPath can't be used by Android app store, because it requires re-signing apks before diff.*   
 
-[sfpatcher] not require re-signing apks (like [archive-patcher]), is designed for Android app store, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
+[sfpatcher] not require re-signing apks (like [archive-patcher]), is designed for Android app store, create smaller patch file for apk, patch speed up by a factor of xx than archive-patcher & run with O(1) memory.   
 
-if you not have the old versions(too many or not obtain or have been modified), thus cannot create the delta in advance. you can see sync demo [hsynz] (like [zsync]), the new version is only need released once and the owners of the old version get the information about the new version and do the diff&patch themselves. hsynz support zstd compressor & run faster than zsync.
+if you not have the old versions(too many or not obtain or have been modified), thus cannot create the delta in advance.
+you can see sync demo [hsynz] (like [zsync]), the new version is only need released once,
+and the owners of the old version get the information about the new version and do the diff&patch themselves.
+hsynz support zstd compressor & run much faster than zsync.   
+if you have the new file locally & not the old file, but can get a hash certificate file(.hsyni) of the old file,
+you can also create a hpatchz format patch file(like [rsync]); see the demo cmdline **hsign_diff** in [hsynz].   
    
 NOTE: *This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
    
@@ -30,10 +35,12 @@ NOTE: *This library does not deal with file metadata, such as file last wirte ti
 [HPatchLite]: https://github.com/sisong/HPatchLite
 [tinyuz]: https://github.com/sisong/tinyuz
 [bsdiff4]: http://www.daemonology.net/bsdiff/
+[endsley/bsdiff]: https://github.com/mendsley/bsdiff
 [xdelta3]: https://github.com/jmacd/xdelta
 [open-vcdiff]: https://github.com/google/open-vcdiff
 [archive-patcher]: https://github.com/google/archive-patcher
 [zsync]: http://zsync.moria.org.uk
+[rsync]: https://github.com/RsyncProject/rsync
 [VCDIFF(RFC 3284)]: https://www.rfc-editor.org/rfc/rfc3284
 
 ---
@@ -49,17 +56,19 @@ apply the delta:
 `$ cd <dir>/HDiffPatch`   
 ### Linux or MacOS X ###
 Try:   
-`$ make LZMA=0 ZSTD=0 MD5=0`   
+`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0`   
 bzip2 : if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again; or download & make with libbz2 source code:
 ```
 $ git clone https://github.com/sisong/bzip2.git ../bzip2
-$ make LZMA=0 ZSTD=0 MD5=0 BZIP2=1
+$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 BZIP2=1
 ```
-if need lzma zstd & md5 support, Try:    
+if need lzma zstd & md5 ... default support, Try:
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
+$ git clone https://github.com/sisong/zlib.git ../zlib
+$ git clone https://github.com/sisong/libdeflate.git ../libdeflate
 $ make
 ```    
 Tip: You can use `$ make -j` to compile in parallel.
@@ -71,6 +80,7 @@ $ git clone https://github.com/sisong/libmd5.git ../libmd5
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
+$ git clone https://github.com/sisong/libdeflate.git ../libdeflate
 $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 ```
    
@@ -122,6 +132,8 @@ options:
       stepSize>=(1024*4), DEFAULT -SD-256k, recommended 64k,2m etc...
   -BSD
       create diffFile compatible with bsdiff4, unsupport input directory(folder).
+      also support run with -SD (not used stepSize), then create single compressed
+      diffFile compatible with endsley/bsdiff (https://github.com/mendsley/bsdiff).
   -VCD[-compressLevel[-dictSize]]
       create diffFile compatible with VCDIFF, unsupport input directory(folder).
       DEFAULT no compress, out format same as $open-vcdiff ... or $xdelta3 -S -e -n ...
@@ -146,18 +158,21 @@ options:
         -c-zlib[-{1..9}[-dictBits]]     DEFAULT level 9
             dictBits can 9--15, DEFAULT 15.
             support run by multi-thread parallel, fast!
+        -c-ldef[-{1..12}]               DEFAULT level 12
+            compatible with -c-zlib, faster or better compress than zlib;
+            used libdeflate compressor, & dictBits always 15.
+            support run by multi-thread parallel, fast!
         -c-bzip2[-{1..9}]               (or -bz2) DEFAULT level 9
         -c-pbzip2[-{1..9}]              (or -pbz2) DEFAULT level 8
             support run by multi-thread parallel, fast!
-            WARNING: code not compatible with it compressed by -c-bzip2!
-               and code size may be larger than if it compressed by -c-bzip2.
+            NOTE: code not compatible with it compressed by -c-bzip2!
         -c-lzma[-{0..9}[-dictSize]]     DEFAULT level 7
             dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m
             support run by 2-thread parallel.
         -c-lzma2[-{0..9}[-dictSize]]    DEFAULT level 7
             dictSize can like 4096 or 4k or 4m or 128m etc..., DEFAULT 8m
             support run by multi-thread parallel, fast!
-            WARNING: code not compatible with it compressed by -c-lzma!
+            NOTE: code not compatible with it compressed by -c-lzma!
         -c-zstd[-{0..22}[-dictBits]]    DEFAULT level 20
             dictBits can 10--30, DEFAULT 23.
             support run by multi-thread parallel, fast!
@@ -195,6 +210,9 @@ options:
       newManifestFile is created from newPath;
   -D  force run Directory diff between two files; DEFAULT (no -D) run
       directory diff need oldPath or newPath is directory.
+  -neq
+      open check: if newPath & oldPath's all datas are equal, then return error;
+      DEFAULT not check equal.
   -d  Diff only, do't run patch check, DEFAULT run patch check.
   -t  Test only, run patch check, patch(oldPath,testDiffFile)==newPath ?
   -f  Force overwrite, ignore write path already exists;
@@ -215,7 +233,7 @@ uncompress usage: **hpatchz** [options] **"" diffFile outNewPath**
 print  info: **hpatchz** -info **diffFile**   
 create  SFX: **hpatchz** [-X-exe#selfExecuteFile] **diffFile -X#outSelfExtractArchive**   
 run     SFX: **selfExtractArchive** [options] **oldPath -X outNewPath**   
-extract SFX: **selfExtractArchive**   (same as: selfExtractArchive -f "" -X "./")
+extract SFX: **selfExtractArchive**  (same as: $selfExtractArchive -f {""|".\"} -X ".\")
 ```
   if oldPath is empty input parameter ""
 options:
@@ -305,11 +323,14 @@ options:
 * **create_lite_diff()**
 * **hpatch_lite_open()**
 * **hpatch_lite_patch()**
-#### bsdiff wrapper API:
+* **create_inplaceB_lite_diff()**
+* **hpatchi_inplace_open()**
+* **hpatchi_inplaceB()**
+#### bsdiff ([bsdiff4] & [endsley/bsdiff]) wrapper API:
 * **create_bsdiff()**
 * **create_bsdiff_stream()** 
 * **bspatch_with_cache()**
-#### vcdiff wrapper API: 
+#### vcdiff ([open-vcdiff] & [xdelta3]) wrapper API: 
 * **create_vcdiff()**
 * **create_vcdiff_stream()**
 * **vcpatch_with_cache()**
@@ -322,6 +343,7 @@ options:
 * **sync_local_diff_...()**
 * **sync_local_patch()**
 * **sync_local_patch_...()**
+* **create_hdiff_by_sign()** (patched by patch_single_stream()...)
 
 ---
 ## [HDiffPatch] vs [bsdiff4] & [xdelta3]:
@@ -351,7 +373,7 @@ case list([download from OneDrive](https://1drv.ms/u/s!Aj8ygMPeifoQgULlawtabR9lh
    
 
 **test PC**: Windows11, CPU R9-7945HX, SSD PCIe4.0x4 4T, DDR5 5200MHz 32Gx2   
-**Program version**: HDiffPatch4.6.3, hsynz 0.9.3, BsDiff4.3, xdelta3.1, zstd1.5.2  
+**Program version**: HDiffPatch4.6.3, hsynz 1.1.0, BsDiff4.3, xdelta3.1, zstd1.5.2  
 **test Program**:   
 **zstd --patch-from** diff with `--ultra -21 --long=24 -f --patch-from={old} {new} -o {pat}`   
  zstd patch with `-d -f --memory=2047MB --patch-from={old} {pat} -o {new}`  
@@ -411,10 +433,10 @@ client sync diff&patch by `hsync_demo {old} {newi} {newz} {out_new} -p-1`
 |hdiffz -s p8 lzma2|9.13%|370M|50.6MB/s|17M|20M|400MB/s|
 |hdiffz -s p1 zstd|9.60%|195M|18.0MB/s|17M|21M|677MB/s|
 |hdiffz -s p8 zstd|9.60%|976M|28.5MB/s|17M|21M|678MB/s|
-|hsynz p1 zlib|20.05%|6M|17.7MB/s|6M|21M|160MB/s|
-|hsynz p8 zlib|20.05%|30M|119.5MB/s|13M|29M|246MB/s|
-|hsynz p1 zstd|14.97%|531M|1.9MB/s|24M|35M|173MB/s|
-|hsynz p8 zstd|14.96%|3349M|10.2MB/s|24M|35M|278MB/s|
+|hsynz p1 zlib|20.05%|6M|17.3MB/s|6M|22M|273MB/s|
+|hsynz p8 zlib|20.05%|30M|115.1MB/s|13M|29M|435MB/s|
+|hsynz p1 zstd|14.96%|532M|1.9MB/s|24M|34M|264MB/s|
+|hsynz p8 zstd|14.95%|3349M|10.1MB/s|24M|34M|410MB/s|
     
 
 ## input Apk Files for test: 
@@ -464,9 +486,10 @@ case list:
   patch with `--apply --old {old} --patch {pat} --new {new}`   
   NOTE: archive-patcher's delta file compressed by lzma2-9-16m, diff&patch time not include compress&decompress delta file's memory&time.   
 **sfpatcher -1 zstd** v1.1.1 diff with `-o-1 -c-zstd-21-23 -m-1 -step-3m -lp-512k -p-8 -cache -d {old} {new} {pat}`   
-**sfpatcher -2 lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
+& **sfpatcher -2 lzma2** diff with `-o-2 -c-lzma2-9-4m -m-1 -step-2m -lp-8m -p-8 -cache -d {old} {new} {pat}`   
  sfpatcher patch with `-lp -p-8 {old} {pat} {new}`   
-adding test hpatchz&hsynz&sfpatcher on Android, arm CPU Kirin980(2×A76 2.6G + 2×A76 1.92G + 4×A55 1.8G)   
+**sfpatcher -1 clA zstd** v1.3.0 used `$sf_normalize -cl-A` normalized apks before diff   
+adding test hpatchz&sfpatcher on Android, arm CPU Kirin980(2×A76 2.6G + 2×A76 1.92G + 4×A55 1.8G)   
 ( [archive-patcher], [sfpatcher] optimized diff&patch between apk files )  
 
 **test result average**:
@@ -494,17 +517,19 @@ adding test hpatchz&hsynz&sfpatcher on Android, arm CPU Kirin980(2×A76 2.6G + 2
 |hdiffz -s p8 lzma2|53.30%|309M|32.4MB/s|20M|22M|258MB/s|
 |hdiffz -s p1 zstd|53.44%|221M|10.1MB/s|20M|22M|620MB/s|
 |hdiffz -s p8 zstd|53.44%|1048M|14.4MB/s|20M|22M|613MB/s|
-|hsynz p1|62.43%|4M|1647.6MB/s|4M|9M|152MB/s|55MB/s|
-|hsynz p8|62.43%|6M|2563.7MB/s|11M|18M|270MB/s|107MB/s|
-|hsynz p1 zlib|58.67%|5M|23.7MB/s|4M|11M|151MB/s|54MB/s|
-|hsynz p8 zlib|58.67%|29M|141.8MB/s|12M|19M|265MB/s|96MB/s|
-|hsynz p1 zstd|57.74%|534M|2.7MB/s|24M|28M|151MB/s|52MB/s|
-|hsynz p8 zstd|57.74%|3434M|13.2MB/s|24M|28M|265MB/s|95MB/s|
+|hsynz p1|62.43%|4M|1533.5MB/s|4M|10M|236MB/s|
+|hsynz p8|62.43%|18M|2336.4MB/s|12M|18M|394MB/s|
+|hsynz p1 zlib|58.67%|5M|22.7MB/s|4M|11M|243MB/s|
+|hsynz p8 zlib|58.67%|29M|138.6MB/s|12M|19M|410MB/s|
+|hsynz p1 zstd|57.74%|534M|2.7MB/s|24M|28M|234MB/s|
+|hsynz p8 zstd|57.74%|3434M|13.4MB/s|24M|28M|390MB/s|
 |archive-patcher|31.65%|1448M|0.9MB/s|558M|587M|14MB/s|
 |sfpatcher-1 p1 zstd|31.08%|818M|2.3MB/s|15M|19M|201MB/s|92MB/s|
 |sfpatcher-1 p8 zstd|31.07%|1025M|4.6MB/s|18M|25M|424MB/s|189MB/s|
 |sfpatcher-2 p1 lzma2|24.11%|976M|2.1MB/s|15M|20M|37MB/s|19MB/s|
 |sfpatcher-2 p8 lzma2|24.15%|968M|5.0MB/s|20M|26M|108MB/s|45MB/s|
+|sfpatcher-1 p1 clA zstd|21.72%|1141M|2.5MB/s|19M|22M|85MB/s|63MB/s|
+|sfpatcher-1 p8 clA zstd|21.74%|1156M|5.4MB/s|26M|29M|240MB/s|129MB/s|
     
 
 ---

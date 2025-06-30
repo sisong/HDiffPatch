@@ -97,6 +97,14 @@ static bool fileData_isSame(const std::string& file_x,const std::string& file_y,
     return true;
 }
 
+static bool fileName_isSame(const std::string& file_x,const std::string& rootPath_x,
+                            const std::string& file_y,const std::string& rootPath_y){
+    size_t nameSize=file_x.size()-rootPath_x.size();
+    if (nameSize != (file_y.size()-rootPath_y.size()))
+        return false;
+    return 0==memcmp(file_x.c_str()+rootPath_x.size(),file_y.c_str()+rootPath_y.size(),nameSize);
+}
+
 static void packSamePairList(std::vector<TByte>& out_data,const std::vector<hpatch_TSameFilePair>& pairs){
     size_t backPairNew=~(size_t)0;
     size_t backPairOld=~(size_t)0;
@@ -262,6 +270,14 @@ struct CChecksumCombine:public CChecksum{
     cmp_hash_value_t        _combineHash;
 };
 
+static void _getExecuteList(std::vector<size_t>& outExecuteList,
+                            IDirDiffListener* listener,const std::vector<std::string>& pathList){
+    for (size_t i=0; i<pathList.size(); ++i) {
+        if ((!isDirName(pathList[i]))&&(listener->isExecuteFile(pathList[i])))
+            outExecuteList.push_back(i);
+    }
+}
+
 void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
               const TManifest& newManifest,const hpatch_TStreamOutput* outDiffStream,
               const hdiff_TCompress* compressPlugin,hpatch_TChecksum* checksumPlugin,
@@ -285,10 +301,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     std::vector<size_t> newRefIList;
     std::vector<size_t> newExecuteList; //for linux etc
     
-    for (size_t newi=0; newi<newList.size(); ++newi) {
-        if ((!isDirName(newList[newi]))&&(listener->isExecuteFile(newList[newi])))
-            newExecuteList.push_back(newi);
-    }
+    _getExecuteList(newExecuteList,listener,newList);
     
     const bool isCachedHashs=(checksumPlugin!=0)&&(checksumPlugin->checksumType()==cmp_hash_type);
     if (isCachedHashs) checkv(sizeof(cmp_hash_value_t)==checksumPlugin->checksumByteSize());
@@ -297,6 +310,22 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     getRefList(oldManifest.rootPath,newManifest.rootPath,oldList,newList,
                oldSizeList,newSizeList,dataSamePairList,oldRefIList,newRefIList,
                isCachedHashs,oldHashList,newHashList);
+    if (hdiffSets.isCheckNotEqual){
+        bool isEq=(oldIsDir==newIsDir)
+                &&(oldList.size()==newList.size()) //same file count
+                &&(oldSizeList==newSizeList)
+                &&oldRefIList.empty()&&newRefIList.empty(); //same file datas;
+         //same names
+        for (size_t i=0;isEq&&(i<oldList.size());++i){
+            isEq=fileName_isSame(oldList[i],oldManifest.rootPath,newList[i],newManifest.rootPath);
+        }
+        //same execute tags
+        for (size_t i=0;isEq&&(i<newExecuteList.size());++i){
+            const std::string& oldfile=oldList[newExecuteList[i]];
+            isEq=(!isDirName(oldfile))&&(listener->isExecuteFile(oldfile));
+        }
+        check(!isEq,"oldPath & newPath's all datas can't be equal");
+    }
     std::vector<hpatch_StreamPos_t> newRefSizeList;
     CFileResHandleLimit resLimit(kMaxOpenFileNumber,oldRefIList.size()+newRefIList.size());
     {
@@ -485,7 +514,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
             _pushv(out_diff);
         }
     }else{
-        const bool  newAndOldDataIsMTSameRes=true; // NOTE: now resLimit not muti-thread safe 
+        const bool  newAndOldDataIsMTSameRes=true; // NOTE: now resLimit not multi-thread safe 
         const hdiff_TMTSets_s mtsets={hdiffSets.threadNum,hdiffSets.threadNumSearch_s,false,false,
                                       newAndOldDataIsMTSameRes};
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);

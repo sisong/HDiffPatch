@@ -31,16 +31,11 @@
 #define HPatch_file_for_patch_h
 #include <stdio.h>  //fprintf
 #include <stdlib.h> // malloc free
-#include <locale.h> // setlocale
 #include <errno.h>  //errno
-#include "dirDiffPatch/dir_patch/dir_patch_types.h"
-#if (_IS_NEED_DIR_DIFF_PATCH)
-#  ifdef _MSC_VER
-#   include <direct.h> // *mkdir *rmdir
-#  else
-#   include <unistd.h> // rmdir
-#  endif
+#ifdef _WIN32
+#   include <wchar.h>
 #endif
+#include "dirDiffPatch/dir_patch/dir_patch_types.h"
 #if (_HPATCH_IS_USED_errno)
 #   define  _set_errno_new(v) do {errno=v;} while(0)
 #else
@@ -80,10 +75,6 @@
 #elif defined(_WIN32)
 #   define _hpatch_kMultiBytePage CP_ACP
 #endif
-#ifdef _WIN32
-#   include <wchar.h>
-#   include <windows.h> //for file API, character encoding API
-#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -114,39 +105,14 @@ hpatch_inline static const char* findUntilEnd(const char* str,char c){
 
 
 #ifdef _WIN32
-#define  _setFileErrNo_iconv() _set_errno_new(GetLastError()==ERROR_INSUFFICIENT_BUFFER?ENAMETOOLONG:EILSEQ)
-
-static hpatch_inline int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize){
-    int result=MultiByteToWideChar(_hpatch_kMultiBytePage,0,fileName_utf8,-1,out_fileName_w,(int)out_wSize);
-    if (result<=0) _setFileErrNo_iconv();
-    return result; }
-static hpatch_inline int _wFileName_to_utf8(const wchar_t* fileName_w,char* out_fileName_utf8,size_t out_bSize){
-    int result=WideCharToMultiByte(_hpatch_kMultiBytePage,0,fileName_w,-1,out_fileName_utf8,(int)out_bSize,0,0);
-    if (result<=0) _setFileErrNo_iconv();
-    return result; }
-
-static hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCount,
-                                       char** out_fileNames_utf8,size_t out_byteSize){
-    char*   _bufEnd=((char*)out_fileNames_utf8)+out_byteSize;
-    char*   _bufCur=(char*)(&out_fileNames_utf8[fileCount]);
-    size_t i;
-    for (i=0; i<fileCount; ++i) {
-        int csize;
-        if (_bufCur>=_bufEnd) { _set_errno_new(ENAMETOOLONG); return hpatch_FALSE; } //error 
-        csize=_wFileName_to_utf8(fileNames_w[i],_bufCur,_bufEnd-_bufCur);
-        if (csize<=0) return hpatch_FALSE; //error
-        out_fileNames_utf8[i]=_bufCur;
-        _bufCur+=csize;
-    }
-    return hpatch_TRUE;
-}
+int _utf8FileName_to_w(const char* fileName_utf8,wchar_t* out_fileName_w,size_t out_wSize);
+int _wFileName_to_utf8(const wchar_t* fileName_w,char* out_fileName_utf8,size_t out_bSize);
+hpatch_BOOL _wFileNames_to_utf8(const wchar_t** fileNames_w,size_t fileCount,
+                                char** out_fileNames_utf8,size_t out_byteSize);
 #endif
 
 #if (_IS_USED_WIN32_UTF8_WAPI)
-hpatch_inline static
-void SetDefaultStringLocale(){ //for some locale Path character encoding view
-    setlocale(LC_CTYPE,"");
-}
+void SetDefaultStringLocale(); //for some locale Path character encoding view
 #endif
 
 hpatch_inline static
@@ -162,34 +128,8 @@ hpatch_BOOL hpatch_getIsSamePath(const char* xPath_utf8,const char* yPath_utf8){
     }
 }
 
-hpatch_inline static
-int hpatch_printPath_utf8(const char* pathTxt_utf8){
-#if (_IS_USED_WIN32_UTF8_WAPI)
-    wchar_t pathTxt_w[hpatch_kPathMaxSize];
-    int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,hpatch_kPathMaxSize);
-    if (wsize>0)
-        return printf("%ls",pathTxt_w);
-    else //view unknow
-        return printf("%s",pathTxt_utf8);
-#else
-    return printf("%s",pathTxt_utf8);
-#endif
-}
-
-hpatch_inline static
-int hpatch_printStdErrPath_utf8(const char* pathTxt_utf8){
-#if (_IS_USED_WIN32_UTF8_WAPI)
-    wchar_t pathTxt_w[hpatch_kPathMaxSize];
-    int wsize=_utf8FileName_to_w(pathTxt_utf8,pathTxt_w,hpatch_kPathMaxSize);
-    if (wsize>0)
-        return LOG_ERR("%ls",pathTxt_w);
-    else //view unknow
-        return LOG_ERR("%s",pathTxt_utf8);
-#else
-    return LOG_ERR("%s",pathTxt_utf8);
-#endif
-}
-    
+int hpatch_printPath_utf8(const char* pathTxt_utf8);
+int hpatch_printStdErrPath_utf8(const char* pathTxt_utf8);
 
     typedef enum hpatch_TPathType{
         kPathType_notExist,
@@ -290,7 +230,7 @@ hpatch_BOOL hpatch_TFileStreamOutput_close(hpatch_TFileStreamOutput* self);
 
 hpatch_BOOL hpatch_TFileStreamOutput_reopen(hpatch_TFileStreamOutput* self,const char* fileName_utf8,
                                             hpatch_StreamPos_t max_file_length);
-//hpatch_BOOL hpatch_TFileStreamOutput_truncate(hpatch_TFileStreamOutput* self,hpatch_StreamPos_t new_file_length);
+hpatch_BOOL hpatch_TFileStreamOutput_truncate(hpatch_TFileStreamOutput* self,hpatch_StreamPos_t new_file_length);
     
 #ifdef __cplusplus
 }

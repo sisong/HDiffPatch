@@ -25,6 +25,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
+#ifndef HDiffPatch_clock_h
+#define HDiffPatch_clock_h
 
 //  #include <time.h>
 //  static double clock_s(){ return clock()*1.0/CLOCKS_PER_SEC; }
@@ -37,7 +39,7 @@
             QueryPerformanceCounter(&c);
             return c.QuadPart/((double)f.QuadPart);
         }
-        return GetTickCount()/1000.0; 
+        return GetTickCount64()/1000.0; 
     }
 #else
     //Unix-like system
@@ -53,3 +55,5 @@
             return 0;
     }
 #endif
+
+#endif //HDiffPatch_clock_h

@@ -2,6 +2,35 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v4.10.0](https://github.com/sisong/HDiffPatch/tree/v4.10.0) - 2025-06-26
+### Added
+* add function create_hdiff_by_sign(), see demo cmdline $hsign_diff (like [rsync]) in [hsynz];   
+create a hpatchz's diffFile between oldData & newData, only used oldData's hash signature file(.hsyni) & newData, not need oldData;
+
+## [v4.9.0](https://github.com/sisong/HDiffPatch/tree/v4.9.0) - 2025-06-13
+### Added
+* add function create_inplaceB_lite_diff() & hpatchi_inplace_open(),hpatchi_inplaceB(), inplace-patch for [HPatchLite];
+### Removed
+* remove Code::Blocks build setting;
+* remove vc build setting for windows on arm32;
+
+## [v4.8.0](https://github.com/sisong/HDiffPatch/tree/v4.8.0) - 2024-07-26
+### Added
+* cmdline hdiffz support option "-c-ldef-{1..12}"; used libdeflate compressor, compatible with -c-zlib, faster or better than zlib;
+ (hpatchz now default closed libdeflate decompressor,default used zlib decompressor)
+* add plugin ldefCompressPlugin, pldefCompressPlugin, ldefDecompressPlugin;
+### Changed
+* released Android libhpatchz.so support Android 15+ with 16KB page size;
+
+## [v4.7.0](https://github.com/sisong/HDiffPatch/tree/v4.7.0) - 2024-07-12
+### Added
+* cmdline hdiffz support option "-BSD -SD", to create diffFile compatible with another BSDIFF format ["ENDSLEY/BSDIFF43"]; (patch support this format from v4.6.7)
+* cmdline hdiffz support option "-neq"; if opened, hdiffz will refuse to create diffFile when oldData==newData.
+### Fixed
+* fixed SFX auto extract logic (SFX executable file is hpatchz file + diffFile)   
+SFX extract with default option `$selfExtractArchive -f ".\" -X ".\"` when diffFile created by directories;   
+if diffFile created by empty oldPath, then extract with default option `$selfExtractArchive -f "" -X ".\"`.   
+
 ## [v4.6.9](https://github.com/sisong/HDiffPatch/tree/v4.6.9) - 2023-12-01
 ### Added
 * cmdline hdiffz & hpatchz support option "-info diffFile", print infos of diffFile;
@@ -12,7 +41,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v4.6.7](https://github.com/sisong/HDiffPatch/tree/v4.6.7) - 2023-08-31
 ### Added
-* patch compatible with another BSDIFF format "ENDSLEY/BSDIFF43", https://github.com/mendsley/bsdiff
+* patch compatible with another BSDIFF format ["ENDSLEY/BSDIFF43"]
 
 ## [v4.6.6](https://github.com/sisong/HDiffPatch/tree/v4.6.6) - 2023-08-27
 ### Added
@@ -24,12 +53,12 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v4.6.0](https://github.com/sisong/HDiffPatch/tree/v4.6.0) - 2023-04-20
 ### Added
-* add libhsync for diff&patch by sync; see demo [hsynz](https://github.com/sisong/hsynz) (like [zsync](http://zsync.moria.org.uk))
+* add libhsync for diff&patch by sync; see demo [hsynz] (like [zsync])
 * add function create_sync_data(),create_dir_sync_data(),sync_patch(),sync_patch_...(),sync_local_diff(),sync_local_diff_...(),sync_local_patch(),sync_local_patch_...()
 
 ## [v4.5.2](https://github.com/sisong/HDiffPatch/tree/v4.5.2) - 2022-12-25
 ### Fixed
-* fix a bug when run dir_diff by muti-thread parallel;
+* fix a bug when run dir_diff by multi-thread parallel;
 
 ## [v4.5.0](https://github.com/sisong/HDiffPatch/tree/v4.5.0) - 2022-11-23
 ### Added
@@ -41,15 +70,15 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v4.4.0](https://github.com/sisong/HDiffPatch/tree/v4.4.0) - 2022-10-09
 ### Changed
-* optimize diff -m & -s speed by muti-thread parallel, requires C++11.
+* optimize diff -m & -s speed by multi-thread parallel, requires C++11.
 
 ## [v4.3.0](https://github.com/sisong/HDiffPatch/tree/v4.3.0) - 2022-09-23
 ### Changed
-* recode some patch error code: decompresser errors, file error, disk space full error, jni error
+* recode some patch error code: decompressor errors, file error, disk space full error, jni error
 
 ## [v4.2.0](https://github.com/sisong/HDiffPatch/tree/v4.2.0) - 2022-05-15
 ### Added
-* add function create_lite_diff() & hpatch_lite_open(),hpatch_lite_patch(); optimized hpatch on MCU,NB-IoT... (demo [HPatchLite](https://github.com/sisong/HPatchLite))
+* add function create_lite_diff() & hpatch_lite_open(),hpatch_lite_patch(); optimized hpatch on MCU,NB-IoT... (demo [HPatchLite])
 * add compress&decompress plugin tuzCompressPlugin,tuzDecompressPlugin;
 
 ## [v4.1.2](https://github.com/sisong/HDiffPatch/tree/v4.1.2) - 2021-12-02
@@ -225,3 +254,9 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 * create_diff(...) support create differential between two memory datas(src->dst bytes);
 * patch(...) support apply differential for update src bytes to dst bytes;
 * demo app for diff&patch between two files;
+
+[HPatchLite]: https://github.com/sisong/HPatchLite
+["ENDSLEY/BSDIFF43"]: https://github.com/mendsley/bsdiff
+[hsynz]: https://github.com/sisong/hsynz
+[zsync]: http://zsync.moria.org.uk
+[rsync]: https://github.com/RsyncProject/rsync

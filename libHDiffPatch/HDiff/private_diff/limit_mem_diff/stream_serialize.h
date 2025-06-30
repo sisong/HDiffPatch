@@ -239,6 +239,11 @@ struct TDiffStream{
                 _pushStream(stream); return stream->streamSize; }
     hpatch_StreamPos_t getWritedPos()const{ return writePos; }
     void stream_read(const TPlaceholder& pos,hpatch_byte* out_data);
+    inline TPlaceholder pushBack_pos(const hpatch_byte* src,size_t n){
+        hpatch_StreamPos_t pos=writePos;
+        pushBack(src,n);
+        return TPlaceholder(pos,writePos);
+    }
     void stream_update(const TPlaceholder& pos,const hpatch_byte* in_data);
 private:
     const hpatch_TStreamOutput*  out_diff;
@@ -297,7 +302,7 @@ struct _TCheckOutNewDataStream:public hpatch_TStreamOutput{
 private:
     const hpatch_TStreamInput*  newData;
     hpatch_StreamPos_t          writedLen;
-    unsigned char*                      buf;
+    unsigned char*              buf;
     size_t                      bufSize;
     static hpatch_BOOL _read_writed(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
                                     unsigned char* out_data,unsigned char* out_data_end);
