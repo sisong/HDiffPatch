@@ -217,6 +217,7 @@ HDIFF_OBJ += \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.o \
+    dirDiffPatch/dir_diff/dir_diff_tools.o \
     $(HPATCH_OBJ)
 ifeq ($(DIR_DIFF),0)
   HDIFF_OBJ += libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o
@@ -226,7 +227,6 @@ ifeq ($(DIR_DIFF),0)
 else
   HDIFF_OBJ += \
     dirDiffPatch/dir_diff/dir_diff.o \
-    dirDiffPatch/dir_diff/dir_diff_tools.o \
     dirDiffPatch/dir_diff/dir_manifest.o
 endif
 ifeq ($(BSD),0)
