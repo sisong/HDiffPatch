@@ -63,7 +63,7 @@ inline static void pushBack(std::vector<unsigned char>& out_buf,const std::vecto
 }
 
 static void pushBack(std::vector<unsigned char>& out_buf,const hpatch_TStreamInput* data){
-    const size_t kStepSize=hpatch_kStreamCacheSize*4;
+    const size_t kStepSize=hpatch_kStreamCacheSize*2;
     unsigned char buf[kStepSize];
     out_buf.reserve(out_buf.size()+(size_t)data->streamSize);
     hpatch_StreamPos_t curPos=0;

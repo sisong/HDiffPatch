@@ -57,7 +57,7 @@
         const size_t _kIndexStep=size/kSampleSize+1;
         size_t curIndex=0;
         for(size_t i=0;i<kSampleSize;i++,curIndex+=_kIndexStep){
-            size_t ri=(curIndex+(size_t)rand()) % size;  //muti thread safe
+            size_t ri=(curIndex+(size_t)rand()) % size;  //multi thread safe
             samples[i]=ri;
         }
         const bool _kIsSortNotNth=false;

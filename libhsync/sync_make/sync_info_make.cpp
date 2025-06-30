@@ -74,7 +74,7 @@ namespace sync_private{
         hsync_dictCompressHandle  compressHandle=compressPlugin->dictCompressOpen(compressPlugin,1,buf.size());
         checkv(compressHandle!=0);
         size_t compressedSize=compressPlugin->dictCompress(compressHandle,0,cmbuf.data(),cmbuf.data()+cmbuf.size(),
-                                                           buf.data(),buf.data()+buf.size());
+                                                           buf.data(),buf.size(),0);
         checkv(compressedSize!=kDictCompressError);
         if ((compressedSize==kDictCompressCancel)||(compressedSize>=buf.size()))
             compressedSize=0; //cancel compress

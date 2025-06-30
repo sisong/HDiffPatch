@@ -78,7 +78,14 @@
 #endif
 #if (_IS_NEED_DEFAULT_CompressPlugin)
 //===== select needs decompress plugins or change to your plugin=====
-#   define _CompressPlugin_zlib
+#   ifndef _IS_NEED_decompressor_ldef_replace_zlib
+#       define _IS_NEED_decompressor_ldef_replace_zlib  0 
+#   endif
+#   if (_IS_NEED_decompressor_ldef_replace_zlib)
+#       define _CompressPlugin_ldef  //optimized zlib&ldef's deflate code decompress speed by libdeflate
+#   else
+#       define _CompressPlugin_zlib
+#   endif
 #   define _CompressPlugin_bz2
 #   define _CompressPlugin_lzma
 #   define _CompressPlugin_lzma2
@@ -93,6 +100,14 @@
 #   define _CompressPlugin_brotli
 #   define _CompressPlugin_lzham
 #   define _CompressPlugin_tuz
+#endif
+#ifdef _CompressPlugin_ldef
+#   ifndef _CompressPlugin_ldef_is_use_zlib
+#       define _CompressPlugin_ldef_is_use_zlib         1 //now ldef need zlib decompressor for any all of deflate code
+#   endif
+#   if (_IS_NEED_decompressor_ldef_replace_zlib&&(defined(_CompressPlugin_zlib)))
+#       undef _CompressPlugin_zlib
+#   endif
 #endif
 
 #if (_IS_NEED_BSDIFF)
@@ -148,6 +163,14 @@ static void printHelpInfo(){
 
 int hpatch_printFilesInfos(int fileCount,const char* fileNames[]);
 
+#if (_IS_NEED_SFX)
+#   ifdef _WIN32
+        #define kSFX_curDefaultPath ".\\"
+#   else
+        #define kSFX_curDefaultPath "./"
+#   endif
+#endif
+
 static void printUsage(){
     printVersion();
     printf("\n");
@@ -156,12 +179,8 @@ static void printUsage(){
 #if (_IS_NEED_SFX)
            "create  SFX: hpatchz [-X-exe#selfExecuteFile] diffFile -X#outSelfExtractArchive\n"
            "run     SFX: selfExtractArchive [[options] oldPath -X outNewPath]\n"
-           "extract SFX: selfExtractArchive      (same as: selfExtractArchive -f \"\" -X "
-#   ifdef _WIN32
-           "\".\\\")\n"
-#   else
-           "\"./\")\n"
-#   endif
+           "extract SFX: selfExtractArchive  (same as: $selfExtractArchive -f {\"\"|\"" kSFX_curDefaultPath "\"} -X "
+           "\"" kSFX_curDefaultPath "\")\n"
 #endif
            "  if oldPath is empty input parameter \"\"\n"
            "options:\n"
@@ -411,8 +430,8 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     hpatch_BOOL isOutputHelp=_kNULL_VALUE;
     hpatch_BOOL isOutputVersion=_kNULL_VALUE;
     hpatch_BOOL isOldPathInputEmpty=_kNULL_VALUE;
-#if (_IS_NEED_SFX)
     hpatch_BOOL isRunSFX=_kNULL_VALUE;
+#if (_IS_NEED_SFX)
     const char* out_SFX=0;
     const char* selfExecuteFile=0;
 #endif
@@ -428,10 +447,6 @@ int hpatch_cmd_line(int argc, const char * argv[]){
     const char* arg_values[kMax_arg_values_size]={0};
     int         arg_values_size=0;
     int         i;
-    if (argc<=1){
-        printUsage();
-        return HPATCH_OPTIONS_ERROR;
-    }
     for (i=1; i<argc; ++i) {
         const char* op=argv[i];
         _options_check(op!=0,"?");
@@ -538,10 +553,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         isForceOverwrite=hpatch_FALSE;
     if (isPrintFileInfo==_kNULL_VALUE)
         isPrintFileInfo=hpatch_FALSE;
-#if (_IS_NEED_SFX)
     if (isRunSFX==_kNULL_VALUE)
         isRunSFX=hpatch_FALSE;
-    if (arg_values_size==0){
+#if (_IS_NEED_SFX)
+    if ((argc<=1)&&(!isRunSFX)){
         hpatch_StreamPos_t _diffDataOffert=0;
         hpatch_StreamPos_t _diffDataSize=0;
         if (getDiffDataOffertInSfx(&_diffDataOffert,&_diffDataSize)){//autoExtractSFX
@@ -550,6 +565,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         }
     }
 #endif
+    if ((argc<=1)&&(!isRunSFX)){
+        printUsage();
+        return HPATCH_OPTIONS_ERROR;
+    }
     if (isOutputHelp||isOutputVersion){
         if (isOutputHelp)
             printUsage();//with version
@@ -611,11 +630,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         const char* diffFileName=0;
         const char* outNewPath  =0;
 #if (_IS_NEED_SFX)
-#   ifdef _WIN32
-        const char* kSFX_curDefaultPath=".\\";
-#   else
-        const char* kSFX_curDefaultPath="./";
-#   endif
+        hpatch_BOOL isSfxDefaultPath=hpatch_FALSE;
         const char* kSFX_emptyPath="";
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -634,6 +649,7 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             if (arg_values_size==0){//autoExtractSFX
                 oldPath     =kSFX_emptyPath;
                 outNewPath  =kSFX_curDefaultPath;
+                isSfxDefaultPath=hpatch_TRUE;
             }else{
                 oldPath     =arg_values[0];
                 outNewPath  =arg_values[1];
@@ -647,7 +663,6 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             outNewPath  =arg_values[2];
         }
         
-        isSamePath=hpatch_getIsSamePath(oldPath,outNewPath);
         _return_check(!hpatch_getIsSamePath(oldPath,diffFileName),
                       HPATCH_PATHTYPE_ERROR,"oldPath diffFile same path");
         _return_check(!hpatch_getIsSamePath(outNewPath,diffFileName),
@@ -659,13 +674,18 @@ int hpatch_cmd_line(int argc, const char * argv[]){
             _return_check(outNewPathType==kPathType_notExist,
                           HPATCH_PATHTYPE_ERROR,"outNewPath already exists, overwrite");
         }
-        if (isSamePath)
-            _return_check(isForceOverwrite,HPATCH_PATHTYPE_ERROR,"oldPath outNewPath same path, overwrite");
 #if (_IS_NEED_DIR_DIFF_PATCH)
         _return_check(getDirDiffInfoByFile(&dirDiffInfo,diffFileName,diffDataOffert,diffDataSize),
                       HPATCH_OPENREAD_ERROR,"input diffFile open read");
         isOutDir=(dirDiffInfo.isDirDiff)&&(dirDiffInfo.newPathIsDir);
+        #if (_IS_NEED_SFX)
+            if (isSfxDefaultPath && (dirDiffInfo.isDirDiff&&dirDiffInfo.oldPathIsDir))
+                oldPath=kSFX_curDefaultPath;
+        #endif
 #endif
+        isSamePath=hpatch_getIsSamePath(oldPath,outNewPath);
+        if (isSamePath)
+            _return_check(isForceOverwrite,HPATCH_PATHTYPE_ERROR,"oldPath outNewPath same path, overwrite");
         if (!isSamePath){ // out new file or new dir
 #if (_IS_NEED_DIR_DIFF_PATCH)
             if (dirDiffInfo.isDirDiff){
@@ -776,8 +796,12 @@ int hpatch_cmd_line(int argc, const char * argv[]){
 #define _try_rt_dec(dec) { if (dec.is_can_open(compressType)) return &dec; }
 
 static const hpatch_TDecompress* __find_decompressPlugin(const char* compressType){
-#ifdef  _CompressPlugin_zlib
+#if ((defined(_CompressPlugin_ldef))&&_IS_NEED_decompressor_ldef_replace_zlib)
+    _try_rt_dec(ldefDecompressPlugin);
+#else
+#  ifdef  _CompressPlugin_zlib
     _try_rt_dec(zlibDecompressPlugin);
+#  endif
 #endif
 #ifdef  _CompressPlugin_bz2
     _try_rt_dec(bz2DecompressPlugin);
@@ -867,6 +891,18 @@ hpatch_BOOL _trySetChecksum(hpatch_TChecksum** out_checksumPlugin,const char* ch
 static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char* checksumType){
     *out_checksumPlugin=0;
     if (strlen(checksumType)==0) return hpatch_TRUE;
+#ifdef _ChecksumPlugin_fadler64
+    __setChecksum(&fadler64ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_xxh128
+    __setChecksum(&xxh128ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_xxh3
+    __setChecksum(&xxh3ChecksumPlugin);
+#endif
+#ifdef _ChecksumPlugin_md5
+    __setChecksum(&md5ChecksumPlugin);
+#endif
 #ifdef _ChecksumPlugin_crc32
     __setChecksum(&crc32ChecksumPlugin);
 #endif
@@ -879,23 +915,11 @@ static hpatch_BOOL findChecksum(hpatch_TChecksum** out_checksumPlugin,const char
 #ifdef _ChecksumPlugin_fadler32
     __setChecksum(&fadler32ChecksumPlugin);
 #endif
-#ifdef _ChecksumPlugin_fadler64
-    __setChecksum(&fadler64ChecksumPlugin);
-#endif
 #ifdef _ChecksumPlugin_fadler128
     __setChecksum(&fadler128ChecksumPlugin);
 #endif
-#ifdef _ChecksumPlugin_md5
-    __setChecksum(&md5ChecksumPlugin);
-#endif
 #ifdef _ChecksumPlugin_blake3
     __setChecksum(&blake3ChecksumPlugin);
-#endif
-#ifdef _ChecksumPlugin_xxh3
-    __setChecksum(&xxh3ChecksumPlugin);
-#endif
-#ifdef _ChecksumPlugin_xxh128
-    __setChecksum(&xxh128ChecksumPlugin);
 #endif
     return hpatch_FALSE;
 }
@@ -942,7 +966,7 @@ static int _getHDiffInfos(_THDiffInfos* out_diffInfos,const hpatch_TFileStreamIn
             *decompressPlugin=_bz2DecompressPlugin_unsz;
             decompressPlugin->decError=hpatch_dec_ok;
             memcpy(diffInfo->compressType,bsCompressType,strlen(bsCompressType)+1);
-            diffInfo->compressedCount=out_diffInfos->bsdiffInfo.isEsBsd?1:3;
+            diffInfo->compressedCount=out_diffInfos->bsdiffInfo.isEndsleyBsdiff?1:3;
             diffInfo->newDataSize=out_diffInfos->bsdiffInfo.newDataSize;
             diffInfo->oldDataSize=_kUnavailableSize; //not saved oldDataSize
             out_diffInfos->isBsDiff=hpatch_TRUE;
@@ -986,8 +1010,8 @@ static void _printHDiffInfos(const _THDiffInfos* diffInfos,hpatch_BOOL isInDirDi
 #endif
 #if (_IS_NEED_BSDIFF)
         if (diffInfos->isBsDiff){
-            if (diffInfos->bsdiffInfo.isEsBsd)
-                typeTag="BSDiff (ENDSLEY)";
+            if (diffInfos->bsdiffInfo.isEndsleyBsdiff)
+                typeTag="BSDiff (endsley/bsdiff)";
             else
                 typeTag="BSDiff";
         }

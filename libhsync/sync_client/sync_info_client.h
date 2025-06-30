@@ -92,7 +92,9 @@ typedef enum TSyncClient_resultType{
     kSyncClient_newDirCloseError, 
     kSyncClient_newDirPatchBeginError,
     kSyncClient_newDirPatchFinishError,
-} TNewDataSyncInfo_resultType;
+
+    kSyncClient_ERROR_CODE_MAX = 200,
+} TSyncClient_resultType;
 
 typedef struct ISyncInfoListener{
     void*                    infoImport;

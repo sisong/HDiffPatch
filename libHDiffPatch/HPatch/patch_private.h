@@ -201,6 +201,11 @@ void TDiffToSingleStream_init(TDiffToSingleStream* self,const hpatch_TStreamInpu
 hpatch_inline static 
 void TDiffToSingleStream_setInSingleStream(TDiffToSingleStream* self,hpatch_StreamPos_t singleStreamPos){
     self->isInSingleStream=hpatch_TRUE; }
+    
+hpatch_inline static
+void TDiffToSingleStream_resetStream(TDiffToSingleStream* self,const hpatch_TStreamInput* diffStream){
+    self->diffStream=diffStream; }
+
 
 #ifdef __cplusplus
 }

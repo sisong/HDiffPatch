@@ -266,9 +266,7 @@ const uint64_t* _private_fast_adler128_table =(const uint64_t*)&__fast_adler_tab
     sum+=a0*2+a1;   \
 }
 
-#define _adler_add8(_c_t,adler,sum,pdata){  \
-    adler_add2(_c_t,adler,sum,pdata);    \
-    adler_add2(_c_t,adler,sum,pdata);    \
+#define _adler_add4(_c_t,adler,sum,pdata){  \
     adler_add2(_c_t,adler,sum,pdata);    \
     adler_add2(_c_t,adler,sum,pdata);    \
 }
@@ -281,66 +279,48 @@ const uint64_t* _private_fast_adler128_table =(const uint64_t*)&__fast_adler_tab
 #define _adler_append(uint_t,half_bit,BASE,mod,border1, adler,pdata,n){ \
     uint_t sum=adler>>half_bit;      \
     adler&=(((uint_t)1<<half_bit)-1);\
-_case8:        \
-    switch(n){ \
-        case  8: { adler_add1(adler,sum,pdata); } \
-        case  7: { adler_add1(adler,sum,pdata); } \
-        case  6: { adler_add1(adler,sum,pdata); } \
-        case  5: { adler_add1(adler,sum,pdata); } \
-        case  4: { adler_add1(adler,sum,pdata); } \
-        case  3: { adler_add1(adler,sum,pdata); } \
-        case  2: { adler_add1(adler,sum,pdata); } \
-        case  1: { adler_add1(adler,sum,pdata); } \
-        case  0: {  sum  =mod(sum,BASE);          \
-                    border1(adler,BASE);          \
-                    return adler | (sum<<half_bit); } \
-        default: { /* continue */ } \
-    } \
     while(n>=kFNBest){  \
         size_t fn;      \
         n-=kFNBest;     \
-        fn=(kFNBest>>3);\
+        fn=(kFNBest>>2);\
         do{ \
-            _adler_add8(uint_t,adler,sum,pdata);\
+            _adler_add4(uint_t,adler,sum,pdata);\
         }while(--fn);   \
         sum  =mod(sum,BASE);   \
         adler=mod(adler,BASE); \
     }       \
-    if (n>8) {         \
+    if (n>=4) {         \
         do{ \
-            _adler_add8(uint_t,adler,sum,pdata);\
-            n-=8;       \
-        } while(n>=8);  \
+            _adler_add4(uint_t,adler,sum,pdata);\
+            n-=4;       \
+        } while(n>=4);  \
         adler=mod(adler,BASE); \
     }       \
-    goto _case8; \
+    switch(n){ \
+        case  3: { adler_add1(adler,sum,pdata); } \
+        case  2: { adler_add1(adler,sum,pdata); } \
+        case  1: { adler_add1(adler,sum,pdata); } \
+        default: {  sum  =mod(sum,BASE);          \
+                    border1(adler,BASE);          \
+                    return adler | (sum<<half_bit); } \
+    } \
 }
 
 
 #define _fast_adler_append(SUM,ADLER,return_SUMADLER,_c_t,_table, _adler,pdata,n){ \
     _c_t sum  =(_c_t)SUM(_adler);   \
     _c_t adler=(_c_t)ADLER(_adler); \
-_case8:  \
+    while(n>=4){ \
+        fast_adler_add2(_c_t,_table,adler,sum,pdata); \
+        fast_adler_add2(_c_t,_table,adler,sum,pdata); \
+        n-=4;      \
+    }   \
     switch(n){ \
-        case  8: { fast_adler_add1(_table,adler,sum,pdata); } \
-        case  7: { fast_adler_add1(_table,adler,sum,pdata); } \
-        case  6: { fast_adler_add1(_table,adler,sum,pdata); } \
-        case  5: { fast_adler_add1(_table,adler,sum,pdata); } \
-        case  4: { fast_adler_add1(_table,adler,sum,pdata); } \
         case  3: { fast_adler_add1(_table,adler,sum,pdata); } \
         case  2: { fast_adler_add1(_table,adler,sum,pdata); } \
         case  1: { fast_adler_add1(_table,adler,sum,pdata); } \
-        case  0: {  return_SUMADLER(sum,adler); }             \
-        default:{ /* continue */} \
+        default: {  return_SUMADLER(sum,adler); }             \
     }   \
-    do{ \
-        fast_adler_add2(_c_t,_table,adler,sum,pdata); \
-        fast_adler_add2(_c_t,_table,adler,sum,pdata); \
-        fast_adler_add2(_c_t,_table,adler,sum,pdata); \
-        fast_adler_add2(_c_t,_table,adler,sum,pdata); \
-        n-=8;      \
-    } while(n>=8); \
-    goto _case8;   \
 }
 
 #define  _adler_roll(uint_t,half_bit,BASE,mod,border2,kBestBlockSize,\
@@ -359,8 +339,8 @@ _case8:  \
 
 #define  _adler_by_combine(uint_t,half_bit,BASE,mod,border2,border3,   \
                            adler_left,adler_right,len_right){ \
-    const uint_t kMask=((uint_t)1<<half_bit)-1; \
-    uint_t rem= mod(len_right,BASE);  \
+    const uint_t kMask=(((uint_t)1)<<half_bit)-1;   \
+    const uint_t rem= (uint_t)mod(len_right,BASE);  \
     uint_t adler= adler_left&kMask;   \
     uint_t sum  = rem * adler;        \
     adler+= (adler_right&kMask)       \
@@ -398,7 +378,7 @@ uint32_t adler32_append(uint32_t adler,const adler_data_t* pdata,size_t n)
 uint32_t adler32_roll(uint32_t adler,size_t blockSize,adler_data_t out_data,adler_data_t in_data)
     _adler_roll(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border2,
                 adler_roll_kBestBlockSize, adler,blockSize, out_data,in_data)
-uint32_t adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
+uint32_t adler32_by_combine(uint32_t adler_left,uint32_t adler_right,uint64_t len_right)
     _adler_by_combine(uint32_t,16,_adler32_BASE,_adler_mod,_adler_border2,_adler_border3,
                       adler_left,adler_right,len_right)
 
@@ -414,7 +394,7 @@ uint64_t adler64_by_combine(uint64_t adler_left,uint64_t adler_right,uint64_t le
 uint32_t fast_adler32_append(uint32_t _adler,const adler_data_t* pdata,size_t n)
     _fast_adler_append(__private_fast32_SUM,__private_fast32_ADLER,__private_fast32_SUMADLER,
                        uint32_t,_private_fast_adler32_table, _adler,pdata,n)
-uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,size_t len_right)
+uint32_t fast_adler32_by_combine(uint32_t adler_left,uint32_t adler_right,uint64_t len_right)
     _fast_adler_by_combine(__private_fast32_SUM,__private_fast32_ADLER,__private_fast32_SUMADLER,
                            uint32_t, adler_left,adler_right,len_right)
 

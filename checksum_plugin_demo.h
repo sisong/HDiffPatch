@@ -60,7 +60,19 @@
 
 #ifdef  _ChecksumPlugin_crc32
 #if (_IsNeedIncludeDefaultChecksumHead)
+# ifndef _IS_USED_LIBDEFLATE_CRC32
+#   define _IS_USED_LIBDEFLATE_CRC32    0
+#endif
+#if (_IS_USED_LIBDEFLATE_CRC32)
+#   include "libdeflate.h" // https://github.com/ebiggers/libdeflate
+# else
 #   include "zlib.h" // http://zlib.net/  https://github.com/madler/zlib
+# endif
+#endif
+#if (_IS_USED_LIBDEFLATE_CRC32)
+#   define _crc32 libdeflate_crc32
+#else
+#   define _crc32 crc32
 #endif
 static const char* _crc32_checksumType(void){
     static const char* type="crc32";
@@ -77,11 +89,14 @@ static void _crc32_close(hpatch_TChecksum* plugin,hpatch_checksumHandle handle){
 }
 static void  _crc32_begin(hpatch_checksumHandle handle){
     hpatch_uint32_t* pv=(hpatch_uint32_t*)handle;
-    *pv=(hpatch_uint32_t)crc32(0,0,0);
+    *pv=(hpatch_uint32_t)_crc32(0,0,0);
 }
 static void _crc32_append(hpatch_checksumHandle handle,
                           const unsigned char* part_data,const unsigned char* part_data_end){
     hpatch_uint32_t* pv=(hpatch_uint32_t*)handle;
+#if (_IS_USED_LIBDEFLATE_CRC32)
+    *pv=_crc32(*pv,part_data,part_data_end-part_data);
+#else
     uLong v=*pv;
     while (part_data!=part_data_end) {
         size_t dataSize=(size_t)(part_data_end-part_data);
@@ -89,10 +104,11 @@ static void _crc32_append(hpatch_checksumHandle handle,
         //assert(len>0);
         if (len>dataSize)
             len=(uInt)dataSize;
-        v=crc32(v,part_data,len);
+        v=_crc32(v,part_data,len);
         part_data+=len;
     }
     *pv=(hpatch_uint32_t)v;
+#endif
 }
 static void _crc32_end(hpatch_checksumHandle handle,
                        unsigned char* checksum,unsigned char* checksum_end){
@@ -648,7 +664,7 @@ static void _xxh3_end(hpatch_checksumHandle handle,
 }
 static hpatch_TChecksum xxh3ChecksumPlugin={ _xxh3_checksumType,_xxh3_checksumByteSize,_xxh3_open,
                                              _xxh3_close,_xxh3_begin,_xxh3_append,_xxh3_end};
-#endif//_ChecksumPlugin_mbedtls_xxh3
+#endif//_ChecksumPlugin_xxh3
 
 
 #ifdef  _ChecksumPlugin_xxh128
@@ -695,6 +711,6 @@ static void _xxh128_end(hpatch_checksumHandle handle,
 }
 static hpatch_TChecksum xxh128ChecksumPlugin={ _xxh128_checksumType,_xxh128_checksumByteSize,_xxh128_open,
                                                _xxh128_close,_xxh128_begin,_xxh128_append,_xxh128_end};
-#endif//_ChecksumPlugin_mbedtls_xxh128
+#endif//_ChecksumPlugin_xxh128
 
 #endif
