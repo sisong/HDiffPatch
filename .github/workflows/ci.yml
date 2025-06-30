@@ -25,6 +25,7 @@ jobs:
           git clone --depth=1 https://github.com/sisong/zlib.git ../zlib
           git clone --depth=1 https://github.com/sisong/libdeflate.git ../libdeflate
           make CC=gcc CXX=g++ BZIP2=1 -j
+          unit_test
           make BZIP2=1 clean
 
   clang-build:
@@ -47,6 +48,8 @@ jobs:
           git clone --depth=1 https://github.com/sisong/zlib.git ../zlib
           git clone --depth=1 https://github.com/sisong/libdeflate.git ../libdeflate
           make CL=1 BZIP2=1 -j
+          unit_test
+          make CL=1 BZIP2=1 clean
 
   xcode-build:
     runs-on: macos-latest
