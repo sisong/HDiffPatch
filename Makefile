@@ -217,6 +217,7 @@ HDIFF_OBJ += \
     libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort64.o \
     libHDiffPatch/HDiff/private_diff/libdivsufsort/divsufsort.o \
+    dirDiffPatch/dir_diff/dir_diff_tools.o \
     $(HPATCH_OBJ)
 ifeq ($(DIR_DIFF),0)
   HDIFF_OBJ += libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.o
@@ -226,7 +227,6 @@ ifeq ($(DIR_DIFF),0)
 else
   HDIFF_OBJ += \
     dirDiffPatch/dir_diff/dir_diff.o \
-    dirDiffPatch/dir_diff/dir_diff_tools.o \
     dirDiffPatch/dir_diff/dir_manifest.o
 endif
 ifeq ($(BSD),0)
@@ -241,6 +241,17 @@ else
     compress_parallel.o
 endif
 
+UTEST_OBJ := \
+    libHDiffPatch/HDiff/match_inplace.o \
+    libhsync/sync_client/dir_sync_client.o \
+    libhsync/sync_client/match_in_old.o \
+    libhsync/sync_client/sync_client.o \
+    libhsync/sync_client/sync_diff_data.o \
+    libhsync/sync_client/sync_info_client.o \
+    libhsync/sync_make/dir_sync_make.o \
+    libhsync/sync_make/match_in_new.o \
+    libhsync/sync_make/sync_info_make.o \
+    libhsync/sync_make/sync_make.o
 
 DEF_FLAGS := \
     -O3 -DNDEBUG -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
@@ -407,30 +418,33 @@ CXXFLAGS += $(DEF_FLAGS) -std=c++11
 
 .PHONY: all install clean
 
-all: libhdiffpatch.a hpatchz hdiffz mostlyclean
+all: libhdiffpatch.a hpatchz hdiffz unit_test mostlyclean
 
-libhdiffpatch.a: $(HDIFF_OBJ)
+_ALL_OBJs := $(HDIFF_OBJ) $(UTEST_OBJ)
+libhdiffpatch.a: $(_ALL_OBJs)
 	$(AR) rcs $@ $^
 
 hpatchz: $(HPATCH_OBJ)
 	$(CC) hpatchz.c $(HPATCH_OBJ) $(CFLAGS) $(PATCH_LINK) -o hpatchz
 hdiffz: libhdiffpatch.a
 	$(CXX) hdiffz.cpp libhdiffpatch.a $(CXXFLAGS) $(DIFF_LINK) -o hdiffz
+unit_test: libhdiffpatch.a 
+	$(CXX) ./test/unit_test.cpp libhdiffpatch.a $(DIFF_LINK) -o unit_test
 
 ifeq ($(OS),Windows_NT) # mingw?
   RM := del /Q /F
-  DEL_HDIFF_OBJ := $(subst /,\,$(HDIFF_OBJ))
+  DEL_ALL_OBJ := $(subst /,\,$(_ALL_OBJs))
 else
   RM := rm -f
-  DEL_HDIFF_OBJ := $(HDIFF_OBJ)
+  DEL_ALL_OBJ := $(_ALL_OBJs)
 endif
 INSTALL_X := install -m 0755
 INSTALL_BIN := $(DESTDIR)/usr/local/bin
 
-mostlyclean: hpatchz hdiffz
-	$(RM) $(DEL_HDIFF_OBJ)
+mostlyclean: hpatchz hdiffz unit_test
+	$(RM) $(DEL_ALL_OBJ)
 clean:
-	$(RM) libhdiffpatch.a hpatchz hdiffz $(DEL_HDIFF_OBJ)
+	$(RM) libhdiffpatch.a hpatchz hdiffz unit_test $(DEL_ALL_OBJ)
 
 install: all
 	$(INSTALL_X) hdiffz $(INSTALL_BIN)/hdiffz

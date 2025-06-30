@@ -4,7 +4,7 @@ full changelog at: https://github.com/sisong/HDiffPatch/commits
 
 ## [v4.10.0](https://github.com/sisong/HDiffPatch/tree/v4.10.0) - 2025-06-26
 ### Added
-* add function create_hdiff_by_sign(), see demo cmdline $hsign_diff in [hsynz];
+* add function create_hdiff_by_sign(), see demo cmdline $hsign_diff (like [rsync]) in [hsynz];   
 create a hpatchz's diffFile between oldData & newData, only used oldData's hash signature file(.hsyni) & newData, not need oldData;
 
 ## [v4.9.0](https://github.com/sisong/HDiffPatch/tree/v4.9.0) - 2025-06-13
@@ -259,3 +259,4 @@ if diffFile created by empty oldPath, then extract with default option `$selfExt
 ["ENDSLEY/BSDIFF43"]: https://github.com/mendsley/bsdiff
 [hsynz]: https://github.com/sisong/hsynz
 [zsync]: http://zsync.moria.org.uk
+[rsync]: https://github.com/RsyncProject/rsync

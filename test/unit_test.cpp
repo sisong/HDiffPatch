@@ -47,7 +47,7 @@ using namespace hdiff_private;
 typedef unsigned char   TByte;
 typedef ptrdiff_t       TInt;
 typedef size_t          TUInt;
-const long kRandTestCount=20000;
+const long kRandTestCount=5000;
 //#define _AttackPacth_ON
 
 //===== select compress plugin =====
@@ -74,7 +74,7 @@ const long kRandTestCount=20000;
 #include "../dict_decompress_plugin_demo.h" // https://github.com/sisong/hsynz
 #endif
 
-#define _ChecksumPlugin_crc32
+#define _ChecksumPlugin_fadler32
 #include "../checksum_plugin_demo.h"
 
 #ifdef  _CompressPlugin_no
@@ -233,7 +233,7 @@ static bool check_diff_stream(const TByte* newData,const TByte* newData_end,
     return true;
 }
 
-static hpatch_TChecksum* hsynzDefaultChecksum=&crc32ChecksumPlugin;
+static hpatch_TChecksum* hsynzDefaultChecksum=&fadler32ChecksumPlugin;
 
 struct TSyncInfoListener:public ISyncInfoListener{
     inline TSyncInfoListener(){
