@@ -241,6 +241,16 @@ else
     compress_parallel.o
 endif
 
+HDIFF_SYNC_OBJ := \
+    libhsync/sync_client/dir_sync_client.o \
+    libhsync/sync_client/match_in_old.o \
+    libhsync/sync_client/sync_client.o \
+    libhsync/sync_client/sync_diff_data.o \
+    libhsync/sync_client/sync_info_client.o \
+    libhsync/sync_make/dir_sync_make.o \
+    libhsync/sync_make/match_in_new.o \
+    libhsync/sync_make/sync_info_make.o \
+    libhsync/sync_make/sync_make.o
 
 DEF_FLAGS := \
     -O3 -DNDEBUG -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
@@ -407,7 +417,7 @@ CXXFLAGS += $(DEF_FLAGS) -std=c++11
 
 .PHONY: all install clean
 
-all: libhdiffpatch.a hpatchz hdiffz mostlyclean
+all: libhdiffpatch.a hpatchz hdiffz unit_test mostlyclean
 
 libhdiffpatch.a: $(HDIFF_OBJ)
 	$(AR) rcs $@ $^
@@ -416,6 +426,8 @@ hpatchz: $(HPATCH_OBJ)
 	$(CC) hpatchz.c $(HPATCH_OBJ) $(CFLAGS) $(PATCH_LINK) -o hpatchz
 hdiffz: libhdiffpatch.a
 	$(CXX) hdiffz.cpp libhdiffpatch.a $(CXXFLAGS) $(DIFF_LINK) -o hdiffz
+unit_test: libhdiffpatch.a $(HDIFF_SYNC_OBJ)
+	$(CXX) ./test/unit_test.cpp libhdiffpatch.a $(HDIFF_SYNC_OBJ) $(DIFF_LINK) -o unit_test
 
 ifeq ($(OS),Windows_NT) # mingw?
   RM := del /Q /F
