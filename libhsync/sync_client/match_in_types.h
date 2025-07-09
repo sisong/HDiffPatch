@@ -26,6 +26,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
+#ifndef match_in_types_h
+#define match_in_types_h
 #include "string.h" //memmove
 #include <algorithm> //sort, equal_range lower_bound
 #include "sync_client_type_private.h"
@@ -190,3 +192,4 @@ const uint32_t* getSortedIndexsTable(TAutoMem& _mem_table,const TNewDataSyncInfo
                                      const uint32_t* sorted_newIndexs,unsigned int* out_kTableHashShlBit);
 
 } //namespace sync_private
+#endif //match_in_types_h

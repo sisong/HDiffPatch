@@ -165,7 +165,7 @@ hpatch_BOOL _clip_readUIntTo(TUInt* result,TStreamCacheClip* sclip){
 } //namespace sync_private
 using namespace sync_private;
 
-
+static
 TSyncClient_resultType _checkNewSyncInfoType(TStreamCacheClip* newSyncInfo_clip,hpatch_BOOL* out_newIsDir){
     char  tempType[hpatch_kMaxPluginTypeLength+1];
     TSyncClient_resultType result=kSyncClient_ok;
@@ -187,7 +187,7 @@ clear:
 
 TSyncClient_resultType checkNewSyncInfoType(const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL* out_newIsDir){
     TStreamCacheClip    clip;
-    TByte temp_cache[hpatch_kMaxPluginTypeLength+1];
+    TByte temp_cache[hpatch_kStreamCacheSize];
     _TStreamCacheClip_init(&clip,newSyncInfo,0,newSyncInfo->streamSize,temp_cache,sizeof(temp_cache));
     return _checkNewSyncInfoType(&clip,out_newIsDir);
 }

@@ -50,7 +50,7 @@ namespace sync_private{
         }
     }
     
-    static void saveSavedSizes(std::vector<TByte> &buf, TNewDataSyncInfo *self) {
+    static void saveSavedSizes(std::vector<TByte> &buf,TNewDataSyncInfo* self) {
         const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
         uint32_t backSize=0;
         for (uint32_t i=0; i<kBlockCount; ++i){
