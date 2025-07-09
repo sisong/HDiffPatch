@@ -177,6 +177,26 @@ struct THash_fadler64{
     inline void hash_end(TValue* hv) { *hv=_hv; }
 };
 
+template<int xshl_bits>
+struct THash_fadler64_xshl{
+    typedef uint64_t TValue;
+    inline static const char* name() { return "fadler64_x"; }
+    TValue _hv;
+    inline void hash_begin() { _hv=fast_adler64_start(0,0); }
+    inline void hash(const TByte* pdata,const TByte* pdata_end)
+                    { _hv=fast_adler64_append(_hv,pdata,(pdata_end-pdata)); }
+    inline void hash_end(TValue* hv) { *hv=toSavedPartRollHash(_hv,xshl_bits); }
+    
+    static inline
+    uint64_t toSavedPartRollHash(uint64_t rollHash,size_t savedRollHashBits){
+        if (savedRollHashBits<64)
+            return ((rollHash>>savedRollHashBits)^rollHash) & ((((uint64_t)1)<<savedRollHashBits)-1);
+            //return ((rollHash>>savedRollHashBits)) & ((((uint64_t)1)<<savedRollHashBits)-1);
+        else
+            return rollHash;
+    }
+};
+
 #if (_IS_NEED_FAST_ADLER128)
 struct THash_fadler128{
     typedef adler128_t TValue;
@@ -527,6 +547,18 @@ int main() {
     test<THash_adler32h_bit<30>,uint32_t>(data.data(),data.data()+data.size());
     test<THash_adler32h_bit<31>,uint32_t>(data.data(),data.data()+data.size());
     test<THash_adler32h_bit<32>,uint32_t>(data.data(),data.data()+data.size());
+    return 0;
+    //*/
+
+    /* //test defect in fadler64 & toSavedPartRollHash
+    kMinClash=10000;
+    {
+        typedef THash_fadler64_xshl<32> THash_fadler64_x;
+        test<THash_fadler64_x, uint8_t>(data.data(), data.data() + data.size());
+        test<THash_fadler64_x, uint16_t>(data.data(), data.data() + data.size());
+        test<THash_fadler64_x, uint32_t>(data.data(), data.data() + data.size());
+        printf("\n");
+    }
     return 0;
     //*/
 

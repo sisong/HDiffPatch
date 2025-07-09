@@ -140,7 +140,7 @@ private:
         return ((size_t)1<<bit)-1;
     }
     
-    inline size_t hash0(T key)const { return (key^(key>>(sizeof(T)*4)))&m_bitSetMask; }
+    inline size_t hash0(T key)const { return (key^(key>>(sizeof(T)*4+1)))&m_bitSetMask; }
     inline size_t hash1(T key)const { return ((~key)+(key << (sizeof(T)*2+1))+1)%m_bitSetMask; }
     inline size_t hash2(T key)const {
         size_t h=(sizeof(T)>4)?_hash2_64(key):_hash2_32((size_t)key); return h%(m_bitSetMask-1); }
