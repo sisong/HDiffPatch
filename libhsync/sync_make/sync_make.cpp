@@ -164,8 +164,7 @@ namespace{
         volatile uint32_t savedBlockEnd;
         const uint32_t kBlockCount;
         std::vector<TThreadData> threadDataList;
-        inline TMt(size_t threadNum,_TCreateDatas& _cd,
-                   uint32_t _bestWorkBlockCount,hpatch_TChecksum* checksumPlugin,
+        inline TMt(size_t threadNum,_TCreateDatas& _cd,uint32_t _bestWorkBlockCount,
                    hsync_TDictCompress* compressPlugin,uint32_t kSyncBlockCount,
                    uint32_t kSyncBlockSize,TNewDataSyncInfo* out_hsyni)
         :cd(_cd),bestWorkBlockCount(_bestWorkBlockCount),
@@ -173,7 +172,7 @@ namespace{
             threadDataList.resize(threadNum);
             for (size_t i=0;i<threadNum;++i){
                 TThreadData& td=threadDataList[i];
-                td.checksumBlockData.init(checksumPlugin,false);
+                td.checksumBlockData.init(out_hsyni->strongChecksumPlugin,false);
                 td.compress.init(compressPlugin,kSyncBlockCount,kSyncBlockSize,out_hsyni);
             }
         }
@@ -309,8 +308,6 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
         checksumBlockData.append(dataBuf,dataBuf+kSyncBlockSize);
         checksumBlockData.appendEnd();
         {//save hash
-            hpatch_TChecksum* strongChecksumPlugin=out_hsyni->_strongChecksumPlugin;
-            const size_t   checksumByteSize=strongChecksumPlugin->checksumByteSize();
             const uint64_t _partRollHash=toSavedPartRollHash(rollHash,out_hsyni->savedRollHashBits);
             writeRollHashBytes(out_hsyni->rollHashs+i*out_hsyni->savedRollHashByteSize,
                                _partRollHash,out_hsyni->savedRollHashByteSize);
@@ -320,11 +317,11 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
                 CAutoLocker _autoLocker(mt?mt->checkLocker.locker:0);
 #endif
                 checkChecksumAppendData(cd.out_hsyni->savedNewDataCheckChecksum,i,
-                                        strongChecksumPlugin,cd.checkChecksum,
-                                        checksumBlockData.checksum.data(),checksumByteSize);
+                                        out_hsyni->strongChecksumPlugin,cd.checkChecksum,
+                                        checksumBlockData.checksum.data(),0,0);
             }
             toPartChecksum(checksumBlockData.checksum.data(),out_hsyni->savedStrongChecksumBits,
-                           checksumBlockData.checksum.data(),checksumByteSize);
+                           checksumBlockData.checksum.data(),out_hsyni->strongChecksumPlugin->checksumByteSize());
             memcpy(out_hsyni->partChecksums+i*out_hsyni->savedStrongChecksumByteSize,
                    checksumBlockData.checksum.data(),out_hsyni->savedStrongChecksumByteSize);
         }
@@ -359,7 +356,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
                                hsync_TDictCompress* compressPlugin,
                                hsync_THsynz* hsynzPlugin,size_t threadNum){
     const uint32_t kSyncBlockSize= newSyncInfo->kSyncBlockSize;
-    hpatch_TChecksum* checksumPlugin=newSyncInfo->_strongChecksumPlugin;
+    hpatch_TChecksum* checksumPlugin=newSyncInfo->strongChecksumPlugin;
     checkv(kSyncBlockSize>=_kSyncBlockSize_min_limit);
     if (compressPlugin) checkv(out_hsynz!=0);
     hsync_THsynz _hsynzPlugin;
@@ -391,7 +388,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
     newSyncInfo->dictSize=compressPlugin?compressPlugin->limitDictSizeByData(compressPlugin,kBlockCount,kSyncBlockSize):0;
 
     checkChecksumInit(createDatas.out_hsyni->savedNewDataCheckChecksum,
-                      createDatas.out_hsyni->kStrongChecksumByteSize);
+        checksumPlugin->checksumByteSize());
     
     const size_t in_borderSize=(compressPlugin&&compressPlugin->getDictCompressBorder)?compressPlugin->getDictCompressBorder():0;
     const hpatch_StreamPos_t kMaxCompressedSize=compressPlugin?compressPlugin->maxCompressedSize(kSyncBlockSize):0;
@@ -412,7 +409,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
         const size_t kWorkMemBufSize=(kSyncBlockSize+(size_t)kMaxCompressedSize)*bestWorkBlockCount+in_borderSize;
         TAutoMem    membuf((sizeof(TWorkBuf)+kWorkMemBufSize)*kWorkBufCount);
 
-        TMt mt(threadNum,createDatas,bestWorkBlockCount,checksumPlugin,compressPlugin,
+        TMt mt(threadNum,createDatas,bestWorkBlockCount,compressPlugin,
                kBlockCount,kSyncBlockSize,createDatas.out_hsyni);
         { //mem buf
             TWorkBuf* workBufList=(TWorkBuf*)membuf.data();
@@ -444,11 +441,11 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
             _create_sync_data_part(createDatas,&workData,checksumBlockData,compress);
         }
     }
-    checkChecksumEnd(createDatas.out_hsyni->savedNewDataCheckChecksum,
-                     createDatas.out_hsyni->kStrongChecksumByteSize);
+    checkChecksumEndTo(createDatas.out_hsyni->savedNewDataCheckChecksum,createDatas.out_hsyni->savedNewDataCheckChecksum,
+                       checksumPlugin,createDatas.checkChecksum);
     if (is_hsynzPlugin){
         createDatas.curOutPos=hsynzPlugin->hsynz_write_foot(hsynzPlugin,out_hsynz,createDatas.curOutPos,
-                                createDatas.out_hsyni->savedNewDataCheckChecksum,createDatas.out_hsyni->kStrongChecksumByteSize);
+                                createDatas.out_hsyni->savedNewDataCheckChecksum,checksumPlugin->checksumByteSize());
     }
     newSyncInfo->newSyncDataSize=createDatas.curOutPos;
     matchNewDataInNew(createDatas.out_hsyni);

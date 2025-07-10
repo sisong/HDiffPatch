@@ -30,6 +30,9 @@
 #include "../sync_client/match_in_types.h"
 namespace sync_private{
 
+    #define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
+    #define checkv(value)     check(value,"check "#value" error!")
+
     static  const size_t kMinMatchedLength = 16;
 
 #if (_IS_USED_MULTITHREAD)
@@ -99,7 +102,6 @@ static bool matchRange(hpatch_TOutputCovers* out_covers,const uint32_t* range_be
         hpatch_TOutputCovers*       out_covers;
         const TOldDataSyncInfo*     oldSyncInfo;
         const hpatch_TStreamInput*  newStream;
-        hpatch_TChecksum*           strongChecksumPlugin;
         const void*         filter;
         const uint32_t*     sorted_oldIndexs;
         const uint32_t*     sorted_oldIndexs_table;
@@ -116,7 +118,7 @@ static void _rollMatch(_TMatchSDatas& rd,hpatch_StreamPos_t newRollBegin,
     if (newSize<kSyncBlockSize) return;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(rd.oldSyncInfo);
     TIndex_comp0 icomp0(rd.oldSyncInfo->rollHashs,rd.oldSyncInfo->savedRollHashByteSize);
-    TStreamDataRoll newData(rd.newStream,newRollBegin,newRollEnd,kSyncBlockSize,rd.strongChecksumPlugin
+    TStreamDataRoll newData(rd.newStream,newRollBegin,newRollEnd,kSyncBlockSize,rd.oldSyncInfo->strongChecksumPlugin
                         #if (_IS_USED_MULTITHREAD)
                             ,_mt?((TMt*)_mt)->readLocker.locker:0
                         #endif
@@ -208,6 +210,7 @@ static void _matchNewDataInOldSign(_TMatchSDatas& matchDatas,int threadNum){
     
     TAutoMem _mem_sorted;
     TBloomFilter<tm_roll_uint> filter;
+    filter.init(kMatchBlockCount);
     const uint32_t* sorted_oldIndexs=getSortedIndexs(_mem_sorted,oldSyncInfo,filter);
     
     TAutoMem _mem_table;
@@ -239,12 +242,11 @@ static void _matchNewDataInOldSign(_TMatchSDatas& matchDatas,int threadNum){
 
 void matchNewDataInOldSign(hpatch_TOutputCovers* out_covers,const hpatch_TStreamInput* newStream,
                            const TOldDataSyncInfo* oldSyncInfo,int threadNum){
-    checkv(oldSyncInfo->_strongChecksumPlugin!=0);
+    checkv(oldSyncInfo->strongChecksumPlugin!=0);
     _TMatchSDatas matchDatas; memset(&matchDatas,0,sizeof(matchDatas));
     matchDatas.out_covers=out_covers;
     matchDatas.oldSyncInfo=oldSyncInfo;
     matchDatas.newStream=newStream;
-    matchDatas.strongChecksumPlugin=oldSyncInfo->_strongChecksumPlugin;
     _matchNewDataInOldSign(matchDatas,threadNum);
 }
 

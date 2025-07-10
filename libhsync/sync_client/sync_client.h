@@ -28,7 +28,6 @@
  */
 #ifndef sync_client_h
 #define sync_client_h
-#include "sync_client_type.h"
 #include "sync_info_client.h"
 
 //sync_patch(oldStream+syncDataListener) to out_newStream

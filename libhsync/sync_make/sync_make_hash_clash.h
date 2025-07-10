@@ -64,7 +64,7 @@ namespace sync_private{
         else if (rollHashBits>_kMaxRollHashBits) rollHashBits=_kMaxRollHashBits;
         assert(rollHashBits<=result);
 
-        #define __StrongHashBITS_ (result-rollHashBits)
+        #define __StrongHashBITS_ ((size_t)(result-rollHashBits))
         if (__StrongHashBITS_<rollHashBits){
             rollHashBits-=2;
         }

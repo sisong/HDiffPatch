@@ -54,6 +54,7 @@ public:
                      hpatch_StreamPos_t newDataSize,uint32_t syncBlockSize,size_t kSafeHashClashBit);
     ~CNewDataSyncInfo(){}
 private:
+    size_t                      kStrongChecksumByteSize;
     std::string                 _compressType;
     std::string                 _strongChecksumType;
     hdiff_private::TAutoMem     _mem;

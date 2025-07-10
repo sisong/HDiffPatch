@@ -1,9 +1,9 @@
-//  match_in_old.h
-//  sync_client
-//  Created by housisong on 2019-09-22.
+//  zsync_info_client.h
+//  zsync_client for hsynz
+//  Created by housisong on 2025-06-28.
 /*
  The MIT License (MIT)
- Copyright (c) 2019-2020 HouSisong
+ Copyright (c) 2025 HouSisong
  
  Permission is hereby granted, free of charge, to any person
  obtaining a copy of this software and associated documentation
@@ -26,20 +26,17 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef match_in_old_h
-#define match_in_old_h
-#include "sync_client_type.h"
-namespace sync_private{
+#ifndef zsync_info_client_h
+#define zsync_info_client_h
+#include "zsync_client_type.h"
 
-static const hpatch_StreamPos_t kBlockType_needSync =~(hpatch_StreamPos_t)0; //download, default
+TSyncClient_resultType TNewDataZsyncInfo_open_by_file(TNewDataZsyncInfo* self,const char* newSyncInfoFile,
+                                                      ISyncInfoListener* listener);
+TSyncClient_resultType TNewDataZsyncInfo_open(TNewDataZsyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+                                              ISyncInfoListener* listener);
+void TNewDataZsyncInfo_close(TNewDataZsyncInfo* self);
 
-//matchNewDataInOld()
-//throw std::runtime_error on error
-//result value in out_newBlockDataInOldPoss:
-// value==kBlockType_needSync : this block need download from server;
-// 0<=value<oldDataSize : this block read from oldStream,starting at value in oldStream;
-void matchNewDataInOld(hpatch_StreamPos_t* out_newBlockDataInOldPoss,const TNewDataSyncInfo* newSyncInfo,
-                       const hpatch_TStreamInput* oldStream,int threadNum);
+TSyncClient_resultType  checkNewZsyncInfoType_by_file(const char* newSyncInfoFile);
+TSyncClient_resultType  checkNewZsyncInfoType(const hpatch_TStreamInput* newSyncInfo);
 
-} //namespace sync_private
-#endif // match_in_old_h
+#endif // zsync_info_client_h
