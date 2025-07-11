@@ -71,7 +71,6 @@ typedef struct{
 typedef struct{
     const char*             compressType;
     const char*             strongChecksumType;
-    size_t                  kStrongChecksumByteSize;
     size_t                  savedStrongChecksumByteSize;
     size_t                  savedRollHashByteSize;
     size_t                  savedStrongChecksumBits;
@@ -80,6 +79,8 @@ typedef struct{
     uint32_t                kSyncBlockSize;
     uint32_t                samePairCount;
     uint8_t                 isDirSyncInfo;
+    uint8_t                 isNotCheckChecksumNewWhenMatch; //run newData's checkChecksum, default is false
+    uint8_t                 isSeqMatch;//default is false
     uint8_t                 decompressInfoSize;
     uint8_t                 decompressInfo[kDecompressInfoMaxSize];
     hpatch_StreamPos_t      newDataSize;      // newData version size;
@@ -98,7 +99,8 @@ typedef struct{
     TNewDataSyncInfo_dir    dirInfo;
     size_t                  dirInfoSavedSize;
 #endif
-    hpatch_TChecksum*       _strongChecksumPlugin;
+    hpatch_TChecksum*       strongChecksumPlugin;
+    hpatch_TChecksum*       fileChecksumPlugin;
     hsync_TDictDecompress*  _decompressPlugin;
     void*                   _import;
 } TNewDataSyncInfo;

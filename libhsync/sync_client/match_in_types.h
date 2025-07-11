@@ -26,6 +26,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
  */
+#ifndef match_in_types_h
+#define match_in_types_h
 #include "string.h" //memmove
 #include <algorithm> //sort, equal_range lower_bound
 #include "sync_client_type_private.h"
@@ -44,10 +46,7 @@
 using namespace hdiff_private;
 namespace sync_private{
 
-#define check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
-#define checkv(value)     check(value,"check "#value" error!")
-
-//kIsSkipMatchedBlock 0: roll byte by byte  1: skip matched block, speed++, but patchSize+  2: skip next matched block  3: skip continue matched block 
+//kIsSkipMatchedBlock 0: roll byte by byte  1: skip matched block, speed++, but patchSize+
 #define     kIsSkipMatchedBlock     1
 static const int kMatchHitOutLimit =16;       //limit match deep
 static const size_t kBestReadSize  =1024*256; //for sequence read
@@ -59,26 +58,27 @@ typedef unsigned char TByte;
 typedef uint64_t tm_roll_uint;
 
 struct TIndex_comp0{
-    inline explicit TIndex_comp0(const uint8_t* _hashs,size_t _byteSize)
-    :hashs(_hashs),byteSize(_byteSize){ }
+    inline explicit TIndex_comp0(const uint8_t* _hashs,size_t _byteSize,bool isSeqMatch=false)
+    :hashs(_hashs),byteSize(_byteSize),cmpSize(_byteSize*(isSeqMatch?2:1)){ }
     typedef uint32_t TIndex;
     struct TDigest{
         const uint8_t*  digests;
         inline explicit TDigest(const uint8_t* _digests):digests(_digests){}
     };
     inline bool operator()(const TIndex x,const TDigest& y)const { //for equal_range
-        return _cmp(hashs+x*byteSize,y.digests,byteSize)<0; }
+        return _cmp(hashs+x*byteSize,y.digests,cmpSize)<0; }
     bool operator()(const TDigest& x,const TIndex y)const { //for equal_range
-        return _cmp(x.digests,hashs+y*byteSize,byteSize)<0; }
+        return _cmp(x.digests,hashs+y*byteSize,cmpSize)<0; }
     
     inline bool operator()(const TIndex x, const TIndex y)const {//for sort
-        return _cmp(hashs+x*byteSize,hashs+y*byteSize,byteSize)<0; }
+        return _cmp(hashs+x*byteSize,hashs+y*byteSize,cmpSize)<0; }
 protected:
     const uint8_t*  hashs;
     size_t          byteSize;
+    size_t          cmpSize;
 public:
-    inline static int _cmp(const uint8_t* px,const uint8_t* py,size_t byteSize){
-        const uint8_t* px_end=px+byteSize;
+    inline static int _cmp(const uint8_t* px,const uint8_t* py,size_t cmpSize){
+        const uint8_t* px_end=px+cmpSize;
         for (;px!=px_end;++px,++py){
             int sub=(int)(*px)-(*py);
             if (sub!=0) return sub; //value sort
@@ -89,11 +89,12 @@ public:
 
 struct TIndex_comp01{
     inline explicit TIndex_comp01(const uint8_t* _hashs0,size_t _byteSize0,
-                                  const uint8_t* _hashs1,size_t _byteSize1)
-    :hashs0(_hashs0),hashs1(_hashs1),byteSize0(_byteSize0),byteSize1(_byteSize1){ }
+                                  const uint8_t* _hashs1,size_t _byteSize1,bool isSeqMatch0=false)
+    :hashs0(_hashs0),hashs1(_hashs1),byteSize0(_byteSize0),byteSize1(_byteSize1),
+        cmpSize0(_byteSize0*(isSeqMatch0?2:1)){ }
     typedef uint32_t TIndex;
     inline bool operator()(const TIndex x, const TIndex y)const {//for sort
-        int cmp0=TIndex_comp0::_cmp(hashs0+x*byteSize0,hashs0+y*byteSize0,byteSize0);
+        int cmp0=TIndex_comp0::_cmp(hashs0+x*byteSize0,hashs0+y*byteSize0,cmpSize0);
         if (cmp0!=0)
             return cmp0<0;
         else
@@ -104,15 +105,16 @@ protected:
     const uint8_t*  hashs1;
     size_t          byteSize0;
     size_t          byteSize1;
+    size_t          cmpSize0;
 };
 
 
 struct TStreamDataCache_base {
     TStreamDataCache_base(const hpatch_TStreamInput* baseStream,hpatch_StreamPos_t streamRollBegin,
-                          hpatch_StreamPos_t streamRollEnd,uint32_t kSyncBlockSize,
+                          hpatch_StreamPos_t streamRollEnd,size_t backupSize,size_t backZeroLen,uint32_t kSyncBlockSize,
                           hpatch_TChecksum* strongChecksumPlugin,void* _readLocker=0);
     ~TStreamDataCache_base();
-    inline hpatch_StreamPos_t streamRollPosEnd()const{ return m_streamRollEnd+m_kSyncBlockSize-1; }
+    inline hpatch_StreamPos_t streamRollPosEnd()const{ return m_streamRollEnd+m_kBackZeroLen; }
     void _cache();
 
     inline bool isRollEnded()const{ return m_cur>m_cache.data_end(); }
@@ -133,7 +135,9 @@ protected:
     TAutoMem                m_cache;
     TByte*                  m_strongChecksum_buf;
     TByte*                  m_cur;
-    uint32_t                m_kSyncBlockSize;
+    const size_t            m_kBackZeroLen; //default kSyncBlockSize-1
+    const size_t            m_kBackupSize; //default 0
+    const uint32_t          m_kSyncBlockSize;
     uint32_t                m_checksumByteSize;
     hpatch_TChecksum*       m_strongChecksumPlugin;
     hpatch_checksumHandle   m_checksumHandle;
@@ -148,16 +152,11 @@ struct TStreamDataRoll:public TStreamDataCache_base {
     inline TStreamDataRoll(const hpatch_TStreamInput* baseStream,hpatch_StreamPos_t streamRollBegin,
                             hpatch_StreamPos_t streamRollEnd,uint32_t kSyncBlockSize,
                             hpatch_TChecksum* strongChecksumPlugin,void* _readLocker=0)
-            :TStreamDataCache_base(baseStream,streamRollBegin,streamRollEnd,kSyncBlockSize,
-                                   strongChecksumPlugin,_readLocker){
+            :TStreamDataCache_base(baseStream,streamRollBegin,streamRollEnd,0,kSyncBlockSize-1,kSyncBlockSize,
+                                   strongChecksumPlugin,_readLocker),m_rollHash(0){
                 if (isRollEnded()) return;
                 m_rollHash=roll_hash_start(m_cur,m_kSyncBlockSize);
             }
-    bool _cacheAndRoll(){
-        TStreamDataCache_base::_cache();
-        if (isRollEnded()) return false;
-        return roll();
-    }
     inline tm_roll_uint hashValue()const{ return m_rollHash; }
     inline bool roll(){
         const TByte* curIn=m_cur+m_kSyncBlockSize;
@@ -179,10 +178,16 @@ struct TStreamDataRoll:public TStreamDataCache_base {
         m_rollHash=roll_hash_start(m_cur,m_kSyncBlockSize);
         return true;
     }
+    inline const uint8_t* partHashNext(size_t savedRollHashByteSize){ return 0; } //not used
 protected:
     tm_roll_uint            m_rollHash;
-};
 
+    bool _cacheAndRoll(){
+        TStreamDataCache_base::_cache();
+        if (isRollEnded()) return false;
+        return roll();
+    }
+};
 
 const uint32_t* getSortedIndexs(TAutoMem& _mem_sorted,const TNewDataSyncInfo* newSyncInfo,
                                 TBloomFilter<tm_roll_uint>& filter);
@@ -190,3 +195,4 @@ const uint32_t* getSortedIndexsTable(TAutoMem& _mem_table,const TNewDataSyncInfo
                                      const uint32_t* sorted_newIndexs,unsigned int* out_kTableHashShlBit);
 
 } //namespace sync_private
+#endif //match_in_types_h

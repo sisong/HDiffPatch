@@ -32,9 +32,6 @@
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 
 namespace sync_private{
-
-hpatch_inline static void
-TNewDataSyncInfo_init(TNewDataSyncInfo* self) { memset(self,0,sizeof(*self)); }
     
 hpatch_inline static
 hpatch_StreamPos_t TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self){
@@ -87,53 +84,13 @@ void toPartChecksum(unsigned char* out_partChecksum,size_t outPartBits,
 static hpatch_inline
 size_t checkChecksumBufByteSize(size_t kStrongChecksumByteSize){
         return kStrongChecksumByteSize*3; }
-static hpatch_inline
-void checkChecksumInit(unsigned char* checkChecksumBuf,size_t kStrongChecksumByteSize){
-        unsigned char* d_xor=checkChecksumBuf+kStrongChecksumByteSize;
-        assert(kStrongChecksumByteSize>0);
-        memset(d_xor,0xFF,kStrongChecksumByteSize); }
-
-    static hpatch_inline
-    void _writeUInt32(unsigned char* dst,uint32_t v){
-        dst[0]=(unsigned char)v;       dst[1]=(unsigned char)(v>>8);
-        dst[2]=(unsigned char)(v>>16); dst[3]=(unsigned char)(v>>24); }
-
-static hpatch_inline
+void checkChecksumInit(unsigned char* checkChecksumBuf,size_t kStrongChecksumByteSize);
 void checkChecksumAppendData(unsigned char* checkChecksumBuf,uint32_t checksumIndex,
                              hpatch_TChecksum* checkChecksumPlugin,hpatch_checksumHandle checkChecksum,
-                             const unsigned char* strongChecksum,size_t kStrongChecksumByteSize){
-    unsigned char* d_xor=checkChecksumBuf+kStrongChecksumByteSize;
-    unsigned char* d_xor_end=d_xor+kStrongChecksumByteSize;
-    unsigned char* _ccBuf=checkChecksumBuf+kStrongChecksumByteSize*2;
+                             const unsigned char* strongChecksum,const unsigned char* blockData,size_t blockDataSize);
 
-    unsigned char _checksumIndex[4*3];
-    _writeUInt32(&_checksumIndex[0],checksumIndex);
-    const uint64_t _fchecksum=fast_adler64_start(&_checksumIndex[0],4);
-    _writeUInt32(&_checksumIndex[4],(uint32_t)_fchecksum);
-    _writeUInt32(&_checksumIndex[4*2],(uint32_t)(_fchecksum>>32));
-
-    checkChecksumPlugin->begin(checkChecksum);
-    checkChecksumPlugin->append(checkChecksum,&_checksumIndex[0],(&_checksumIndex[0])+4*3);
-    checkChecksumPlugin->append(checkChecksum,strongChecksum,strongChecksum+kStrongChecksumByteSize);
-    checkChecksumPlugin->end(checkChecksum,_ccBuf,_ccBuf+kStrongChecksumByteSize);
-
-    while (d_xor<d_xor_end){
-        (*d_xor++)^=*_ccBuf++;
-    }
-}
-static hpatch_inline
-void checkChecksumEndTo(unsigned char* dst,
-                        const unsigned char* checkChecksumBuf,size_t kStrongChecksumByteSize){
-    const unsigned char* d_xor=checkChecksumBuf+kStrongChecksumByteSize;
-    const unsigned char* d_xor_end=d_xor+kStrongChecksumByteSize;
-    while (d_xor<d_xor_end){
-        *dst++=(*d_xor++);
-    }
-}
-static hpatch_inline
-void checkChecksumEnd(unsigned char* checkChecksumBuf,size_t kStrongChecksumByteSize){
-    return checkChecksumEndTo(checkChecksumBuf,checkChecksumBuf,kStrongChecksumByteSize); }
-
+void checkChecksumEndTo(unsigned char* dst,unsigned char* checkChecksumBuf,
+                        hpatch_TChecksum* checkChecksumPlugin,hpatch_checksumHandle checkChecksum);
     
 static hpatch_inline
 void writeRollHashBytes(uint8_t* out_part,uint64_t partRollHash,size_t savedRollHashByteSize){

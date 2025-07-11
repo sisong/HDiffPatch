@@ -36,6 +36,50 @@ namespace sync_private{
 #define check(v,errorCode) \
             do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
                             if (!_inClear) goto clear; } }while(0)
+void checkChecksumInit(unsigned char* checkChecksumBuf,size_t kStrongChecksumByteSize){
+        unsigned char* d_xor=checkChecksumBuf+kStrongChecksumByteSize;
+        assert(kStrongChecksumByteSize>0);
+        memset(d_xor,0xFF,kStrongChecksumByteSize); }
+
+    static hpatch_inline
+    void _writeUInt32(unsigned char* dst,uint32_t v){
+        dst[0]=(unsigned char)v;       dst[1]=(unsigned char)(v>>8);
+        dst[2]=(unsigned char)(v>>16); dst[3]=(unsigned char)(v>>24); }
+
+void checkChecksumAppendData(unsigned char* checkChecksumBuf,uint32_t checksumIndex,
+                             hpatch_TChecksum* checkChecksumPlugin,hpatch_checksumHandle checkChecksum,
+                             const unsigned char* blockChecksum,const unsigned char* blockData,size_t blockDataSize){
+    const size_t kStrongChecksumByteSize=checkChecksumPlugin->checksumByteSize();
+    unsigned char* d_xor=checkChecksumBuf+kStrongChecksumByteSize;
+    unsigned char* d_xor_end=d_xor+kStrongChecksumByteSize;
+    unsigned char* _ccBuf=checkChecksumBuf+kStrongChecksumByteSize*2;
+
+    unsigned char _checksumIndex[4*3];
+    _writeUInt32(&_checksumIndex[0],checksumIndex);
+    const uint64_t _fchecksum=fast_adler64_start(&_checksumIndex[0],4);
+    _writeUInt32(&_checksumIndex[4],(uint32_t)_fchecksum);
+    _writeUInt32(&_checksumIndex[4*2],(uint32_t)(_fchecksum>>32));
+
+    checkChecksumPlugin->begin(checkChecksum);
+    checkChecksumPlugin->append(checkChecksum,&_checksumIndex[0],(&_checksumIndex[0])+4*3);
+    checkChecksumPlugin->append(checkChecksum,blockChecksum,blockChecksum+kStrongChecksumByteSize);
+    checkChecksumPlugin->end(checkChecksum,_ccBuf,_ccBuf+kStrongChecksumByteSize);
+
+    while (d_xor<d_xor_end){
+        (*d_xor++)^=*_ccBuf++;
+    }
+}
+
+void checkChecksumEndTo(unsigned char* dst,unsigned char* checkChecksumBuf,
+                        hpatch_TChecksum* checkChecksumPlugin,hpatch_checksumHandle checkChecksum){
+    const size_t kStrongChecksumByteSize=checkChecksumPlugin->checksumByteSize();
+    const unsigned char* d_xor=checkChecksumBuf+kStrongChecksumByteSize;
+    const unsigned char* d_xor_end=d_xor+kStrongChecksumByteSize;
+    while (d_xor<d_xor_end){
+        *dst++=(*d_xor++);
+    }
+}
+
 
 bool _open_continue_out(hpatch_BOOL& isOutContinue,const char* outFile,hpatch_TFileStreamOutput* out_stream,
                         hpatch_TStreamInput* continue_stream,hpatch_StreamPos_t maxContinueLength){
@@ -71,23 +115,6 @@ size_t _indexOfCompressedSyncBlock(const TNewDataSyncInfo* self,const hpatch_Str
     return ~(size_t)0;
 }
 
-struct _TWriteDatas {
-    const hpatch_TStreamOutput* out_newStream;
-    const hpatch_TStreamInput*  newDataContinue;
-    const hpatch_TStreamOutput* out_diffStream;
-    hpatch_StreamPos_t          outDiffDataPos;
-    const hpatch_TStreamInput*  oldStream;
-    const TNewDataSyncInfo*     newSyncInfo;
-    const TNeedSyncInfos*       needSyncInfo;
-    const hpatch_StreamPos_t*   newBlockDataInOldPoss;
-    TSyncDiffData*              continueDiffData;
-    uint32_t                    needSyncBlockCount;
-    bool                        isLocalPatch;
-    hpatch_TChecksum*           strongChecksumPlugin;
-    hpatch_checksumHandle       checkChecksum;
-    hsync_TDictDecompress*      decompressPlugin;
-    IReadSyncDataListener*      syncDataListener;
-};
     
 #define _checkSumNewDataBuf() { \
     if (newDataSize<kSyncBlockSize)/*for backZeroLen*/ \
@@ -96,19 +123,29 @@ struct _TWriteDatas {
     strongChecksumPlugin->append(checksumSync,dataBuf,dataBuf+kSyncBlockSize); \
     strongChecksumPlugin->end(checksumSync,checksumSync_buf+newSyncInfo->savedStrongChecksumByteSize,    \
                               checksumSync_buf+newSyncInfo->savedStrongChecksumByteSize \
-                                  +newSyncInfo->kStrongChecksumByteSize);\
+                                  +kStrongChecksumByteSize);\
     toPartChecksum(checksumSync_buf,newSyncInfo->savedStrongChecksumBits, \
                    checksumSync_buf+newSyncInfo->savedStrongChecksumByteSize, \
-                   newSyncInfo->kStrongChecksumByteSize);   \
+                   kStrongChecksumByteSize);   \
     check(0==memcmp(checksumSync_buf,   \
                     newSyncInfo->partChecksums+i*newSyncInfo->savedStrongChecksumByteSize,   \
                     newSyncInfo->savedStrongChecksumByteSize),kSyncClient_checksumSyncDataError);    \
 }
 
+
 static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd,bool& isNeed_readSyncDataEnd) {
+    _IWriteToNewOrDiff_by wr_by={0};
+    wr_by.checkChecksumAppendData=checkChecksumAppendData;
+    return _writeToNewOrDiff_by(&wr_by,wd,isNeed_readSyncDataEnd);
+}
+
+TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWriteDatas& wd,bool& isNeed_readSyncDataEnd) {
     const TNewDataSyncInfo* newSyncInfo=wd.newSyncInfo;
     IReadSyncDataListener*  syncDataListener=wd.syncDataListener;
-    hpatch_TChecksum*       strongChecksumPlugin=wd.strongChecksumPlugin;
+    hpatch_TChecksum*       fileChecksumPlugin=newSyncInfo->fileChecksumPlugin;
+    const size_t fileChecksumByteSize=fileChecksumPlugin?fileChecksumPlugin->checksumByteSize():0;
+    hpatch_TChecksum*       strongChecksumPlugin=newSyncInfo->strongChecksumPlugin;
+    const size_t            kStrongChecksumByteSize=strongChecksumPlugin->checksumByteSize();
     TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
@@ -128,8 +165,7 @@ static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd,bool& isNeed_rea
     if (lastCompressedIndex>=kBlockCount)
         wd.decompressPlugin=0;//no blocks need decompress
     const size_t _memSize=(size_t)kSyncBlockSize*(wd.decompressPlugin?3:1)
-                        +newSyncInfo->kStrongChecksumByteSize
-                        +checkChecksumBufByteSize(newSyncInfo->kStrongChecksumByteSize);
+                        +newSyncInfo->savedStrongChecksumByteSize+kStrongChecksumByteSize;
     _memBuf=(TByte*)malloc(_memSize);
     check(_memBuf!=0,kSyncClient_memError);
     checksumSync_buf=_memBuf+(size_t)kSyncBlockSize*(wd.decompressPlugin?3:1);
@@ -213,11 +249,12 @@ static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd,bool& isNeed_rea
             bool isNeedChecksumAppend=isNeedSync|wd.isLocalPatch|(wd.continueDiffData!=0);
             if (isNeedChecksumAppend|isOnNewDataContinue)
                 _checkSumNewDataBuf();
-            if (isNeedChecksumAppend)
-                checkChecksumAppendData(newSyncInfo->savedNewDataCheckChecksum,i,
-                                        strongChecksumPlugin,wd.checkChecksum,
-                                        checksumSync_buf+wd.newSyncInfo->savedStrongChecksumByteSize,
-                                        newSyncInfo->kStrongChecksumByteSize);
+            if (newSyncInfo->fileChecksumPlugin&&
+                 (newSyncInfo->isNotCheckChecksumNewWhenMatch||isNeedChecksumAppend))
+                wr_by->checkChecksumAppendData(newSyncInfo->savedNewDataCheckChecksum,i,
+                                               fileChecksumPlugin,wd.checkChecksum,
+                                               checksumSync_buf+wd.newSyncInfo->savedStrongChecksumByteSize,
+                                               dataBuf,newDataSize);
             if ((!isOnNewDataContinue)&&wd.out_newStream){
                 check(wd.out_newStream->write(wd.out_newStream,outNewDataPos,dataBuf,
                                               dataBuf+newDataSize), kSyncClient_writeNewDataError);
@@ -280,9 +317,27 @@ TSyncClient_resultType
                 const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,
                 const hpatch_TStreamOutput* out_diffStream,TSyncDiffType diffType,
                 const hpatch_TStreamInput* diffContinue,int threadNum){
+    _ISyncPatch_by sp_by={0};
+    sp_by.matchNewDataInOld=matchNewDataInOld;
+    sp_by.writeToNewOrDiff=writeToNewOrDiff;
+    sp_by.checkChecksumInit=checkChecksumInit;
+    sp_by.checkChecksumEndTo=checkChecksumEndTo;
+    return _sync_patch_by(&sp_by, listener,syncDataListener,diffData,oldStream,newSyncInfo,
+                          out_newStream,newDataContinue,out_diffStream,diffType,diffContinue,threadNum);
+}
+
+
+TSyncClient_resultType 
+    _sync_patch_by(_ISyncPatch_by* sp_by,
+                   ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,TSyncDiffData* diffData,
+                   const hpatch_TStreamInput* oldStream,const TNewDataSyncInfo* newSyncInfo,
+                   const hpatch_TStreamOutput* out_newStream,const hpatch_TStreamInput* newDataContinue,
+                   const hpatch_TStreamOutput* out_diffStream,TSyncDiffType diffType,
+                   const hpatch_TStreamInput* diffContinue,int threadNum){
     assert(listener!=0);
     hsync_TDictDecompress* decompressPlugin=0;
-    hpatch_TChecksum*   strongChecksumPlugin=0;
+    hpatch_TChecksum*   fileChecksumPlugin=newSyncInfo->fileChecksumPlugin;
+    const size_t fileChecksumByteSize=fileChecksumPlugin?fileChecksumPlugin->checksumByteSize():0;
     hpatch_checksumHandle checkChecksum=0;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     TNeedSyncInfosImport needSyncInfo; memset(&needSyncInfo,0,sizeof(needSyncInfo));
@@ -306,21 +361,12 @@ TSyncClient_resultType
             check(decompressPlugin!=0,kSyncClient_noDecompressPluginError);
         }
     }
-    //strongChecksumPlugin
-    if ((newSyncInfo->_strongChecksumPlugin!=0)
-        &&(newSyncInfo->kStrongChecksumByteSize==newSyncInfo->_strongChecksumPlugin->checksumByteSize())
-        &&(0==strcmp(newSyncInfo->strongChecksumType,newSyncInfo->_strongChecksumPlugin->checksumType()))){
-        strongChecksumPlugin=newSyncInfo->_strongChecksumPlugin;
-    }else{
-        strongChecksumPlugin=listener->findChecksumPlugin(listener,newSyncInfo->strongChecksumType);
-        check(strongChecksumPlugin!=0,kSyncClient_noStrongChecksumPluginError);
-        check(strongChecksumPlugin->checksumByteSize()==newSyncInfo->kStrongChecksumByteSize,
-              kSyncClient_strongChecksumByteSizeError);
+    //fileChecksumPlugin
+    if (newSyncInfo->fileChecksumPlugin){
+        sp_by->checkChecksumInit(newSyncInfo->savedNewDataCheckChecksum,fileChecksumByteSize);
+        checkChecksum=fileChecksumPlugin->open(fileChecksumPlugin);
+        check(checkChecksum!=0,kSyncClient_strongChecksumOpenError);
     }
-    checkChecksumInit(newSyncInfo->savedNewDataCheckChecksum,newSyncInfo->kStrongChecksumByteSize);
-    checkChecksum=strongChecksumPlugin->open(strongChecksumPlugin);
-    check(checkChecksum!=0,kSyncClient_strongChecksumOpenError);
-
     //matched in oldData
     newBlockDataInOldPoss=(hpatch_StreamPos_t*)malloc(kBlockCount*(size_t)sizeof(hpatch_StreamPos_t));
     check(newBlockDataInOldPoss!=0,kSyncClient_memError);
@@ -329,7 +375,7 @@ TSyncClient_resultType
         assert(diffContinue==0);
         check(_TSyncDiffData_readOldPoss(diffData,newBlockDataInOldPoss,kBlockCount,newSyncInfo->kSyncBlockSize,
                                          oldStream->streamSize,newSyncInfo->savedNewDataCheckChecksum,
-                                         newSyncInfo->kStrongChecksumByteSize), kSyncClient_loadDiffError);
+                                         fileChecksumByteSize), kSyncClient_loadDiffError);
         isLoadedOldPoss=(diffData->diffType!=kSyncDiff_data);
         if (!isLoadedOldPoss) isReMatchInOld=true;
         syncDataListener=diffData;
@@ -340,7 +386,7 @@ TSyncClient_resultType
             if (_TSyncDiffData_load(&continueDiffData,diffContinue)){
                 if (_TSyncDiffData_readOldPoss(&continueDiffData,newBlockDataInOldPoss,kBlockCount,
                                                newSyncInfo->kSyncBlockSize,oldStream->streamSize,
-                                               newSyncInfo->savedNewDataCheckChecksum,newSyncInfo->kStrongChecksumByteSize)){
+                                               newSyncInfo->savedNewDataCheckChecksum,fileChecksumByteSize)){
                     isLoadedOldPoss=(continueDiffData.diffType!=kSyncDiff_data);//ok diffContinue
                     if (!isLoadedOldPoss) isReMatchInOld=true;
                 }else
@@ -351,11 +397,11 @@ TSyncClient_resultType
     }
     if (!isLoadedOldPoss){
         try{
-            matchNewDataInOld(newBlockDataInOldPoss,newSyncInfo,oldStream,strongChecksumPlugin,
-                              ((diffType==kSyncDiff_data)||isReMatchInOld)?1:threadNum);
+            sp_by->matchNewDataInOld(newBlockDataInOldPoss,newSyncInfo,oldStream,
+                                     ((diffType==kSyncDiff_data)||isReMatchInOld)?1:threadNum);
             if (isReMatchInOld){
-                checkChecksumInit(newSyncInfo->savedNewDataCheckChecksum,
-                                    newSyncInfo->kStrongChecksumByteSize);
+                sp_by->checkChecksumInit(newSyncInfo->savedNewDataCheckChecksum,
+                                         fileChecksumByteSize);
             }
         }catch(const std::exception& e){
             fprintf(stderr,"matchNewDataInOld() run an error: %s",e.what());
@@ -367,7 +413,7 @@ TSyncClient_resultType
     if ((out_diffStream!=0)){
         if (diffContinue==0){
             check(_saveSyncDiffData(newBlockDataInOldPoss,kBlockCount,newSyncInfo->kSyncBlockSize,oldStream->streamSize,
-                                    newSyncInfo->savedNewDataCheckChecksum,newSyncInfo->kStrongChecksumByteSize,
+                                    newSyncInfo->savedNewDataCheckChecksum,fileChecksumByteSize,
                                     out_diffStream,diffType,&outDiffDataPos),kSyncClient_saveDiffError);
         }else{ // continue local diff
             outDiffDataPos=continueDiffData.diffDataPos0;
@@ -396,18 +442,17 @@ TSyncClient_resultType
         writeDatas.newBlockDataInOldPoss=newBlockDataInOldPoss;
         writeDatas.needSyncBlockCount=needSyncInfo.needSyncBlockCount;
         writeDatas.decompressPlugin=decompressPlugin;
-        writeDatas.strongChecksumPlugin=strongChecksumPlugin;
         writeDatas.checkChecksum=checkChecksum;
         writeDatas.syncDataListener=syncDataListener;
         writeDatas.continueDiffData=diffContinue?&continueDiffData:0;
         writeDatas.isLocalPatch=(diffData!=0);
-        result=writeToNewOrDiff(writeDatas,isNeed_readSyncDataEnd);
+        result=sp_by->writeToNewOrDiff(writeDatas,isNeed_readSyncDataEnd);
         
-        if (/*(*/result==kSyncClient_ok/*)&&out_newStream*/){
-            checkChecksumEndTo(newSyncInfo->savedNewDataCheckChecksum+newSyncInfo->kStrongChecksumByteSize,
-                               newSyncInfo->savedNewDataCheckChecksum,newSyncInfo->kStrongChecksumByteSize);
-            check(0==memcmp(newSyncInfo->savedNewDataCheckChecksum+newSyncInfo->kStrongChecksumByteSize,
-                            newSyncInfo->savedNewDataCheckChecksum,newSyncInfo->kStrongChecksumByteSize),
+        if ((result==kSyncClient_ok)&&newSyncInfo->fileChecksumPlugin){
+            sp_by->checkChecksumEndTo(newSyncInfo->savedNewDataCheckChecksum+fileChecksumByteSize,
+                                      newSyncInfo->savedNewDataCheckChecksum,fileChecksumPlugin,checkChecksum);
+            check(0==memcmp(newSyncInfo->savedNewDataCheckChecksum+fileChecksumByteSize,
+                            newSyncInfo->savedNewDataCheckChecksum,fileChecksumByteSize),
                   kSyncClient_newDataCheckChecksumError);
         }
     }
@@ -416,7 +461,7 @@ clear:
     _inClear=1;
     if (isNeed_readSyncDataEnd&&(syncDataListener->readSyncDataEnd))
         syncDataListener->readSyncDataEnd(syncDataListener);
-    if (checkChecksum) strongChecksumPlugin->close(strongChecksumPlugin,checkChecksum);
+    if (checkChecksum) fileChecksumPlugin->close(fileChecksumPlugin,checkChecksum);
     if (newBlockDataInOldPoss) free(newBlockDataInOldPoss);
     return result;
 }
