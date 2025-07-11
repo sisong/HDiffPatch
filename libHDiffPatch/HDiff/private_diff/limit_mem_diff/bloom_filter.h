@@ -45,15 +45,16 @@ namespace hdiff_private{
 
 class TBitSet{
 public:
+    typedef size_t value_type;
     inline TBitSet():m_bits(0),m_bitSize(0){}
     inline ~TBitSet(){ clear(0); }
     
-    inline void set(size_t bitIndex){
+    inline void insert(size_t bitIndex){
         //assert(bitIndex<m_bitSize);
         m_bits[bitIndex>>kBaseShr] |= ((base_t)1<<(bitIndex&kBaseMask));
     }
 #if (_IS_USED_MULTITHREAD)
-    inline void set_MT(size_t bitIndex){
+    inline void insert_MT(size_t bitIndex){
         //assert(bitIndex<m_bitSize);
       #if (_IS_USED__sync_fetch_and_or)
         __sync_fetch_and_or(&m_bits[bitIndex>>kBaseShr],((base_t)1<<(bitIndex&kBaseMask)));
@@ -100,6 +101,7 @@ template <class T>
 class TBloomFilter{
 public:
     enum { kZoomMin=3, kZoomBig=32 };
+    typedef T value_type;
 
     inline TBloomFilter():m_bitSetMask(0){}
     inline void clear(){ m_bitSet.clear(0); }
@@ -109,21 +111,21 @@ public:
     }
     inline size_t bitSize()const{ return m_bitSet.bitSize(); }
     inline void insert(T data){
-        m_bitSet.set(hash0(data));
-        m_bitSet.set(hash1(data));
-        m_bitSet.set(hash2(data));
+        m_bitSet.insert(hash0(data)&m_bitSetMask);
+        m_bitSet.insert(hash1(data)&m_bitSetMask);
+        m_bitSet.insert(hash2(data)&m_bitSetMask);
     }
 #if (_IS_USED_MULTITHREAD)
     inline void insert_MT(T data){
-        m_bitSet.set_MT(hash0(data));
-        m_bitSet.set_MT(hash1(data));
-        m_bitSet.set_MT(hash2(data));
+        m_bitSet.insert_MT(hash0(data)&m_bitSetMask);
+        m_bitSet.insert_MT(hash1(data)&m_bitSetMask);
+        m_bitSet.insert_MT(hash2(data)&m_bitSetMask);
     }
 #endif
     inline bool is_hit(T data)const{
-        return m_bitSet.is_hit(hash0(data))
-            && m_bitSet.is_hit(hash1(data))
-            && m_bitSet.is_hit(hash2(data));
+        return m_bitSet.is_hit(hash0(data)&m_bitSetMask)
+            && m_bitSet.is_hit(hash1(data)&m_bitSetMask)
+            && m_bitSet.is_hit(hash2(data)&m_bitSetMask);
     }
 private:
     TBitSet   m_bitSet;
@@ -140,10 +142,9 @@ private:
         return ((size_t)1<<bit)-1;
     }
     
-    inline size_t hash0(T key)const { return (key^(key>>(sizeof(T)*4)))&m_bitSetMask; }
-    inline size_t hash1(T key)const { return ((~key)+(key << (sizeof(T)*2+1))+1)%m_bitSetMask; }
-    inline size_t hash2(T key)const {
-        size_t h=(sizeof(T)>4)?_hash2_64(key):_hash2_32((size_t)key); return h%(m_bitSetMask-1); }
+    inline size_t hash0(T key)const { return (key^(key>>(sizeof(T)*4+1))); }
+    inline size_t hash1(T key)const { return ((~key)+(key<<(sizeof(T)*2+4))); }
+    inline size_t hash2(T key)const { return (sizeof(T)>4)?_hash2_64(key):_hash2_32((size_t)key); }
     static size_t _hash2_32(size_t key){//from: https://gist.github.com/badboy/6267743
         const size_t c2=0x27d4eb2d; // a prime or an odd constant
         key = (key ^ 61) ^ (key >> 16);
