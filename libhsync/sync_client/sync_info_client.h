@@ -93,6 +93,13 @@ typedef enum TSyncClient_resultType{
     kSyncClient_newDirPatchBeginError,
     kSyncClient_newDirPatchFinishError,
 
+    kSyncClient_newZsyncInfoTypeError=100,
+    kSyncClient_newZsyncInfoOpenError,
+    kSyncClient_newZsyncInfoCloseError,
+    kSyncClient_newZsyncInfoDataError,
+    kSyncClient_newZsyncInfoMinVersionError,
+    kSyncClient_newZsyncInfoBlocksizeTooSmallError,
+
     kSyncClient_ERROR_CODE_MAX = 200,
 } TSyncClient_resultType;
 

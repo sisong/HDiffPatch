@@ -1,0 +1,274 @@
+//  zsync_info_client.cpp
+//  zsync_client for hsynz
+//  Created by housisong on 2025-06-28.
+/*
+ The MIT License (MIT)
+ Copyright (c) 2025 HouSisong
+ 
+ Permission is hereby granted, free of charge, to any person
+ obtaining a copy of this software and associated documentation
+ files (the "Software"), to deal in the Software without
+ restriction, including without limitation the rights to use,
+ copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following
+ conditions:
+ 
+ The above copyright notice and this permission notice shall be
+ included in all copies of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ OTHER DEALINGS IN THE SOFTWARE.
+ */
+#include "zsync_info_client.h"
+#include "zsync_client_type_private.h"
+#include "../../file_for_patch.h"
+#include "../../libHDiffPatch/HPatch/patch_private.h"
+#include "../../_atosize.h"
+#include "../../_hextobytes.h"
+#include <stdio.h> //sscanf
+
+namespace sync_private{
+#ifdef  check
+# undef check
+#endif
+#define check(v,errorCode) \
+            do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
+                            if (!_inClear) goto clear; } }while(0)
+
+static const char* kZsync_VERSION="0.6.3"; //now supported zsync version
+
+} //namespace sync_private
+using namespace sync_private;
+
+static char* _readZsyncStr(TStreamCacheClip* newSyncInfo_clip,char* out_str,size_t strBufLen){
+    if (!_TStreamCacheClip_readStr_end(newSyncInfo_clip,'\n',out_str,strBufLen))
+        return 0; //error
+    int strLen=(int)strlen(out_str);
+    if (strLen==0) return out_str; //key-value empty, end loop
+    while (strLen>0){
+        char& c=out_str[--strLen];
+        if ((c=='\r')||(c=='\n')||(c==' ')) c=0;//remove end '\r' '\n' ' '
+        else break;
+    }
+    char* pv = strchr(out_str,':');
+    if (pv==0) return 0; //error
+    *pv++=0; //split key and value
+    if (*pv==' ') ++pv; //remove value begin ' '
+    return pv;
+}
+
+static const size_t kMaxZsyncStrLine=1024;
+static
+TSyncClient_resultType _checkNewZsyncInfoType(TStreamCacheClip* newSyncInfo_clip){
+    char  key[kMaxZsyncStrLine];
+    TSyncClient_resultType result=kSyncClient_ok;
+    int _inClear=0;
+    const char* value=_readZsyncStr(newSyncInfo_clip,key,sizeof(key));
+    check(value!=0,kSyncClient_newZsyncInfoTypeError);
+    check(0==strcmp(key,"zsync"),kSyncClient_newZsyncInfoTypeError);
+    check(0!=strcmp(value,"0.0.4"),kSyncClient_newZsyncInfoTypeError);//not compatible with zsync 0.0.4
+clear:
+    _inClear=1;
+    return result;
+}
+
+TSyncClient_resultType checkNewZsyncInfoType(const hpatch_TStreamInput* newSyncInfo){
+    TStreamCacheClip    clip;
+    TByte temp_cache[hpatch_kStreamCacheSize];
+    static_assert(hpatch_kStreamCacheSize>=kMaxZsyncStrLine,"hpatch_kStreamCacheSize must be >= kMaxZsyncStrLine");
+    _TStreamCacheClip_init(&clip,newSyncInfo,0,newSyncInfo->streamSize,temp_cache,sizeof(temp_cache));
+    return _checkNewZsyncInfoType(&clip);
+}
+
+TSyncClient_resultType checkNewZsyncInfoType_by_file(const char* newSyncInfoFile){
+    hpatch_TFileStreamInput  newSyncInfo;
+    hpatch_TFileStreamInput_init(&newSyncInfo);
+    TSyncClient_resultType result=kSyncClient_ok;
+    int _inClear=0;
+    check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoFile), kSyncClient_newZsyncInfoOpenError);
+    result=checkNewZsyncInfoType(&newSyncInfo.base);
+clear:
+    _inClear=1;
+    check(hpatch_TFileStreamInput_close(&newSyncInfo), kSyncClient_newZsyncInfoCloseError);
+    return result;
+}
+
+
+static bool read2PartHashTo(TStreamCacheClip* clip,TByte* partRHash,size_t partRBytes,
+                            TByte* partSHash,size_t partSBytes,uint32_t kBlockCount){
+     for (size_t i=0; i<kBlockCount; ++i,partRHash+=partRBytes,partSHash+=partSBytes){
+        if (!_TStreamCacheClip_readDataTo(clip,partRHash,partRHash+partRBytes)) return false;
+        if (!_TStreamCacheClip_readDataTo(clip,partSHash,partSHash+partSBytes)) return false;
+    }
+    return true;
+}
+
+static TSyncClient_resultType
+    _TNewDataZsyncInfo_open(TNewDataZsyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+                            ISyncInfoListener *listener){
+    assert(self->_import==0);
+    TSyncClient_resultType result=kSyncClient_ok;
+    int _inClear=0;
+    size_t checksumBytes=20;
+    hpatch_byte _savedNewDataCheckChecksum[20];
+    const char* checksumType="";
+    TStreamCacheClip    clip;
+    hpatch_uint32_t     kBlockCount=0;
+    TByte* temp_cache=0;
+    const size_t kFileIOBufBetterSize=hpatch_kFileIOBufBetterSize;
+
+    self->strongChecksumPlugin=listener->findChecksumPlugin(listener,"md4"); //for oldData
+    check(self->strongChecksumPlugin!=0,kSyncClient_noStrongChecksumPluginError);
+    self->isNotCheckChecksumNewWhenMatch=hpatch_TRUE; //unsupport parallel checksum, check newData's checksum by writeToNew
+
+    temp_cache=(TByte*)malloc(kFileIOBufBetterSize);
+    check(temp_cache!=0,kSyncClient_memError);
+    _TStreamCacheClip_init(&clip,newSyncInfo,0,newSyncInfo->streamSize,
+                            temp_cache,kFileIOBufBetterSize);
+
+    self->fileChecksumPlugin=0;
+    self->isSeqMatch=hpatch_FALSE;
+    self->savedStrongChecksumByteSize=16;//for md4
+    self->savedRollHashByteSize=4; //for adler32
+
+
+    result=_checkNewZsyncInfoType(&clip); //check type
+    check(result==kSyncClient_ok,result);
+    while (1){
+        char  key[kMaxZsyncStrLine];
+        const char* value=_readZsyncStr(&clip,key,sizeof(key));
+        check(value!=0,kSyncClient_newZsyncInfoDataError);
+        if (value==key){ assert(strlen(key)==0); break; }//end of key-value
+
+        if (0==strcmp(key,"Min-Version")){
+            check(strcmp(value,kZsync_VERSION)<=0,kSyncClient_newZsyncInfoMinVersionError);
+        }else if (0==strcmp(key,"Length")){
+            check(a_to_u64(value,strlen(value),&self->newDataSize),kSyncClient_newZsyncInfoDataError);
+        }else if (0==strcmp(key,"Blocksize")){
+            hpatch_uint64_t blockSize;
+            check(a_to_u64(value,strlen(value),&blockSize)
+                    &&(blockSize==(hpatch_uint32_t)blockSize)
+                    &&(blockSize>0)&&(0==(blockSize&(blockSize-1))),kSyncClient_newZsyncInfoDataError);
+            self->kSyncBlockSize=(hpatch_uint32_t)blockSize;
+        }else if (0==strcmp(key,"Hash-Lengths")){
+            int sequentialMatch,savedRollHashBytes,savedStrongChecksumBytes;
+            check((sscanf(value,"%d,%d,%d",&sequentialMatch,&savedRollHashBytes,&savedStrongChecksumBytes)==3)
+                    &&(sequentialMatch>=1)&&(sequentialMatch<=2)
+                    &&(savedRollHashBytes>=1)&&(savedRollHashBytes<=4)
+                    &&(savedStrongChecksumBytes>=3)&&(savedStrongChecksumBytes<=16),kSyncClient_newZsyncInfoDataError);
+            self->savedStrongChecksumByteSize=savedStrongChecksumBytes;
+            self->savedStrongChecksumBits=savedStrongChecksumBytes*8;
+            self->savedRollHashByteSize=savedRollHashBytes;
+            self->savedRollHashBits=savedRollHashBytes*8;
+            self->isSeqMatch=(sequentialMatch>1)?hpatch_TRUE:hpatch_FALSE;
+        }else if (0==strcmp(key,"Z-Map2")){
+            //todo: support z-map2
+            check(hpatch_FALSE,kSyncClient_newZsyncInfoDataError);
+        }else if (0==strcmp(key,"SHA-1")){
+            self->fileChecksumPlugin=listener->findChecksumPlugin(listener,"sha1"); //for newData
+            check(self->fileChecksumPlugin!=0,kSyncClient_noStrongChecksumPluginError);
+            check(checksumBytes==self->fileChecksumPlugin->checksumByteSize(),kSyncClient_noStrongChecksumPluginError);
+            checksumType=self->fileChecksumPlugin->checksumType();
+            check(strlen(value)==checksumBytes*2,kSyncClient_newZsyncInfoDataError);
+            check(hexs_to_bytes(value,checksumBytes*2,_savedNewDataCheckChecksum),kSyncClient_newZsyncInfoDataError);
+        }else{ //ignore key-value
+            continue;
+        }
+    }
+    check((self->newDataSize>0)&&(self->kSyncBlockSize>0),kSyncClient_newZsyncInfoDataError);
+    {
+        hpatch_StreamPos_t v=TNewDataSyncInfo_blockCount(self);
+        kBlockCount=(uint32_t)v;
+        check((kBlockCount==v),kSyncClient_newZsyncInfoBlocksizeTooSmallError);//unsupport too large kBlockCount, need rise Blocksize when make
+    }
+    hpatch_StreamPos_t savedHashDataSize;
+    {
+        savedHashDataSize=(self->savedRollHashByteSize+self->savedStrongChecksumByteSize)*(hpatch_StreamPos_t)kBlockCount;
+        self->newSyncInfoSize=_TStreamCacheClip_readPosOfSrcStream(&clip)+savedHashDataSize;
+        check(newSyncInfo->streamSize>=self->newSyncInfoSize,kSyncClient_newSyncInfoDataError);
+    }
+    hpatch_StreamPos_t memSize;
+    {
+        TByte* curMem=0;
+        memSize=sizeof(hpatch_StreamPos_t)*3+z_checkChecksumBufByteSize(checksumBytes);
+        memSize+=strlen(checksumType)+1; //checksumType
+        memSize+=savedHashDataSize+self->savedRollHashByteSize*2; //adding 2 empty rollHash for isSeqMatch
+
+        check(memSize==(size_t)memSize,kSyncClient_memError);
+        curMem=(TByte*)malloc((size_t)memSize);
+        check(curMem!=0,kSyncClient_memError);
+        self->_import=curMem;
+        
+        self->strongChecksumType=(const char*)curMem;
+        curMem+=strlen(checksumType)+1;
+        memcpy((TByte*)self->strongChecksumType,checksumType,curMem-(TByte*)self->strongChecksumType);
+        {
+            curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
+            self->savedNewDataCheckChecksum=(unsigned char*)curMem;
+            curMem+=z_checkChecksumBufByteSize(checksumBytes);
+            if (self->fileChecksumPlugin)
+                memcpy(self->savedNewDataCheckChecksum,_savedNewDataCheckChecksum,checksumBytes);
+            else
+                memset(self->savedNewDataCheckChecksum,0,checksumBytes);//be zero for null checksum
+        }
+
+        curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
+        memset(curMem,0,self->savedRollHashByteSize); //a empty rollHash
+        self->rollHashs=curMem+self->savedRollHashByteSize;
+        curMem+=self->savedRollHashByteSize*((size_t)kBlockCount+2);//adding 2 empty rollHash for isSeqMatch
+        memset(curMem-self->savedRollHashByteSize,0,self->savedRollHashByteSize); //a empty rollHash
+        curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
+        self->partChecksums=curMem;
+        curMem+=self->savedStrongChecksumByteSize*(size_t)kBlockCount;
+        assert(curMem<=(TByte*)self->_import+memSize);
+    }
+
+    //rollHashs & partStrongChecksums
+    check(read2PartHashTo(&clip, self->rollHashs,self->savedRollHashByteSize,
+                          self->partChecksums,self->savedStrongChecksumByteSize,
+                          kBlockCount), kSyncClient_newZsyncInfoDataError);
+
+clear:
+    _inClear=1;
+    if (result!=kSyncClient_ok) TNewDataZsyncInfo_close(self);
+    if (temp_cache) free(temp_cache);
+    return result;
+}
+
+void TNewDataZsyncInfo_close(TNewDataZsyncInfo* self){
+    if (self==0) return;
+    if (self->_import!=0) free(self->_import);
+    TNewDataZsyncInfo_init(self);
+}
+
+TSyncClient_resultType TNewDataZsyncInfo_open(TNewDataZsyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+                                              ISyncInfoListener* listener){
+    TSyncClient_resultType result=_TNewDataZsyncInfo_open(self,newSyncInfo,listener);
+    if ((result==kSyncClient_ok)&&listener->onLoadedNewSyncInfo)
+        listener->onLoadedNewSyncInfo(listener,self);
+    return result;
+}
+
+TSyncClient_resultType TNewDataZsyncInfo_open_by_file(TNewDataZsyncInfo* self,const char* newSyncInfoFile,
+                                                      ISyncInfoListener *listener){
+    hpatch_TFileStreamInput  newSyncInfo;
+    hpatch_TFileStreamInput_init(&newSyncInfo);
+    TSyncClient_resultType result=kSyncClient_ok;
+    int _inClear=0;
+    check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoFile), kSyncClient_newZsyncInfoOpenError);
+    result=_TNewDataZsyncInfo_open(self,&newSyncInfo.base,listener);
+clear:
+    _inClear=1;
+    check(hpatch_TFileStreamInput_close(&newSyncInfo), kSyncClient_newZsyncInfoCloseError);
+    if ((result==kSyncClient_ok)&&listener->onLoadedNewSyncInfo)
+        listener->onLoadedNewSyncInfo(listener,self);
+    return result;
+}
+
