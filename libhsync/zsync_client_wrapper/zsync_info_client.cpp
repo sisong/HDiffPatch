@@ -110,6 +110,42 @@ static bool read2PartHashTo(TStreamCacheClip* clip,TByte* partRHash,size_t partR
     return true;
 }
 
+
+    #define _DEF_insertOutBits(){ \
+            if ((insert>=kBlockCount)||(curBits!=(uint32_t)curBits)) return false; \
+            savedBits[insert++]=(uint32_t)curBits; \
+            curOuts=0;  \
+            curBits=0; }
+
+static bool readSavedBitsTo(TByte* zmap2_data,size_t zmap2_blocks,TNewDataZsyncInfo* self){
+    size_t kBlockSize=self->kSyncBlockSize;
+    size_t kBlockCount=(size_t)TNewDataSyncInfo_blockCount(self);
+    hpatch_StreamPos_t sumOuts=0;
+    uint32_t* savedBits=self->savedSizes;
+    size_t insert=0,curOuts=0,curBits=0;
+    for (size_t i=0;i<zmap2_blocks;++i,zmap2_data+=4){
+        const uint16_t bits=(((uint16_t)zmap2_data[0])<<8)|zmap2_data[1];
+        uint16_t       outs=(((uint16_t)zmap2_data[2])<<8)|zmap2_data[3];
+        const bool isBorder=((outs>>15)==0);
+        outs&=((1<<15)-1);
+        sumOuts+=outs;
+        if (outs==0){
+            if (((insert==0)&&(curOuts==0))||(insert>=kBlockCount)){ assert(isBorder); continue; }
+        }
+        if (curOuts+outs>kBlockSize){
+            if (curOuts!=kBlockSize) return false;
+            _DEF_insertOutBits();
+        }
+        curOuts+=outs;
+        curBits+=bits;
+    }
+    if (curOuts>0){
+        if (curOuts>kBlockSize) return false;
+        _DEF_insertOutBits();
+    }
+    return (sumOuts==self->newDataSize)&&(insert==kBlockCount)&&(curOuts==0)&&(curBits==0);
+}
+
 static TSyncClient_resultType
     _TNewDataZsyncInfo_open(TNewDataZsyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
                             ISyncInfoListener *listener){
@@ -122,6 +158,8 @@ static TSyncClient_resultType
     TStreamCacheClip    clip;
     hpatch_uint32_t     kBlockCount=0;
     TByte* temp_cache=0;
+    TByte* zmap2_data=0;
+    size_t zmap2_blocks;
     const size_t kFileIOBufBetterSize=hpatch_kFileIOBufBetterSize;
 
     self->strongChecksumPlugin=listener->findChecksumPlugin(listener,"md4"); //for oldData
@@ -169,8 +207,14 @@ static TSyncClient_resultType
             self->savedRollHashBits=savedRollHashBytes*8;
             self->isSeqMatch=(sequentialMatch>1)?hpatch_TRUE:hpatch_FALSE;
         }else if (0==strcmp(key,"Z-Map2")){
-            //todo: support z-map2
-            check(hpatch_FALSE,kSyncClient_newZsyncInfoDataError);
+            hpatch_uint64_t _zmBlocks;
+            const size_t _kZmOneSize=4;
+            check(a_to_u64(value,strlen(value),&_zmBlocks)
+                    &&(_zmBlocks==(((size_t)(_zmBlocks*_kZmOneSize))/_kZmOneSize)),kSyncClient_newZsyncInfoZmap2BlocksError);
+            zmap2_blocks=(size_t)_zmBlocks;
+            zmap2_data=(TByte*)malloc(zmap2_blocks*_kZmOneSize);
+            check(zmap2_data!=0,kSyncClient_memError);
+            check(_TStreamCacheClip_readDataTo(&clip,zmap2_data,zmap2_data+zmap2_blocks*_kZmOneSize), kSyncClient_newZsyncInfoDataError);
         }else if (0==strcmp(key,"SHA-1")){
             self->fileChecksumPlugin=listener->findChecksumPlugin(listener,"sha1"); //for newData
             check(self->fileChecksumPlugin!=0,kSyncClient_noStrongChecksumPluginError);
@@ -197,9 +241,11 @@ static TSyncClient_resultType
     hpatch_StreamPos_t memSize;
     {
         TByte* curMem=0;
-        memSize=sizeof(hpatch_StreamPos_t)*3+z_checkChecksumBufByteSize(checksumBytes);
+        memSize=sizeof(hpatch_StreamPos_t)*4+z_checkChecksumBufByteSize(checksumBytes);
         memSize+=strlen(checksumType)+1; //checksumType
-        memSize+=savedHashDataSize+self->savedRollHashByteSize*2; //adding 2 empty rollHash for isSeqMatch
+        memSize+=savedHashDataSize+self->savedRollHashByteSize; //adding 1 empty rollHash for isSeqMatch
+        if (zmap2_data)
+            memSize+=sizeof(uint32_t)*(hpatch_StreamPos_t)kBlockCount;
 
         check(memSize==(size_t)memSize,kSyncClient_memError);
         curMem=(TByte*)malloc((size_t)memSize);
@@ -218,16 +264,26 @@ static TSyncClient_resultType
             else
                 memset(self->savedNewDataCheckChecksum,0,checksumBytes);//be zero for null checksum
         }
+        
+        if (zmap2_data){
+            curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
+            self->savedSizes=(uint32_t*)curMem;
+            curMem+=sizeof(uint32_t)*(hpatch_StreamPos_t)kBlockCount;
+        }
 
         curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
-        memset(curMem,0,self->savedRollHashByteSize); //a empty rollHash
-        self->rollHashs=curMem+self->savedRollHashByteSize;
-        curMem+=self->savedRollHashByteSize*((size_t)kBlockCount+2);//adding 2 empty rollHash for isSeqMatch
+        self->rollHashs=curMem;
+        curMem+=self->savedRollHashByteSize*((size_t)kBlockCount+1);//adding 1 empty rollHash for isSeqMatch
         memset(curMem-self->savedRollHashByteSize,0,self->savedRollHashByteSize); //a empty rollHash
         curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
         self->partChecksums=curMem;
         curMem+=self->savedStrongChecksumByteSize*(size_t)kBlockCount;
         assert(curMem<=(TByte*)self->_import+memSize);
+    }
+
+    if (zmap2_data){//zmap2 compressed bit size
+        check(readSavedBitsTo(zmap2_data,zmap2_blocks,self),kSyncClient_newZsyncInfoGzUnsupportError);
+        //todo: decompressor
     }
 
     //rollHashs & partStrongChecksums
@@ -238,6 +294,7 @@ static TSyncClient_resultType
 clear:
     _inClear=1;
     if (result!=kSyncClient_ok) TNewDataZsyncInfo_close(self);
+    if (zmap2_data) free(zmap2_data);
     if (temp_cache) free(temp_cache);
     return result;
 }
