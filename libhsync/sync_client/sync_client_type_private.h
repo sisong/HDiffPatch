@@ -53,14 +53,35 @@ hpatch_inline static
 bool TNewDataSyncInfo_syncBlockIsCompressed(const TNewDataSyncInfo* self,uint32_t blockIndex){
     return (self->savedSizes)&&(self->savedSizes[blockIndex]);
 }
+
 hpatch_inline static
-uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
+uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex,hpatch_byte* out_lastByteHalfBits){
     assert((self->kSyncBlockSize*(hpatch_StreamPos_t)blockIndex)<self->newDataSize);
+    if (self->isSavedBitsSizes){
+        assert(self->savedBitsInfos);
+        const savedBitsInfo_t& bitsInfo=self->savedBitsInfos[blockIndex];
+        const uint32_t bits=bitsInfo.skipBitsInFirstCodeByte+bitsInfo.bitsSize;
+        *out_lastByteHalfBits=(bits&7);
+        return (bits+7)>>3;//return code border byte size
+    }
+    *out_lastByteHalfBits=0;
     if (TNewDataSyncInfo_syncBlockIsCompressed(self,blockIndex))
         return self->savedSizes[blockIndex];
     else
         return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);
 }
+
+hpatch_inline static
+hpatch_byte TNewDataSyncInfo_skipBitsInFirstCodeByte(const TNewDataSyncInfo* self,uint32_t blockIndex){
+    assert((self->kSyncBlockSize*(hpatch_StreamPos_t)blockIndex)<self->newDataSize);
+    if (self->isSavedBitsSizes){
+        assert(self->savedBitsInfos);
+        return self->savedBitsInfos[blockIndex].skipBitsInFirstCodeByte;
+    }else{
+        return 0;
+    }
+}
+
     
 inline static uint64_t roll_hash_start(const adler_data_t* pdata,size_t n){
                                         return fast_adler64_start(pdata,n); }

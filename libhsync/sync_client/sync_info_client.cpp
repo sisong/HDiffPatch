@@ -536,7 +536,7 @@ static TSyncClient_resultType
             decompresser.decompressHandle=decompressPlugin->dictDecompressOpen(decompressPlugin,1,(size_t)uncompressDataSize,0,0);
             check((decompresser.decompressHandle!=0),kSyncClient_decompressOpenError);
             check(decompressPlugin->dictDecompress(decompresser.decompressHandle,0,codeBuf,codeBuf+compressDataSize,
-                                                   decompressBuf,decompressBuf+uncompressDataSize),
+                                                   decompressBuf,decompressBuf+uncompressDataSize,0),
                   kSyncClient_decompressError);
             
             codeClip=&_cmCodeClip;

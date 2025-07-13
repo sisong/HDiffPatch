@@ -151,6 +151,7 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
     const uint32_t kSyncBlockSize=newSyncInfo->kSyncBlockSize;
     TByte*             _memBuf=0;
+    TByte*             dataBuf=0;
     TByte*             checksumSync_buf=0;
     hsync_dictDecompressHandle decompressHandle=0;
     hpatch_checksumHandle checksumSync=0;
@@ -158,17 +159,21 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
     hpatch_StreamPos_t posInNeedSyncData=0;
     hpatch_StreamPos_t outNewDataPos=0;
     const hpatch_StreamPos_t oldDataSize=wd.oldStream->streamSize;
-    bool isNeedSync;
     bool isOnDiffContinue =(wd.continueDiffData!=0);
     bool isOnNewDataContinue =(wd.newDataContinue!=0);
+    isNeed_readSyncDataEnd=false;
     size_t lastCompressedIndex=_indexOfCompressedSyncBlock(newSyncInfo,wd.newBlockDataInOldPoss,0);
     if (lastCompressedIndex>=kBlockCount)
         wd.decompressPlugin=0;//no blocks need decompress
-    const size_t _memSize=(size_t)kSyncBlockSize*(wd.decompressPlugin?3:1)
-                        +newSyncInfo->savedStrongChecksumByteSize+kStrongChecksumByteSize;
+    const size_t _kMaxCompressedSize=wd.decompressPlugin?(size_t)(wd.decompressPlugin->maxCompressedSize(kSyncBlockSize)+2):0;
+    const size_t _memSize=(kSyncBlockSize+_kMaxCompressedSize+1+1)
+                        +newSyncInfo->savedStrongChecksumByteSize+kStrongChecksumByteSize
+                        +(wd.decompressPlugin&&wd.decompressPlugin->needFillAlignCode?
+                                wd.decompressPlugin->needFillAlignCode(0,0):0);
     _memBuf=(TByte*)malloc(_memSize);
     check(_memBuf!=0,kSyncClient_memError);
-    checksumSync_buf=_memBuf+(size_t)kSyncBlockSize*(wd.decompressPlugin?3:1);
+    checksumSync_buf=_memBuf;
+    dataBuf=_memBuf+(newSyncInfo->savedStrongChecksumByteSize+kStrongChecksumByteSize)+1;
     {//checksum newSyncData
         checksumSync=strongChecksumPlugin->open(strongChecksumPlugin);
         check(checksumSync!=0,kSyncClient_strongChecksumOpenError);
@@ -178,15 +183,15 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
                             newSyncInfo->decompressInfo,newSyncInfo->decompressInfo+newSyncInfo->decompressInfoSize);
         check(decompressHandle,kSyncClient_decompressOpenError);
     }
-    for (uint32_t syncSize=0,newDataSize=0,i=0; i<kBlockCount; ++i, outNewDataPos+=newDataSize,
-            posInNewSyncData+=syncSize,posInNeedSyncData+=isNeedSync?syncSize:0){
-        TByte* const dataBuf=_memBuf;
+    for (uint32_t halfByte_nextBlocki=-1,backup_nextBlocki=-1,i=0;i<kBlockCount;++i){
+        const uint32_t _isHaveHalf=(halfByte_nextBlocki==i)?1:0;
         const bool isCompressedBlock=TNewDataSyncInfo_syncBlockIsCompressed(newSyncInfo,i);
-        syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
-        newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
-        check(syncSize<=(size_t)kSyncBlockSize*2,kSyncClient_newSyncInfoDataError);
+        hpatch_byte lastByteHalfBits;
+        const uint32_t syncSize=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i,&lastByteHalfBits);
+        const uint32_t newDataSize=TNewDataSyncInfo_newDataBlockSize(newSyncInfo,i);
+        check(syncSize<=(isCompressedBlock?_kMaxCompressedSize:kSyncBlockSize),kSyncClient_newSyncInfoDataError);
         const hpatch_StreamPos_t curSyncPos=wd.newBlockDataInOldPoss[i];
-        isNeedSync=(curSyncPos==kBlockType_needSync);
+        const bool isNeedSync=(curSyncPos==kBlockType_needSync);
         if (isOnNewDataContinue&&(outNewDataPos+newDataSize>wd.newDataContinue->streamSize))
             isOnNewDataContinue=hpatch_FALSE;
         if (isOnNewDataContinue){ //copy from newDataContinue
@@ -195,11 +200,16 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
             if (isCompressedBlock)
                 lastCompressedIndex=_indexOfCompressedSyncBlock(newSyncInfo,wd.newBlockDataInOldPoss,i+1);
         }else if (isNeedSync){ //download or read from diff data
-            TByte* buf=isCompressedBlock?(dataBuf+kSyncBlockSize):dataBuf;
+            TByte* const buf=isCompressedBlock?(dataBuf+kSyncBlockSize+1):dataBuf; //1 for backup 1 byte compressed code when lastByteHalfBits!=0
+            const uint32_t _isBackupHalf=(backup_nextBlocki==i)?1:0;
+            const hpatch_byte skipBitsInFirstCodeByte=TNewDataSyncInfo_skipBitsInFirstCodeByte(newSyncInfo,i);
+            if (_isBackupHalf) assert(skipBitsInFirstCodeByte);
+            assert((skipBitsInFirstCodeByte?1:0)==_isHaveHalf);
+            const size_t _isReLoadHalf=(_isHaveHalf&&(!_isBackupHalf)?1:0);
             /*if ((wd.out_newStream)||(wd.out_diffStream))*/{//download data
                 if (isOnDiffContinue){ //read from local data
-                    if (!wd.continueDiffData->readSyncData(wd.continueDiffData,i,posInNewSyncData,
-                                                           posInNeedSyncData,buf,syncSize))
+                    if (!wd.continueDiffData->readSyncData(wd.continueDiffData,i,posInNewSyncData-_isReLoadHalf,
+                                                           posInNeedSyncData,buf,syncSize-_isBackupHalf))
                         isOnDiffContinue=false; // swap to download
                 }
                 if (!isOnDiffContinue){ //downloaded data or read from diff data
@@ -207,28 +217,31 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
                         isNeed_readSyncDataEnd=true;
                         if (syncDataListener->readSyncDataBegin)
                             check(syncDataListener->readSyncDataBegin(syncDataListener,wd.needSyncInfo,
-                                                                      i,posInNewSyncData,posInNeedSyncData),
-                                  kSyncClient_readSyncDataBeginError);
+                                                        i,posInNewSyncData-_isReLoadHalf,posInNeedSyncData),kSyncClient_readSyncDataBeginError);
                     }
-                    check(syncDataListener->readSyncData(syncDataListener,i,posInNewSyncData,
-                                                         posInNeedSyncData,buf,syncSize),
-                          kSyncClient_readSyncDataError);
+                    check(syncDataListener->readSyncData(syncDataListener,i,posInNewSyncData-_isReLoadHalf,
+                                                posInNeedSyncData,buf,syncSize-_isBackupHalf),kSyncClient_readSyncDataError);
                 }
                 if (wd.out_diffStream){ //out diff
                     if (!isOnDiffContinue){ //save downloaded data
                         check(wd.out_diffStream->write(wd.out_diffStream,wd.outDiffDataPos,
-                                                       buf,buf+syncSize),kSyncClient_saveDiffError);
+                                                       buf,buf+syncSize-_isBackupHalf),kSyncClient_saveDiffError);
                     }
-                    wd.outDiffDataPos+=syncSize;
+                    wd.outDiffDataPos+=syncSize-_isBackupHalf;
                 }
             }
+            const hpatch_byte backup_last_code=buf[syncSize-_isBackupHalf-1];
             if (/*wd.out_newStream&&*/isCompressedBlock){// need deccompress
                 assert(lastCompressedIndex==i);
-                check(wd.decompressPlugin->dictDecompress(decompressHandle,i,buf,buf+syncSize,
-                                                          dataBuf,dataBuf+newDataSize),
-                      kSyncClient_decompressError);
+                size_t alignCodeSize=0;
+                if (lastByteHalfBits&&wd.decompressPlugin->needFillAlignCode)
+                    alignCodeSize=wd.decompressPlugin->needFillAlignCode(&buf[syncSize-_isBackupHalf-1],lastByteHalfBits);
+                check(wd.decompressPlugin->dictDecompress(decompressHandle,i,buf-_isBackupHalf,buf-_isBackupHalf+syncSize+alignCodeSize,
+                                                          dataBuf,dataBuf+newDataSize,skipBitsInFirstCodeByte),kSyncClient_decompressError);
                 lastCompressedIndex=_indexOfCompressedSyncBlock(newSyncInfo,wd.newBlockDataInOldPoss,i+1);
             }
+            buf[-1]=backup_last_code;//backup last half byte code for next block
+            backup_nextBlocki=lastByteHalfBits?(i+1):-1;
         }else{//copy from old
             assert(curSyncPos<oldDataSize);
             /*if (wd.out_newStream)*/{
@@ -260,7 +273,12 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
                                               dataBuf+newDataSize), kSyncClient_writeNewDataError);
             }
         }
-    }
+        
+        outNewDataPos+=newDataSize;
+        posInNewSyncData+=syncSize-_isHaveHalf;
+        posInNeedSyncData+=isNeedSync?(syncSize-_isHaveHalf):0;
+        halfByte_nextBlocki=lastByteHalfBits?(i+1):-1;
+    }//for i
     check(outNewDataPos==newSyncInfo->newDataSize,kSyncClient_newDataSizeError);
     if (newSyncInfo->newSyncDataSize==0)
         assert(posInNewSyncData<=newSyncInfo->newDataSize);
@@ -280,11 +298,11 @@ clear:
         const TNewDataSyncInfo*   newSyncInfo;  // opened .hsyni
     };
 static void _getBlockInfoByIndex(const TNeedSyncInfos* needSyncInfos,uint32_t blockIndex,
-                                 hpatch_BOOL* out_isNeedSync,uint32_t* out_syncSize){
+                                 hpatch_BOOL* out_isNeedSync,uint32_t* out_syncSize,hpatch_byte* out_lastByteHalfBits){
     const TNeedSyncInfosImport* self=(const TNeedSyncInfosImport*)needSyncInfos->import;
     assert(blockIndex<self->blockCount);
     *out_isNeedSync=(self->newBlockDataInOldPoss[blockIndex]==kBlockType_needSync);
-    *out_syncSize=TNewDataSyncInfo_syncBlockSize(self->newSyncInfo,blockIndex);
+    *out_syncSize=TNewDataSyncInfo_syncBlockSize(self->newSyncInfo,blockIndex,out_lastByteHalfBits);
 }
     
 static void getNeedSyncInfo(const hpatch_StreamPos_t* newBlockDataInOldPoss,
@@ -303,10 +321,17 @@ static void getNeedSyncInfo(const hpatch_StreamPos_t* newBlockDataInOldPoss,
     out_nsi->getBlockInfoByIndex=_getBlockInfoByIndex;
     out_nsi->needSyncBlockCount=0;
     out_nsi->needSyncSumSize=0;
+    
+    uint32_t halfByte_nextBlocki=-1;//no match
     for (uint32_t i=0; i<kBlockCount; ++i){
         if (newBlockDataInOldPoss[i]==kBlockType_needSync){
             ++out_nsi->needSyncBlockCount;
-            out_nsi->needSyncSumSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i);
+            hpatch_byte lastByteHalfBits;
+            out_nsi->needSyncSumSize+=TNewDataSyncInfo_syncBlockSize(newSyncInfo,i,&lastByteHalfBits);
+            if (halfByte_nextBlocki==i)
+                out_nsi->needSyncSumSize--; //delete one byte when adjacent blocks have half byte
+            if (lastByteHalfBits)
+                halfByte_nextBlocki=i+1;
         }
     }
 }
@@ -532,14 +557,18 @@ size_t TNeedSyncInfos_getNextRanges(const TNeedSyncInfos* nsi,hpatch_StreamPos_t
     _TRange  backRange={0,0};
     uint32_t& blockIndex=*_curBlockIndex;
     hpatch_StreamPos_t& posInNewSyncData=*_curPosInNewSyncData;
+    uint32_t halfByte_nextBlocki=-1; //no match
     size_t result=0;
     while (blockIndex<nsi->blockCount){
         hpatch_BOOL isNeedSync;
         uint32_t    syncSize;
-        nsi->getBlockInfoByIndex(nsi,blockIndex,&isNeedSync,&syncSize);
+        hpatch_byte lastByteHalfBits;
+        nsi->getBlockInfoByIndex(nsi,blockIndex,&isNeedSync,&syncSize,&lastByteHalfBits);
         if (isNeedSync){
             if ((result>0)&&_isCanCombine(backRange,posInNewSyncData)){
                 backRange.second+=syncSize;
+                if (halfByte_nextBlocki==blockIndex)
+                    backRange.second--; //delete one byte when adjacent blocks have half byte
             }else if (result>=maxGetRangeLen){
                 break; //finish
             }else{
@@ -549,6 +578,10 @@ size_t TNeedSyncInfos_getNextRanges(const TNeedSyncInfos* nsi,hpatch_StreamPos_t
             if (out_ranges) out_ranges[result-1]=backRange;
         }
         posInNewSyncData+=syncSize;
+        if (halfByte_nextBlocki==blockIndex)
+            posInNewSyncData--; //delete one byte when adjacent blocks have half byte
+        if (lastByteHalfBits)
+            halfByte_nextBlocki=blockIndex+1;
         ++blockIndex;
     }
     return result;

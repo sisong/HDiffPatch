@@ -38,17 +38,20 @@ extern "C" {
     //dict decompress plugin
     typedef struct hsync_TDictDecompress{
         hpatch_BOOL                       (*is_can_open)(const char* compresseType);
+        hpatch_StreamPos_t          (*maxCompressedSize)(hpatch_StreamPos_t in_dataSize);
         //error return 0.
         hsync_dictDecompressHandle (*dictDecompressOpen)(struct hsync_TDictDecompress* decompressPlugin,size_t blockCount,size_t blockSize,
                                                          const hpatch_byte* in_info,const hpatch_byte* in_infoEnd);
         void                      (*dictDecompressClose)(struct hsync_TDictDecompress* decompressPlugin,
                                                          hsync_dictDecompressHandle dictHandle);
         //dictDecompress() must out (out_dataEnd-out_dataBegin), otherwise error return hpatch_FALSE
-        hpatch_BOOL                    (*dictDecompress)(hpatch_decompressHandle dictHandle,size_t blockIndex,
+        hpatch_BOOL                    (*dictDecompress)(hsync_dictDecompressHandle dictHandle,size_t blockIndex,
                                                          const hpatch_byte* in_code,const hpatch_byte* in_codeEnd,
-                                                         hpatch_byte* out_dataBegin,hpatch_byte* out_dataEnd);
-        void                           (*dictUncompress)(hpatch_decompressHandle dictHandle,size_t blockIndex,size_t lastCompressedBlockIndex,
+                                                         hpatch_byte* out_dataBegin,hpatch_byte* out_dataEnd,hpatch_byte skipBitsInFirstCodeByte);
+        void                           (*dictUncompress)(hsync_dictDecompressHandle dictHandle,size_t blockIndex,size_t lastCompressedBlockIndex,
                                                          const hpatch_byte* dataBegin,const hpatch_byte* dataEnd);
+        //needFillAlignCode can NULL, used for align lastByteHalfBits when need
+        size_t                       (*needFillAlignCode)(hpatch_byte* last_code,hpatch_byte lastByteHalfBits);  
     } hsync_TDictDecompress;
 
 

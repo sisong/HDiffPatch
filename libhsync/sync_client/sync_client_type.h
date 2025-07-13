@@ -69,6 +69,12 @@ typedef struct{
 #endif
 
 typedef struct{
+  uint32_t skipBitsInFirstCodeByte  : 3;
+  uint32_t bitsSize                 : (32-3);
+} savedBitsInfo_t;
+
+
+typedef struct{
     const char*             compressType;
     const char*             strongChecksumType;
     size_t                  savedStrongChecksumByteSize;
@@ -81,6 +87,7 @@ typedef struct{
     uint8_t                 isDirSyncInfo;
     uint8_t                 isNotCheckChecksumNewWhenMatch; //run newData's checkChecksum, default is false
     uint8_t                 isSeqMatch;//default is false
+    uint8_t                 isSavedBitsSizes;//default is false & savedSizes is bytes size; if true, savedSizes is bits size;
     uint8_t                 decompressInfoSize;
     uint8_t                 decompressInfo[kDecompressInfoMaxSize];
     hpatch_StreamPos_t      newDataSize;      // newData version size;
@@ -92,7 +99,10 @@ typedef struct{
     unsigned char*          infoChecksum; // this info data's strongChecksum
     unsigned char*          infoPartHashChecksum; // this info data's strongChecksum
     TSameNewBlockPair*      samePairList;
-    uint32_t*               savedSizes;
+    union{
+        uint32_t*           savedSizes;
+        savedBitsInfo_t*    savedBitsInfos;
+    };
     uint8_t*                rollHashs;
     uint8_t*                partChecksums;
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -109,7 +119,7 @@ typedef struct{
 
 struct TNeedSyncInfos;
 typedef void (*TSync_getBlockInfoByIndex)(const struct TNeedSyncInfos* needSyncInfos,uint32_t blockIndex,
-                                          hpatch_BOOL* out_isNeedSync,uint32_t* out_syncSize);
+                                          hpatch_BOOL* out_isNeedSync,uint32_t* out_syncSize,hpatch_byte* out_lastByteHalfBits);
 typedef struct TNeedSyncInfos{
     hpatch_StreamPos_t          newDataSize;     // new data size
     hpatch_StreamPos_t          newSyncDataSize; // new data size or .hsynz file size
