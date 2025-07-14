@@ -122,9 +122,10 @@ typedef void (*TSync_getBlockInfoByIndex)(const struct TNeedSyncInfos* needSyncI
                                           hpatch_BOOL* out_isNeedSync,uint32_t* out_syncSize,hpatch_byte* out_lastByteHalfBits);
 typedef struct TNeedSyncInfos{
     hpatch_StreamPos_t          newDataSize;     // new data size
+    hpatch_StreamPos_t          localNewDataSize; // local new file size for download continue
     hpatch_StreamPos_t          newSyncDataSize; // new data size or .hsynz file size
     hpatch_StreamPos_t          newSyncInfoSize; // .hsyni file size
-    hpatch_StreamPos_t          localDiffDataSize; // local diff data
+    hpatch_StreamPos_t          localDiffDataSize; // local diff data size for download continue
     hpatch_StreamPos_t          needSyncSumSize; // all need download from new data or .hsynz file
     uint32_t                    kSyncBlockSize;
     uint32_t                    blockCount;
