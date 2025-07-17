@@ -98,7 +98,7 @@ uint64_t z_seq_toSavedPartRollHash(uint64_t rollHash,size_t savedRollHashBits){
     #define __Filter_Select_(_needHashBits,isUsedBitFilter,isTryUseHash32)  \
             const size_t _needHashBits=newSyncInfo->savedRollHashBits*(newSyncInfo->isSeqMatch?2:1); \
             const bool isUsedBitFilter=_isCanBitFilter(_needHashBits);      \
-            const bool isTryUseHash32=(_needHashBits<=32)&&(sizeof(size_t)==sizeof(uint32_t));
+            const bool isTryUseHash32=(sizeof(size_t)==sizeof(uint32_t))&&(_needHashBits<=32);
 
 static void _z_rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,hpatch_StreamPos_t oldRollEnd,void* _mt){
     const TNewDataSyncInfo* newSyncInfo=rd.newSyncInfo;

@@ -172,7 +172,7 @@ static TSyncClient_resultType
 
     self->strongChecksumPlugin=listener->findChecksumPlugin(listener,"md4"); //for oldData
     check(self->strongChecksumPlugin!=0,kSyncClient_noStrongChecksumPluginError);
-    self->isNotCheckChecksumNewWhenMatch=hpatch_TRUE; //unsupport parallel checksum, check newData's checksum by writeToNew
+    self->isNotCChecksumNewMTParallel=hpatch_TRUE; //unsupport parallel checksum (when _matchRange), must check by order (when _writeToNewOrDiff_by)
 
     temp_cache=(TByte*)malloc(kFileIOBufBetterSize);
     check(temp_cache!=0,kSyncClient_memError);

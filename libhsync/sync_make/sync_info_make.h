@@ -38,6 +38,8 @@
 
 namespace sync_private{
 
+void getHsynzPluginDefault(hsync_THsynz* out_hsynzPlugin);
+
 void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* out_stream,
                              hsync_TDictCompress* compressPlugin);
 #if (_IS_NEED_DIR_DIFF_PATCH)
@@ -53,14 +55,22 @@ public:
     CNewDataSyncInfo(hpatch_TChecksum* strongChecksumPlugin,const hsync_TDictCompress* compressPlugin,
                      hpatch_StreamPos_t newDataSize,uint32_t syncBlockSize,size_t kSafeHashClashBit);
     ~CNewDataSyncInfo(){}
+protected:
+    CNewDataSyncInfo():kStrongChecksumByteSize(){}
+    struct _ISyncInfo_by{
+        size_t (*getSavedHashBits)(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,size_t kStrongHashBits,
+                                   size_t* out_partRollHashBits,size_t* out_partStrongHashBits,uint8_t* out_isSeqMatch);
+        bool     (*isNeedSamePair)();
+    };
+    void _init_by(_ISyncInfo_by* si_by,hpatch_TChecksum* fileChecksumPlugin,
+                  hpatch_TChecksum* strongChecksumPlugin,const hsync_TDictCompress* compressPlugin,
+                  hpatch_StreamPos_t newDataSize,uint32_t syncBlockSize,size_t kSafeHashClashBit);
 private:
     size_t                      kStrongChecksumByteSize;
     std::string                 _compressType;
     std::string                 _strongChecksumType;
     hdiff_private::TAutoMem     _mem;
 };
-
-void getHsynzPluginDefault(hsync_THsynz* out_hsynzPlugin);
 
 }//namespace sync_private
 #endif // hsync_info_make_h

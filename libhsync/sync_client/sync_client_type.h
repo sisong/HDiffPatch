@@ -85,7 +85,7 @@ typedef struct{
     uint32_t                kSyncBlockSize;
     uint32_t                samePairCount;
     uint8_t                 isDirSyncInfo;
-    uint8_t                 isNotCheckChecksumNewWhenMatch; //run newData's checkChecksum, default is false
+    uint8_t                 isNotCChecksumNewMTParallel; // not run checkChecksum newData in parallel? default is false(run parallel)
     uint8_t                 isSeqMatch;//default is false
     uint8_t                 isSavedBitsSizes;//default is false & savedSizes is bytes size; if true, savedSizes is bits size;
     uint8_t                 decompressInfoSize;

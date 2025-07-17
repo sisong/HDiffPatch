@@ -267,7 +267,7 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
             if (isNeedChecksumAppend|isOnNewDataContinue)
                 _checkSumNewDataBuf();
             if (newSyncInfo->fileChecksumPlugin&&
-                 (newSyncInfo->isNotCheckChecksumNewWhenMatch||isNeedChecksumAppend))
+                 (newSyncInfo->isNotCChecksumNewMTParallel||isNeedChecksumAppend))
                 wr_by->checkChecksumAppendData(newSyncInfo->savedNewDataCheckChecksum,i,
                                                fileChecksumPlugin,wd.checkChecksum,
                                                checksumSync_buf+wd.newSyncInfo->savedStrongChecksumByteSize,

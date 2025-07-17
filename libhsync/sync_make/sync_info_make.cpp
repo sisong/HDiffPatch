@@ -27,7 +27,7 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "sync_info_make.h"
-#include "sync_make_hash_clash.h" // isCanUse32bitRollHash
+#include "sync_make_hash_clash.h"
 #include "../sync_client/sync_info_client.h" // TNewDataSyncInfo_dir_saveHeadTo
 using namespace hdiff_private;
 namespace sync_private{
@@ -254,15 +254,35 @@ void TNewDataSyncInfo_saveTo(TNewDataSyncInfo* self,const hpatch_TStreamOutput* 
 }
 
 
+    static size_t _getSavedHashBits(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,size_t kStrongHashBits,
+                                    size_t* out_partRollHashBits,size_t* out_partStrongHashBits,uint8_t* out_isSeqMatch){
+        *out_isSeqMatch=hpatch_FALSE;
+        return getSavedHashBits(kSafeHashClashBit,newDataSize,kSyncBlockSize,
+                                kStrongHashBits,out_partRollHashBits,out_partStrongHashBits);
+    }
+    static bool _isNeedSamePair(){
+        return true;
+    }
+
 CNewDataSyncInfo::CNewDataSyncInfo(hpatch_TChecksum* _strongChecksumPlugin,const hsync_TDictCompress* compressPlugin,
                                    hpatch_StreamPos_t newDataSize,uint32_t syncBlockSize,size_t kSafeHashClashBit){
+    _ISyncInfo_by si_by={0};
+    si_by.getSavedHashBits=_getSavedHashBits;
+    si_by.isNeedSamePair=_isNeedSamePair;
+    _init_by(&si_by,_strongChecksumPlugin,_strongChecksumPlugin,compressPlugin,
+             newDataSize,syncBlockSize,kSafeHashClashBit);
+}
+
+void CNewDataSyncInfo::_init_by(_ISyncInfo_by* si_by,hpatch_TChecksum* _fileChecksumPlugin,
+                                hpatch_TChecksum* _strongChecksumPlugin,const hsync_TDictCompress* compressPlugin,
+                                hpatch_StreamPos_t newDataSize,uint32_t syncBlockSize,size_t kSafeHashClashBit){
     TNewDataSyncInfo_init(this);
     if (compressPlugin){
         this->_compressType.assign(compressPlugin->compressType());
         this->compressType=this->_compressType.c_str();
     }
+    this->fileChecksumPlugin=_fileChecksumPlugin;
     this->strongChecksumPlugin=_strongChecksumPlugin;
-    this->fileChecksumPlugin=_strongChecksumPlugin; // for compatibility sync_cleint
     this->_strongChecksumType.assign(_strongChecksumPlugin->checksumType());
     this->strongChecksumType=this->_strongChecksumType.c_str();
     this->kStrongChecksumByteSize=_strongChecksumPlugin->checksumByteSize();
@@ -270,15 +290,15 @@ CNewDataSyncInfo::CNewDataSyncInfo(hpatch_TChecksum* _strongChecksumPlugin,const
     syncBlockSize=(syncBlockSize<=_kSyncBlockSize_min_limit)?_kSyncBlockSize_min_limit:syncBlockSize;
     this->kSyncBlockSize=syncBlockSize;
     this->newDataSize=newDataSize;
-    getSavedHashBits(kSafeHashClashBit,newDataSize,this->kSyncBlockSize,this->kStrongChecksumByteSize*8,
-                     &this->savedRollHashBits,&this->savedStrongChecksumBits);
+    si_by->getSavedHashBits(kSafeHashClashBit,newDataSize,this->kSyncBlockSize,this->kStrongChecksumByteSize*8,
+                            &this->savedRollHashBits,&this->savedStrongChecksumBits,&this->isSeqMatch);
     this->savedRollHashByteSize=_bitsToBytes(this->savedRollHashBits);
     this->savedStrongChecksumByteSize=_bitsToBytes(this->savedStrongChecksumBits);
 
     //mem
     const size_t kBlockCount=this->blockCount();
-    hpatch_StreamPos_t memSize=kBlockCount*( (hpatch_StreamPos_t)0
-                                            +sizeof(TSameNewBlockPair)+this->savedStrongChecksumByteSize
+    hpatch_StreamPos_t memSize=kBlockCount*(hpatch_StreamPos_t)( this->savedStrongChecksumByteSize
+                                            +(si_by->isNeedSamePair()?sizeof(TSameNewBlockPair):0)
                                             +this->savedRollHashByteSize +(compressPlugin?sizeof(uint32_t):0));
     memSize+=this->kStrongChecksumByteSize*2+checkChecksumBufByteSize(this->kStrongChecksumByteSize);
     checkv(memSize==(size_t)memSize);
@@ -290,7 +310,9 @@ CNewDataSyncInfo::CNewDataSyncInfo(hpatch_TChecksum* _strongChecksumPlugin,const
     this->savedNewDataCheckChecksum=curMem; curMem+=checkChecksumBufByteSize(this->kStrongChecksumByteSize);
     this->partChecksums=curMem; curMem+=kBlockCount*this->savedStrongChecksumByteSize;
     this->samePairCount=0;
-    this->samePairList=(TSameNewBlockPair*)curMem; curMem+=kBlockCount*sizeof(TSameNewBlockPair);
+    if (si_by->isNeedSamePair()){
+        this->samePairList=(TSameNewBlockPair*)curMem; curMem+=kBlockCount*sizeof(TSameNewBlockPair);
+    }
     this->rollHashs=curMem; curMem+=kBlockCount*this->savedRollHashByteSize;
     if (compressPlugin){
         this->savedSizes=(uint32_t*)curMem; curMem+=kBlockCount*sizeof(uint32_t);
