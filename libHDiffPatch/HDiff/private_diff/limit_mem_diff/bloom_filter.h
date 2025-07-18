@@ -32,6 +32,7 @@
 #include <assert.h>
 #include <stdint.h> //uint32_t
 #include <stdexcept>//std::runtime_error
+#include "../../../HPatch/patch_types.h" // hpatch_force_inline
 #include "../../../../libParallel/parallel_channel.h"
 #if (_IS_USED_MULTITHREAD)
 # if defined(ANDROID) && (defined(__GNUC__) || defined(__clang__))
@@ -63,7 +64,7 @@ public:
       #endif
     }
 #endif
-    inline bool is_hit(size_t bitIndex)const{
+    hpatch_force_inline bool is_hit(size_t bitIndex)const{
         //assert(bitIndex<m_bitSize);
         return 0!=(m_bits[bitIndex>>kBaseShr] & ((base_t)1<<(bitIndex&kBaseMask)));
     }
@@ -111,23 +112,25 @@ public:
     }
     inline size_t bitSize()const{ return m_bitSet.bitSize(); }
     inline void insert(T data){
-        m_bitSet.insert(hash0(data)&m_bitSetMask);
-        m_bitSet.insert(hash1(data)&m_bitSetMask);
-        m_bitSet.insert(hash2(data)&m_bitSetMask);
+        m_bitSet.insert(hash0(data));
+        m_bitSet.insert(hash1(data));
+        m_bitSet.insert(hash2(data));
     }
 #if (_IS_USED_MULTITHREAD)
     inline void insert_MT(T data){
-        m_bitSet.insert_MT(hash0(data)&m_bitSetMask);
-        m_bitSet.insert_MT(hash1(data)&m_bitSetMask);
-        m_bitSet.insert_MT(hash2(data)&m_bitSetMask);
+        m_bitSet.insert_MT(hash0(data));
+        m_bitSet.insert_MT(hash1(data));
+        m_bitSet.insert_MT(hash2(data));
     }
 #endif
-    inline bool is_hit(T data)const{
-        return m_bitSet.is_hit(hash0(data)&m_bitSetMask)
-            && m_bitSet.is_hit(hash1(data)&m_bitSetMask)
-            && m_bitSet.is_hit(hash2(data)&m_bitSetMask);
+    hpatch_force_inline bool is_hit(T data)const{
+        return m_bitSet.is_hit(hash0(data)) && _is_hit_1_2(data);
     }
 private:
+    inline bool _is_hit_1_2(T data)const{
+        return m_bitSet.is_hit(hash1(data))
+            && m_bitSet.is_hit(hash2(data));
+    }
     TBitSet   m_bitSet;
     size_t    m_bitSetMask;
     static size_t getMask(size_t dataCount,size_t zoom){
@@ -142,9 +145,9 @@ private:
         return ((size_t)1<<bit)-1;
     }
     
-    inline size_t hash0(T key)const { return (key^(key>>(sizeof(T)*4+1))); }
-    inline size_t hash1(T key)const { return ((~key)+(key<<(sizeof(T)*2+4))); }
-    inline size_t hash2(T key)const { return (sizeof(T)>4)?_hash2_64(key):_hash2_32((size_t)key); }
+    hpatch_force_inline size_t hash0(T key)const { return (key^(key>>(sizeof(T)*3-1)))&m_bitSetMask; }
+    inline size_t hash1(T key)const { return ((~key)+(key<<(sizeof(T)*2+4)))&m_bitSetMask; }
+    inline size_t hash2(T key)const { return (sizeof(T)>4)?_hash2_64(key)&m_bitSetMask:_hash2_32((size_t)key)&m_bitSetMask; }
     static size_t _hash2_32(size_t key){//from: https://gist.github.com/badboy/6267743
         const size_t c2=0x27d4eb2d; // a prime or an odd constant
         key = (key ^ 61) ^ (key >> 16);
@@ -154,14 +157,14 @@ private:
         key = key ^ (key >> 15);
         return key;
     }
-    static size_t _hash2_64(T key){
+    static T _hash2_64(T key){
         key = (~key) + (key << 18); // key = (key << 18) - key - 1;
         key = key ^ (key >> 31);
         key = key * 21; // key = (key + (key << 2)) + (key << 4);
         key = key ^ (key >> 11);
         key = key + (key << 6);
         key = key ^ (key >> 22);
-        return (size_t)key;
+        return key;
     }
 };
 
