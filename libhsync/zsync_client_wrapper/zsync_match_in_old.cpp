@@ -121,7 +121,8 @@ static void _z_rollMatch(_TMatchDatas& rd,hpatch_StreamPos_t oldRollBegin,hpatch
             _tm_rollMatch<TStreamDataRoll_z<false>,TBloomFilter<uint32_t>,false>(rd,oldRollBegin,oldRollEnd,
                     z_toSavedPartRollHash, _mt);
         else
-            assert(false); //not need 64bit
+            _tm_rollMatch<TStreamDataRoll_z<false>,TBloomFilter<uint64_t>,false>(rd,oldRollBegin,oldRollEnd,
+                    z_toSavedPartRollHash, _mt);
     }
 }
 
