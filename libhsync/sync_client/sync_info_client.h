@@ -98,7 +98,7 @@ typedef enum TSyncClient_resultType{
     kSyncClient_newZsyncInfoCloseError,
     kSyncClient_newZsyncInfoDataError,
     kSyncClient_newZsyncInfoMinVersionError,
-    kSyncClient_newZsyncInfoBlocksizeTooSmallError,
+    kSyncClient_newZsyncInfoBlocksizeTooSmallError, //105
     kSyncClient_newZsyncInfoZmap2BlocksError,
     kSyncClient_newZsyncInfoGzUnsupportError,
 

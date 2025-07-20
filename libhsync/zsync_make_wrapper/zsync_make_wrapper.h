@@ -29,6 +29,8 @@
 #ifndef zsync_make_wrapper_h
 #define zsync_make_wrapper_h
 #include "../sync_make/sync_make.h"
+#include <vector>
+#include <string>
 
 //create out_zsync_info
 //  all clients need download out_zsync_info, and dowload part of 
@@ -41,6 +43,7 @@ void create_zsync_data(const hpatch_TStreamInput*  newData,
                        const hpatch_TStreamOutput* out_zsync_info,          // .zsync file format
                        hpatch_TChecksum*           fileChecksumPlugin,      // sha1
                        hpatch_TChecksum*           strongChecksumPlugin,    // md4
+                       const std::vector<std::string>& zsyncKeyValues,      // save directly to out_zsync_info
                        uint32_t kSyncBlockSize=kSyncBlockSize_default,
                        size_t kSafeHashClashBit=kSafeHashClashBit_default,
                        size_t threadNum=1);
@@ -54,7 +57,8 @@ void create_zsync_data(const hpatch_TStreamInput* newData,
                        hpatch_TChecksum*           fileChecksumPlugin,      // sha1
                        hpatch_TChecksum*           strongChecksumPlugin,    // md4
                        hsync_TDictCompress*        compressPlugin,          // gzipDictCompressPlugin or lgzipDictCompressPlugin
-                       hsync_THsynz* hsynzPlugin,                           // hsync_THsynz_gzip? for create .gz
+                       hsync_THsynz*               hsynzPlugin,             // hsync_THsynz_gzip? for create .gz
+                       const std::vector<std::string>& zsyncKeyValues,      // save directly to out_zsync_info
                        uint32_t kSyncBlockSize=kSyncBlockSize_default,
                        size_t kSafeHashClashBit=kSafeHashClashBit_default,
                        size_t threadNum=1);

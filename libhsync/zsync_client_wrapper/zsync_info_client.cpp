@@ -101,11 +101,11 @@ clear:
 }
 
 
-static bool read2PartHashTo(TStreamCacheClip* clip,TByte* partRHash,size_t partRBytes,
-                            TByte* partSHash,size_t partSBytes,uint32_t kBlockCount){
-     for (size_t i=0; i<kBlockCount; ++i,partRHash+=partRBytes,partSHash+=partSBytes){
-        if (!_TStreamCacheClip_readDataTo(clip,partRHash,partRHash+partRBytes)) return false;
-        if (!_TStreamCacheClip_readDataTo(clip,partSHash,partSHash+partSBytes)) return false;
+static bool read2PartHashTo(TStreamCacheClip* clip,TByte* rollHashs,size_t rollBytes,
+                            TByte* checksums,size_t checksumBytes,uint32_t kBlockCount){
+    for (size_t i=0; i<kBlockCount; ++i,rollHashs+=rollBytes,checksums+=checksumBytes){
+        if (!_TStreamCacheClip_readDataTo(clip,rollHashs,rollHashs+rollBytes)) return false;
+        if (!_TStreamCacheClip_readDataTo(clip,checksums,checksums+checksumBytes)) return false;
     }
     return true;
 }

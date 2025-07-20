@@ -94,12 +94,19 @@ namespace sync_private{
 
 
 hpatch_inline static //check strongChecksumBits is strong enough?
-bool getStrongForHashClash(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,
-                           size_t strongChecksumBits){
+bool _getStrongForHashClash(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,
+                            uint32_t kSyncBlockSize,size_t strongChecksumBits,size_t validRollHashBits){
     if (strongChecksumBits<kStrongChecksumByteSize_min*8)
         return false;
     size_t needHashBits=sync_private::getNeedHashBits(kSafeHashClashBit,newDataSize,kSyncBlockSize);
-    return sync_private::_kMaxRollHashBits+strongChecksumBits>=needHashBits;
+    return validRollHashBits+strongChecksumBits>=needHashBits;
+}
+
+hpatch_inline static //check strongChecksumBits is strong enough?
+bool getStrongForHashClash(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,
+                           uint32_t kSyncBlockSize,size_t strongChecksumBits){
+    return _getStrongForHashClash(kSafeHashClashBit,newDataSize,kSyncBlockSize,
+                                  strongChecksumBits,sync_private::_kMaxRollHashBits);
 }
 
 hpatch_inline static

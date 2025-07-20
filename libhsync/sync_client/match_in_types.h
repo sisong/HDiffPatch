@@ -55,7 +55,7 @@ static const size_t kBestMTClipSize=1*1024*1024; //for multi-thread read once
 #endif //_IS_USED_MULTITHREAD
 
 typedef unsigned char TByte;
-typedef uint64_t tm_roll_uint;
+typedef hpatch_uint64_t tm_roll_uint;
 
 struct TIndex_comp0{
     inline explicit TIndex_comp0(const uint8_t* _hashs,size_t _byteSize,bool isSeqMatch=false)

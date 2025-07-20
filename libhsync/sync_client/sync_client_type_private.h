@@ -83,8 +83,8 @@ hpatch_byte TNewDataSyncInfo_skipBitsInFirstCodeByte(const TNewDataSyncInfo* sel
 }
 
     
-inline static uint64_t roll_hash_start(const adler_data_t* pdata,size_t n){
-                                        return fast_adler64_start(pdata,n); }
+inline static hpatch_uint64_t roll_hash_start(const adler_data_t* pdata,size_t n){
+                                              return fast_adler64_start(pdata,n); }
 inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
                                       adler_data_t out_data,adler_data_t in_data){
                                         return fast_adler64_roll(adler,blockSize,out_data,in_data); }
@@ -151,7 +151,7 @@ uint64_t readRollHashBytes(const uint8_t* part,size_t savedRollHashByteSize){
 }
 
 static hpatch_inline
-uint64_t toSavedPartRollHash(uint64_t rollHash,size_t savedRollHashBits){
+hpatch_uint64_t toSavedPartRollHash(hpatch_uint64_t rollHash,size_t savedRollHashBits){
     if (savedRollHashBits<64)
         return ((rollHash>>savedRollHashBits)^rollHash) & ((((uint64_t)1)<<savedRollHashBits)-1);
     else

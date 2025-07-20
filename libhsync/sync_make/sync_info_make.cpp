@@ -38,6 +38,8 @@ namespace sync_private{
 #define _flushV(_v)  if (!_v.empty()){ _outBuf(_v.data(),_v.data()+_v.size()); _v.clear(); }
 #define _flushV_end(_v)  if (!_v.empty()){ _flushV(_v); swapClear(_v); }
 
+const size_t _kBestFlushSize=hpatch_kFileIOBufBetterSize*2-16;
+
     static void saveSamePairList(std::vector<TByte> &buf,
                                  const TSameNewBlockPair* samePairList, size_t samePairCount) {
         uint32_t pre=0;
@@ -107,7 +109,7 @@ namespace sync_private{
                     bitsValue>>=8;
                     bitsCount-=8;
                     //assert(bitsValue<((size_t)1<<bitsCount));
-                    if (buf.size()>=hpatch_kFileIOBufBetterSize)
+                    if (buf.size()>=_kBestFlushSize)
                         _flushV(buf);
                 }
                 //assert(bitsCount<8);

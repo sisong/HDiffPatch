@@ -321,8 +321,8 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
             }
         }
     #endif
-        cd.cs_by->checkChecksumAppendData(cd.out_hsyni->savedNewDataCheckChecksum,-1,
-                                          out_hsyni->fileChecksumPlugin,0,0,workData->buf,readLen);
+        cd.cs_by->checkChecksumAppendData(cd.out_hsyni->savedNewDataCheckChecksum,workData->blockBegin,
+                                          out_hsyni->fileChecksumPlugin,cd.checkChecksum,0,workData->buf,readLen);
     #if (_IS_USED_MULTITHREAD)
         if (mt)
             mt->nextCCheckBlocki.store(workData->blockEnd);
@@ -405,6 +405,7 @@ void _create_sync_data_by(_ICreateSync_by* cs_by,TNewDataSyncInfo* newSyncInfo,
         checkv((checksumByteSize<=_kStrongChecksumByteSize_max_limit)&&(checksumByteSize>=kStrongChecksumByteSize_min));
     }
 
+    assert(cs_by->create_sync_data_part==0);
     cs_by->create_sync_data_part=_create_sync_data_part;
     CChecksum      _checkChecksum(checksumPlugin,false);
     _TCreateDatas  createDatas;
@@ -468,7 +469,7 @@ void _create_sync_data_by(_ICreateSync_by* cs_by,TNewDataSyncInfo* newSyncInfo,
 #endif
     {
         TAutoMem    membuf((kSyncBlockSize+(size_t)kMaxCompressedSize)*bestWorkBlockCount+in_borderSize);
-        CChecksum   checksumBlockData(checksumPlugin,false);
+        CChecksum   checksumBlockData(newSyncInfo->strongChecksumPlugin,false);
         _TCompress  compress(compressPlugin,kBlockCount,kSyncBlockSize,createDatas.out_hsyni);
         TWorkBuf    workData={0};
         workData.buf=membuf.data();

@@ -36,14 +36,15 @@ using namespace sync_private;
 
 namespace sync_private{
 
-
 static tm_roll_uint z_roll_hash_start(const adler_data_t* pdata,size_t n){
     return z_roll_hash32_start(pdata,n);
 }
 
+static
 void _private_create_zsync_data(TNewDataSyncInfo* newSyncInfo, const hpatch_TStreamInput*  newData,
                                 const hpatch_TStreamOutput* out_hsyni, const hpatch_TStreamOutput* out_hsynz,
-                                hsync_TDictCompress* compressPlugin, hsync_THsynz* hsynzPlugin,size_t threadNum){
+                                hsync_TDictCompress* compressPlugin, hsync_THsynz* hsynzPlugin,
+                                const std::vector<std::string>& zsyncKeyValues,size_t threadNum){
     _ICreateSync_by cs_by={0};
     cs_by.roll_hash_start=z_roll_hash_start;
     cs_by.toSavedPartRollHash=z_toSavedPartRollHash;
@@ -51,7 +52,9 @@ void _private_create_zsync_data(TNewDataSyncInfo* newSyncInfo, const hpatch_TStr
     cs_by.checkChecksumAppendData=z_checkChecksumAppendData;
     cs_by.checkChecksumEndTo=z_checkChecksumEndTo;
     _create_sync_data_by(&cs_by,newSyncInfo,newData,out_hsynz,compressPlugin,hsynzPlugin,threadNum);
-    TNewDataZsyncInfo_saveTo(newSyncInfo,out_hsyni,compressPlugin);//save to out_hsyni
+    if (newSyncInfo->savedSizes)
+        TNewDataZsyncInfo_savedSizesToBits(newSyncInfo);
+    TNewDataZsyncInfo_saveTo(newSyncInfo,out_hsyni,zsyncKeyValues);//save to out_hsyni
 }
 
 }//namespace sync_private
@@ -59,17 +62,18 @@ void _private_create_zsync_data(TNewDataSyncInfo* newSyncInfo, const hpatch_TStr
 void create_zsync_data(const hpatch_TStreamInput* newData,
                        const hpatch_TStreamOutput* out_zsync_info,const hpatch_TStreamOutput* out_zsync_gz,
                        hpatch_TChecksum* fileChecksumPlugin,hpatch_TChecksum* strongChecksumPlugin,
-                       hsync_TDictCompress* compressPlugin,hsync_THsynz* hsynzPlugin,
+                       hsync_TDictCompress* compressPlugin,hsync_THsynz* hsynzPlugin,const std::vector<std::string>& zsyncKeyValues,
                        uint32_t kSyncBlockSize,size_t kSafeHashClashBit,size_t threadNum){
     CNewDataZsyncInfo newSyncInfo(fileChecksumPlugin,strongChecksumPlugin,compressPlugin,
                                   newData->streamSize,kSyncBlockSize,kSafeHashClashBit);
-    _private_create_zsync_data(&newSyncInfo,newData,out_zsync_info,out_zsync_gz,compressPlugin,hsynzPlugin,threadNum);
+    _private_create_zsync_data(&newSyncInfo,newData,out_zsync_info,out_zsync_gz,compressPlugin,hsynzPlugin,
+                               zsyncKeyValues,threadNum);
 }
 
 void create_zsync_data(const hpatch_TStreamInput*  newData,const hpatch_TStreamOutput* out_zsync_info,
                        hpatch_TChecksum* fileChecksumPlugin,hpatch_TChecksum* strongChecksumPlugin,
-                       hsync_TDictCompress*  compressPlugin,uint32_t kSyncBlockSize,
-                       size_t kSafeHashClashBit,size_t threadNum){
+                       hsync_TDictCompress*  compressPlugin,const std::vector<std::string>& zsyncKeyValues,
+                       uint32_t kSyncBlockSize,size_t kSafeHashClashBit,size_t threadNum){
     create_zsync_data(newData,out_zsync_info,0,fileChecksumPlugin,strongChecksumPlugin,compressPlugin,0,
-                      kSyncBlockSize,kSafeHashClashBit,threadNum);
+                      zsyncKeyValues,kSyncBlockSize,kSafeHashClashBit,threadNum);
 }

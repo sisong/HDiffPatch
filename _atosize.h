@@ -96,6 +96,31 @@ hpatch_BOOL kmg_to_size(const char* pkmg_num,size_t slen,size_t* out_size){
     return hpatch_TRUE;
 }
 
+#define          _u64_to_a_kMaxLen   21
+static const char*  _i09_to_one_a_="0123456789";
+
+hpatch_inline static
+char* u64_to_enough_a(hpatch_uint64_t size,char temp_buf_enough[_u64_to_a_kMaxLen]){
+    char* out_a=temp_buf_enough+_u64_to_a_kMaxLen;
+    *(--out_a)='\0';
+    do{
+        hpatch_uint64_t nsize=size/10;
+        *(--out_a)=_i09_to_one_a_[size-nsize*10];
+        size=nsize;
+    }while(size);
+    return out_a;
+}
+
+hpatch_inline static
+hpatch_BOOL u64_to_a(hpatch_uint64_t size,char* out_a,size_t a_buflen){
+    char enough_a[_u64_to_a_kMaxLen];
+    const char* cur_a=u64_to_enough_a(size,enough_a);
+    const size_t datalen=_u64_to_a_kMaxLen-(cur_a-enough_a);
+    if (a_buflen<datalen) return hpatch_FALSE;
+    memcpy(out_a,cur_a,datalen);
+    return hpatch_TRUE;
+}
+
 #ifdef __cplusplus
 }
 #endif

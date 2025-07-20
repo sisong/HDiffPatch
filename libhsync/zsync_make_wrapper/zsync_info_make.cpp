@@ -29,20 +29,135 @@
 #include "zsync_info_make.h"
 #include "../sync_make/sync_make_hash_clash.h"
 #include "../sync_client/sync_info_client.h" // TNewDataSyncInfo_dir_saveHeadTo
+#include "../../_atosize.h"
+#include "../../_hextobytes.h"
+#include <algorithm> //std::min,std::max
 using namespace hdiff_private;
+
+static const size_t _kAdler32Bytes=4;
+static const size_t _kAdler32BadLostBits=3;
+bool z_getStrongForHashClash(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,
+                             uint32_t kSyncBlockSize,size_t strongChecksumBits){
+    return _getStrongForHashClash(kSafeHashClashBit,newDataSize,kSyncBlockSize,
+                                  strongChecksumBits,(_kAdler32Bytes*8-_kAdler32BadLostBits)*2);
+}
+
+static void pushUIntAsStr(std::vector<TByte>& out_code,hpatch_uint64_t value){
+    char temp_buf[_u64_to_a_kMaxLen];
+    pushCStr(out_code,u64_to_enough_a(value,temp_buf));
+}
+
+static void pushBytesAsHex(std::vector<TByte>& out_code,const hpatch_byte* bytes,size_t blen){
+    const size_t sizebck=out_code.size();
+    out_code.resize(sizebck+blen*2);
+    bytes_to_HEXs(bytes,blen,(char*)out_code.data()+sizebck);
+}
+
 namespace sync_private{
+
+void TNewDataZsyncInfo_savedSizesToBits(TNewDataZsyncInfo* self){
+    if ((self->savedSizes==0)||(self->isSavedBitsSizes)) return;
+    const uint32_t kBlockCount=(uint32_t)getSyncBlockCount(self->newDataSize,self->kSyncBlockSize);
+    for (size_t i=0;i<kBlockCount;++i){
+        assert(self->savedSizes[i]>0);
+        check(self->savedSizes[i]<(1<<(32-3-3)),"kBlockSize is too large");
+        self->savedSizes[i]<<=3;
+    }
+    self->isSavedBitsSizes=hpatch_TRUE;
+}
+
+
+#define _flushV(_v)  if (!_v.empty()){ \
+                        writeStream(out_stream,outPos,_v.data(),_v.data()+_v.size()); _v.clear(); }
+
+const size_t _kBestFlushSize=hpatch_kFileIOBufBetterSize*2-16;
+
+
+static void saveSavedBitsInfos(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
+                               hpatch_StreamPos_t gzOffset0,hpatch_StreamPos_t gzFileSize,hpatch_StreamPos_t newDataSize,
+                               const savedBitsInfo_t* savedBitsInfos,uint32_t kBlockCount,
+                               uint32_t kBlockSize,std::vector<TByte>& buf){
+    //todo:
+}
+
+static void save2PartHash(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
+                          const hpatch_byte* rollHashs,size_t rollBytes,
+                          const hpatch_byte* checksums,size_t checksumBytes,
+                          uint32_t kBlockCount,std::vector<TByte>& buf){
+    for (size_t i=0; i<kBlockCount; ++i,rollHashs+=rollBytes,checksums+=checksumBytes){
+        pushBack(buf,rollHashs,rollBytes);
+        pushBack(buf,checksums,checksumBytes);
+        if (buf.size()>=_kBestFlushSize)
+            _flushV(buf);
+    }
+}
+
+static void saveKeyValues(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
+                          const std::vector<std::string>& zsyncKeyValues,std::vector<TByte>& buf){
+    for (size_t i=0;i<zsyncKeyValues.size();i+=2){
+        const std::string& key=zsyncKeyValues[i];
+        pushBack(buf,(const hpatch_byte*)key.data(),key.size());
+        pushByte(buf,':'); pushByte(buf,' ');
+        if (i+1<zsyncKeyValues.size()){
+            const std::string& value=zsyncKeyValues[i+1];
+            pushBack(buf,(const hpatch_byte*)value.data(),value.size());
+        }
+        pushByte(buf,'\n');
+    }
+}
 
 
 void TNewDataZsyncInfo_saveTo(TNewDataZsyncInfo* self,const hpatch_TStreamOutput* out_stream,
-                              hsync_TDictCompress* compressPlugin){
-    //todo:
+                              const std::vector<std::string>& zsyncKeyValues){
+    const uint32_t kBlockCount=(uint32_t)getSyncBlockCount(self->newDataSize,self->kSyncBlockSize);
+    hpatch_StreamPos_t outPos=0;
+    std::vector<TByte> buf;
+    pushCStr(buf,"zsync: 0.6.3\n");
+    pushCStr(buf,"Blocksize: ");    pushUIntAsStr(buf,self->kSyncBlockSize);        pushByte(buf,'\n');
+    pushCStr(buf,"Length: ");       pushUIntAsStr(buf,self->newDataSize);           pushByte(buf,'\n');
+    pushCStr(buf,"Hash-Lengths: "); pushUIntAsStr(buf,self->isSeqMatch?2:1);        pushByte(buf,',');
+        pushUIntAsStr(buf,self->savedRollHashByteSize);         pushByte(buf,','); 
+        pushUIntAsStr(buf,self->savedStrongChecksumByteSize);   pushByte(buf,',');  pushByte(buf,'\n');
+    pushCStr(buf,"SHA-1: "); pushBytesAsHex(buf,self->savedNewDataCheckChecksum,
+                                            self->fileChecksumPlugin->checksumByteSize()); pushByte(buf,'\n');
+    saveKeyValues(out_stream,outPos,zsyncKeyValues,buf);
+
+    if (self->isSavedBitsSizes){
+        check(false,"now unsupport Z-Map2");
+    }
+    pushByte(buf,'\n'); //end of key-value
+
+    save2PartHash(out_stream,outPos,self->rollHashs,self->savedRollHashByteSize,
+                  self->partChecksums,self->savedStrongChecksumByteSize,kBlockCount,buf);
+    _flushV(buf);
 }
 
 
 static size_t z_getSavedHashBits(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,size_t kStrongHashBits,
                                  size_t* out_partRollHashBits,size_t* out_partStrongHashBits,uint8_t* out_isSeqMatch){
-    //todo:
-    return -1;
+    const size_t _kMinStrongHashBytes=4;
+    const size_t kStrongHashBytes=kStrongHashBits/8;
+    const uint32_t kBlockCount=(uint32_t)getSyncBlockCount(newDataSize,kSyncBlockSize);
+    
+    //calc for zsync compatible
+    const int compareCountBit=(int)_estimateCompareCountBit(newDataSize,kBlockCount)-9;
+    int rollHashBytes=(compareCountBit+7)/8;
+    size_t seqMatch=1;
+    if (rollHashBytes>_kAdler32Bytes){
+        rollHashBytes=_kAdler32Bytes;
+        seqMatch=2;
+    }
+    rollHashBytes=std::max(rollHashBytes,2);
+
+    const size_t safeBit0=(kSafeHashClashBit+_estimateCompareCountBit(newDataSize,kSyncBlockSize))/seqMatch;
+    const size_t safeBit1=kSafeHashClashBit+sync_private::upper_ilog2(kBlockCount);
+    size_t safeBytes=(std::max(safeBit0,safeBit1)+7)/8;
+    safeBytes=std::min(std::max(safeBytes,_kMinStrongHashBytes),kStrongHashBytes);
+    
+    *out_isSeqMatch=(seqMatch>1);
+    *out_partRollHashBits=(size_t)rollHashBytes*8;
+    *out_partStrongHashBits=safeBytes*8;
+    return (*out_partRollHashBits)+(*out_partStrongHashBits);
 }
 
 static bool z_isNeedSamePair(){

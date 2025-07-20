@@ -52,7 +52,7 @@ void z_checkChecksumAppendData(unsigned char* checkChecksumBuf,uint32_t checksum
                                const unsigned char* blockChecksum,const unsigned char* blockData,size_t blockDataSize){
     const size_t kStrongChecksumByteSize=checkChecksumPlugin->checksumByteSize();
     zsync_checkChecksum_t* self=(zsync_checkChecksum_t*)(checkChecksumBuf+2*kStrongChecksumByteSize);
-    assert(self->checkBlockIndex==checksumIndex); //must check by order
+    assert(self->checkBlockIndex<=checksumIndex); //must check by order
     self->checkBlockIndex++;
     if (self->state==0){
         assert(checksumIndex==0);

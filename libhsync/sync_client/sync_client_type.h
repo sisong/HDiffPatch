@@ -69,8 +69,8 @@ typedef struct{
 #endif
 
 typedef struct{
-  uint32_t skipBitsInFirstCodeByte  : 3;
   uint32_t bitsSize                 : (32-3);
+  uint32_t skipBitsInFirstCodeByte  : 3;
 } savedBitsInfo_t;
 
 

@@ -30,11 +30,19 @@
 #define zsync_info_make_h
 #include "../sync_make/sync_info_make.h"
 #include "../zsync_client_wrapper/zsync_client_type.h"
+#include <vector>
+#include <string>
+
+//check strongChecksumBits is strong enough?
+bool z_getStrongForHashClash(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,
+                             uint32_t kSyncBlockSize,size_t strongChecksumBits);
 
 namespace sync_private{
 
+void  TNewDataZsyncInfo_savedSizesToBits(TNewDataZsyncInfo* self);
+
 void TNewDataZsyncInfo_saveTo(TNewDataZsyncInfo* self,const hpatch_TStreamOutput* out_stream,
-                              hsync_TDictCompress* compressPlugin);
+                              const std::vector<std::string>& zsyncKeyValues);
 
 class CNewDataZsyncInfo :public CNewDataSyncInfo{
 public:
