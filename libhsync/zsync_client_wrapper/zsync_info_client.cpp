@@ -153,7 +153,7 @@ static bool readSavedBitsTo(const TByte* zmap2_data,size_t zmap2_blocks,TNewData
 }
 
 static TSyncClient_resultType
-    _TNewDataZsyncInfo_open(TNewDataZsyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+    _TNewDataZsyncInfo_open(TNewDataZsyncInfo* self,const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL isIgnoreCompressInfo,
                             ISyncInfoListener *listener){
     assert((self->_import==0)&&(self->_extraMem==0));
     TSyncClient_resultType result=kSyncClient_ok;
@@ -220,9 +220,14 @@ static TSyncClient_resultType
             check(a_to_u64(value,strlen(value),&_zmBlocks)
                     &&(_zmBlocks==(((size_t)(_zmBlocks*_kZmOneSize))/_kZmOneSize)),kSyncClient_newZsyncInfoZmap2BlocksError);
             zmap2_blocks=(size_t)_zmBlocks;
-            zmap2_data=(TByte*)malloc(zmap2_blocks*_kZmOneSize);
-            check(zmap2_data!=0,kSyncClient_memError);
-            check(_TStreamCacheClip_readDataTo(&clip,zmap2_data,zmap2_data+zmap2_blocks*_kZmOneSize), kSyncClient_newZsyncInfoDataError);
+            if (!isIgnoreCompressInfo){
+                zmap2_data=(TByte*)malloc(zmap2_blocks*_kZmOneSize);
+                check(zmap2_data!=0,kSyncClient_memError);
+                check(_TStreamCacheClip_readDataTo(&clip,zmap2_data,zmap2_data+zmap2_blocks*_kZmOneSize), kSyncClient_newZsyncInfoDataError);
+            }else{
+                check(_TStreamCacheClip_skipData(&clip,zmap2_blocks*_kZmOneSize), kSyncClient_newZsyncInfoDataError);
+                zmap2_blocks=0;
+            }
         }else if (0==strcmp(key,"SHA-1")){
             self->fileChecksumPlugin=listener->findChecksumPlugin(listener,"sha1"); //for newData
             check(self->fileChecksumPlugin!=0,kSyncClient_noStrongChecksumPluginError);
@@ -320,22 +325,22 @@ void TNewDataZsyncInfo_close(TNewDataZsyncInfo* self){
     TNewDataSyncInfo_close(self);
 }
 
-TSyncClient_resultType TNewDataZsyncInfo_open(TNewDataZsyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+TSyncClient_resultType TNewDataZsyncInfo_open(TNewDataZsyncInfo* self,const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL isIgnoreCompressInfo,
                                               ISyncInfoListener* listener){
-    TSyncClient_resultType result=_TNewDataZsyncInfo_open(self,newSyncInfo,listener);
+    TSyncClient_resultType result=_TNewDataZsyncInfo_open(self,newSyncInfo,isIgnoreCompressInfo,listener);
     if ((result==kSyncClient_ok)&&listener->onLoadedNewSyncInfo)
         listener->onLoadedNewSyncInfo(listener,self);
     return result;
 }
 
-TSyncClient_resultType TNewDataZsyncInfo_open_by_file(TNewDataZsyncInfo* self,const char* newSyncInfoFile,
+TSyncClient_resultType TNewDataZsyncInfo_open_by_file(TNewDataZsyncInfo* self,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,
                                                       ISyncInfoListener *listener){
     hpatch_TFileStreamInput  newSyncInfo;
     hpatch_TFileStreamInput_init(&newSyncInfo);
     TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoFile), kSyncClient_newZsyncInfoOpenError);
-    result=_TNewDataZsyncInfo_open(self,&newSyncInfo.base,listener);
+    result=_TNewDataZsyncInfo_open(self,&newSyncInfo.base,isIgnoreCompressInfo,listener);
 clear:
     _inClear=1;
     check(hpatch_TFileStreamInput_close(&newSyncInfo), kSyncClient_newZsyncInfoCloseError);

@@ -228,7 +228,7 @@ static bool _clip_readSavedSize(uint32_t* value,uint32_t* tag,TStreamCacheClip* 
     *tag=buf[0]>>7;
     return _clip_unpackToUInt32(value,codeClip,1);
 }
-static bool readSavedSizesTo(TStreamCacheClip* codeClip,TNewDataSyncInfo* self){
+static bool readSavedSizesTo(TStreamCacheClip* codeClip,TNewDataSyncInfo* self,hpatch_BOOL isIgnoreCompressInfo){
     uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
     uint32_t backSize=0;
     hpatch_StreamPos_t sumSavedSize=0;
@@ -245,7 +245,8 @@ static bool readSavedSizesTo(TStreamCacheClip* codeClip,TNewDataSyncInfo* self){
         }else{
             backSize=self->kSyncBlockSize;
         }
-        self->savedSizes[i]=savedSize;
+        if (!isIgnoreCompressInfo)
+            self->savedSizes[i]=savedSize;
         sumSavedSize+=(savedSize>0)?savedSize:TNewDataSyncInfo_newDataBlockSize(self,i);
     }
     if (sumSavedSize>self->newSyncDataSize) return false;
@@ -306,7 +307,7 @@ static hpatch_BOOL _readDirHead(TNewDataSyncInfo_dir* dirInfo,TStreamCacheClip* 
 #endif
 
 static TSyncClient_resultType
-    _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+    _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL isIgnoreCompressInfo,
                            ISyncInfoListener *listener){
     assert((self->_import==0)&&(self->_extraMem==0));
     hsync_TDictDecompress* decompressPlugin=0;
@@ -428,7 +429,7 @@ static TSyncClient_resultType
         TByte* curMem=0;
         memSize=headMaxSize;
         memSize+=self->samePairCount*sizeof(TSameNewBlockPair);
-        if (isSavedSizes)
+        if (isSavedSizes&&(!isIgnoreCompressInfo))
             memSize+=sizeof(uint32_t)*(hpatch_StreamPos_t)kBlockCount;
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (self->isDirSyncInfo){
@@ -468,7 +469,7 @@ static TSyncClient_resultType
         curMem=(TByte*)_hpatch_align_upper(curMem,sizeof(hpatch_StreamPos_t));
         self->samePairList=(TSameNewBlockPair*)curMem;
         curMem+=self->samePairCount*sizeof(TSameNewBlockPair);
-        if (isSavedSizes){
+        if ((isSavedSizes)&&(!isIgnoreCompressInfo)){
             self->savedSizes=(uint32_t*)curMem;
             curMem+=sizeof(uint32_t)*(size_t)kBlockCount;
         }
@@ -550,7 +551,7 @@ static TSyncClient_resultType
         check(readSamePairListTo(codeClip,self->samePairList,self->samePairCount,kBlockCount),
               kSyncClient_newSyncInfoDataError);
         if (isSavedSizes) //savedSizes
-            check(readSavedSizesTo(codeClip,self),kSyncClient_newSyncInfoDataError);
+            check(readSavedSizesTo(codeClip,self,isIgnoreCompressInfo),kSyncClient_newSyncInfoDataError);
         else
             assert(self->savedSizes==0);
         if (compressDataSize>0)
@@ -599,6 +600,11 @@ static TSyncClient_resultType
     }
     check(_TStreamCacheClip_readPosOfSrcStream(&clip)+kStrongChecksumByteSize
           ==newSyncInfo->streamSize, kSyncClient_newSyncInfoDataError);
+    if (isIgnoreCompressInfo){
+        self->compressType=0;
+        self->_decompressPlugin=0;
+    }
+
 clear:
     _inClear=1;
     _clear_decompresser(decompresser);
@@ -648,22 +654,22 @@ void TNewDataSyncInfo_close(TNewDataSyncInfo* self){
     TNewDataSyncInfo_init(self);
 }
 
-TSyncClient_resultType TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+TSyncClient_resultType TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL isIgnoreCompressInfo,
                                              ISyncInfoListener* listener){
-    TSyncClient_resultType result=_TNewDataSyncInfo_open(self,newSyncInfo,listener);
+    TSyncClient_resultType result=_TNewDataSyncInfo_open(self,newSyncInfo,isIgnoreCompressInfo,listener);
     if ((result==kSyncClient_ok)&&listener->onLoadedNewSyncInfo)
         listener->onLoadedNewSyncInfo(listener,self);
     return result;
 }
 
-TSyncClient_resultType TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,
+TSyncClient_resultType TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,
                                                      ISyncInfoListener *listener){
     hpatch_TFileStreamInput  newSyncInfo;
     hpatch_TFileStreamInput_init(&newSyncInfo);
     TSyncClient_resultType result=kSyncClient_ok;
     int _inClear=0;
     check(hpatch_TFileStreamInput_open(&newSyncInfo,newSyncInfoFile), kSyncClient_newSyncInfoOpenError);
-    result=_TNewDataSyncInfo_open(self,&newSyncInfo.base,listener);
+    result=_TNewDataSyncInfo_open(self,&newSyncInfo.base,isIgnoreCompressInfo,listener);
 clear:
     _inClear=1;
     check(hpatch_TFileStreamInput_close(&newSyncInfo), kSyncClient_newSyncInfoCloseError);

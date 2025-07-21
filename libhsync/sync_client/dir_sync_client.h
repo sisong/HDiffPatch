@@ -37,7 +37,7 @@
 //sync patch(oldManifest+syncDataListener) to outNewFile
 //  can use get_manifest(oldDir) to got oldManifest
 TSyncClient_resultType sync_patch_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
-                                        const TManifest& oldManifest,const char* newSyncInfoFile,
+                                        const TManifest& oldManifest,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,
                                         const char* outNewFile,hpatch_BOOL isOutNewContinue,
                                         const char* cacheDiffInfoFile,size_t kMaxOpenFileNumber,int threadNum);
 
@@ -46,13 +46,13 @@ TSyncClient_resultType sync_patch_2file(ISyncInfoListener* listener,IReadSyncDat
 //download diff data from syncDataListener to outDiffFile
 //  if (isOutDiffContinue) then continue download
 TSyncClient_resultType sync_local_diff_2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
-                                             const TManifest& oldManifest,const char* newSyncInfoFile,
+                                             const TManifest& oldManifest,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,
                                              const char* outDiffFile,TSyncDiffType diffType,hpatch_BOOL isOutDiffContinue,
                                              size_t kMaxOpenFileNumber,int threadNum);
 
 //patch(oldManifest+inDiffFile) to outNewFile
 TSyncClient_resultType sync_local_patch_2file(ISyncInfoListener* listener,const char* inDiffFile,
-                                              const TManifest& oldManifest,const char* newSyncInfoFile,const char* outNewFile,
+                                              const TManifest& oldManifest,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,const char* outNewFile,
                                               size_t kMaxOpenFileNumber,int threadNum);
 
 struct IDirSyncPatchListener:public ISyncInfoListener{
@@ -64,7 +64,7 @@ struct IDirSyncPatchListener:public ISyncInfoListener{
 //sync patch(oldManifest+syncDataListener) to outNewDir
 TSyncClient_resultType sync_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListener* syncListener,
                                        IReadSyncDataListener* syncDataListener,
-                                       const TManifest& oldManifest,const char* newSyncInfoFile,const char* outNewDir,
+                                       const TManifest& oldManifest,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,const char* outNewDir,
                                        const char* cacheDiffInfoFile,size_t kMaxOpenFileNumber,int threadNum);
 
 //download diff data from syncDataListener to outDiffFile
@@ -72,16 +72,16 @@ TSyncClient_resultType sync_patch_2dir(IDirPatchListener* patchListener,IDirSync
 static hpatch_inline
 TSyncClient_resultType sync_local_diff_2dir(IDirPatchListener*,IDirSyncPatchListener* syncListener,
                                             IReadSyncDataListener* syncDataListener,
-                                            const TManifest& oldManifest,const char* newSyncInfoFile,
+                                            const TManifest& oldManifest,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,
                                             const char* outDiffFile,TSyncDiffType diffType,hpatch_BOOL isOutDiffContinue,
                                             size_t kMaxOpenFileNumber,int threadNum){
-            return sync_local_diff_2file(syncListener,syncDataListener,oldManifest,newSyncInfoFile,
+            return sync_local_diff_2file(syncListener,syncDataListener,oldManifest,newSyncInfoFile,isIgnoreCompressInfo,
                                          outDiffFile,diffType,isOutDiffContinue,kMaxOpenFileNumber,threadNum); }
 
 //patch(oldManifest+inDiffFile) to outNewDir
 TSyncClient_resultType sync_local_patch_2dir(IDirPatchListener* patchListener,IDirSyncPatchListener* syncListener,
-                                             const char* inDiffFile,
-                                             const TManifest& oldManifest,const char* newSyncInfoFile,const char* outNewDir,
+                                             const char* inDiffFile,const TManifest& oldManifest,
+                                             const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,const char* outNewDir,
                                              size_t kMaxOpenFileNumber,int threadNum);
 
 #endif

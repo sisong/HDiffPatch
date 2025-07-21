@@ -37,7 +37,7 @@ TSyncClient_resultType zsync_patch(ISyncInfoListener* listener,IReadSyncDataList
 
 //zsync patch(oldFile+syncDataListener) to outNewFile
 TSyncClient_resultType zsync_patch_file2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
-                                             const char* oldFile,const char* newSyncInfoFile,
+                                             const char* oldFile,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,
                                              const char* outNewFile,hpatch_BOOL isOutNewContinue,
                                              const char* cacheDiffInfoFile,int threadNum);
 
@@ -60,12 +60,12 @@ TSyncClient_resultType zsync_local_patch(ISyncInfoListener* listener,const hpatc
 //download diff data from syncDataListener to outDiffFile
 //  if (isOutDiffContinue) then continue download
 TSyncClient_resultType zsync_local_diff_file2file(ISyncInfoListener* listener,IReadSyncDataListener* syncDataListener,
-                                                  const char* oldFile,const char* newSyncInfoFile,
+                                                  const char* oldFile,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,
                                                   const char* outDiffFile,TSyncDiffType diffType,
                                                   hpatch_BOOL isOutDiffContinue,int threadNum);
 
 //patch(oldFile+inDiffFile) to outNewFile
 TSyncClient_resultType zsync_local_patch_file2file(ISyncInfoListener* listener,const char* inDiffFile,
-                                                   const char* oldFile,const char* newSyncInfoFile,
+                                                   const char* oldFile,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,
                                                    const char* outNewFile,hpatch_BOOL isOutNewContinue,int threadNum);
 #endif

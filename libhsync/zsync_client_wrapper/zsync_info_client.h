@@ -30,9 +30,9 @@
 #define zsync_info_client_h
 #include "zsync_client_type.h"
 
-TSyncClient_resultType TNewDataZsyncInfo_open_by_file(TNewDataZsyncInfo* self,const char* newSyncInfoFile,
+TSyncClient_resultType TNewDataZsyncInfo_open_by_file(TNewDataZsyncInfo* self,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,
                                                       ISyncInfoListener* listener);
-TSyncClient_resultType TNewDataZsyncInfo_open(TNewDataZsyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+TSyncClient_resultType TNewDataZsyncInfo_open(TNewDataZsyncInfo* self,const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL isIgnoreCompressInfo,
                                               ISyncInfoListener* listener);
 void TNewDataZsyncInfo_close(TNewDataZsyncInfo* self);
 
