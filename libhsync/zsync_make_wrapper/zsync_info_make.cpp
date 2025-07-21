@@ -50,7 +50,7 @@ static void pushUIntAsStr(std::vector<TByte>& out_code,hpatch_uint64_t value){
 static void pushBytesAsHex(std::vector<TByte>& out_code,const hpatch_byte* bytes,size_t blen){
     const size_t sizebck=out_code.size();
     out_code.resize(sizebck+blen*2);
-    bytes_to_HEXs(bytes,blen,(char*)out_code.data()+sizebck);
+    bytes_to_hexs(bytes,blen,(char*)out_code.data()+sizebck);
 }
 
 namespace sync_private{
@@ -60,7 +60,7 @@ void TNewDataZsyncInfo_savedSizesToBits(TNewDataZsyncInfo* self){
     const uint32_t kBlockCount=(uint32_t)getSyncBlockCount(self->newDataSize,self->kSyncBlockSize);
     for (size_t i=0;i<kBlockCount;++i){
         assert(self->savedSizes[i]>0);
-        check(self->savedSizes[i]<(1<<(32-3-3)),"kBlockSize is too large");
+        check(self->savedSizes[i]<(1<<(32-3-3)),"block size is too large for zsync");
         self->savedSizes[i]<<=3;
     }
     self->isSavedBitsSizes=hpatch_TRUE;
@@ -72,12 +72,33 @@ void TNewDataZsyncInfo_savedSizesToBits(TNewDataZsyncInfo* self){
 
 const size_t _kBestFlushSize=hpatch_kFileIOBufBetterSize*2-16;
 
-
+    static void pack_zmap2_data(std::vector<TByte>& buf,hpatch_uint32_t bitsSize,uint32_t outBytes){
+        assert(bitsSize==(uint16_t)bitsSize);
+        check(bitsSize==(uint16_t)bitsSize,"block size is too large for zsync");
+        pushByte(buf,(hpatch_byte)(bitsSize>>8));
+        pushByte(buf,(hpatch_byte)bitsSize);
+        pushByte(buf,(hpatch_byte)(outBytes>>8));
+        pushByte(buf,(hpatch_byte)outBytes);
+    }
+    static size_t  getZmBlocks(const savedBitsInfo_t* savedBitsInfos,uint32_t kBlockCount){
+        return kBlockCount+1;
+    }
 static void saveSavedBitsInfos(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
                                hpatch_StreamPos_t gzOffset0,hpatch_StreamPos_t gzFileSize,hpatch_StreamPos_t newDataSize,
                                const savedBitsInfo_t* savedBitsInfos,uint32_t kBlockCount,
                                uint32_t kBlockSize,std::vector<TByte>& buf){
-    //todo:
+    check(kBlockSize==(kBlockSize&((1<<15)-1)),"block size is too large for zsync");
+    hpatch_StreamPos_t curBitsPos=gzOffset0*8;
+    pack_zmap2_data(buf,curBitsPos,0);
+    for (size_t i=0; i<kBlockCount; ++i){
+        const hpatch_uint32_t bitsSize=savedBitsInfos[i].bitsSize;
+        assert((curBitsPos&7)==savedBitsInfos[i].skipBitsInFirstCodeByte);
+        pack_zmap2_data(buf,bitsSize,(i+1<kBlockCount)?kBlockSize:(hpatch_uint32_t)(newDataSize-kBlockSize*(hpatch_StreamPos_t)i));
+        curBitsPos+=bitsSize;
+        if (buf.size()>=_kBestFlushSize)
+            _flushV(buf);
+    }
+    check(curBitsPos+(8<<3)==(gzFileSize<<3),".gz size or compressed block size error");//8 bytes is gzip file foot size
 }
 
 static void save2PartHash(const hpatch_TStreamOutput* out_stream,hpatch_StreamPos_t& outPos,
@@ -117,13 +138,17 @@ void TNewDataZsyncInfo_saveTo(TNewDataZsyncInfo* self,const hpatch_TStreamOutput
     pushCStr(buf,"Length: ");       pushUIntAsStr(buf,self->newDataSize);           pushByte(buf,'\n');
     pushCStr(buf,"Hash-Lengths: "); pushUIntAsStr(buf,self->isSeqMatch?2:1);        pushByte(buf,',');
         pushUIntAsStr(buf,self->savedRollHashByteSize);         pushByte(buf,','); 
-        pushUIntAsStr(buf,self->savedStrongChecksumByteSize);   pushByte(buf,',');  pushByte(buf,'\n');
+        pushUIntAsStr(buf,self->savedStrongChecksumByteSize);   pushByte(buf,'\n');
     pushCStr(buf,"SHA-1: "); pushBytesAsHex(buf,self->savedNewDataCheckChecksum,
                                             self->fileChecksumPlugin->checksumByteSize()); pushByte(buf,'\n');
     saveKeyValues(out_stream,outPos,zsyncKeyValues,buf);
 
     if (self->isSavedBitsSizes){
-        check(false,"now unsupport Z-Map2");
+        pushCStr(buf,"Z-Map2: "); 
+        hpatch_uint64_t _zmBlocks=getZmBlocks(self->savedBitsInfos,kBlockCount);
+        pushUIntAsStr(buf,_zmBlocks); pushByte(buf,'\n');
+        saveSavedBitsInfos(out_stream,outPos,self->newSyncDataOffsert,self->newSyncDataSize,self->newDataSize,
+                           self->savedBitsInfos,kBlockCount,self->kSyncBlockSize,buf);
     }
     pushByte(buf,'\n'); //end of key-value
 

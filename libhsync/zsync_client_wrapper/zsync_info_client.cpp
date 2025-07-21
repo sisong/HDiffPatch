@@ -131,11 +131,11 @@ static bool readSavedBitsTo(TByte* zmap2_data,size_t zmap2_blocks,TNewDataZsyncI
     for (size_t i=0;i<zmap2_blocks;++i,zmap2_data+=4){
         const uint16_t bits=(((uint16_t)zmap2_data[0])<<8)|zmap2_data[1];
         uint16_t       outs=(((uint16_t)zmap2_data[2])<<8)|zmap2_data[3];
-        const bool isBorder=((outs>>15)==0);
+        const bool isBolckStart=((outs>>15)==0);
         outs&=((1<<15)-1);
         sumOuts+=outs;
         if (outs==0){
-            if (((insert==0)&&(curOuts==0))||(insert>=kBlockCount)){ assert(isBorder); curBlockBitsPos+=bits; continue; }
+            if (((insert==0)&&(curOuts==0))||(insert>=kBlockCount)){ assert(isBolckStart); curBlockBitsPos+=bits; continue; }
         }
         if (curOuts+outs>kBlockSize){
             if (curOuts!=kBlockSize) return false;
@@ -201,7 +201,7 @@ static TSyncClient_resultType
             hpatch_uint64_t blockSize;
             check(a_to_u64(value,strlen(value),&blockSize)
                     &&(blockSize==(hpatch_uint32_t)blockSize)
-                    &&(blockSize>0)&&(0==(blockSize&(blockSize-1))),kSyncClient_newZsyncInfoDataError);
+                    &&(blockSize>0)&&(0==(blockSize&(blockSize-1))),kSyncClient_newZsyncInfoBlockSizeError);
             self->kSyncBlockSize=(hpatch_uint32_t)blockSize;
         }else if (0==strcmp(key,"Hash-Lengths")){
             int sequentialMatch,savedRollHashBytes,savedStrongChecksumBytes;
@@ -238,7 +238,7 @@ static TSyncClient_resultType
     {
         hpatch_StreamPos_t v=TNewDataSyncInfo_blockCount(self);
         kBlockCount=(uint32_t)v;
-        check((kBlockCount==v),kSyncClient_newZsyncInfoBlocksizeTooSmallError);//unsupport too large kBlockCount, need rise Blocksize when make
+        check((kBlockCount==v),kSyncClient_newZsyncInfoBlockSizeTooSmallError);//unsupport too large kBlockCount, need rise BlockSize when make
     }
     hpatch_StreamPos_t savedHashDataSize;
     {

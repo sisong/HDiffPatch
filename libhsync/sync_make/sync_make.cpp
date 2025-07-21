@@ -275,7 +275,6 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
 
     size_t backZeroLen=0;
     const size_t dataLens=(size_t)kSyncBlockSize*kSyncBlockCount;
-    size_t readLen=0;
     compress.cmBuf=workData->buf+dataLens+workData->in_borderSize;
     compress.cmBufPos=0;
     {//read data
@@ -284,15 +283,15 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
             assert(backZeroLen<kSyncBlockSize);
         }
         {
-            readLen=dataLens-backZeroLen+workData->in_borderSize;
+            size_t readLen=dataLens-backZeroLen+workData->in_borderSize;
             if (curReadPos+readLen>cd.newData->streamSize)
-                    readLen=cd.newData->streamSize-curReadPos;
+                    readLen=(size_t)(cd.newData->streamSize-curReadPos);
         #if (_IS_USED_MULTITHREAD)
             TMt* mt=(TMt*)_mt;
             if (isCCheckByOrder){
                 while(1){//ctrl threads run by order
                     if (mt->nextReadBlocki.load()==workData->blockBegin) break;
-                    this_thread_yield();
+                    this_thread_yield(); //todo: wait by signal
                     if (mt->is_on_error()) return;
                 }
             }
@@ -316,13 +315,13 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
         if (mt){
             while(1){//ctrl threads run by order
                 if (mt->nextCCheckBlocki.load()==workData->blockBegin) break;
-                this_thread_yield();
+                this_thread_yield(); //todo: wait by signal
                 if (mt->is_on_error()) return;
             }
         }
     #endif
         cd.cs_by->checkChecksumAppendData(cd.out_hsyni->savedNewDataCheckChecksum,workData->blockBegin,
-                                          out_hsyni->fileChecksumPlugin,cd.checkChecksum,0,workData->buf,readLen);
+                                          out_hsyni->fileChecksumPlugin,cd.checkChecksum,0,workData->buf,dataLens-backZeroLen);
     #if (_IS_USED_MULTITHREAD)
         if (mt)
             mt->nextCCheckBlocki.store(workData->blockEnd);
@@ -334,7 +333,7 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
         size_t srcDataLen=(i+1<workData->blockEnd)?kSyncBlockSize:kSyncBlockSize-backZeroLen;
         size_t cur_borderSize=workData->in_borderSize;
         if (curReadPos+srcDataLen+cur_borderSize>cd.newData->streamSize)
-            cur_borderSize=cd.newData->streamSize-(curReadPos+srcDataLen);
+            cur_borderSize=(size_t)(cd.newData->streamSize-(curReadPos+srcDataLen));
         //compress
         size_t compressedSize=compress.doCompress(i,dataBuf,srcDataLen,cur_borderSize);
         checkv(compressedSize==(uint32_t)compressedSize);
