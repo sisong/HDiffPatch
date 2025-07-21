@@ -113,6 +113,7 @@ typedef struct{
     hpatch_TChecksum*       fileChecksumPlugin;
     hsync_TDictDecompress*  _decompressPlugin;
     void*                   _import;
+    void*                   _extraMem;
 } TNewDataSyncInfo;
 
 #define _bitsToBytes(bits) (((bits)+7)>>3)

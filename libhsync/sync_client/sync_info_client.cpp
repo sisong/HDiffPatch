@@ -308,7 +308,7 @@ static hpatch_BOOL _readDirHead(TNewDataSyncInfo_dir* dirInfo,TStreamCacheClip* 
 static TSyncClient_resultType
     _TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
                            ISyncInfoListener *listener){
-    assert(self->_import==0);
+    assert((self->_import==0)&&(self->_extraMem==0));
     hsync_TDictDecompress* decompressPlugin=0;
     hpatch_TChecksum*   strongChecksumPlugin=0;
     TStreamCacheClip    clip;
@@ -644,6 +644,7 @@ clear:
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self){
     if (self==0) return;
     if (self->_import!=0) free(self->_import);
+    if (self->_extraMem!=0) free(self->_extraMem);
     TNewDataSyncInfo_init(self);
 }
 
