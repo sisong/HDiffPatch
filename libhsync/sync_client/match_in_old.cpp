@@ -185,7 +185,7 @@ bool _matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,const uint32_t* r
                     {
                         while(true){ //hit
                             (*pNewBlockDataInOldPos)=curPos;
-                            if (!newSyncInfo->isNotCChecksumNewMTParallel)
+                            if (!newSyncInfo->isNotCChecksumNewMTParallel) //note: checkChecksumAppendData() is only for hsynz
                                 checkChecksumAppendData(newSyncInfo->savedNewDataCheckChecksum,(uint32_t)newBlockIndex,
                                                         oldData.strongChecksumPlugin(),oldData.checkChecksum(),
                                                         oldData.strongChecksum(),0,0);

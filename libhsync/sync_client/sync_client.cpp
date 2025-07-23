@@ -33,6 +33,8 @@
 #include <stdexcept>
 namespace sync_private{
 
+#define checkv(value)     { if (!(value)) { throw std::runtime_error("check "#value" error!"); } }
+
 #define check(v,errorCode) \
             do{ if (!(v)) { if (result==kSyncClient_ok) result=errorCode; \
                             if (!_inClear) goto clear; } }while(0)
@@ -105,7 +107,7 @@ bool _open_continue_out(hpatch_BOOL& isOutContinue,const char* outFile,hpatch_TF
     
 static void _indexOfCompressedSyncBlock(uint32_t* _followCompressedIndex,const TNewDataSyncInfo* self,
                                         const hpatch_StreamPos_t* newBlockDataInOldPoss,uint32_t indexBegin){
-    uint32_t blockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
+    const uint32_t blockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
     uint32_t& followCompressedIndex=*_followCompressedIndex;
     if (self->savedSizes&&(followCompressedIndex<blockCount)){
         indexBegin=(indexBegin>=followCompressedIndex)?indexBegin:followCompressedIndex;
@@ -119,7 +121,30 @@ static void _indexOfCompressedSyncBlock(uint32_t* _followCompressedIndex,const T
     followCompressedIndex=blockCount;
 }
 
-    
+static uint32_t _getNextNeedSyncBlocki(const TNewDataSyncInfo* newSyncInfo,
+                                       const hpatch_StreamPos_t*newBlockDataInOldPoss,uint32_t indexBegin){
+    const uint32_t blockCount=(uint32_t)TNewDataSyncInfo_blockCount(newSyncInfo);
+    for (uint32_t i=indexBegin;i<blockCount;++i){
+        if (newBlockDataInOldPoss[i]==kBlockType_needSync)
+            return i;
+    }
+    return blockCount;
+}
+
+static inline
+uint32_t _getFistOutNewDataBlocki(const TNewDataSyncInfo* newSyncInfo,hpatch_StreamPos_t newDataContinue_streamSize){
+    return (uint32_t)(newDataContinue_streamSize/newSyncInfo->kSyncBlockSize);
+}
+
+static inline
+uint32_t _getFistNeedSyncBlocki(const TNewDataSyncInfo* newSyncInfo,
+                                const hpatch_StreamPos_t*newBlockDataInOldPoss,
+                                hpatch_StreamPos_t newDataContinue_streamSize){
+    uint32_t i=_getFistOutNewDataBlocki(newSyncInfo,newDataContinue_streamSize);
+    return _getNextNeedSyncBlocki(newSyncInfo,newBlockDataInOldPoss,i);
+}
+
+
 #define _checkSumNewDataBuf() { \
     if (newDataSize<kSyncBlockSize)/*for backZeroLen*/ \
         memset(dataBuf+newDataSize,0,kSyncBlockSize-newDataSize);  \
@@ -137,13 +162,61 @@ static void _indexOfCompressedSyncBlock(uint32_t* _followCompressedIndex,const T
 }
 
 
-static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd,bool& isNeed_readSyncDataEnd) {
+static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd) {
     _IWriteToNewOrDiff_by wr_by={0};
     wr_by.checkChecksumAppendData=checkChecksumAppendData;
-    return _writeToNewOrDiff_by(&wr_by,wd,isNeed_readSyncDataEnd);
+    return _writeToNewOrDiff_by(&wr_by,wd);
 }
 
-TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWriteDatas& wd,bool& isNeed_readSyncDataEnd) {
+
+
+#if (_IS_USED_MULTITHREAD)
+    namespace{
+        struct TWMt:public TMtByChannel{
+            inline TWMt(_IWriteToNewOrDiff_by* _wr_by,_TWriteDatas& _wd)
+                :TMtByChannel(),wr_by(_wr_by),wd(_wd),result(kSyncClient_ok),
+                nextCCheckBlocki(0),nextDecBlocki(0),nextDecDictBlocki(0),
+                nextOutNewDataBlocki(_getFistOutNewDataBlocki(_wd.newSyncInfo,_wd.newDataContinue?_wd.newDataContinue->streamSize:0)),
+                nextNeedSyncBlocki(_getFistNeedSyncBlocki(_wd.newSyncInfo,_wd.newBlockDataInOldPoss,
+                                                          _wd.newDataContinue?_wd.newDataContinue->streamSize:0)),
+                outDiffDataPos_back(_wd.outDiffDataPos),shared_decompressor(0),workIndex(0){}
+            _IWriteToNewOrDiff_by*  wr_by;
+            _TWriteDatas&           wd;
+            volatile TSyncClient_resultType  result;
+            CHLocker  newData_locker;
+            CHLocker  oldData_locker;
+            CHLocker  syncData_locker;
+            CHLocker  decompressor_locker;
+            CHLocker  cchecksum_locker;
+            CWaitValue   nextCCheckBlocki;
+            CWaitValue   nextDecBlocki;
+            CWaitValue   nextDecDictBlocki;
+            CWaitValue   nextOutNewDataBlocki;
+            CWaitValue   nextNeedSyncBlocki;
+            const hpatch_StreamPos_t    outDiffDataPos_back;
+            
+            hsync_dictDecompressHandle shared_decompressor;
+
+            CHLocker         workiLocker;
+            volatile size_t  workIndex;
+            inline bool getWorki(size_t worki){
+                if (workIndex>worki) return false;
+                CAutoLocker _auto_locker(workiLocker.locker);
+                if (workIndex==worki){
+                    ++workIndex;
+                    return true;
+                }else
+                    return false;
+            }
+        };
+    }
+#endif
+
+TSyncClient_resultType __writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWriteDatas& wd,void* _mt) {
+#if (_IS_USED_MULTITHREAD)
+    TWMt* mt=(TWMt*)_mt;
+    const bool isCCheckByOrder=mt&&wd.newSyncInfo->isNotCChecksumNewMTParallel;
+#endif
     const TNewDataSyncInfo* newSyncInfo=wd.newSyncInfo;
     IReadSyncDataListener*  syncDataListener=wd.syncDataListener;
     hpatch_TChecksum*       fileChecksumPlugin=newSyncInfo->fileChecksumPlugin;
@@ -162,10 +235,14 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
     hpatch_StreamPos_t posInNewSyncData=newSyncInfo->newSyncDataOffsert;
     hpatch_StreamPos_t posInNeedSyncData=0;
     hpatch_StreamPos_t outNewDataPos=0;
+#if (_IS_USED_MULTITHREAD)
+    const hpatch_StreamPos_t outDiffDataPos=mt?mt->outDiffDataPos_back:wd.outDiffDataPos;
+#else
+    const hpatch_StreamPos_t outDiffDataPos=wd.outDiffDataPos;
+#endif
     const hpatch_StreamPos_t oldDataSize=wd.oldStream->streamSize;
     bool isOnDiffContinue =(wd.continueDiffData!=0);
     bool isOnNewDataContinue =(wd.newDataContinue!=0);
-    isNeed_readSyncDataEnd=false;
     uint32_t followCompressedIndex=0;
     _indexOfCompressedSyncBlock(&followCompressedIndex,newSyncInfo,wd.newBlockDataInOldPoss,0);
     if (followCompressedIndex>=kBlockCount)
@@ -184,9 +261,18 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
         check(checksumSync!=0,kSyncClient_strongChecksumOpenError);
     }
     if (wd.decompressPlugin){
-        decompressHandle=wd.decompressPlugin->dictDecompressOpen(wd.decompressPlugin,kBlockCount,kSyncBlockSize,
-                            newSyncInfo->decompressInfo,newSyncInfo->decompressInfo+newSyncInfo->decompressInfoSize);
-        check(decompressHandle,kSyncClient_decompressOpenError);
+    #if (_IS_USED_MULTITHREAD)
+        CAutoLocker _auto_locker(mt?mt->decompressor_locker.locker:0);
+        decompressHandle=mt?mt->shared_decompressor:0;
+    #endif
+        if (decompressHandle==0){
+            decompressHandle=wd.decompressPlugin->dictDecompressOpen(wd.decompressPlugin,kBlockCount,kSyncBlockSize,
+                                newSyncInfo->decompressInfo,newSyncInfo->decompressInfo+newSyncInfo->decompressInfoSize);
+            check(decompressHandle,kSyncClient_decompressOpenError);
+        #if (_IS_USED_MULTITHREAD)
+            if (mt) mt->shared_decompressor=decompressHandle;
+        #endif
+        }
     }
     for (uint32_t needbackup_nextBlocki=-1,backuped_nextBlocki=-1,i=0;i<kBlockCount;++i){
         const hpatch_byte skipBitsInFirstCodeByte=TNewDataSyncInfo_skipBitsInFirstCodeByte(newSyncInfo,i);
@@ -200,9 +286,24 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
         const uint32_t _isNeedBackupHalf=((isNeedSync&&(needbackup_nextBlocki==i))?1:0);
         if (isOnNewDataContinue&&(outNewDataPos+newDataSize>wd.newDataContinue->streamSize))
             isOnNewDataContinue=hpatch_FALSE;
+#if (_IS_USED_MULTITHREAD)
+        if (mt){
+            if (mt->is_on_error()) goto clear;
+            if (!mt->getWorki(i)){
+                if (isCompressedBlock)
+                    _indexOfCompressedSyncBlock(&followCompressedIndex,newSyncInfo,wd.newBlockDataInOldPoss,i+1);
+                goto _next_i;
+            } 
+        }
+#endif
         if (isOnNewDataContinue){ //copy from newDataContinue
-            check(wd.newDataContinue->read(wd.newDataContinue,outNewDataPos,dataBuf,dataBuf+newDataSize),
-                  kSyncClient_newFileReopenReadError);
+            {
+            #if (_IS_USED_MULTITHREAD)
+                CAutoLocker _auto_locker(mt?mt->newData_locker.locker:0);
+            #endif
+                check(wd.newDataContinue->read(wd.newDataContinue,outNewDataPos,dataBuf,dataBuf+newDataSize),
+                    kSyncClient_newFileReopenReadError);
+            }
             if (isCompressedBlock)
                 _indexOfCompressedSyncBlock(&followCompressedIndex,newSyncInfo,wd.newBlockDataInOldPoss,i+1);
         }else if (isNeedSync){ //download or read from diff data
@@ -211,28 +312,38 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
             if (_isBackupedHalf||_isNeedBackupHalf) assert(skipBitsInFirstCodeByte);
             const size_t _isReLoadNewHalf=((skipBitsInFirstCodeByte&&(!_isBackupedHalf))?1:0);
             const size_t _isReLoadSyncHalf=((_isNeedBackupHalf&&(!_isBackupedHalf))?1:0);
-            /*if ((wd.out_newStream)||(wd.out_diffStream))*/{//download data
+        /*if ((wd.out_newStream)||(wd.out_diffStream))*/{//download data
+            #if (_IS_USED_MULTITHREAD)
+                if (mt){
+                    if (!mt->nextNeedSyncBlocki.wait(i,mt->is_on_error_by,mt))
+                        goto clear;
+                }
+            #endif
                 if (isOnDiffContinue){ //read from local data
                     if (!wd.continueDiffData->readSyncData(wd.continueDiffData,i,posInNewSyncData-_isReLoadNewHalf,
                                                            posInNeedSyncData-_isReLoadSyncHalf,buf,syncSize-_isBackupedHalf))
                         isOnDiffContinue=false; // swap to download
                 }
                 if (!isOnDiffContinue){ //downloaded data or read from diff data
-                    if (!isNeed_readSyncDataEnd){
-                        isNeed_readSyncDataEnd=true;
+                    if (!wd.isNeed_readSyncDataEnd){
+                        wd.isNeed_readSyncDataEnd=true;
                         if (syncDataListener->readSyncDataBegin)
                             check(syncDataListener->readSyncDataBegin(syncDataListener,wd.needSyncInfo,
-                                                        i,posInNewSyncData-_isReLoadNewHalf,posInNeedSyncData),kSyncClient_readSyncDataBeginError);
+                                                        i,posInNewSyncData-_isReLoadNewHalf,posInNeedSyncData-_isReLoadSyncHalf),kSyncClient_readSyncDataBeginError);
                     }
                     check(syncDataListener->readSyncData(syncDataListener,i,posInNewSyncData-_isReLoadNewHalf,
                                                 posInNeedSyncData-_isReLoadSyncHalf,buf,syncSize-_isBackupedHalf),kSyncClient_readSyncDataError);
                 }
                 if (wd.out_diffStream){ //out diff
                     if (!isOnDiffContinue){ //save downloaded data
-                        check(wd.out_diffStream->write(wd.out_diffStream,wd.outDiffDataPos+posInNeedSyncData-_isReLoadSyncHalf,
-                                                       buf,buf+syncSize-_isBackupedHalf),kSyncClient_saveDiffError);
+                        assert(_isNeedBackupHalf==_isReLoadSyncHalf+_isBackupedHalf);
+                        check(wd.out_diffStream->write(wd.out_diffStream,outDiffDataPos+posInNeedSyncData,
+                                                       buf+_isReLoadSyncHalf,buf+_isReLoadSyncHalf+syncSize-_isNeedBackupHalf),kSyncClient_saveDiffError);
                     }
                 }
+            #if (_IS_USED_MULTITHREAD)
+                if (mt) mt->nextNeedSyncBlocki.store(_getNextNeedSyncBlocki(newSyncInfo,wd.newBlockDataInOldPoss,i+1));
+            #endif
             }
             const hpatch_byte backup_last_code=buf[syncSize-_isBackupedHalf-1];
             if (/*wd.out_newStream&&*/isCompressedBlock){// need deccompress
@@ -240,8 +351,16 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
                 size_t alignCodeSize=0;
                 if (lastByteHalfBits&&wd.decompressPlugin->needFillAlignCode)
                     alignCodeSize=wd.decompressPlugin->needFillAlignCode(&buf[syncSize-_isBackupedHalf-1],lastByteHalfBits);
-                check(wd.decompressPlugin->dictDecompress(decompressHandle,i,buf-_isBackupedHalf,buf-_isBackupedHalf+syncSize+alignCodeSize,
-                                                          dataBuf,dataBuf+newDataSize,skipBitsInFirstCodeByte),kSyncClient_decompressError);
+                {
+                #if (_IS_USED_MULTITHREAD)
+                    if (mt){
+                        if (!mt->nextDecBlocki.wait(i,mt->is_on_error_by,mt))
+                            goto clear;
+                    }
+                #endif
+                    check(wd.decompressPlugin->dictDecompress(decompressHandle,i,buf-_isBackupedHalf,buf-_isBackupedHalf+syncSize+alignCodeSize,
+                                                              dataBuf,dataBuf+newDataSize,skipBitsInFirstCodeByte),kSyncClient_decompressError);
+                }
                 _indexOfCompressedSyncBlock(&followCompressedIndex,newSyncInfo,wd.newBlockDataInOldPoss,i+1);
             }
             buf[-1]=backup_last_code;//backup last half byte code for next block
@@ -252,38 +371,83 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
                 uint32_t readSize=newDataSize;
                 if (curSyncPos+readSize>oldDataSize)
                     readSize=(uint32_t)(oldDataSize-curSyncPos);
-                check(wd.oldStream->read(wd.oldStream,curSyncPos,dataBuf,dataBuf+readSize),
-                      kSyncClient_readOldDataError);
+                {
+                #if (_IS_USED_MULTITHREAD)
+                    CAutoLocker _auto_locker(mt?mt->oldData_locker.locker:0);
+                #endif
+                    check(wd.oldStream->read(wd.oldStream,curSyncPos,dataBuf,dataBuf+readSize),
+                          kSyncClient_readOldDataError);
+                }
                 if (readSize<newDataSize)
                     memset(dataBuf+readSize,0,newDataSize-readSize);
             }
         }
 
-        if (decompressHandle&&(followCompressedIndex<kBlockCount))
+        if (decompressHandle&&(followCompressedIndex<kBlockCount)){
+        #if (_IS_USED_MULTITHREAD)
+            if (mt){
+                if (!mt->nextDecDictBlocki.wait(i,mt->is_on_error_by,mt))
+                    goto clear;
+            }
+        #endif
             wd.decompressPlugin->dictUncompress(decompressHandle,i,followCompressedIndex,dataBuf,dataBuf+newDataSize);
+        #if (_IS_USED_MULTITHREAD)
+            if (mt) mt->nextDecBlocki.store(i+1);
+            if (mt) mt->nextDecDictBlocki.store(i+1);
+        #endif
+        }
 
         /*if (wd.out_newStream)*/{//write
             bool isNeedChecksumAppend=isNeedSync|wd.isLocalPatch|(wd.continueDiffData!=0);
             if (isNeedChecksumAppend|isOnNewDataContinue)
                 _checkSumNewDataBuf();
             if (newSyncInfo->fileChecksumPlugin&&
-                 (newSyncInfo->isNotCChecksumNewMTParallel||isNeedChecksumAppend))
+                 (newSyncInfo->isNotCChecksumNewMTParallel||isNeedChecksumAppend)){
+            #if (_IS_USED_MULTITHREAD)
+                if (isCCheckByOrder){
+                    if (!mt->nextCCheckBlocki.wait(i,mt->is_on_error_by,mt))
+                        goto clear;
+                }
+                CAutoLocker _autoLocker((mt&&(!isCCheckByOrder))?mt->cchecksum_locker.locker:0);
+            #endif
                 wr_by->checkChecksumAppendData(newSyncInfo->savedNewDataCheckChecksum,i,
                                                fileChecksumPlugin,wd.checkChecksum,
                                                checksumSync_buf+wd.newSyncInfo->savedStrongChecksumByteSize,
                                                dataBuf,newDataSize);
+            #if (_IS_USED_MULTITHREAD)
+                if (isCCheckByOrder) mt->nextCCheckBlocki.store(i+1);
+            #endif
+            }
             if ((!isOnNewDataContinue)&&wd.out_newStream){
+            #if (_IS_USED_MULTITHREAD)
+                if (mt){
+                    if (!mt->nextOutNewDataBlocki.wait(i,mt->is_on_error_by,mt))
+                        goto clear;
+                }
+                CAutoLocker _auto_locker(mt?mt->newData_locker.locker:0);
+            #endif
                 check(wd.out_newStream->write(wd.out_newStream,outNewDataPos,dataBuf,
                                               dataBuf+newDataSize), kSyncClient_writeNewDataError);
+            #if (_IS_USED_MULTITHREAD)
+                if (mt) mt->nextOutNewDataBlocki.store(i+1);
+            #endif
             }
         }
         
+    _next_i:
         outNewDataPos+=newDataSize;
         posInNewSyncData+=syncSize-(skipBitsInFirstCodeByte?1:0);//delete one byte when adjacent blocks have half byte
         posInNeedSyncData+=isNeedSync?(syncSize-_isNeedBackupHalf):0; //delete one byte when adjacent need sync blocks have half byte
         needbackup_nextBlocki=(isNeedSync&&lastByteHalfBits)?(i+1):-1;
     }//for i
-    if (wd.out_diffStream) wd.outDiffDataPos+=posInNeedSyncData;
+    if (wd.out_diffStream){
+    #if (_IS_USED_MULTITHREAD)
+        std::atomic<hpatch_StreamPos_t>& v=(std::atomic<hpatch_StreamPos_t>&)wd.outDiffDataPos;
+        v.store(outDiffDataPos+posInNeedSyncData);
+    #else
+        wd.outDiffDataPos=outDiffDataPos+posInNeedSyncData;
+    #endif
+    }
     check(outNewDataPos==newSyncInfo->newDataSize,kSyncClient_newDataSizeError);
     if (newSyncInfo->newSyncDataSize==0)
         assert(posInNewSyncData<=newSyncInfo->newDataSize);
@@ -291,10 +455,53 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
         assert(posInNewSyncData<=newSyncInfo->newSyncDataSize);//checked in readSavedSizesTo()
 clear:
     _inClear=1;
-    if (decompressHandle) wd.decompressPlugin->dictDecompressClose(wd.decompressPlugin,decompressHandle);
-    if (checksumSync) strongChecksumPlugin->close(strongChecksumPlugin,checksumSync);
+    if (decompressHandle){
+    #if (_IS_USED_MULTITHREAD)
+        if (mt==0) //if mt,free decompressHandle need wait for all threads exit
+    #endif
+            wd.decompressPlugin->dictDecompressClose(wd.decompressPlugin,decompressHandle);
+    }
+    if (checksumSync)
+        strongChecksumPlugin->close(strongChecksumPlugin,checksumSync);
     if (_memBuf) free(_memBuf);
     return result;
+}
+
+#if (_IS_USED_MULTITHREAD)
+void _writeToNewOrDiff_by_mt(int threadIndex,void* workData){
+    TWMt* mt=(TWMt*)workData;
+    TMtByChannel::TAutoThreadEnd __auto_thread_end(*mt);
+    try{
+        TSyncClient_resultType result=__writeToNewOrDiff_by(mt->wr_by,mt->wd,mt);
+        if (result!=kSyncClient_ok){
+            std::atomic<TSyncClient_resultType>& mt_result=*(std::atomic<TSyncClient_resultType>*)&mt->result;
+            TSyncClient_resultType expected=kSyncClient_ok;
+            mt_result.compare_exchange_strong(expected,result);
+            mt->on_error();// set error flag, all threads will exit
+        }
+    }catch(...){
+        mt->on_error();
+    }
+}
+#endif
+
+TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWriteDatas& wd){
+#if (_IS_USED_MULTITHREAD)
+    if (wd.threadNum>1) {
+        TWMt mt(wr_by,wd);
+        int bestThreadNum=std::min(wd.threadNum,(wd.decompressPlugin?5:4));
+        checkv(mt.start_threads(bestThreadNum,_writeToNewOrDiff_by_mt,&mt,true));
+        mt.wait_all_thread_end();
+        if (mt.shared_decompressor){
+            wd.decompressPlugin->dictDecompressClose(wd.decompressPlugin,mt.shared_decompressor);
+            mt.shared_decompressor=0; //close shared decompressor
+        }
+        if (mt.result==kSyncClient_ok)
+            checkv(!mt.is_on_error());
+        return mt.result;
+    }else
+#endif
+        return __writeToNewOrDiff_by(wr_by,wd,0);
 }
 
 
@@ -379,7 +586,6 @@ TSyncClient_resultType
     const bool isNeedOut=(out_newStream!=0)||((out_diffStream!=0)&&(diffType!=kSyncDiff_info));
     bool isLoadedOldPoss=false;
     bool isReMatchInOld=false;
-    bool isNeed_readSyncDataEnd=false;
     
     //decompressPlugin
     if (newSyncInfo->compressType){
@@ -478,8 +684,13 @@ TSyncClient_resultType
         writeDatas.syncDataListener=syncDataListener;
         writeDatas.continueDiffData=diffContinue?&continueDiffData:0;
         writeDatas.isLocalPatch=(diffData!=0);
-        result=sp_by->writeToNewOrDiff(writeDatas,isNeed_readSyncDataEnd);
+        writeDatas.isNeed_readSyncDataEnd=false;
+        writeDatas.threadNum=threadNum;
+        result=sp_by->writeToNewOrDiff(writeDatas);
         
+        if (writeDatas.isNeed_readSyncDataEnd&&(syncDataListener->readSyncDataEnd))
+            syncDataListener->readSyncDataEnd(syncDataListener);
+
         if ((result==kSyncClient_ok)&&newSyncInfo->fileChecksumPlugin){
             sp_by->checkChecksumEndTo(newSyncInfo->savedNewDataCheckChecksum+fileChecksumByteSize,
                                       newSyncInfo->savedNewDataCheckChecksum,fileChecksumPlugin,checkChecksum);
@@ -491,8 +702,6 @@ TSyncClient_resultType
     
 clear:
     _inClear=1;
-    if (isNeed_readSyncDataEnd&&(syncDataListener->readSyncDataEnd))
-        syncDataListener->readSyncDataEnd(syncDataListener);
     if (checkChecksum) fileChecksumPlugin->close(fileChecksumPlugin,checkChecksum);
     if (newBlockDataInOldPoss) free(newBlockDataInOldPoss);
     return result;
