@@ -58,6 +58,7 @@ namespace sync_private{
         const hpatch_StreamPos_t*   newBlockDataInOldPoss;
         TSyncDiffData*              continueDiffData;
         uint32_t                    needSyncBlockCount;
+        bool                        isNeed_readSyncDataEnd;
         bool                        isLocalPatch;
         hpatch_checksumHandle       checkChecksum;
         hsync_TDictDecompress*      decompressPlugin;
@@ -67,7 +68,7 @@ namespace sync_private{
     struct _ISyncPatch_by{
         void  (*matchNewDataInOld)(hpatch_StreamPos_t* out_newBlockDataInOldPoss,const TNewDataSyncInfo* newSyncInfo,
                                    const hpatch_TStreamInput* oldStream,int threadNum);
-        TSyncClient_resultType (*writeToNewOrDiff)(_TWriteDatas& wd,bool& isNeed_readSyncDataEnd);
+        TSyncClient_resultType (*writeToNewOrDiff)(_TWriteDatas& wd);
         void  (*checkChecksumInit)(unsigned char* checkChecksumBuf,size_t checksumByteSize);
         void (*checkChecksumEndTo)(unsigned char* dst,unsigned char* checkChecksumBuf,
                                    hpatch_TChecksum* checkChecksumPlugin,hpatch_checksumHandle checkChecksum);
@@ -254,7 +255,7 @@ namespace sync_private{
                                         hpatch_TChecksum* checkChecksumPlugin,hpatch_checksumHandle checkChecksum,
                                         const unsigned char* blockChecksum,const unsigned char* blockData,size_t blockDataSize);
     };
-    TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWriteDatas& wd,bool& isNeed_readSyncDataEnd);
+    TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWriteDatas& wd);
 
 }//namespace sync_private
 

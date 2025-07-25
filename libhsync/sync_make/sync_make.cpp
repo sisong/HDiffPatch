@@ -166,8 +166,8 @@ namespace{
         TWorkBuf* workFilished;
         volatile uint32_t workBlockEnd;
         volatile uint32_t savedBlockEnd;
-        std::atomic<uint32_t> nextCCheckBlocki;
-        std::atomic<uint32_t> nextReadBlocki;
+        CWaitValue nextCCheckBlocki;
+        CWaitValue nextReadBlocki;
         const uint32_t kBlockCount;
         std::vector<TThreadData> threadDataList;
         inline TMt(size_t threadNum,_TCreateDatas& _cd,uint32_t _bestWorkBlockCount,
@@ -289,11 +289,8 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
         #if (_IS_USED_MULTITHREAD)
             TMt* mt=(TMt*)_mt;
             if (isCCheckByOrder){
-                while(1){//ctrl threads run by order
-                    if (mt->nextReadBlocki.load()==workData->blockBegin) break;
-                    this_thread_yield(); //todo: wait by signal
-                    if (mt->is_on_error()) return;
-                }
+                if (!mt->nextReadBlocki.wait(workData->blockBegin,mt->is_on_error_by,mt))
+                    return;
             }
             CAutoLocker _autoLocker((mt&&(!isCCheckByOrder))?mt->readLocker.locker:0);
             if (mt)
@@ -313,11 +310,8 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
     #if (_IS_USED_MULTITHREAD)
         TMt* mt=(TMt*)_mt;
         if (mt){
-            while(1){//ctrl threads run by order
-                if (mt->nextCCheckBlocki.load()==workData->blockBegin) break;
-                this_thread_yield(); //todo: wait by signal
-                if (mt->is_on_error()) return;
-            }
+            if (!mt->nextCCheckBlocki.wait(workData->blockBegin,mt->is_on_error_by,mt))
+                return;
         }
     #endif
         cd.cs_by->checkChecksumAppendData(cd.out_hsyni->savedNewDataCheckChecksum,workData->blockBegin,
@@ -435,6 +429,7 @@ void _create_sync_data_by(_ICreateSync_by* cs_by,TNewDataSyncInfo* newSyncInfo,
                                           /(kSyncBlockSize+kMaxCompressedSize));
     bestWorkBlockCount=(bestWorkBlockCount<=kBlockCount)?bestWorkBlockCount:kBlockCount;
  #if (_IS_USED_MULTITHREAD)
+    threadNum=std::min(threadNum,(compressPlugin?threadNum:4));
     while ((hpatch_StreamPos_t)bestWorkBlockCount*threadNum>kBlockCount)
         --threadNum;
     if ((threadNum>1)&&(bestWorkBlockCount<=kBlockCount/2)){

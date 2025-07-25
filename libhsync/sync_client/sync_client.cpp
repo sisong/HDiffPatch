@@ -105,7 +105,7 @@ bool _open_continue_out(hpatch_BOOL& isOutContinue,const char* outFile,hpatch_TF
     
 static void _indexOfCompressedSyncBlock(uint32_t* _followCompressedIndex,const TNewDataSyncInfo* self,
                                         const hpatch_StreamPos_t* newBlockDataInOldPoss,uint32_t indexBegin){
-    uint32_t blockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
+    const uint32_t blockCount=(uint32_t)TNewDataSyncInfo_blockCount(self);
     uint32_t& followCompressedIndex=*_followCompressedIndex;
     if (self->savedSizes&&(followCompressedIndex<blockCount)){
         indexBegin=(indexBegin>=followCompressedIndex)?indexBegin:followCompressedIndex;
@@ -137,13 +137,13 @@ static void _indexOfCompressedSyncBlock(uint32_t* _followCompressedIndex,const T
 }
 
 
-static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd,bool& isNeed_readSyncDataEnd) {
+static TSyncClient_resultType writeToNewOrDiff(_TWriteDatas& wd) {
     _IWriteToNewOrDiff_by wr_by={0};
     wr_by.checkChecksumAppendData=checkChecksumAppendData;
-    return _writeToNewOrDiff_by(&wr_by,wd,isNeed_readSyncDataEnd);
+    return _writeToNewOrDiff_by(&wr_by,wd);
 }
 
-TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWriteDatas& wd,bool& isNeed_readSyncDataEnd) {
+TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWriteDatas& wd) {
     const TNewDataSyncInfo* newSyncInfo=wd.newSyncInfo;
     IReadSyncDataListener*  syncDataListener=wd.syncDataListener;
     hpatch_TChecksum*       fileChecksumPlugin=newSyncInfo->fileChecksumPlugin;
@@ -165,7 +165,6 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
     const hpatch_StreamPos_t oldDataSize=wd.oldStream->streamSize;
     bool isOnDiffContinue =(wd.continueDiffData!=0);
     bool isOnNewDataContinue =(wd.newDataContinue!=0);
-    isNeed_readSyncDataEnd=false;
     uint32_t followCompressedIndex=0;
     _indexOfCompressedSyncBlock(&followCompressedIndex,newSyncInfo,wd.newBlockDataInOldPoss,0);
     if (followCompressedIndex>=kBlockCount)
@@ -218,19 +217,20 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
                         isOnDiffContinue=false; // swap to download
                 }
                 if (!isOnDiffContinue){ //downloaded data or read from diff data
-                    if (!isNeed_readSyncDataEnd){
-                        isNeed_readSyncDataEnd=true;
+                    if (!wd.isNeed_readSyncDataEnd){
+                        wd.isNeed_readSyncDataEnd=true;
                         if (syncDataListener->readSyncDataBegin)
                             check(syncDataListener->readSyncDataBegin(syncDataListener,wd.needSyncInfo,
-                                                        i,posInNewSyncData-_isReLoadNewHalf,posInNeedSyncData),kSyncClient_readSyncDataBeginError);
+                                                        i,posInNewSyncData-_isReLoadNewHalf,posInNeedSyncData-_isReLoadSyncHalf),kSyncClient_readSyncDataBeginError);
                     }
                     check(syncDataListener->readSyncData(syncDataListener,i,posInNewSyncData-_isReLoadNewHalf,
                                                 posInNeedSyncData-_isReLoadSyncHalf,buf,syncSize-_isBackupedHalf),kSyncClient_readSyncDataError);
                 }
                 if (wd.out_diffStream){ //out diff
                     if (!isOnDiffContinue){ //save downloaded data
-                        check(wd.out_diffStream->write(wd.out_diffStream,wd.outDiffDataPos+posInNeedSyncData-_isReLoadSyncHalf,
-                                                       buf,buf+syncSize-_isBackupedHalf),kSyncClient_saveDiffError);
+                        assert(_isNeedBackupHalf==_isReLoadSyncHalf+_isBackupedHalf);
+                        check(wd.out_diffStream->write(wd.out_diffStream,wd.outDiffDataPos+posInNeedSyncData,
+                                                       buf+_isReLoadSyncHalf,buf+_isReLoadSyncHalf+syncSize-_isNeedBackupHalf),kSyncClient_saveDiffError);
                     }
                 }
             }
@@ -478,8 +478,12 @@ TSyncClient_resultType
         writeDatas.syncDataListener=syncDataListener;
         writeDatas.continueDiffData=diffContinue?&continueDiffData:0;
         writeDatas.isLocalPatch=(diffData!=0);
-        result=sp_by->writeToNewOrDiff(writeDatas,isNeed_readSyncDataEnd);
+        writeDatas.isNeed_readSyncDataEnd=false;
+        result=sp_by->writeToNewOrDiff(writeDatas);
         
+        if (writeDatas.isNeed_readSyncDataEnd&&(syncDataListener->readSyncDataEnd))
+            syncDataListener->readSyncDataEnd(syncDataListener);
+
         if ((result==kSyncClient_ok)&&newSyncInfo->fileChecksumPlugin){
             sp_by->checkChecksumEndTo(newSyncInfo->savedNewDataCheckChecksum+fileChecksumByteSize,
                                       newSyncInfo->savedNewDataCheckChecksum,fileChecksumPlugin,checkChecksum);
@@ -491,8 +495,6 @@ TSyncClient_resultType
     
 clear:
     _inClear=1;
-    if (isNeed_readSyncDataEnd&&(syncDataListener->readSyncDataEnd))
-        syncDataListener->readSyncDataEnd(syncDataListener);
     if (checkChecksum) fileChecksumPlugin->close(fileChecksumPlugin,checkChecksum);
     if (newBlockDataInOldPoss) free(newBlockDataInOldPoss);
     return result;

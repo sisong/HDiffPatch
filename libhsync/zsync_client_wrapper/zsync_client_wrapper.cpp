@@ -80,11 +80,11 @@ void z_checkChecksumEndTo(unsigned char* dst,unsigned char* checkChecksumBuf,
 }
 
 
-static TSyncClient_resultType z_writeToNewOrDiff(_TWriteDatas& wd,bool& isNeed_readSyncDataEnd) {
+static TSyncClient_resultType z_writeToNewOrDiff(_TWriteDatas& wd) {
     _IWriteToNewOrDiff_by wr_by={0};
     wr_by.checkChecksumAppendData=
         ((const TNewDataZsyncInfo*)wd.newSyncInfo)->fileChecksumPlugin?z_checkChecksumAppendData:0;
-    return _writeToNewOrDiff_by(&wr_by,wd,isNeed_readSyncDataEnd);
+    return _writeToNewOrDiff_by(&wr_by,wd);
 }
 
 TSyncClient_resultType
