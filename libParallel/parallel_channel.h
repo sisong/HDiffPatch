@@ -33,10 +33,10 @@
 #include <assert.h>
 #include <stddef.h> //for size_t ptrdiff_t
 
-#ifndef _IS_USED_CPP11ATOMIC
-#   define  _IS_USED_CPP11ATOMIC    1
+#ifndef _IS_USED_CPP_ATOMIC
+#   define  _IS_USED_CPP_ATOMIC     1
 #endif
-#if (_IS_USED_CPP11ATOMIC)
+#if (_IS_USED_CPP_ATOMIC)
 #   include <atomic>
 #endif
 
@@ -61,7 +61,7 @@ struct CHLocker{
 #endif
 
 
-#if (_IS_USED_CPP11ATOMIC)
+#if (_IS_USED_CPP_ATOMIC)
     class CWaitValueByAtomic{
     public:
         inline explicit CWaitValueByAtomic(uint64_t initValue=0) : _value(initValue) {}
@@ -135,7 +135,7 @@ struct CHLocker{
     };
 
 // CWaitValue 线程等待一个值，才能继续运行;
-#if (_IS_USED_CPP11ATOMIC)
+#if (_IS_USED_CPP_ATOMIC)
     typedef CWaitValueByAtomic CWaitValue;
 #else
     typedef CWaitValueByLocker CWaitValue; 
@@ -166,7 +166,7 @@ struct TMtByChannel {
 
     void on_error(){
         {
-        #if (_IS_USED_CPP11ATOMIC)
+        #if (_IS_USED_CPP_ATOMIC)
             if (_is_on_error.load()) return;
             _is_on_error.store(true);
         #else
@@ -208,7 +208,7 @@ struct TMtByChannel {
     inline  explicit TMtByChannel():_is_on_error(false),_is_thread_on(0) {}
     inline ~TMtByChannel() { closeAndClear(); wait_all_thread_end(); _end_chan.close(); while (_end_chan.accept(false)) {} }
     inline bool is_on_error()const{ 
-        #if (_IS_USED_CPP11ATOMIC)
+        #if (_IS_USED_CPP_ATOMIC)
             return _is_on_error.load();
         #else
             CAutoLocker _auto_locker(_locker.locker);
@@ -229,7 +229,7 @@ struct TMtByChannel {
     }
 protected:
     CHLocker  _locker;
-#if (_IS_USED_CPP11ATOMIC)
+#if (_IS_USED_CPP_ATOMIC)
     volatile std::atomic<bool> _is_on_error;
 #else
     volatile bool _is_on_error;

@@ -41,8 +41,8 @@ inline static hpatch_uint32_t z_roll_hash32_start(const adler_data_t* pdata,size
     return (sum<<16) | (radler&0xFFFF);
 }
     
-inline static hpatch_uint32_t z_roll_hash32_roll(hpatch_uint32_t adler,size_t blockSize,
-                                                 adler_data_t out_data,adler_data_t in_data){
+hpatch_force_inline static hpatch_uint32_t z_roll_hash32_roll(hpatch_uint32_t adler,size_t blockSize,
+                                                              adler_data_t out_data,adler_data_t in_data){
     hpatch_uint32_t sum=(adler>>16)-((hpatch_uint32_t)blockSize)*out_data;
     hpatch_uint32_t radler=adler+in_data-out_data;
     return ((sum+radler)<<16) | (radler&0xFFFF);
@@ -69,7 +69,7 @@ void z_checkChecksumAppendData(unsigned char* checkChecksumBuf,uint32_t checksum
 void z_checkChecksumEndTo(unsigned char* dst,unsigned char* checkChecksumBuf,
                           hpatch_TChecksum* checkChecksumPlugin,hpatch_checksumHandle checkChecksum);
 
-static hpatch_inline
+static hpatch_force_inline
 hpatch_uint64_t z_toSavedPartRollHash(hpatch_uint64_t _rollHash,size_t savedRollHashBits){
     //byte order: 0123 -> 2301
     hpatch_uint32_t rollHash=(hpatch_uint32_t)_rollHash;

@@ -32,6 +32,9 @@
 namespace sync_private{
 
 static const hpatch_StreamPos_t kBlockType_needSync =~(hpatch_StreamPos_t)0; //download, default
+static hpatch_force_inline bool isNeedSyncByOldPos(hpatch_StreamPos_t blockDataInOldPos){
+    return (blockDataInOldPos==kBlockType_needSync);
+}
 
 //matchNewDataInOld()
 //throw std::runtime_error on error

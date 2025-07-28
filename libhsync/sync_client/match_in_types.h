@@ -157,8 +157,8 @@ struct TStreamDataRoll:public TStreamDataCache_base {
                 if (isRollEnded()) return;
                 m_rollHash=roll_hash_start(m_cur,m_kSyncBlockSize);
             }
-    inline tm_roll_uint hashValue()const{ return m_rollHash; }
-    inline bool roll(){
+    hpatch_force_inline tm_roll_uint hashValue()const{ return m_rollHash; }
+    hpatch_force_inline bool roll(){
         const TByte* curIn=m_cur+m_kSyncBlockSize;
         assert(curIn>=m_cache.data());
         if (curIn<m_cache.data_end()){

@@ -57,8 +57,8 @@ struct TStreamCache{
         cache(_cache),cacheSize(_cacheSize),cachePos(_cacheSize){ }
     inline hpatch_StreamPos_t streamSize()const{ return stream->streamSize; }
     inline hpatch_StreamPos_t pos()const { return m_readPosEnd-dataLength(); }
-    inline const size_t   dataLength()const{ return (size_t)(cacheSize-cachePos); }
-    inline const unsigned char* data()const { return cache+cachePos; }
+    hpatch_force_inline const size_t   dataLength()const{ return (size_t)(cacheSize-cachePos); }
+    hpatch_force_inline const unsigned char* data()const { return cache+cachePos; }
     inline bool resetPos(size_t kBackupCacheSize,hpatch_StreamPos_t streamPos,size_t kMinCacheDataSize){
         if (_is_hit_cache(kBackupCacheSize,streamPos,kMinCacheDataSize)){
             cachePos=cacheSize-(size_t)(m_readPosEnd-streamPos);
@@ -393,7 +393,7 @@ struct TNewStreamCache:public TBlockStreamCache{
         roll_digest=adler_start(data(),kMatchBlockSize);
         return true;
     }
-    inline bool roll(){
+    hpatch_force_inline bool roll(){
         //warning: after running _loop_backward_cache(),cache roll logic is failure
         if (dataLength()>kMatchBlockSize){
             const unsigned char* cur_datas=data();
@@ -401,14 +401,17 @@ struct TNewStreamCache:public TBlockStreamCache{
             ++cachePos;
             return true;
         }else{
-            if (!TBlockStreamCache::resetPos(pos()+1)) return false;
-            --cachePos;
-            return roll();
+            return _resetPos_and_roll(); 
         }
     }
-    inline adler_uint_t rollDigest()const{ return roll_digest; }
+    hpatch_force_inline adler_uint_t rollDigest()const{ return roll_digest; }
 private:
     adler_uint_t               roll_digest;
+    bool _resetPos_and_roll(){
+        if (!TBlockStreamCache::resetPos(pos()+1)) return false;
+        --cachePos;
+        return roll();
+    }
 };
 
 
@@ -416,7 +419,7 @@ struct TDigest_comp{
     inline explicit TDigest_comp(const adler_uint_t* _blocks):blocks(_blocks){ }
     struct TDigest{
         adler_uint_t value;
-        inline explicit TDigest(adler_uint_t _value):value(_value){}
+        hpatch_force_inline explicit TDigest(adler_uint_t _value):value(_value){}
     };
     template<class TIndex> inline
     bool operator()(const TIndex& x,const TDigest& y)const { return blocks[x]<y.value; }

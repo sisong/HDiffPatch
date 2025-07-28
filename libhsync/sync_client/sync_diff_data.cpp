@@ -61,7 +61,7 @@ static void _packMatchedPoss(const hpatch_StreamPos_t* newBlockDataInOldPoss,uin
     hpatch_StreamPos_t needSyncCount=0;
     for (uint32_t i=0; i<kBlockCount; ++i) {
         hpatch_StreamPos_t v=newBlockDataInOldPoss[i];
-        if (v!=kBlockType_needSync){
+        if (!isNeedSyncByOldPos(v)){
             _pushNeedSync();
             if (v>=backv)
                 _pushV(out_possBuf,(hpatch_StreamPos_t)(v-backv),1,1);
@@ -123,9 +123,11 @@ TSyncDiffData::~TSyncDiffData(){
 }
 
 static hpatch_BOOL _TSyncDiffData_readSyncData(IReadSyncDataListener* listener,uint32_t blockIndex,
-                                               hpatch_StreamPos_t posInNewSyncData,hpatch_StreamPos_t posInNeedSyncData,
+                                               hpatch_StreamPos_t posInNewSyncData,uint32_t isReLoadNewHalf,
+                                               hpatch_StreamPos_t posInNeedSyncData,uint32_t isReLoadDiffHalf,
                                                unsigned char* out_syncDataBuf,uint32_t syncDataSize){
     TSyncDiffData* self=(TSyncDiffData*)listener->readSyncDataImport;
+    posInNeedSyncData-=isReLoadDiffHalf;
     if (self->diffDataPos0+posInNeedSyncData+syncDataSize>self->in_diffStream->streamSize)
         return hpatch_FALSE;
     hpatch_BOOL result=self->in_diffStream->read(self->in_diffStream,self->diffDataPos0+posInNeedSyncData,
@@ -227,7 +229,7 @@ hpatch_BOOL _TSyncDiffData_readOldPoss(TSyncDiffData* self,hpatch_StreamPos_t* o
     for (uint32_t i=0;i<kBlockCount; ++i){
         hpatch_StreamPos_t pos;
         if (!_syncDiffLocalPoss_nextOldPos(&localPoss,&pos)) return hpatch_FALSE;
-        if ((pos==kBlockType_needSync)|(pos<oldDataSize))
+        if (isNeedSyncByOldPos(pos)|(pos<oldDataSize))
             out_newBlockDataInOldPoss[i]=pos;
         else
             return hpatch_FALSE;

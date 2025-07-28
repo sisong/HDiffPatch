@@ -55,38 +55,30 @@ bool TNewDataSyncInfo_syncBlockIsCompressed(const TNewDataSyncInfo* self,uint32_
 }
 
 hpatch_inline static
-uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex,hpatch_byte* out_lastByteHalfBits){
+//out_skipBitsInFirstCodeByte&out_lastByteHalfBits can null, only for zsync;
+uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex,
+                                        hpatch_byte* out_skipBitsInFirstCodeByte,hpatch_byte* out_lastByteHalfBits){
     assert((self->kSyncBlockSize*(hpatch_StreamPos_t)blockIndex)<self->newDataSize);
     if (self->isSavedBitsSizes){
         assert(self->savedBitsInfos);
         const savedBitsInfo_t& bitsInfo=self->savedBitsInfos[blockIndex];
         const uint32_t bits=bitsInfo.skipBitsInFirstCodeByte+bitsInfo.bitsSize;
-        *out_lastByteHalfBits=(bits&7);
+        if (out_skipBitsInFirstCodeByte) *out_skipBitsInFirstCodeByte=bitsInfo.skipBitsInFirstCodeByte;
+        if (out_lastByteHalfBits) *out_lastByteHalfBits=(bits&7);
         return (bits+7)>>3;//return code border byte size
     }
-    *out_lastByteHalfBits=0;
+    if (out_skipBitsInFirstCodeByte) *out_skipBitsInFirstCodeByte=0;
+    if (out_lastByteHalfBits) *out_lastByteHalfBits=0;
     if (TNewDataSyncInfo_syncBlockIsCompressed(self,blockIndex))
         return self->savedSizes[blockIndex];
     else
         return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);
 }
-
-hpatch_inline static
-hpatch_byte TNewDataSyncInfo_skipBitsInFirstCodeByte(const TNewDataSyncInfo* self,uint32_t blockIndex){
-    assert((self->kSyncBlockSize*(hpatch_StreamPos_t)blockIndex)<self->newDataSize);
-    if (self->isSavedBitsSizes){
-        assert(self->savedBitsInfos);
-        return self->savedBitsInfos[blockIndex].skipBitsInFirstCodeByte;
-    }else{
-        return 0;
-    }
-}
-
     
 inline static hpatch_uint64_t roll_hash_start(const adler_data_t* pdata,size_t n){
                                               return fast_adler64_start(pdata,n); }
-inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
-                                      adler_data_t out_data,adler_data_t in_data){
+hpatch_force_inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
+                                                   adler_data_t out_data,adler_data_t in_data){
                                         return fast_adler64_roll(adler,blockSize,out_data,in_data); }
     
 #define kStrongChecksumByteSize_min    (4*8/8)
@@ -150,7 +142,7 @@ uint64_t readRollHashBytes(const uint8_t* part,size_t savedRollHashByteSize){
     }
 }
 
-static hpatch_inline
+static hpatch_force_inline
 hpatch_uint64_t toSavedPartRollHash(hpatch_uint64_t rollHash,size_t savedRollHashBits){
     if (savedRollHashBits<64)
         return ((rollHash>>savedRollHashBits)^rollHash) & ((((uint64_t)1)<<savedRollHashBits)-1);

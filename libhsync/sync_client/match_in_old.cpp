@@ -189,7 +189,7 @@ bool _matchRange(hpatch_StreamPos_t* out_newBlockDataInOldPoss,const uint32_t* r
                                 checkChecksumAppendData(newSyncInfo->savedNewDataCheckChecksum,(uint32_t)newBlockIndex,
                                                         oldData.strongChecksumPlugin(),oldData.checkChecksum(),
                                                         oldData.strongChecksum(),0,0);
-                            if (newBlockOldPosBack==kBlockType_needSync)
+                            if (isNeedSyncByOldPos(newBlockOldPosBack))
                                 break;
                             //next same block
                             newBlockIndex=_indexMapFrom(newBlockOldPosBack);
@@ -265,7 +265,7 @@ void _matchNewDataInOld(_TMatchDatas& matchDatas,int threadNum){
         for (uint32_t i=0;i<kBlockCount;++i){
             if ((curPair<newSyncInfo->samePairCount)&&(i==newSyncInfo->samePairList[curPair].curIndex)){
                 uint32_t sameIndex=newSyncInfo->samePairList[curPair].sameIndex;
-                while (out_newBlockDataInOldPoss[sameIndex]!=kBlockType_needSync){
+                while (!isNeedSyncByOldPos(out_newBlockDataInOldPoss[sameIndex])){
                     sameIndex=_indexMapFrom(out_newBlockDataInOldPoss[sameIndex]);
                     assert(sameIndex<kBlockCount);
                 }

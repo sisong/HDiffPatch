@@ -42,12 +42,12 @@ struct TStreamDataRoll_z:public TStreamDataCache_base{
             if (isRollEnded()) return;
             _startCurHash();
         }
-    inline tm_roll_uint hashValue()const{
+    hpatch_force_inline tm_roll_uint hashValue()const{
         if (isSeqMatch)
             return (((tm_roll_uint)m_rollHash)<<(sizeof(uint32_t)*8)) | m_rollHashNext;
         else
             return m_rollHash; }
-    inline bool roll(){
+    hpatch_force_inline bool roll(){
         const TByte* curIn=m_cur+m_kSyncBlockSize;
         assert(curIn>=m_cache.data());
         if (curIn+(isSeqMatch?m_kSyncBlockSize:0)<m_cache.data_end()){
@@ -85,7 +85,7 @@ protected:
     }
 };
 
-static inline
+static hpatch_force_inline
 uint64_t z_seq_toSavedPartRollHash(uint64_t rollHash,size_t savedRollHashBits){
     return (z_toSavedPartRollHash(rollHash>>32,savedRollHashBits)<<savedRollHashBits)
           |z_toSavedPartRollHash(rollHash,savedRollHashBits);
