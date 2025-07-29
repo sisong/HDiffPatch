@@ -4,7 +4,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
 [![release](https://img.shields.io/github/downloads/sisong/HDiffPatch/total?color=blue)](https://github.com/sisong/HDiffPatch/releases)
-[![Build Status](https://github.com/sisong/HDiffPatch/workflows/ci/badge.svg?branch=master)](https://github.com/sisong/HDiffPatch/actions?query=workflow%3Aci+branch%3Amaster)
+[![Build Status](https://github.com/sisong/HDiffPatch/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/sisong/HDiffPatch/actions?query=branch%3Amaster)
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
  中文版 | [english](README.md)   
 
@@ -343,9 +343,9 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 * **create_hdiff_by_sign()** (patched by patch_single_stream()...)
 #### [zsync] 兼容包装 API, (例子 [hsynz]): 
 * **create_zsync_data()**
-* **zsync_patch*()**
-* **zsync_local_diff*()**
-* **zsync_local_patch*()**
+* **zsync_patch...()**
+* **zsync_local_diff...()**
+* **zsync_local_patch...()**
 
 ---
 ## [HDiffPatch] vs [bsdiff4] & [xdelta3]:

@@ -220,16 +220,16 @@ TSyncClient_resultType _writeToNewOrDiff_by(_IWriteToNewOrDiff_by* wr_by,_TWrite
                     if (!wd.isNeed_readSyncDataEnd){//befor download
                         wd.isNeed_readSyncDataEnd=true;
                         if (syncDataListener->readSyncDataBegin)
-                            check(syncDataListener->readSyncDataBegin(syncDataListener,wd.needSyncInfo,
-                                                        i,posInNewSyncData,_isReLoadNewHalf,posInNeedSyncData,_isReLoadDiffHalf),kSyncClient_readSyncDataBeginError);
+                            check(syncDataListener->readSyncDataBegin(syncDataListener,wd.needSyncInfo,i,
+                                                        posInNewSyncData,_isReLoadNewHalf,posInNeedSyncData,_isReLoadDiffHalf),kSyncClient_readSyncDataBeginError);
                     }
                     check(syncDataListener->readSyncData(syncDataListener,i,posInNewSyncData,_isReLoadNewHalf,
                                                 posInNeedSyncData,_isReLoadDiffHalf,buf,syncSize-_isBackupedHalf),kSyncClient_readSyncDataError);
                 }
                 if (wd.out_diffStream){ //write diff
                     if (!isOnDiffContinue){ //save downloaded data
-                        check(wd.out_diffStream->write(wd.out_diffStream,wd.outDiffDataPos+posInNeedSyncData,
-                                                       buf+_isReLoadDiffHalf,buf+_isReLoadDiffHalf+syncSize-_isNeedBackupHalf),kSyncClient_saveDiffError);
+                        check(wd.out_diffStream->write(wd.out_diffStream,wd.outDiffDataPos+posInNeedSyncData-_isReLoadDiffHalf,
+                                                       buf,buf+syncSize-_isBackupedHalf),kSyncClient_saveDiffError);
                     }
                 }
             }

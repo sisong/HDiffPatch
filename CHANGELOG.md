@@ -2,7 +2,7 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
-## [v4.11.0](https://github.com/sisong/HDiffPatch/tree/v4.11.0) - 2025-07-28
+## [v4.11.0](https://github.com/sisong/HDiffPatch/tree/v4.11.0) - 2025-07-29
 ### Added
 * add function create_zsync_data() and zsync_patch*() & zsync_local_diff*() & zsync_local_patch*();   
 for [hsynz] compatible with the file format of [zsync], including apply and create .zsync and their .gz files;

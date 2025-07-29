@@ -89,7 +89,7 @@ static void saveSavedBitsInfos(const hpatch_TStreamOutput* out_stream,hpatch_Str
                                uint32_t kBlockSize,std::vector<TByte>& buf){
     check(kBlockSize==(kBlockSize&((1<<15)-1)),"block size is too large for zsync");
     hpatch_StreamPos_t curBitsPos=gzOffset0*8;
-    pack_zmap2_data(buf,curBitsPos,0);
+    pack_zmap2_data(buf,(hpatch_uint32_t)curBitsPos,0);
     for (size_t i=0; i<kBlockCount; ++i){
         const hpatch_uint32_t bitsSize=savedBitsInfos[i].bitsSize;
         assert((curBitsPos&7)==savedBitsInfos[i].skipBitsInFirstCodeByte);
