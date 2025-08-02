@@ -12,6 +12,8 @@ VCD   := 0
 # if open BSD,must open BZIP2
 BSD   := 0
 BZIP2 := 0
+# is need directory patch?
+DIR   := 0
 
 DEF_FLAGS := -Os -DANDROID_NDK -DNDEBUG -D_LARGEFILE_SOURCE \
              -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_DEFAULT_CompressPlugin=0
@@ -22,6 +24,19 @@ Src_Files := $(HDP_PATH)/builds/android_ndk_jni_mk/hpatch_jni.c \
              $(HDP_PATH)/builds/android_ndk_jni_mk/hpatch.c \
              $(HDP_PATH)/file_for_patch.c \
              $(HDP_PATH)/libHDiffPatch/HPatch/patch.c
+
+ifeq ($(DIR),0)
+  DEF_FLAGS += -D_IS_NEED_DIR_DIFF_PATCH=0
+else
+  DEF_FLAGS += -D_IS_NEED_DIR_DIFF_PATCH=1
+  Src_Files += $(HDP_PATH)/libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/dir_patch.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/dir_patch_tools.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/new_dir_output.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/new_stream.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/ref_stream.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/res_handle_limit.c
+endif
 
 ifeq ($(BSD),0)
   DEF_FLAGS += -D_IS_NEED_BSDIFF=0
@@ -34,8 +49,10 @@ ifeq ($(VCD),0)
   DEF_FLAGS += -D_IS_NEED_VCDIFF=0
 else
   DEF_FLAGS += -D_IS_NEED_VCDIFF=1
-  Src_Files += $(HDP_PATH)/vcdiff_wrapper/vcpatch_wrapper.c \
-               $(HDP_PATH)/libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c
+  Src_Files += $(HDP_PATH)/vcdiff_wrapper/vcpatch_wrapper.c
+  ifeq ($(DIR),0)
+    Src_Files +=$(HDP_PATH)/libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c
+  endif
 endif
 
 ifeq ($(ZLIB),0)
