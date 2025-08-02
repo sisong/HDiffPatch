@@ -46,19 +46,10 @@ struct CHLocker{
     inline ~CHLocker() { locker_delete(locker); }
 };
 
-#if (_IS_USED_CPP11THREAD)
-#   include <mutex>
-    struct CAutoLocker:public _TLockerBox_name {
-        inline CAutoLocker(HLocker _locker)
-            :_TLockerBox_name(){ if (_locker) { _TLockerBox_name _t(*(std::mutex*)_locker); _t.swap(*this); }  }
-        inline ~CAutoLocker(){ }
-    };
-#else
-    struct CAutoLocker:public TLockerBox {
-        inline CAutoLocker(HLocker _locker){ locker=_locker; if (locker) locker_enter(locker); }
-        inline ~CAutoLocker(){ if (locker) locker_leave(locker); }
-    };
-#endif
+struct CAutoLocker:public TLockerBox {
+    inline CAutoLocker(HLocker _locker){ locker=_locker; if (locker) locker_enter(locker); }
+    inline ~CAutoLocker(){ if (locker) locker_leave(locker); }
+};
 
 
 #if (_IS_USED_CPP_ATOMIC)

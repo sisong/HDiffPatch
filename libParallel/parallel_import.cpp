@@ -36,11 +36,6 @@
 #   include <pthread.h>
 #   include <sched.h> // sched_yield()
 #endif
-#if (_IS_USED_CPP11THREAD)
-#   include <thread>
-#   include <mutex>
-#   include <condition_variable>
-#endif
 #if (_IS_USED_WIN32THREAD)
 #   include "windows.h"
 #   ifndef UNDER_CE
@@ -175,74 +170,6 @@ void thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* wor
     }
 }
 #endif //_IS_USED_PTHREAD
-
-#if (_IS_USED_CPP11THREAD)
-HLocker locker_new(void){
-    return new std::mutex();
-}
-void locker_delete(HLocker locker){
-    if (locker!=0)
-        delete (std::mutex*)locker;
-}
-
-void locker_enter(HLocker locker){
-    std::mutex* self=(std::mutex*)locker;
-    self->lock();
-    
-}
-void locker_leave(HLocker locker){
-    std::mutex* self=(std::mutex*)locker;
-    self->unlock();
-}
-
-HCondvar condvar_new(void){
-    std::condition_variable* self=new std::condition_variable();
-    return self;
-} 
-void    condvar_delete(HCondvar cond){
-    if (cond){
-        std::condition_variable* self=(std::condition_variable*)cond;
-        delete self;
-    }
-}
-void    condvar_wait(HCondvar cond,TLockerBox* locker){
-    std::condition_variable* self=(std::condition_variable*)cond;
-    _TLockerBox_name* _locker=(_TLockerBox_name*)locker;
-    self->wait(*_locker);
-}
-void    condvar_signal(HCondvar cond){
-    std::condition_variable* self=(std::condition_variable*)cond;
-    self->notify_one();
-}
-void    condvar_broadcast(HCondvar cond){
-    std::condition_variable* self=(std::condition_variable*)cond;
-    self->notify_all();
-}
-
-void this_thread_yield(){
-    std::this_thread::yield();
-}
-
-
-struct _TThreadProc{
-    TThreadRunCallBackProc threadProc;
-    int   threadIndex;
-    void* workData;
-    inline void operator()(){  threadProc(threadIndex,workData);  }
-};
-void thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
-                     int isUseThisThread,int threadIndexOffset){
-    for (int i=0; i<threadCount; ++i) {
-        if ((i==threadCount-1)&&(isUseThisThread)){
-            threadProc(i+threadIndexOffset,workData);
-        }else{
-            _TThreadProc tp={threadProc,i+threadIndexOffset,workData};
-            std::thread t(tp);
-            t.detach();
-        }
-    }
-}
-#endif //_IS_USED_CPP11THREAD
 
 
 #if (_IS_USED_WIN32THREAD)
