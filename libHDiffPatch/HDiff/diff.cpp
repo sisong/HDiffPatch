@@ -57,9 +57,9 @@ static const char* kHDiffSFVersionType="HDIFFSF20";
 #if (_SSTRING_FAST_MATCH>0)
 static const int kMinMatchLen   = (_SSTRING_FAST_MATCH>kCoverMinMatchLen)?_SSTRING_FAST_MATCH:kCoverMinMatchLen;
 #else
-static const int kMinMatchLen   = kCoverMinMatchLen; //最小搜寻相等长度。
+static const int kMinMatchLen   = kCoverMinMatchLen; //min length for match search.
 #endif
-static const int kMinMatchScore = 2; //最小搜寻覆盖收益.
+static const int kMinMatchScore = 2; //min match benefit threshold for cover search.
 static const hpatch_uint64_t kDefaultLimitCoverLen=((hpatch_uint64_t)1<<16)-1; //<=2GB-1
 
 namespace{
@@ -67,9 +67,9 @@ namespace{
     typedef unsigned char TByte;
     typedef size_t        TUInt;
     typedef ptrdiff_t     TInt;
-    static const int kMaxLinkSpaceLength=(1<<9)-1; //跨覆盖线合并时,允许合并的最远距离.
+    static const int kMaxLinkSpaceLength=(1<<9)-1; //max allowed distance for merging across cover lines.
     
-    //覆盖线.
+    //cover line.
     struct TOldCover {
         TInt   oldPos;
         TInt   newPos;
@@ -80,16 +80,16 @@ namespace{
         inline TOldCover(const TOldCover& cover)
             :oldPos(cover.oldPos),newPos(cover.newPos),length(cover.length) { }
         
-        inline bool isCanLink(const TOldCover& next)const{//覆盖线是否可以连接.
+        inline bool isCanLink(const TOldCover& next)const{//whether the cover lines can be linked.
             return isCollinear(next)&&(linkSpaceLength(next)<=kMaxLinkSpaceLength);
         }
-        inline bool isCollinear(const TOldCover& next)const{//覆盖线是否在同一条直线上.
+        inline bool isCollinear(const TOldCover& next)const{//whether the cover lines are collinear.
             return cover_is_collinear(*this,next);
         }
-        inline TInt linkSpaceLength(const TOldCover& next)const{//覆盖线间的间距.
+        inline TInt linkSpaceLength(const TOldCover& next)const{//the space between cover lines.
             return next.oldPos-(oldPos+length);
         }
-        inline void Link(const TOldCover& next){//共线的2覆盖线合并链接.
+        inline void Link(const TOldCover& next){// link&merge two collinear cover lines.
             assert(isCollinear(next));
             assert(oldPos<=next.oldPos);
             length = (next.oldPos-oldPos)+next.length;
@@ -105,7 +105,7 @@ struct TDiffData{
 };
 
 
-//查找相等的字符串长度.
+//Find the length of the matching substring.
 template<TInt kMaxEqLenLimit>
 static TInt getEqualLengthLimit(const TByte* x,const TByte* x_end,
                           const TByte* y,const TByte* y_end){
@@ -135,7 +135,7 @@ struct TDiffLimit{
 };
 
  
-//得到最长的一个匹配长度和其位置.
+//Get the longest match length and its position.
 static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
                          const TByte* newData,const TByte* newData_end,
                          TInt curNewPos,TDiffLimit* diffLimit=0,size_t* out_limitSkip=0){
@@ -202,7 +202,7 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
 }
 
     
-    //粗略估算覆盖线的控制数据成本;
+    //Roughly estimate the control data cost of the cover line;
     inline static TInt getCoverCtrlCost(const TOldCover& cover,const TOldCover& lastCover){
         static const int kUnLinkOtherScore=0;//0--2
         return _getIntCost<TInt,TUInt>((TInt)(cover.oldPos-lastCover.oldPos))
@@ -210,12 +210,12 @@ static TInt getBestMatch(TInt* out_pos,const TSuffixString& sstring,
              + _getUIntCost((TUInt)(cover.newPos-lastCover.newPos)) + kUnLinkOtherScore;
     }
     
-    //粗略估算 区域内当作覆盖时的可能存储成本.
+    //Roughly estimate the possible storage cost if the region is treated as a cover.
     inline static TInt getCoverCost(const TOldCover& cover,const TDiffData& diff){
         return (TInt)getRegionRleCost(diff.newData+cover.newPos,cover.length,diff.oldData+cover.oldPos);
     }
     
-//尝试延长lastCover来完全代替matchCover;
+// Attempt to extend lastCover to completely replace matchCover;
 static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const TDiffData& diff,TDiffLimit* diffLimit){
     if (lastCover.length<=0) return false;
     const TInt linkSpaceLength=(matchCover.newPos-(lastCover.newPos+lastCover.length));
@@ -233,7 +233,7 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
         if (!diffLimit->listener->limitCover(diffLimit->listener,&cover,0))
             return false;
     }
-    if (isCollinear){//已经共线;
+    if (isCollinear){// Already collinear;
         lastCover.Link(matchCover);
         return true;
     }
@@ -242,7 +242,7 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     TInt lastLinkCost=(TInt)getRegionRleCost(diff.newData+matchCover.newPos,matchCover.length,diff.oldData+linkOldPos);
     if (lastLinkCost>matchCost)
         return false;
-    TInt len=lastCover.length+linkSpaceLength+(matchCover.length*2/3);//扩展大部分,剩下的可能扩展留给extend_cover.
+    TInt len=lastCover.length+linkSpaceLength+(matchCover.length*2/3);// Extend most of it, leaving the remaining possible extension to extend_cover.
     len+=getEqualLength(diff.newData+lastCover.newPos+len,diff.newData_end,
                         diff.oldData+lastCover.oldPos+len,diff.oldData_end);
     if (diffLimit){
@@ -265,10 +265,10 @@ static bool tryLinkExtend(TOldCover& lastCover,const TOldCover& matchCover,const
     return true;
 }
     
-//尝试设置lastCover为matchCover所在直线的延长线,实现共线(增加合并可能等);
+// Attempt to set lastCover as an extension of the line where matchCover is located, achieving collinearity (increasing merge possibilities, etc.);
 static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const TDiffData& diff,TDiffLimit* diffLimit){
     if (lastCover.length<=0) return;
-    if (lastCover.isCollinear(matchCover)) return; //已经共线;
+    if (lastCover.isCollinear(matchCover)) return; // Already collinear;
     
     TInt linkOldPos=matchCover.oldPos-(matchCover.newPos-lastCover.newPos);
     if ((linkOldPos<0)||(linkOldPos+lastCover.length>(diff.oldData_end-diff.oldData)))
@@ -285,7 +285,7 @@ static void tryCollinear(TOldCover& lastCover,const TOldCover& matchCover,const 
 }
 
 
-//寻找合适的覆盖线.
+// Find suitable cover lines.
 static void _search_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
                           const TSuffixString& sstring,TDiffLimit* diffLimit,bool isCanExtendCover){
     if (sstring.SASize()<=0) return;
@@ -307,7 +307,7 @@ static void _search_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
         }
         TOldCover matchCover(matchOldPos,newPos,matchEqLength);
         if (matchEqLength-getCoverCtrlCost(matchCover,lastCover)<kMinMatchScore){
-            ++newPos;//下一个需要匹配的字符串(逐位置匹配速度会比较慢).
+            ++newPos;// The next string to match (matching byte by byte is relatively slow).
             continue;
         }//else matched
         
@@ -318,7 +318,7 @@ static void _search_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
                 else
                     covers.back()=lastCover;
             }else{ //use match
-                if (covers.size()>cover_begin)//尝试共线;
+                if (covers.size()>cover_begin)// Attempt collinearity;
                     tryCollinear(covers.back(),matchCover,diff,diffLimit);
                 covers.push_back(matchCover);
             }
@@ -326,12 +326,12 @@ static void _search_cover(std::vector<TOldCover>& covers,const TDiffData& diff,
             covers.push_back(matchCover);
         }
         lastCover=covers.back();
-        newPos=std::max(newPos+1,lastCover.newPos+lastCover.length);//选出的cover不允许重叠,这可能不是最优策略;
+        newPos=std::max(newPos+1,lastCover.newPos+lastCover.length);// The selected cover does not allow overlap, which may not be the optimal strategy;
     }
 }
 
 
-//选择合适的覆盖线,去掉不合适的.
+//Select the appropriate cover lines and remove the unsuitable ones.
 static void _select_cover(std::vector<TOldCover>& covers,size_t cover_begin,const TDiffData& diff,int kMinSingleMatchScore,
                           TCompressDetect& nocover_detect,TCompressDetect& cover_detect,
                           TDiffLimit* diffLimit,bool isCanExtendCover){
@@ -341,10 +341,10 @@ static void _select_cover(std::vector<TOldCover>& covers,size_t cover_begin,cons
     const size_t coverSize_old=covers.size();
     size_t insertIndex=cover_begin;
     for (size_t i=cover_begin;i<coverSize_old;++i){
-        if (covers[i].length<=0) continue;//处理已经del的.
+        if (covers[i].length<=0) continue;// Skip the already deleted ones.
         bool isNeedSave=false;
         bool isCanLink=false;
-        if (isCanExtendCover&&(!isNeedSave)){//向前合并可能.
+        if (isCanExtendCover&&(!isNeedSave)){// Possibility for forward merging.
             if ((insertIndex>cover_begin)&&(covers[insertIndex-1].isCanLink(covers[i]))){
                 if (diffLimit){
                     const TOldCover& fc=covers[insertIndex-1];
@@ -360,7 +360,7 @@ static void _select_cover(std::vector<TOldCover>& covers,size_t cover_begin,cons
                 }
             }
         }
-        if (isCanExtendCover&&(i+1<coverSize_old)){//查询向后合并可能link
+        if (isCanExtendCover&&(i+1<coverSize_old)){// Check possibility for backward link merging
             for (size_t j=i+1;j<coverSize_old; ++j) {
                 if (!covers[i].isCanLink(covers[j])) break;
                 if (diffLimit){
@@ -380,7 +380,7 @@ static void _select_cover(std::vector<TOldCover>& covers,size_t cover_begin,cons
 
             }
         }
-        if (!isNeedSave){//单覆盖是否保留.
+        if (!isNeedSave){// Whether to keep the single cover.
             TInt noCoverCost=nocover_detect.cost(diff.newData+covers[i].newPos,covers[i].length);
             TInt coverCost=cover_detect.cost(diff.newData+covers[i].newPos,covers[i].length,
                                              diff.oldData+covers[i].oldPos);
@@ -389,7 +389,7 @@ static void _select_cover(std::vector<TOldCover>& covers,size_t cover_begin,cons
         }
         
         if (isNeedSave){
-            if (isCanLink){//link合并.
+            if (isCanLink){// Link merging.
                 covers[insertIndex-1].Link(covers[i]);
                 cover_detect.add_chars(diff.newData+lastCover.newPos+lastCover.length,
                                        covers[insertIndex-1].length-lastCover.length,
@@ -420,10 +420,10 @@ static void select_cover(std::vector<TOldCover>& covers,size_t cover_begin,const
 }
 
     
-    typedef size_t TFixedFloatSmooth; //定点数.
-    static const TFixedFloatSmooth kFixedFloatSmooth_base=1024;//定点数小数点位置.
+    typedef size_t TFixedFloatSmooth; // Fixed-point number.
+    static const TFixedFloatSmooth kFixedFloatSmooth_base=1024;// Position of fixed-point decimal point.
 
-    //得到可以扩展位置的长度.
+    // Get the length of positions that can be extended.
     static TInt getCanExtendLength(TInt oldPos,TInt newPos,int inc,TInt newPos_min,TInt lastNewEnd,
                                    const TDiffData& diff,const TFixedFloatSmooth kExtendMinSameRatio){
         static const unsigned int kSmoothLength=4;
@@ -453,7 +453,7 @@ static void select_cover(std::vector<TOldCover>& covers,size_t cover_begin,const
         return curBestLength;
     }
 
-//尝试延长覆盖区域.
+// Attempt to extend the cover area.
 static void extend_cover(std::vector<TOldCover>& covers,size_t cover_begin,const TDiffData& diff,
                          const TFixedFloatSmooth kExtendMinSameRatio,TDiffLimit* diffLimit=0){
     TInt lastNewEnd=diffLimit?diffLimit->newPos:0;
@@ -485,7 +485,7 @@ static void extend_cover(std::vector<TOldCover>& covers,size_t cover_begin,const
                 newPos_next=(curCover.newPos+curCover.length)+ (TInt)lenLimit;
             }
         }
-        //向前延伸.
+        // Extend forward.
         TInt extendLength_front=getCanExtendLength(curCover.oldPos-1,curCover.newPos-1,
                                                    -1,lastNewEnd,newPos_next,diff,kExtendMinSameRatio);
         if (extendLength_front>0){
@@ -493,7 +493,7 @@ static void extend_cover(std::vector<TOldCover>& covers,size_t cover_begin,const
             curCover.newPos-=extendLength_front;
             curCover.length+=extendLength_front;
         }
-        //向后延伸.
+        // Extend backward.
         TInt extendLength_back=getCanExtendLength(curCover.oldPos+curCover.length,
                                                   curCover.newPos+curCover.length,
                                                   1,lastNewEnd,newPos_next,diff,kExtendMinSameRatio);
@@ -575,7 +575,7 @@ static void extend_cover(std::vector<TOldCover>& covers,size_t cover_begin,const
         assert(isize==0);
     }
 
-//diff结果序列化输出.
+// Serialized output of diff result.
 static void serialize_diff(const TDiffData& diff,const std::vector<TOldCover>& covers,std::vector<TByte>& out_diff){
     const TUInt coverCount=(TUInt)covers.size();
     std::vector<TByte> length_buf;
@@ -729,9 +729,9 @@ static void _dispose_cover(std::vector<TOldCover>& covers,size_t cover_begin,con
         if  (kExtendMinSameRatio<200) kExtendMinSameRatio=200;
         if (kExtendMinSameRatio>800) kExtendMinSameRatio=800;
 
-        extend_cover(covers,cover_begin,diff,kExtendMinSameRatio,diffLimit);//先尝试扩展.
+        extend_cover(covers,cover_begin,diff,kExtendMinSameRatio,diffLimit);// First try to extend.
         select_cover(covers,cover_begin,diff,kMinSingleMatchScore,diffLimit,isCanExtendCover);
-        extend_cover(covers,cover_begin,diff,kExtendMinSameRatio,diffLimit);//select_cover会删除一些覆盖线,所以重新扩展.
+        extend_cover(covers,cover_begin,diff,kExtendMinSameRatio,diffLimit);// select_cover will delete some cover lines, so re-extend.
     }else{
         select_cover(covers,cover_begin,diff,kMinSingleMatchScore,diffLimit,isCanExtendCover);
     }

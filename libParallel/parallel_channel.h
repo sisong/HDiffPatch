@@ -134,18 +134,18 @@ struct CHLocker{
         HCondvar            _condvar;
     };
 
-// CWaitValue 线程等待一个值，才能继续运行;
+// CWaitValue: thread waits for a value before it can continue;
 #if (_IS_USED_CPP_ATOMIC)
     typedef CWaitValueByAtomic CWaitValue;
 #else
     typedef CWaitValueByLocker CWaitValue; 
 #endif
 
-    //通道交互数据;
+    //Channel interaction data;
     typedef void* TChanData;
 
     class _CChannel_import;
-    //通道;
+    //Channel;
     class CChannel{
     public:
         explicit CChannel(ptrdiff_t maxDataCount=-1);
@@ -158,7 +158,7 @@ struct CHLocker{
         _CChannel_import* _import;
     };
 
-//用通道传递来共享数据;
+//Share data via channel passing;
 struct TMtByChannel {
     CChannel read_chan;
     CChannel work_chan;

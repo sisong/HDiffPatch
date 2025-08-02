@@ -1,5 +1,5 @@
 //bytes_rle.h
-//快速解压的一个通用字节流压缩rle算法.
+//a general-purpose byte stream compression RLE algorithm optimized for fast decompression.
 //
 /*
  The MIT License (MIT)

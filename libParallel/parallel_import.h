@@ -58,14 +58,14 @@
 
 #if (_IS_USED_MULTITHREAD)
 
-    //并行临界区锁;
+    //parallel critical section lock;
     typedef void*   HLocker;
     HLocker     locker_new(void);
     void        locker_delete(HLocker locker);
     void        locker_enter(HLocker locker);
     void        locker_leave(HLocker locker);
     
-    //同步变量;
+    //synchronization variable;
     typedef void*   HCondvar;
 #if (_IS_USED_CPP11THREAD)
 #   define TLockerBox           void  /*  used std::unique_lock<std::mutex>  */

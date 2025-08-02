@@ -34,7 +34,7 @@
 #if (_IS_USED_MULTITHREAD)
 #include <thread>   //if used vc++, need >= vc2012
 #endif
-//排序方法选择.
+// Sorting method selection.
 #ifndef _SA_SORTBY
 #define _SA_SORTBY
 //#  define _SA_SORTBY_STD_SORT
@@ -42,7 +42,7 @@
 #   define _SA_SORTBY_DIVSUFSORT
 #endif//_SA_SORTBY
 
-//匹配查找方法选择,是否用std::lower_bound,否则用自定义的实现.
+// Match search method selection, whether to use std::lower_bound or use custom implementation.
 //#define _SA_MATCHBY_STD_LOWER_BOUND
 
 #if (defined _SA_SORTBY_STD_SORT) || (defined _SA_MATCHBY_STD_LOWER_BOUND)
@@ -74,9 +74,9 @@ namespace {
         TInt L0=(TInt)(str0End-str0);
         TInt L1=(TInt)(str1End-str1);
     #ifdef _SA_SORTBY_STD_SORT
-        const int kMaxCmpLength_sort=1024*4; //警告:这是一个特殊的处理手段,用以避免_suffixString_create在使用std::sort时
-                                        //  某些情况退化到O(n*n)复杂度(运行时间无法接受),设置最大比较长度从而控制算法在
-                                        //  O(kMaxCmpLength_sort*n)复杂度以内,这时排序的结果并不是标准的后缀数组;
+        const int kMaxCmpLength_sort=1024*4; //WARNING: This is a special handling measure to prevent _suffixString_create from degrading
+                                        //  to O(n*n) complexity in some cases when using std::sort (unacceptable runtime). Set a maximum comparison length to control the algorithm
+                                        //  Within O(kMaxCmpLength_sort*n) complexity, note that the sorted result is not a standard suffix array;
         if (L0>kMaxCmpLength_sort) L0=kMaxCmpLength_sort;
         if (L1>kMaxCmpLength_sort) L1=kMaxCmpLength_sort;
     #endif
@@ -339,7 +339,7 @@ void TSuffixString::build_cache(size_t threadNum){
 #if (_SSTRING_FAST_MATCH>0)
     if (m_isUsedFastMatch) m_fastMatch.buildMatchCache(m_src_begin,m_src_end,threadNum);
 #endif
-    const size_t kUsedCacheMinSASize =2*(1<<20); //当字符串较大时再启用大缓存表.
+    const size_t kUsedCacheMinSASize =2*(1<<20); //Enable large cache table only when string is large.
     if (SASize()>kUsedCacheMinSASize){
         m_cached2char_range=new TChar[(256*256+1)*(isUseLargeSA()?sizeof(size_t):sizeof(TInt32))];
     }

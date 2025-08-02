@@ -36,7 +36,7 @@
 #endif
 
 #if (_IS_RUN_MEM_SAFE_CHECK)
-//__RUN_MEM_SAFE_CHECK用来启动内存访问越界检查,用以防御可能被意外或故意损坏的数据.
+// __RUN_MEM_SAFE_CHECK : enables bounds checking for memory access to defend against potentially corrupted or maliciously crafted data.
 #   define __RUN_MEM_SAFE_CHECK
 #endif
 
@@ -53,7 +53,7 @@
 typedef unsigned char TByte;
 
 
-//变长正整数编码方案(x bit额外类型标志位,x<=7),从高位开始输出1--n byte:
+//Variable-length positive integer encoding scheme (x bits for additional type flags, x<=7), outputs 1--n bytes from high:
 // x0*  7-x bit
 // x1* 0*  7+7-x bit
 // x1* 1* 0*  7+7+7-x bit
@@ -62,7 +62,7 @@ typedef unsigned char TByte;
 // ......
 hpatch_BOOL hpatch_packUIntWithTag(TByte** out_code,TByte* out_code_end,
                                    hpatch_StreamPos_t uValue,hpatch_uint highTag,
-                                   const hpatch_uint kTagBit){//写入整数并前进指针.
+                                   const hpatch_uint kTagBit){//write out integer and advance pointer.
     TByte*          pcode=*out_code;
     const hpatch_StreamPos_t kMaxValueWithTag=((hpatch_StreamPos_t)1<<(7-kTagBit))-1;
     TByte           codeBuf[hpatch_kMaxPackedUIntBytes];
@@ -103,7 +103,7 @@ hpatch_uint hpatch_packUIntWithTag_size(hpatch_StreamPos_t uValue,const hpatch_u
 }
 
 hpatch_BOOL hpatch_unpackUIntWithTag(const TByte** src_code,const TByte* src_code_end,
-                                     hpatch_StreamPos_t* result,const hpatch_uint kTagBit){//读出整数并前进指针.
+                                     hpatch_StreamPos_t* result,const hpatch_uint kTagBit){//read integer and advance pointer.
 #ifdef __RUN_MEM_SAFE_CHECK
     //const hpatch_uint kPackMaxTagBit=7;
 #endif
@@ -1405,7 +1405,7 @@ typedef struct hpatch_TCCover32{
     hpatch_uint32_t oldPos;
     hpatch_uint32_t newPos;
     hpatch_uint32_t length;
-    hpatch_uint32_t cachePos; //todo:放到临时内存中,用完释放?逻辑会比较复杂;
+    hpatch_uint32_t cachePos; //Consider moving to temporary memory and releasing after use? Logic would be more complex;
 } hpatch_TCCover32;
 
 typedef struct hpatch_TCCover64{
@@ -1560,7 +1560,7 @@ static void _arrayCovers_sort_by_len(_TArrayCovers* self){
 
 static hpatch_size_t _getMaxCachedLen(const _TArrayCovers* src_covers,
                                       TByte* temp_cache,TByte* temp_cache_end,TByte* cache_buf_end){
-    const hpatch_size_t kMaxCachedLen  =~((hpatch_size_t)0);//允许缓存的最长单个数据长度;
+    const hpatch_size_t kMaxCachedLen  =~((hpatch_size_t)0);//max allowed length for a single cached data item;
     hpatch_StreamPos_t mlen=0;
     hpatch_StreamPos_t sum=0;
     const hpatch_size_t coverCount=src_covers->coverCount;
@@ -1590,7 +1590,7 @@ static hpatch_size_t _getMaxCachedLen(const _TArrayCovers* src_covers,
 static hpatch_size_t _set_cache_pos(_TArrayCovers* covers,hpatch_size_t maxCachedLen,
                                     hpatch_StreamPos_t* poldPosBegin,hpatch_StreamPos_t* poldPosEnd){
     const hpatch_size_t coverCount=covers->coverCount;
-    const hpatch_size_t kMinCacheCoverCount=coverCount/8+1; //控制最小缓存数量,否则缓存的意义太小;
+    const hpatch_size_t kMinCacheCoverCount=coverCount/8+1; //control min cache count, otherwise caching becomes ineffective;
     hpatch_StreamPos_t oldPosBegin=hpatch_kNullStreamPos;
     hpatch_StreamPos_t oldPosEnd=0;
     hpatch_size_t cacheCoverCount=0;
@@ -1616,17 +1616,17 @@ static hpatch_size_t _set_cache_pos(_TArrayCovers* covers,hpatch_size_t maxCache
     return sum;
 }
 
-//一个比较简单的缓存策略:
-//  1. 根据缓冲区大小限制，选择出最短的一批覆盖线来缓存;
-//  2. 顺序访问一次oldData文件，填充这些缓存;
-//  3. 顺序访问时跳过中间过大的对缓存无用的区域;
+//a simple caching strategy:
+//  1. select a batch of shortest cover lines to cache based on buffer size limit;
+//  2. sequentially access the oldData file once to fill these caches;
+//  3. skip large intermediate regions that are useless for caching during sequential access;
 
 static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
                                    hpatch_StreamPos_t oldPos,hpatch_StreamPos_t oldPosAllEnd,
                                    _TArrayCovers* arrayCovers,hpatch_size_t maxCachedLen,hpatch_size_t sumCacheLen,
                                    TByte* old_cache,TByte* old_cache_end,TByte* cache_buf_end){
-    const hpatch_size_t kMinSpaceLen   =(1<<(20+2));//跳过seekTime*speed长度的空间(SSD可以更小)时间上划得来,否则就顺序访问;
-    const hpatch_size_t kAccessPageSize=4096;//磁盘页面对齐访问(只和速度有关，但影响不大);
+    const hpatch_size_t kMinSpaceLen   =(1<<(20+2));//skip space of length seekTime*speed (can be smaller for SSD) if time-efficient, otherwise sequential access;
+    const hpatch_size_t kAccessPageSize=4096;//disk page-aligned access (affects only speed, but impact is minimal);
     hpatch_BOOL result=hpatch_TRUE;
     hpatch_size_t cur_i=0,i;
     const hpatch_size_t coverCount=arrayCovers->coverCount;
@@ -1654,7 +1654,7 @@ static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
         for (i=cur_i;i<coverCount;++i){
             hpatch_StreamPos_t ioldPos,ioldPosEnd;
             hpatch_StreamPos_t ilen=_arrayCovers_get_len(arrayCovers,i);
-            if (ilen>maxCachedLen){//覆盖线比较长不需要缓存,下一个覆盖线;
+            if (ilen>maxCachedLen){//cover line too long to cache, proceed to next cover line;
                 if (i==cur_i)
                     ++cur_i;
                 continue;
@@ -1664,7 +1664,7 @@ static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
             if (ioldPosEnd>oldPos){
                 //        [oldPos                  oldPosEnd]
                 //                           ioldPosEnd]----or----]
-                if (ioldPos<oldPosEnd){//有交集,需要cache
+                if (ioldPos<oldPosEnd){//intersection exists, needs cache
                 //  [----or----[ioldPos      ioldPosEnd]----or----]
                     hpatch_StreamPos_t from;
                     hpatch_size_t      copyLen;
@@ -1685,14 +1685,14 @@ static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
                     sumCacheLen-=copyLen;
                     if ((i==cur_i)&(oldPosEnd>=ioldPosEnd))
                         ++cur_i;
-                }else{//后面覆盖线暂时都不会与当前数据有交集了,下一块数据;
+                }else{//no more intersections with current data for following cover lines, move to next data block;
                 //  [oldPos     oldPosEnd]
                 //                        [ioldPos      ioldPosEnd]
                     if ((i==cur_i)&&(ioldPos-oldPosEnd>=kMinSpaceLen))
                         oldPosEnd=_hpatch_align_type_lower(hpatch_StreamPos_t,ioldPos,kAccessPageSize);
                     break;
                 }
-            }else{//当前覆盖线已经落后于当前数据,下一个覆盖线;
+            }else{//current cover line is behind current data, proceed to next cover line;
                 //                        [oldPos     oldPosEnd]
                 // [ioldPos    ioldPosEnd]
                 if (i==cur_i)
@@ -1800,10 +1800,10 @@ static hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
     const hpatch_TStreamInput* oldData=*poldData;
     const hpatch_size_t kMinCacheSize=hpatch_kStreamCacheSize*kCacheCount;
 #if (_IS_NEED_CACHE_OLD_BY_COVERS)
-    const hpatch_size_t kBestACacheSize=hpatch_kFileIOBufBetterSize;   //内存足够时比较好的hpatch_kStreamCacheSize值;
+    const hpatch_size_t kBestACacheSize=hpatch_kFileIOBufBetterSize;   //optimal hpatch_kStreamCacheSize value when sufficient memory is available;
     const hpatch_size_t _minActiveSize=(1<<20)*8;
     const hpatch_StreamPos_t _betterActiveSize=kBestACacheSize*kCacheCount*2+oldData->streamSize/8;
-    const hpatch_size_t kActiveCacheOldMemorySize = //尝试激活CacheOld功能的内存下限;
+    const hpatch_size_t kActiveCacheOldMemorySize = //min memory threshold for attempting to activate CacheOld functionality;
                 (_betterActiveSize>_minActiveSize)?_minActiveSize:(hpatch_size_t)_betterActiveSize;
 #endif //_IS_NEED_CACHE_OLD_BY_COVERS
     TByte* temp_cache=*ptemp_cache;

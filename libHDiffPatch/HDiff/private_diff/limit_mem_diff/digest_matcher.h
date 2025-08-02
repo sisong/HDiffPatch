@@ -1,6 +1,6 @@
 //digest_matcher.h
-//用摘要匹配的办法代替后缀数组的匹配,匹配效果比后缀数差,但内存占用少;
-//用adler计算数据的摘要信息,以便于滚动匹配.
+//Use digest matching instead of suffix array matching - less effective but uses less memory;
+//Use adler to calculate data digest information for rolling match.
 //
 /*
  The MIT License (MIT)

@@ -1,5 +1,5 @@
 //bloom_filter.h
-//bloom过滤的一个定制实现.
+//A customized implementation of bloom filter.
 /*
  The MIT License (MIT)
  Copyright (c) 2017 HouSisong

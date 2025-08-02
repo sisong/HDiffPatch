@@ -33,7 +33,7 @@
 extern "C" {
 #endif
     
-//利用refList模拟成一个输入流;
+//Simulate an input stream using refList;
 typedef struct hpatch_TRefStream{
     const hpatch_TStreamInput*  stream;
 //private:

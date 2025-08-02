@@ -46,7 +46,7 @@ public:
                 CAutoLocker locker(_locker);
                 if (_waitingCount==0) break;
             }
-            this_thread_yield(); //todo:优化?
+            this_thread_yield(); //optimize?
         }
         locker_delete(_locker);
         assert(_dataList.empty()); // why? if saved resource then leaks
@@ -114,7 +114,7 @@ public:
                 if (_isClosed) break;
                 if (_dataList.empty()) break;
             }
-            this_thread_yield(); //todo:优化;
+            this_thread_yield(); //optimize?
         }
         return true;
     }

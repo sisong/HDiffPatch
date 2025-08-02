@@ -47,7 +47,7 @@ typedef struct _hpatch_TResHandleBox{
     hpatch_StreamPos_t      hit;
 } _hpatch_TResHandleBox;
 
-//内部控制同时最大打开的句柄数,对外模拟成所有资源都能使用的完整流列表;
+//Internally controls the maximum number of simultaneously open handles, externally simulates a complete stream list where all resources are available;
 typedef struct hpatch_TResHandleLimit{
     const hpatch_TStreamInput** streamList;
     size_t                      streamCount;

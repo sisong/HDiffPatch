@@ -482,9 +482,9 @@ static const TIndex* getBestMatchi(const adler_uint_t* blocksBase,size_t blocksS
     const TIndex*& right=*_right;
     size_t& digests_eq_n=*_digests_eq_n;
     digests_eq_n=1;
-    //缩小[left best right)范围,留下最多2个(因为签名匹配并不保证一定相等,2个的话应该就够了?);
+    //Narrow down the [left best right) range to keep at most 2 matches (since signature matching doesn't guarantee equality, 2 should be sufficient?);
     if (right-left>1){
-        //寻找最长的签名匹配位置(也就是最有可能的最长匹配位置);
+        //Find the position with longest signature match (which is most likely to be the longest actual match position);
         TDigest_comp_i comp_i(blocksBase,blocksSize);
         newStream.toBestDataLength();
         const unsigned char* bdata=newStream.data()+kMatchBlockSize;
@@ -508,17 +508,17 @@ static const TIndex* getBestMatchi(const adler_uint_t* blocksBase,size_t blocksS
     }else{
         best=left;
     }
-    //best==0 说明有>2个位置都是最好位置,还需要继续寻找;
+    //best==0 indicates there are >2 positions that are equally good, need to continue searching;
     
     //assert(newStream.pos()>lastCover.newPos);
     hpatch_StreamPos_t linkOldPos=newStream.pos()+lastCover.oldPos-lastCover.newPos;
     TIndex linkIndex=(TIndex)posToBlockIndex(linkOldPos,kMatchBlockSize,blocksSize);
-    //找到lastCover附近的位置当作比较好的best默认值,以利于link或压缩;
+    //Find a position near lastCover as a good default best value, beneficial for link or compression;
     if (best==0){
         TIndex_comp comp(blocksBase,blocksSize,max_digests_n);
         size_t findCount=(right-left)*2+1;
         if (findCount>kMaxLinkIndexFindCount) findCount=kMaxLinkIndexFindCount;
-        for (TIndex inc=1;(inc<=findCount);++inc) { //linkIndex附近找;
+        for (TIndex inc=1;(inc<=findCount);++inc) { //Search around linkIndex;
             TIndex fi;  TIndex s=(inc>>1);
             if (inc&1){
                 if (linkIndex<s) continue;
@@ -531,20 +531,20 @@ static const TIndex* getBestMatchi(const adler_uint_t* blocksBase,size_t blocksS
             if (i_range.first!=i_range.second){
                 best=i_range.first+(i_range.second-i_range.first)/2;
                 for (const TIndex* ci=best;ci<i_range.second; ++ci) {
-                    if (*ci==fi) { best=ci; break;  } //找到;
+                    if (*ci==fi) { best=ci; break;  } //Found;
                 }
                 break;
             }
         }
     }
-    if(best==0){ //继续找;
+    if(best==0){ //Continue searching;
         best=left+(right-left)/2;
         hpatch_StreamPos_t _best_distance=hpatch_kNullStreamPos;
         const TIndex* end=(left+kBestMatchRange>=right)?right:(left+kBestMatchRange);
         for (const TIndex* it=left;it<end; ++it) {
             hpatch_StreamPos_t oldIndex=(*it);
             hpatch_StreamPos_t distance=(oldIndex<linkIndex)?(linkIndex-oldIndex):(oldIndex-linkIndex);
-            if (distance<_best_distance){ //找最近;
+            if (distance<_best_distance){ //Find the nearest;
                 best=it;
                 _best_distance=distance;
             }
@@ -562,10 +562,10 @@ static bool getBestMatch(const TIndex* left,const TIndex* right,const TIndex* be
     const hpatch_StreamPos_t newPos=newStream.pos();
     bool isMatched=false;
     hpatch_StreamPos_t  bestLen=0;
-    const size_t kMaxFindCount=5; //周围距离2;
+    const size_t kMaxFindCount=5; //Distance 2 around;
     size_t findCount=(right-left)*2+1;
     if (findCount>kMaxFindCount) findCount=kMaxFindCount;
-    for (size_t inc=1;(inc<=findCount);++inc) { //best附近找;
+    for (size_t inc=1;(inc<=findCount);++inc) { //Search around best;
         const TIndex* fi;  size_t s=(inc>>1);
         if (inc&1){
             if (best<left+s) continue;
@@ -600,7 +600,7 @@ static bool getBestMatch(const TIndex* left,const TIndex* right,const TIndex* be
         return _getUIntCost(dis*2);
     }
     
-    //尝试共线;
+    //Try collinearity;
     static void tryLink(const TCover& lastCover,TCover& matchCover,
                         TOldStreamCache& oldStream,TNewStreamCache& newStream){
         if (lastCover.length<=0) return;
