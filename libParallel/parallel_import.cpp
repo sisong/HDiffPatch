@@ -25,261 +25,49 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "parallel_import.h"
-#include <assert.h>
-
-#if (_IS_USED_PTHREAD)
-#   ifdef WIN32
-#       include "windows.h" //for Sleep
-#       //pragma comment(lib,"pthread.lib") //for static pthread lib
-#       //define PTW32_STATIC_LIB  //for static pthread lib
-#   endif
-#   include <pthread.h>
-#   include <sched.h> // sched_yield()
-#endif
-#if (_IS_USED_WIN32THREAD)
-#   include "windows.h"
-#   ifndef UNDER_CE
-#       include "process.h"
-#   endif
-#endif
-
-#if (_IS_USED_PTHREAD)
-#include <string.h> //for memset
-#include <stdlib.h>
+#if (_IS_USED_MULTITHREAD)
 #include <stdexcept>
-#include <string>
-#include <stdio.h>
-
-static std::string _i2a(int ivalue){
-    const int kMaxNumCharSize =32;
-    std::string result;
-    result.resize(kMaxNumCharSize);
-#ifdef _MSC_VER
-    int len=sprintf_s(&result[0],kMaxNumCharSize,"%d",ivalue);
-#else
-    int len=sprintf(&result[0],"%d",ivalue);
-#endif
-    result.resize(len);
-    return result;
-}
-#define _check_pthread(result,func_name) { \
-    if (result!=0) throw std::runtime_error(func_name "() return "+_i2a(result)+" error!"); }
-
-HLocker locker_new(void){
-    pthread_mutex_t* self=new pthread_mutex_t();
-    int rt=pthread_mutex_init(self, 0);
-    if (rt!=0){
-        delete self;
-        self=0;
-        _check_pthread(rt,"pthread_mutex_init");
-    }
-    return  self;
-}
-void locker_delete(HLocker locker){
-    if (locker!=0){
-        pthread_mutex_t* self=(pthread_mutex_t*)locker;
-        int rt=pthread_mutex_destroy(self);
-        delete self;
-        _check_pthread(rt,"pthread_mutex_destroy");
-    }
-}
-
-void locker_enter(HLocker locker){
-    pthread_mutex_t* self=(pthread_mutex_t*)locker;
-    int rt=pthread_mutex_lock(self);
-    _check_pthread(rt,"pthread_mutex_lock");
-}
-void locker_leave(HLocker locker){
-    pthread_mutex_t* self=(pthread_mutex_t*)locker;
-    int rt=pthread_mutex_unlock(self);
-    _check_pthread(rt,"pthread_mutex_unlock");
-}
-
-HCondvar condvar_new(void){
-    pthread_cond_t* self=new pthread_cond_t();
-    int rt=pthread_cond_init(self,0);
-    if (rt!=0){
-        delete self;
-        _check_pthread(rt,"pthread_cond_init");
-    }
-    return self;
-}
-void    condvar_delete(HCondvar cond){
-    if (cond){
-        pthread_cond_t* self=(pthread_cond_t*)cond;
-        int rt=pthread_cond_destroy(self);
-        delete self;
-        _check_pthread(rt,"pthread_cond_destroy");
-    }
-}
-void    condvar_wait(HCondvar cond,TLockerBox* lockerBox){
-    pthread_cond_t* self=(pthread_cond_t*)cond;
-    int rt=pthread_cond_wait(self,(pthread_mutex_t*)(lockerBox->locker));
-    _check_pthread(rt,"pthread_cond_wait");
-}
-void    condvar_signal(HCondvar cond){
-    pthread_cond_t* self=(pthread_cond_t*)cond;
-    int rt=pthread_cond_signal(self);
-    _check_pthread(rt,"pthread_cond_signal");
-}
-void    condvar_broadcast(HCondvar cond){
-    pthread_cond_t* self=(pthread_cond_t*)cond;
-    int rt=pthread_cond_broadcast(self);
-    _check_pthread(rt,"pthread_cond_broadcast");
-}
-
-void this_thread_yield(){
-#ifdef WIN32
-    Sleep(0);
-#else
-    sched_yield();
-#endif
-}
-
-struct _TThreadData{
-    TThreadRunCallBackProc  threadProc;
-    int                     threadIndex;
-    void*                   workData;
-};
-static void* _pt_threadProc(void* _pt){
-    _TThreadData* pt=(_TThreadData*)_pt;
-    pt->threadProc(pt->threadIndex,pt->workData);
-    delete pt;
-    return 0;
-}
-
-void thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
-                     int isUseThisThread,int threadIndexOffset){
-    for (int i=0; i<threadCount; ++i) {
-        if ((i==threadCount-1)&&(isUseThisThread)){
-            threadProc(i+threadIndexOffset,workData);
-        }else{
-            _TThreadData* pt=new _TThreadData();
-            pt->threadIndex=i+threadIndexOffset;
-            pt->threadProc=threadProc;
-            pt->workData=workData;
-            pthread_t t; memset(&t,0,sizeof(pthread_t));
-            int rt=pthread_create(&t,0,_pt_threadProc,pt);
-            if (rt!=0){
-                delete pt;
-                _check_pthread(rt,"pthread_create");
-            }
-            rt=pthread_detach(t);
-            _check_pthread(rt,"pthread_detach");
-        }
-    }
-}
-#endif //_IS_USED_PTHREAD
-
-
-#if (_IS_USED_WIN32THREAD)
-#include <string.h> //for memset
-#include <stdlib.h>
-#include <stdexcept>
-#include <string>
-#include <stdio.h>
 
 #define _check(value,func_name) { \
     if (!(value)) throw std::runtime_error(func_name "() run error!"); }
 
-
 HLocker locker_new(void){
-    CRITICAL_SECTION* self=new CRITICAL_SECTION();
-    InitializeCriticalSection(self);
+    HLocker self=c_locker_new();
+    _check(self,"locker_new");
     return  self;
 }
 void locker_delete(HLocker locker){
-    if (locker!=0){
-        CRITICAL_SECTION* self=(CRITICAL_SECTION*)locker;
-        DeleteCriticalSection(self);
-        delete self;
-    }
+    _check(c_locker_delete(locker),"locker_delete");
 }
 
 void locker_enter(HLocker locker){
-    CRITICAL_SECTION* self=(CRITICAL_SECTION*)locker;
-    EnterCriticalSection(self);
+    _check(c_locker_enter(locker),"locker_enter");
 }
 void locker_leave(HLocker locker){
-    CRITICAL_SECTION* self=(CRITICAL_SECTION*)locker;
-    LeaveCriticalSection(self);
+    _check(c_locker_leave(locker),"locker_leave");
 }
 
 HCondvar condvar_new(void){
-    CONDITION_VARIABLE* self=new CONDITION_VARIABLE();
-    InitializeConditionVariable(self);
+    HCondvar self=c_condvar_new();
+    _check(self,"condvar_new");
     return self;
 }
 void    condvar_delete(HCondvar cond){
-    if (cond){
-        CONDITION_VARIABLE* self=(CONDITION_VARIABLE*)cond;
-        delete self;
-    }
+    _check(c_condvar_delete(cond),"condvar_delete");
 }
 void    condvar_wait(HCondvar cond,TLockerBox* lockerBox){
-    CONDITION_VARIABLE* self=(CONDITION_VARIABLE*)cond;
-    BOOL rt=SleepConditionVariableCS(self,(CRITICAL_SECTION*)(lockerBox->locker),INFINITE);
-    _check(rt,"SleepConditionVariableCS");
+    _check(c_condvar_wait(cond,lockerBox),"condvar_wait");
 }
 void    condvar_signal(HCondvar cond){
-    CONDITION_VARIABLE* self=(CONDITION_VARIABLE*)cond;
-    WakeConditionVariable(self);
+    _check(c_condvar_signal(cond),"condvar_signal");
 }
 void    condvar_broadcast(HCondvar cond){
-    CONDITION_VARIABLE* self=(CONDITION_VARIABLE*)cond;
-    WakeAllConditionVariable(self);
-}
-
-void this_thread_yield(){
-    Sleep(0);
-}
-
-struct _TThreadData{
-    TThreadRunCallBackProc  threadProc;
-    int                     threadIndex;
-    void*                   workData;
-};
-
-#ifdef UNDER_CE
-    static DWORD WINAPI _win_threadProc(void* _pt){
-#else
-    static unsigned int WINAPI _win_threadProc(void* _pt){
-#endif
-        _TThreadData* pt=(_TThreadData*)_pt;
-        pt->threadProc(pt->threadIndex,pt->workData);
-        delete pt;
-        return 0;
-    }
-
-template <class TProc>
-inline static HANDLE _thread_create(TProc func,void* param){
-#ifdef UNDER_CE
-    DWORD threadId;
-    return CreateThread(0,0,func,param,0,&threadId);
-#else
-    unsigned threadId;
-    return (HANDLE)_beginthreadex(0,0,func,param,0,&threadId);
-#endif
+    _check(c_condvar_broadcast(cond),"condvar_broadcast");
 }
 
 void thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
                      int isUseThisThread,int threadIndexOffset){
-    for (int i=0; i<threadCount; ++i) {
-        if ((i==threadCount-1)&&(isUseThisThread)){
-            threadProc(i+threadIndexOffset,workData);
-        }else{
-            _TThreadData* pt=new _TThreadData();
-            pt->threadIndex=i+threadIndexOffset;
-            pt->threadProc=threadProc;
-            pt->workData=workData;
-            HANDLE rt=_thread_create(_win_threadProc,pt);
-            if (rt==0){
-                delete pt;
-                _check(rt!=0,"_thread_create");
-            } else {
-                CloseHandle(rt);    
-            }
-        }
-    }
+    _check(c_thread_parallel(threadCount,threadProc,workData,isUseThisThread,threadIndexOffset),"thread_parallel");
 }
-#endif //_IS_USED_WIN32THREAD
+
+#endif //_IS_USED_MULTITHREAD
