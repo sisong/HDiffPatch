@@ -46,9 +46,11 @@ struct CHLocker{
     inline ~CHLocker() { locker_delete(locker); }
 };
 
-struct CAutoLocker:public TLockerBox {
-    inline CAutoLocker(HLocker _locker){ locker=_locker; if (locker) locker_enter(locker); }
+struct CAutoLocker{
+    inline explicit CAutoLocker(HLocker _locker){ locker=_locker; if (locker) locker_enter(locker); }
+    inline explicit CAutoLocker(CHLocker& _locker){ locker=_locker.locker; if (locker) locker_enter(locker); }
     inline ~CAutoLocker(){ if (locker) locker_leave(locker); }
+    HLocker locker;
 };
 
 

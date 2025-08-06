@@ -28,26 +28,40 @@
 #ifndef parallel_import_h
 #define parallel_import_h
 #include "parallel_import_c.h"
+#include "../libHDiffPatch/HPatch/patch_types.h" //for *inline
 #if (_IS_USED_MULTITHREAD)
+#include <stdexcept>
 
 //cpp version of MT API
 //  if have error, throw std::runtime_error
 
-    HLocker     locker_new(void);
-    void        locker_delete(HLocker locker);
-    void        locker_enter(HLocker locker);
-    void        locker_leave(HLocker locker);
-    
-    HCondvar    condvar_new(void);
-    void        condvar_delete(HCondvar cond);
-    void        condvar_wait(HCondvar cond,TLockerBox* lockerBox);
-    void        condvar_signal(HCondvar cond);
-    void        condvar_broadcast(HCondvar cond);
-    
-    #define this_thread_yield c_this_thread_yield
+#define _check_fn_throw(value) { \
+    if (!(value)) throw std::runtime_error(#value " run error!"); }
+#define _check_fn_ret_throw(T,value) { T _v=value; if (!_v) throw std::runtime_error(#value " run error!"); return _v; }
 
-    void  thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
-                          int isUseThisThread,int threadIndexOffset);
+hpatch_force_inline static
+HLocker     locker_new(void)                { _check_fn_ret_throw(HLocker,c_locker_new()); }
+hpatch_force_inline static 
+void        locker_delete(HLocker locker)   { _check_fn_throw(c_locker_delete(locker)); }
+hpatch_force_inline static
+void        locker_enter(HLocker locker)    { _check_fn_throw(c_locker_enter(locker)); }
+hpatch_force_inline static
+void        locker_leave(HLocker locker)    { _check_fn_throw(c_locker_leave(locker)); }
+hpatch_force_inline static
+HCondvar    condvar_new(void)               { _check_fn_ret_throw(HCondvar,c_condvar_new()); }
+hpatch_force_inline static
+void        condvar_delete(HCondvar cond)   { _check_fn_throw(c_condvar_delete(cond)); }
+hpatch_force_inline static
+void        condvar_wait(HCondvar cond,HLocker locker) { _check_fn_throw(c_condvar_wait(cond,locker)); }
+hpatch_force_inline static
+void        condvar_signal(HCondvar cond)   { _check_fn_throw(c_condvar_signal(cond)); }
+hpatch_force_inline static
+void        condvar_broadcast(HCondvar cond){ _check_fn_throw(c_condvar_broadcast(cond)); }
+#define     this_thread_yield               c_this_thread_yield
+hpatch_force_inline static
+void        thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
+                            int isUseThisThread,int threadIndexOffset){
+                _check_fn_throw(c_thread_parallel(threadCount,threadProc,workData,isUseThisThread,threadIndexOffset)); }
 
 #endif //_IS_USED_MULTITHREAD
 #endif //parallel_import_h

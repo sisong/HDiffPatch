@@ -83,6 +83,9 @@ namespace hdiff_private{
     };
 }
 
+    //return whether x&y's datas are equal; if read stream fail,thorw std::runtime_error
+    hpatch_BOOL hdiff_streamDataIsEqual(const hpatch_TStreamInput* x,const hpatch_TStreamInput* y);
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -166,8 +169,6 @@ extern "C"
 
     static const hdiff_TMTSets_s hdiff_TMTSets_s_kEmpty={1,1,false,false,false};
     
-    //return whether x&y's datas are equal; if read stream fail,thorw std::runtime_error
-    hpatch_BOOL hdiff_streamDataIsEqual(const hpatch_TStreamInput* x,const hpatch_TStreamInput* y);
 
 #ifdef __cplusplus
 }

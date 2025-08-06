@@ -58,6 +58,7 @@ extern "C" {
     #define c_mt_NULL           0
     #define c_mt_bool_FALSE     0
     #define c_mt_bool_TRUE      (!c_mt_bool_FALSE)
+    extern int _parallel_import_c_exit_on_error; //only for c only mode; set when error, exit program.
 
     //parallel critical section lock;
     typedef void*   HLocker;
@@ -68,12 +69,9 @@ extern "C" {
     
     //synchronization variable;
     typedef void*   HCondvar;
-    typedef struct{
-        HLocker locker;
-    } TLockerBox;
     HCondvar    c_condvar_new(void);
     c_mt_bool_t c_condvar_delete(HCondvar cond);
-    c_mt_bool_t c_condvar_wait(HCondvar cond,TLockerBox* lockerBox);
+    c_mt_bool_t c_condvar_wait(HCondvar cond,HLocker locker);
     c_mt_bool_t c_condvar_signal(HCondvar cond);
     c_mt_bool_t c_condvar_broadcast(HCondvar cond);
 

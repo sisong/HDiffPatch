@@ -1,4 +1,4 @@
-//  parallel_import_c.cpp
+//  parallel_import_c.c
 /*
  The MIT License (MIT)
  Copyright (c) 2018-2025 HouSisong
@@ -43,6 +43,14 @@
 #   endif
 #endif
 
+#ifdef ANDROID
+#   include <android/log.h>
+#   define LOG_ERR(...) __android_log_print(ANDROID_LOG_ERROR, "hpatch", __VA_ARGS__)
+#else
+#   include <stdio.h>  //for stderr
+#   define LOG_ERR(...) fprintf(stderr,__VA_ARGS__)
+#endif
+
 typedef struct{
     TThreadRunCallBackProc  threadProc;
     int                     threadIndex;
@@ -50,23 +58,22 @@ typedef struct{
 } _TThreadData;
 
 #if ((defined _DEBUG) || (defined DEBUG))
-#   define _check_malloc(p) { if (!(p)) { printf("malloc error") return c_mt_NULL; } }
+#   define _check_malloc(p) { if (!(p)) { LOG_ERR("malloc error"); return c_mt_NULL; } }
 #else
 #   define _check_malloc(p) { if (!(p)) return c_mt_NULL; }
 #endif
 
+int _parallel_import_c_exit_on_error=0;
+#define _check_exit()   { if (_parallel_import_c_exit_on_error) exit(_parallel_import_c_exit_on_error); }
 
 #if (_IS_USED_PTHREAD)
 #include <string.h> //for memset
 #include <stdlib.h>
 #include <stdio.h>
 
-#if ((defined _DEBUG) || (defined DEBUG))
-static void _check_pthread(int rt,const char* func_name){
-                if (rt!=0) printf("pthread error: %s() return %d",func_name,rt); }
-#else
-#   define  _check_pthread(rt,func_name)    ((void)0)
-#endif
+#define _LOG_ERR_PT(rt,func_name)   { LOG_ERR("pthread error: %s() return %d",func_name,rt);}
+#define _check_pt_init(rt,func_name){ if (rt!=0) { _LOG_ERR_PT(rt,func_name); } }
+#define _check_pt(rt,func_name)     { if (rt!=0) { _LOG_ERR_PT(rt,func_name); _check_exit(); } }
 
 HLocker c_locker_new(void){
     pthread_mutex_t* self=(pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
@@ -74,7 +81,7 @@ HLocker c_locker_new(void){
     int rt=pthread_mutex_init(self,0);
     if (rt!=0){
         free(self);
-        _check_pthread(rt,"pthread_mutex_init");
+        _check_pt_init(rt,"pthread_mutex_init");
         return c_mt_NULL; //error
     }
     return  self;
@@ -85,21 +92,21 @@ c_mt_bool_t c_locker_delete(HLocker locker){
         pthread_mutex_t* self=(pthread_mutex_t*)locker;
         rt=pthread_mutex_destroy(self);
         free(self);
+        _check_pt(rt,"pthread_mutex_destroy");
     }
-    _check_pthread(rt,"pthread_mutex_destroy");
     return (rt==0);
 }
 
 c_mt_bool_t c_locker_enter(HLocker locker){
     pthread_mutex_t* self=(pthread_mutex_t*)locker;
     int rt=pthread_mutex_lock(self);
-    _check_pthread(rt,"pthread_mutex_lock");
+    _check_pt(rt,"pthread_mutex_lock");
     return (rt==0);
 }
 c_mt_bool_t c_locker_leave(HLocker locker){
     pthread_mutex_t* self=(pthread_mutex_t*)locker;
     int rt=pthread_mutex_unlock(self);
-    _check_pthread(rt,"pthread_mutex_unlock");
+    _check_pt(rt,"pthread_mutex_unlock");
     return (rt==0);
 }
 
@@ -109,7 +116,7 @@ HCondvar c_condvar_new(void){
     int rt=pthread_cond_init(self,0);
     if (rt!=0){
         free(self);
-        _check_pthread(rt,"pthread_cond_init");
+        _check_pt_init(rt,"pthread_cond_init");
         return c_mt_NULL; //error
     }
     return self;
@@ -120,26 +127,26 @@ c_mt_bool_t c_condvar_delete(HCondvar cond){
         pthread_cond_t* self=(pthread_cond_t*)cond;
         rt=pthread_cond_destroy(self);
         free(self);
+        _check_pt(rt,"pthread_cond_destroy");
     }
-    _check_pthread(rt,"pthread_cond_destroy");
     return (rt==0);
 }
-c_mt_bool_t c_condvar_wait(HCondvar cond,TLockerBox* lockerBox){
+c_mt_bool_t c_condvar_wait(HCondvar cond,HLocker locker){
     pthread_cond_t* self=(pthread_cond_t*)cond;
-    int rt=pthread_cond_wait(self,(pthread_mutex_t*)(lockerBox->locker));
-    _check_pthread(rt,"pthread_cond_wait");
+    int rt=pthread_cond_wait(self,(pthread_mutex_t*)locker);
+    _check_pt(rt,"pthread_cond_wait");
     return (rt==0);
 }
 c_mt_bool_t c_condvar_signal(HCondvar cond){
     pthread_cond_t* self=(pthread_cond_t*)cond;
     int rt=pthread_cond_signal(self);
-    _check_pthread(rt,"pthread_cond_signal");
+    _check_pt(rt,"pthread_cond_signal");
     return (rt==0);
 }
 c_mt_bool_t c_condvar_broadcast(HCondvar cond){
     pthread_cond_t* self=(pthread_cond_t*)cond;
     int rt=pthread_cond_broadcast(self);
-    _check_pthread(rt,"pthread_cond_broadcast");
+    _check_pt(rt,"pthread_cond_broadcast");
     return (rt==0);
 }
 
@@ -173,12 +180,12 @@ c_mt_bool_t c_thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,
             int rt=pthread_create(&t,0,_pt_threadProc,pt);
             if (rt!=0){
                 free(pt);
-                _check_pthread(rt,"pthread_create");
+                _check_pt_init(rt,"pthread_create");
                 return c_mt_bool_FALSE; //error
             }
             rt=pthread_detach(t);
             if (rt!=0){
-                _check_pthread(rt,"pthread_detach");
+                _check_pt(rt,"pthread_detach");
                 return c_mt_bool_FALSE; //error
             }
         }
@@ -193,12 +200,10 @@ c_mt_bool_t c_thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,
 #include <stdlib.h>
 #include <stdio.h>
 
-#if (defined(_DEBUG) || defined(DEBUG))
-static void _check_false(const char* func_name){
-                printf("win32 thread error: %s() return false",func_name); }
-#else
-#   define  _check_false(func_name)    ((void)0)
-#endif
+
+#define _LOG_ERR_WT(func_name)   { LOG_ERR("win32 thread error: %s() return false",func_name);}
+#define _check_wt_init(func_name){ _LOG_ERR_WT(func_name); }
+#define _check_wt(func_name)     { _LOG_ERR_WT(func_name); _check_exit(); }
 
 HLocker c_locker_new(void){
     CRITICAL_SECTION* self=(CRITICAL_SECTION*)malloc(sizeof(CRITICAL_SECTION));
@@ -239,10 +244,10 @@ c_mt_bool_t c_condvar_delete(HCondvar cond){
     }
     return c_mt_bool_TRUE;
 }
-c_mt_bool_t c_condvar_wait(HCondvar cond,TLockerBox* lockerBox){
+c_mt_bool_t c_condvar_wait(HCondvar cond,HLocker locker){
     CONDITION_VARIABLE* self=(CONDITION_VARIABLE*)cond;
-    BOOL rt=SleepConditionVariableCS(self,(CRITICAL_SECTION*)(lockerBox->locker),INFINITE);
-    if (!rt) _check_false("SleepConditionVariableCS");
+    BOOL rt=SleepConditionVariableCS(self,(CRITICAL_SECTION*)locker,INFINITE);
+    if (!rt) _check_wt("SleepConditionVariableCS");
     return (rt!=0);
 }
 c_mt_bool_t c_condvar_signal(HCondvar cond){
@@ -297,12 +302,12 @@ c_mt_bool_t c_thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,
             HANDLE rt=_thread_create(_win_threadProc,pt);
             if (rt==0){
                 free(pt);
-                _check_false("_thread_create");
+                _check_wt_init("_thread_create");
                 return c_mt_bool_FALSE; //error
             } else {
                 BOOL rtb=CloseHandle(rt);
                 if (!rtb){
-                    _check_false("CloseHandle");
+                    _check_wt("CloseHandle");
                     return c_mt_bool_FALSE; //error
                 }
             }
