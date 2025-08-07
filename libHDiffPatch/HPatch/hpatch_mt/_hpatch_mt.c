@@ -34,11 +34,9 @@ typedef struct hpatch_mt_t{
     size_t                      workBufSize;
     volatile hpatch_BOOL    isOnError;
     volatile hpatch_BOOL    isOnFinish;
-    volatile unsigned int   waitingThreads;
     volatile unsigned int   runningThreads;
     HLocker     _locker;
     HLocker     _runningLocker;
-    HCondvar    _waitCondvar;
     HCondvar    _runningCondvar;
 } hpatch_mt_t;
 
@@ -47,22 +45,17 @@ hpatch_BOOL _hpatch_mt_init(hpatch_mt_t* self) {
     memset(self,0,sizeof(*self));
     self->_locker=c_locker_new();
     self->_runningLocker=c_locker_new();
-    self->_waitCondvar=c_condvar_new();
     self->_runningCondvar=c_condvar_new();
-    return (self->_locker!=0)&(self->_runningLocker!=0)&(self->_waitCondvar!=0)&(self->_runningCondvar!=0);
+    return (self->_locker!=0)&(self->_runningLocker!=0)&(self->_runningCondvar!=0);
 }
 static void _hpatch_mt_free(hpatch_mt_t* self) {
     if (!self) return;
 #if (defined(_DEBUG) || defined(DEBUG))
-    if (self->_locker) c_locker_enter(self->_locker);
-    assert(self->waitingThreads==0);
-    if (self->_locker) c_locker_leave(self->_locker);
     if (self->_runningLocker) c_locker_enter(self->_runningLocker);
     assert(self->runningThreads==0);
     if (self->_runningLocker) c_locker_leave(self->_runningLocker); 
 #endif
     _thread_obj_free(c_condvar_delete,self->_runningCondvar);
-    _thread_obj_free(c_condvar_delete,self->_waitCondvar);
     _thread_obj_free(c_locker_delete,self->_runningLocker);
     _thread_obj_free(c_locker_delete,self->_locker);
 }
@@ -71,8 +64,6 @@ static void _hpatch_mt_setOnError(hpatch_mt_t* self) {
     if (!self->isOnError){
         self->isOnFinish=hpatch_TRUE;
         self->isOnError=hpatch_TRUE;
-        if (self->waitingThreads)
-            c_condvar_broadcast(self->_waitCondvar);
     }
 }
 
@@ -115,32 +106,6 @@ hpatch_TWorkBuf* hpatch_mt_popFreeWorkBuf_fast(struct hpatch_mt_t* self,size_t n
         }
     }
     return bufList;
-}
-
-hpatch_TWorkBuf* hpatch_mt_waitAFreeWorkBuf(hpatch_mt_t* self){
-    hpatch_TWorkBuf* workBuf=0;
-    c_locker_enter(self->_locker);
-    while (1){
-        if (self->isOnError)
-            break; //return NULL;
-        workBuf=TWorkBuf_popABuf(&self->freeBufList);
-        if (workBuf)
-            break; //got a free workBuf
-        //wait for a free workBuf
-        ++self->waitingThreads;
-        c_condvar_wait(self->_waitCondvar,self->_locker);
-        --self->waitingThreads;
-    }
-    c_locker_leave(self->_locker);
-    return workBuf;
-}
-
-void hpatch_mt_pushAFreeWorkBuf(hpatch_mt_t* self,hpatch_TWorkBuf* workBuf){
-    c_locker_enter(self->_locker);
-    TWorkBuf_pushABufAtHead(&self->freeBufList,workBuf);
-    if (self->waitingThreads)
-        c_condvar_signal(self->_waitCondvar); //notify a waiting thread
-    c_locker_leave(self->_locker);
 }
 
 hpatch_BOOL hpatch_mt_beforeThreadBegin(hpatch_mt_t* self){

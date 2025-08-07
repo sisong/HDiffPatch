@@ -93,6 +93,7 @@ static void _hcache_old_mt_free(hcache_old_mt_t* self){
     assert(!self->threadIsRunning);
     if (self->_locker) c_locker_leave(self->_locker);
 #endif
+    self->base.streamImport=0;
     _thread_obj_free(c_condvar_delete,self->_waitCondvar);
     _thread_obj_free(c_locker_delete,self->_locker);
 }
@@ -266,6 +267,7 @@ static hpatch_BOOL _hcache_old_mt_read(const struct hpatch_TStreamInput* stream,
             self->curDataBuf=TWorkBuf_popABuf(&self->dataBufList);
             if (self->curDataBuf==0)
                 c_condvar_wait(self->_waitCondvar,self->_locker);
+            result=(!self->isOnError);
             c_locker_leave(self->_locker);
         }
     }
@@ -308,17 +310,17 @@ _on_error:
     return 0;
 }
 
-hpatch_BOOL hcache_old_mt_close(const hpatch_TStreamInput* hcache_old_mt_stream){
+hpatch_BOOL hcache_old_mt_close(hpatch_TStreamInput* hcache_old_mt_stream){
     hpatch_BOOL result;
     hcache_old_mt_t* self=0;
     if (!hcache_old_mt_stream) return hpatch_TRUE;
     self=(hcache_old_mt_t*)hcache_old_mt_stream->streamImport;
     if (!self) return hpatch_TRUE;
+    hcache_old_mt_stream->streamImport=0;
 
     result=(!self->isOnError)&(self->curDataBuf==0)&(self->covers_cache==0)
             &((self->leaveCoverCount==0)|(self->leaveCoverCount==~(hpatch_StreamPos_t)0));
     _hcache_old_mt_free(self);
-    ((hpatch_TStreamInput*)hcache_old_mt_stream)->streamImport=0;
     return result;
 }
 

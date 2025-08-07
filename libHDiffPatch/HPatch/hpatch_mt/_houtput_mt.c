@@ -30,25 +30,41 @@
 #if (_IS_USED_MULTITHREAD)
 
 typedef struct houtput_mt_t{
-    struct hpatch_mt_t*         h_mt;
+    hpatch_TStreamOutput        base;
     const hpatch_TStreamOutput* base_stream;
+    struct hpatch_mt_t*         h_mt;
+    size_t                      workBufSize;
+    hpatch_TWorkBuf*            curDataBuf;
     volatile hpatch_StreamPos_t curWritePos;
+    volatile hpatch_TWorkBuf*   freeBufList;
     volatile hpatch_TWorkBuf*   dataBufList;
     volatile hpatch_BOOL        isOnError;
 #if (defined(_DEBUG) || defined(DEBUG))
+    hpatch_StreamPos_t          curOutedPos;
     volatile hpatch_BOOL        threadIsRunning;
 #endif
     HLocker     _locker;
     HCondvar    _waitCondvar;
 } houtput_mt_t;
 
+    static hpatch_BOOL houtput_mt_write_(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                        const unsigned char* data,const unsigned char* data_end);
+
 hpatch_inline static
-hpatch_BOOL _houtput_mt_init(houtput_mt_t* self,struct hpatch_mt_t* h_mt,
+hpatch_BOOL _houtput_mt_init(houtput_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,
                              const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos){
     memset(self,0,sizeof(*self));
+    assert(freeBufList);
+    self->base.streamImport=self;
+    self->base.streamSize=base_stream->streamSize;
+    self->base.write=houtput_mt_write_;
     self->h_mt=h_mt;
     self->base_stream=base_stream;
     self->curWritePos=curWritePos;
+    self->freeBufList=freeBufList;
+#if (defined(_DEBUG) || defined(DEBUG))
+    self->curOutedPos=curWritePos;
+#endif
     
     self->_locker=c_locker_new();
     self->_waitCondvar=c_condvar_new();
@@ -61,6 +77,7 @@ static void _houtput_mt_free(houtput_mt_t* self){
     assert(!self->threadIsRunning);
     if (self->_locker) c_locker_leave(self->_locker);
 #endif
+    self->base.streamImport=0;
     _thread_obj_free(c_condvar_delete,self->_waitCondvar);
     _thread_obj_free(c_locker_delete,self->_locker);
 }
@@ -78,7 +95,8 @@ static void houtput_mt_setOnError_(houtput_mt_t* self) {
         hpatch_mt_setOnError(self->h_mt);
 }
 
-static hpatch_BOOL _houtput_mt_writeAData(houtput_mt_t* self,hpatch_TWorkBuf* data){
+hpatch_force_inline static
+hpatch_BOOL _houtput_mt_writeAData(houtput_mt_t* self,hpatch_TWorkBuf* data){
     hpatch_StreamPos_t writePos=self->curWritePos;
     self->curWritePos+=data->data_size;
     return self->base_stream->write(self->base_stream,writePos,TWorkBuf_data(data),TWorkBuf_data_end(data));
@@ -86,7 +104,7 @@ static hpatch_BOOL _houtput_mt_writeAData(houtput_mt_t* self,hpatch_TWorkBuf* da
 
 static void houtput_thread_(int threadIndex,void* workData){
     houtput_mt_t* self=(houtput_mt_t*)workData;
-    while ((!hpatch_mt_isOnError(self->h_mt))&(self->curWritePos<self->base_stream->streamSize)){
+    while ((!hpatch_mt_isOnError(self->h_mt))&(self->curWritePos<self->base.streamSize)){
         hpatch_TWorkBuf* datas=0;
         hpatch_BOOL _isOnError;
         c_locker_enter(self->_locker);
@@ -100,10 +118,14 @@ static void houtput_thread_(int threadIndex,void* workData){
         
         while (datas){
             if (_houtput_mt_writeAData(self,datas)){
-                hpatch_mt_pushAFreeWorkBuf(self->h_mt,datas);
+                c_locker_enter(self->_locker);
+                TWorkBuf_pushABufAtHead(&self->freeBufList,datas);
+                c_condvar_signal(self->_waitCondvar);
+                c_locker_leave(self->_locker);
                 datas=datas->next;
             }else{
                 houtput_mt_setOnError_(self);
+                _isOnError=hpatch_TRUE;
                 break;
             }
         }
@@ -118,15 +140,55 @@ static void houtput_thread_(int threadIndex,void* workData){
 #endif
 }
 
+static hpatch_BOOL houtput_mt_write_(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                     const unsigned char* data,const unsigned char* data_end){
+    houtput_mt_t* self=(houtput_mt_t*)stream->streamImport;
+    hpatch_BOOL result=hpatch_TRUE;
+    const hpatch_BOOL isNeedFlush=(writeToPos+(size_t)(data_end-data)==self->base.streamSize);
+#if (defined(_DEBUG) || defined(DEBUG))
+    assert(self->curOutedPos==writeToPos);
+    self->curOutedPos+=(data_end-data);
+    assert(self->curOutedPos<=self->base.streamSize);
+#endif
+    if (writeToPos+(size_t)(data_end-data)>self->base.streamSize) return hpatch_FALSE;
+    while (result&(data<data_end)){
+        if (self->curDataBuf){
+            size_t writeLen=self->workBufSize-self->curDataBuf->data_size;
+            writeLen=(writeLen<(size_t)(data_end-data))?writeLen:(size_t)(data_end-data);
+            memcpy(TWorkBuf_data_end(self->curDataBuf),data,writeLen);
+            self->curDataBuf->data_size+=writeLen;
+            data+=writeLen;
+            if ((self->workBufSize==self->curDataBuf->data_size)|((data==data_end)&isNeedFlush)){
+                c_locker_enter(self->_locker);
+                TWorkBuf_pushABufAtEnd(&self->dataBufList,self->curDataBuf);
+                c_condvar_signal(self->_waitCondvar);
+                result=(!self->isOnError);
+                c_locker_leave(self->_locker);
+                self->curDataBuf=0;
+            }
+        }else{
+            c_locker_enter(self->_locker);
+            self->curDataBuf=TWorkBuf_popABuf(&self->freeBufList);
+            if (self->curDataBuf==0)
+                c_condvar_wait(self->_waitCondvar,self->_locker);
+            else
+                self->curDataBuf->data_size=0;
+            result=(!self->isOnError);
+            c_locker_leave(self->_locker);
+        }
+    }
+    return result;
+}
+
 size_t houtput_mt_t_memSize(){
     return sizeof(houtput_mt_t);
 }
 
-houtput_mt_t* houtput_mt_open(houtput_mt_t* pmem,size_t memSize,struct hpatch_mt_t* h_mt,
-                              const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos){
+hpatch_TStreamOutput* houtput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
+                                      const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos){
     houtput_mt_t* self=pmem;
     if (memSize<houtput_mt_t_memSize()) return 0;
-    if (!_houtput_mt_init(self,h_mt,base_stream,curWritePos))
+    if (!_houtput_mt_init(self,h_mt,freeBufList,base_stream,curWritePos))
         goto _on_error;
 
     //start a thread to write
@@ -143,28 +205,22 @@ houtput_mt_t* houtput_mt_open(houtput_mt_t* pmem,size_t memSize,struct hpatch_mt
         goto _on_error;
     }
 
-    return self;
+    return &self->base;
 
 _on_error:
     _houtput_mt_free(self);
     return 0;
 }
 
-hpatch_BOOL houtput_mt_write(houtput_mt_t* self,hpatch_TWorkBuf* data){
+hpatch_BOOL houtput_mt_close(hpatch_TStreamOutput* houtput_mt_stream){
     hpatch_BOOL result;
-    c_locker_enter(self->_locker);
-    TWorkBuf_pushABufAtEnd(&self->dataBufList,data);
-    c_condvar_signal(self->_waitCondvar);
-    result=(!self->isOnError);
-    c_locker_leave(self->_locker);
-    return result;
-}
-hpatch_BOOL houtput_mt_close(houtput_mt_t* self){
-    hpatch_BOOL result;
+    houtput_mt_t* self=0;
+    if (!houtput_mt_stream) return hpatch_TRUE;
+    self=(houtput_mt_t*)houtput_mt_stream->streamImport;
     if (!self) return hpatch_TRUE;
+    houtput_mt_stream->streamImport=0;
 
-    //must call hpatch_mt_waitAllThreadEnd(h_mt,) befor houtput_mt_close
-    result=(!self->isOnError)&(self->curWritePos==self->base_stream->streamSize);
+    result=(!self->isOnError)&(self->curWritePos==self->base.streamSize);
     _houtput_mt_free(self);
     return result;
 }

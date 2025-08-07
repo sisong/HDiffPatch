@@ -40,12 +40,12 @@ size_t               hinput_mt_t_memSize();
 hpatch_TStreamInput* hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
                                     const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos);
 
-// same as hinput_mt_open, but decompress data when read from base_stream
+// same as hinput_mt_open, but auto decompress data when read from base_stream
 hpatch_TStreamInput* hinput_dec_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
                                         const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos,
                                         hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressedSize);
 
-hpatch_BOOL          hinput_mt_close(const hpatch_TStreamInput* hinput_mt_stream);
+hpatch_BOOL          hinput_mt_close(hpatch_TStreamInput* hinput_mt_stream);
 
 #endif //_IS_USED_MULTITHREAD
 #ifdef __cplusplus

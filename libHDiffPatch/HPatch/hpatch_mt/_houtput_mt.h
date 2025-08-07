@@ -33,18 +33,14 @@ extern "C" {
 #endif
 #if (_IS_USED_MULTITHREAD)
 
-struct houtput_mt_t;
+size_t                houtput_mt_t_memSize();
 
-size_t               houtput_mt_t_memSize();
-
-// create a new houtput_mt_t* wrapper base_stream;
+// create a new hpatch_TStreamOutput* wrapper base_stream;
 //   start a thread to write data to base_stream
-struct houtput_mt_t* houtput_mt_open(struct houtput_mt_t* pmem,size_t memSize,struct hpatch_mt_t* h_mt,
-                                     const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos);
-// write data to base_stream
-hpatch_BOOL          houtput_mt_write(struct houtput_mt_t* self,struct hpatch_TWorkBuf* data);
-// wait write data thread end and free self
-hpatch_BOOL          houtput_mt_close(struct houtput_mt_t* self);
+hpatch_TStreamOutput* houtput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
+                                      const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos);
+
+hpatch_BOOL           houtput_mt_close(hpatch_TStreamOutput* houtput_mt_stream);
 
 #endif //_IS_USED_MULTITHREAD
 #ifdef __cplusplus

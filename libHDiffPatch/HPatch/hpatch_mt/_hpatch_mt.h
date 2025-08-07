@@ -42,8 +42,6 @@ struct hpatch_TWorkBuf;
 struct hpatch_mt_t*     hpatch_mt_open(size_t workBufCount,hpatch_byte* temp_cache,hpatch_byte* temp_cache_end);
 size_t                  hpatch_mt_workBufSize(const struct hpatch_mt_t* self);
 struct hpatch_TWorkBuf* hpatch_mt_popFreeWorkBuf_fast(struct hpatch_mt_t* self,size_t needBufCount);//fast no locker & no wait
-struct hpatch_TWorkBuf* hpatch_mt_waitAFreeWorkBuf(struct hpatch_mt_t* self); //thread safe & wait;
-void                    hpatch_mt_pushAFreeWorkBuf(struct hpatch_mt_t* self,struct hpatch_TWorkBuf* workBuf);
 hpatch_BOOL             hpatch_mt_beforeThreadBegin(struct hpatch_mt_t* self); //a threna 
 void                    hpatch_mt_onThreadEnd(struct hpatch_mt_t* self); //a thread exit
 void                    hpatch_mt_setOnError(struct hpatch_mt_t* self); //set thread got a error

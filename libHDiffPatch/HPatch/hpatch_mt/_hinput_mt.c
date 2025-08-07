@@ -87,6 +87,7 @@ static void _hinput_mt_free(hinput_mt_t* self){
     assert(!self->threadIsRunning);
     if (self->_locker) c_locker_leave(self->_locker);
 #endif
+    self->base.streamImport=0;
     if (self->decompressHandle) { self->decompressPlugin->close(self->decompressPlugin,self->decompressHandle); self->decompressHandle=0; }
     _thread_obj_free(c_condvar_delete,self->_waitCondvar);
     _thread_obj_free(c_locker_delete,self->_locker);
@@ -160,7 +161,9 @@ static hpatch_BOOL hinput_mt_read_(const hpatch_TStreamInput* stream,hpatch_Stre
 #if (defined(_DEBUG) || defined(DEBUG))
     assert(self->curOutedPos==readFromPos);
     self->curOutedPos+=(out_data_end-out_data);
+    assert(self->curOutedPos<=self->base.streamSize);
 #endif
+    if (readFromPos+(size_t)(out_data_end-out_data)>self->base.streamSize) return hpatch_FALSE;
     while (result&(out_data<out_data_end)){
         if (self->curDataBuf){
             size_t readLen=self->curDataBuf->data_size-self->curDataBuf_pos;
@@ -181,6 +184,7 @@ static hpatch_BOOL hinput_mt_read_(const hpatch_TStreamInput* stream,hpatch_Stre
             self->curDataBuf=TWorkBuf_popABuf(&self->dataBufList);
             if (self->curDataBuf==0)
                 c_condvar_wait(self->_waitCondvar,self->_locker);
+            result=(!self->isOnError);
             c_locker_leave(self->_locker);
         }
     }
@@ -224,16 +228,16 @@ hpatch_TStreamInput* hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t
     return hinput_dec_mt_open(pmem,memSize,h_mt,freeBufList,base_stream,curReadPos,endReadPos,0,0);
 }
 
-hpatch_BOOL hinput_mt_close(const hpatch_TStreamInput* hinput_mt_stream){
+hpatch_BOOL hinput_mt_close(hpatch_TStreamInput* hinput_mt_stream){
     hpatch_BOOL result;
     hinput_mt_t* self=0;
     if (!hinput_mt_stream) return hpatch_TRUE;
     self=(hinput_mt_t*)hinput_mt_stream->streamImport;
     if (!self) return hpatch_TRUE;
+    hinput_mt_stream->streamImport=0;
 
     result=(!self->isOnError)&(self->curReadPos==self->base.streamSize);
     _hinput_mt_free(self);
-    ((hpatch_TStreamInput*)hinput_mt_stream)->streamImport=0;
     return result;
 }
 
