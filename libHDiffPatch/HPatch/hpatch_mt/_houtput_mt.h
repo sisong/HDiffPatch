@@ -1,4 +1,4 @@
-//  hinput_mt.h
+//  houtput_mt.h
 //  hpatch
 /*
  The MIT License (MIT)
@@ -25,25 +25,29 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
 */
-#ifndef hinput_mt_h
-#define hinput_mt_h
-#include "hpatch_mt.h"
+#ifndef _houtput_mt_h
+#define _houtput_mt_h
+#include "_hpatch_mt.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 #if (_IS_USED_MULTITHREAD)
 
-size_t                  hinput_mt_t_memSize();
+struct houtput_mt_t;
 
-// create a new hpatch_TStreamInput* wrapper base_stream;
-//   start a thread to read data from base_stream
-hpatch_TStreamInput*    hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
-                                       const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos);
+size_t               houtput_mt_t_memSize();
 
-hpatch_BOOL             hinput_mt_close(const hpatch_TStreamInput* hinput_mt_stream);
+// create a new houtput_mt_t* wrapper base_stream;
+//   start a thread to write data to base_stream
+struct houtput_mt_t* houtput_mt_open(struct houtput_mt_t* pmem,size_t memSize,struct hpatch_mt_t* h_mt,
+                                     const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos);
+// write data to base_stream
+hpatch_BOOL          houtput_mt_write(struct houtput_mt_t* self,struct hpatch_TWorkBuf* data);
+// wait write data thread end and free self
+hpatch_BOOL          houtput_mt_close(struct houtput_mt_t* self);
 
 #endif
 #ifdef __cplusplus
 }
 #endif
-#endif //hinput_mt_h
+#endif //_houtput_mt_h

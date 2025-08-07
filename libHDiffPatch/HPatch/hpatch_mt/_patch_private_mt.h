@@ -25,9 +25,9 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
 */
-#ifndef patch_private_mt_h
-#define patch_private_mt_h
-#include "hpatch_mt.h"
+#ifndef _patch_private_mt_h
+#define _patch_private_mt_h
+#include "_hpatch_mt.h"
 #include "../../../libParallel/parallel_import_c.h"
 #ifdef __cplusplus
 extern "C" {
@@ -78,4 +78,4 @@ hpatch_TWorkBuf* TWorkBuf_popAllBufs(hpatch_TWorkBuf** pnode){
 #ifdef __cplusplus
 }
 #endif
-#endif //patch_private_mt_h
+#endif //_patch_private_mt_h

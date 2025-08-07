@@ -25,8 +25,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
 */
-#ifndef hpatch_mt_h
-#define hpatch_mt_h
+#ifndef _hpatch_mt_h
+#define _hpatch_mt_h
 #include "../patch_types.h"
 #ifdef __cplusplus
 extern "C" {
@@ -56,4 +56,4 @@ void                    hpatch_mt_close(struct hpatch_mt_t* self,hpatch_BOOL isO
 #ifdef __cplusplus
 }
 #endif
-#endif //hpatch_mt_h
+#endif //_hpatch_mt_h

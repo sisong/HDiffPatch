@@ -1,4 +1,4 @@
-//  hcache_old_mt.cpp
+//  _hcache_old_mt.c
 //  hpatch
 /*
  The MIT License (MIT)
@@ -25,8 +25,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
 */
-#include "hcache_old_mt.h"
-#include "patch_private_mt.h"
+#include "_hcache_old_mt.h"
+#include "_patch_private_mt.h"
 #if (_IS_USED_MULTITHREAD)
 
 typedef struct hcache_old_mt_t{
@@ -113,7 +113,7 @@ static void hcache_old_mt_setOnError_(hcache_old_mt_t* self) {
 
     static hpatch_BOOL _read_data(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                                   hpatch_TWorkBuf* wbuf,size_t read_len){
-        unsigned char* out_data=hpatch_TWorkBuf_data_end(wbuf);
+        unsigned char* out_data=TWorkBuf_data_end(wbuf);
         return stream->read(stream,readFromPos,out_data,out_data+read_len);
     }
 
@@ -125,15 +125,15 @@ static void hcache_old_mt_setOnError_(hcache_old_mt_t* self) {
 
 static void hcache_old_thread_(int threadIndex,void* workData){
     hcache_old_mt_t* self=(hcache_old_mt_t*)workData;
-    while (!hpatch_mt_isFinished(self->h_mt)){//covers_cache loop
+    while (!hpatch_mt_isOnFinish(self->h_mt)){//covers_cache loop
         unsigned char* covers_cache=0;
         unsigned char* covers_cacheEnd=0;
         hpatch_BOOL _isOnError;
         hpatch_BOOL _isGot_covers_cache=hpatch_FALSE;
         c_locker_enter(self->_locker);
         if (!self->isOnError){
-            covers_cache=self->covers_cache;
-            covers_cacheEnd=self->covers_cacheEnd;
+            covers_cache=(unsigned char*)self->covers_cache;
+            covers_cacheEnd=(unsigned char*)self->covers_cacheEnd;
             _isGot_covers_cache=(covers_cache!=0)|(self->leaveCoverCount==0);
             if (!_isGot_covers_cache){
                 c_condvar_wait(self->_waitCondvar,self->_locker);

@@ -1,4 +1,4 @@
-//  hcache_old_mt.h
+//  hinput_mt.h
 //  hpatch
 /*
  The MIT License (MIT)
@@ -25,25 +25,25 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
 */
-#ifndef hcache_old_mt_h
-#define hcache_old_mt_h
-#include "hpatch_mt.h"
+#ifndef _hinput_mt_h
+#define _hinput_mt_h
+#include "_hpatch_mt.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 #if (_IS_USED_MULTITHREAD)
 
-size_t               hcache_old_mt_t_size();
+size_t                  hinput_mt_t_memSize();
 
-// create a new hpatch_TStreamInput* wrapper old_stream;
-//   start a thread to read data from old_stream
-hpatch_TStreamInput* hcache_old_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
-                                        const hpatch_TStreamInput* old_stream,sspatch_coversListener_t** out_coversListener,
-                                        sspatch_coversListener_t* nextCoverlistener);
-hpatch_BOOL          hcache_old_mt_close(const hpatch_TStreamInput* hcache_old_mt_stream);
+// create a new hpatch_TStreamInput* wrapper base_stream;
+//   start a thread to read data from base_stream
+hpatch_TStreamInput*    hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
+                                       const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos);
+
+hpatch_BOOL             hinput_mt_close(const hpatch_TStreamInput* hinput_mt_stream);
 
 #endif
 #ifdef __cplusplus
 }
 #endif
-#endif //hcache_old_mt_h
+#endif //_hinput_mt_h

@@ -311,10 +311,10 @@
     <ClCompile Include="..\..\file_for_patch.c" />
     <ClCompile Include="..\..\hpatchz.c" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\limit_mem_diff\adler_roll.c" />
-    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\hcache_old_mt.c" />
-    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\hinput_mt.c" />
-    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\houtput_mt.c" />
-    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\hpatch_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_hcache_old_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_hinput_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_houtput_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_hpatch_mt.c" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
     <ClCompile Include="..\..\libParallel\parallel_import_c.c" />
     <ClCompile Include="..\..\vcdiff_wrapper\vcpatch_wrapper.c" />

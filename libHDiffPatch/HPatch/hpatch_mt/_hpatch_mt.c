@@ -1,4 +1,4 @@
-//  hpatch_mt.c
+//  _hpatch_mt.c
 //  hpatch
 /*
  The MIT License (MIT)
@@ -25,8 +25,8 @@
  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  OTHER DEALINGS IN THE SOFTWARE.
 */
-#include "hpatch_mt.h"
-#include "patch_private_mt.h"
+#include "_hpatch_mt.h"
+#include "_patch_private_mt.h"
 #if (_IS_USED_MULTITHREAD)
 
 typedef struct hpatch_mt_t{
