@@ -328,9 +328,9 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
 
     typedef struct sspatch_coversListener_t{
         void*         import;
-        void        (*onStepCoversReset)(struct sspatch_coversListener_t* listener,hpatch_StreamPos_t leaveCoverCount);//can NULL, data(in covers_cache) will invalid
+        void        (*onStepCoversReset)(struct sspatch_coversListener_t* listener,hpatch_StreamPos_t leaveCoverCount);//can NULL, data(in covers_cache) will invalid; if leaveCoverCount==0, step finish 
         void        (*onStepCovers)(struct sspatch_coversListener_t* listener,
-                                    const unsigned char* covers_cache,const unsigned char* covers_cacheEnd);
+                                    const unsigned char* covers_cache,const unsigned char* covers_cacheEnd);//if covers_cache==covers_cacheEnd==0, step finish
     } sspatch_coversListener_t;
     
     typedef struct{

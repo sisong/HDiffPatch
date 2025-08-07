@@ -46,8 +46,8 @@ hpatch_inline static
 hpatch_BOOL _houtput_mt_init(houtput_mt_t* self,struct hpatch_mt_t* h_mt,
                              const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos){
     memset(self,0,sizeof(*self));
-    self->base_stream=base_stream;
     self->h_mt=h_mt;
+    self->base_stream=base_stream;
     self->curWritePos=curWritePos;
     
     self->_locker=c_locker_new();
@@ -57,12 +57,12 @@ hpatch_BOOL _houtput_mt_init(houtput_mt_t* self,struct hpatch_mt_t* h_mt,
 static void _houtput_mt_free(houtput_mt_t* self){
     if (self==0) return;
 #if (defined(_DEBUG) || defined(DEBUG))
-    c_locker_enter(self->_locker);
+    if (self->_locker) c_locker_enter(self->_locker);
     assert(!self->threadIsRunning);
-    c_locker_leave(self->_locker);
+    if (self->_locker) c_locker_leave(self->_locker);
 #endif
-    if (self->_waitCondvar) c_condvar_delete(self->_waitCondvar);
-    if (self->_locker) c_locker_delete(self->_locker);
+    _thread_obj_free(c_condvar_delete,self->_waitCondvar);
+    _thread_obj_free(c_locker_delete,self->_locker);
 }
 
 static void houtput_mt_setOnError_(houtput_mt_t* self) {
@@ -82,10 +82,6 @@ static hpatch_BOOL _houtput_mt_writeAData(houtput_mt_t* self,hpatch_TWorkBuf* da
     hpatch_StreamPos_t writePos=self->curWritePos;
     self->curWritePos+=data->data_size;
     return self->base_stream->write(self->base_stream,writePos,TWorkBuf_data(data),TWorkBuf_data_end(data));
-}
-
-size_t houtput_mt_t_memSize(){
-    return sizeof(houtput_mt_t);
 }
 
 static void houtput_thread_(int threadIndex,void* workData){
@@ -122,10 +118,14 @@ static void houtput_thread_(int threadIndex,void* workData){
 #endif
 }
 
+size_t houtput_mt_t_memSize(){
+    return sizeof(houtput_mt_t);
+}
+
 houtput_mt_t* houtput_mt_open(houtput_mt_t* pmem,size_t memSize,struct hpatch_mt_t* h_mt,
                               const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos){
-    if (memSize<houtput_mt_t_memSize()) return 0;
     houtput_mt_t* self=pmem;
+    if (memSize<houtput_mt_t_memSize()) return 0;
     if (!_houtput_mt_init(self,h_mt,base_stream,curWritePos))
         goto _on_error;
 

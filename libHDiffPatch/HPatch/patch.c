@@ -2269,6 +2269,11 @@ hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,
             }
         }
     }
+    if (coversListener){
+        if (coversListener->onStepCoversReset)
+            coversListener->onStepCoversReset(coversListener,0);
+        coversListener->onStepCovers(coversListener,0,0);
+    }
     
     if (!_TOutStreamCache_flush(&outCache))
         return _hpatch_FALSE;

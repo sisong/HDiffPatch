@@ -33,7 +33,7 @@ typedef struct hpatch_mt_t{
     volatile hpatch_TWorkBuf*   freeBufList;
     size_t                      workBufSize;
     volatile hpatch_BOOL    isOnError;
-    volatile hpatch_BOOL    isInFinish;
+    volatile hpatch_BOOL    isOnFinish;
     volatile unsigned int   waitingThreads;
     volatile unsigned int   runningThreads;
     HLocker     _locker;
@@ -53,14 +53,23 @@ hpatch_BOOL _hpatch_mt_init(hpatch_mt_t* self) {
 }
 static void _hpatch_mt_free(hpatch_mt_t* self) {
     if (!self) return;
-    if (self->_runningCondvar) c_condvar_delete(self->_runningCondvar);
-    if (self->_waitCondvar) c_condvar_delete(self->_waitCondvar);
-    if (self->_runningLocker) c_locker_delete(self->_runningLocker);
-    if (self->_locker) c_locker_delete(self->_locker);
+#if (defined(_DEBUG) || defined(DEBUG))
+    if (self->_locker) c_locker_enter(self->_locker);
+    assert(self->waitingThreads==0);
+    if (self->_locker) c_locker_leave(self->_locker);
+    if (self->_runningLocker) c_locker_enter(self->_runningLocker);
+    assert(self->runningThreads==0);
+    if (self->_runningLocker) c_locker_leave(self->_runningLocker); 
+#endif
+    _thread_obj_free(c_condvar_delete,self->_runningCondvar);
+    _thread_obj_free(c_condvar_delete,self->_waitCondvar);
+    _thread_obj_free(c_locker_delete,self->_runningLocker);
+    _thread_obj_free(c_locker_delete,self->_locker);
 }
 
 static void _hpatch_mt_setOnError(hpatch_mt_t* self) {
     if (!self->isOnError){
+        self->isOnFinish=hpatch_TRUE;
         self->isOnError=hpatch_TRUE;
         if (self->waitingThreads)
             c_condvar_broadcast(self->_waitCondvar);
@@ -160,10 +169,10 @@ void hpatch_mt_onThreadEnd(hpatch_mt_t* self){
     }
 }
 
-hpatch_BOOL hpatch_mt_isInFinish(hpatch_mt_t* self){
+hpatch_BOOL hpatch_mt_isOnFinish(hpatch_mt_t* self){
     hpatch_BOOL result;
     c_locker_enter(self->_locker);
-    result=self->isInFinish;
+    result=self->isOnFinish;
     c_locker_leave(self->_locker);
     return result;
 }
@@ -183,7 +192,7 @@ void hpatch_mt_setOnError(struct hpatch_mt_t* self){
 
 void hpatch_mt_waitAllThreadEnd(hpatch_mt_t* self,hpatch_BOOL isOnError){
     c_locker_enter(self->_locker);
-    self->isInFinish=hpatch_TRUE;
+    self->isOnFinish=hpatch_TRUE;
     if (isOnError) _hpatch_mt_setOnError(self);
     c_locker_leave(self->_locker);
 
@@ -192,12 +201,6 @@ void hpatch_mt_waitAllThreadEnd(hpatch_mt_t* self,hpatch_BOOL isOnError){
         c_condvar_wait(self->_runningCondvar,self->_runningLocker);
     }
     c_locker_leave(self->_runningLocker);
-    
-#if (defined(_DEBUG) || defined(DEBUG))
-    c_locker_enter(self->_locker);
-    assert(self->waitingThreads==0);
-    c_locker_leave(self->_locker);
-#endif
 }
 void hpatch_mt_close(hpatch_mt_t* self,hpatch_BOOL isOnError){
     if (!self) return;

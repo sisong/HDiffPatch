@@ -62,6 +62,7 @@ hpatch_BOOL _hinput_mt_init(hinput_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_TW
     self->base.streamSize=base_stream->streamSize;
     self->base.read=hinput_mt_read_;
     self->h_mt=h_mt;
+    self->base_stream=base_stream;
     self->freeBufList=freeBufList;
     self->workBufSize=hpatch_mt_workBufSize(h_mt);
     self->curReadPos=curReadPos;
@@ -77,12 +78,12 @@ hpatch_BOOL _hinput_mt_init(hinput_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_TW
 static void _hinput_mt_free(hinput_mt_t* self){
     if (self==0) return;
 #if (defined(_DEBUG) || defined(DEBUG))
-    c_locker_enter(self->_locker);
+    if (self->_locker) c_locker_enter(self->_locker);
     assert(!self->threadIsRunning);
-    c_locker_leave(self->_locker);
+    if (self->_locker) c_locker_leave(self->_locker);
 #endif
-    if (self->_waitCondvar) c_condvar_delete(self->_waitCondvar);
-    if (self->_locker) c_locker_delete(self->_locker);
+    _thread_obj_free(c_condvar_delete,self->_waitCondvar);
+    _thread_obj_free(c_locker_delete,self->_locker);
 }
 
 static void hinput_mt_setOnError_(hinput_mt_t* self) {
@@ -108,10 +109,9 @@ static hpatch_BOOL _hinput_mt_readAData(hinput_mt_t* self,hpatch_TWorkBuf* data)
     return self->base_stream->read(self->base_stream,readPos,TWorkBuf_data(data),TWorkBuf_data_end(data));
 }
 
-
 static void hinput_thread_(int threadIndex,void* workData){
     hinput_mt_t* self=(hinput_mt_t*)workData;
-    while ((!hpatch_mt_isOnError(self->h_mt))&&(self->curReadPos<self->endReadPos)){
+    while ((!hpatch_mt_isOnFinish(self->h_mt))&&(self->curReadPos<self->endReadPos)){
         hpatch_TWorkBuf* wbuf=0;
         hpatch_BOOL _isOnError;
         c_locker_enter(self->_locker);
@@ -184,8 +184,8 @@ size_t hinput_mt_t_memSize(){
 
 hpatch_TStreamInput* hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,
                                     const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos){
-    if (memSize<hinput_mt_t_memSize()) return 0;
     hinput_mt_t* self=(hinput_mt_t*)pmem;
+    if (memSize<hinput_mt_t_memSize()) return 0;
     if (!_hinput_mt_init(self,h_mt,freeBufList,base_stream,curReadPos,endReadPos))
         goto _on_error;
 

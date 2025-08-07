@@ -49,7 +49,7 @@ void                    hpatch_mt_onThreadEnd(struct hpatch_mt_t* self); //a thr
 void                    hpatch_mt_setOnError(struct hpatch_mt_t* self); //set thread got a error
 hpatch_BOOL             hpatch_mt_isOnError(struct hpatch_mt_t* self);
 void                    hpatch_mt_waitAllThreadEnd(struct hpatch_mt_t* self,hpatch_BOOL isOnError);
-hpatch_BOOL             hpatch_mt_isInFinish(struct hpatch_mt_t* self);  //in wait all thread finish
+hpatch_BOOL             hpatch_mt_isOnFinish(struct hpatch_mt_t* self);  //in wait all thread finish
 void                    hpatch_mt_close(struct hpatch_mt_t* self,hpatch_BOOL isOnError); //finish & wait all threads end & free self
 
 #endif

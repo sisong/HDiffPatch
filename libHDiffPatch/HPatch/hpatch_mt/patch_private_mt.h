@@ -34,6 +34,8 @@ extern "C" {
 #endif
 #if (_IS_USED_MULTITHREAD)
 
+#define _thread_obj_free(feee_fn,th_obj) { if (th_obj) { feee_fn(th_obj); th_obj=0; } }
+
 typedef struct hpatch_TWorkBuf{
     struct hpatch_TWorkBuf* next;
     size_t                  data_size;
