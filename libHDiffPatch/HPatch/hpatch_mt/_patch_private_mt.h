@@ -74,7 +74,7 @@ hpatch_TWorkBuf* TWorkBuf_popAllBufs(hpatch_TWorkBuf** pnode){
     return result;
 }
 
-#endif
+#endif //_IS_USED_MULTITHREAD
 #ifdef __cplusplus
 }
 #endif

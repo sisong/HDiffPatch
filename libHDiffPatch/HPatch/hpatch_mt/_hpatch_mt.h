@@ -52,7 +52,7 @@ void                    hpatch_mt_waitAllThreadEnd(struct hpatch_mt_t* self,hpat
 hpatch_BOOL             hpatch_mt_isOnFinish(struct hpatch_mt_t* self);  //in wait all thread finish
 void                    hpatch_mt_close(struct hpatch_mt_t* self,hpatch_BOOL isOnError); //finish & wait all threads end & free self
 
-#endif
+#endif //_IS_USED_MULTITHREAD
 #ifdef __cplusplus
 }
 #endif

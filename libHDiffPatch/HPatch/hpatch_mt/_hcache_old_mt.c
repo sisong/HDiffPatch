@@ -83,7 +83,7 @@ hpatch_BOOL _hcache_old_mt_init(hcache_old_mt_t* self,struct hpatch_mt_t* h_mt,h
 
     self->_locker=c_locker_new();
     self->_waitCondvar=c_condvar_new();
-    return (self->_locker)&&(self->_waitCondvar);
+    return (self->_locker!=0)&(self->_waitCondvar!=0);
 }
 
 static void _hcache_old_mt_free(hcache_old_mt_t* self){
@@ -246,7 +246,7 @@ static hpatch_BOOL _hcache_old_mt_read(const struct hpatch_TStreamInput* stream,
                                        unsigned char* out_data,unsigned char* out_data_end){
     hcache_old_mt_t* self=(hcache_old_mt_t*)stream->streamImport;
     hpatch_BOOL result=hpatch_TRUE;
-    while (result&&(out_data<out_data_end)){
+    while (result&(out_data<out_data_end)){
         if (self->curDataBuf){
             size_t readLen=self->curDataBuf->data_size-self->curDataBuf_pos;
             readLen=(readLen<(size_t)(out_data_end-out_data))?readLen:(size_t)(out_data_end-out_data);
@@ -322,4 +322,4 @@ hpatch_BOOL hcache_old_mt_close(const hpatch_TStreamInput* hcache_old_mt_stream)
     return result;
 }
 
-#endif
+#endif //_IS_USED_MULTITHREAD

@@ -49,7 +49,7 @@ hpatch_BOOL _hpatch_mt_init(hpatch_mt_t* self) {
     self->_runningLocker=c_locker_new();
     self->_waitCondvar=c_condvar_new();
     self->_runningCondvar=c_condvar_new();
-    return (self->_locker)&&(self->_runningLocker)&&(self->_waitCondvar)&&(self->_runningCondvar);
+    return (self->_locker!=0)&(self->_runningLocker!=0)&(self->_waitCondvar!=0)&(self->_runningCondvar!=0);
 }
 static void _hpatch_mt_free(hpatch_mt_t* self) {
     if (!self) return;

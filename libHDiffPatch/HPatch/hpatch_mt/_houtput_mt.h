@@ -46,7 +46,7 @@ hpatch_BOOL          houtput_mt_write(struct houtput_mt_t* self,struct hpatch_TW
 // wait write data thread end and free self
 hpatch_BOOL          houtput_mt_close(struct houtput_mt_t* self);
 
-#endif
+#endif //_IS_USED_MULTITHREAD
 #ifdef __cplusplus
 }
 #endif

@@ -33,16 +33,21 @@ extern "C" {
 #endif
 #if (_IS_USED_MULTITHREAD)
 
-size_t                  hinput_mt_t_memSize();
+size_t               hinput_mt_t_memSize();
 
 // create a new hpatch_TStreamInput* wrapper base_stream;
 //   start a thread to read data from base_stream
-hpatch_TStreamInput*    hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
-                                       const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos);
+hpatch_TStreamInput* hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
+                                    const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos);
 
-hpatch_BOOL             hinput_mt_close(const hpatch_TStreamInput* hinput_mt_stream);
+// same as hinput_mt_open, but decompress data when read from base_stream
+hpatch_TStreamInput* hinput_dec_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
+                                        const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos,
+                                        hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressedSize);
 
-#endif
+hpatch_BOOL          hinput_mt_close(const hpatch_TStreamInput* hinput_mt_stream);
+
+#endif //_IS_USED_MULTITHREAD
 #ifdef __cplusplus
 }
 #endif

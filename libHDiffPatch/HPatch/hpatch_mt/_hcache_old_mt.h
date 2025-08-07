@@ -42,7 +42,7 @@ hpatch_TStreamInput* hcache_old_mt_open(void* pmem,size_t memSize,struct hpatch_
                                         sspatch_coversListener_t* nextCoverlistener);
 hpatch_BOOL          hcache_old_mt_close(const hpatch_TStreamInput* hcache_old_mt_stream);
 
-#endif
+#endif //_IS_USED_MULTITHREAD
 #ifdef __cplusplus
 }
 #endif

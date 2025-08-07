@@ -52,7 +52,7 @@ hpatch_BOOL _houtput_mt_init(houtput_mt_t* self,struct hpatch_mt_t* h_mt,
     
     self->_locker=c_locker_new();
     self->_waitCondvar=c_condvar_new();
-    return (self->_locker)&&(self->_waitCondvar);
+    return (self->_locker!=0)&(self->_waitCondvar!=0);
 }
 static void _houtput_mt_free(houtput_mt_t* self){
     if (self==0) return;
@@ -86,7 +86,7 @@ static hpatch_BOOL _houtput_mt_writeAData(houtput_mt_t* self,hpatch_TWorkBuf* da
 
 static void houtput_thread_(int threadIndex,void* workData){
     houtput_mt_t* self=(houtput_mt_t*)workData;
-    while ((!hpatch_mt_isOnError(self->h_mt))&&(self->curWritePos<self->base_stream->streamSize)){
+    while ((!hpatch_mt_isOnError(self->h_mt))&(self->curWritePos<self->base_stream->streamSize)){
         hpatch_TWorkBuf* datas=0;
         hpatch_BOOL _isOnError;
         c_locker_enter(self->_locker);
@@ -164,7 +164,7 @@ hpatch_BOOL houtput_mt_close(houtput_mt_t* self){
     if (!self) return hpatch_TRUE;
 
     //must call hpatch_mt_waitAllThreadEnd(h_mt,) befor houtput_mt_close
-    result=(!self->isOnError)&&(self->curWritePos==self->base_stream->streamSize);
+    result=(!self->isOnError)&(self->curWritePos==self->base_stream->streamSize);
     _houtput_mt_free(self);
     return result;
 }
