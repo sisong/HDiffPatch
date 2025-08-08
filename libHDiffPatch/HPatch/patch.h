@@ -220,7 +220,9 @@ hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,  
                                      hpatch_StreamPos_t           diffData_posEnd,//diffData end pos in uncompressedDiffData
                                      hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                      unsigned char* temp_cache,unsigned char* temp_cache_end,
-                                     sspatch_coversListener_t* coversListener);
+                                     sspatch_coversListener_t* coversListener,
+                                     hpatch_BOOL isNeedOutCache //default true: each time accumulating some data be write to out_newData;
+                                    );
 
 #ifdef __cplusplus
 }
