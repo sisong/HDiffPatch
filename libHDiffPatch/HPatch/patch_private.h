@@ -210,6 +210,8 @@ hpatch_inline static
 void TDiffToSingleStream_resetStream(TDiffToSingleStream* self,const hpatch_TStreamInput* diffStream){
     self->diffStream=diffStream; }
 
+hpatch_BOOL _patch_cache_all_old(const hpatch_TStreamInput** poldData,size_t kPatchCacheCount,
+                                 hpatch_byte** ptemp_cache,hpatch_byte** ptemp_cache_end,hpatch_BOOL* out_isReadError);// try cache all oldData
 
 #ifdef __cplusplus
 }

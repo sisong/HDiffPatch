@@ -1791,21 +1791,10 @@ static hpatch_BOOL _cache_old(hpatch_TStreamInput** out_cachedOld,const hpatch_T
 
 #endif //_IS_NEED_CACHE_OLD_BY_COVERS
 
-
-static hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
-                                const hpatch_TStreamInput** poldData,hpatch_StreamPos_t newDataSize,
-                                const hpatch_TStreamInput*  diffData,hpatch_BOOL isCompressedDiff,
-                                hpatch_TDecompress* decompressPlugin,size_t kCacheCount,
-                                TByte** ptemp_cache,TByte** ptemp_cache_end,hpatch_BOOL* out_isReadError){
+hpatch_BOOL _patch_cache_all_old(const hpatch_TStreamInput** poldData,size_t kCacheCount,
+                                 TByte** ptemp_cache,TByte** ptemp_cache_end,hpatch_BOOL* out_isReadError){
     const hpatch_TStreamInput* oldData=*poldData;
     const hpatch_size_t kMinCacheSize=hpatch_kStreamCacheSize*kCacheCount;
-#if (_IS_NEED_CACHE_OLD_BY_COVERS)
-    const hpatch_size_t kBestACacheSize=hpatch_kFileIOBufBetterSize;   //optimal hpatch_kStreamCacheSize value when sufficient memory is available;
-    const hpatch_size_t _minActiveSize=(1<<20)*8;
-    const hpatch_StreamPos_t _betterActiveSize=kBestACacheSize*kCacheCount*2+oldData->streamSize/8;
-    const hpatch_size_t kActiveCacheOldMemorySize = //min memory threshold for attempting to activate CacheOld functionality;
-                (_betterActiveSize>_minActiveSize)?_minActiveSize:(hpatch_size_t)_betterActiveSize;
-#endif //_IS_NEED_CACHE_OLD_BY_COVERS
     TByte* temp_cache=*ptemp_cache;
     TByte* temp_cache_end=*ptemp_cache_end;
     *out_isReadError=hpatch_FALSE;
@@ -1821,11 +1810,32 @@ static hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
         temp_cache_end-=oldData->streamSize;
         // [          patch cache            |       oldData cache     ]
         // [ (cacheSize-oldData->streamSize) |  (oldData->streamSize)  ]
-        *out_covers=0;
         *poldData=replace_oldData;
         *ptemp_cache=temp_cache;
         *ptemp_cache_end=temp_cache_end;
         return hpatch_TRUE;
+    }
+    return hpatch_FALSE;
+}
+
+static hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
+                                const hpatch_TStreamInput** poldData,hpatch_StreamPos_t newDataSize,
+                                const hpatch_TStreamInput*  diffData,hpatch_BOOL isCompressedDiff,
+                                hpatch_TDecompress* decompressPlugin,size_t kCacheCount,
+                                TByte** ptemp_cache,TByte** ptemp_cache_end,hpatch_BOOL* out_isReadError){
+    const hpatch_TStreamInput* oldData=*poldData;
+#if (_IS_NEED_CACHE_OLD_BY_COVERS)
+    const hpatch_size_t kBestACacheSize=hpatch_kFileIOBufBetterSize;   //optimal hpatch_kStreamCacheSize value when sufficient memory is available;
+    const hpatch_size_t _minActiveSize=(1<<20)*8;
+    const hpatch_StreamPos_t _betterActiveSize=kBestACacheSize*kCacheCount*2+oldData->streamSize/8;
+    const hpatch_size_t kActiveCacheOldMemorySize = //min memory threshold for attempting to activate CacheOld functionality;
+                (_betterActiveSize>_minActiveSize)?_minActiveSize:(hpatch_size_t)_betterActiveSize;
+#endif //_IS_NEED_CACHE_OLD_BY_COVERS
+    TByte* temp_cache=*ptemp_cache;
+    TByte* temp_cache_end=*ptemp_cache_end;
+    *out_covers=0;
+    if (_patch_cache_all_old(poldData,kCacheCount,ptemp_cache,ptemp_cache_end,out_isReadError)){
+        return hpatch_TRUE;//loaded all oldData
     }
 #if (_IS_NEED_CACHE_OLD_BY_COVERS)
     else if ((hpatch_size_t)(temp_cache_end-temp_cache)>=kActiveCacheOldMemorySize) {
@@ -2203,11 +2213,16 @@ hpatch_BOOL patch_single_stream_diff(const hpatch_TStreamOutput*  out_newData,
                                      hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                      unsigned char* temp_cache,unsigned char* temp_cache_end,
                                      sspatch_coversListener_t* coversListener){
-    unsigned char*      step_cache=temp_cache;
+    unsigned char*      step_cache;
     hpatch_size_t       cache_size;
     TStreamCacheClip    inClip;
     _TOutStreamCache     outCache;
     sspatch_covers_t    covers;
+    hpatch_BOOL    isReadError=hpatch_FALSE;
+    _patch_cache_all_old(&oldData,_kCacheSgCount,&temp_cache,&temp_cache_end,&isReadError);
+    if (isReadError) return _hpatch_FALSE;
+
+    step_cache=temp_cache;
     assert(diffData_posEnd<=uncompressedDiffData->streamSize);
     sspatch_covers_init(&covers);
     if (coversListener) assert(coversListener->onStepCovers);
