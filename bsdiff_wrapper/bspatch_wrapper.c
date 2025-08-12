@@ -218,7 +218,7 @@ hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
     for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i)
         decompressers[i].decompressHandle=0;
 
-    _patch_cache_all_old(&oldData,_kCacheBsDecCount,&temp_cache,&temp_cache_end,&isReadError);//can cache all old?
+    _patch_cache_all_old(&oldData,_kCacheBsDecCount*hpatch_kStreamCacheSize,&temp_cache,&temp_cache_end,&isReadError);//can cache all old?
     if (isReadError) return _hpatch_FALSE;
     cacheSize=(temp_cache_end-temp_cache);
     cacheSize=cacheSize/(diffInfo.isEndsleyBsdiff?_kCacheBsDecCount-2:_kCacheBsDecCount);

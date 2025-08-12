@@ -39,7 +39,7 @@ size_t               hcache_old_mt_t_size();
 //   start a thread to read data from old_stream
 hpatch_TStreamInput* hcache_old_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
                                         const hpatch_TStreamInput* old_stream,sspatch_coversListener_t** out_coversListener,
-                                        sspatch_coversListener_t* nextCoverlistener);
+                                        sspatch_coversListener_t* nextCoverlistener,hpatch_BOOL isOnStepCoversInThread);
 hpatch_BOOL          hcache_old_mt_close(hpatch_TStreamInput* hcache_old_mt_stream);
 
 #endif //_IS_USED_MULTITHREAD

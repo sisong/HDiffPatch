@@ -61,6 +61,7 @@ hpatch_BOOL _houtput_mt_init(houtput_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_
     self->h_mt=h_mt;
     self->base_stream=base_stream;
     self->curWritePos=curWritePos;
+    self->workBufSize=hpatch_mt_workBufSize(h_mt);
     self->freeBufList=freeBufList;
 #if (defined(_DEBUG) || defined(DEBUG))
     self->curOutedPos=curWritePos;
@@ -110,19 +111,22 @@ static void houtput_thread_(int threadIndex,void* workData){
         c_locker_enter(self->_locker);
         if (!self->isOnError){
             datas=TWorkBuf_popAllBufs(&self->dataBufList);
-            if (datas==0)
+            if (datas==0){
                 c_condvar_wait(self->_waitCondvar,self->_locker);
+                datas=TWorkBuf_popAllBufs(&self->dataBufList);
+            }
         }
         _isOnError=self->isOnError;
         c_locker_leave(self->_locker);
         
         while (datas){
             if (_houtput_mt_writeAData(self,datas)){
+                hpatch_TWorkBuf* next=datas->next;
                 c_locker_enter(self->_locker);
                 TWorkBuf_pushABufAtHead(&self->freeBufList,datas);
                 c_condvar_signal(self->_waitCondvar);
                 c_locker_leave(self->_locker);
-                datas=datas->next;
+                datas=next;
             }else{
                 houtput_mt_setOnError_(self);
                 _isOnError=hpatch_TRUE;
@@ -169,9 +173,11 @@ static hpatch_BOOL houtput_mt_write_(const struct hpatch_TStreamOutput* stream,h
         }else{
             c_locker_enter(self->_locker);
             self->curDataBuf=TWorkBuf_popABuf(&self->freeBufList);
-            if (self->curDataBuf==0)
+            if (self->curDataBuf==0){
                 c_condvar_wait(self->_waitCondvar,self->_locker);
-            else
+                self->curDataBuf=TWorkBuf_popABuf(&self->freeBufList);
+            }
+            if (self->curDataBuf)
                 self->curDataBuf->data_size=0;
             result=(!self->isOnError);
             c_locker_leave(self->_locker);

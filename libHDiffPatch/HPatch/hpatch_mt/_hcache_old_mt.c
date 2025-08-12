@@ -44,6 +44,7 @@ typedef struct hcache_old_mt_t{
     volatile hpatch_TWorkBuf*   freeBufList;
     volatile hpatch_TWorkBuf*   dataBufList;
     volatile hpatch_BOOL        isOnError;
+    hpatch_BOOL                 isOnStepCoversInThread;
 #if (defined(_DEBUG) || defined(DEBUG))
     volatile hpatch_BOOL        threadIsRunning;
 #endif
@@ -60,7 +61,8 @@ typedef struct hcache_old_mt_t{
 
 hpatch_inline static
 hpatch_BOOL _hcache_old_mt_init(hcache_old_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,
-                                const hpatch_TStreamInput* old_stream,sspatch_coversListener_t* nextCoverlistener){
+                                const hpatch_TStreamInput* old_stream,
+                                sspatch_coversListener_t* nextCoverlistener,hpatch_BOOL isOnStepCoversInThread){
     memset(self,0,sizeof(*self));
     assert(freeBufList);
     self->base.streamImport=self;
@@ -77,6 +79,7 @@ hpatch_BOOL _hcache_old_mt_init(hcache_old_mt_t* self,struct hpatch_mt_t* h_mt,h
     self->h_mt=h_mt;
     self->old_stream=old_stream;
     self->nextCoverlistener=nextCoverlistener;
+    self->isOnStepCoversInThread=isOnStepCoversInThread?1:0;
     self->leaveCoverCount=~(hpatch_StreamPos_t)0;
     self->freeBufList=freeBufList;
     self->workBufSize=hpatch_mt_workBufSize(h_mt);
@@ -126,6 +129,8 @@ static void hcache_old_mt_setOnError_(hcache_old_mt_t* self) {
 
 static void hcache_old_thread_(int threadIndex,void* workData){
     hcache_old_mt_t* self=(hcache_old_mt_t*)workData;
+    sspatch_covers_t covers;
+    sspatch_covers_init(&covers);
     while (!hpatch_mt_isOnFinish(self->h_mt)){//covers_cache loop
         unsigned char* covers_cache=0;
         unsigned char* covers_cacheEnd=0;
@@ -138,7 +143,11 @@ static void hcache_old_thread_(int threadIndex,void* workData){
             _isGot_covers_cache=(covers_cache!=0)|(self->leaveCoverCount==0);
             if (!_isGot_covers_cache){
                 c_condvar_wait(self->_waitCondvar,self->_locker);
-            }else{
+                covers_cache=(unsigned char*)self->covers_cache;
+                covers_cacheEnd=(unsigned char*)self->covers_cacheEnd;
+                _isGot_covers_cache=(covers_cache!=0)|(self->leaveCoverCount==0);
+            }
+            if (_isGot_covers_cache){
                 self->covers_cache=0;
                 self->covers_cacheEnd=0;
             }
@@ -146,7 +155,7 @@ static void hcache_old_thread_(int threadIndex,void* workData){
         _isOnError=self->isOnError;
         c_locker_leave(self->_locker);
         if (_isOnError) break; //exit loop by error
-        if (_isGot_covers_cache&(self->nextCoverlistener!=0))
+        if (_isGot_covers_cache&self->isOnStepCoversInThread&(self->nextCoverlistener!=0))
             self->nextCoverlistener->onStepCovers(self->nextCoverlistener,covers_cache,covers_cacheEnd);
         if (_isGot_covers_cache&(covers_cache==0)) break; //exit loop by all done
         if (covers_cache==0) continue; //need covers_cache
@@ -154,8 +163,6 @@ static void hcache_old_thread_(int threadIndex,void* workData){
 
         {//got covers_cache
             hpatch_TWorkBuf* wbuf=0;
-            sspatch_covers_t covers;
-            sspatch_covers_init(&covers);
             sspatch_covers_setCoversCache(&covers,covers_cache,covers_cacheEnd);
             while (sspatch_covers_isHaveNextCover(&covers)){//cover loop
                 hpatch_StreamPos_t coverLen;
@@ -163,16 +170,18 @@ static void hcache_old_thread_(int threadIndex,void* workData){
                 _check_therr(sspatch_covers_nextCover(&covers));
                 coverLen=covers.cover.length;
                 coverPos=covers.cover.oldPos;
-                _check_therr((coverPos>self->old_stream->streamSize)|
-                             (coverLen>(hpatch_StreamPos_t)(self->old_stream->streamSize-coverPos)));
+                _check_therr((coverPos<=self->old_stream->streamSize)&
+                             (coverLen<=(hpatch_StreamPos_t)(self->old_stream->streamSize-coverPos)));
                 while (coverLen){//buf loop
                     size_t readLen;
                     if (wbuf==0){
                         c_locker_enter(self->_locker);
                         if (!self->isOnError){
                             wbuf=TWorkBuf_popABuf(&self->freeBufList);
-                            if (wbuf==0)
+                            if (wbuf==0){
                                 c_condvar_wait(self->_waitCondvar,self->_locker);
+                                wbuf=TWorkBuf_popABuf(&self->freeBufList);
+                            }
                         }
                         _isOnError=self->isOnError;
                         c_locker_leave(self->_locker);
@@ -199,10 +208,8 @@ static void hcache_old_thread_(int threadIndex,void* workData){
             }//end cover loop
             if (wbuf){
                 c_locker_enter(self->_locker);
-                if (wbuf->data_size)
-                    TWorkBuf_pushABufAtEnd(&self->dataBufList,wbuf);
-                else
-                    TWorkBuf_pushABufAtHead(&self->freeBufList,wbuf);
+                assert(wbuf->data_size);
+                TWorkBuf_pushABufAtEnd(&self->dataBufList,wbuf);
                 c_condvar_signal(self->_waitCondvar);
                 c_locker_leave(self->_locker);
                 wbuf=0;
@@ -227,10 +234,14 @@ static void _hcache_old_mt_onStepCovers(struct sspatch_coversListener_t* listene
     assert(self->covers_cache==0);
     self->covers_cache=covers_cache;
     self->covers_cacheEnd=covers_cacheEnd;
-    if (covers_cache==0)
+    if (covers_cache==0){
+        assert(covers_cacheEnd==0);
         self->leaveCoverCount=0;
+    }
     c_condvar_signal(self->_waitCondvar);
     c_locker_leave(self->_locker);
+    if ((!self->isOnStepCoversInThread)&(self->nextCoverlistener!=0))
+        self->nextCoverlistener->onStepCovers(self->nextCoverlistener,covers_cache,covers_cacheEnd);
 }
 static void _hcache_old_mt_onStepCoversReset(struct sspatch_coversListener_t* listener,hpatch_StreamPos_t leaveCoverCount){
     hcache_old_mt_t* self=(hcache_old_mt_t*)listener->import;
@@ -247,7 +258,7 @@ static hpatch_BOOL _hcache_old_mt_read(const struct hpatch_TStreamInput* stream,
                                        unsigned char* out_data,unsigned char* out_data_end){
     hcache_old_mt_t* self=(hcache_old_mt_t*)stream->streamImport;
     hpatch_BOOL result=hpatch_TRUE;
-    while (result&(out_data<out_data_end)){
+    while ((!hpatch_mt_isOnError(self->h_mt))&result&(out_data<out_data_end)){
         if (self->curDataBuf){
             size_t readLen=self->curDataBuf->data_size-self->curDataBuf_pos;
             readLen=(readLen<(size_t)(out_data_end-out_data))?readLen:(size_t)(out_data_end-out_data);
@@ -261,12 +272,15 @@ static hpatch_BOOL _hcache_old_mt_read(const struct hpatch_TStreamInput* stream,
                 result=(!self->isOnError);
                 c_locker_leave(self->_locker);
                 self->curDataBuf=0;
+                self->curDataBuf_pos=0;
             }
         }else{
             c_locker_enter(self->_locker);
             self->curDataBuf=TWorkBuf_popABuf(&self->dataBufList);
-            if (self->curDataBuf==0)
+            if (self->curDataBuf==0){
                 c_condvar_wait(self->_waitCondvar,self->_locker);
+                self->curDataBuf=TWorkBuf_popABuf(&self->dataBufList);
+            }
             result=(!self->isOnError);
             c_locker_leave(self->_locker);
         }
@@ -281,11 +295,11 @@ size_t hcache_old_mt_t_size(){
 
 hpatch_TStreamInput* hcache_old_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
                                         const hpatch_TStreamInput* old_stream,sspatch_coversListener_t** out_coversListener,
-                                        sspatch_coversListener_t* nextCoverlistener){
+                                        sspatch_coversListener_t* nextCoverlistener,hpatch_BOOL isOnStepCoversInThread){
     hcache_old_mt_t* self=(hcache_old_mt_t*)pmem;
     if (memSize<hcache_old_mt_t_size()) return 0;
     if (nextCoverlistener) assert(nextCoverlistener->onStepCovers);
-    if (!_hcache_old_mt_init(self,h_mt,freeBufList,old_stream,nextCoverlistener))
+    if (!_hcache_old_mt_init(self,h_mt,freeBufList,old_stream,nextCoverlistener,isOnStepCoversInThread))
         goto _on_error;
 
     //start a thread to read

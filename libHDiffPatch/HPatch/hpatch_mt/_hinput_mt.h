@@ -1,4 +1,4 @@
-//  hinput_mt.h
+//  _hinput_mt.h
 //  hpatch
 /*
  The MIT License (MIT)

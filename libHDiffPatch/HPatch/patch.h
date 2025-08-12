@@ -29,6 +29,8 @@
 #ifndef HPatch_patch_h
 #define HPatch_patch_h
 #include "patch_types.h"
+#include "hpatch_mt/hpatch_mt.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -144,34 +146,38 @@ hpatch_BOOL hpatch_coverList_close(hpatch_TCoverList* coverList) {
                                        hpatch_coverList_init(coverList); } return result; }
 
 
-
-
 //patch singleCompressedDiff with listener
 //	used (stepMemSize memory) + (I/O cache memory) + (decompress buffer*1)
 //  every byte in singleCompressedDiff will only be read once in order
 //  singleCompressedDiff create by create_single_compressed_diff() or create_single_compressed_diff_stream() or create_hdiff_by_sign()
 //  you can download&patch diffData at the same time, without saving it to disk
 //  same as call getSingleCompressedDiffInfo() + listener->onDiffInfo() + patch_single_compressed_diff()
+static hpatch_force_inline
 hpatch_BOOL patch_single_stream(sspatch_listener_t* listener, //call back when got diffInfo
                                 const hpatch_TStreamOutput* out_newData,          //sequential write
                                 const hpatch_TStreamInput*  oldData,              //random read
                                 const hpatch_TStreamInput*  singleCompressedDiff, //sequential read every byte
                                 hpatch_StreamPos_t  diffInfo_pos, //default 0, begin pos in singleCompressedDiff
-                                sspatch_coversListener_t* coversListener //default NULL, call by on got covers
-                                );
-static hpatch_inline hpatch_BOOL
-    patch_single_stream_mem(sspatch_listener_t* listener,
-                            unsigned char* out_newData,unsigned char* out_newData_end,
-                            const unsigned char* oldData,const unsigned char* oldData_end,
-                            const unsigned char* diff,const unsigned char* diff_end,
-                            sspatch_coversListener_t* coversListener){
+                                sspatch_coversListener_t* coversListener, //default NULL, call by on got some covers
+                                size_t threadNum){ // 1..5 default 1; if >1, multi-thread for I/O & decompress etc.
+        return _patch_single_stream_mt(listener,out_newData,oldData,singleCompressedDiff,
+                                        diffInfo_pos,coversListener,threadNum,hpatchMTSets_full);  
+    }
+static hpatch_force_inline
+hpatch_BOOL patch_single_stream_mem(sspatch_listener_t* listener,
+                                    unsigned char* out_newData,unsigned char* out_newData_end,
+                                    const unsigned char* oldData,const unsigned char* oldData_end,
+                                    const unsigned char* diff,const unsigned char* diff_end,
+                                    sspatch_coversListener_t* coversListener,size_t threadNum){
         hpatch_TStreamOutput out_newStream;
         hpatch_TStreamInput  oldStream;
         hpatch_TStreamInput  diffStream;
+        const hpatchMTSets_t hpatchMTSets={0,0,0,1}; //all data in mem, I/O not need MT
         mem_as_hStreamOutput(&out_newStream,out_newData,out_newData_end);
         mem_as_hStreamInput(&oldStream,oldData,oldData_end);
         mem_as_hStreamInput(&diffStream,diff,diff_end);
-        return patch_single_stream(listener,&out_newStream,&oldStream,&diffStream,0,coversListener);
+        return _patch_single_stream_mt(listener,&out_newStream,&oldStream,&diffStream,0,coversListener,
+                                        threadNum,hpatchMTSets);
     }
 
 //get singleCompressedDiff info
@@ -180,14 +186,15 @@ hpatch_BOOL getSingleCompressedDiffInfo(hpatch_singleCompressedDiffInfo* out_dif
                                         const hpatch_TStreamInput*  singleCompressedDiff,   //sequential read
                                         hpatch_StreamPos_t diffInfo_pos//default 0, begin pos in singleCompressedDiff
                                         );
-hpatch_inline static hpatch_BOOL
-    getSingleCompressedDiffInfo_mem(hpatch_singleCompressedDiffInfo* out_diffInfo,
-                                    const unsigned char* singleCompressedDiff,
-                                    const unsigned char* singleCompressedDiff_end){
+static hpatch_force_inline
+hpatch_BOOL getSingleCompressedDiffInfo_mem(hpatch_singleCompressedDiffInfo* out_diffInfo,
+                                            const unsigned char* singleCompressedDiff,
+                                            const unsigned char* singleCompressedDiff_end){
         hpatch_TStreamInput  diffStream;
         mem_as_hStreamInput(&diffStream,singleCompressedDiff,singleCompressedDiff_end);
         return getSingleCompressedDiffInfo(out_diffInfo,&diffStream,0);            
     }
+
 
 //patch singleCompressedDiff with diffInfo
 //	used (stepMemSize memory) + (I/O cache memory) + (decompress buffer*1)
@@ -196,6 +203,7 @@ hpatch_inline static hpatch_BOOL
 //  singleCompressedDiff create by create_single_compressed_diff() or create_single_compressed_diff_stream() or create_hdiff_by_sign()
 //  decompressPlugin can null when no compressed data in singleCompressedDiff
 //  same as call compressed_stream_as_uncompressed() + patch_single_stream_diff()
+static hpatch_force_inline
 hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData,          //sequential write
                                          const hpatch_TStreamInput*  oldData,              //random read
                                          const hpatch_TStreamInput*  singleCompressedDiff, //sequential read
@@ -205,8 +213,14 @@ hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData
                                          hpatch_TDecompress*         decompressPlugin,
                                          hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                          unsigned char* temp_cache,unsigned char* temp_cache_end,
-                                         sspatch_coversListener_t* coversListener //default NULL, call by on got covers
-                                         );
+                                         sspatch_coversListener_t* coversListener, //default NULL, call by on got covers
+                                         size_t threadNum){ // 1..5 default 1; if >1, multi-thread for I/O & decompress etc.
+        hpatchMTSets_t mtSets=hpatch_getMTSets(out_newData->streamSize,oldData->streamSize,singleCompressedDiff->streamSize-diffData_pos,
+                                               decompressPlugin,_kCacheSgCount,stepMemSize,
+                                               temp_cache_end-temp_cache,threadNum,hpatchMTSets_full);
+        return _patch_single_compressed_diff_mt(out_newData,oldData,singleCompressedDiff,diffData_pos,uncompressedSize,compressedSize,
+                                                decompressPlugin,coverCount,stepMemSize,temp_cache,temp_cache_end,coversListener,mtSets);
+    }
 
 hpatch_BOOL compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompressedStream,hpatch_StreamPos_t uncompressedSize,
                                                 hpatch_TDecompress* decompressPlugin,const hpatch_TStreamInput* compressedStream,

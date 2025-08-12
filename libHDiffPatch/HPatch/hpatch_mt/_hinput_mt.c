@@ -127,8 +127,10 @@ static void hinput_thread_(int threadIndex,void* workData){
         c_locker_enter(self->_locker);
         if (!self->isOnError){
             wbuf=TWorkBuf_popABuf(&self->freeBufList);
-            if (wbuf==0)
+            if (wbuf==0){
                 c_condvar_wait(self->_waitCondvar,self->_locker);
+                wbuf=TWorkBuf_popABuf(&self->freeBufList);
+            }
         }
         _isOnError=self->isOnError;
         c_locker_leave(self->_locker);
@@ -164,7 +166,7 @@ static hpatch_BOOL hinput_mt_read_(const hpatch_TStreamInput* stream,hpatch_Stre
     assert(self->curOutedPos<=self->base.streamSize);
 #endif
     if (readFromPos+(size_t)(out_data_end-out_data)>self->base.streamSize) return hpatch_FALSE;
-    while (result&(out_data<out_data_end)){
+    while ((!hpatch_mt_isOnError(self->h_mt))&result&(out_data<out_data_end)){
         if (self->curDataBuf){
             size_t readLen=self->curDataBuf->data_size-self->curDataBuf_pos;
             readLen=(readLen<(size_t)(out_data_end-out_data))?readLen:(size_t)(out_data_end-out_data);
@@ -178,12 +180,15 @@ static hpatch_BOOL hinput_mt_read_(const hpatch_TStreamInput* stream,hpatch_Stre
                 result=(!self->isOnError);
                 c_locker_leave(self->_locker);
                 self->curDataBuf=0;
+                self->curDataBuf_pos=0;
             }
         }else{
             c_locker_enter(self->_locker);
             self->curDataBuf=TWorkBuf_popABuf(&self->dataBufList);
-            if (self->curDataBuf==0)
+            if (self->curDataBuf==0){
                 c_condvar_wait(self->_waitCondvar,self->_locker);
+                self->curDataBuf=TWorkBuf_popABuf(&self->dataBufList);
+            }
             result=(!self->isOnError);
             c_locker_leave(self->_locker);
         }

@@ -1,4 +1,4 @@
-//  hpatch_mt.h
+//  _hpatch_mt.h
 //  hpatch
 /*
  The MIT License (MIT)
@@ -31,15 +31,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _IS_USED_MULTITHREAD
-#   define _IS_USED_MULTITHREAD 1
-#endif
 #if (_IS_USED_MULTITHREAD)
 
 struct hpatch_mt_t;
 struct hpatch_TWorkBuf;
 
-struct hpatch_mt_t*     hpatch_mt_open(size_t workBufCount,hpatch_byte* temp_cache,hpatch_byte* temp_cache_end);
+size_t                  hpatch_mt_t_memSize();
+
+struct hpatch_mt_t*     hpatch_mt_open(void* pmem,size_t memSumSize,size_t workBufCount,size_t workBufNodeSize);
 size_t                  hpatch_mt_workBufSize(const struct hpatch_mt_t* self);
 struct hpatch_TWorkBuf* hpatch_mt_popFreeWorkBuf_fast(struct hpatch_mt_t* self,size_t needBufCount);//fast no locker & no wait
 hpatch_BOOL             hpatch_mt_beforeThreadBegin(struct hpatch_mt_t* self); //a threna 
@@ -48,7 +47,7 @@ void                    hpatch_mt_setOnError(struct hpatch_mt_t* self); //set th
 hpatch_BOOL             hpatch_mt_isOnError(struct hpatch_mt_t* self);
 void                    hpatch_mt_waitAllThreadEnd(struct hpatch_mt_t* self,hpatch_BOOL isOnError);
 hpatch_BOOL             hpatch_mt_isOnFinish(struct hpatch_mt_t* self);  //in wait all thread finish
-void                    hpatch_mt_close(struct hpatch_mt_t* self,hpatch_BOOL isOnError); //finish & wait all threads end & free self
+hpatch_BOOL             hpatch_mt_close(struct hpatch_mt_t* self,hpatch_BOOL isOnError); //finish & wait all threads end & free self
 
 #endif //_IS_USED_MULTITHREAD
 #ifdef __cplusplus
