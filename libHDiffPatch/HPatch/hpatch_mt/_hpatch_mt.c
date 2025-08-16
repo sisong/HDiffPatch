@@ -30,40 +30,84 @@
 #if (_IS_USED_MULTITHREAD)
 
 typedef struct hpatch_mt_t{
+    size_t                  threadNum;
+    HCondvar*               condvarList;
     volatile hpatch_BOOL    isOnFinish;
     volatile unsigned int   runningThreads;
     hpatch_mt_base_t        mt_base;
 } hpatch_mt_t;
 
-hpatch_inline static
-hpatch_BOOL _hpatch_mt_init(hpatch_mt_t* self) {
+hpatch_force_inline static
+hpatch_BOOL _hpatch_mt_init(hpatch_mt_t* self,size_t threadNum) {
     memset(self,0,sizeof(*self));
+    self->threadNum=threadNum;
+    self->condvarList=(HCondvar*)(self+1);
+    memset(self->condvarList,0,threadNum*sizeof(HCondvar));
     if (!_hpatch_mt_base_init(&self->mt_base,self,0)) return hpatch_FALSE;
     return hpatch_TRUE;
 }
 static void _hpatch_mt_free(hpatch_mt_t* self) {
     if (!self) return;
     _hpatch_mt_base_free(&self->mt_base);
+#if (defined(_DEBUG) || defined(DEBUG))
+    {
+        size_t i;
+        for (i=0;i<self->threadNum;++i)
+            assert(self->condvarList[i]==0);
+    }
+#endif
+}
+
+static void _hpatch_mt_condvarList_broadcast(struct hpatch_mt_t* self){
+    size_t i;
+    for (i=0;i<self->threadNum;++i){
+        if (self->condvarList[i])
+            c_condvar_broadcast(self->condvarList[i]);
+    }
+}
+hpatch_BOOL hpatch_mt_registeCondvar(struct hpatch_mt_t* self,HCondvar waitCondvar){
+    size_t i;
+    assert(waitCondvar!=0);
+    for (i=0;i<self->threadNum;++i){
+        if (self->condvarList[i]==0){
+            self->condvarList[i]=waitCondvar;
+            return hpatch_TRUE;
+        }
+    }
+    assert(hpatch_FALSE);
+    return hpatch_FALSE;
+}
+hpatch_BOOL hpatch_mt_unregisteCondvar(struct hpatch_mt_t* self,HCondvar waitCondvar){
+    size_t i;
+    assert(waitCondvar!=0);
+    for (i=0;i<self->threadNum;++i){
+        if (self->condvarList[i]==waitCondvar){
+            self->condvarList[i]=0;
+            return hpatch_TRUE;
+        }
+    }
+    assert(hpatch_FALSE);
+    return hpatch_FALSE;
 }
 
 static void _hpatch_mt_setOnError(hpatch_mt_t* self) {
     if (!self->mt_base.isOnError){
         self->isOnFinish=hpatch_TRUE;
         self->mt_base.isOnError=hpatch_TRUE;
+        _hpatch_mt_condvarList_broadcast(self);
     }
-    c_condvar_signal(self->mt_base._waitCondvar);
 }
 
 size_t hpatch_mt_t_memSize(){
     return sizeof(hpatch_mt_t);
 }
-hpatch_mt_t* hpatch_mt_open(void* pmem,size_t memSumSize,size_t workBufCount,size_t workBufNodeSize){
+hpatch_mt_t* hpatch_mt_open(void* pmem,size_t memSumSize,size_t threadNum,size_t workBufCount,size_t workBufNodeSize){
     size_t i;
     hpatch_mt_t* self=(hpatch_mt_t*)pmem;
-    hpatch_byte* temp_cache=((hpatch_byte*)self)+hpatch_mt_t_memSize();
-    if (memSumSize<hpatch_mt_t_memSize()+workBufCount*workBufNodeSize) return 0;
+    hpatch_byte* temp_cache=((hpatch_byte*)self)+hpatch_mt_t_memSize()+threadNum*sizeof(HCondvar);
+    if (memSumSize<hpatch_mt_t_memSize()+threadNum*sizeof(HCondvar)+workBufCount*workBufNodeSize) return 0;
     if (workBufCount) assert(workBufNodeSize>sizeof(hpatch_TWorkBuf));
-    if (!_hpatch_mt_init(self)){
+    if (!_hpatch_mt_init(self,threadNum)){
         _hpatch_mt_free(self);
         return 0;
     }
@@ -140,8 +184,12 @@ void hpatch_mt_setOnError(struct hpatch_mt_t* self){
 
 void hpatch_mt_waitAllThreadEnd(hpatch_mt_t* self,hpatch_BOOL isOnError){
     c_locker_enter(self->mt_base._locker);
-    self->isOnFinish=hpatch_TRUE;
-    if (isOnError) _hpatch_mt_setOnError(self);
+    if (isOnError){
+        _hpatch_mt_setOnError(self);
+    }else if (!self->isOnFinish){
+        self->isOnFinish=hpatch_TRUE;
+        _hpatch_mt_condvarList_broadcast(self);
+    }
     while (self->runningThreads){
         c_condvar_wait(self->mt_base._waitCondvar,self->mt_base._locker);
     }

@@ -28,6 +28,7 @@
 #ifndef _hpatch_mt_h
 #define _hpatch_mt_h
 #include "../patch_types.h"
+#include "../../../libParallel/parallel_import_c.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,11 +39,13 @@ struct hpatch_TWorkBuf;
 
 size_t                  hpatch_mt_t_memSize();
 
-struct hpatch_mt_t*     hpatch_mt_open(void* pmem,size_t memSumSize,size_t workBufCount,size_t workBufNodeSize);
+struct hpatch_mt_t*     hpatch_mt_open(void* pmem,size_t memSumSize,size_t threadNum,size_t workBufCount,size_t workBufNodeSize);
 size_t                  hpatch_mt_workBufSize(const struct hpatch_mt_t* self);
 struct hpatch_TWorkBuf* hpatch_mt_popFreeWorkBuf_fast(struct hpatch_mt_t* self,size_t needBufCount);//fast no locker & no wait
-hpatch_BOOL             hpatch_mt_beforeThreadBegin(struct hpatch_mt_t* self); //a threna 
+hpatch_BOOL             hpatch_mt_beforeThreadBegin(struct hpatch_mt_t* self); //a thread begin
 void                    hpatch_mt_onThreadEnd(struct hpatch_mt_t* self); //a thread exit
+hpatch_BOOL             hpatch_mt_registeCondvar(struct hpatch_mt_t* self,HCondvar waitCondvar); //when onError or onFinish, got broadcast
+hpatch_BOOL             hpatch_mt_unregisteCondvar(struct hpatch_mt_t* self,HCondvar waitCondvar);
 void                    hpatch_mt_setOnError(struct hpatch_mt_t* self); //set thread got a error
 hpatch_BOOL             hpatch_mt_isOnError(struct hpatch_mt_t* self);
 void                    hpatch_mt_waitAllThreadEnd(struct hpatch_mt_t* self,hpatch_BOOL isOnError);

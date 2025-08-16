@@ -87,7 +87,8 @@
         hpatch_uint64_t minTime=~(hpatch_uint64_t)0;
         const disThreads_t* disThreadsTab;
         size_t disThreadsTabCount;
-        size_t threadNum=maxThreadNum<_hpatchMTSets_threadNum(mtsets)?maxThreadNum:_hpatchMTSets_threadNum(mtsets);
+        size_t threadNum=_hpatchMTSets_threadNum(mtsets);
+        threadNum=threadNum<maxThreadNum?threadNum:maxThreadNum;
         if (threadNum==2){
             disThreadsTab=_disThreadsTab_2;
             disThreadsTabCount=sizeof(_disThreadsTab_2)/sizeof(disThreads_t);
@@ -107,9 +108,10 @@
             disThreads_t  curThreads;
             for (j=0;j<sizeof(disThreads_t)/sizeof(disThreads[0]);++j)
                 curThreads[j]=disThreadsTab[i][j]&((hpatch_byte*)&mtsets)[j];
+            if (_hpatchMTSets_threadNum(*(hpatchMTSets_t*)curThreads)!=threadNum) continue;
             curTime=_runTimeByDisThreads(curThreads,times);
             if (curTime<=minTime){
-                if ((curTime==minTime)&&(_hpatchMTSets_threadNum(*(hpatchMTSets_t*)curThreads)>=_hpatchMTSets_threadNum(*(hpatchMTSets_t*)disThreads))){
+                if (curTime==minTime){
                     if (_sumTimeByDisThreads(curThreads,times)<_sumTimeByDisThreads(disThreads,times))
                         continue;
                 }
@@ -117,16 +119,19 @@
                 minTime=curTime;
             }
         }
+        assert(_hpatchMTSets_threadNum((disThreads_t*)disThreads)==threadNum);
         return minTime;
     }
 
 hpatchMTSets_t _hpatch_getMTSets(hpatch_StreamPos_t newSize,hpatch_StreamPos_t oldSize,hpatch_StreamPos_t diffSize,
                                 const hpatch_TDecompress* decompressPlugin,size_t kCacheCount,size_t stepMemSize,
                                 size_t temp_cacheSumSize,size_t maxThreadNum,hpatchMTSets_t mtsets){
+    hpatch_uint64_t writeNewTime,readOldTime,readDiffTime,decompressTime,patchTime;
     assert(sizeof(disThreads_t)==sizeof(hpatchMTSets_t));
     assert((2<=maxThreadNum));
-    hpatch_uint64_t writeNewTime,readOldTime,readDiffTime,decompressTime,patchTime;
-    if (diffSize<(newSize+oldSize)/256) mtsets.readDiff_isMT=0;
+    if (newSize<1*(1<<20)) mtsets.writeNew_isMT=0;
+    if (oldSize<1*(1<<17)) mtsets.readOld_isMT=0;
+    if ((diffSize<(newSize+oldSize)/256)|(diffSize<(1<<17))) mtsets.readDiff_isMT=0;
     if (decompressPlugin==0) mtsets.decompressDiff_isMT=0;
     if (mtsets.readOld_isMT){// is can cache all old?
         size_t workBufCount,objsMemSize,kMinTempCacheSize;
@@ -142,23 +147,23 @@ hpatchMTSets_t _hpatch_getMTSets(hpatch_StreamPos_t newSize,hpatch_StreamPos_t o
         hpatch_uint64_t decompressSpeed;
         if (decompressPlugin==0)
             decompressSpeed=0; //not used
+        else if (decompressPlugin->is_can_open("zstd"))
+            decompressSpeed=55;
+        else if (decompressPlugin->is_can_open("lzma2")||decompressPlugin->is_can_open("lzma"))
+            decompressSpeed=10;
         else if (decompressPlugin->is_can_open("zlib"))
             decompressSpeed=30;
         else if (decompressPlugin->is_can_open("bzip2"))
             decompressSpeed=5;
-        else if (decompressPlugin->is_can_open("lzma")||decompressPlugin->is_can_open("lzma2"))
-            decompressSpeed=10;
-        else if (decompressPlugin->is_can_open("zstd"))
-            decompressSpeed=55;
         else if (decompressPlugin->is_can_open("brotli"))
             decompressSpeed=35;
         else
             decompressSpeed=30/*unknow*/;
-        decompressTime=decompressPlugin?diffSize/decompressSpeed:0;
-        writeNewTime=newSize/100;
-        readDiffTime=diffSize/150;
+        decompressTime=mtsets.decompressDiff_isMT?diffSize/decompressSpeed:0;
+        writeNewTime=mtsets.writeNew_isMT?newSize/100:0;
+        readDiffTime=mtsets.readDiff_isMT?diffSize/150:0;
         patchTime=newSize/300;
-        readOldTime=((oldSize<newInDiffSize?0:oldSize-newInDiffSize)+oldSize/8)/30;
+        readOldTime=mtsets.readOld_isMT?((oldSize<newInDiffSize?0:oldSize-newInDiffSize)+oldSize/8)/30:0;
     }
     { // distribute thread
         size_t   i;
@@ -166,15 +171,14 @@ hpatchMTSets_t _hpatch_getMTSets(hpatch_StreamPos_t newSize,hpatch_StreamPos_t o
         disThreads_t disThreads={0,0,0,0};
         hpatch_uint64_t minTime=_distributeThread(disThreads,times,maxThreadNum,mtsets);
         for (i=0;i<4;++i)
-            disThreads[i]=(times[i]>(minTime/32))?disThreads[i]:0;
-        if ((decompressPlugin!=0)&disThreads[2]&(!disThreads[3])){
-            disThreads[2]=0;
-            disThreads[3]=1;
-        }
+            disThreads[i]=(times[i]>(minTime/128))?disThreads[i]:0;
         mtsets=*(hpatchMTSets_t*)disThreads;
-        return mtsets;
     }
-
+    if ((decompressPlugin!=0)&(mtsets.readDiff_isMT!=0)&(!mtsets.decompressDiff_isMT)){
+        mtsets.readDiff_isMT=0;
+        mtsets.decompressDiff_isMT=1;
+    }
+    return mtsets;
 }
 
 
@@ -187,9 +191,10 @@ typedef struct hpatch_mt_manager_t{
 } hpatch_mt_manager_t;
 
 static size_t _getObjsMemSize(hpatchMTSets_t mtsets,size_t* pworkBufCount){
-    size_t objsMemSize=0;
+    size_t threadNum=_hpatchMTSets_threadNum(mtsets);
+    size_t objsMemSize=threadNum*sizeof(HCondvar);
 
-    *pworkBufCount=kObjNodeCount*(_hpatchMTSets_threadNum(mtsets)-1);
+    *pworkBufCount=kObjNodeCount*(threadNum-1);
     objsMemSize+=_hpatch_align_upper(sizeof(hpatch_mt_manager_t),kAlignSize);
     objsMemSize+=_hpatch_align_upper(hpatch_mt_t_memSize(),kAlignSize);
     objsMemSize+=mtsets.readDiff_isMT       ?_hpatch_align_upper(hinput_mt_t_memSize(),kAlignSize):0;
@@ -220,7 +225,8 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
     unsigned char* temp_cache=(hpatch_byte*)_hpatch_align_upper(*ptemp_cache,kAlignSize);
     unsigned char* temp_cache_end=*ptemp_cache_end;
     hpatch_mt_manager_t* self=0;
-    assert(_hpatchMTSets_threadNum(mtsets)>1);
+    const size_t threadNum=_hpatchMTSets_threadNum(mtsets);
+    assert(threadNum>1);
     objsMemSize =_getObjsMemSize(mtsets,&workBufCount);
     kMinTempCacheSize=stepMemSize+objsMemSize+kMinBufNodeSize*(workBufCount+kCacheCount)+(kAlignSize-1);
     if (temp_cache+kMinTempCacheSize>temp_cache_end) return 0;
@@ -241,9 +247,10 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
     memset(self,0,sizeof(*self));
     temp_cache+=_hpatch_align_upper(sizeof(hpatch_mt_manager_t),kAlignSize);
 
-    self->h_mt=hpatch_mt_open(temp_cache,hpatch_mt_t_memSize()+workBufCount*workBufNodeSize,workBufCount,workBufNodeSize);
+    self->h_mt=hpatch_mt_open(temp_cache,hpatch_mt_t_memSize()+threadNum*sizeof(HCondvar)+workBufCount*workBufNodeSize,
+                              threadNum,workBufCount,workBufNodeSize);
     if (self->h_mt==0) goto _on_error;
-    temp_cache+=_hpatch_align_upper(hpatch_mt_t_memSize()+workBufCount*workBufNodeSize,kAlignSize);
+    temp_cache+=_hpatch_align_upper(hpatch_mt_t_memSize()+threadNum*sizeof(HCondvar)+workBufCount*workBufNodeSize,kAlignSize);
     if (mtsets.readDiff_isMT){
         self->diffData=hinput_mt_open(temp_cache,hinput_mt_t_memSize(),self->h_mt,
                                       hpatch_mt_popFreeWorkBuf_fast(self->h_mt,kObjNodeCount),
@@ -317,6 +324,10 @@ hpatch_BOOL _hpatch_mt_base_init(hpatch_mt_base_t* self,struct hpatch_mt_t* h_mt
 
     self->_locker=c_locker_new();
     self->_waitCondvar=c_condvar_new();
+    if (self->_waitCondvar){
+        if (!hpatch_mt_registeCondvar(self->h_mt,self->_waitCondvar))
+            return hpatch_FALSE;
+    }
     return (self->_locker!=0)&(self->_waitCondvar!=0);
 }
 
@@ -326,13 +337,15 @@ void _hpatch_mt_base_free(hpatch_mt_base_t* self){
     if (self->_locker) c_locker_enter(self->_locker);
     assert(self->threadIsRunning==0);
     if (self->_locker) c_locker_leave(self->_locker);
-#endif
+#endif 
+    if (self->_waitCondvar)
+        hpatch_mt_unregisteCondvar(self->h_mt,self->_waitCondvar);
     _thread_obj_free(c_condvar_delete,self->_waitCondvar);
     _thread_obj_free(c_locker_delete,self->_locker);
 }
 
 void hpatch_mt_base_setOnError_(hpatch_mt_base_t* self){
-    hpatch_BOOL isNeedSetOnError=hpatch_FALSE;
+    hpatch_BOOL isNeedSetOnError;
     c_locker_enter(self->_locker);
     isNeedSetOnError=(!self->isOnError);
     if (isNeedSetOnError){

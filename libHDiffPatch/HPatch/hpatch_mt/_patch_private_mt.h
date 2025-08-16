@@ -28,7 +28,6 @@
 #ifndef _patch_private_mt_h
 #define _patch_private_mt_h
 #include "_hpatch_mt.h"
-#include "../../../libParallel/parallel_import_c.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
