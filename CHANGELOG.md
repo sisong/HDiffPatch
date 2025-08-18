@@ -2,6 +2,10 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v4.11.1](https://github.com/sisong/HDiffPatch/tree/v4.11.1) - 2025-08-18
+### Fixed
+* fix a bug when run dir_diff by multi-thread parallel on linux;
+
 ## [v4.11.0](https://github.com/sisong/HDiffPatch/tree/v4.11.0) - 2025-07-29
 ### Added
 * add function create_zsync_data() and zsync_patch*() & zsync_local_diff*() & zsync_local_patch*();   

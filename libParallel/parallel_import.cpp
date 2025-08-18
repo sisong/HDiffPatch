@@ -70,9 +70,25 @@ static std::string _i2a(int ivalue){
 #define _check_pthread(result,func_name) { \
     if (result!=0) throw std::runtime_error(func_name "() return "+_i2a(result)+" error!"); }
 
+
+static int _g_attr_RECURSIVE_is_init=0;
+static pthread_mutexattr_t _g_attr_RECURSIVE={};
+static void _init_attr_RECURSIVE(){
+    int rt=pthread_mutexattr_init(&_g_attr_RECURSIVE);
+    _check_pthread(rt,"pthread_mutexattr_init");
+    rt=pthread_mutexattr_settype(&_g_attr_RECURSIVE,PTHREAD_MUTEX_RECURSIVE);
+    _check_pthread(rt,"pthread_mutexattr_settype");
+    _g_attr_RECURSIVE_is_init=1;
+}
+static const pthread_mutexattr_t* _get_attr_RECURSIVE(){
+    if (!_g_attr_RECURSIVE_is_init)
+        _init_attr_RECURSIVE();
+    return &_g_attr_RECURSIVE;
+}
+
 HLocker locker_new(void){
     pthread_mutex_t* self=new pthread_mutex_t();
-    int rt=pthread_mutex_init(self, 0);
+    int rt=pthread_mutex_init(self,_get_attr_RECURSIVE());
     if (rt!=0){
         delete self;
         self=0;
