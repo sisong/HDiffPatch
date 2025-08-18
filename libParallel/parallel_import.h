@@ -30,14 +30,13 @@
 
 //select define one for support parallel
 //#define _IS_USED_PTHREAD       1
-//#define _IS_USED_CPP11THREAD   1
 //#define _IS_USED_WIN32THREAD   1
 
 #ifndef _IS_USED_MULTITHREAD
 #   define _IS_USED_MULTITHREAD 1
 #endif
 
-#if ((_IS_USED_PTHREAD>0) || (_IS_USED_CPP11THREAD>0) || (_IS_USED_WIN32THREAD>0))
+#if ((_IS_USED_PTHREAD>0) || (_IS_USED_WIN32THREAD>0))
 #   //ok have one
 #   define _IS_USED_MULTITHREAD 1
 #else
@@ -45,12 +44,8 @@
 #       if ( (!(defined _IS_USED_WIN32THREAD)) && (defined _WIN32) )
 #           define  _IS_USED_WIN32THREAD        1
 #       else
-#           if ( (!(defined _IS_USED_CPP11THREAD)) && (__cplusplus >= 201103L) )
-#               define  _IS_USED_CPP11THREAD    1
-#           else
-#               if (!(defined _IS_USED_PTHREAD))
-#                   define _IS_USED_PTHREAD     1
-#               endif
+#           if (!(defined _IS_USED_PTHREAD))
+#               define _IS_USED_PTHREAD     1
 #           endif
 #       endif
 #   endif
