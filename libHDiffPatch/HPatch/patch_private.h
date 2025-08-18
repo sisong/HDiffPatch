@@ -129,8 +129,12 @@ hpatch_BOOL _TStreamCacheClip_addDataTo(TStreamCacheClip* self,unsigned char* ds
 hpatch_BOOL _TStreamCacheClip_unpackUIntWithTag(TStreamCacheClip* sclip,
                                                 hpatch_StreamPos_t* result,const hpatch_uint kTagBit);
 
-hpatch_BOOL _TStreamCacheClip_readType_end(TStreamCacheClip* sclip,unsigned char endTag,
-                                           char out_type[hpatch_kMaxPluginTypeLength+1]);
+hpatch_BOOL _TStreamCacheClip_readStr_end(TStreamCacheClip* sclip,hpatch_byte endTag,
+                                          char* out_str,size_t strBufLen);
+hpatch_inline static
+hpatch_BOOL _TStreamCacheClip_readType_end(TStreamCacheClip* sclip,hpatch_byte endTag,
+                                           char out_type[hpatch_kMaxPluginTypeLength+1]){
+                return _TStreamCacheClip_readStr_end(sclip,endTag,out_type,hpatch_kMaxPluginTypeLength+1); }
 
 // Stream Clip cache
 typedef struct {

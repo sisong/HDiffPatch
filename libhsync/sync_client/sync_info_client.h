@@ -93,6 +93,17 @@ typedef enum TSyncClient_resultType{
     kSyncClient_newDirPatchBeginError,
     kSyncClient_newDirPatchFinishError,
 
+    kSyncClient_newZsyncInfoTypeError=100,
+    kSyncClient_newZsyncInfoOpenError,
+    kSyncClient_newZsyncInfoCloseError,
+    kSyncClient_newZsyncInfoDataError,
+    kSyncClient_newZsyncInfoMinVersionError,
+    kSyncClient_newZsyncInfoBlockSizeTooSmallError, //105
+    kSyncClient_newZsyncInfoBlockSizeError,
+    kSyncClient_newZsyncInfoZmap2BlocksError,
+    kSyncClient_newZsyncInfoZmap2BlocksSmallError,
+    kSyncClient_newZsyncInfoZMap2DataError,
+
     kSyncClient_ERROR_CODE_MAX = 200,
 } TSyncClient_resultType;
 
@@ -106,9 +117,12 @@ typedef struct ISyncInfoListener{
     void                   (*onNeedSyncInfo)      (ISyncInfoListener* listener,const TNeedSyncInfos* needSyncInfo);
 } ISyncInfoListener;
 
-TSyncClient_resultType TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,
+hpatch_inline static
+void TNewDataSyncInfo_init(TNewDataSyncInfo* self) { memset(self,0,sizeof(*self)); }
+
+TSyncClient_resultType TNewDataSyncInfo_open_by_file(TNewDataSyncInfo* self,const char* newSyncInfoFile,hpatch_BOOL isIgnoreCompressInfo,
                                                      ISyncInfoListener* listener);
-TSyncClient_resultType TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,
+TSyncClient_resultType TNewDataSyncInfo_open(TNewDataSyncInfo* self,const hpatch_TStreamInput* newSyncInfo,hpatch_BOOL isIgnoreCompressInfo,
                                              ISyncInfoListener* listener);
 void TNewDataSyncInfo_close(TNewDataSyncInfo* self);
 

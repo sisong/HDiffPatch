@@ -29,6 +29,7 @@
 #include "dir_manifest.h"
 #if (_IS_NEED_DIR_DIFF_PATCH)
 #include "../../_atosize.h"
+#include "../../_hextobytes.h"
 #include "dir_diff_tools.h"
 using namespace hdiff_private;
 
@@ -154,12 +155,9 @@ void save_manifest(const TManifest& manifest,
             const std::vector<TByte>& datas=fileChecksum.checksum;
             checkv(datas.size()==checksumPlugin->checksumByteSize());
             std::string hexs(datas.size()*2,' ');
-            static const char _i2h[]="0123456789abcdef";
-            for (size_t h=0; h<datas.size(); ++h) {
-                TByte d=datas[h];
-                hexs[h*2+0]=_i2h[d&0xF];
-                hexs[h*2+1]=_i2h[d>>4];
-            }
+            bytes_to_hexs(datas.data(),datas.size(),&hexs[0]);
+            for (size_t h=0; h<datas.size(); ++h)
+                std::swap(hexs[h*2+0], hexs[h*2+1]); //note: swap
             pushCStr(out_data, hexs.c_str());
             pushCStr(out_data, ":");
         }
@@ -204,26 +202,10 @@ void load_manifestFile(TManifestSaved& out_manifest,const std::string& rootPath,
             _fromSavedPath(pload+rootPath.size(),pload+path.size());
         }
     }
-    static TByte _hex2b(char c){
-        switch (c) {
-            case '0': case '1': case '2': case '3': case '4':
-            case '5': case '6': case '7': case '8': case '9': {
-                return c-'0';
-            } break;
-            case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': {
-                return c-('a'-10);
-            } break;
-            case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': {
-                return c-('A'-10);
-            } break;
-            default:
-                check(false,"input char not hex,can't convert to Byte error! "+std::string(1,c));
-        }
-    }
     static void _hex2data(TByte* out_data,const char* hex_begin,size_t hexSize){
-        for (size_t i=0;i<hexSize;i+=2){
-            out_data[i>>1]=_hex2b(hex_begin[i]) | (_hex2b(hex_begin[i+1])<<4);
-        }
+        check(hexs_to_bytes(hex_begin,hexSize,out_data),"input char not hex,can't convert to Byte error! ");
+        for (size_t i=0;i<(hexSize>>1);i++)
+            out_data[i]=(TByte)((out_data[i]<<4)|(out_data[i]>>4)); //note: swap
     }
 void load_manifest(TManifestSaved& out_manifest,const std::string& rootPath,
                    const hpatch_TStreamInput* manifestStream){

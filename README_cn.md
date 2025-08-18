@@ -1,10 +1,10 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.10.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.11.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
 [![release](https://img.shields.io/github/downloads/sisong/HDiffPatch/total?color=blue)](https://github.com/sisong/HDiffPatch/releases)
-[![Build Status](https://github.com/sisong/HDiffPatch/workflows/ci/badge.svg?branch=master)](https://github.com/sisong/HDiffPatch/actions?query=workflow%3Aci+branch%3Amaster)
+[![Build Status](https://github.com/sisong/HDiffPatch/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/sisong/HDiffPatch/actions?query=branch%3Amaster)
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
  中文版 | [english](README.md)   
 
@@ -21,9 +21,9 @@
 如果你没有旧版本的数据(或者旧版本非常多或者被修改)，因此不能提前创建好补丁包。
 那你可以看看使用同步算法来进行增量更新的例子 [hsynz] (类似 [zsync])，新版本只需要发布处理一次，
 然后旧版本数据的拥有者们可以根据获得的新版本的信息自己执行diff和patch。
-hsynz 支持 zstd 压缩算法并且比 zsync 速度快得多。   
-如果你本地有新版本数据而没有旧版本的数据，但可以拿到旧版本数据的hash证书文件(.hsyni)，
-那也可以创建出一个 hpatchz 格式的补丁(类似 [rsync])；见 [hsynz] 中的 demo 命令行程序 **hsign_diff**。   
+hsynz 支持 zstd 压缩算法并且比 zsync 速度快得多；而且可以兼容 zsync 的文件格式。   
+另外，如果你本地有新版本数据而没有旧版本的数据，但可以拿到旧版本数据的hash证书文件(.hsyni)，
+那也可以创建出一个 hpatchz 格式的补丁(使用场景类似 [rsync])；见 [hsynz] 中的 demo 命令行程序 **hsign_diff**。   
    
 注意: *本库不处理文件元数据，如文件最后写入时间、权限、链接文件等。对于这个库，文件就像一个字节流；如果需要您可以扩展此库或使用其他工具。*   
    
@@ -341,6 +341,11 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
 * **sync_local_patch()**
 * **sync_local_patch_...()**
 * **create_hdiff_by_sign()** (patched by patch_single_stream()...)
+#### [zsync] 兼容包装 API, (例子 [hsynz]): 
+* **create_zsync_data()**
+* **zsync_patch...()**
+* **zsync_local_diff...()**
+* **zsync_local_patch...()**
 
 ---
 ## [HDiffPatch] vs [bsdiff4] & [xdelta3]:

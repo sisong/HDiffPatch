@@ -1,10 +1,10 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.10.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.11.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
 [![release](https://img.shields.io/github/downloads/sisong/HDiffPatch/total?color=blue)](https://github.com/sisong/HDiffPatch/releases)
-[![Build Status](https://github.com/sisong/HDiffPatch/workflows/ci/badge.svg?branch=master)](https://github.com/sisong/HDiffPatch/actions?query=workflow%3Aci+branch%3Amaster)
+[![Build Status](https://github.com/sisong/HDiffPatch/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/sisong/HDiffPatch/actions?query=branch%3Amaster)
 [![Build status](https://ci.appveyor.com/api/projects/status/t9ow8dft8lt898cv/branch/master?svg=true)](https://ci.appveyor.com/project/sisong/hdiffpatch/branch/master)   
  english | [中文版](README_cn.md)   
 
@@ -21,9 +21,9 @@ update your own Android Apk? Jar or Zip file diff & patch? try [ApkDiffPatch], t
 if you not have the old versions(too many or not obtain or have been modified), thus cannot create the delta in advance.
 you can see sync demo [hsynz] (like [zsync]), the new version is only need released once,
 and the owners of the old version get the information about the new version and do the diff&patch themselves.
-hsynz support zstd compressor & run much faster than zsync.   
-if you have the new file locally & not the old file, but can get a hash certificate file(.hsyni) of the old file,
-you can also create a hpatchz format patch file(like [rsync]); see the demo cmdline **hsign_diff** in [hsynz].   
+hsynz support zstd compressor & run much faster than zsync; also compatible with the zsync's file format.   
+additional, if you have the new file locally & not the old file, but can get a hash certificate file(.hsyni) of the old file,
+you can also create a hpatchz format patch file(usage scenario like [rsync]); see the demo cmdline **hsign_diff** in [hsynz].   
    
 NOTE: *This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
    
@@ -344,6 +344,11 @@ options:
 * **sync_local_patch()**
 * **sync_local_patch_...()**
 * **create_hdiff_by_sign()** (patched by patch_single_stream()...)
+#### [zsync] wrapper API, (demo [hsynz]): 
+* **create_zsync_data()**
+* **zsync_patch...()**
+* **zsync_local_diff...()**
+* **zsync_local_patch...()**
 
 ---
 ## [HDiffPatch] vs [bsdiff4] & [xdelta3]:

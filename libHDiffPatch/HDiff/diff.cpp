@@ -543,6 +543,7 @@ static void extend_cover(std::vector<TOldCover>& covers,size_t cover_begin,const
         return alen;
     }
     static void _limitCoverLenth(std::vector<TOldCover>& covers,hpatch_StreamPos_t kMaxLen){
+        assert((0<kMaxLen)&&(0<(TInt)kMaxLen)&&(kMaxLen==(TInt)kMaxLen));
         size_t csize=covers.size();
         size_t isize=0;
         for (size_t i=0;i<csize;++i){
@@ -561,7 +562,7 @@ static void extend_cover(std::vector<TOldCover>& covers,size_t cover_begin,const
             hpatch_StreamPos_t clen=covers[i].length;
             while (clen>kMaxLen){
                 --isize;
-                hpatch_StreamPos_t clipLen=_clipLenByLimit(clen,kMaxLen);
+                TInt clipLen=(TInt)_clipLenByLimit(clen,kMaxLen);
                 assert(insertIndex<i);
                 covers[insertIndex++]=TOldCover(covers[i].oldPos,covers[i].newPos,clipLen);
                 covers[i].oldPos+=clipLen;

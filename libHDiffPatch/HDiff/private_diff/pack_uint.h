@@ -35,18 +35,16 @@
 #include <string>
 namespace hdiff_private{
 
-template<class _UInt>
-inline static void packUIntWithTag(std::vector<unsigned char>& out_code,_UInt uValue,
+inline static void packUIntWithTag(std::vector<unsigned char>& out_code,hpatch_StreamPos_t uValue,
                                    int highTag,const int kTagBit){
     unsigned char  codeBuf[hpatch_kMaxPackedUIntBytes];
     unsigned char* codeEnd=codeBuf;
     if (!hpatch_packUIntWithTag(&codeEnd,codeBuf+hpatch_kMaxPackedUIntBytes,uValue,highTag,kTagBit))
-        throw std::runtime_error("packUIntWithTag<_UInt>() hpatch_packUIntWithTag() error!");
+        throw std::runtime_error("packUIntWithTag() hpatch_packUIntWithTag() error!");
     out_code.insert(out_code.end(),codeBuf,codeEnd);
 }
 
-template<class _UInt>
-inline static void packUInt(std::vector<unsigned char>& out_code,_UInt uValue){
+inline static void packUInt(std::vector<unsigned char>& out_code,hpatch_StreamPos_t uValue){
     packUIntWithTag(out_code,uValue,0,0);
 }
 
@@ -90,7 +88,7 @@ void pushUInt(std::vector<unsigned char>& out_buf,TUInt v){
 }
 
 inline static
-void pushUInt(std::vector<unsigned char>& out_buf,unsigned char v){
+void pushByte(std::vector<unsigned char>& out_buf,unsigned char v){
     out_buf.insert(out_buf.end(),v);
 }
 

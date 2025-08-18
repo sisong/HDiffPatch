@@ -437,11 +437,11 @@ void TStreamOutputClip_init(TStreamOutputClip* self,const hpatch_TStreamOutput* 
 struct __private_hpatch_check_kMaxCompressTypeLength {
     char _[(hpatch_kStreamCacheSize>=(hpatch_kMaxPluginTypeLength+1))?1:-1];};
 
-hpatch_BOOL _TStreamCacheClip_readType_end(TStreamCacheClip* sclip,TByte endTag,
-                                           char out_type[hpatch_kMaxPluginTypeLength+1]){
+hpatch_BOOL _TStreamCacheClip_readStr_end(TStreamCacheClip* sclip,TByte endTag,
+                                          char* out_type,size_t typeBufLen){
     const TByte* type_begin;
     hpatch_size_t i;
-    hpatch_size_t readLen=hpatch_kMaxPluginTypeLength+1;
+    hpatch_size_t readLen=typeBufLen;
     if (readLen>_TStreamCacheClip_leaveSize(sclip))
         readLen=(hpatch_size_t)_TStreamCacheClip_leaveSize(sclip);
     type_begin=_TStreamCacheClip_accessData(sclip,readLen);

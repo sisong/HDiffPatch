@@ -37,8 +37,8 @@ extern "C" {
 #endif
 
 #define HDIFFPATCH_VERSION_MAJOR    4
-#define HDIFFPATCH_VERSION_MINOR    10
-#define HDIFFPATCH_VERSION_RELEASE  0
+#define HDIFFPATCH_VERSION_MINOR    11
+#define HDIFFPATCH_VERSION_RELEASE  1
 
 #define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
 #define _HDIFFPATCH_QUOTE(str) #str
@@ -98,6 +98,18 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
 #   define hpatch_inline _inline
 #else
 #   define hpatch_inline inline
+#endif
+
+#ifndef hpatch_force_inline
+#if defined(_MSC_VER)
+#   define hpatch_force_inline __forceinline
+#elif defined(__GNUC__) || defined(__clang__) || defined(__CC_ARM)
+#   define hpatch_force_inline __attribute__((always_inline)) inline
+#elif defined(__ICCARM__)
+#   define hpatch_force_inline _Pragma("inline=forced")
+#else
+#   define hpatch_force_inline hpatch_inline
+#endif
 #endif
 
 //PRIu64 for printf type hpatch_StreamPos_t

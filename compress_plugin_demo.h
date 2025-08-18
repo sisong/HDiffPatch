@@ -103,12 +103,15 @@ static const char*  _fun_name(void){            \
     return kCompressType;                       \
 }
 
-static
-hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize){
-    hpatch_StreamPos_t result=dataSize+(dataSize>>3)+1024*2;
+#ifndef __DEF_default_maxCompressedSize
+#define __DEF_default_maxCompressedSize
+static hpatch_StreamPos_t _default_maxCompressedSize(hpatch_StreamPos_t dataSize){
+    hpatch_StreamPos_t result=dataSize+(dataSize>>3)+256;
     assert(result>dataSize);
     return result;
 }
+#endif
+
 static
 int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
     return 1;

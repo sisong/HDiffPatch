@@ -32,9 +32,6 @@
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 
 namespace sync_private{
-
-hpatch_inline static void
-TNewDataSyncInfo_init(TNewDataSyncInfo* self) { memset(self,0,sizeof(*self)); }
     
 hpatch_inline static
 hpatch_StreamPos_t TNewDataSyncInfo_blockCount(const TNewDataSyncInfo* self){
@@ -56,19 +53,32 @@ hpatch_inline static
 bool TNewDataSyncInfo_syncBlockIsCompressed(const TNewDataSyncInfo* self,uint32_t blockIndex){
     return (self->savedSizes)&&(self->savedSizes[blockIndex]);
 }
+
 hpatch_inline static
-uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex){
+//out_skipBitsInFirstCodeByte&out_lastByteHalfBits can null, only for zsync;
+uint32_t TNewDataSyncInfo_syncBlockSize(const TNewDataSyncInfo* self,uint32_t blockIndex,
+                                        hpatch_byte* out_skipBitsInFirstCodeByte,hpatch_byte* out_lastByteHalfBits){
     assert((self->kSyncBlockSize*(hpatch_StreamPos_t)blockIndex)<self->newDataSize);
+    if (self->isSavedBitsSizes){
+        assert(self->savedBitsInfos);
+        const savedBitsInfo_t& bitsInfo=self->savedBitsInfos[blockIndex];
+        const uint32_t bits=bitsInfo.skipBitsInFirstCodeByte+bitsInfo.bitsSize;
+        if (out_skipBitsInFirstCodeByte) *out_skipBitsInFirstCodeByte=bitsInfo.skipBitsInFirstCodeByte;
+        if (out_lastByteHalfBits) *out_lastByteHalfBits=(bits&7);
+        return (bits+7)>>3;//return code border byte size
+    }
+    if (out_skipBitsInFirstCodeByte) *out_skipBitsInFirstCodeByte=0;
+    if (out_lastByteHalfBits) *out_lastByteHalfBits=0;
     if (TNewDataSyncInfo_syncBlockIsCompressed(self,blockIndex))
         return self->savedSizes[blockIndex];
     else
         return TNewDataSyncInfo_newDataBlockSize(self,blockIndex);
 }
     
-inline static uint64_t roll_hash_start(const adler_data_t* pdata,size_t n){
-                                        return fast_adler64_start(pdata,n); }
-inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
-                                      adler_data_t out_data,adler_data_t in_data){
+inline static hpatch_uint64_t roll_hash_start(const adler_data_t* pdata,size_t n){
+                                              return fast_adler64_start(pdata,n); }
+hpatch_force_inline static uint64_t roll_hash_roll(uint64_t adler,size_t blockSize,
+                                                   adler_data_t out_data,adler_data_t in_data){
                                         return fast_adler64_roll(adler,blockSize,out_data,in_data); }
     
 #define kStrongChecksumByteSize_min    (4*8/8)
@@ -87,53 +97,13 @@ void toPartChecksum(unsigned char* out_partChecksum,size_t outPartBits,
 static hpatch_inline
 size_t checkChecksumBufByteSize(size_t kStrongChecksumByteSize){
         return kStrongChecksumByteSize*3; }
-static hpatch_inline
-void checkChecksumInit(unsigned char* checkChecksumBuf,size_t kStrongChecksumByteSize){
-        unsigned char* d_xor=checkChecksumBuf+kStrongChecksumByteSize;
-        assert(kStrongChecksumByteSize>0);
-        memset(d_xor,0xFF,kStrongChecksumByteSize); }
-
-    static hpatch_inline
-    void _writeUInt32(unsigned char* dst,uint32_t v){
-        dst[0]=(unsigned char)v;       dst[1]=(unsigned char)(v>>8);
-        dst[2]=(unsigned char)(v>>16); dst[3]=(unsigned char)(v>>24); }
-
-static hpatch_inline
+void checkChecksumInit(unsigned char* checkChecksumBuf,size_t kStrongChecksumByteSize);
 void checkChecksumAppendData(unsigned char* checkChecksumBuf,uint32_t checksumIndex,
                              hpatch_TChecksum* checkChecksumPlugin,hpatch_checksumHandle checkChecksum,
-                             const unsigned char* strongChecksum,size_t kStrongChecksumByteSize){
-    unsigned char* d_xor=checkChecksumBuf+kStrongChecksumByteSize;
-    unsigned char* d_xor_end=d_xor+kStrongChecksumByteSize;
-    unsigned char* _ccBuf=checkChecksumBuf+kStrongChecksumByteSize*2;
+                             const unsigned char* strongChecksum,const unsigned char* blockData,size_t blockDataSize);
 
-    unsigned char _checksumIndex[4*3];
-    _writeUInt32(&_checksumIndex[0],checksumIndex);
-    const uint64_t _fchecksum=fast_adler64_start(&_checksumIndex[0],4);
-    _writeUInt32(&_checksumIndex[4],(uint32_t)_fchecksum);
-    _writeUInt32(&_checksumIndex[4*2],(uint32_t)(_fchecksum>>32));
-
-    checkChecksumPlugin->begin(checkChecksum);
-    checkChecksumPlugin->append(checkChecksum,&_checksumIndex[0],(&_checksumIndex[0])+4*3);
-    checkChecksumPlugin->append(checkChecksum,strongChecksum,strongChecksum+kStrongChecksumByteSize);
-    checkChecksumPlugin->end(checkChecksum,_ccBuf,_ccBuf+kStrongChecksumByteSize);
-
-    while (d_xor<d_xor_end){
-        (*d_xor++)^=*_ccBuf++;
-    }
-}
-static hpatch_inline
-void checkChecksumEndTo(unsigned char* dst,
-                        const unsigned char* checkChecksumBuf,size_t kStrongChecksumByteSize){
-    const unsigned char* d_xor=checkChecksumBuf+kStrongChecksumByteSize;
-    const unsigned char* d_xor_end=d_xor+kStrongChecksumByteSize;
-    while (d_xor<d_xor_end){
-        *dst++=(*d_xor++);
-    }
-}
-static hpatch_inline
-void checkChecksumEnd(unsigned char* checkChecksumBuf,size_t kStrongChecksumByteSize){
-    return checkChecksumEndTo(checkChecksumBuf,checkChecksumBuf,kStrongChecksumByteSize); }
-
+void checkChecksumEndTo(unsigned char* dst,unsigned char* checkChecksumBuf,
+                        hpatch_TChecksum* checkChecksumPlugin,hpatch_checksumHandle checkChecksum);
     
 static hpatch_inline
 void writeRollHashBytes(uint8_t* out_part,uint64_t partRollHash,size_t savedRollHashByteSize){
@@ -172,8 +142,8 @@ uint64_t readRollHashBytes(const uint8_t* part,size_t savedRollHashByteSize){
     }
 }
 
-static hpatch_inline
-uint64_t toSavedPartRollHash(uint64_t rollHash,size_t savedRollHashBits){
+static hpatch_force_inline
+hpatch_uint64_t toSavedPartRollHash(hpatch_uint64_t rollHash,size_t savedRollHashBits){
     if (savedRollHashBits<64)
         return ((rollHash>>savedRollHashBits)^rollHash) & ((((uint64_t)1)<<savedRollHashBits)-1);
     else

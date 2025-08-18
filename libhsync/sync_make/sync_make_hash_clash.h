@@ -33,6 +33,7 @@
 
 namespace sync_private{
     const size_t _kMaxRollHashBits      = 8*sizeof(uint64_t);
+    const size_t _kBadRollHashBits      = _kMaxRollHashBits/2; //for reduce defect in fadler64 & toSavedPartRollHash
     
     hpatch_inline static
     size_t _estimateCompareCountBit(hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize){
@@ -62,40 +63,50 @@ namespace sync_private{
         if (rollHashBits<_kNeedMinRollHashBits) rollHashBits=_kNeedMinRollHashBits;
         else if (rollHashBits>_kMaxRollHashBits) rollHashBits=_kMaxRollHashBits;
         assert(rollHashBits<=result);
-        size_t strongHashBits=result-rollHashBits;
-        if (strongHashBits<=_kNeedMinStrongHashBits){
-            size_t moveBits=_kNeedMinStrongHashBits-strongHashBits;
-            assert(rollHashBits>=moveBits+_kNeedMinRollHashBits);
-            rollHashBits-=moveBits;
-            strongHashBits+=moveBits;
-        }else{
-            size_t moveBits=(strongHashBits-_kNeedMinStrongHashBits+2)/3;
-            moveBits=(moveBits<=_kNeedMinRollHashBits)?moveBits:_kNeedMinRollHashBits;
-            if (rollHashBits+moveBits>=_kMaxRollHashBits)
-                moveBits=_kMaxRollHashBits-rollHashBits;
-            strongHashBits-=moveBits;
-            rollHashBits+=moveBits;
+
+        #define __StrongHashBITS_ ((size_t)(result-rollHashBits))
+        if (__StrongHashBITS_<rollHashBits){
+            rollHashBits-=2;
         }
-        if (strongHashBits>kStrongHashBits){
-            strongHashBits=kStrongHashBits;
+        if (__StrongHashBITS_<_kNeedMinStrongHashBits){
+            rollHashBits=result-_kNeedMinStrongHashBits;
+        }
+        if (rollHashBits<__StrongHashBITS_){
+            size_t moveBits=(__StrongHashBITS_-rollHashBits+2)/3;
+            moveBits=(moveBits<=_kNeedMinRollHashBits)?moveBits:_kNeedMinRollHashBits;
+            rollHashBits+=moveBits;
+            if (rollHashBits>_kMaxRollHashBits) rollHashBits=_kMaxRollHashBits;
+        }
+        if (__StrongHashBITS_>kStrongHashBits){
             rollHashBits=result-kStrongHashBits;
             assert((rollHashBits>=_kNeedMinRollHashBits)&&(rollHashBits<=_kMaxRollHashBits));
         }
-        assert(result==rollHashBits+strongHashBits);
+        if (rollHashBits==_kBadRollHashBits){
+            size_t moveBits=(__StrongHashBITS_<kStrongHashBits)?1:((size_t)0)-((size_t)1);
+            rollHashBits-=moveBits;
+        }
         *out_partRollHashBits=rollHashBits;
-        *out_partStrongHashBits=strongHashBits;
+        *out_partStrongHashBits=__StrongHashBITS_;
+        #undef __StrongHashBITS_
         return result;
     }
 }//namespace sync_private
 
 
 hpatch_inline static //check strongChecksumBits is strong enough?
-bool getStrongForHashClash(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,uint32_t kSyncBlockSize,
-                           size_t strongChecksumBits){
+bool _getStrongForHashClash(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,
+                            uint32_t kSyncBlockSize,size_t strongChecksumBits,size_t validRollHashBits){
     if (strongChecksumBits<kStrongChecksumByteSize_min*8)
         return false;
     size_t needHashBits=sync_private::getNeedHashBits(kSafeHashClashBit,newDataSize,kSyncBlockSize);
-    return sync_private::_kMaxRollHashBits+strongChecksumBits>=needHashBits;
+    return validRollHashBits+strongChecksumBits>=needHashBits;
+}
+
+hpatch_inline static //check strongChecksumBits is strong enough?
+bool getStrongForHashClash(size_t kSafeHashClashBit,hpatch_StreamPos_t newDataSize,
+                           uint32_t kSyncBlockSize,size_t strongChecksumBits){
+    return _getStrongForHashClash(kSafeHashClashBit,newDataSize,kSyncBlockSize,
+                                  strongChecksumBits,sync_private::_kMaxRollHashBits);
 }
 
 hpatch_inline static

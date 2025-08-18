@@ -275,10 +275,12 @@ struct TReadSyncDataListener:public IReadSyncDataListener{
         readSyncDataEnd=0;
     }
     static hpatch_BOOL _readSyncData(struct IReadSyncDataListener* listener,uint32_t blockIndex,
-                                     hpatch_StreamPos_t posInNewSyncData,hpatch_StreamPos_t posInNeedSyncData,
+                                     hpatch_StreamPos_t posInNewSyncData,uint32_t isReLoadNewHalf,
+                                     hpatch_StreamPos_t posInNeedSyncData,uint32_t isReLoadDiffHalf,
                                      unsigned char* out_syncDataBuf,uint32_t syncDataSize){
         const TReadSyncDataListener* self=(const TReadSyncDataListener*)listener->readSyncDataImport;
         const std::vector<TByte>& src=self->_hzData;
+        posInNewSyncData-=isReLoadNewHalf;
         if (posInNewSyncData+syncDataSize>src.size()) return hpatch_FALSE;
         memcpy(out_syncDataBuf,src.data()+(size_t)posInNewSyncData,syncDataSize);
         return hpatch_TRUE;
@@ -313,7 +315,7 @@ static void _create_hsynz_diff(const TByte* newData,const TByte* newData_end,
     TReadSyncDataListener readSyncDataListener(_hsynzData);
     TNewDataSyncInfo newSyncInfo={0};
     hiStream.streamSize=hiStream.dst.size();
-    ret=TNewDataSyncInfo_open(&newSyncInfo,(const hpatch_TStreamInput*)&hiStream,&syncInfoListener);
+    ret=TNewDataSyncInfo_open(&newSyncInfo,(const hpatch_TStreamInput*)&hiStream,hpatch_FALSE,&syncInfoListener);
     if (ret!=0) throw std::runtime_error("TNewDataSyncInfo_open() error!");
     ret=sync_local_diff(&syncInfoListener,&readSyncDataListener,&oldStream,
                         &newSyncInfo,&diffStream,kSyncDiff_default,0,1);
@@ -336,7 +338,7 @@ static hpatch_BOOL _hsynz_local_patch(unsigned char* out_newData,unsigned char* 
     mem_as_hStreamInput(&hiStream,hsyniData.data(),hsyniData.data()+hsyniData.size());
     TSyncInfoListener syncInfoListener;
     TNewDataSyncInfo newSyncInfo={0};
-    ret=TNewDataSyncInfo_open(&newSyncInfo,&hiStream,&syncInfoListener);
+    ret=TNewDataSyncInfo_open(&newSyncInfo,&hiStream,hpatch_FALSE,&syncInfoListener);
     if (ret!=0){
 #ifdef _AttackPacth_ON
         return hpatch_FALSE;
@@ -370,7 +372,7 @@ static hpatch_BOOL _hsynz_sync_patch(unsigned char* out_newData,unsigned char* o
     TSyncInfoListener syncInfoListener;
     TNewDataSyncInfo newSyncInfo={0};
     TReadSyncDataListener readSyncDataListener(hsynzData);
-    ret=TNewDataSyncInfo_open(&newSyncInfo,&hiStream,&syncInfoListener);
+    ret=TNewDataSyncInfo_open(&newSyncInfo,&hiStream,hpatch_FALSE,&syncInfoListener);
     if (ret!=0){
 #ifdef _AttackPacth_ON
         return hpatch_FALSE;

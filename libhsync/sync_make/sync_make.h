@@ -53,6 +53,7 @@ void create_sync_data(const hpatch_TStreamInput*  newData,
                       size_t kSafeHashClashBit=kSafeHashClashBit_default,
                       size_t threadNum=1);
 
+//create out_hsyni & out_hsynz
 // out_hsynz: out compressed newData by compressPlugin
 //   client download compressed part of newData from out_hsynz;
 void create_sync_data(const hpatch_TStreamInput*  newData,

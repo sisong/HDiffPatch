@@ -31,6 +31,7 @@
 #include "../../dirDiffPatch/dir_diff/dir_diff_tools.h"
 #include "sync_make_hash_clash.h"
 #include "sync_info_make.h"
+#include "sync_make_private.h"
 using namespace hdiff_private;
 using namespace sync_private;
 
@@ -43,13 +44,6 @@ static void getRefList(const std::vector<std::string>& newList,
         out_newSizeList[newi]=getFileSize(fileName);
     }
 }
-
-void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
-                               const hpatch_TStreamInput*  newData,
-                               const hpatch_TStreamOutput* out_newSyncInfo,
-                               const hpatch_TStreamOutput* out_newSyncData,
-                               hsync_TDictCompress* compressPlugin,
-                               hsync_THsynz* hsynzPlugin,size_t threadNum);
 
 void create_dir_sync_data(IDirSyncListener*         listener,
                           const TManifest&          newManifest,

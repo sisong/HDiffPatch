@@ -65,10 +65,10 @@ public:
     inline void clear(){ bf.clear(); }
     void buildMatchCache(const TChar* src_begin,const TChar* src_end,size_t threadNum);
 
-    static inline THash getHash(const TChar* datas) { return fast_adler32_start(datas,kFMMinStrSize); }
-    static inline THash rollHash(THash h,const TChar* cur) { return fast_adler32_roll(h,kFMMinStrSize,cur[-kFMMinStrSize],cur[0]); }
+    static hpatch_force_inline THash getHash(const TChar* datas) { return fast_adler32_start(datas,kFMMinStrSize); }
+    static hpatch_force_inline THash rollHash(THash h,const TChar* cur) { return fast_adler32_roll(h,kFMMinStrSize,cur[-kFMMinStrSize],cur[0]); }
 
-    inline bool isHit(THash h) const { return bf.is_hit(h); }
+    hpatch_force_inline bool isHit(THash h) const { return bf.is_hit(h); }
 private:
     TBloomFilter<THash>  bf;
 };

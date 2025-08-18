@@ -40,7 +40,7 @@ typedef uint64_t        adler_uint_t;
 #define adler_start     fast_adler64_start
 #define adler_roll      fast_adler64_roll
 typedef uint64_t        adler_hash_t;
-static inline adler_hash_t adler_to_hash(const uint64_t x){ return x; }
+static hpatch_force_inline adler_hash_t adler_to_hash(const uint64_t x){ return x; }
 
 //typedef adler128_t      adler_uint_t;
 //#define adler_start     fast_adler128_start

@@ -27,13 +27,16 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "sync_make.h"
+#include "sync_make_private.h"
 #include "sync_make_hash_clash.h"
 #include "sync_info_make.h"
 #include "match_in_new.h"
 #include "../../libParallel/parallel_channel.h"
 #include <vector>
+#include <atomic>
 using namespace hdiff_private;
 using namespace sync_private;
+namespace sync_private{
 
 struct _TCreateDatas {
     const hpatch_TStreamInput*  newData;
@@ -43,6 +46,7 @@ struct _TCreateDatas {
     const hpatch_TStreamOutput* out_hsynz;
     hpatch_StreamPos_t          curOutPos;
     hpatch_checksumHandle       checkChecksum;
+    const _ICreateSync_by*      cs_by;
 };
 
 struct _TCompress{
@@ -162,18 +166,20 @@ namespace{
         TWorkBuf* workFilished;
         volatile uint32_t workBlockEnd;
         volatile uint32_t savedBlockEnd;
+        CWaitValue nextCCheckBlocki;
+        CWaitValue nextReadBlocki;
         const uint32_t kBlockCount;
         std::vector<TThreadData> threadDataList;
-        inline TMt(size_t threadNum,_TCreateDatas& _cd,
-                   uint32_t _bestWorkBlockCount,hpatch_TChecksum* checksumPlugin,
+        inline TMt(size_t threadNum,_TCreateDatas& _cd,uint32_t _bestWorkBlockCount,
                    hsync_TDictCompress* compressPlugin,uint32_t kSyncBlockCount,
                    uint32_t kSyncBlockSize,TNewDataSyncInfo* out_hsyni)
         :cd(_cd),bestWorkBlockCount(_bestWorkBlockCount),
-         workFilished(0),workBlockEnd(0),savedBlockEnd(0),kBlockCount(kSyncBlockCount){
+         workFilished(0),workBlockEnd(0),savedBlockEnd(0),
+         nextCCheckBlocki(0),nextReadBlocki(0),kBlockCount(kSyncBlockCount){
             threadDataList.resize(threadNum);
             for (size_t i=0;i<threadNum;++i){
                 TThreadData& td=threadDataList[i];
-                td.checksumBlockData.init(checksumPlugin,false);
+                td.checksumBlockData.init(out_hsyni->strongChecksumPlugin,false);
                 td.compress.init(compressPlugin,kSyncBlockCount,kSyncBlockSize,out_hsyni);
             }
         }
@@ -265,6 +271,7 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
     const uint32_t      kSyncBlockSize=out_hsyni->kSyncBlockSize;
     const uint32_t      kSyncBlockCount=(workData->blockEnd-workData->blockBegin);
     hpatch_StreamPos_t curReadPos=(hpatch_StreamPos_t)workData->blockBegin*kSyncBlockSize;
+    const bool isCCheckByOrder=_mt&&cd.out_hsyni->isNotCChecksumNewMTParallel;
 
     size_t backZeroLen=0;
     const size_t dataLens=(size_t)kSyncBlockSize*kSyncBlockCount;
@@ -278,17 +285,41 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
         {
             size_t readLen=dataLens-backZeroLen+workData->in_borderSize;
             if (curReadPos+readLen>cd.newData->streamSize)
-                    readLen=cd.newData->streamSize-curReadPos;
-#if (_IS_USED_MULTITHREAD)
+                    readLen=(size_t)(cd.newData->streamSize-curReadPos);
+        #if (_IS_USED_MULTITHREAD)
             TMt* mt=(TMt*)_mt;
-            CAutoLocker _autoLocker(mt?mt->readLocker.locker:0);
+            if (isCCheckByOrder){
+                if (!mt->nextReadBlocki.wait(workData->blockBegin,mt->is_on_error_by,mt))
+                    return;
+            }
+            CAutoLocker _autoLocker((mt&&(!isCCheckByOrder))?mt->readLocker.locker:0);
             if (mt)
                 compress.resertDict(cd.newData,curReadPos,workData->blockBegin);
-#endif
+        #endif
             checkv(cd.newData->read(cd.newData,curReadPos,workData->buf,workData->buf+readLen));
+        #if (_IS_USED_MULTITHREAD)
+            if (isCCheckByOrder)
+                mt->nextReadBlocki.store(workData->blockEnd);
+        #endif
         }
         if (backZeroLen)
             memset(workData->buf+dataLens-backZeroLen,0,backZeroLen);
+    }
+
+    if (cd.out_hsyni->isNotCChecksumNewMTParallel){//check new data by order(like single thread), & not used checksumBlockData  
+    #if (_IS_USED_MULTITHREAD)
+        TMt* mt=(TMt*)_mt;
+        if (mt){
+            if (!mt->nextCCheckBlocki.wait(workData->blockBegin,mt->is_on_error_by,mt))
+                return;
+        }
+    #endif
+        cd.cs_by->checkChecksumAppendData(cd.out_hsyni->savedNewDataCheckChecksum,workData->blockBegin,
+                                          out_hsyni->fileChecksumPlugin,cd.checkChecksum,0,workData->buf,dataLens-backZeroLen);
+    #if (_IS_USED_MULTITHREAD)
+        if (mt)
+            mt->nextCCheckBlocki.store(workData->blockEnd);
+    #endif
     }
 
     hpatch_byte* dataBuf=workData->buf;
@@ -296,35 +327,33 @@ static void _create_sync_data_part(_TCreateDatas& cd,TWorkBuf* workData,
         size_t srcDataLen=(i+1<workData->blockEnd)?kSyncBlockSize:kSyncBlockSize-backZeroLen;
         size_t cur_borderSize=workData->in_borderSize;
         if (curReadPos+srcDataLen+cur_borderSize>cd.newData->streamSize)
-            cur_borderSize=cd.newData->streamSize-(curReadPos+srcDataLen);
+            cur_borderSize=(size_t)(cd.newData->streamSize-(curReadPos+srcDataLen));
         //compress
         size_t compressedSize=compress.doCompress(i,dataBuf,srcDataLen,cur_borderSize);
         checkv(compressedSize==(uint32_t)compressedSize);
         if (out_hsyni->savedSizes) //save compressedSize
             out_hsyni->savedSizes[i]=(uint32_t)compressedSize;
 
-        const uint64_t rollHash=roll_hash_start(dataBuf,kSyncBlockSize);
+        const uint64_t rollHash=cd.cs_by->roll_hash_start(dataBuf,kSyncBlockSize);
         //strong hash
         checksumBlockData.appendBegin();
         checksumBlockData.append(dataBuf,dataBuf+kSyncBlockSize);
         checksumBlockData.appendEnd();
         {//save hash
-            hpatch_TChecksum* strongChecksumPlugin=out_hsyni->_strongChecksumPlugin;
-            const size_t   checksumByteSize=strongChecksumPlugin->checksumByteSize();
-            const uint64_t _partRollHash=toSavedPartRollHash(rollHash,out_hsyni->savedRollHashBits);
+            const uint64_t _partRollHash=cd.cs_by->toSavedPartRollHash(rollHash,out_hsyni->savedRollHashBits);
             writeRollHashBytes(out_hsyni->rollHashs+i*out_hsyni->savedRollHashByteSize,
                                _partRollHash,out_hsyni->savedRollHashByteSize);
-            {
-#if (_IS_USED_MULTITHREAD)
+            if (!cd.out_hsyni->isNotCChecksumNewMTParallel){
+            #if (_IS_USED_MULTITHREAD)
                 TMt* mt=(TMt*)_mt;
                 CAutoLocker _autoLocker(mt?mt->checkLocker.locker:0);
-#endif
-                checkChecksumAppendData(cd.out_hsyni->savedNewDataCheckChecksum,i,
-                                        strongChecksumPlugin,cd.checkChecksum,
-                                        checksumBlockData.checksum.data(),checksumByteSize);
+            #endif
+                cd.cs_by->checkChecksumAppendData(cd.out_hsyni->savedNewDataCheckChecksum,i,
+                                                  out_hsyni->fileChecksumPlugin,cd.checkChecksum,
+                                                  checksumBlockData.checksum.data(),0,0);
             }
             toPartChecksum(checksumBlockData.checksum.data(),out_hsyni->savedStrongChecksumBits,
-                           checksumBlockData.checksum.data(),checksumByteSize);
+                           checksumBlockData.checksum.data(),out_hsyni->strongChecksumPlugin->checksumByteSize());
             memcpy(out_hsyni->partChecksums+i*out_hsyni->savedStrongChecksumByteSize,
                    checksumBlockData.checksum.data(),out_hsyni->savedStrongChecksumByteSize);
         }
@@ -344,7 +373,7 @@ static void _create_sync_data_mt(int threadIndex,void* _mt){
         if (workData==0)
             break; //work finish
         try{
-            _create_sync_data_part(mt.cd,workData,td.checksumBlockData,td.compress,&mt);
+            mt.cd.cs_by->create_sync_data_part(mt.cd,workData,td.checksumBlockData,td.compress,&mt);
         }catch(...){
             mt.on_error();
         }
@@ -352,14 +381,11 @@ static void _create_sync_data_mt(int threadIndex,void* _mt){
 }
 #endif
 
-void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
-                               const hpatch_TStreamInput*  newData,
-                               const hpatch_TStreamOutput* out_hsyni,
-                               const hpatch_TStreamOutput* out_hsynz,
-                               hsync_TDictCompress* compressPlugin,
-                               hsync_THsynz* hsynzPlugin,size_t threadNum){
+void _create_sync_data_by(_ICreateSync_by* cs_by,TNewDataSyncInfo* newSyncInfo,
+                          const hpatch_TStreamInput* newData,const hpatch_TStreamOutput* out_hsynz,
+                          hsync_TDictCompress* compressPlugin,hsync_THsynz* hsynzPlugin,size_t threadNum){
     const uint32_t kSyncBlockSize= newSyncInfo->kSyncBlockSize;
-    hpatch_TChecksum* checksumPlugin=newSyncInfo->_strongChecksumPlugin;
+    hpatch_TChecksum* checksumPlugin=newSyncInfo->fileChecksumPlugin;
     checkv(kSyncBlockSize>=_kSyncBlockSize_min_limit);
     if (compressPlugin) checkv(out_hsynz!=0);
     hsync_THsynz _hsynzPlugin;
@@ -372,6 +398,8 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
         checkv((checksumByteSize<=_kStrongChecksumByteSize_max_limit)&&(checksumByteSize>=kStrongChecksumByteSize_min));
     }
 
+    assert(cs_by->create_sync_data_part==0);
+    cs_by->create_sync_data_part=_create_sync_data_part;
     CChecksum      _checkChecksum(checksumPlugin,false);
     _TCreateDatas  createDatas;
     createDatas.newData=newData;
@@ -381,6 +409,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
     createDatas.hsynzPlugin=hsynzPlugin;
     createDatas.curOutPos=0;
     createDatas.checkChecksum=_checkChecksum._handle;
+    createDatas.cs_by=cs_by;
     const bool is_hsynzPlugin=(out_hsynz&&hsynzPlugin);
     if (is_hsynzPlugin){
         createDatas.curOutPos=hsynzPlugin->hsynz_write_head(hsynzPlugin,out_hsynz,createDatas.curOutPos,newSyncInfo->isDirSyncInfo,
@@ -390,8 +419,8 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
     const uint32_t kBlockCount=(uint32_t)getSyncBlockCount(newData->streamSize,kSyncBlockSize);
     newSyncInfo->dictSize=compressPlugin?compressPlugin->limitDictSizeByData(compressPlugin,kBlockCount,kSyncBlockSize):0;
 
-    checkChecksumInit(createDatas.out_hsyni->savedNewDataCheckChecksum,
-                      createDatas.out_hsyni->kStrongChecksumByteSize);
+    cs_by->checkChecksumInit(createDatas.out_hsyni->savedNewDataCheckChecksum,
+                             checksumPlugin->checksumByteSize());
     
     const size_t in_borderSize=(compressPlugin&&compressPlugin->getDictCompressBorder)?compressPlugin->getDictCompressBorder():0;
     const hpatch_StreamPos_t kMaxCompressedSize=compressPlugin?compressPlugin->maxCompressedSize(kSyncBlockSize):0;
@@ -400,6 +429,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
                                           /(kSyncBlockSize+kMaxCompressedSize));
     bestWorkBlockCount=(bestWorkBlockCount<=kBlockCount)?bestWorkBlockCount:kBlockCount;
  #if (_IS_USED_MULTITHREAD)
+    threadNum=std::min(threadNum,(compressPlugin?threadNum:4));
     while ((hpatch_StreamPos_t)bestWorkBlockCount*threadNum>kBlockCount)
         --threadNum;
     if ((threadNum>1)&&(bestWorkBlockCount<=kBlockCount/2)){
@@ -412,7 +442,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
         const size_t kWorkMemBufSize=(kSyncBlockSize+(size_t)kMaxCompressedSize)*bestWorkBlockCount+in_borderSize;
         TAutoMem    membuf((sizeof(TWorkBuf)+kWorkMemBufSize)*kWorkBufCount);
 
-        TMt mt(threadNum,createDatas,bestWorkBlockCount,checksumPlugin,compressPlugin,
+        TMt mt(threadNum,createDatas,bestWorkBlockCount,compressPlugin,
                kBlockCount,kSyncBlockSize,createDatas.out_hsyni);
         { //mem buf
             TWorkBuf* workBufList=(TWorkBuf*)membuf.data();
@@ -433,7 +463,7 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
 #endif
     {
         TAutoMem    membuf((kSyncBlockSize+(size_t)kMaxCompressedSize)*bestWorkBlockCount+in_borderSize);
-        CChecksum   checksumBlockData(checksumPlugin,false);
+        CChecksum   checksumBlockData(newSyncInfo->strongChecksumPlugin,false);
         _TCompress  compress(compressPlugin,kBlockCount,kSyncBlockSize,createDatas.out_hsyni);
         TWorkBuf    workData={0};
         workData.buf=membuf.data();
@@ -441,21 +471,34 @@ void _private_create_sync_data(TNewDataSyncInfo*           newSyncInfo,
         for (uint32_t ib=0; ib<kBlockCount; ib+=bestWorkBlockCount){
             workData.blockBegin=ib;
             workData.blockEnd=(ib+bestWorkBlockCount<=kBlockCount)?ib+bestWorkBlockCount:kBlockCount;
-            _create_sync_data_part(createDatas,&workData,checksumBlockData,compress);
+            cs_by->create_sync_data_part(createDatas,&workData,checksumBlockData,compress,0);
         }
     }
-    checkChecksumEnd(createDatas.out_hsyni->savedNewDataCheckChecksum,
-                     createDatas.out_hsyni->kStrongChecksumByteSize);
+    cs_by->checkChecksumEndTo(createDatas.out_hsyni->savedNewDataCheckChecksum,createDatas.out_hsyni->savedNewDataCheckChecksum,
+                              checksumPlugin,createDatas.checkChecksum);
     if (is_hsynzPlugin){
         createDatas.curOutPos=hsynzPlugin->hsynz_write_foot(hsynzPlugin,out_hsynz,createDatas.curOutPos,
-                                createDatas.out_hsyni->savedNewDataCheckChecksum,createDatas.out_hsyni->kStrongChecksumByteSize);
+                                createDatas.out_hsyni->savedNewDataCheckChecksum,checksumPlugin->checksumByteSize());
     }
     newSyncInfo->newSyncDataSize=createDatas.curOutPos;
-    matchNewDataInNew(createDatas.out_hsyni);
-    
-    //save to out_hsyni
-    TNewDataSyncInfo_saveTo(newSyncInfo,out_hsyni,compressPlugin);
 }
+
+void _private_create_sync_data(TNewDataSyncInfo* newSyncInfo, const hpatch_TStreamInput*  newData,
+                               const hpatch_TStreamOutput* out_hsyni, const hpatch_TStreamOutput* out_hsynz,
+                               hsync_TDictCompress* compressPlugin, hsync_THsynz* hsynzPlugin,size_t threadNum){
+    _ICreateSync_by cs_by={0};
+    cs_by.roll_hash_start=roll_hash_start;
+    cs_by.toSavedPartRollHash=toSavedPartRollHash;
+    cs_by.checkChecksumInit=checkChecksumInit;
+    cs_by.checkChecksumAppendData=checkChecksumAppendData;
+    cs_by.checkChecksumEndTo=checkChecksumEndTo;
+    _create_sync_data_by(&cs_by,newSyncInfo,newData,out_hsynz,compressPlugin,hsynzPlugin,threadNum);
+    matchNewDataInNew(newSyncInfo);
+    TNewDataSyncInfo_saveTo(newSyncInfo,out_hsyni,compressPlugin);//save to out_hsyni
+}
+
+}//namespace sync_private
+
 
 void create_sync_data(const hpatch_TStreamInput*  newData,
                       const hpatch_TStreamOutput* out_hsyni,
