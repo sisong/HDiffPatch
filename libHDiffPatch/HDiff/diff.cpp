@@ -1184,23 +1184,23 @@ bool check_compressed_diff(const hpatch_TStreamInput*  newData,
 bool check_single_compressed_diff(const TByte* newData,const TByte* newData_end,
                                   const TByte* oldData,const TByte* oldData_end,
                                   const TByte* diff,const TByte* diff_end,
-                                  hpatch_TDecompress* decompressPlugin){
+                                  hpatch_TDecompress* decompressPlugin,size_t threadNum){
     hpatch_TStreamInput  newStream;
     hpatch_TStreamInput  oldStream;
     hpatch_TStreamInput  diffStream;
     mem_as_hStreamInput(&newStream,newData,newData_end);
     mem_as_hStreamInput(&oldStream,oldData,oldData_end);
     mem_as_hStreamInput(&diffStream,diff,diff_end);
-    return check_single_compressed_diff(&newStream,&oldStream,&diffStream,decompressPlugin);
+    return check_single_compressed_diff(&newStream,&oldStream,&diffStream,decompressPlugin,threadNum);
 }
 
 bool check_single_compressed_diff(const hpatch_TStreamInput* newData,
                                   const TByte* oldData,const TByte* oldData_end,
                                   const hpatch_TStreamInput* diff,
-                                  hpatch_TDecompress* decompressPlugin){ 
+                                  hpatch_TDecompress* decompressPlugin,size_t threadNum){ 
     hpatch_TStreamInput  oldStream;
     mem_as_hStreamInput(&oldStream,oldData,oldData_end);
-    return check_single_compressed_diff(newData,&oldStream,diff,decompressPlugin);
+    return check_single_compressed_diff(newData,&oldStream,diff,decompressPlugin,threadNum);
 }
 
     static hpatch_BOOL _check_single_onDiffInfo(struct sspatch_listener_t* listener,
@@ -1221,7 +1221,7 @@ bool check_single_compressed_diff(const hpatch_TStreamInput* newData,
 bool check_single_compressed_diff(const hpatch_TStreamInput* newData,
                                   const hpatch_TStreamInput* oldData,
                                   const hpatch_TStreamInput* diff,
-                                  hpatch_TDecompress* decompressPlugin){
+                                  hpatch_TDecompress* decompressPlugin,size_t threadNum){
     sspatch_listener_t listener={0};
     listener.import=decompressPlugin;
     listener.onDiffInfo=_check_single_onDiffInfo;
@@ -1231,7 +1231,7 @@ bool check_single_compressed_diff(const hpatch_TStreamInput* newData,
     TAutoMem _cache(kACacheBufSize*1);
     _TCheckOutNewDataStream out_newData(newData,_cache.data(),kACacheBufSize);
 
-    _test_rt(patch_single_stream(&listener,&out_newData,oldData,diff,0,0));
+    _test_rt(patch_single_stream(&listener,&out_newData,oldData,diff,0,0,threadNum));
     _test_rt(out_newData.isWriteFinish());
     return true;
 }

@@ -76,7 +76,7 @@ int _parallel_import_c_exit_on_error=0;
 #define _check_pt(rt,func_name)     { if (rt!=0) { _LOG_ERR_PT(rt,func_name); _check_exit(); } }
 
 static int _g_attr_RECURSIVE_is_init=0;
-static pthread_mutexattr_t _g_attr_RECURSIVE={};
+static pthread_mutexattr_t _g_attr_RECURSIVE={0};
 static void _init_attr_RECURSIVE(){
     int rt=pthread_mutexattr_init(&_g_attr_RECURSIVE);
     _check_pt(rt,"pthread_mutexattr_init");

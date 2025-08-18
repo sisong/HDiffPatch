@@ -14,8 +14,8 @@ public class HPatch{
     //        ( sourceWindowSize & targetWindowSize is set when diff, C API getVcDiffInfo() can got values from diffFile. )
     //    if diffFile created by $bsdiff4, and patch very slow,
     //      then cacheMemory recommended oldFileSize+256*1024;
-    public static native int patch(String oldFileName,String diffFileName,String outNewFileName,long cacheMemory);
+    public static native int patch(String oldFileName,String diffFileName,String outNewFileName,long cacheMemory,int threadNum);
     public static final int patch(String oldFileName,String diffFileName,String outNewFileName){
-        return patch(oldFileName,diffFileName,outNewFileName,-1);
+        return patch(oldFileName,diffFileName,outNewFileName,256*1024,3);
     }
 }

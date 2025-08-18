@@ -66,6 +66,16 @@ HPATCH_OBJ := \
     libHDiffPatch/HPatch/patch.o \
     file_for_patch.o
 
+ifeq ($(MT),0)
+else
+  HPATCH_OBJ+=libHDiffPatch/HPatch/hpatch_mt/_hcache_old_mt.o \
+              libHDiffPatch/HPatch/hpatch_mt/_hinput_mt.o \
+              libHDiffPatch/HPatch/hpatch_mt/_houtput_mt.o \
+              libHDiffPatch/HPatch/hpatch_mt/_hpatch_mt.o \
+              libHDiffPatch/HPatch/hpatch_mt/hpatch_mt.o \
+              libParallel/parallel_import_c.o
+endif
+
 ifeq ($(DIR_DIFF),0)
 else
   HPATCH_OBJ += \
@@ -236,7 +246,6 @@ endif
 ifeq ($(MT),0)
 else
   HDIFF_OBJ += \
-    libParallel/parallel_import_c.o \
     libParallel/parallel_channel.o \
     compress_parallel.o
 endif

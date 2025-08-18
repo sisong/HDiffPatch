@@ -676,7 +676,7 @@ struct CDirPatcher:public TDirPatcher{
 
 bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const TManifest& newManifest,
                    const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
-                   hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
+                   hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber,size_t threadNum){
     bool     result=true;
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     const std::vector<std::string>& oldList=oldManifest.pathList;
@@ -719,7 +719,7 @@ bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const
                                   oldManifest.rootPath.c_str(),newManifest.rootPath.c_str()));
     _test(TDirPatcher_openOldRefAsStream(&dirPatcher,kMaxOpenFileNumber,&oldStream));
     _test(TDirPatcher_openNewDirAsStream(&dirPatcher,&patchListener,&newStream));
-    _test(TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size));
+    _test(TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size,threadNum));
     _test(TDirPatcher_closeNewDirStream(&dirPatcher));
     _test(TDirPatcher_closeOldRefStream(&dirPatcher));
     _test(patchListener.isNewOk());

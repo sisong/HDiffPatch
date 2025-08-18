@@ -547,7 +547,7 @@ void _do_checksumOldRef(TDirPatcher* self,const hpatch_TStreamInput* oldData){
 
 hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
                               const hpatch_TStreamInput* oldData,
-                              TByte* temp_cache,TByte* temp_cache_end){
+                              TByte* temp_cache,TByte* temp_cache_end,size_t threadNum){
     size_t patchCacheSize_min = hpatch_kStreamCacheSize*8;
     hpatch_BOOL         result=hpatch_TRUE;
     TStreamInputClip    hdiffData;
@@ -578,7 +578,8 @@ hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_
         check(((size_t)(temp_cache_end-temp_cache))>=sdiffInfo->stepMemSize+hpatch_kStreamCacheSize*3);
         checki(patch_single_compressed_diff(out_newData,oldData,&hdiffData.base,sdiffInfo->diffDataPos,
                                             sdiffInfo->uncompressedSize,sdiffInfo->compressedSize,self->_decompressPlugin,
-                                            sdiffInfo->coverCount,(size_t)sdiffInfo->stepMemSize,temp_cache,temp_cache_end,0),
+                                            sdiffInfo->coverCount,(size_t)sdiffInfo->stepMemSize,
+                                            temp_cache,temp_cache_end,0,threadNum),
                "TDirPatcher_patch() patch_single_compressed_diff");
     }else
 #endif

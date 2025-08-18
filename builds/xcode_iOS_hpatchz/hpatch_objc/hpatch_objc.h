@@ -25,6 +25,7 @@
 + (int)patchWithOld:(NSString *)oldFileName
            withDiff:(NSString *)diffFileName
               toNew:(NSString *)outNewFileName
-           byMemory:(int64_t)cacheMemory;
+           byMemory:(int64_t)cacheMemory
+        byThreadNum:(size_t)threadNum;
 
 @end

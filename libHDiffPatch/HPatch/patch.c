@@ -1563,7 +1563,7 @@ static void _arrayCovers_sort_by_len(_TArrayCovers* self){
 }
 
 static hpatch_size_t _getMaxCachedLen(const _TArrayCovers* src_covers,
-                                      TByte* temp_cache,TByte* temp_cache_end,TByte* cache_buf_end){
+                                      TByte* temp_cache,TByte* temp_cache_end){
     const hpatch_size_t kMaxCachedLen  =~((hpatch_size_t)0);//max allowed length for a single cached data item;
     hpatch_StreamPos_t mlen=0;
     hpatch_StreamPos_t sum=0;
@@ -1629,7 +1629,7 @@ static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
                                    hpatch_StreamPos_t oldPos,hpatch_StreamPos_t oldPosAllEnd,
                                    _TArrayCovers* arrayCovers,hpatch_size_t maxCachedLen,hpatch_size_t sumCacheLen,
                                    TByte* old_cache,TByte* old_cache_end,TByte* cache_buf_end){
-    const hpatch_size_t kMinSpaceLen   =(1<<(20+2));//skip space of length seekTime*speed (can be smaller for SSD) if time-efficient, otherwise sequential access;
+    const hpatch_size_t kMinSpaceLen   =(1<<20);//skip space of length seekTime*speed (can be smaller for SSD) if time-efficient, otherwise sequential access;
     const hpatch_size_t kAccessPageSize=4096;//disk page-aligned access (affects only speed, but impact is minimal);
     hpatch_BOOL result=hpatch_TRUE;
     hpatch_size_t cur_i=0,i;
@@ -1765,7 +1765,7 @@ static hpatch_BOOL _cache_old(hpatch_TStreamInput** out_cachedOld,const hpatch_T
     _cache_alloc(self,_cache_old_TStreamInput,sizeof(_cache_old_TStreamInput),
                  temp_cache,temp_cache_end);
     
-    maxCachedLen=_getMaxCachedLen(arrayCovers,temp_cache,temp_cache_end,cache_buf_end);
+    maxCachedLen=_getMaxCachedLen(arrayCovers,temp_cache,temp_cache_end);
     if (maxCachedLen==0) return hpatch_FALSE;
     sumCacheLen=_set_cache_pos(arrayCovers,maxCachedLen,&oldPosBegin,&oldPosEnd);
     if (sumCacheLen==0) return hpatch_FALSE;
@@ -1836,11 +1836,11 @@ static hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
     TByte* temp_cache=*ptemp_cache;
     TByte* temp_cache_end=*ptemp_cache_end;
     *out_covers=0;
-    if (_patch_cache_all_old(poldData,kCacheCount*hpatch_kStreamCacheSize,ptemp_cache,ptemp_cache_end,out_isReadError)){
-        return hpatch_TRUE;//loaded all oldData
-    }
+    if (_patch_cache_all_old(poldData,kCacheCount*hpatch_kStreamCacheSize,ptemp_cache,ptemp_cache_end,out_isReadError))
+        return hpatch_TRUE;//cache all oldData
+    if (*out_isReadError) return hpatch_FALSE;
 #if (_IS_NEED_CACHE_OLD_BY_COVERS)
-    else if ((hpatch_size_t)(temp_cache_end-temp_cache)>=kActiveCacheOldMemorySize) {
+    if ((hpatch_size_t)(temp_cache_end-temp_cache)>=kActiveCacheOldMemorySize) {// try cache part of oldData
         hpatch_BOOL         isUsedCover32;
         TByte*              temp_cache_end_back=temp_cache_end;
         _TArrayCovers*      arrayCovers=0;
@@ -1858,7 +1858,7 @@ static hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
             // [                       ...                                 |   compressedCovers cache   ]
             // [           (cacheSize-kBestACacheSize)                     |      (kBestACacheSize)     ]
             *out_covers=&compressedCovers->base.ICovers;
-            isUsedCover32=(diffInfo.oldDataSize|diffInfo.newDataSize)<((hpatch_StreamPos_t)1<<32);
+            isUsedCover32=(diffInfo.oldDataSize|diffInfo.newDataSize)<((hpatch_uint64_t)1<<32);
         }else{
             _TPackedCovers* packedCovers=0;
             _THDiffHead     diffHead;
@@ -1870,7 +1870,7 @@ static hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
             // [                       ...                                 |     packedCovers cache     ]
             // [          (cacheSize-kBestACacheSize*3)                    |    (kBestACacheSize*3)     ]
             *out_covers=&packedCovers->base.ICovers;
-            isUsedCover32=(oldDataSize|newDataSize)<((hpatch_StreamPos_t)1<<32);
+            isUsedCover32=(oldDataSize|newDataSize)<((hpatch_uint64_t)1<<32);
         }
         
         if (!_arrayCovers_load(&arrayCovers,*out_covers,isUsedCover32,

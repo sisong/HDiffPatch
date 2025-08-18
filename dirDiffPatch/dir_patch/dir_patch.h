@@ -147,7 +147,7 @@ hpatch_BOOL TDirPatcher_openNewDirAsStream(TDirPatcher* self,IDirPatchListener* 
                                            const hpatch_TStreamOutput** out_newDirStream);
 hpatch_BOOL TDirPatcher_patch(TDirPatcher* self,const hpatch_TStreamOutput* out_newData,
                               const hpatch_TStreamInput* oldData,
-                              unsigned char* temp_cache,unsigned char* temp_cache_end);
+                              unsigned char* temp_cache,unsigned char* temp_cache_end,size_t threadNum);
     
 static hpatch_inline
 hpatch_BOOL TDirPatcher_isCopyDataChecksumError(const TDirPatcher* self)

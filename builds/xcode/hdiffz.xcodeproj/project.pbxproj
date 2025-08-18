@@ -18,6 +18,11 @@
 		0D7FEAB8283124A20029772D /* hpatch_lite.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D7FEAB5283124A20029772D /* hpatch_lite.c */; };
 		0DA2A8EE292B9880000E86E1 /* vcdiff_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8E9292B9880000E86E1 /* vcdiff_wrapper.cpp */; };
 		0DA2A8EF292B9880000E86E1 /* vcpatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8EB292B9880000E86E1 /* vcpatch_wrapper.c */; };
+		0DA6865F2E536C50002A6651 /* _hpatch_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686542E536A3C002A6651 /* _hpatch_mt.c */; };
+		0DA686602E536C50002A6651 /* hpatch_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686562E536A3C002A6651 /* hpatch_mt.c */; };
+		0DA686612E536C50002A6651 /* _houtput_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686572E536A3C002A6651 /* _houtput_mt.c */; };
+		0DA686622E536C50002A6651 /* _hcache_old_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686582E536A3C002A6651 /* _hcache_old_mt.c */; };
+		0DA686632E536C50002A6651 /* _hinput_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686592E536A3C002A6651 /* _hinput_mt.c */; };
 		D61DE5472344D16900F6FCCF /* dir_diff_tools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */; };
 		D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */ = {isa = PBXBuildFile; fileRef = D621352123DC521F00EC4FA4 /* new_dir_output.c */; };
 		D6241AE221DE47D200E2846A /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AE021DE47D200E2846A /* new_stream.c */; };
@@ -77,6 +82,17 @@
 		0DA2A8EB292B9880000E86E1 /* vcpatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vcpatch_wrapper.c; sourceTree = "<group>"; };
 		0DA2A8EC292B9880000E86E1 /* vcdiff_wrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vcdiff_wrapper.h; sourceTree = "<group>"; };
 		0DA2A8ED292B9880000E86E1 /* vcpatch_wrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vcpatch_wrapper.h; sourceTree = "<group>"; };
+		0DA686542E536A3C002A6651 /* _hpatch_mt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = _hpatch_mt.c; sourceTree = "<group>"; };
+		0DA686552E536A3C002A6651 /* _hinput_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _hinput_mt.h; sourceTree = "<group>"; };
+		0DA686562E536A3C002A6651 /* hpatch_mt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = hpatch_mt.c; sourceTree = "<group>"; };
+		0DA686572E536A3C002A6651 /* _houtput_mt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = _houtput_mt.c; sourceTree = "<group>"; };
+		0DA686582E536A3C002A6651 /* _hcache_old_mt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = _hcache_old_mt.c; sourceTree = "<group>"; };
+		0DA686592E536A3C002A6651 /* _hinput_mt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = _hinput_mt.c; sourceTree = "<group>"; };
+		0DA6865A2E536A3C002A6651 /* _hpatch_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _hpatch_mt.h; sourceTree = "<group>"; };
+		0DA6865B2E536A3C002A6651 /* _patch_private_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _patch_private_mt.h; sourceTree = "<group>"; };
+		0DA6865C2E536A3C002A6651 /* hpatch_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hpatch_mt.h; sourceTree = "<group>"; };
+		0DA6865D2E536A3C002A6651 /* _houtput_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _houtput_mt.h; sourceTree = "<group>"; };
+		0DA6865E2E536A3C002A6651 /* _hcache_old_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _hcache_old_mt.h; sourceTree = "<group>"; };
 		D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _dir_ignore.h; path = ../../_dir_ignore.h; sourceTree = "<group>"; };
 		D61DE52D234391CF00F6FCCF /* dir_diff_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_diff_tools.h; sourceTree = "<group>"; };
 		D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_diff_tools.cpp; sourceTree = "<group>"; };
@@ -202,6 +218,24 @@
 			);
 			name = vcdiff_wrapper;
 			path = ../../vcdiff_wrapper;
+			sourceTree = "<group>";
+		};
+		0DA686532E536A3C002A6651 /* hpatch_mt */ = {
+			isa = PBXGroup;
+			children = (
+				0DA686542E536A3C002A6651 /* _hpatch_mt.c */,
+				0DA686552E536A3C002A6651 /* _hinput_mt.h */,
+				0DA686562E536A3C002A6651 /* hpatch_mt.c */,
+				0DA686572E536A3C002A6651 /* _houtput_mt.c */,
+				0DA686582E536A3C002A6651 /* _hcache_old_mt.c */,
+				0DA686592E536A3C002A6651 /* _hinput_mt.c */,
+				0DA6865A2E536A3C002A6651 /* _hpatch_mt.h */,
+				0DA6865B2E536A3C002A6651 /* _patch_private_mt.h */,
+				0DA6865C2E536A3C002A6651 /* hpatch_mt.h */,
+				0DA6865D2E536A3C002A6651 /* _houtput_mt.h */,
+				0DA6865E2E536A3C002A6651 /* _hcache_old_mt.h */,
+			);
+			path = hpatch_mt;
 			sourceTree = "<group>";
 		};
 		D67D3BD421CBCD5D0050632A /* dirDiffPatch */ = {
@@ -343,6 +377,7 @@
 		D690ABB41F2079E80089DC57 /* HPatch */ = {
 			isa = PBXGroup;
 			children = (
+				0DA686532E536A3C002A6651 /* hpatch_mt */,
 				D6BF3A6521EE18BB00833537 /* checksum_plugin.h */,
 				D69A372B21AED4B2000A0A93 /* patch_private.h */,
 				D690ABB51F2079E80089DC57 /* patch.c */,
@@ -450,6 +485,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0DA6865F2E536C50002A6651 /* _hpatch_mt.c in Sources */,
+				0DA686602E536C50002A6651 /* hpatch_mt.c in Sources */,
+				0DA686612E536C50002A6651 /* _houtput_mt.c in Sources */,
+				0DA686622E536C50002A6651 /* _hcache_old_mt.c in Sources */,
+				0DA686632E536C50002A6651 /* _hinput_mt.c in Sources */,
 				D6C9A9AC23D04F3900AC50F8 /* dir_patch_tools.c in Sources */,
 				0D571A70275CF71A00672D57 /* bsdiff_wrapper.cpp in Sources */,
 				D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */,

@@ -327,6 +327,11 @@
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\limit_mem_diff\stream_serialize.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\suffix_string.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HPatchLite\hpatch_lite.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\hpatch_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_hcache_old_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_hinput_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_houtput_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_hpatch_mt.c" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
     <ClCompile Include="..\..\libParallel\parallel_channel.cpp" />
     <ClCompile Include="..\..\libParallel\parallel_import_c.c" />

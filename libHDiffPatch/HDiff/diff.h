@@ -157,11 +157,11 @@ void create_single_compressed_diff_stream(const hpatch_TStreamInput*  newData,
 bool check_single_compressed_diff(const unsigned char* newData,const unsigned char* newData_end,
                                   const unsigned char* oldData,const unsigned char* oldData_end,
                                   const unsigned char* diff,const unsigned char* diff_end,
-                                  hpatch_TDecompress* decompressPlugin);
+                                  hpatch_TDecompress* decompressPlugin,size_t threadNum=1);
 bool check_single_compressed_diff(const hpatch_TStreamInput* newData,
                                   const hpatch_TStreamInput* oldData,
                                   const hpatch_TStreamInput* diff,
-                                  hpatch_TDecompress* decompressPlugin);
+                                  hpatch_TDecompress* decompressPlugin,size_t threadNum=1);
 
 //resave single_compressed_diff
 //  decompress in_diff and recompress to out_diff

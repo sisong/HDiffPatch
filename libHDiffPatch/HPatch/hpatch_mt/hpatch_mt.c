@@ -119,7 +119,7 @@
                 minTime=curTime;
             }
         }
-        assert(_hpatchMTSets_threadNum((disThreads_t*)disThreads)==threadNum);
+        assert(_hpatchMTSets_threadNum(*(hpatchMTSets_t*)disThreads)==threadNum);
         return minTime;
     }
 

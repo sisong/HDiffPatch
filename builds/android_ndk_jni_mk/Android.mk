@@ -4,6 +4,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := hpatchz
 
 # args
+MT    := 1
 ZLIB  := 1
 LZMA  := 1
 ZSTD  := 1
@@ -24,6 +25,18 @@ Src_Files := $(HDP_PATH)/builds/android_ndk_jni_mk/hpatch_jni.c \
              $(HDP_PATH)/builds/android_ndk_jni_mk/hpatch.c \
              $(HDP_PATH)/file_for_patch.c \
              $(HDP_PATH)/libHDiffPatch/HPatch/patch.c
+
+ifeq ($(MT),0)
+  DEF_FLAGS += -D_IS_USED_MULTITHREAD=0
+else  
+  DEF_FLAGS += -D_IS_USED_MULTITHREAD=1
+  Src_Files += $(HDP_PATH)/libHDiffPatch/HPatch/hpatch_mt/_hcache_old_mt.c \
+               $(HDP_PATH)/libHDiffPatch/HPatch/hpatch_mt/_hinput_mt.c \
+               $(HDP_PATH)/libHDiffPatch/HPatch/hpatch_mt/_houtput_mt.c \
+               $(HDP_PATH)/libHDiffPatch/HPatch/hpatch_mt/_hpatch_mt.c \
+               $(HDP_PATH)/libHDiffPatch/HPatch/hpatch_mt/hpatch_mt.c \
+               $(HDP_PATH)/libParallel/parallel_import_c.c
+endif
 
 ifeq ($(DIR),0)
   DEF_FLAGS += -D_IS_NEED_DIR_DIFF_PATCH=0
