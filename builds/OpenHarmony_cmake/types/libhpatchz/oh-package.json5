@@ -1,6 +1,6 @@
 {
   "name": "libhpatchz.so",
   "types": "./index.d.ts",
-  "version": "4.10.0",
+  "version": "4.11.1",
   "description": "apply diffFile to oldFile to get newFile; diffFile created by $hdiffz,$hdiffz -SD,$bsdiff4,$xdelta3 -S,$xdelta3 -S lzma,$open-vcdiff."
 }
