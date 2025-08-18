@@ -75,10 +75,25 @@ int _parallel_import_c_exit_on_error=0;
 #define _check_pt_init(rt,func_name){ if (rt!=0) { _LOG_ERR_PT(rt,func_name); } }
 #define _check_pt(rt,func_name)     { if (rt!=0) { _LOG_ERR_PT(rt,func_name); _check_exit(); } }
 
+static int _g_attr_RECURSIVE_is_init=0;
+static pthread_mutexattr_t _g_attr_RECURSIVE={};
+static void _init_attr_RECURSIVE(){
+    int rt=pthread_mutexattr_init(&_g_attr_RECURSIVE);
+    _check_pt(rt,"pthread_mutexattr_init");
+    rt=pthread_mutexattr_settype(&_g_attr_RECURSIVE,PTHREAD_MUTEX_RECURSIVE);
+    _check_pt(rt,"pthread_mutexattr_settype");
+    _g_attr_RECURSIVE_is_init=1;
+}
+static const pthread_mutexattr_t* _get_attr_RECURSIVE(){
+    if (!_g_attr_RECURSIVE_is_init)
+        _init_attr_RECURSIVE();
+    return &_g_attr_RECURSIVE;
+}
+
 HLocker c_locker_new(void){
     pthread_mutex_t* self=(pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
     _check_malloc(self);
-    int rt=pthread_mutex_init(self,0);
+    int rt=pthread_mutex_init(self,_get_attr_RECURSIVE());
     if (rt!=0){
         free(self);
         _check_pt_init(rt,"pthread_mutex_init");

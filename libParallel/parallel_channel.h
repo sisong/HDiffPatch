@@ -54,7 +54,7 @@ struct CAutoLocker{
 };
 
 
-#if (_IS_USED_CPP_ATOMIC)
+#if ((_IS_USED_CPP_ATOMIC) && (!_IS_NO_ATOMIC_U64))
     class CWaitValueByAtomic{
     public:
         inline explicit CWaitValueByAtomic(uint64_t initValue=0) : _value(initValue) {}
@@ -128,7 +128,7 @@ struct CAutoLocker{
     };
 
 // CWaitValue: thread waits for a value before it can continue;
-#if (_IS_USED_CPP_ATOMIC)
+#if ((_IS_USED_CPP_ATOMIC) && (!_IS_NO_ATOMIC_U64))
     typedef CWaitValueByAtomic CWaitValue;
 #else
     typedef CWaitValueByLocker CWaitValue; 
