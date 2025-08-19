@@ -36,9 +36,10 @@ static const int kMinSingleMatchScore_default = 6;
 //create a diff data between oldData and newData
 //  out_diff is uncompressed, you can use create_compressed_diff()
 //       or create_single_compressed_diff() create compressed diff data
-//  recommended always use create_single_compressed_diff() replace create_diff()
 //  kMinSingleMatchScore: default 6, bin: 0--4  text: 4--9
 //  isUseBigCacheMatch: big cache max used O(oldSize) memory, match speed faster, but build big cache slow 
+//  NOTE: create_diff() + patch() or patch_stream() or patch_stream_with_cache() is no longer recommended,
+//    recommend change to use  create_single_compressed_diff() + patch_single_stream() or patch_single_compressed_diff()
 void create_diff(const unsigned char* newData,const unsigned char* newData_end,
                  const unsigned char* oldData,const unsigned char* oldData_end,
                  std::vector<unsigned char>& out_diff,

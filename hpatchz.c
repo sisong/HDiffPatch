@@ -220,6 +220,7 @@ static void printUsage(){
 #if (_IS_USED_MULTITHREAD)
            "  -p-parallelThreadNumber\n"
            "      if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
+           "      now only support single compressed diffData(created by hdiffz -SD-stepSize);\n"
            "      can set 1..5, DEFAULT -p-3; requires more memory!\n"
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)

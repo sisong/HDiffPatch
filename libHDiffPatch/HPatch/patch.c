@@ -1247,7 +1247,6 @@ hpatch_BOOL getCompressedDiffInfo(hpatch_compressedDiffInfo* out_diffInfo,
 
 static
 hpatch_BOOL _patch_decompress_cache(const hpatch_TStreamOutput*  out_newData,
-                                    hpatch_TStreamInput*         once_in_newData,
                                     const hpatch_TStreamInput*   oldData,
                                     const hpatch_TStreamInput*   compressedDiff,
                                     hpatch_TDecompress*          decompressPlugin,
@@ -1954,7 +1953,7 @@ hpatch_BOOL patch_decompress_with_cache(const hpatch_TStreamOutput* out_newData,
     _patch_cache(&covers,&oldData,out_newData->streamSize,compressedDiff,hpatch_TRUE,
                  decompressPlugin,_kCacheDecCount,&temp_cache,&temp_cache_end,&isReadError);
     if (isReadError) return _hpatch_FALSE;
-    result=_patch_decompress_cache(out_newData,0,oldData,compressedDiff,decompressPlugin,
+    result=_patch_decompress_cache(out_newData,oldData,compressedDiff,decompressPlugin,
                                    covers,temp_cache,temp_cache_end);
     if ((covers!=0)&&(!covers->close(covers))) result=_hpatch_FALSE;
     return result;
@@ -1965,7 +1964,7 @@ hpatch_BOOL patch_decompress(const hpatch_TStreamOutput* out_newData,
                              const hpatch_TStreamInput*  compressedDiff,
                              hpatch_TDecompress* decompressPlugin){
     TByte temp_cache[hpatch_kStreamCacheSize*_kCacheDecCount];
-    return _patch_decompress_cache(out_newData,0,oldData,compressedDiff,decompressPlugin,
+    return _patch_decompress_cache(out_newData,oldData,compressedDiff,decompressPlugin,
                                    0,temp_cache,temp_cache+sizeof(temp_cache)/sizeof(TByte));
 }
 

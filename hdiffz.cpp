@@ -190,6 +190,7 @@ static void printUsage(){
            "  -SD[-stepSize]\n"
            "      create single compressed diffData, only need one decompress buffer\n"
            "      when patch, and support step by step patching when step by step downloading!\n"
+           "        and supports multi-thread patching!\n"
            "      stepSize>=" _HDIFFPATCH_EXPAND_AND_QUOTE(hpatch_kStreamCacheSize) ", DEFAULT -SD-256k, recommended 64k,2m etc...\n"
 #if (_IS_NEED_BSDIFF)
            "  -BSD\n"
