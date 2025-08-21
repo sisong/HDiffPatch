@@ -60,7 +60,7 @@ static const int kMinMatchLen   = (_SSTRING_FAST_MATCH>kCoverMinMatchLen)?_SSTRI
 static const int kMinMatchLen   = kCoverMinMatchLen; //min length for match search.
 #endif
 static const int kMinMatchScore = 2; //min match benefit threshold for cover search.
-static const hpatch_uint64_t kDefaultLimitCoverLen=((hpatch_uint64_t)1<<16)-1; //<=2GB-1
+static const hpatch_uint64_t kDefaultLimitCoverLen=((hpatch_uint64_t)1<<30); //<=2GB-1
 
 namespace{
     

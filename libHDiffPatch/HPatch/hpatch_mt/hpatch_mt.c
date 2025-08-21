@@ -224,6 +224,7 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
     size_t         kMinTempCacheSize;
     unsigned char* temp_cache=(hpatch_byte*)_hpatch_align_upper(*ptemp_cache,kAlignSize);
     unsigned char* temp_cache_end=*ptemp_cache_end;
+    hpatch_BOOL    isCacheAllOld=hpatch_FALSE;
     hpatch_mt_manager_t* self=0;
     const size_t threadNum=_hpatchMTSets_threadNum(mtsets);
     assert(threadNum>1);
@@ -231,12 +232,8 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
     kMinTempCacheSize=stepMemSize+objsMemSize+kMinBufNodeSize*(workBufCount+kCacheCount)+(kAlignSize-1);
     if (temp_cache+kMinTempCacheSize>temp_cache_end) return 0;
     if ((!mtsets.readOld_isMT)&&_patch_is_can_cache_all_old((*poldData)->streamSize,kMinTempCacheSize,temp_cache_end-temp_cache)){
-        //todo: large temp_cache buf for optimize read old in multi-thread
-        hpatch_BOOL    isReadError=hpatch_FALSE;
-        if (!_patch_cache_all_old(poldData,kMinTempCacheSize,&temp_cache,&temp_cache_end,&isReadError))
-            return 0;
-        if (isReadError) return 0;
-        temp_cache=(hpatch_byte*)_hpatch_align_upper(temp_cache,kAlignSize);
+        isCacheAllOld=hpatch_TRUE;
+        temp_cache_end-=_patch_cache_all_old_needSize((*poldData)->streamSize,kMinTempCacheSize);
     }
     {
         size_t memCacheSize=(temp_cache_end-temp_cache)-objsMemSize-stepMemSize;
@@ -293,7 +290,6 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
     }
 
     *ptemp_cache=temp_cache;
-    *ptemp_cache_end=temp_cache_end;
     return self;
 
 _on_error:

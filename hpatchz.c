@@ -185,7 +185,7 @@ static void printUsage(){
            "  if oldPath is empty input parameter \"\"\n"
            "options:\n"
            "  -s[-cacheSize] \n"
-           "      DEFAULT -s-4m; oldPath loaded as Stream;\n"
+           "      DEFAULT -s-8m; oldPath loaded as Stream;\n"
            "      cacheSize can like 262144 or 256k or 64m or 512m etc....\n"
            "      requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.\n"
            "      if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires\n"
@@ -408,7 +408,7 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
 
 #define kPatchCacheSize_min      (hpatch_kStreamCacheSize*8)
 #define kPatchCacheSize_bestmin  ((size_t)1<<21)
-#define kPatchCacheSize_default  ((size_t)1<<22)
+#define kPatchCacheSize_default  ((size_t)1<<23)
 
 #define _kNULL_VALUE    (-1)
 #define _kNULL_SIZE     (~(size_t)0)

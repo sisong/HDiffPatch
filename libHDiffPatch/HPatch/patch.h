@@ -37,7 +37,8 @@ extern "C" {
 
 //all patch*() functions do not allocate memory
 
-//optimize speed for patch_stream_with_cache() && patch_decompress_with_cache():
+//optimize speed for patch_stream_with_cache() & patch_decompress_with_cache() 
+//      & patch_single_stream(),patch_single_compressed_diff(),patch_single_stream_diff():
 //  preload part of oldData into cache,
 //  cache memory size (temp_cache_end-temp_cache) the larger the better for large oldData file
 #ifndef _IS_NEED_CACHE_OLD_BY_COVERS
