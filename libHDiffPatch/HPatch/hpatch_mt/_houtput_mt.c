@@ -98,7 +98,8 @@ static hpatch_BOOL houtput_mt_write_(const struct hpatch_TStreamOutput* stream,h
     if (self->curOutedPos!=writeToPos) return hpatch_FALSE;
     self->curOutedPos+=(data_end-data);
     if (self->curOutedPos>self->base.streamSize) return hpatch_FALSE;
-    while ((!hpatch_mt_isOnError(self->mt_base.h_mt))&(!_isOnError)&(data<data_end)){
+    while ((!_isOnError)&(data<data_end)){
+        if (hpatch_mt_isOnError(self->mt_base.h_mt)) { _isOnError=hpatch_TRUE; break; }
         if (self->curDataBuf==0){
             self->curDataBuf=hpatch_mt_base_onceWaitABuf_(&self->mt_base,&self->mt_base.freeBufList,&_isOnError);
             if (self->curDataBuf)

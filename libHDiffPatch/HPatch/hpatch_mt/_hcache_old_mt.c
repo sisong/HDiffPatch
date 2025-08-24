@@ -27,6 +27,7 @@
 */
 #include "_hcache_old_mt.h"
 #include "_patch_private_mt.h"
+#include "..\patch_private.h"
 #if (_IS_USED_MULTITHREAD)
 
 typedef struct hcache_old_mt_t{
@@ -42,38 +43,6 @@ typedef struct hcache_old_mt_t{
     hpatch_BOOL                 isOnStepCoversInThread;
     hpatch_mt_base_t            mt_base;
 }hcache_old_mt_t;
-
-
-    static hpatch_BOOL _hcache_old_mt_read(const struct hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
-                                           unsigned char* out_data,unsigned char* out_data_end);
-    static void _hcache_old_mt_onStepCovers(struct sspatch_coversListener_t* listener,
-                                            const unsigned char* covers_cache,const unsigned char* covers_cacheEnd);
-    static void _hcache_old_mt_onStepCoversReset(struct sspatch_coversListener_t* listener,hpatch_StreamPos_t leaveCoverCount);
-
-hpatch_inline static
-hpatch_BOOL _hcache_old_mt_init(hcache_old_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,
-                                const hpatch_TStreamInput* old_stream,
-                                sspatch_coversListener_t* nextCoverlistener,hpatch_BOOL isOnStepCoversInThread){
-    memset(self,0,sizeof(*self));
-    assert(freeBufList);
-    if (!_hpatch_mt_base_init(&self->mt_base,h_mt,freeBufList)) return hpatch_FALSE;
-    self->base.streamImport=self;
-    self->base.streamSize=old_stream->streamSize;
-    self->base.read=_hcache_old_mt_read;
-    self->coversListener.import=self;
-    self->coversListener.onStepCovers=_hcache_old_mt_onStepCovers;
-#if (defined(_DEBUG) || defined(DEBUG))
-    if (hpatch_TRUE)
-#else
-    if (nextCoverlistener&&nextCoverlistener->onStepCoversReset)
-#endif
-        self->coversListener.onStepCoversReset=_hcache_old_mt_onStepCoversReset;
-    self->old_stream=old_stream;
-    self->nextCoverlistener=nextCoverlistener;
-    self->isOnStepCoversInThread=isOnStepCoversInThread?1:0;
-    self->leaveCoverCount=~(hpatch_StreamPos_t)0;
-    return hpatch_TRUE;
-}
 
 static void _hcache_old_mt_free(hcache_old_mt_t* self){
     if (self==0) return;
@@ -204,6 +173,31 @@ static hpatch_BOOL _hcache_old_mt_read(const struct hpatch_TStreamInput* stream,
                                        unsigned char* out_data,unsigned char* out_data_end){
     hcache_old_mt_t* self=(hcache_old_mt_t*)stream->streamImport;
     _DEF_hinput_mt_base_read();
+}
+
+hpatch_inline static
+hpatch_BOOL _hcache_old_mt_init(hcache_old_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,
+                                const hpatch_TStreamInput* old_stream,
+                                sspatch_coversListener_t* nextCoverlistener,hpatch_BOOL isOnStepCoversInThread){
+    memset(self,0,sizeof(*self));
+    assert(freeBufList);
+    if (!_hpatch_mt_base_init(&self->mt_base,h_mt,freeBufList)) return hpatch_FALSE;
+    self->base.streamImport=self;
+    self->base.streamSize=old_stream->streamSize;
+    self->base.read=_hcache_old_mt_read;
+    self->coversListener.import=self;
+    self->coversListener.onStepCovers=_hcache_old_mt_onStepCovers;
+#if (defined(_DEBUG) || defined(DEBUG))
+    if (hpatch_TRUE)
+#else
+    if (nextCoverlistener&&nextCoverlistener->onStepCoversReset)
+#endif
+        self->coversListener.onStepCoversReset=_hcache_old_mt_onStepCoversReset;
+    self->old_stream=old_stream;
+    self->nextCoverlistener=nextCoverlistener;
+    self->isOnStepCoversInThread=isOnStepCoversInThread?1:0;
+    self->leaveCoverCount=~(hpatch_StreamPos_t)0;
+    return hpatch_TRUE;
 }
 
 

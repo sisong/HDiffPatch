@@ -114,9 +114,11 @@ void                hpatch_mt_base_aThreadEnd_(hpatch_mt_base_t* self){
                                                 
 #define _DEF_hinput_mt_base_read() {    \
     hpatch_BOOL _isOnError=hpatch_FALSE;            \
-    while ((!hpatch_mt_isOnError(self->mt_base.h_mt))&(!_isOnError)&(out_data<out_data_end)){   \
-        if (self->curDataBuf==0)          \
+    while ((!_isOnError)&(out_data<out_data_end)){  \
+        if (self->curDataBuf==0){       \
+            if (hpatch_mt_isOnError(self->mt_base.h_mt)) { _isOnError=hpatch_TRUE; break; }     \
             self->curDataBuf=hpatch_mt_base_onceWaitABuf_(&self->mt_base,&self->mt_base.dataBufList,&_isOnError);       \
+        }       \
         if ((self->curDataBuf!=0)&(!_isOnError)){   \
             size_t readLen=self->curDataBuf->data_size-self->curDataBuf_pos;                    \
             readLen=(readLen<(size_t)(out_data_end-out_data))?readLen:(size_t)(out_data_end-out_data);                  \

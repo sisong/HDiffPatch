@@ -1862,10 +1862,10 @@ static hpatch_BOOL _patch_cache(hpatch_TCovers** out_covers,
     const hpatch_TStreamInput* oldData=*poldData;
 #if (_IS_NEED_CACHE_OLD_BY_COVERS)
     const hpatch_size_t kBestACacheSize=hpatch_kFileIOBufBetterSize;   //optimal hpatch_kStreamCacheSize value when sufficient memory is available;
-    const hpatch_size_t _minActiveSize=(1<<20)*16;
-    const hpatch_StreamPos_t _betterActiveSize=kBestACacheSize*kCacheCount*2+oldData->streamSize/8;
+    const hpatch_size_t _minActiveSize=(1<<20)*3+kBestACacheSize*kCacheCount*2;
+    const hpatch_StreamPos_t _betterActiveSize=oldData->streamSize/16+kBestACacheSize*kCacheCount*2;
     const hpatch_size_t kActiveCacheOldMemorySize = //min memory threshold for attempting to activate CacheOld functionality;
-                (_minActiveSize<_betterActiveSize)?_minActiveSize:(hpatch_size_t)_betterActiveSize;
+                (_minActiveSize>_betterActiveSize)?_minActiveSize:(hpatch_size_t)_betterActiveSize;
 #endif //_IS_NEED_CACHE_OLD_BY_COVERS
     TByte* temp_cache=*ptemp_cache;
     TByte* temp_cache_end=*ptemp_cache_end;
@@ -2320,8 +2320,10 @@ static hpatch_BOOL _patch_step_cache_old_update(void* _self){
     self->sumCacheLen=0;
     self->cache_old.arrayCovers.coverCount=0;
     self->cache_old.arrayCovers.cur_index=0;
-    self->cache_old.maxCachedLen=_kMaxCachedLen_max;
     self->cache_old.cachesEnd=self->cache_buf_end-_kMemForReadOldSize; //limit covers + cached data 's size
+    self->cache_old.maxCachedLen=_kMaxCachedLen_max;
+    while ((self->cache_old.maxCachedLen>=_step_cache_old_sumBufSize(self))&(self->cache_old.maxCachedLen>_kMaxCachedLen_min))
+        self->cache_old.maxCachedLen/=2;
 
     //read some cover from self->covers to self->cache_old.arrayCovers
     if (self->isHaveACover){
@@ -2344,9 +2346,8 @@ static hpatch_BOOL _patch_step_cache_old_update(void* _self){
 
     self->cache_old.maxCachedLen=_getMaxCachedLen(&self->cache_old.arrayCovers,_step_cache_old_sumBufSize(self)-_step_cache_old_coverBufSize(self));
     assert(self->cache_old.maxCachedLen>0);
-    self->cache_old.caches=((hpatch_byte*)self->cache_old.arrayCovers.pCCovers)+_step_cache_old_coverBufSize(self);
-    self->cache_old.cachesEnd=self->cache_old.caches+self->sumCacheLen;
     self->sumCacheLen=_set_cache_pos(&self->cache_old.arrayCovers,self->cache_old.maxCachedLen,&oldPosBegin,&oldPosEnd,kMinCacheCoverCount);
+    self->cache_old.caches=((hpatch_byte*)self->cache_old.arrayCovers.pCCovers)+_step_cache_old_coverBufSize(self);
     self->cache_old.cachesEnd=self->cache_old.caches+self->sumCacheLen;
     if (self->sumCacheLen>0){
         if (!_cache_old_load(self->cache_old.oldData,oldPosBegin,oldPosEnd,&self->cache_old.arrayCovers,
@@ -2390,13 +2391,14 @@ hpatch_BOOL _patch_step_cache_old_onStepCovers(const hpatch_TStreamInput* _self,
 
 
 hpatch_size_t _patch_step_cache_old_canUsedSize(hpatch_size_t stepCoversMemSize,hpatch_size_t kMinTempCacheSize,hpatch_size_t tempCacheSize){
-    const hpatch_size_t      _minActiveSize = (1<<20)*3;
-    const hpatch_StreamPos_t _betterActiveSize = (hpatch_StreamPos_t)stepCoversMemSize*15+hpatch_kFileIOBufBetterSize*4;
-    const hpatch_size_t      kActiveCacheOldMemorySize =
-                            (_minActiveSize<=_betterActiveSize)?_minActiveSize:(hpatch_size_t)_betterActiveSize;
-    assert(kActiveCacheOldMemorySize>_kMemForReadOldSize*2);
-    return (tempCacheSize>=kActiveCacheOldMemorySize+stepCoversMemSize+kMinTempCacheSize)?
-                                tempCacheSize-(stepCoversMemSize+kMinTempCacheSize+sizeof(hpatch_StreamPos_t)):0;
+    const hpatch_size_t  kActiveCacheOldMemorySize=(1<<20)*3+_kMemForReadOldSize*2;
+    hpatch_size_t cacheStepSize,multiple;
+    if (tempCacheSize<kActiveCacheOldMemorySize+stepCoversMemSize+kMinTempCacheSize)
+        return 0;
+    cacheStepSize=tempCacheSize-(stepCoversMemSize+kMinTempCacheSize+sizeof(hpatch_StreamPos_t));
+    multiple=cacheStepSize/((kActiveCacheOldMemorySize+kMinTempCacheSize+_kMemForReadOldSize)/4);
+    cacheStepSize-=(hpatch_size_t)((hpatch_StreamPos_t)(kMinTempCacheSize+_kMemForReadOldSize)*((multiple>4)?(hpatch_size_t)(multiple-4):0)/8);
+    return cacheStepSize;
 }
 
 hpatch_BOOL _patch_step_cache_old(const hpatch_TStreamInput** poldData,hpatch_StreamPos_t newDataSize,size_t stepCoversMemSize,

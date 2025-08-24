@@ -29,7 +29,7 @@
 #ifndef HPatch_patch_private_h
 #define HPatch_patch_private_h
 
-#include "patch_types.h"
+#include "patch.h"
 
 #ifdef __cplusplus
 extern "C" {

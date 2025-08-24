@@ -37,7 +37,8 @@
 #include "_hpatch_mt.h"
 
     const size_t kAlignSize=sizeof(hpatch_StreamPos_t);
-    const size_t kMinBufNodeSize=hpatch_kStreamCacheSize+sizeof(hpatch_TWorkBuf);
+    const size_t kMinBufNodeSize=hpatch_kStreamCacheSize;
+    const size_t kBetterBufNodeSize=hpatch_kFileIOBufBetterSize;
     const size_t kObjNodeCount=2;
     static size_t _getObjsMemSize(hpatchMTSets_t mtsets,size_t* pworkBufCount);
 
@@ -127,6 +128,7 @@ hpatchMTSets_t _hpatch_getMTSets(hpatch_StreamPos_t newSize,hpatch_StreamPos_t o
                                 const hpatch_TDecompress* decompressPlugin,size_t kCacheCount,size_t stepMemSize,
                                 size_t temp_cacheSumSize,size_t maxThreadNum,hpatchMTSets_t mtsets){
     hpatch_uint64_t writeNewTime,readOldTime,readDiffTime,decompressTime,patchTime;
+    hpatch_uint64_t readOldSpeed=25;
     assert(sizeof(disThreads_t)==sizeof(hpatchMTSets_t));
     assert((2<=maxThreadNum));
     if (newSize<1*(1<<20)) mtsets.writeNew_isMT=0;
@@ -137,9 +139,22 @@ hpatchMTSets_t _hpatch_getMTSets(hpatch_StreamPos_t newSize,hpatch_StreamPos_t o
         size_t workBufCount,objsMemSize,kMinTempCacheSize;
         hpatchMTSets_t _mtsets=mtsets; _mtsets.readOld_isMT=0;
         objsMemSize=_getObjsMemSize(_mtsets,&workBufCount);
-        kMinTempCacheSize=stepMemSize+objsMemSize+kMinBufNodeSize*(workBufCount+kCacheCount)+(kAlignSize-1);
-        if (_patch_is_can_cache_all_old(oldSize,kMinTempCacheSize,temp_cacheSumSize))
+        kMinTempCacheSize=objsMemSize+kMinBufNodeSize*(workBufCount+kCacheCount)+(kAlignSize-1);
+        if (_patch_is_can_cache_all_old(oldSize,stepMemSize+kMinTempCacheSize,temp_cacheSumSize)){
             mtsets.readOld_isMT=0; //old data will load in memery, no need MT.
+            readOldSpeed*=1000; //old in memory
+        }
+    #if (_IS_NEED_CACHE_OLD_BY_COVERS)
+        else{ //is can cache part of old by step?
+            kMinTempCacheSize=objsMemSize+kBetterBufNodeSize*(workBufCount+kCacheCount)+(kAlignSize-1);
+            if (_patch_step_cache_old_canUsedSize(stepMemSize,kMinTempCacheSize,temp_cacheSumSize)>0){
+                mtsets.readOld_isMT=0; // not use MT.
+                readOldSpeed*=2; //cache part of old by step
+            }
+        }
+    #endif // _IS_NEED_CACHE_OLD_BY_COVERS
+    }else{
+        readOldSpeed*=1000; //old in memory
     }
     if (_hpatchMTSets_threadNum(mtsets)<=1) return hpatchMTSets_no;
     { // estimate run time of each part
@@ -163,7 +178,7 @@ hpatchMTSets_t _hpatch_getMTSets(hpatch_StreamPos_t newSize,hpatch_StreamPos_t o
         writeNewTime=mtsets.writeNew_isMT?newSize/100:0;
         readDiffTime=mtsets.readDiff_isMT?diffSize/150:0;
         patchTime=newSize/300;
-        readOldTime=mtsets.readOld_isMT?((oldSize<newInDiffSize?0:oldSize-newInDiffSize)+oldSize/8)/30:0;
+        readOldTime=((oldSize<newInDiffSize?0:oldSize-newInDiffSize)+oldSize/8)/readOldSpeed;
     }
     { // distribute thread
         size_t   i;
@@ -213,7 +228,7 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
                                             hpatch_StreamPos_t           uncompressedSize,
                                             hpatch_TDecompress**         pdecompressPlugin,
                                             size_t                       stepMemSize,
-                                            unsigned char** ptemp_cache,unsigned char** ptemp_cache_end,
+                                            hpatch_byte** ptemp_cache,hpatch_byte** ptemp_cache_end,
                                             sspatch_coversListener_t**   pcoversListener,
                                             hpatch_BOOL                  isOnStepCoversInThread,
                                             size_t                       kCacheCount,
@@ -222,27 +237,37 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
     size_t         workBufCount;
     size_t         workBufNodeSize;
     size_t         kMinTempCacheSize;
-    unsigned char* temp_cache=(hpatch_byte*)_hpatch_align_upper(*ptemp_cache,kAlignSize);
-    unsigned char* temp_cache_end=*ptemp_cache_end;
-    hpatch_BOOL    isCacheAllOld=hpatch_FALSE;
+    hpatch_byte* temp_cache=*ptemp_cache;
+    hpatch_byte* temp_cache_end=*ptemp_cache_end;
     hpatch_mt_manager_t* self=0;
     const size_t threadNum=_hpatchMTSets_threadNum(mtsets);
     assert(threadNum>1);
     objsMemSize =_getObjsMemSize(mtsets,&workBufCount);
-    kMinTempCacheSize=stepMemSize+objsMemSize+kMinBufNodeSize*(workBufCount+kCacheCount)+(kAlignSize-1);
-    if (temp_cache+kMinTempCacheSize>temp_cache_end) return 0;
-    if ((!mtsets.readOld_isMT)&&_patch_is_can_cache_all_old((*poldData)->streamSize,kMinTempCacheSize,temp_cache_end-temp_cache)){
-        isCacheAllOld=hpatch_TRUE;
-        temp_cache_end-=_patch_cache_all_old_needSize((*poldData)->streamSize,kMinTempCacheSize);
+    kMinTempCacheSize=objsMemSize+kMinBufNodeSize*(workBufCount+kCacheCount)+(kAlignSize-1);
+    if (stepMemSize+kMinTempCacheSize>(hpatch_size_t)(temp_cache_end-temp_cache)) return 0;
+    if (!mtsets.readOld_isMT){
+        if (_patch_is_can_cache_all_old((*poldData)->streamSize,stepMemSize+kMinTempCacheSize,temp_cache_end-temp_cache)){
+            size_t cacheAllNeedSize=_patch_cache_all_old_needSize((*poldData)->streamSize,0);
+            temp_cache_end-=cacheAllNeedSize; // patch_single_stream_diff() will load all old data into memory 
+        }
+    #if (_IS_NEED_CACHE_OLD_BY_COVERS)
+        else{
+            size_t cacheStepNeedSize;
+            kMinTempCacheSize=objsMemSize+kBetterBufNodeSize*(workBufCount+kCacheCount)+(kAlignSize-1);
+            cacheStepNeedSize=_patch_step_cache_old_canUsedSize(stepMemSize,kMinTempCacheSize,temp_cache_end-temp_cache);
+            if (cacheStepNeedSize>0)
+                temp_cache_end-=cacheStepNeedSize; // patch_single_stream_diff() will cache part of old by step
+        }
+    #endif // _IS_NEED_CACHE_OLD_BY_COVERS
     }
     {
         size_t memCacheSize=(temp_cache_end-temp_cache)-objsMemSize-stepMemSize;
         workBufNodeSize=memCacheSize/(workBufCount+kCacheCount)/kAlignSize*kAlignSize;
     }
    
-    self=(hpatch_mt_manager_t*)temp_cache;
+    self=(hpatch_mt_manager_t*)_hpatch_align_upper(temp_cache,kAlignSize);
     memset(self,0,sizeof(*self));
-    temp_cache+=_hpatch_align_upper(sizeof(hpatch_mt_manager_t),kAlignSize);
+    temp_cache=(hpatch_byte*)_hpatch_align_upper(temp_cache+sizeof(hpatch_mt_manager_t),kAlignSize);
 
     self->h_mt=hpatch_mt_open(temp_cache,hpatch_mt_t_memSize()+threadNum*sizeof(HCondvar)+workBufCount*workBufNodeSize,
                               threadNum,workBufCount,workBufNodeSize);

@@ -42,7 +42,7 @@ extern "C" {
 //  preload part of oldData into cache,
 //  cache memory size (temp_cache_end-temp_cache) the larger the better for large oldData file
 #ifndef _IS_NEED_CACHE_OLD_BY_COVERS
-#   define _IS_NEED_CACHE_OLD_BY_COVERS 1
+#   define _IS_NEED_CACHE_OLD_BY_COVERS     1
 #endif
 
 

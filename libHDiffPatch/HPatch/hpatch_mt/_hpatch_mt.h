@@ -27,7 +27,7 @@
 */
 #ifndef _hpatch_mt_h
 #define _hpatch_mt_h
-#include "../patch_types.h"
+#include "../patch.h"
 #include "../../../libParallel/parallel_import_c.h"
 #ifdef __cplusplus
 extern "C" {
