@@ -35,6 +35,9 @@
 #include "_hinput_mt.h"
 #include "_houtput_mt.h"
 #include "_hpatch_mt.h"
+#ifndef _MT_IS_NEED_LIMIT_SIZE
+#   define _MT_IS_NEED_LIMIT_SIZE   1
+#endif
 
     const size_t kAlignSize=sizeof(hpatch_StreamPos_t);
     const size_t kMinBufNodeSize=hpatch_kStreamCacheSize;
@@ -131,9 +134,11 @@ hpatchMTSets_t _hpatch_getMTSets(hpatch_StreamPos_t newSize,hpatch_StreamPos_t o
     hpatch_uint64_t readOldSpeed=25;
     assert(sizeof(disThreads_t)==sizeof(hpatchMTSets_t));
     assert((2<=maxThreadNum));
+#if (_MT_IS_NEED_LIMIT_SIZE)
     if (newSize<1*(1<<20)) mtsets.writeNew_isMT=0;
     if (oldSize<1*(1<<17)) mtsets.readOld_isMT=0;
     if ((diffSize<(newSize+oldSize)/256)|(diffSize<(1<<17))) mtsets.readDiff_isMT=0;
+#endif
     if (decompressPlugin==0) mtsets.decompressDiff_isMT=0;
     if (mtsets.readOld_isMT){// is can cache all old?
         size_t workBufCount,objsMemSize,kMinTempCacheSize;
@@ -185,8 +190,10 @@ hpatchMTSets_t _hpatch_getMTSets(hpatch_StreamPos_t newSize,hpatch_StreamPos_t o
         _define_times5(times);
         disThreads_t disThreads={0,0,0,0};
         hpatch_uint64_t minTime=_distributeThread(disThreads,times,maxThreadNum,mtsets);
+#if (_MT_IS_NEED_LIMIT_SIZE)
         for (i=0;i<4;++i)
             disThreads[i]=(times[i]>(minTime/128))?disThreads[i]:0;
+#endif
         mtsets=*(hpatchMTSets_t*)disThreads;
     }
     if ((decompressPlugin!=0)&(mtsets.readDiff_isMT!=0)&(!mtsets.decompressDiff_isMT)){

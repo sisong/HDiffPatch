@@ -102,13 +102,13 @@ hpatch_BOOL         hpatch_mt_base_aThreadBegin_(hpatch_mt_base_t* self,TThreadR
                                                     return hpatch_mt_base_threadsBegin_(self,1,threadProc,workData,hpatch_FALSE,0); }
 hpatch_force_inline static
 void                hpatch_mt_base_aThreadEnd_(hpatch_mt_base_t* self){
-                                                    hpatch_mt_onThreadEnd(self->h_mt);
                                                 #if (defined(_DEBUG) || defined(DEBUG))
                                                     c_locker_enter(self->_locker);
                                                     assert(self->threadIsRunning);
                                                     --self->threadIsRunning;
                                                     c_locker_leave(self->_locker);
                                                 #endif
+                                                    hpatch_mt_onThreadEnd(self->h_mt);
                                                 }
 
                                                 
