@@ -2052,9 +2052,12 @@ hpatch_BOOL _patch_single_compressed_diff_mt(const hpatch_TStreamOutput* out_new
                                              hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                              unsigned char* temp_cache,unsigned char* temp_cache_end,
                                              sspatch_coversListener_t* coversListener,
-                                             hpatchMTSets_t mtsets){
+                                             size_t maxThreadNum,hpatchMTSets_t hpatchMTSets){
 #if (_IS_USED_MULTITHREAD)
     struct hpatch_mt_manager_t* hpatch_mt_manager=0;
+    hpatchMTSets_t mtsets=hpatch_getMTSets(out_newData->streamSize,oldData->streamSize,singleCompressedDiff->streamSize-diffData_pos,
+                                           decompressPlugin,_kCacheSgCount,stepMemSize,
+                                           temp_cache_end-temp_cache,maxThreadNum,hpatchMTSets);
 #endif
     hpatch_BOOL result;
     hpatch_BOOL isNeedOutCache=hpatch_TRUE;
@@ -2626,13 +2629,10 @@ hpatch_BOOL _patch_single_stream_mt(sspatch_listener_t* listener,
     if ((temp_cache==0)||(temp_cache>=temp_cacheEnd))
         result=_hpatch_FALSE;
     if (result){
-        hpatchMTSets_t mtSets=hpatch_getMTSets(out_newData->streamSize,oldData->streamSize,singleCompressedDiff->streamSize-diffInfo.diffDataPos,
-                                               decompressPlugin,_kCacheSgCount,(size_t)diffInfo.stepMemSize,
-                                               temp_cacheEnd-temp_cache,maxThreadNum,hpatchMTSets);
         result=_patch_single_compressed_diff_mt(out_newData,oldData,singleCompressedDiff,diffInfo.diffDataPos,
                                                 diffInfo.uncompressedSize,diffInfo.compressedSize,decompressPlugin,
                                                 diffInfo.coverCount,(size_t)diffInfo.stepMemSize,
-                                                temp_cache,temp_cacheEnd,coversListener,mtSets);
+                                                temp_cache,temp_cacheEnd,coversListener,maxThreadNum,hpatchMTSets);
     }
     if (listener->onPatchFinish)
         listener->onPatchFinish(listener,temp_cache,temp_cacheEnd);

@@ -348,7 +348,7 @@ static void printUsage(){
 #endif
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory diff;\n"
-           "      maxOpenFileNumber>=8, DEFAULT -n-48, the best limit value by different\n"
+           "      maxOpenFileNumber>=16, DEFAULT -n-48, the best limit value by different\n"
            "        operating system.\n"
            "  -g#ignorePath[#ignorePath#...]\n"
            "      set iGnore path list when Directory Diff; ignore path list such as:\n"
@@ -1597,7 +1597,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
     if (diffSets.isDoDiff){
         if (diffSets.isCheckNotEqual)
             check(!hdiff_streamDataIsEqual(&oldData.base,&newData.base),HDIFF_OLD_NEW_SAME_ERROR,"oldFile & newFile's datas can't be equal");
-        const hdiff_TMTSets_s mtsets={diffSets.threadNum,diffSets.threadNumSearch_s,false,false,false};
+        const hdiff_TMTSets_s mtsets={diffSets.threadNum,diffSets.threadNumSearch_s,false,false};
         check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,hpatch_kNullStreamPos),
               HDIFF_OPENWRITE_ERROR,"open out diffFile");
         hpatch_TFileStreamOutput_setRandomOut(&diffData_out,hpatch_TRUE);

@@ -184,7 +184,7 @@ hpatch_BOOL patch_single_stream_mem(sspatch_listener_t* listener,
         mem_as_hStreamInput(&oldStream,oldData,oldData_end);
         mem_as_hStreamInput(&diffStream,diff,diff_end);
         return _patch_single_stream_mt(listener,&out_newStream,&oldStream,&diffStream,0,coversListener,
-                                        threadNum,hpatchMTSets);
+                                       threadNum,hpatchMTSets);
     }
 
 //get singleCompressedDiff info
@@ -222,11 +222,9 @@ hpatch_BOOL patch_single_compressed_diff(const hpatch_TStreamOutput* out_newData
                                          unsigned char* temp_cache,unsigned char* temp_cache_end,
                                          sspatch_coversListener_t* coversListener, //default NULL, call by on got covers
                                          size_t threadNum){ // 1..5; if >1, multi-thread for I/O & decompress etc.
-        hpatchMTSets_t mtSets=hpatch_getMTSets(out_newData->streamSize,oldData->streamSize,singleCompressedDiff->streamSize-diffData_pos,
-                                               decompressPlugin,_kCacheSgCount,stepMemSize,
-                                               temp_cache_end-temp_cache,threadNum,hpatchMTSets_full);
         return _patch_single_compressed_diff_mt(out_newData,oldData,singleCompressedDiff,diffData_pos,uncompressedSize,compressedSize,
-                                                decompressPlugin,coverCount,stepMemSize,temp_cache,temp_cache_end,coversListener,mtSets);
+                                                decompressPlugin,coverCount,stepMemSize,temp_cache,temp_cache_end,coversListener,
+                                                threadNum,hpatchMTSets_full);
     }
 
 hpatch_BOOL compressed_stream_as_uncompressed(hpatch_TUncompresser_t* uncompressedStream,hpatch_StreamPos_t uncompressedSize,

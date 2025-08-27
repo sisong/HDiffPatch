@@ -627,7 +627,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,
                             const TBloomFilter<adler_hash_t>& filter,
                             hpatch_TOutputCovers* out_covers,
                             hpatch_StreamPos_t _coverNewOffset,
-                            void* _newLocker,void* _dataLocker,const hdiff_TMTSets_s& _mtsets) {
+                            void* _dataLocker) {
     const size_t blocksSize=iblocks_end-iblocks;
     TDigest_comp comp(blocksBase);
     TCover  lastCover={0,0,0};
@@ -646,10 +646,6 @@ static void tm_search_cover(const adler_uint_t* blocksBase,
         const TIndex* besti=getBestMatchi(blocksBase,blocksSize,&range.first,&range.second,
                                           newStream,lastCover,&digests_eq_n);
         {
-    #if (_IS_USED_MULTITHREAD)
-            CAutoLocker _autoDataLocker(_mtsets.oldDataIsMTSafe?0:
-                                        (_mtsets.newAndOldDataIsMTSameRes?_newLocker:_dataLocker));
-    #endif
             TCover  curCover;
             if (getBestMatch(range.first,range.second,besti,oldStream,newStream,
                              lastCover,digests_eq_n,&curCover)){
@@ -659,7 +655,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,
                     setCover(_cover,curCover.oldPos,curCover.newPos+_coverNewOffset,curCover.length);
                     {
     #if (_IS_USED_MULTITHREAD)
-                        CAutoLocker _autoCoverLocker(_mtsets.oldDataIsMTSafe?_dataLocker:0);
+                        CAutoLocker _autoCoverLocker(_dataLocker);
     #endif
                         if (!out_covers->push_cover(out_covers,&_cover))
                             throw std::runtime_error("TDigestMatcher::search_cover() push_cover error!");
@@ -674,21 +670,21 @@ static void tm_search_cover(const adler_uint_t* blocksBase,
     }
 }
 
-#define __search_cover(indexs,coverNewOffset,newLocker,dataLocker)  \
+#define __search_cover(indexs)  \
             tm_search_cover(m_blocks.data(),indexs.data(),indexs.data()+indexs.size(), \
-                            oldStream,newStream,m_filter,out_covers,coverNewOffset,newLocker,dataLocker,m_mtsets)
+                            oldStream,newStream,m_filter,out_covers,newOffset,dataLocker)
 
 void TDigestMatcher::_search_cover(const hpatch_TStreamInput* newData,hpatch_StreamPos_t newOffset,
                                    hpatch_TOutputCovers* out_covers,unsigned char* pmem,
-                                   void* newDataLocker,void* dataLocker){
+                                   void* oldDataLocker,void* newDataLocker,void* dataLocker){
     TNewStreamCache newStream(newData,pmem,m_newCacheSize,m_backupCacheSize,
                               m_kMatchBlockSize,m_mtsets.newDataIsMTSafe?0:newDataLocker);
-    TOldStreamCache oldStream(m_oldData,pmem+m_newCacheSize,m_oldMinCacheSize,
-                              m_oldCacheSize,m_backupCacheSize,m_kMatchBlockSize,0);    
+    TOldStreamCache oldStream(m_oldData,pmem+m_newCacheSize,m_oldMinCacheSize,m_oldCacheSize,m_backupCacheSize,
+                              m_kMatchBlockSize,m_mtsets.oldDataIsMTSafe?0:oldDataLocker);
     if (m_isUseLargeSorted)
-        __search_cover(m_sorted_larger,newOffset,newDataLocker,dataLocker);
+        __search_cover(m_sorted_larger);
     else
-        __search_cover(m_sorted_limit,newOffset,newDataLocker,dataLocker);
+        __search_cover(m_sorted_limit);
 }
 
 #if (_IS_USED_MULTITHREAD)
@@ -698,6 +694,7 @@ void TDigestMatcher::_search_cover(const hpatch_TStreamInput* newData,hpatch_Str
 #   define uint_work hpatch_StreamPos_t 
 # endif
 struct mt_data_t{
+    CHLocker    oldDataLocker;
     CHLocker    newDataLocker;
     CHLocker    dataLocker;
     uint_work          workCount;
@@ -722,7 +719,7 @@ void TDigestMatcher::_search_cover_thread(hpatch_TOutputCovers* out_covers,
         TStreamInputClip newClip;
         TStreamInputClip_init(&newClip,m_newData,new_begin,new_end+kPartPepeatSize);
         _search_cover(&newClip.base,new_begin,out_covers,pmem,
-                      mt.newDataLocker.locker,mt.dataLocker.locker);
+                      mt.oldDataLocker.locker,mt.newDataLocker.locker,mt.dataLocker.locker);
     }
 #endif 
 }

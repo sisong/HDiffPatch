@@ -52,7 +52,7 @@ HCondvar    condvar_new(void)               { _check_fn_ret_throw(HCondvar,c_con
 hpatch_force_inline static
 void        condvar_delete(HCondvar cond)   { _check_fn_throw(c_condvar_delete(cond)); }
 hpatch_force_inline static
-void        condvar_wait(HCondvar cond,HLocker locker) { _check_fn_throw(c_condvar_wait(cond,locker)); }
+void        condvar_wait_at(HCondvar cond,HLocker locker) { _check_fn_throw(c_condvar_wait(cond,locker)); }
 hpatch_force_inline static
 void        condvar_signal(HCondvar cond)   { _check_fn_throw(c_condvar_signal(cond)); }
 hpatch_force_inline static

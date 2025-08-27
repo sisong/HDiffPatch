@@ -289,6 +289,8 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
               "for update checksum, outDiffStream->read_writed can't null error!");
     }
     kMaxOpenFileNumber-=1; // for outDiffStream
+    const size_t kMaxOpenFileNumber_old=kMaxOpenFileNumber*5/8;
+    const size_t kMaxOpenFileNumber_new=kMaxOpenFileNumber-kMaxOpenFileNumber_old;
     const std::vector<std::string>& oldList=oldManifest.pathList;
     const std::vector<std::string>& newList=newManifest.pathList;
     const bool oldIsDir=isDirName(oldManifest.rootPath);
@@ -327,24 +329,26 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         check(!isEq,"oldPath & newPath's all datas can't be equal");
     }
     std::vector<hpatch_StreamPos_t> newRefSizeList;
-    CFileResHandleLimit resLimit(kMaxOpenFileNumber,oldRefIList.size()+newRefIList.size());
+    CFileResHandleLimit resLimit_old(kMaxOpenFileNumber_old,oldRefIList.size());
+    CFileResHandleLimit resLimit_new(kMaxOpenFileNumber_new,newRefIList.size());
     {
         for (size_t i=0; i<oldRefIList.size(); ++i) {
             size_t fi=oldRefIList[i];
-            resLimit.addRes(oldList[fi],oldSizeList[fi]);
+            resLimit_old.addRes(oldList[fi],oldSizeList[fi]);
         }
         newRefSizeList.resize(newRefIList.size());
         for (size_t i=0; i<newRefIList.size(); ++i) {
             size_t fi=newRefIList[i];
             newRefSizeList[i]=newSizeList[fi];
-            resLimit.addRes(newList[fi],newSizeList[fi]);
+            resLimit_new.addRes(newList[fi],newSizeList[fi]);
         }
     }
-    resLimit.open();
+    resLimit_old.open();
+    resLimit_new.open();
     CRefStream oldRefStream;
     CRefStream newRefStream;
-    oldRefStream.open(resLimit.limit.streamList,oldRefIList.size());
-    newRefStream.open(resLimit.limit.streamList+oldRefIList.size(),newRefIList.size());
+    oldRefStream.open(resLimit_old.limit.streamList,oldRefIList.size());
+    newRefStream.open(resLimit_new.limit.streamList,newRefIList.size());
     
     //checksum
     const size_t checksumByteSize=(checksumPlugin==0)?0:checksumPlugin->checksumByteSize();
@@ -487,9 +491,10 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         TByte* oldData=mem.data()+newRefStream.stream->streamSize;
         check(newRefStream.stream->read(newRefStream.stream,0,newData,
                                         newData+newRefStream.stream->streamSize),"read new file error!");
+        resLimit_new.close(); //close files
         check(oldRefStream.stream->read(oldRefStream.stream,0,oldData,
                                         oldData+oldRefStream.stream->streamSize),"read old file error!");
-        resLimit.close(); //close files
+        resLimit_old.close(); //close files
         if (hdiffSets.isSingleCompressedDiff){
             TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
             create_single_compressed_diff_block(newData,newData+newRefStream.stream->streamSize,
@@ -514,9 +519,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
             _pushv(out_diff);
         }
     }else{
-        const bool  newAndOldDataIsMTSameRes=true; // NOTE: now resLimit not multi-thread safe 
-        const hdiff_TMTSets_s mtsets={hdiffSets.threadNum,hdiffSets.threadNumSearch_s,false,false,
-                                      newAndOldDataIsMTSameRes};
+        const hdiff_TMTSets_s mtsets={hdiffSets.threadNum,hdiffSets.threadNumSearch_s,false,false};
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
         if (hdiffSets.isSingleCompressedDiff){
             create_single_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,

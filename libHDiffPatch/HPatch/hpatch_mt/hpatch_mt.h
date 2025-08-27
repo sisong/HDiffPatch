@@ -80,7 +80,7 @@ hpatch_BOOL _patch_single_compressed_diff_mt(const hpatch_TStreamOutput* out_new
                                              hpatch_StreamPos_t coverCount,hpatch_size_t stepMemSize,
                                              unsigned char* temp_cache,unsigned char* temp_cache_end,
                                              sspatch_coversListener_t* coversListener,
-                                             hpatchMTSets_t mtsets);
+                                             size_t maxThreadNum,hpatchMTSets_t mtsets);
 
 #if (_IS_USED_MULTITHREAD)
 

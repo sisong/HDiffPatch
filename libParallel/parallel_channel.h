@@ -52,7 +52,8 @@ struct CAutoLocker{
     inline ~CAutoLocker(){ if (locker) locker_leave(locker); }
     HLocker locker;
 };
-
+hpatch_force_inline static
+void        condvar_wait(HCondvar cond,CAutoLocker* locker) { condvar_wait_at(cond,locker->locker); }
 
 #if ((_IS_USED_CPP_ATOMIC) && (!_IS_NO_ATOMIC_U64))
     class CWaitValueByAtomic{
@@ -117,6 +118,7 @@ struct CAutoLocker{
                     CAutoLocker _autoLocker(_locker.locker);
                     if (_value==expectedValue) return true;
                     condvar_wait(_condvar,&_autoLocker);
+                    if (_value==expectedValue) return true;
                 }
                 if (failWaitCallBackFunc(failWaitImport)) return false;
             }
