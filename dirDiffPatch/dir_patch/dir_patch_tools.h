@@ -41,10 +41,26 @@ extern "C" {
     hpatch_BOOL readIncListTo(TStreamCacheClip* sclip,size_t* out_list,
                               size_t count,size_t check_endValue);
     
+    char* _setPath(char* out_path,char* out_pathBufEnd,const char* fileName,size_t fileNameLen);
     //return path end pos
-    char* setPath(char* out_path,char* out_pathBufEnd,const char* fileName);
-    char* setDirPath(char* out_path,char* out_pathBufEnd,const char* dirName);
+    static hpatch_force_inline
+    char* setPath(char* out_path,char* out_pathBufEnd,const char* fileName){ 
+                    return _setPath(out_path,out_pathBufEnd,fileName,strlen(fileName)); }
+    static hpatch_force_inline
+    char* setPathWithRoot(char* out_path,char* out_pathBufEnd,const char* root_path,size_t root_pathLen,const char* fileName){
+                                char* resultEnd=_setPath(out_path,out_pathBufEnd,root_path,root_pathLen);
+                                if (resultEnd) resultEnd=setPath(resultEnd,out_pathBufEnd,fileName);
+                                return resultEnd;   }
 
+    char* _setDirPath(char* out_path,char* out_pathBufEnd,const char* dirName,size_t dirNameLen);
+    static hpatch_force_inline
+    char* setDirPath(char* out_path,char* out_pathBufEnd,const char* dirName){
+                        return _setDirPath(out_path,out_pathBufEnd,dirName,strlen(dirName)); }
+    static hpatch_force_inline
+    char* setDirPathWithRoot(char* out_path,char* out_pathBufEnd,char* root_path,size_t root_pathLen,const char* dirName){
+                                    char* resultEnd=_setPath(out_path,out_pathBufEnd,root_path,root_pathLen);
+                                    if (resultEnd) resultEnd=setDirPath(resultEnd,out_pathBufEnd,dirName);
+                                    return resultEnd;  }
     
 #ifdef __cplusplus
 }

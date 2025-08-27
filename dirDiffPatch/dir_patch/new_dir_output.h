@@ -64,7 +64,7 @@ hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,hpatch_ICopyDataLi
     
     typedef struct hpatch_IOldPathListener{
         void* listenerImport;
-        const char* (*getOldPathByIndex)(struct hpatch_IOldPathListener* listener,size_t oldPathIndex);
+        const char* (*getOldPathByIndex)(const struct hpatch_IOldPathListener* listener,size_t oldPathIndex,char* out_pathBuf,char* out_pathBufEnd);
     } hpatch_IOldPathListener;
     
     typedef struct TNewDirOutput{
@@ -84,9 +84,8 @@ hpatch_BOOL TDirPatcher_readFile(const char* oldFileName_utf8,hpatch_ICopyDataLi
         hpatch_BOOL                 isCheck_copyFileData;
         //private input:
         hpatch_IOldPathListener     _oldPathListener;
-        char*                       _newRootDir;
-        char*                       _newRootDir_end;
-        char*                       _newRootDir_bufEnd;
+        const char*                 _newRootDir;
+        size_t                      _newRootDir_len; //==strlen(_newRootDir)
         const unsigned char*        _pChecksum_newRefData_copyFileData;
         unsigned char*              _pChecksum_temp;
         hpatch_TChecksum*           _checksumPlugin;
@@ -111,15 +110,21 @@ hpatch_BOOL TNewDirOutput_openDir(TNewDirOutput* self,IDirPatchListener* listene
 hpatch_BOOL TNewDirOutput_closeNewDirHandles(TNewDirOutput* self);//for TNewDirOutput_openDir
 hpatch_BOOL TNewDirOutput_close(TNewDirOutput* self);
 
-const char* TNewDirOutput_getNewPathRoot(TNewDirOutput* self);
-const char* TNewDirOutput_getNewPathByIndex(TNewDirOutput* self,size_t newPathIndex);
-const char* TNewDirOutput_getNewExecuteFileByIndex(TNewDirOutput* self,size_t newExecuteIndex);
-const char* TNewDirOutput_getNewPathByRefIndex(TNewDirOutput* self,size_t newRefIndex);
-const char* TNewDirOutput_getOldPathBySameIndex(TNewDirOutput* self,size_t sameIndex);
-const char* TNewDirOutput_getNewPathBySameIndex(TNewDirOutput* self,size_t sameIndex);
+const char* TNewDirOutput_getNewPathRoot(const TNewDirOutput* self);
+const char* TNewDirOutput_getNewPathByIndex(const TNewDirOutput* self,size_t newPathIndex,
+                                            char* out_pathBuf,char* out_pathBufEnd);
+const char* TNewDirOutput_getNewExecuteFileByIndex(const TNewDirOutput* self,size_t newExecuteIndex,
+                                                   char* out_pathBuf,char* out_pathBufEnd);
+const char* TNewDirOutput_getNewPathByRefIndex(const TNewDirOutput* self,size_t newRefIndex,
+                                               char* out_pathBuf,char* out_pathBufEnd);
+const char* TNewDirOutput_getOldPathBySameIndex(const TNewDirOutput* self,size_t sameIndex,
+                                                char* out_pathBuf,char* out_pathBufEnd);
+const char* TNewDirOutput_getNewPathBySameIndex(const TNewDirOutput* self,size_t sameIndex,
+                                                char* out_pathBuf,char* out_pathBufEnd);
 
 //ExecuteList
-typedef const char* (*IDirPathList_getPathNameByIndex)(void* import,size_t index);
+typedef const char* (*IDirPathList_getPathNameByIndex)(const void* import,size_t index,
+                                                       char* out_pathBuf,char* out_pathBufEnd);
 typedef struct IDirPathList{
     void*                   import;
     size_t                  pathCount;

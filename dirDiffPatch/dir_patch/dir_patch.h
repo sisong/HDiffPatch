@@ -115,9 +115,8 @@ typedef struct TDirPatcher{
     hpatch_TResHandleLimit      _resLimit;
     hpatch_IResHandle*          _resList;
     struct hpatch_TFileStreamInput*    _oldFileList;
-    char*                       _oldRootDir;
-    char*                       _oldRootDir_end;
-    char*                       _oldRootDir_bufEnd;
+    const char*                 _oldRootDir;
+    size_t                      _oldRootDir_len;
     void*                       _pOldRefMem;
     
     hpatch_ICopyDataListener    _sameFileCopyListener;
@@ -165,45 +164,50 @@ hpatch_BOOL TDirPatcher_isOldRefDataChecksumError(const TDirPatcher* self)
 static hpatch_inline
 size_t      TDirPatcher_getNewExecuteFileCount(const TDirPatcher* self) {
                                                return self->dirDiffHead.newExecuteCount;  }
-static hpatch_inline const char* TDirPatcher_getNewExecuteFileByIndex(TDirPatcher* self,size_t newExecuteIndex)
-    { return TNewDirOutput_getNewExecuteFileByIndex(&self->_newDir,newExecuteIndex); }
+static hpatch_inline const char* TDirPatcher_getNewExecuteFileByIndex(const TDirPatcher* self,size_t newExecuteIndex,
+                                                                      char* out_pathBuf,char* out_pathBufEnd)
+    { return TNewDirOutput_getNewExecuteFileByIndex(&self->_newDir,newExecuteIndex,out_pathBuf,out_pathBufEnd); }
 
 hpatch_BOOL TDirPatcher_closeOldRefStream(TDirPatcher* self);//for TDirPatcher_openOldRefAsStream
 hpatch_BOOL TDirPatcher_closeNewDirStream(TDirPatcher* self);//for TDirPatcher_openNewDirAsStream
 hpatch_BOOL TDirPatcher_close(TDirPatcher* self);
 
 //can be called after TDirPatcher_loadDirData
-const char* TDirPatcher_getOldPathByIndex(TDirPatcher* self,size_t oldPathIndex);
-const char* TDirPatcher_getOldRefPathByRefIndex(TDirPatcher* self,size_t oldRefIndex);
-const char* TDirPatcher_getOldPathByNewPath(TDirPatcher* self,const char* newPath);
-static hpatch_inline const char* TDirPatcher_getNewPathRoot(TDirPatcher* self)
+const char* TDirPatcher_getOldPathByIndex(const TDirPatcher* self,size_t oldPathIndex,
+                                          char* out_pathBuf,char* out_pathBufEnd);
+const char* TDirPatcher_getOldRefPathByRefIndex(const TDirPatcher* self,size_t oldRefIndex,
+                                                char* out_pathBuf,char* out_pathBufEnd);
+const char* TDirPatcher_getOldPathByNewPath(const TDirPatcher* self,const char* newPath,
+                                            char* out_pathBuf,char* out_pathBufEnd);
+static hpatch_inline const char* TDirPatcher_getNewPathRoot(const TDirPatcher* self)
     { return TNewDirOutput_getNewPathRoot(&self->_newDir); }
-static hpatch_inline const char* TDirPatcher_getNewPathByIndex(TDirPatcher* self,size_t newPathIndex)
-    { return TNewDirOutput_getNewPathByIndex(&self->_newDir,newPathIndex); }
-static hpatch_inline const char* TDirPatcher_getOldPathBySameIndex(TDirPatcher* self,size_t sameIndex)
-    { return TNewDirOutput_getOldPathBySameIndex(&self->_newDir,sameIndex); }
-static hpatch_inline const char* TDirPatcher_getNewPathBySameIndex(TDirPatcher* self,size_t sameIndex)
-    { return TNewDirOutput_getNewPathBySameIndex(&self->_newDir,sameIndex); }
+static hpatch_inline const char* TDirPatcher_getNewPathByIndex(const TDirPatcher* self,size_t newPathIndex,
+                                                               char* out_pathBuf,char* out_pathBufEnd)
+    { return TNewDirOutput_getNewPathByIndex(&self->_newDir,newPathIndex,out_pathBuf,out_pathBufEnd); }
+static hpatch_inline const char* TDirPatcher_getOldPathBySameIndex(const TDirPatcher* self,size_t sameIndex,
+                                                                   char* out_pathBuf,char* out_pathBufEnd)
+    { return TNewDirOutput_getOldPathBySameIndex(&self->_newDir,sameIndex,out_pathBuf,out_pathBufEnd); }
+static hpatch_inline const char* TDirPatcher_getNewPathBySameIndex(const TDirPatcher* self,size_t sameIndex,
+                                                                   char* out_pathBuf,char* out_pathBufEnd)
+    { return TNewDirOutput_getNewPathBySameIndex(&self->_newDir,sameIndex,out_pathBuf,out_pathBufEnd); }
 static hpatch_inline void TDirPatcher_getNewExecuteList(TDirPatcher* self,IDirPathList* out_executeList)
     { TNewDirOutput_getExecuteList(&self->_newDir,out_executeList); }
 static hpatch_inline void TDirPatcher_getNewDirPathList(TDirPatcher* self,IDirPathList* out_newPathList)
     { TNewDirOutput_getNewDirPathList(&self->_newDir,out_newPathList); }
-static hpatch_inline void TDirPatcher_getOldDirPathList(TDirPatcher* self,IDirPathList* out_oldPathList){ out_oldPathList->import=self;
+static hpatch_inline void TDirPatcher_getOldDirPathList(TDirPatcher* self,IDirPathList* out_oldPathList){
+    out_oldPathList->import=self;
     out_oldPathList->pathCount=self->dirDiffHead.oldPathCount;
     out_oldPathList->getPathNameByIndex=(IDirPathList_getPathNameByIndex)TDirPatcher_getOldPathByIndex;
 }
-
-static hpatch_inline
-const char* TDirPatcher_getOldExecuteFileByNewExecuteIndex(TDirPatcher* self,size_t newExecuteIndex){
-    const char* executeFileName_in_new=TDirPatcher_getNewExecuteFileByIndex(self,newExecuteIndex);
-    return TDirPatcher_getOldPathByNewPath(self,executeFileName_in_new);
-}
-
+const char* TDirPatcher_getOldExecuteFileByNewExecuteIndex(const TDirPatcher* self,size_t newExecuteIndex,
+                                                           char* out_pathBuf,char* out_pathBufEnd);
 
 hpatch_BOOL TDirPatcher_initOldSameRefCount(TDirPatcher* self);
 void        TDirPatcher_finishOldSameRefCount(TDirPatcher* self);
-const char* TDirPatcher_getOldPathBySameIndex(TDirPatcher* self,size_t sameIndex);
-const char* TDirPatcher_getNewPathBySameIndex(TDirPatcher* self,size_t sameIndex);
+const char* TDirPatcher_getOldPathBySameIndex(const TDirPatcher* self,size_t sameIndex,
+                                              char* out_pathBuf,char* out_pathBufEnd);
+const char* TDirPatcher_getNewPathBySameIndex(const TDirPatcher* self,size_t sameIndex,
+                                              char* out_pathBuf,char* out_pathBufEnd);
 size_t      TDirPatcher_oldSameRefCount(TDirPatcher* self,size_t sameIndex);
 void        TDirPatcher_decOldSameRefCount(TDirPatcher* self,size_t sameIndex);
     

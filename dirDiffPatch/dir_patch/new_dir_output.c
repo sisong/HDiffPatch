@@ -103,7 +103,8 @@ static hpatch_BOOL _tryCloseNewFile(TNewDirOutput* self){
 static hpatch_BOOL _makeNewDirOrEmptyFile(hpatch_INewStreamListener* listener,size_t newPathIndex){
     hpatch_BOOL  result=hpatch_TRUE;
     TNewDirOutput* self=(TNewDirOutput*)listener->listenerImport;
-    const char*  pathName=TNewDirOutput_getNewPathByIndex(self,newPathIndex);
+    char _tmpPath[hpatch_kPathMaxSize];
+    const char*  pathName=TNewDirOutput_getNewPathByIndex(self,newPathIndex,_tmpPath,_tmpPath+sizeof(_tmpPath));
     check(pathName!=0);
     if (hpatch_getIsDirName(pathName)){ //
         check(self->_listener->makeNewDir(self->_listener,pathName));
@@ -115,9 +116,9 @@ clear:
     return result;
 }
 
-static const char* _getOldPathByIndex(TNewDirOutput* self,size_t oldPathIndex){
+static const char* _getOldPathByIndex(const TNewDirOutput* self,size_t oldPathIndex,char* out_pathBuf,char* out_pathBufEnd){
     assert(self->_oldPathListener.getOldPathByIndex!=0);
-    return self->_oldPathListener.getOldPathByIndex(&self->_oldPathListener,oldPathIndex);
+    return self->_oldPathListener.getOldPathByIndex(&self->_oldPathListener,oldPathIndex,out_pathBuf,out_pathBufEnd);
 }
 
 static hpatch_BOOL _copySameFile(hpatch_INewStreamListener* listener,size_t newPathIndex,size_t oldPathIndex){
@@ -125,11 +126,13 @@ static hpatch_BOOL _copySameFile(hpatch_INewStreamListener* listener,size_t newP
     TNewDirOutput* self=(TNewDirOutput*)listener->listenerImport;
     const char*  newFileName=0;
     const char*  oldFileName=0;
+    char _tmpPath0[hpatch_kPathMaxSize];
+    char _tmpPath1[hpatch_kPathMaxSize];
     assert(newPathIndex<self->newPathCount);
-    newFileName=TNewDirOutput_getNewPathByIndex(self,newPathIndex);
+    newFileName=TNewDirOutput_getNewPathByIndex(self,newPathIndex,_tmpPath0,_tmpPath0+sizeof(_tmpPath0));
     check(newFileName!=0);
     check(self->_oldPathListener.getOldPathByIndex!=0);
-    oldFileName=_getOldPathByIndex(self,oldPathIndex);
+    oldFileName=_getOldPathByIndex(self,oldPathIndex,_tmpPath1,_tmpPath1+sizeof(_tmpPath1));
     check(oldFileName!=0);
     checki(self->_listener->copySameFile(self->_listener,oldFileName,newFileName,
                                          self->isCheck_copyFileData?(&self->_sameFileCopyListener):0),
@@ -142,7 +145,6 @@ static hpatch_BOOL _openNewFile(hpatch_INewStreamListener* listener,size_t newRe
                                 const hpatch_TStreamOutput** out_newFileStream){
     hpatch_BOOL  result=hpatch_TRUE;
     TNewDirOutput* self=(TNewDirOutput*)listener->listenerImport;
-    const char*  utf8fileName=0;
     hpatch_StreamPos_t fileSize;
     assert((newRefIndex<self->newRefFileCount)&&(self->_curNewFile->base.write==0));
     fileSize=self->newRefSizeList[newRefIndex];
@@ -151,7 +153,8 @@ static hpatch_BOOL _openNewFile(hpatch_INewStreamListener* listener,size_t newRe
         check(_makeNewDirOrEmptyFile(listener,newPathIndex));
         *out_newFileStream=0;
     }else{
-        utf8fileName=TNewDirOutput_getNewPathByRefIndex(self,newRefIndex);
+        char _tmpPath[hpatch_kPathMaxSize];
+        const char*  utf8fileName=TNewDirOutput_getNewPathByRefIndex(self,newRefIndex,_tmpPath,_tmpPath+sizeof(_tmpPath));
         check(utf8fileName!=0);
         checki(self->_listener->openNewFile(self->_listener,self->_curNewFile,
                                             utf8fileName,fileSize),
@@ -283,8 +286,7 @@ hpatch_BOOL TNewDirOutput_close(TNewDirOutput* self){
     if (!hpatch_TNewStream_close(&self->_newDirStream))
         result=hpatch_FALSE;
     self->_newRootDir=0;
-    self->_newRootDir_end=0;
-    self->_newRootDir_bufEnd=0;
+    self->_newRootDir_len=0;
     self->_curNewFile=0;
     if (self->_newRefChecksumHandle){
         checksumPlugin->close(checksumPlugin,self->_newRefChecksumHandle);
@@ -301,40 +303,44 @@ hpatch_BOOL TNewDirOutput_close(TNewDirOutput* self){
     return result;
 }
 
-const char* TNewDirOutput_getNewPathRoot(TNewDirOutput* self){
-    if (!setPath(self->_newRootDir_end,self->_newRootDir_bufEnd,"")) return 0; //error
+const char* TNewDirOutput_getNewPathRoot(const TNewDirOutput* self){
     return self->_newRootDir;
 }
 
-const char* TNewDirOutput_getNewPathByIndex(TNewDirOutput* self,size_t newPathIndex){
+const char* TNewDirOutput_getNewPathByIndex(const TNewDirOutput* self,size_t newPathIndex,
+                                            char* out_pathBuf,char* out_pathBufEnd){
     assert(newPathIndex<self->newPathCount);
-    if (!setPath(self->_newRootDir_end,self->_newRootDir_bufEnd,
-                 self->newUtf8PathList[newPathIndex])) return 0; //error
-    return self->_newRootDir;
+    if (!setPathWithRoot(out_pathBuf,out_pathBufEnd,self->_newRootDir,self->_newRootDir_len,
+                         self->newUtf8PathList[newPathIndex])) return 0; //error
+    return out_pathBuf;
 }
 
-const char* TNewDirOutput_getNewPathByRefIndex(TNewDirOutput* self,size_t newRefIndex){
+const char* TNewDirOutput_getNewPathByRefIndex(const TNewDirOutput* self,size_t newRefIndex,
+                                               char* out_pathBuf,char* out_pathBufEnd){
     size_t newPathIndex;
     assert(newRefIndex<self->newRefFileCount);
     newPathIndex=self->newRefList?self->newRefList[newRefIndex]:newRefIndex;
-    return TNewDirOutput_getNewPathByIndex(self,newPathIndex);
+    return TNewDirOutput_getNewPathByIndex(self,newPathIndex,out_pathBuf,out_pathBufEnd);
 }
 
-const char* TNewDirOutput_getNewExecuteFileByIndex(TNewDirOutput* self,size_t newExecuteIndex){
+const char* TNewDirOutput_getNewExecuteFileByIndex(const TNewDirOutput* self,size_t newExecuteIndex,
+                                                   char* out_pathBuf,char* out_pathBufEnd){
     assert(newExecuteIndex<self->newExecuteCount);
-    return TNewDirOutput_getNewPathByIndex(self,self->newExecuteList[newExecuteIndex]);
+    return TNewDirOutput_getNewPathByIndex(self,self->newExecuteList[newExecuteIndex],out_pathBuf,out_pathBufEnd);
 }
 
-const char* TNewDirOutput_getOldPathBySameIndex(TNewDirOutput* self,size_t sameIndex){
+const char* TNewDirOutput_getOldPathBySameIndex(const TNewDirOutput* self,size_t sameIndex,
+                                                char* out_pathBuf,char* out_pathBufEnd){
     assert(sameIndex<self->sameFilePairCount);
     assert(self->dataSamePairList!=0);
-    return _getOldPathByIndex(self,self->dataSamePairList[sameIndex].oldIndex);
+    return _getOldPathByIndex(self,self->dataSamePairList[sameIndex].oldIndex,out_pathBuf,out_pathBufEnd);
 }
 
-const char* TNewDirOutput_getNewPathBySameIndex(TNewDirOutput* self,size_t sameIndex){
+const char* TNewDirOutput_getNewPathBySameIndex(const TNewDirOutput* self,size_t sameIndex,
+                                                char* out_pathBuf,char* out_pathBufEnd){
     assert(sameIndex<self->sameFilePairCount);
     assert(self->dataSamePairList!=0);
-    return TNewDirOutput_getNewPathByIndex(self,self->dataSamePairList[sameIndex].newIndex);
+    return TNewDirOutput_getNewPathByIndex(self,self->dataSamePairList[sameIndex].newIndex,out_pathBuf,out_pathBufEnd);
 }
 
 #endif
