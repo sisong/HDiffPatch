@@ -27,7 +27,7 @@
 */
 #include "_hcache_old_mt.h"
 #include "_patch_private_mt.h"
-#include "..\patch_private.h"
+#include "../patch_private.h"
 #if (_IS_USED_MULTITHREAD)
 
 typedef struct hcache_old_mt_t{

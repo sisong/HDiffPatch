@@ -63,8 +63,8 @@ typedef struct{
 #   define _check_malloc(p) { if (!(p)) return c_mt_NULL; }
 #endif
 
-int _parallel_import_c_exit_on_error=0;
-#define _check_exit()   { if (_parallel_import_c_exit_on_error) exit(_parallel_import_c_exit_on_error); }
+void (*_parallel_import_c_on_error)()=0;
+#define _on_mt_error()   { if (_parallel_import_c_on_error) _parallel_import_c_on_error(); }
 
 #if (_IS_USED_PTHREAD)
 #include <string.h> //for memset
@@ -73,7 +73,7 @@ int _parallel_import_c_exit_on_error=0;
 
 #define _LOG_ERR_PT(rt,func_name)   { LOG_ERR("pthread error: %s() return %d",func_name,rt);}
 #define _check_pt_init(rt,func_name){ if (rt!=0) { _LOG_ERR_PT(rt,func_name); } }
-#define _check_pt(rt,func_name)     { if (rt!=0) { _LOG_ERR_PT(rt,func_name); _check_exit(); } }
+#define _check_pt(rt,func_name)     { if (rt!=0) { _LOG_ERR_PT(rt,func_name); _on_mt_error(); } }
 
 static int _g_attr_RECURSIVE_is_init=0;
 static pthread_mutexattr_t _g_attr_RECURSIVE={0};
@@ -216,9 +216,9 @@ c_mt_bool_t c_thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,
 #include <stdio.h>
 
 
-#define _LOG_ERR_WT(func_name)   { LOG_ERR("win32 thread error: %s() return false",func_name);}
+#define _LOG_ERR_WT(func_name)   { LOG_ERR("win32 thread error: %s() return false\n",func_name);}
 #define _check_wt_init(func_name){ _LOG_ERR_WT(func_name); }
-#define _check_wt(func_name)     { _LOG_ERR_WT(func_name); _check_exit(); }
+#define _check_wt(func_name)     { _LOG_ERR_WT(func_name); _on_mt_error(); }
 
 HLocker c_locker_new(void){
     CRITICAL_SECTION* self=(CRITICAL_SECTION*)malloc(sizeof(CRITICAL_SECTION));

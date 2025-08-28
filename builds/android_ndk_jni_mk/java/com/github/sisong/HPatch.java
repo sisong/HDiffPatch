@@ -16,6 +16,6 @@ public class HPatch{
     //      then cacheMemory recommended oldFileSize+256*1024;
     public static native int patch(String oldFileName,String diffFileName,String outNewFileName,long cacheMemory,int threadNum);
     public static final int patch(String oldFileName,String diffFileName,String outNewFileName){
-        return patch(oldFileName,diffFileName,outNewFileName,256*1024,3);
+        return patch(oldFileName,diffFileName,outNewFileName,256*1024,1);
     }
 }

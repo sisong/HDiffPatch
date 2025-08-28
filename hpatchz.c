@@ -53,6 +53,9 @@
 #ifndef _IS_NEED_MAIN
 #   define  _IS_NEED_MAIN 1
 #endif
+#if (_IS_NEED_MAIN && _IS_USED_MULTITHREAD)
+#   include "libParallel/parallel_import_c.h"
+#endif
 #ifndef _IS_NEED_CMDLINE
 #   define  _IS_NEED_CMDLINE 1
 #endif
@@ -221,7 +224,7 @@ static void printUsage(){
            "  -p-parallelThreadNumber\n"
            "      if parallelThreadNumber>1 then open multi-thread Parallel mode;\n"
            "      now only support single compressed diffData(created by hdiffz -SD-stepSize);\n"
-           "      can set 1..5, DEFAULT -p-3; requires more memory!\n"
+           "      can set 1..5, DEFAULT -p-1!\n"
 #endif
 #if (_IS_NEED_DIR_DIFF_PATCH)
            "  -C-checksumSets\n"
@@ -301,6 +304,7 @@ typedef enum THPatchResult {
     HPATCH_DECOMPRESSER_MEM_ERROR,
     HPATCH_DECOMPRESSER_DECOMPRESS_ERROR,
     HPATCH_FILEWRITE_NO_SPACE_ERROR,
+    HPATCH_MULTITHREAD_ERROR, // 25
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
     DIRPATCH_DIRDIFFINFO_ERROR=101,
@@ -328,6 +332,11 @@ typedef enum THPatchResult {
     HPATCH_RUN_SFX_DIFFOFFSERT_ERROR, // 205
 #endif
 } THPatchResult;
+#if (_IS_NEED_MAIN && _IS_USED_MULTITHREAD)
+    static void _on_mt_error(){
+        exit(HPATCH_MULTITHREAD_ERROR);
+    }
+#endif
 
 int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFileName,
            hpatch_BOOL isLoadOldAll,size_t patchCacheSize,hpatch_StreamPos_t diffDataOffert,
@@ -414,7 +423,7 @@ static hpatch_BOOL _toChecksumSet(const char* psets,TDirPatchChecksumSet* checks
 #define _kNULL_SIZE     (~(size_t)0)
 
 #define _THREAD_NUMBER_NULL     _kNULL_SIZE
-#define _THREAD_NUMBER_DEFUALT  3
+#define _THREAD_NUMBER_DEFUALT  1
 #define _THREAD_NUMBER_MAX      5
 
 #if (_IS_NEED_CMDLINE)
@@ -575,6 +584,10 @@ int hpatch_cmd_line(int argc, const char * argv[]){
         isRunSFX=hpatch_FALSE;
     if (threadNum==_THREAD_NUMBER_NULL)
         threadNum=_THREAD_NUMBER_DEFUALT;
+#if (_IS_NEED_MAIN && _IS_USED_MULTITHREAD)
+    if (threadNum>1)
+        _parallel_import_c_on_error=_on_mt_error;
+#endif
 #if (_IS_NEED_SFX)
     if ((argc<=1)&&(!isRunSFX)){
         hpatch_StreamPos_t _diffDataOffert=0;

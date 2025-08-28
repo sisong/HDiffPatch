@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.11.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.12.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -128,8 +128,8 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       如果新版本和旧版本不相同数据比较多,那diff速度就会比较快;
       该大型缓冲区最大占用O(旧版本文件大小)的内存, 并且需要较多的时间来创建(从而可能降低diff速度)。
   -SD[-stepSize]
-      创建单压缩流的补丁文件, 这样patch时就只需要一个解压缩缓冲区, 并且可以支持边下载边patch;
-      压缩步长stepSize>=(1024*4), 默认为256k, 推荐64k,2m等。
+      创建单压缩流的补丁文件, 这样patch时就只需要一个解压缩缓冲区, 并且可以支持边下载边patch,
+      并支持多线程patch; 压缩步长stepSize>=(1024*4), 默认为256k, 推荐64k,2m等。
   -BSD
       创建一个和bsdiff4兼容的补丁, 不支持参数为文件夹。
       也支持和-SD选项一起运行(不使用其stepSize), 从而创建单压缩流的补丁文件，
@@ -184,7 +184,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
         -C-md5
   -n-maxOpenFileNumber
       为文件夹间的-s模式diff设置最大允许同时打开的文件数;
-      maxOpenFileNumber>=8, 默认为48; 合适的限制值可能不同系统下不同。
+      maxOpenFileNumber>=16, 默认为48; 合适的限制值可能不同系统下不同。
   -g#ignorePath[#ignorePath#...]
       为文件夹间的diff设置忽略路径(路径可能是文件或文件夹); 忽略路径列表的格式如下:
         #.DS_Store#desktop.ini#*thumbs*.db#.git*#.svn/#cache_*/00*11/*.tmp
@@ -237,8 +237,8 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
   oldPath可以为空, 输入参数为 ""
 选项:
   -s[-cacheSize]
-      默认选项,并且默认设置为-s-4m; oldPath所有文件被当作文件流来加载;
-      cacheSize可以设置为262144 或 256k, 512m, 2g等
+      默认选项,并且默认设置为-s-8m; oldPath所有文件被当作文件流来加载;
+      cacheSize可以设置为262144 或 256k, 64m, 512m 等
       需要的内存大小: (cacheSize + 4*解压缩缓冲区)+O(1)
       而如果diffFile是单压缩流的补丁文件(用hdiffz -SD-stepSize所创建)
         那需要的内存大小: (cacheSize+ stepSize + 1*解压缩缓冲区)+O(1);
@@ -254,6 +254,10 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
         那需要的内存大小: (oldFileSize + 3*解压缩缓冲区);
       如果diffFile是VCDIFF格式补丁文件(用hdiffz -VCD、xdelta3、open-vcdiff所创建)
         那需要的内存大小: (源窗口大小+目标窗口大小 + 3*解压缩缓冲区);
+  -p-parallelThreadNumber
+      设置线程数 parallelThreadNumber>1 时,开启多线程并行模式;
+      当前只支持单压缩流的补丁文件(用hdiffz -SD-stepSize所创建);
+      可以设置值 1..5, 默认 -p-1 (即单线程)!
   -C-checksumSets
       为文件夹patch设置校验方式, 默认设置为 -C-new-copy;
       校验设置支持(可以多选):

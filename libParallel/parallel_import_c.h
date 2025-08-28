@@ -58,7 +58,7 @@ extern "C" {
     #define c_mt_NULL           0
     #define c_mt_bool_FALSE     0
     #define c_mt_bool_TRUE      (!c_mt_bool_FALSE)
-    extern int _parallel_import_c_exit_on_error; //only for c only mode; set when error, exit program.
+    extern void (*_parallel_import_c_on_error)(); //only for c only mode; set call back when MT error.
 
     //parallel critical section lock;
     typedef void*   HLocker;

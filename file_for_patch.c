@@ -506,7 +506,7 @@ hpatch_FileHandle __import_fileOpen(const char* fileName_utf8,_FileModeType mode
 hpatch_inline static
 hpatch_FileHandle _import_fileOpen(const char* fileName_utf8,_FileModeType mode){
     hpatch_FileHandle result=__import_fileOpen(fileName_utf8,mode); 
-    setvbuf(result,0,_IONBF,0);
+    if (result) setvbuf(result,0,_IONBF,0);
     return result;
 }
 

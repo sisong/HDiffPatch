@@ -182,7 +182,7 @@ struct CNewDirOut{
         assert(_dirInfoAlignSize<=newSyncInfo->newDataSize);
         const size_t _outNewDir_len=strlen(outNewDir);
         _tempStr.resize(_outNewDir_len+2);
-        char* pathEnd=setDirPath(_tempStr.data(),_tempStr.data()+_outNewDir_len+2,outNewDir);
+        char* pathEnd=setDirPath(&_tempStr[0],(&_tempStr[0])+_outNewDir_len+2,outNewDir);
         assert(pathEnd!=0);
         _tempStr.resize(pathEnd-_tempStr.data());
         _newDir._newRootDir=_tempStr.c_str();

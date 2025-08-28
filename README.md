@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.11.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.12.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -129,6 +129,7 @@ options:
   -SD[-stepSize]
       create single compressed diffData, only need one decompress buffer
       when patch, and support step by step patching when step by step downloading!
+        and supports multi-thread patching!
       stepSize>=(1024*4), DEFAULT -SD-256k, recommended 64k,2m etc...
   -BSD
       create diffFile compatible with bsdiff4, unsupport input directory(folder).
@@ -185,7 +186,7 @@ options:
         -C-md5
   -n-maxOpenFileNumber
       limit Number of open files at same time when stream directory diff;
-      maxOpenFileNumber>=8, DEFAULT -n-48, the best limit value by different
+      maxOpenFileNumber>=16, DEFAULT -n-48, the best limit value by different
         operating system.
   -g#ignorePath[#ignorePath#...]
       set iGnore path list when Directory Diff; ignore path list such as:
@@ -238,8 +239,8 @@ extract SFX: **selfExtractArchive**  (same as: $selfExtractArchive -f {""|".\"} 
   if oldPath is empty input parameter ""
 options:
   -s[-cacheSize]
-      DEFAULT -s-4m; oldPath loaded as Stream;
-      cacheSize can like 262144 or 256k or 512m or 2g etc....
+      DEFAULT -s-8m; oldPath loaded as Stream;
+      cacheSize can like 262144 or 256k or 64m or 512m etc....
       requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires
         (cacheSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
@@ -255,6 +256,10 @@ options:
         (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.
       if diffFile is VCDIFF(created by hdiffz -VCD,xdelta3,open-vcdiff), then requires
         (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.
+  -p-parallelThreadNumber
+      if parallelThreadNumber>1 then open multi-thread Parallel mode;
+      now only support single compressed diffData(created by hdiffz -SD-stepSize);
+      can set 1..5, DEFAULT -p-1!
   -C-checksumSets
       set Checksum data for directory patch, DEFAULT -C-new-copy;
       checksumSets support (can choose multiple):

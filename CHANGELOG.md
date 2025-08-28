@@ -2,6 +2,15 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v4.12.0](https://github.com/sisong/HDiffPatch/tree/v4.12.0) - 2025-08-28
+### Added
+* cmdline hpatchz support multi-thread for single compressed diff (create by $hdiffz -SD);   
+  multi-thread used for I/O & decompress, maybe help with patching speed.
+* patch_single_stream support pre-read some old data, for optimize disk read;
+* Android .so makefile build support directory patch (default closed, need set DIR=1);
+### Changed
+* recode C++ multi-thread code to C code base, so remove _IS_USED_CPP11THREAD define.
+
 ## [v4.11.1](https://github.com/sisong/HDiffPatch/tree/v4.11.1) - 2025-08-18
 ### Fixed
 * fix a bug when run dir_diff by multi-thread parallel on linux;

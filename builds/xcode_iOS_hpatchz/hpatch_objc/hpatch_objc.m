@@ -15,7 +15,7 @@
            withDiff:(NSString *)diffFileName
               toNew:(NSString *)outNewFileName
 {
-    return [hpatcher patchWithOld:oldFileName withDiff:diffFileName toNew:outNewFileName byMemory:256*1024 byThreadNum:3];
+    return [hpatcher patchWithOld:oldFileName withDiff:diffFileName toNew:outNewFileName byMemory:256*1024 byThreadNum:1];
 }
 
 + (int)patchWithOld:(NSString *)oldFileName
