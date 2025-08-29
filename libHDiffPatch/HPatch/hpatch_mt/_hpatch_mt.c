@@ -114,7 +114,7 @@ hpatch_mt_t* hpatch_mt_open(void* pmem,size_t memSumSize,size_t threadNum,size_t
     self->mt_base.workBufSize=(workBufCount>0)?workBufNodeSize-sizeof(hpatch_TWorkBuf):0;
     for (i=0;i<workBufCount;i++,temp_cache+=workBufNodeSize){
         hpatch_TWorkBuf* workBuf=(hpatch_TWorkBuf*)temp_cache;
-        TWorkBuf_pushABufAtHead(&self->mt_base.freeBufList,workBuf);
+        TWorkBuf_pushABufAtHead((hpatch_TWorkBuf**)&self->mt_base.freeBufList,workBuf);
     }
     return self;
 }
@@ -126,7 +126,7 @@ hpatch_TWorkBuf* hpatch_mt_popFreeWorkBuf_fast(struct hpatch_mt_t* self,size_t n
     hpatch_TWorkBuf* bufList=0;
     if (self->mt_base.isOnError) return 0;
     while (needBufCount--){
-        hpatch_TWorkBuf* workBuf=TWorkBuf_popABuf(&self->mt_base.freeBufList);
+        hpatch_TWorkBuf* workBuf=TWorkBuf_popABuf((hpatch_TWorkBuf**)&self->mt_base.freeBufList);
         assert(workBuf);
         if (workBuf){
             TWorkBuf_pushABufAtHead(&bufList,workBuf);

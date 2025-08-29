@@ -72,12 +72,12 @@ static void houtput_thread_(int threadIndex,void* workData){
     houtput_mt_t* self=(houtput_mt_t*)workData;
     hpatch_BOOL _isOnError=hpatch_FALSE;
     while ((!hpatch_mt_isOnError(self->mt_base.h_mt))&(!_isOnError)&(self->curWritePos<self->base.streamSize)){
-        hpatch_TWorkBuf* datas=hpatch_mt_base_onceWaitAllBufs_(&self->mt_base,&self->mt_base.dataBufList,&_isOnError);
+        hpatch_TWorkBuf* datas=hpatch_mt_base_onceWaitAllBufs_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.dataBufList,&_isOnError);
         
         while (datas){
             if (_houtput_mt_writeAData(self,datas)){
                 hpatch_TWorkBuf* next=datas->next;
-                hpatch_mt_base_pushABufAtHead_(&self->mt_base,&self->mt_base.freeBufList,datas,&_isOnError);
+                hpatch_mt_base_pushABufAtHead_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.freeBufList,datas,&_isOnError);
                 datas=next;
             }else{
                 hpatch_mt_base_setOnError_(&self->mt_base);
@@ -101,7 +101,7 @@ static hpatch_BOOL houtput_mt_write_(const struct hpatch_TStreamOutput* stream,h
     while ((!_isOnError)&(data<data_end)){
         if (hpatch_mt_isOnError(self->mt_base.h_mt)) { _isOnError=hpatch_TRUE; break; }
         if (self->curDataBuf==0){
-            self->curDataBuf=hpatch_mt_base_onceWaitABuf_(&self->mt_base,&self->mt_base.freeBufList,&_isOnError);
+            self->curDataBuf=hpatch_mt_base_onceWaitABuf_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.freeBufList,&_isOnError);
             if (self->curDataBuf)
                 self->curDataBuf->data_size=0;
         }
@@ -113,7 +113,7 @@ static hpatch_BOOL houtput_mt_write_(const struct hpatch_TStreamOutput* stream,h
             self->curDataBuf->data_size+=writeLen;
             data+=writeLen;
             if ((self->mt_base.workBufSize==self->curDataBuf->data_size)|((data==data_end)&isNeedFlush)){
-                hpatch_mt_base_pushABufAtEnd_(&self->mt_base,&self->mt_base.dataBufList,self->curDataBuf,&_isOnError);
+                hpatch_mt_base_pushABufAtEnd_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.dataBufList,self->curDataBuf,&_isOnError);
                 self->curDataBuf=0;
             }
         }

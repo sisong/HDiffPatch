@@ -88,11 +88,11 @@ static void hinput_thread_(int threadIndex,void* workData){
     hinput_mt_t* self=(hinput_mt_t*)workData;
     hpatch_BOOL _isOnError=hpatch_FALSE;
     while ((!hpatch_mt_isOnFinish(self->mt_base.h_mt))&(!_isOnError)&(self->curReadPos<self->base.streamSize)){
-        hpatch_TWorkBuf* wbuf=hpatch_mt_base_onceWaitABuf_(&self->mt_base,&self->mt_base.freeBufList,&_isOnError);
+        hpatch_TWorkBuf* wbuf=hpatch_mt_base_onceWaitABuf_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.freeBufList,&_isOnError);
         
         if ((wbuf!=0)&(!_isOnError)){
             if (_hinput_mt_readAData(self,wbuf)){
-                hpatch_mt_base_pushABufAtEnd_(&self->mt_base,&self->mt_base.dataBufList,wbuf,&_isOnError);
+                hpatch_mt_base_pushABufAtEnd_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.dataBufList,wbuf,&_isOnError);
             }else{
                 hpatch_mt_base_setOnError_(&self->mt_base);
                 _isOnError=hpatch_TRUE;

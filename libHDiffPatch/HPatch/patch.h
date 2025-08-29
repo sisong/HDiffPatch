@@ -44,6 +44,9 @@ extern "C" {
 #ifndef _IS_NEED_CACHE_OLD_BY_COVERS
 #   define _IS_NEED_CACHE_OLD_BY_COVERS     1
 #endif
+#ifndef _IS_NEED_CACHE_OLD_ALL
+#   define _IS_NEED_CACHE_OLD_ALL           1
+#endif
 
 
 //generate newData by patch(oldData + serializedDiff)

@@ -4,7 +4,8 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := hpatchz
 
 # args
-MT    := 1
+# is use multi-thread patch? (threads for I/O & decompress)
+MT    := 0
 ZLIB  := 1
 LZMA  := 1
 ZSTD  := 1
@@ -16,8 +17,8 @@ BZIP2 := 0
 # is need directory patch?
 DIR   := 0
 
-DEF_FLAGS := -Os -DANDROID_NDK -DNDEBUG -D_LARGEFILE_SOURCE \
-             -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_DEFAULT_CompressPlugin=0
+DEF_FLAGS := -Os -DANDROID_NDK -DNDEBUG -D_LARGEFILE_SOURCE -D_IS_NEED_DEFAULT_CompressPlugin=0 \
+             -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_CACHE_OLD_ALL=1
 LINK_FLAGS:= -llog
 
 HDP_PATH  := $(LOCAL_PATH)/../../

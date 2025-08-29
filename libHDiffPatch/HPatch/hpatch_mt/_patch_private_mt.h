@@ -117,7 +117,7 @@ void                hpatch_mt_base_aThreadEnd_(hpatch_mt_base_t* self){
     while ((!_isOnError)&(out_data<out_data_end)){  \
         if (self->curDataBuf==0){       \
             if (hpatch_mt_isOnError(self->mt_base.h_mt)) { _isOnError=hpatch_TRUE; break; }     \
-            self->curDataBuf=hpatch_mt_base_onceWaitABuf_(&self->mt_base,&self->mt_base.dataBufList,&_isOnError);       \
+            self->curDataBuf=hpatch_mt_base_onceWaitABuf_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.dataBufList,&_isOnError);       \
         }       \
         if ((self->curDataBuf!=0)&(!_isOnError)){   \
             size_t readLen=self->curDataBuf->data_size-self->curDataBuf_pos;                    \
@@ -126,7 +126,7 @@ void                hpatch_mt_base_aThreadEnd_(hpatch_mt_base_t* self){
             self->curDataBuf_pos+=readLen;          \
             out_data+=readLen;          \
             if (self->curDataBuf_pos==self->curDataBuf->data_size){ \
-                hpatch_mt_base_pushABufAtHead_(&self->mt_base,&self->mt_base.freeBufList,self->curDataBuf,&_isOnError); \
+                hpatch_mt_base_pushABufAtHead_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.freeBufList,self->curDataBuf,&_isOnError); \
                 self->curDataBuf=0;     \
                 self->curDataBuf_pos=0; \
             }   \

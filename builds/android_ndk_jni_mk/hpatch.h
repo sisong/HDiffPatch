@@ -18,7 +18,7 @@ extern "C" {
 
     // return THPatchResult, 0 is ok
     //  threadNum: 1..5
-    //    multi-thread (threadNum>1) patching now only support single compressed diffData(created by hdiffz -SD-stepSize);
+    //    multi-thread (threadNum>1) patching now only support single compressed diffData(created by hdiffz -SD);
     //  cacheMemory:
     //    cacheMemory is used for file IO, different cacheMemory only affects patch speed;
     //    recommended 256*1024,1024*1024,... if cacheMemory<0 then default 256*1024;

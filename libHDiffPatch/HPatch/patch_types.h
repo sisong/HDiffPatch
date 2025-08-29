@@ -49,6 +49,9 @@ extern "C" {
 #ifndef _IS_USED_MULTITHREAD
 #   define _IS_USED_MULTITHREAD 1
 #endif
+#ifndef _HPATCH_IS_USED_MULTITHREAD
+#   define _HPATCH_IS_USED_MULTITHREAD   _IS_USED_MULTITHREAD
+#endif
 
 #ifndef hpatch_int
     typedef int                 hpatch_int;

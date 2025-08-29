@@ -111,7 +111,7 @@ static void hcache_old_thread_(int threadIndex,void* workData){
                 while (coverLen){//buf loop
                     size_t readLen;
                     if (wbuf==0){
-                        wbuf=hpatch_mt_base_onceWaitABuf_(&self->mt_base,&self->mt_base.freeBufList,&_isOnError);
+                        wbuf=hpatch_mt_base_onceWaitABuf_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.freeBufList,&_isOnError);
                         if (_isOnError) break; //exit read loop by error
                         if (wbuf==0) continue; //need buf
                         wbuf->data_size=0;
@@ -124,14 +124,14 @@ static void hcache_old_thread_(int threadIndex,void* workData){
                     coverPos+=readLen;
                     coverLen-=readLen;
                     if (wbuf->data_size==self->mt_base.workBufSize){
-                        hpatch_mt_base_pushABufAtEnd_(&self->mt_base,&self->mt_base.dataBufList,wbuf,&_isOnError);
+                        hpatch_mt_base_pushABufAtEnd_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.dataBufList,wbuf,&_isOnError);
                         wbuf=0;
                     }
                 }//end buf loop
                 if (_isOnError) break; //exit loop by error
             }//end cover loop
             if (wbuf){
-                hpatch_mt_base_pushABufAtEnd_(&self->mt_base,&self->mt_base.dataBufList,wbuf,&_isOnError);
+                hpatch_mt_base_pushABufAtEnd_(&self->mt_base,(hpatch_TWorkBuf**)&self->mt_base.dataBufList,wbuf,&_isOnError);
                 wbuf=0;
             }
         }

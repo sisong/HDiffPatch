@@ -658,6 +658,7 @@
 					_CompressPlugin_lzma2,
 					_CompressPlugin_zstd,
 					_CompressPlugn_7zXZ,
+					"$(inherited)",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
