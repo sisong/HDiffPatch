@@ -38,7 +38,8 @@ extern "C" {
 typedef struct hpatch_TWorkBuf{
     struct hpatch_TWorkBuf* next;
     size_t                  data_size;
-    //hpatch_byte           data[];
+    hpatch_StreamPos_t      stream_pos;
+    //hpatch_byte           data[workBufSize];
 } hpatch_TWorkBuf;
 hpatch_force_inline static
 hpatch_byte* TWorkBuf_data(hpatch_TWorkBuf* self) { return ((hpatch_byte*)self)+sizeof(hpatch_TWorkBuf); }
@@ -73,6 +74,18 @@ hpatch_TWorkBuf* TWorkBuf_popAllBufs(hpatch_TWorkBuf** pnode){
     return result;
 }
 
+hpatch_inline static size_t TWorkBuf_getWorkBufSize(size_t workBufNodeSize){
+                                            assert(workBufNodeSize>sizeof(hpatch_TWorkBuf));
+                                            return workBufNodeSize-sizeof(hpatch_TWorkBuf); }
+hpatch_inline static
+hpatch_TWorkBuf* TWorkBuf_allocFreeList(void** pmem,size_t workBufCount,size_t workBufNodeSize) {
+    hpatch_TWorkBuf* result = 0;
+    hpatch_byte* pbuf=(hpatch_byte*)(*pmem);
+    for (; (workBufCount--)>0;pbuf+= workBufNodeSize)
+        TWorkBuf_pushABufAtHead(&result, (hpatch_TWorkBuf*)pbuf);
+    *pmem=pbuf;
+    return result;
+}
 
 typedef struct hpatch_mt_base_t{
     struct hpatch_mt_t*         h_mt;
@@ -88,7 +101,7 @@ typedef struct hpatch_mt_base_t{
 } hpatch_mt_base_t;
 
 
-hpatch_BOOL         _hpatch_mt_base_init(hpatch_mt_base_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList);
+hpatch_BOOL         _hpatch_mt_base_init(hpatch_mt_base_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize);
 void                _hpatch_mt_base_free(hpatch_mt_base_t* self);
 void                hpatch_mt_base_setOnError_(hpatch_mt_base_t* self);
 hpatch_TWorkBuf*    hpatch_mt_base_onceWaitABuf_(hpatch_mt_base_t* self,hpatch_TWorkBuf** pBufList,hpatch_BOOL* _isOnError);

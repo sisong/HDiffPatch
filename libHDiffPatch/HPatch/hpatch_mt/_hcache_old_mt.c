@@ -177,11 +177,11 @@ static hpatch_BOOL _hcache_old_mt_read(const struct hpatch_TStreamInput* stream,
 
 hpatch_inline static
 hpatch_BOOL _hcache_old_mt_init(hcache_old_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,
-                                const hpatch_TStreamInput* old_stream,
+                                hpatch_size_t workBufSize,const hpatch_TStreamInput* old_stream,
                                 sspatch_coversListener_t* nextCoverlistener,hpatch_BOOL isOnStepCoversInThread){
     memset(self,0,sizeof(*self));
     assert(freeBufList);
-    if (!_hpatch_mt_base_init(&self->mt_base,h_mt,freeBufList)) return hpatch_FALSE;
+    if (!_hpatch_mt_base_init(&self->mt_base,h_mt,freeBufList,workBufSize)) return hpatch_FALSE;
     self->base.streamImport=self;
     self->base.streamSize=old_stream->streamSize;
     self->base.read=_hcache_old_mt_read;
@@ -205,13 +205,14 @@ size_t hcache_old_mt_t_size(){
     return sizeof(hcache_old_mt_t);
 }
 
-hpatch_TStreamInput* hcache_old_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
+hpatch_TStreamInput* hcache_old_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,
+                                        struct hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize,
                                         const hpatch_TStreamInput* old_stream,sspatch_coversListener_t** out_coversListener,
                                         sspatch_coversListener_t* nextCoverlistener,hpatch_BOOL isOnStepCoversInThread){
     hcache_old_mt_t* self=(hcache_old_mt_t*)pmem;
     if (memSize<hcache_old_mt_t_size()) return 0;
     if (nextCoverlistener) assert(nextCoverlistener->onStepCovers);
-    if (!_hcache_old_mt_init(self,h_mt,freeBufList,old_stream,nextCoverlistener,isOnStepCoversInThread))
+    if (!_hcache_old_mt_init(self,h_mt,freeBufList,workBufSize,old_stream,nextCoverlistener,isOnStepCoversInThread))
         goto _on_error;
 
     if (!hpatch_mt_base_aThreadBegin_(&self->mt_base,hcache_old_thread_,self))

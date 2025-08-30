@@ -38,7 +38,7 @@ size_t                houtput_mt_t_memSize();
 // create a new hpatch_TStreamOutput* wrapper base_stream;
 //   start a thread to write data to base_stream
 hpatch_TStreamOutput* houtput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
-                                      const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos);
+                                      hpatch_size_t workBufSize,const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos);
 
 hpatch_BOOL           houtput_mt_close(hpatch_TStreamOutput* houtput_mt_stream);
 

@@ -37,11 +37,11 @@ size_t               hinput_mt_t_memSize();
 
 // create a new hpatch_TStreamInput* wrapper base_stream;
 //   start a thread to read data from base_stream
-hpatch_TStreamInput* hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
+hpatch_TStreamInput* hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize,
                                     const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos);
 
 // same as hinput_mt_open, but auto decompress data when read from base_stream
-hpatch_TStreamInput* hinput_dec_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
+hpatch_TStreamInput* hinput_dec_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize,
                                         const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos,
                                         hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressedSize);
 

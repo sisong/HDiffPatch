@@ -43,7 +43,7 @@ hpatch_BOOL _hpatch_mt_init(hpatch_mt_t* self,size_t threadNum) {
     self->threadNum=threadNum;
     self->condvarList=(HCondvar*)(self+1);
     memset(self->condvarList,0,threadNum*sizeof(HCondvar));
-    if (!_hpatch_mt_base_init(&self->mt_base,self,0)) return hpatch_FALSE;
+    if (!_hpatch_mt_base_init(&self->mt_base,self,0,0)) return hpatch_FALSE;
     return hpatch_TRUE;
 }
 static void _hpatch_mt_free(hpatch_mt_t* self) {
@@ -98,44 +98,17 @@ static void _hpatch_mt_setOnError(hpatch_mt_t* self) {
     }
 }
 
-size_t hpatch_mt_t_memSize(){
-    return sizeof(hpatch_mt_t);
+size_t hpatch_mt_t_memSize(size_t maxThreadNum){
+    return sizeof(hpatch_mt_t)+maxThreadNum*sizeof(HCondvar);
 }
-hpatch_mt_t* hpatch_mt_open(void* pmem,size_t memSumSize,size_t threadNum,size_t workBufCount,size_t workBufNodeSize){
-    size_t i;
+hpatch_mt_t* hpatch_mt_open(void* pmem,size_t memSize,size_t maxThreadNum){
     hpatch_mt_t* self=(hpatch_mt_t*)pmem;
-    hpatch_byte* temp_cache=((hpatch_byte*)self)+hpatch_mt_t_memSize()+threadNum*sizeof(HCondvar);
-    if (memSumSize<hpatch_mt_t_memSize()+threadNum*sizeof(HCondvar)+workBufCount*workBufNodeSize) return 0;
-    if (workBufCount) assert(workBufNodeSize>sizeof(hpatch_TWorkBuf));
-    if (!_hpatch_mt_init(self,threadNum)){
+    if (memSize<hpatch_mt_t_memSize(maxThreadNum)) return 0;
+    if (!_hpatch_mt_init(self,maxThreadNum)){
         _hpatch_mt_free(self);
         return 0;
     }
-    self->mt_base.workBufSize=(workBufCount>0)?workBufNodeSize-sizeof(hpatch_TWorkBuf):0;
-    for (i=0;i<workBufCount;i++,temp_cache+=workBufNodeSize){
-        hpatch_TWorkBuf* workBuf=(hpatch_TWorkBuf*)temp_cache;
-        TWorkBuf_pushABufAtHead((hpatch_TWorkBuf**)&self->mt_base.freeBufList,workBuf);
-    }
     return self;
-}
-size_t hpatch_mt_workBufSize(const hpatch_mt_t* self){
-    return self->mt_base.workBufSize;
-}
-
-hpatch_TWorkBuf* hpatch_mt_popFreeWorkBuf_fast(struct hpatch_mt_t* self,size_t needBufCount){
-    hpatch_TWorkBuf* bufList=0;
-    if (self->mt_base.isOnError) return 0;
-    while (needBufCount--){
-        hpatch_TWorkBuf* workBuf=TWorkBuf_popABuf((hpatch_TWorkBuf**)&self->mt_base.freeBufList);
-        assert(workBuf);
-        if (workBuf){
-            TWorkBuf_pushABufAtHead(&bufList,workBuf);
-        }else{
-            self->mt_base.isOnError=hpatch_TRUE;
-            return 0;
-        }
-    }
-    return bufList;
 }
 
 hpatch_BOOL hpatch_mt_beforeThreadBegin(hpatch_mt_t* self){

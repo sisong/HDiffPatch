@@ -214,11 +214,11 @@ typedef struct hpatch_mt_manager_t{
 
 static size_t _getObjsMemSize(hpatchMTSets_t mtsets,size_t* pworkBufCount){
     size_t threadNum=_hpatchMTSets_threadNum(mtsets);
-    size_t objsMemSize=threadNum*sizeof(HCondvar);
+    size_t objsMemSize=0;
 
     *pworkBufCount=kObjNodeCount*(threadNum-1);
     objsMemSize+=_hpatch_align_upper(sizeof(hpatch_mt_manager_t),kAlignSize);
-    objsMemSize+=_hpatch_align_upper(hpatch_mt_t_memSize(),kAlignSize);
+    objsMemSize+=_hpatch_align_upper(hpatch_mt_t_memSize(threadNum),kAlignSize);
     objsMemSize+=mtsets.readDiff_isMT       ?_hpatch_align_upper(hinput_mt_t_memSize(),kAlignSize):0;
     objsMemSize+=mtsets.decompressDiff_isMT ?_hpatch_align_upper(hinput_mt_t_memSize(),kAlignSize):0;
     objsMemSize+=mtsets.readOld_isMT        ?_hpatch_align_upper(hcache_old_mt_t_size(),kAlignSize):0;
@@ -246,6 +246,8 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
     size_t         kMinTempCacheSize;
     hpatch_byte* temp_cache=*ptemp_cache;
     hpatch_byte* temp_cache_end=*ptemp_cache_end;
+    hpatch_byte* wbufsMem=0;
+    hpatch_size_t workBufSize;
     hpatch_mt_manager_t* self=0;
     const size_t threadNum=_hpatchMTSets_threadNum(mtsets);
     assert(threadNum>1);
@@ -270,29 +272,31 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
     {
         size_t memCacheSize=(temp_cache_end-temp_cache)-objsMemSize-stepMemSize;
         workBufNodeSize=memCacheSize/(workBufCount+kCacheCount)/kAlignSize*kAlignSize;
+        workBufSize=TWorkBuf_getWorkBufSize(workBufNodeSize);
     }
    
     self=(hpatch_mt_manager_t*)_hpatch_align_upper(temp_cache,kAlignSize);
     memset(self,0,sizeof(*self));
     temp_cache=(hpatch_byte*)_hpatch_align_upper(temp_cache+sizeof(hpatch_mt_manager_t),kAlignSize);
 
-    self->h_mt=hpatch_mt_open(temp_cache,hpatch_mt_t_memSize()+threadNum*sizeof(HCondvar)+workBufCount*workBufNodeSize,
-                              threadNum,workBufCount,workBufNodeSize);
+    self->h_mt=hpatch_mt_open(temp_cache,hpatch_mt_t_memSize(threadNum),threadNum);
     if (self->h_mt==0) goto _on_error;
-    temp_cache+=_hpatch_align_upper(hpatch_mt_t_memSize()+threadNum*sizeof(HCondvar)+workBufCount*workBufNodeSize,kAlignSize);
+    temp_cache=(hpatch_byte*)_hpatch_align_upper(temp_cache+hpatch_mt_t_memSize(threadNum),kAlignSize);
+    wbufsMem=temp_cache;
+    temp_cache+=workBufCount*workBufNodeSize;
     if (mtsets.readDiff_isMT){
         self->diffData=hinput_mt_open(temp_cache,hinput_mt_t_memSize(),self->h_mt,
-                                      hpatch_mt_popFreeWorkBuf_fast(self->h_mt,kObjNodeCount),
+                                      TWorkBuf_allocFreeList(&wbufsMem,kObjNodeCount,workBufNodeSize),workBufSize,
                                       *psingleCompressedDiff,*pdiffData_pos,*pdiffData_posEnd);
         if (self->diffData==0) goto _on_error;
         *psingleCompressedDiff=self->diffData;
         *pdiffData_posEnd=self->diffData->streamSize;
-        temp_cache+=_hpatch_align_upper(hinput_mt_t_memSize(),kAlignSize);
+        temp_cache=(hpatch_byte*)_hpatch_align_upper(temp_cache+hinput_mt_t_memSize(),kAlignSize);
     }
     if (mtsets.decompressDiff_isMT){
         assert(*pdecompressPlugin);
         self->decDiffData=hinput_dec_mt_open(temp_cache,hinput_mt_t_memSize(),self->h_mt,
-                                             hpatch_mt_popFreeWorkBuf_fast(self->h_mt,kObjNodeCount),
+                                            TWorkBuf_allocFreeList(&wbufsMem,kObjNodeCount,workBufNodeSize),workBufSize,
                                              self->diffData?self->diffData:*psingleCompressedDiff,*pdiffData_pos,
                                              self->diffData?self->diffData->streamSize:*pdiffData_posEnd,
                                              *pdecompressPlugin,uncompressedSize);
@@ -300,25 +304,25 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
         *psingleCompressedDiff=self->decDiffData;
         *pdiffData_posEnd=self->decDiffData->streamSize;
         *pdecompressPlugin=0;
-        temp_cache+=_hpatch_align_upper(hinput_mt_t_memSize(),kAlignSize);
+        temp_cache=(hpatch_byte*)_hpatch_align_upper(temp_cache+hinput_mt_t_memSize(),kAlignSize);
     }
     if (mtsets.readOld_isMT){
         sspatch_coversListener_t* out_coversListener=0;
         self->oldData=hcache_old_mt_open(temp_cache,hcache_old_mt_t_size(),self->h_mt,
-                                         hpatch_mt_popFreeWorkBuf_fast(self->h_mt,kObjNodeCount),
+                                         TWorkBuf_allocFreeList(&wbufsMem,kObjNodeCount,workBufNodeSize),workBufSize,
                                          *poldData,&out_coversListener,*pcoversListener,isOnStepCoversInThread);
         if (self->oldData==0) goto _on_error;
         *poldData=self->oldData;
         *pcoversListener=out_coversListener;
-        temp_cache+=_hpatch_align_upper(hcache_old_mt_t_size(),kAlignSize);
+        temp_cache=(hpatch_byte*)_hpatch_align_upper(temp_cache+hcache_old_mt_t_size(),kAlignSize);
     }
     if (mtsets.writeNew_isMT){
         self->newData=houtput_mt_open(temp_cache,houtput_mt_t_memSize(),self->h_mt,
-                                      hpatch_mt_popFreeWorkBuf_fast(self->h_mt,kObjNodeCount),
+                                      TWorkBuf_allocFreeList(&wbufsMem,kObjNodeCount,workBufNodeSize),workBufSize,
                                       *pout_newData,0);
         if (self->newData==0) goto _on_error;
         *pout_newData=self->newData;
-        temp_cache+=houtput_mt_t_memSize();//_hpatch_align_upper(houtput_mt_t_memSize(),kAlignSize);
+        temp_cache=(hpatch_byte*)_hpatch_align_upper(temp_cache+houtput_mt_t_memSize(),kAlignSize);
     }
 
     *ptemp_cache=temp_cache;
@@ -344,11 +348,11 @@ hpatch_BOOL hpatch_mt_manager_close(struct hpatch_mt_manager_t* self,hpatch_BOOL
 
 //hpatch_mt_base_t func
 
-hpatch_BOOL _hpatch_mt_base_init(hpatch_mt_base_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList){
+hpatch_BOOL _hpatch_mt_base_init(hpatch_mt_base_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize){
     assert(self->h_mt==0);
     self->h_mt=h_mt;
     self->freeBufList=freeBufList;
-    self->workBufSize=hpatch_mt_workBufSize(h_mt);
+    self->workBufSize=workBufSize;
 
     self->_locker=c_locker_new();
     self->_waitCondvar=c_condvar_new();

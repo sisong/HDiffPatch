@@ -37,11 +37,9 @@ extern "C" {
 struct hpatch_mt_t;
 struct hpatch_TWorkBuf;
 
-size_t                  hpatch_mt_t_memSize();
+size_t                  hpatch_mt_t_memSize(size_t maxThreadNum);
 
-struct hpatch_mt_t*     hpatch_mt_open(void* pmem,size_t memSumSize,size_t threadNum,size_t workBufCount,size_t workBufNodeSize);
-size_t                  hpatch_mt_workBufSize(const struct hpatch_mt_t* self);
-struct hpatch_TWorkBuf* hpatch_mt_popFreeWorkBuf_fast(struct hpatch_mt_t* self,size_t needBufCount);//fast no locker & no wait
+struct hpatch_mt_t*     hpatch_mt_open(void* pmem,size_t memSize,size_t maxThreadNum);
 hpatch_BOOL             hpatch_mt_beforeThreadBegin(struct hpatch_mt_t* self); //a thread begin
 void                    hpatch_mt_onThreadEnd(struct hpatch_mt_t* self); //a thread exit
 hpatch_BOOL             hpatch_mt_registeCondvar(struct hpatch_mt_t* self,HCondvar waitCondvar); //when onError or onFinish, got broadcast

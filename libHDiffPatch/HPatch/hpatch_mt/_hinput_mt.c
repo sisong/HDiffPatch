@@ -45,13 +45,13 @@ typedef struct hinput_mt_t{
                                        unsigned char* out_data,unsigned char* out_data_end);
 
 hpatch_inline static
-hpatch_BOOL _hinput_mt_init(hinput_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,
+hpatch_BOOL _hinput_mt_init(hinput_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize,
                             const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos,
                             hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressedSize){
     memset(self,0,sizeof(*self));
     assert(endReadPos<=base_stream->streamSize);
     assert(freeBufList);
-    if (!_hpatch_mt_base_init(&self->mt_base,h_mt,freeBufList)) return hpatch_FALSE;
+    if (!_hpatch_mt_base_init(&self->mt_base,h_mt,freeBufList,workBufSize)) return hpatch_FALSE;
     self->base.streamImport=self;
     self->base.streamSize=decompressPlugin?(curReadPos+uncompressedSize):endReadPos;
     self->base.read=hinput_mt_read_;
@@ -114,12 +114,12 @@ static hpatch_BOOL hinput_mt_read_(const hpatch_TStreamInput* stream,hpatch_Stre
 size_t hinput_mt_t_memSize(){
     return sizeof(hinput_mt_t);
 }
-hpatch_TStreamInput* hinput_dec_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
+hpatch_TStreamInput* hinput_dec_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize,
                                         const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos,
                                         hpatch_TDecompress* decompressPlugin,hpatch_StreamPos_t uncompressedSize){
     hinput_mt_t* self=(hinput_mt_t*)pmem;
     if (memSize<hinput_mt_t_memSize()) return 0;
-    if (!_hinput_mt_init(self,h_mt,freeBufList,base_stream,curReadPos,endReadPos,decompressPlugin,uncompressedSize))
+    if (!_hinput_mt_init(self,h_mt,freeBufList,workBufSize,base_stream,curReadPos,endReadPos,decompressPlugin,uncompressedSize))
         goto _on_error;
 
     if (!hpatch_mt_base_aThreadBegin_(&self->mt_base,hinput_thread_,self))
@@ -132,9 +132,9 @@ _on_error:
     return 0;
 }
 
-hpatch_TStreamInput* hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,
+hpatch_TStreamInput* hinput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize,
                                     const hpatch_TStreamInput* base_stream,hpatch_StreamPos_t curReadPos,hpatch_StreamPos_t endReadPos){
-    return hinput_dec_mt_open(pmem,memSize,h_mt,freeBufList,base_stream,curReadPos,endReadPos,0,0);
+    return hinput_dec_mt_open(pmem,memSize,h_mt,freeBufList,workBufSize,base_stream,curReadPos,endReadPos,0,0);
 }
 
 hpatch_BOOL hinput_mt_close(hpatch_TStreamInput* hinput_mt_stream){

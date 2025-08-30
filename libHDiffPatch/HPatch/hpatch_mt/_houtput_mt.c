@@ -43,10 +43,10 @@ typedef struct houtput_mt_t{
 
 hpatch_inline static
 hpatch_BOOL _houtput_mt_init(houtput_mt_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,
-                             const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos){
+                             hpatch_size_t workBufSize,const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos){
     memset(self,0,sizeof(*self));
     assert(freeBufList);
-    if (!_hpatch_mt_base_init(&self->mt_base,h_mt,freeBufList)) return hpatch_FALSE;
+    if (!_hpatch_mt_base_init(&self->mt_base,h_mt,freeBufList,workBufSize)) return hpatch_FALSE;
     self->base.streamImport=self;
     self->base.streamSize=base_stream->streamSize;
     self->base.write=houtput_mt_write_;
@@ -126,10 +126,10 @@ size_t houtput_mt_t_memSize(){
 }
 
 hpatch_TStreamOutput* houtput_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
-                                      const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos){
+                                      hpatch_size_t workBufSize,const hpatch_TStreamOutput* base_stream,hpatch_StreamPos_t curWritePos){
     houtput_mt_t* self=pmem;
     if (memSize<houtput_mt_t_memSize()) return 0;
-    if (!_houtput_mt_init(self,h_mt,freeBufList,base_stream,curWritePos))
+    if (!_houtput_mt_init(self,h_mt,freeBufList,workBufSize,base_stream,curWritePos))
         goto _on_error;
 
     if (!hpatch_mt_base_aThreadBegin_(&self->mt_base,houtput_thread_,self))

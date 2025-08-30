@@ -37,7 +37,8 @@ size_t               hcache_old_mt_t_size();
 
 // create a new hpatch_TStreamInput* wrapper old_stream;
 //   start a thread to read data from old_stream
-hpatch_TStreamInput* hcache_old_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,struct hpatch_TWorkBuf* freeBufList,
+hpatch_TStreamInput* hcache_old_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,
+                                        struct hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize,
                                         const hpatch_TStreamInput* old_stream,sspatch_coversListener_t** out_coversListener,
                                         sspatch_coversListener_t* nextCoverlistener,hpatch_BOOL isOnStepCoversInThread);
 hpatch_BOOL          hcache_old_mt_close(hpatch_TStreamInput* hcache_old_mt_stream);
