@@ -176,4 +176,111 @@ hpatch_BOOL hpatch_mt_close(hpatch_mt_t* self,hpatch_BOOL isOnError){
     return (!isOnError);
 }
 
+
+//hpatch_mt_base_t func
+
+hpatch_BOOL _hpatch_mt_base_init(hpatch_mt_base_t* self,struct hpatch_mt_t* h_mt,hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize){
+    assert(self->h_mt==0);
+    self->h_mt=h_mt;
+    self->freeBufList=freeBufList;
+    self->workBufSize=workBufSize;
+
+    self->_locker=c_locker_new();
+    self->_waitCondvar=c_condvar_new();
+    if (self->_waitCondvar){
+        if (!hpatch_mt_registeCondvar(self->h_mt,self->_waitCondvar))
+            return hpatch_FALSE;
+    }
+    return (self->_locker!=0)&(self->_waitCondvar!=0);
+}
+
+void _hpatch_mt_base_free(hpatch_mt_base_t* self){
+    assert(self!=0);
+#if (defined(_DEBUG) || defined(DEBUG))
+    if (self->_locker) c_locker_enter(self->_locker);
+    assert(self->threadIsRunning==0);
+    if (self->_locker) c_locker_leave(self->_locker);
+#endif 
+    if (self->_waitCondvar)
+        hpatch_mt_unregisteCondvar(self->h_mt,self->_waitCondvar);
+    _thread_obj_free(c_condvar_delete,self->_waitCondvar);
+    _thread_obj_free(c_locker_delete,self->_locker);
+}
+
+void hpatch_mt_base_setOnError_(hpatch_mt_base_t* self){
+    hpatch_BOOL isNeedSetOnError;
+    c_locker_enter(self->_locker);
+    isNeedSetOnError=(!self->isOnError);
+    if (isNeedSetOnError){
+        self->isOnError=hpatch_TRUE;
+        c_condvar_signal(self->_waitCondvar);
+    }
+    c_locker_leave(self->_locker);
+    if (isNeedSetOnError)
+        hpatch_mt_setOnError(self->h_mt);
+}
+
+hpatch_TWorkBuf* hpatch_mt_base_onceWaitABuf_(hpatch_mt_base_t* self,hpatch_TWorkBuf** pBufList,hpatch_BOOL* _isOnError){
+    hpatch_TWorkBuf* wbuf=0;
+    c_locker_enter(self->_locker);
+    wbuf=TWorkBuf_popABuf(pBufList);
+    if ((wbuf==0)&(!self->isOnError)){
+        c_condvar_wait(self->_waitCondvar,self->_locker);
+        wbuf=TWorkBuf_popABuf(pBufList);
+    }
+    *_isOnError=self->isOnError;
+    c_locker_leave(self->_locker);
+    return wbuf;
+}
+
+hpatch_TWorkBuf* hpatch_mt_base_onceWaitAllBufs_(hpatch_mt_base_t* self,hpatch_TWorkBuf** pBufList,hpatch_BOOL* _isOnError){
+    hpatch_TWorkBuf* wbufs=0;
+    c_locker_enter(self->_locker);
+    wbufs=TWorkBuf_popAllBufs(pBufList);
+    if ((wbufs==0)&(!self->isOnError)){
+        c_condvar_wait(self->_waitCondvar,self->_locker);
+        wbufs=TWorkBuf_popAllBufs(pBufList);
+    }
+    *_isOnError=self->isOnError;
+    c_locker_leave(self->_locker);
+    return wbufs;
+}
+
+void hpatch_mt_base_pushABufAtEnd_(hpatch_mt_base_t* self,hpatch_TWorkBuf** pBufList,hpatch_TWorkBuf* wbuf,hpatch_BOOL* _isOnError){
+    c_locker_enter(self->_locker);
+    TWorkBuf_pushABufAtEnd(pBufList,wbuf);
+    c_condvar_signal(self->_waitCondvar);
+    *_isOnError=self->isOnError;
+    c_locker_leave(self->_locker);
+}
+
+void hpatch_mt_base_pushABufAtHead_(hpatch_mt_base_t* self,hpatch_TWorkBuf** pBufList,hpatch_TWorkBuf* wbuf,hpatch_BOOL* _isOnError){
+    c_locker_enter(self->_locker);
+    TWorkBuf_pushABufAtHead(pBufList,wbuf);
+    c_condvar_signal(self->_waitCondvar);
+    *_isOnError=self->isOnError;
+    c_locker_leave(self->_locker);
+}
+
+hpatch_BOOL hpatch_mt_base_threadsBegin_(hpatch_mt_base_t* self,int threadCount,TThreadRunCallBackProc threadProc,
+                                         void* workData,int isUseThisThread,int threadIndexOffset){
+    int i;
+    for (i=0;i<threadCount;++i){
+        if (!hpatch_mt_beforeThreadBegin(self->h_mt))
+            return hpatch_FALSE;
+    #if (defined(_DEBUG) || defined(DEBUG))
+        ++self->threadIsRunning;
+    #endif
+        if (!c_thread_parallel(1,threadProc,workData,(isUseThisThread!=0)&(i+1==threadCount),i+threadIndexOffset)){
+            hpatch_mt_onThreadEnd(self->h_mt);
+        #if (defined(_DEBUG) || defined(DEBUG))
+            --self->threadIsRunning;
+        #endif
+            return hpatch_FALSE;
+        }
+    }
+    return hpatch_TRUE;
+}
+
+
 #endif //_IS_USED_MULTITHREAD
