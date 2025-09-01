@@ -92,8 +92,13 @@ hpatch_BOOL hpatch_mt_unregisteCondvar(struct hpatch_mt_t* self,HCondvar waitCon
 
 static void _hpatch_mt_setOnError(hpatch_mt_t* self) {
     if (!self->mt_base.isOnError){
+    #if (_IS_USED_C_ATOMIC)
+        c_atomic_uint_store(&self->isOnFinish,hpatch_TRUE);
+        c_atomic_uint_store(&self->mt_base.isOnError,hpatch_TRUE);
+    #else
         self->isOnFinish=hpatch_TRUE;
         self->mt_base.isOnError=hpatch_TRUE;
+    #endif
         _hpatch_mt_condvarList_broadcast(self);
     }
 }
@@ -135,18 +140,26 @@ void hpatch_mt_onThreadEnd(hpatch_mt_t* self){
 }
 
 hpatch_BOOL hpatch_mt_isOnFinish(hpatch_mt_t* self){
+#if (_IS_USED_C_ATOMIC)
+    return c_atomic_uint_load(&self->isOnFinish);
+#else
     hpatch_BOOL result;
     c_locker_enter(self->mt_base._locker);
     result=self->isOnFinish;
     c_locker_leave(self->mt_base._locker);
     return result;
+#endif
 }
 hpatch_BOOL hpatch_mt_isOnError(hpatch_mt_t* self){
+#if (_IS_USED_C_ATOMIC)
+    return c_atomic_uint_load(&self->mt_base.isOnError);
+#else
     hpatch_BOOL result;
     c_locker_enter(self->mt_base._locker);
     result=self->mt_base.isOnError;
     c_locker_leave(self->mt_base._locker);
     return result;
+#endif
 }
 
 void hpatch_mt_setOnError(struct hpatch_mt_t* self){
@@ -160,7 +173,11 @@ void hpatch_mt_waitAllThreadEnd(hpatch_mt_t* self,hpatch_BOOL isOnError){
     if (isOnError){
         _hpatch_mt_setOnError(self);
     }else if (!self->isOnFinish){
-        self->isOnFinish=hpatch_TRUE;
+        #if (_IS_USED_C_ATOMIC)
+            c_atomic_uint_store(&self->isOnFinish,hpatch_TRUE);
+        #else
+            self->isOnFinish=hpatch_TRUE;
+        #endif
         _hpatch_mt_condvarList_broadcast(self);
     }
     while (self->runningThreads){
@@ -212,7 +229,11 @@ void hpatch_mt_base_setOnError_(hpatch_mt_base_t* self){
     c_locker_enter(self->_locker);
     isNeedSetOnError=(!self->isOnError);
     if (isNeedSetOnError){
+    #if (_IS_USED_C_ATOMIC)
+        c_atomic_uint_store(&self->isOnError,hpatch_TRUE);
+    #else
         self->isOnError=hpatch_TRUE;
+    #endif
         c_condvar_signal(self->_waitCondvar);
     }
     c_locker_leave(self->_locker);

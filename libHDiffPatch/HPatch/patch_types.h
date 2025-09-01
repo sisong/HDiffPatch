@@ -86,7 +86,7 @@ extern "C" {
 #define hpatch_kNullStreamPos   (~(hpatch_StreamPos_t)0)
 
 #ifndef hpatch_BOOL
-    typedef int                 hpatch_BOOL;
+    typedef unsigned int        hpatch_BOOL;
 #endif
 #define     hpatch_FALSE    0
 #define     hpatch_TRUE     ((hpatch_BOOL)(!hpatch_FALSE))
@@ -96,7 +96,7 @@ extern "C" {
 #endif
 
 #if (_HPATCH_IS_USED_errno)
-typedef    int          hpatch_FileError_t;// 0: no error; other: saved errno value;
+typedef    unsigned int hpatch_FileError_t;// 0: no error; other: saved errno value;
 #else
 typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
 #endif

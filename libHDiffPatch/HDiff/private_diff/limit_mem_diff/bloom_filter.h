@@ -35,11 +35,7 @@
 #include "../../../HPatch/patch_types.h" // hpatch_force_inline
 #include "../../../../libParallel/parallel_channel.h"
 #if (_IS_USED_MULTITHREAD)
-# if defined(ANDROID) && (defined(__GNUC__) || defined(__clang__))
-#   define _IS_USED__sync_fetch_and_or 1
-#  else
 #   include <atomic> //need c++11, vc version need vc2012
-#  endif
 #endif
 
 namespace hdiff_private{
@@ -57,11 +53,7 @@ public:
 #if (_IS_USED_MULTITHREAD)
     inline void insert_MT(size_t bitIndex){
         //assert(bitIndex<m_bitSize);
-      #if (_IS_USED__sync_fetch_and_or)
-        __sync_fetch_and_or(&m_bits[bitIndex>>kBaseShr],((base_t)1<<(bitIndex&kBaseMask)));
-      #else
         ((std::atomic<base_t>*)&m_bits[bitIndex>>kBaseShr])->fetch_or(((base_t)1<<(bitIndex&kBaseMask)));
-      #endif
     }
 #endif
     hpatch_force_inline bool is_hit(size_t bitIndex)const{

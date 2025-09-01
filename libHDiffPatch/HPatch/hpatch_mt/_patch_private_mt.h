@@ -74,16 +74,21 @@ hpatch_TWorkBuf* TWorkBuf_popAllBufs(hpatch_TWorkBuf** pnode){
     return result;
 }
 
-hpatch_inline static size_t TWorkBuf_getWorkBufSize(size_t workBufNodeSize){
-                                            assert(workBufNodeSize>sizeof(hpatch_TWorkBuf));
-                                            return workBufNodeSize-sizeof(hpatch_TWorkBuf); }
+hpatch_force_inline static 
+size_t TWorkBuf_getWorkBufSize(size_t workBufNodeSize){
+                                    assert(workBufNodeSize>sizeof(hpatch_TWorkBuf));
+                                    return workBufNodeSize-sizeof(hpatch_TWorkBuf); }
 hpatch_inline static
-hpatch_TWorkBuf* TWorkBuf_allocFreeList(void** pmem,size_t workBufCount,size_t workBufNodeSize) {
+hpatch_TWorkBuf* TWorkBuf_createFreeListAt(hpatch_byte* pbuf,size_t workBufCount,size_t workBufNodeSize) {
     hpatch_TWorkBuf* result = 0;
-    hpatch_byte* pbuf=(hpatch_byte*)(*pmem);
     for (; (workBufCount--)>0;pbuf+= workBufNodeSize)
         TWorkBuf_pushABufAtHead(&result, (hpatch_TWorkBuf*)pbuf);
-    *pmem=pbuf;
+    return result;
+}
+hpatch_force_inline static
+hpatch_TWorkBuf* TWorkBuf_allocFreeList(void** pmem,size_t workBufCount,size_t workBufNodeSize) {
+    hpatch_TWorkBuf* result=TWorkBuf_createFreeListAt((hpatch_byte*)*pmem,workBufCount,workBufNodeSize);
+    (*(hpatch_byte**)pmem)+=workBufCount*workBufNodeSize;
     return result;
 }
 
