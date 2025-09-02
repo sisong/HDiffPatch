@@ -34,6 +34,8 @@ typedef struct hpatch_mt_t{
     HCondvar*               condvarList;
     volatile hpatch_BOOL    isOnFinish;
     volatile unsigned int   runningThreads;
+    HLocker                 _threadsEndLocker;
+    HCondvar                _threadsEndCondvar;
     hpatch_mt_base_t        mt_base;
 } hpatch_mt_t;
 
@@ -44,10 +46,14 @@ hpatch_BOOL _hpatch_mt_init(hpatch_mt_t* self,size_t threadNum) {
     self->condvarList=(HCondvar*)(self+1);
     memset(self->condvarList,0,threadNum*sizeof(HCondvar));
     if (!_hpatch_mt_base_init(&self->mt_base,self,0,0)) return hpatch_FALSE;
-    return hpatch_TRUE;
+    self->_threadsEndLocker=c_locker_new();
+    self->_threadsEndCondvar=c_condvar_new();
+    return (self->_threadsEndCondvar!=0)&(self->_threadsEndLocker!=0);
 }
 static void _hpatch_mt_free(hpatch_mt_t* self) {
     if (!self) return;
+    _thread_obj_free(c_condvar_delete,self->_threadsEndCondvar);
+    _thread_obj_free(c_locker_delete,self->_threadsEndLocker);
     _hpatch_mt_base_free(&self->mt_base);
 #if (defined(_DEBUG) || defined(DEBUG))
     {
@@ -120,23 +126,30 @@ hpatch_BOOL hpatch_mt_beforeThreadBegin(hpatch_mt_t* self){
     hpatch_BOOL result;
     c_locker_enter(self->mt_base._locker);
     result=(!self->mt_base.isOnError);
-    if (result)
-        ++self->runningThreads;
     c_locker_leave(self->mt_base._locker);
+    if (result){
+        c_locker_enter(self->_threadsEndLocker);
+        ++self->runningThreads;
+        c_locker_leave(self->_threadsEndLocker);
+    }
     return result;
 }
 void hpatch_mt_onThreadEnd(hpatch_mt_t* self){
-    c_locker_enter(self->mt_base._locker);
+    hpatch_BOOL isOnError=hpatch_FALSE;
+    c_locker_enter(self->_threadsEndLocker);
     assert(self->runningThreads>0);
     if (self->runningThreads>0){
         --self->runningThreads;
         if (self->runningThreads==0)
-            c_condvar_signal(self->mt_base._waitCondvar);
+            c_condvar_signal(self->_threadsEndCondvar);
     }else{
-        LOG_ERR("hpatch_mt_t runningThreads logic error");
-        _hpatch_mt_setOnError(self);
+        isOnError=hpatch_TRUE;
     }
-    c_locker_leave(self->mt_base._locker);
+    c_locker_leave(self->_threadsEndLocker);
+    if (isOnError){
+        LOG_ERR("hpatch_mt_t runningThreads logic error");
+        hpatch_mt_setOnError(self);
+    }
 }
 
 hpatch_BOOL hpatch_mt_isOnFinish(hpatch_mt_t* self){
@@ -180,15 +193,18 @@ void hpatch_mt_waitAllThreadEnd(hpatch_mt_t* self,hpatch_BOOL isOnError){
         #endif
         _hpatch_mt_condvarList_broadcast(self);
     }
-    while (self->runningThreads){
-        c_condvar_wait(self->mt_base._waitCondvar,self->mt_base._locker);
-    }
     c_locker_leave(self->mt_base._locker);
+
+    c_locker_enter(self->_threadsEndLocker);
+    while (self->runningThreads){
+        c_condvar_wait(self->_threadsEndCondvar,self->_threadsEndLocker);
+    }
+    c_locker_leave(self->_threadsEndLocker);
 }
 hpatch_BOOL hpatch_mt_close(hpatch_mt_t* self,hpatch_BOOL isOnError){
     if (!self) return !isOnError;
     hpatch_mt_waitAllThreadEnd(self,isOnError);
-    isOnError|=self->mt_base.isOnError;
+    isOnError|=hpatch_mt_isOnError(self);
     _hpatch_mt_free(self);
     return (!isOnError);
 }
