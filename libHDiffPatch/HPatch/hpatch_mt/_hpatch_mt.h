@@ -40,6 +40,8 @@ struct hpatch_TWorkBuf;
 size_t                  hpatch_mt_t_memSize(size_t maxThreadNum);
 
 struct hpatch_mt_t*     hpatch_mt_open(void* pmem,size_t memSize,size_t maxThreadNum);
+void                    hpatch_mt_setOnThreadEnd(struct hpatch_mt_t* self,void* finishThreadListener,
+                                                 void (*onFinishThread)(void* finishThreadListener));
 hpatch_BOOL             hpatch_mt_beforeThreadBegin(struct hpatch_mt_t* self); //a thread begin
 void                    hpatch_mt_onThreadEnd(struct hpatch_mt_t* self); //a thread exit
 hpatch_BOOL             hpatch_mt_registeCondvar(struct hpatch_mt_t* self,HCondvar waitCondvar); //when onError or onFinish, got broadcast

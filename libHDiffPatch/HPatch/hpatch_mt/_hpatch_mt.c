@@ -36,6 +36,9 @@ typedef struct hpatch_mt_t{
     volatile unsigned int   runningThreads;
     HLocker                 _threadsEndLocker;
     HCondvar                _threadsEndCondvar;
+//onFinishThread: JNI & ANDROID can call JavaVM->DetachCurrentThread() when thread end
+    void*       finishThreadListener;
+    void        (*onFinishThread)(void* finishThreadListener);
     hpatch_mt_base_t        mt_base;
 } hpatch_mt_t;
 
@@ -134,8 +137,17 @@ hpatch_BOOL hpatch_mt_beforeThreadBegin(hpatch_mt_t* self){
     }
     return result;
 }
+
+void hpatch_mt_setOnThreadEnd(struct hpatch_mt_t* self,void* finishThreadListener,
+                              void (*onFinishThread)(void* finishThreadListener)){
+    self->finishThreadListener=finishThreadListener;
+    self->onFinishThread=onFinishThread;
+}
+
 void hpatch_mt_onThreadEnd(hpatch_mt_t* self){
     hpatch_BOOL isOnError=hpatch_FALSE;
+    if (self->onFinishThread)
+        self->onFinishThread(self->finishThreadListener); 
     c_locker_enter(self->_threadsEndLocker);
     assert(self->runningThreads>0);
     if (self->runningThreads>0){
