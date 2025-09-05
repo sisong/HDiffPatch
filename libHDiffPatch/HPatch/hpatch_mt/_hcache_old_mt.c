@@ -201,7 +201,7 @@ hpatch_BOOL _hcache_old_mt_init(hcache_old_mt_t* self,struct hpatch_mt_t* h_mt,h
 }
 
 
-size_t hcache_old_mt_t_size(){
+size_t hcache_old_mt_t_memSize(){
     return sizeof(hcache_old_mt_t);
 }
 
@@ -210,7 +210,7 @@ hpatch_TStreamInput* hcache_old_mt_open(void* pmem,size_t memSize,struct hpatch_
                                         const hpatch_TStreamInput* old_stream,sspatch_coversListener_t** out_coversListener,
                                         sspatch_coversListener_t* nextCoverlistener,hpatch_BOOL isOnStepCoversInThread){
     hcache_old_mt_t* self=(hcache_old_mt_t*)pmem;
-    if (memSize<hcache_old_mt_t_size()) return 0;
+    if (memSize<hcache_old_mt_t_memSize()) return 0;
     if (nextCoverlistener) assert(nextCoverlistener->onStepCovers);
     if (!_hcache_old_mt_init(self,h_mt,freeBufList,workBufSize,old_stream,nextCoverlistener,isOnStepCoversInThread))
         goto _on_error;

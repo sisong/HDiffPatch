@@ -38,7 +38,6 @@ extern "C" {
 typedef struct hpatch_TWorkBuf{
     struct hpatch_TWorkBuf* next;
     size_t                  data_size;
-    hpatch_StreamPos_t      stream_pos;
     //hpatch_byte           data[workBufSize];
 } hpatch_TWorkBuf;
 hpatch_force_inline static
@@ -126,7 +125,8 @@ void                hpatch_mt_base_aThreadEnd_(hpatch_mt_base_t* self){
                                                     --self->threadIsRunning;
                                                     c_locker_leave(self->_locker);
                                                 #endif
-                                                    hpatch_mt_onThreadEnd(self->h_mt);
+                                                    if (self->h_mt)
+                                                        hpatch_mt_onThreadEnd(self->h_mt);
                                                 }
 
                                                 
@@ -152,6 +152,53 @@ void                hpatch_mt_base_aThreadEnd_(hpatch_mt_base_t* self){
     }           \
     return (!_isOnError); }
 
+
+typedef struct _hthreads_waiter_t{
+    volatile unsigned int   runningThreads;
+    HLocker                 _threadsEndLocker;
+    HCondvar                _threadsEndCondvar;
+} _hthreads_waiter_t;
+
+hpatch_force_inline static
+hpatch_BOOL _hthreads_waiter_init(_hthreads_waiter_t* self){
+    assert((self->runningThreads==0)&&(self->_threadsEndLocker==0)&&(self->_threadsEndCondvar==0));
+    self->_threadsEndLocker=c_locker_new();
+    self->_threadsEndCondvar=c_condvar_new();
+    return (self->_threadsEndCondvar!=0)&(self->_threadsEndLocker!=0);
+}
+
+hpatch_force_inline static
+void _hthreads_waiter_free(_hthreads_waiter_t* self){
+    assert(self->runningThreads==0);
+    _thread_obj_free(c_locker_delete,self->_threadsEndLocker);
+    _thread_obj_free(c_condvar_delete,self->_threadsEndCondvar);
+}
+
+hpatch_force_inline static
+void _hthreads_waiter_inc(_hthreads_waiter_t* self){
+    c_locker_enter(self->_threadsEndLocker);
+    ++self->runningThreads;
+    c_locker_leave(self->_threadsEndLocker);
+}
+
+hpatch_force_inline static
+void _hthreads_waiter_dec(_hthreads_waiter_t* self){
+    c_locker_enter(self->_threadsEndLocker);
+    assert(self->runningThreads>0); //logic error!
+    --self->runningThreads;
+    if (self->runningThreads==0)
+        c_condvar_signal(self->_threadsEndCondvar);
+    c_locker_leave(self->_threadsEndLocker);
+}
+
+hpatch_force_inline static
+void _hthreads_waiter_waitAllThreadEnd(_hthreads_waiter_t* self){
+    c_locker_enter(self->_threadsEndLocker);
+    while (self->runningThreads){
+        c_condvar_wait(self->_threadsEndCondvar,self->_threadsEndLocker);
+    }
+    c_locker_leave(self->_threadsEndLocker);
+}
 
 #endif //_IS_USED_MULTITHREAD
 #ifdef __cplusplus

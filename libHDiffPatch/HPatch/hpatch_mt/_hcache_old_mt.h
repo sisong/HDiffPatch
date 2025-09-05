@@ -33,10 +33,11 @@ extern "C" {
 #endif
 #if (_IS_USED_MULTITHREAD)
 
-size_t               hcache_old_mt_t_size();
+size_t               hcache_old_mt_t_memSize();
 
 // create a new hpatch_TStreamInput* wrapper old_stream;
 //   start a thread to read data from old_stream
+//   isOnStepCoversInThread default true, same as onStepCovers call back in thread
 hpatch_TStreamInput* hcache_old_mt_open(void* pmem,size_t memSize,struct hpatch_mt_t* h_mt,
                                         struct hpatch_TWorkBuf* freeBufList,hpatch_size_t workBufSize,
                                         const hpatch_TStreamInput* old_stream,sspatch_coversListener_t** out_coversListener,

@@ -33,9 +33,7 @@ typedef struct hpatch_mt_t{
     size_t                  threadNum;
     HCondvar*               condvarList;
     volatile hpatch_BOOL    isOnFinish;
-    volatile unsigned int   runningThreads;
-    HLocker                 _threadsEndLocker;
-    HCondvar                _threadsEndCondvar;
+    _hthreads_waiter_t      threads_waiter;
 //onFinishThread: JNI & ANDROID can call JavaVM->DetachCurrentThread() when thread end
     void*       finishThreadListener;
     void        (*onFinishThread)(void* finishThreadListener);
@@ -49,14 +47,12 @@ hpatch_BOOL _hpatch_mt_init(hpatch_mt_t* self,size_t threadNum) {
     self->condvarList=(HCondvar*)(self+1);
     memset(self->condvarList,0,threadNum*sizeof(HCondvar));
     if (!_hpatch_mt_base_init(&self->mt_base,self,0,0)) return hpatch_FALSE;
-    self->_threadsEndLocker=c_locker_new();
-    self->_threadsEndCondvar=c_condvar_new();
-    return (self->_threadsEndCondvar!=0)&(self->_threadsEndLocker!=0);
+    if (!_hthreads_waiter_init(&self->threads_waiter))  return hpatch_FALSE;
+    return hpatch_TRUE;
 }
 static void _hpatch_mt_free(hpatch_mt_t* self) {
     if (!self) return;
-    _thread_obj_free(c_condvar_delete,self->_threadsEndCondvar);
-    _thread_obj_free(c_locker_delete,self->_threadsEndLocker);
+    _hthreads_waiter_free(&self->threads_waiter);
     _hpatch_mt_base_free(&self->mt_base);
 #if (defined(_DEBUG) || defined(DEBUG))
     {
@@ -131,9 +127,7 @@ hpatch_BOOL hpatch_mt_beforeThreadBegin(hpatch_mt_t* self){
     result=(!self->mt_base.isOnError);
     c_locker_leave(self->mt_base._locker);
     if (result){
-        c_locker_enter(self->_threadsEndLocker);
-        ++self->runningThreads;
-        c_locker_leave(self->_threadsEndLocker);
+        _hthreads_waiter_inc(&self->threads_waiter);
     }
     return result;
 }
@@ -145,23 +139,9 @@ void hpatch_mt_setOnThreadEnd(struct hpatch_mt_t* self,void* finishThreadListene
 }
 
 void hpatch_mt_onThreadEnd(hpatch_mt_t* self){
-    hpatch_BOOL isOnError=hpatch_FALSE;
     if (self->onFinishThread)
-        self->onFinishThread(self->finishThreadListener); 
-    c_locker_enter(self->_threadsEndLocker);
-    assert(self->runningThreads>0);
-    if (self->runningThreads>0){
-        --self->runningThreads;
-        if (self->runningThreads==0)
-            c_condvar_signal(self->_threadsEndCondvar);
-    }else{
-        isOnError=hpatch_TRUE;
-    }
-    c_locker_leave(self->_threadsEndLocker);
-    if (isOnError){
-        LOG_ERR("hpatch_mt_t runningThreads logic error");
-        hpatch_mt_setOnError(self);
-    }
+        self->onFinishThread(self->finishThreadListener);
+    _hthreads_waiter_dec(&self->threads_waiter);
 }
 
 hpatch_BOOL hpatch_mt_isOnFinish(hpatch_mt_t* self){
@@ -207,11 +187,7 @@ void hpatch_mt_waitAllThreadEnd(hpatch_mt_t* self,hpatch_BOOL isOnError){
     }
     c_locker_leave(self->mt_base._locker);
 
-    c_locker_enter(self->_threadsEndLocker);
-    while (self->runningThreads){
-        c_condvar_wait(self->_threadsEndCondvar,self->_threadsEndLocker);
-    }
-    c_locker_leave(self->_threadsEndLocker);
+    _hthreads_waiter_waitAllThreadEnd(&self->threads_waiter);
 }
 hpatch_BOOL hpatch_mt_close(hpatch_mt_t* self,hpatch_BOOL isOnError){
     if (!self) return !isOnError;
@@ -232,7 +208,7 @@ hpatch_BOOL _hpatch_mt_base_init(hpatch_mt_base_t* self,struct hpatch_mt_t* h_mt
 
     self->_locker=c_locker_new();
     self->_waitCondvar=c_condvar_new();
-    if (self->_waitCondvar){
+    if ((self->_waitCondvar!=0)&(self->h_mt!=0)){
         if (!hpatch_mt_registeCondvar(self->h_mt,self->_waitCondvar))
             return hpatch_FALSE;
     }
@@ -246,7 +222,7 @@ void _hpatch_mt_base_free(hpatch_mt_base_t* self){
     assert(self->threadIsRunning==0);
     if (self->_locker) c_locker_leave(self->_locker);
 #endif 
-    if (self->_waitCondvar)
+    if ((self->_waitCondvar!=0)&(self->h_mt!=0))
         hpatch_mt_unregisteCondvar(self->h_mt,self->_waitCondvar);
     _thread_obj_free(c_condvar_delete,self->_waitCondvar);
     _thread_obj_free(c_locker_delete,self->_locker);
@@ -262,10 +238,10 @@ void hpatch_mt_base_setOnError_(hpatch_mt_base_t* self){
     #else
         self->isOnError=hpatch_TRUE;
     #endif
-        c_condvar_signal(self->_waitCondvar);
+        c_condvar_broadcast(self->_waitCondvar);
     }
     c_locker_leave(self->_locker);
-    if (isNeedSetOnError)
+    if (isNeedSetOnError&(self->h_mt!=0))
         hpatch_mt_setOnError(self->h_mt);
 }
 
@@ -315,13 +291,13 @@ hpatch_BOOL hpatch_mt_base_threadsBegin_(hpatch_mt_base_t* self,int threadCount,
                                          void* workData,int isUseThisThread,int threadIndexOffset){
     int i;
     for (i=0;i<threadCount;++i){
-        if (!hpatch_mt_beforeThreadBegin(self->h_mt))
+        if (self->h_mt&&(!hpatch_mt_beforeThreadBegin(self->h_mt)))
             return hpatch_FALSE;
     #if (defined(_DEBUG) || defined(DEBUG))
         ++self->threadIsRunning;
     #endif
         if (!c_thread_parallel(1,threadProc,workData,(isUseThisThread!=0)&(i+1==threadCount),i+threadIndexOffset)){
-            hpatch_mt_onThreadEnd(self->h_mt);
+            if (self->h_mt) hpatch_mt_onThreadEnd(self->h_mt);
         #if (defined(_DEBUG) || defined(DEBUG))
             --self->threadIsRunning;
         #endif

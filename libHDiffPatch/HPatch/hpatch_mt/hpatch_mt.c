@@ -221,7 +221,7 @@ static size_t _getObjsMemSize(hpatchMTSets_t mtsets,size_t* pworkBufCount){
     objsMemSize+=_hpatch_align_upper(hpatch_mt_t_memSize(threadNum),kAlignSize);
     objsMemSize+=mtsets.readDiff_isMT       ?_hpatch_align_upper(hinput_mt_t_memSize(),kAlignSize):0;
     objsMemSize+=mtsets.decompressDiff_isMT ?_hpatch_align_upper(hinput_mt_t_memSize(),kAlignSize):0;
-    objsMemSize+=mtsets.readOld_isMT        ?_hpatch_align_upper(hcache_old_mt_t_size(),kAlignSize):0;
+    objsMemSize+=mtsets.readOld_isMT        ?_hpatch_align_upper(hcache_old_mt_t_memSize(),kAlignSize):0;
     objsMemSize+=mtsets.writeNew_isMT       ?_hpatch_align_upper(houtput_mt_t_memSize(),kAlignSize):0;
     return objsMemSize;
 }
@@ -308,13 +308,13 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
     }
     if (mtsets.readOld_isMT){
         sspatch_coversListener_t* out_coversListener=0;
-        self->oldData=hcache_old_mt_open(temp_cache,hcache_old_mt_t_size(),self->h_mt,
+        self->oldData=hcache_old_mt_open(temp_cache,hcache_old_mt_t_memSize(),self->h_mt,
                                          TWorkBuf_allocFreeList(&wbufsMem,kObjNodeCount,workBufNodeSize),workBufSize,
                                          *poldData,&out_coversListener,*pcoversListener,isOnStepCoversInThread);
         if (self->oldData==0) goto _on_error;
         *poldData=self->oldData;
         *pcoversListener=out_coversListener;
-        temp_cache=(hpatch_byte*)_hpatch_align_upper(temp_cache+hcache_old_mt_t_size(),kAlignSize);
+        temp_cache=(hpatch_byte*)_hpatch_align_upper(temp_cache+hcache_old_mt_t_memSize(),kAlignSize);
     }
     if (mtsets.writeNew_isMT){
         self->newData=houtput_mt_open(temp_cache,houtput_mt_t_memSize(),self->h_mt,
