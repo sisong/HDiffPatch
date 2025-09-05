@@ -113,6 +113,21 @@ extern "C" {
 # endif
 #endif //_IS_USED_C_ATOMIC
 
+//C Channel API
+
+    //Channel interaction data;
+    typedef void* TChanData;
+    //Channel;
+    struct c_channel_t;
+    size_t c_channel_t_memSize(size_t maxChanDataCount);
+
+    struct c_channel_t* c_channel_new(void* pmem,size_t memSize,size_t maxChanDataCount);
+    void                c_channel_delete(struct c_channel_t* self);
+    c_mt_bool_t         c_channel_send(struct c_channel_t* self,TChanData data,c_mt_bool_t isWait); //can't send null
+    TChanData           c_channel_accept(struct c_channel_t* self,c_mt_bool_t isWait); //return null when no data & closed
+    void                c_channel_close(struct c_channel_t* self); //close channel, can't send after close
+
+
 #endif //_IS_USED_MULTITHREAD
 #ifdef __cplusplus
 } // extern "C"

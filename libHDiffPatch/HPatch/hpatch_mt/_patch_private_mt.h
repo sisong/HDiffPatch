@@ -44,6 +44,16 @@ hpatch_force_inline static
 hpatch_byte* TWorkBuf_data(hpatch_TWorkBuf* self) { return ((hpatch_byte*)self)+sizeof(hpatch_TWorkBuf); }
 hpatch_force_inline static
 hpatch_byte* TWorkBuf_data_end(hpatch_TWorkBuf* self) { return TWorkBuf_data(self)+self->data_size; }
+hpatch_inline static
+hpatch_size_t TWorkBuf_bufCount(const hpatch_TWorkBuf* self) {
+    const hpatch_TWorkBuf* cur=self;
+    hpatch_size_t count=0;
+    while (cur){
+        ++count;
+        cur=cur->next;
+    }
+    return count;
+}
 
 hpatch_force_inline static
 void TWorkBuf_pushABufAtEnd(hpatch_TWorkBuf** pnode,hpatch_TWorkBuf* data){

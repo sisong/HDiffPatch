@@ -136,9 +136,6 @@ void        condvar_wait(HCondvar cond,CAutoLocker* locker) { condvar_wait_at(co
     typedef CWaitValueByLocker CWaitValue; 
 #endif
 
-    //Channel interaction data;
-    typedef void* TChanData;
-
     class _CChannel_import;
     //Channel;
     class CChannel{
