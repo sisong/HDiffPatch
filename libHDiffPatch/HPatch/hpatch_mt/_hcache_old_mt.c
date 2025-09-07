@@ -73,7 +73,8 @@ static void hcache_old_thread_(int threadIndex,void* workData){
         hpatch_BOOL _isOnError;
         hpatch_BOOL _isGot_covers_cache=hpatch_FALSE;
         c_locker_enter(self->mt_base._locker);
-        if (!self->mt_base.isOnError){
+        _isOnError=self->mt_base.isOnError;
+        if (!_isOnError){
             covers_cache=(unsigned char*)self->covers_cache;
             covers_cacheEnd=(unsigned char*)self->covers_cacheEnd;
             _isGot_covers_cache=(covers_cache!=0)|(self->leaveCoverCount==0);
@@ -88,7 +89,6 @@ static void hcache_old_thread_(int threadIndex,void* workData){
                 self->covers_cacheEnd=0;
             }
         }
-        _isOnError=self->mt_base.isOnError;
         c_locker_leave(self->mt_base._locker);
         if (_isOnError) break; //exit loop by error
         if (_isGot_covers_cache&self->isOnStepCoversInThread&(self->nextCoverlistener!=0))

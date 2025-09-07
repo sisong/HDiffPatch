@@ -33,11 +33,12 @@ typedef struct hpatch_mt_t{
     size_t                  threadNum;
     HCondvar*               condvarList;
     volatile hpatch_BOOL    isOnFinish;
+    volatile hpatch_BOOL    isOnError;
+    HLocker                 _locker;
     _hthreads_waiter_t      threads_waiter;
 //onFinishThread: JNI & ANDROID can call JavaVM->DetachCurrentThread() when thread end
     void*       finishThreadListener;
     void        (*onFinishThread)(void* finishThreadListener);
-    hpatch_mt_base_t        mt_base;
 } hpatch_mt_t;
 
 hpatch_force_inline static
@@ -46,14 +47,15 @@ hpatch_BOOL _hpatch_mt_init(hpatch_mt_t* self,size_t threadNum) {
     self->threadNum=threadNum;
     self->condvarList=(HCondvar*)(self+1);
     memset(self->condvarList,0,threadNum*sizeof(HCondvar));
-    if (!_hpatch_mt_base_init(&self->mt_base,self,0,0)) return hpatch_FALSE;
+    self->_locker=c_locker_new();
+    if (self->_locker==0) return hpatch_FALSE;
     if (!_hthreads_waiter_init(&self->threads_waiter))  return hpatch_FALSE;
     return hpatch_TRUE;
 }
 static void _hpatch_mt_free(hpatch_mt_t* self) {
     if (!self) return;
     _hthreads_waiter_free(&self->threads_waiter);
-    _hpatch_mt_base_free(&self->mt_base);
+    _thread_obj_free(c_locker_delete,self->_locker);
 #if (defined(_DEBUG) || defined(DEBUG))
     {
         size_t i;
@@ -95,15 +97,18 @@ hpatch_BOOL hpatch_mt_unregisteCondvar(struct hpatch_mt_t* self,HCondvar waitCon
     return hpatch_FALSE;
 }
 
-static void _hpatch_mt_setOnError(hpatch_mt_t* self) {
-    if (!self->mt_base.isOnError){
-    #if (_IS_USED_C_ATOMIC)
-        c_atomic_uint_store(&self->isOnFinish,hpatch_TRUE);
-        c_atomic_uint_store(&self->mt_base.isOnError,hpatch_TRUE);
-    #else
+hpatch_inline static
+void __hpatch_mt_setOnError(hpatch_mt_t* self) {
+    if (!self->isOnError){
         self->isOnFinish=hpatch_TRUE;
-        self->mt_base.isOnError=hpatch_TRUE;
-    #endif
+        self->isOnError=hpatch_TRUE;
+        _hpatch_mt_condvarList_broadcast(self);
+    }
+}
+hpatch_inline static
+void __hpatch_mt_setOnFinish(hpatch_mt_t* self) {
+    if (!self->isOnFinish){
+        self->isOnFinish=hpatch_TRUE;
         _hpatch_mt_condvarList_broadcast(self);
     }
 }
@@ -122,14 +127,10 @@ hpatch_mt_t* hpatch_mt_open(void* pmem,size_t memSize,size_t maxThreadNum){
 }
 
 hpatch_BOOL hpatch_mt_beforeThreadBegin(hpatch_mt_t* self){
-    hpatch_BOOL result;
-    c_locker_enter(self->mt_base._locker);
-    result=(!self->mt_base.isOnError);
-    c_locker_leave(self->mt_base._locker);
-    if (result){
+    hpatch_BOOL isOnError=hpatch_mt_isOnError(self);
+    if (!isOnError)
         _hthreads_waiter_inc(&self->threads_waiter);
-    }
-    return result;
+    return (!isOnError);
 }
 
 void hpatch_mt_setOnThreadEnd(struct hpatch_mt_t* self,void* finishThreadListener,
@@ -145,52 +146,38 @@ void hpatch_mt_onThreadEnd(hpatch_mt_t* self){
 }
 
 hpatch_BOOL hpatch_mt_isOnFinish(hpatch_mt_t* self){
-#if (_IS_USED_C_ATOMIC)
-    return c_atomic_uint_load(&self->isOnFinish);
-#else
     hpatch_BOOL result;
-    c_locker_enter(self->mt_base._locker);
+    c_locker_enter(self->_locker);
     result=self->isOnFinish;
-    c_locker_leave(self->mt_base._locker);
+    c_locker_leave(self->_locker);
     return result;
-#endif
 }
 hpatch_BOOL hpatch_mt_isOnError(hpatch_mt_t* self){
-#if (_IS_USED_C_ATOMIC)
-    return c_atomic_uint_load(&self->mt_base.isOnError);
-#else
     hpatch_BOOL result;
-    c_locker_enter(self->mt_base._locker);
-    result=self->mt_base.isOnError;
-    c_locker_leave(self->mt_base._locker);
+    c_locker_enter(self->_locker);
+    result=self->isOnError;
+    c_locker_leave(self->_locker);
     return result;
-#endif
 }
 
 void hpatch_mt_setOnError(struct hpatch_mt_t* self){
-    c_locker_enter(self->mt_base._locker);
-    _hpatch_mt_setOnError(self);
-    c_locker_leave(self->mt_base._locker);
+    c_locker_enter(self->_locker);
+    __hpatch_mt_setOnError(self);
+    c_locker_leave(self->_locker);
 }
 
 void hpatch_mt_waitAllThreadEnd(hpatch_mt_t* self,hpatch_BOOL isOnError){
-    c_locker_enter(self->mt_base._locker);
-    if (isOnError){
-        _hpatch_mt_setOnError(self);
-    }else if (!self->isOnFinish){
-        #if (_IS_USED_C_ATOMIC)
-            c_atomic_uint_store(&self->isOnFinish,hpatch_TRUE);
-        #else
-            self->isOnFinish=hpatch_TRUE;
-        #endif
-        _hpatch_mt_condvarList_broadcast(self);
-    }
-    c_locker_leave(self->mt_base._locker);
+    c_locker_enter(self->_locker);
+    if (isOnError)
+        __hpatch_mt_setOnError(self);
+    else
+        __hpatch_mt_setOnFinish(self);
+    c_locker_leave(self->_locker);
 
     _hthreads_waiter_waitAllThreadEnd(&self->threads_waiter);
 }
 hpatch_BOOL hpatch_mt_close(hpatch_mt_t* self,hpatch_BOOL isOnError){
-    if (!self) return !isOnError;
+    if (!self) return (!isOnError);
     hpatch_mt_waitAllThreadEnd(self,isOnError);
     isOnError|=hpatch_mt_isOnError(self);
     _hpatch_mt_free(self);
@@ -233,11 +220,7 @@ void hpatch_mt_base_setOnError_(hpatch_mt_base_t* self){
     c_locker_enter(self->_locker);
     isNeedSetOnError=(!self->isOnError);
     if (isNeedSetOnError){
-    #if (_IS_USED_C_ATOMIC)
-        c_atomic_uint_store(&self->isOnError,hpatch_TRUE);
-    #else
         self->isOnError=hpatch_TRUE;
-    #endif
         c_condvar_broadcast(self->_waitCondvar);
     }
     c_locker_leave(self->_locker);

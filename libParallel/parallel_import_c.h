@@ -84,35 +84,6 @@ extern "C" {
     c_mt_bool_t c_thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
                                   int isUseThisThread,int threadIndexOffset);
 
-#ifndef _IS_USED_C_ATOMIC
-# if defined(__STDC__) && (__STDC_VERSION__>=201112L) && (!defined(__STDC_NO_ATOMICS__))  //C11
-#   include <stdatomic.h>
-#   define _IS_USED_C_ATOMIC    1
-    static inline void         c_atomic_uint_store(volatile unsigned int* p,unsigned int newv){ atomic_store((atomic_uint*)p,newv); }
-    static inline unsigned int c_atomic_uint_load(volatile unsigned int* p){ return atomic_load((atomic_uint*)p); }
-    //static inline c_mt_bool_t c_atomic_uint_compare_exchange_strong(volatile unsigned int* p,unsigned int expected,unsigned int newv){ return c_atomic_compare_exchange_strong((atomic_uint*)p,expected,newv); }
-    static inline void   c_atomic_store(volatile size_t* p,size_t newv){ atomic_store((atomic_size_t*)p,newv); }
-    static inline size_t c_atomic_load(volatile size_t* p){ return atomic_load((atomic_size_t*)p); }
-    static inline size_t c_atomic_fetch_add(volatile size_t* p,size_t v){ return atomic_fetch_add((atomic_size_t*)p,v); }
-  
-# else
-#  if (_IS_USED_WIN32THREAD)
-#   include <intrin.h> //VC?
-#   define _IS_USED_C_ATOMIC    1
-    static inline void         c_atomic_uint_store(volatile unsigned int* p,unsigned int newv){ _InterlockedExchange((volatile long*)p,(long)newv); }
-    static inline unsigned int c_atomic_uint_load(volatile unsigned int* p){ return (unsigned int)_InterlockedCompareExchange((volatile long*)p,0,0); }
-    static inline void   c_atomic_store(volatile size_t* p,size_t newv){ _InterlockedExchangePointer((void*volatile*)p,(void*)newv); }
-    static inline size_t c_atomic_load(volatile size_t* p) { return (size_t)_InterlockedCompareExchangePointer((void*volatile*)p,0,0); }
-    static inline size_t c_atomic_fetch_add(volatile size_t* p, size_t v) { 
-                            if (sizeof(size_t)==8) { return (size_t)_InterlockedExchangeAdd64((volatile __int64*)p,(__int64)v); }
-                            else { assert(sizeof(size_t)==4); return (size_t)_InterlockedExchangeAdd((volatile long*)p,(long)v); } }
-
-#  else
-#   define _IS_USED_C_ATOMIC    0
-#  endif
-# endif
-#endif //_IS_USED_C_ATOMIC
-
 //C Channel API
 
     //Channel interaction data;

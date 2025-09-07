@@ -37,7 +37,7 @@ typedef struct hinput_mt_t{
     hpatch_StreamPos_t          curReadPos;
     hpatch_TDecompress*         decompressPlugin;
     hpatch_decompressHandle*    decompressHandle;
-    hpatch_StreamPos_t          curOutedPos;
+    volatile hpatch_StreamPos_t curOutedPos;
     hpatch_mt_base_t            mt_base;
 } hinput_mt_t;
 
