@@ -251,7 +251,7 @@ else
 endif
 
 UTEST_OBJ := \
-    libHDiffPatch/HDiff/match_inplace.o \
+    libHDiffPatch/HDiff/private_diff/match_inplace.o \
     libhsync/sync_client/dir_sync_client.o \
     libhsync/sync_client/match_in_old.o \
     libhsync/sync_client/sync_client.o \

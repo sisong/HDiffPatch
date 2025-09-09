@@ -30,7 +30,6 @@
 using namespace hdiff_private;
 
 namespace{
-    typedef TMatchInplace::TCover   TCover;
     static const hpatch_StreamPos_t _kMinCoverLen     =24;
     static const int _kMaxMatchDeepForResearch = kDefaultMaxMatchDeepForLimit*2;
 
@@ -95,15 +94,11 @@ static void _research_cover(ICoverLinesListener* listener,IDiffResearchCover* di
     TDiffSearchCoverListener diffSearchCoverListener(self->inplaceSets.extraSafeSize);
     std::vector<size_t> researchIndexList;
     researchIndexList.swap(self->_researchIndexList);
-    std::vector<TCover> researchedCovers;
     for (size_t i=0;i<researchIndexList.size();++i){
         size_t limitCoverIndex=researchIndexList[i];
         hpatch_TCover cover=covers[limitCoverIndex];
-        if (!researchedCovers.empty())
-            researchedCovers[i]=TCover(cover);
         diffi->researchCover(diffi,&diffSearchCoverListener,limitCoverIndex,0,0,cover.length);
     }
-    self->researchedCovers.swap(researchedCovers);
 }
 
 static int _get_max_match_deep(const ICoverLinesListener* listener){

@@ -272,7 +272,6 @@
 		D6BD9BA017578491004886DE /* HDiff */ = {
 			isa = PBXGroup;
 			children = (
-				0DE343BA2DF807230000234B /* match_inplace.cpp */,
 				D6BD9BA117578491004886DE /* diff.cpp */,
 				D6BD9BA217578491004886DE /* diff.h */,
 				D6BD9BA417578491004886DE /* private_diff */,
@@ -283,6 +282,7 @@
 		D6BD9BA417578491004886DE /* private_diff */ = {
 			isa = PBXGroup;
 			children = (
+				0DE343BA2DF807230000234B /* match_inplace.cpp */,
 				D68CD8F31F44367A00A61337 /* limit_mem_diff */,
 				D6EE50611F2A0AA3002854A2 /* compress_detect.cpp */,
 				D6EE50621F2A0AA3002854A2 /* compress_detect.h */,
