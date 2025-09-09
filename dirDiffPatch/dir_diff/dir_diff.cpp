@@ -710,14 +710,14 @@ bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const
     }
 
     //mem
-    size_t      temp_cache_size=hdiff_kFileIOBufBestSize*4;
+    size_t      temp_cache_size=hdiff_kFileIOBufBestSize*(1+16);
     if (dirDiffInfo->isSingleCompressedDiff)
         temp_cache_size+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
     TAutoMem    p_temp_mem(temp_cache_size);
     TByte*      temp_cache=p_temp_mem.data();
 
     if (checksumPlugin)
-        _test(TDirPatcher_checksum(&dirPatcher,&checksumSet));
+        _test(TDirPatcher_checksum(&dirPatcher,&checksumSet,temp_cache,temp_cache+temp_cache_size));
     _test(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin,
                                   oldManifest.rootPath.c_str(),newManifest.rootPath.c_str()));
     _test(TDirPatcher_openOldRefAsStream(&dirPatcher,kMaxOpenFileNumber,&oldStream));

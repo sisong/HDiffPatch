@@ -1147,7 +1147,7 @@ bool check_diff(const hpatch_TStreamInput*  newData,
                 const hpatch_TStreamInput*  oldData,
                 const hpatch_TStreamInput*  diff){
     const size_t kACacheBufSize=hdiff_kFileIOBufBestSize;
-    TAutoMem _cache(kACacheBufSize*(1+8));
+    TAutoMem _cache(kACacheBufSize*(1+16));
     _TCheckOutNewDataStream out_newData(newData,_cache.data(),kACacheBufSize);
     _test_rt(patch_stream_with_cache(&out_newData,oldData,diff,
                                      _cache.data()+kACacheBufSize,_cache.data_end()));
@@ -1173,7 +1173,7 @@ bool check_compressed_diff(const hpatch_TStreamInput*  newData,
                            const hpatch_TStreamInput*  compressed_diff,
                            hpatch_TDecompress* decompressPlugin){
     const size_t kACacheBufSize=hdiff_kFileIOBufBestSize;
-    TAutoMem _cache(kACacheBufSize*(1+6));
+    TAutoMem _cache(kACacheBufSize*(1+16));
     _TCheckOutNewDataStream out_newData(newData,_cache.data(),kACacheBufSize);
     _test_rt(patch_decompress_with_cache(&out_newData,oldData,compressed_diff,decompressPlugin,
                                          _cache.data()+kACacheBufSize,_cache.data_end()));
@@ -1208,7 +1208,7 @@ bool check_single_compressed_diff(const hpatch_TStreamInput* newData,
                                                 hpatch_TDecompress** out_decompressPlugin,
                                                 unsigned char** out_temp_cache,
                                                 unsigned char** out_temp_cacheEnd){
-        size_t memSize=(size_t)(info->stepMemSize+hdiff_kFileIOBufBestSize*3);
+        size_t memSize=(size_t)(info->stepMemSize+hdiff_kFileIOBufBestSize*(1+16));
         *out_temp_cache=(unsigned char*)malloc(memSize);
         *out_temp_cacheEnd=(*out_temp_cache)+memSize;   
         *out_decompressPlugin=(info->compressType[0]=='\0')?0:(hpatch_TDecompress*)listener->import;
@@ -1228,7 +1228,7 @@ bool check_single_compressed_diff(const hpatch_TStreamInput* newData,
     listener.onPatchFinish=_check_single_onPatchFinish;
         
     const size_t kACacheBufSize=hdiff_kFileIOBufBestSize;
-    TAutoMem _cache(kACacheBufSize*1);
+    TAutoMem _cache(kACacheBufSize*(1+16));
     _TCheckOutNewDataStream out_newData(newData,_cache.data(),kACacheBufSize);
 
     _test_rt(patch_single_stream(&listener,&out_newData,oldData,diff,0,0,threadNum));
@@ -1771,7 +1771,7 @@ bool check_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
     listener.oldData_end=oldData_end;
     listener.read_old=listener._read_old;
 
-    const size_t kACacheBufSize=1024*32;
+    const size_t kACacheBufSize=hpatch_kFileIOBufBetterSize;
     hdiff_private::TAutoMem _cache(kACacheBufSize+listener.extraSafeSize);
     
     if (listener.isInplacePatch){

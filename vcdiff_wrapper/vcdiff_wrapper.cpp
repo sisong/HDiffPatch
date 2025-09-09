@@ -598,7 +598,7 @@ void create_vcdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStream
 bool check_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                   const hpatch_TStreamInput* diffStream,hpatch_TDecompress* decompressPlugin){
     const size_t kACacheBufSize=hdiff_kFileIOBufBestSize;
-    TAutoMem _cache(kACacheBufSize*(1+5));
+    TAutoMem _cache(kACacheBufSize*(1+16));
     _TCheckOutNewDataStream out_newData(newData,_cache.data(),kACacheBufSize);
     _test_rt(vcpatch_with_cache(&out_newData,oldData,diffStream,decompressPlugin,hpatch_TRUE,
                                 _cache.data()+kACacheBufSize,_cache.data_end()));

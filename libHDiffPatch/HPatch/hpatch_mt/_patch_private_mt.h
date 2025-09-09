@@ -95,9 +95,9 @@ hpatch_TWorkBuf* TWorkBuf_createFreeListAt(hpatch_byte* pbuf,size_t workBufCount
     return result;
 }
 hpatch_force_inline static
-hpatch_TWorkBuf* TWorkBuf_allocFreeList(void** pmem,size_t workBufCount,size_t workBufNodeSize) {
-    hpatch_TWorkBuf* result=TWorkBuf_createFreeListAt((hpatch_byte*)*pmem,workBufCount,workBufNodeSize);
-    (*(hpatch_byte**)pmem)+=workBufCount*workBufNodeSize;
+hpatch_TWorkBuf* TWorkBuf_allocFreeList(hpatch_byte** pmem,size_t workBufCount,size_t workBufNodeSize) {
+    hpatch_TWorkBuf* result=TWorkBuf_createFreeListAt((*pmem),workBufCount,workBufNodeSize);
+    (*pmem)+=workBufCount*workBufNodeSize;
     return result;
 }
 

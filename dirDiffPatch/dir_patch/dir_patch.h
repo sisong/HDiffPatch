@@ -136,7 +136,8 @@ static void TDirPatcher_init(TDirPatcher* self)  { memset(self,0,sizeof(*self));
 hpatch_BOOL TDirPatcher_open(TDirPatcher* self,const hpatch_TStreamInput* dirDiffData,
                              const TDirDiffInfo** out_dirDiffInfo);
 //if checksumSet->isCheck_dirDiffData then result&=checksum(dirDiffData);
-hpatch_BOOL TDirPatcher_checksum(TDirPatcher* self,const TDirPatchChecksumSet* checksumSet);
+hpatch_BOOL TDirPatcher_checksum(TDirPatcher* self,const TDirPatchChecksumSet* checksumSet,
+			                	 hpatch_byte* tempBuf,hpatch_byte* tempBufEnd);
 hpatch_BOOL TDirPatcher_loadDirData(TDirPatcher* self,hpatch_TDecompress* decompressPlugin,
                                     const char* oldPath_utf8,const char* newPath_utf8);
 

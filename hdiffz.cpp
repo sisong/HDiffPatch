@@ -1218,6 +1218,11 @@ int hdiff_cmd_line(int argc, const char * argv[]){
         _return_check((newType!=kPathType_notExist),HDIFF_PATHTYPE_ERROR,"newPath not exist");
 #if (_IS_NEED_DIR_DIFF_PATCH)
         hpatch_BOOL isUseDirDiff=isForceRunDirDiff||(kPathType_dir==oldType)||(kPathType_dir==newType);
+        if (!diffSets.isDoDiff){
+            TDirDiffInfo dirinfo;
+            _return_check(getDirDiffInfoByFile(&dirinfo,outDiffFileName,0,0),DIRDIFF_PATCH_ERROR,"get dir diff info");
+            isUseDirDiff=dirinfo.isDirDiff;
+        }
         if (isUseDirDiff){
 #ifdef _ChecksumPlugin_fadler64
             if (isSetChecksum==hpatch_FALSE)
@@ -1233,6 +1238,9 @@ int hdiff_cmd_line(int argc, const char * argv[]){
             _options_check(checksumPlugin==0,"-C now only support dir diff, unsupport diff");
         }
 #endif //_IS_NEED_DIR_DIFF_PATCH
+
+    if (!diffSets.isDoDiff)
+        diffSets.isDiffInMem=hpatch_FALSE; //all check diffFile (-t) run with stream;
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
         if (isUseDirDiff){

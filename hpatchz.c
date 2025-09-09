@@ -1419,6 +1419,19 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
     }
     check(hlistener->patchBegin(hlistener,&dirPatcher),
           DIRPATCH_PATCHBEGIN_ERROR,"dir patch begin");
+    {//mem cache
+        size_t mustAppendMemSize=0;
+#if (_IS_NEED_SINGLE_STREAM_DIFF)
+        if (dirDiffInfo->isSingleCompressedDiff){
+            mustAppendMemSize+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
+            min_temp_cache_size+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
+        }
+#endif
+        p_temp_mem=getPatchMemCache(isLoadOldAll,patchCacheSize,mustAppendMemSize,
+                                    dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
+        check(p_temp_mem,HPATCH_MEM_ERROR,"alloc cache memory");
+        temp_cache=p_temp_mem;
+    }
     {// checksumPlugin
         int wantChecksumCount = checksumSet->isCheck_dirDiffData+checksumSet->isCheck_oldRefData+
         checksumSet->isCheck_newRefData+checksumSet->isCheck_copyFileData;
@@ -1435,7 +1448,7 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
                 printf("hpatchz run with checksum plugin: \"%s\" (checksumSets:%s%s%s%s)\n",dirDiffInfo->checksumType,
                        checksumSet->isCheck_dirDiffData?" diff":"",checksumSet->isCheck_oldRefData?" old":"",
                        checksumSet->isCheck_newRefData?" new":"",checksumSet->isCheck_copyFileData?" copy":"");
-                if (!TDirPatcher_checksum(&dirPatcher,checksumSet)){
+                if (!TDirPatcher_checksum(&dirPatcher,checksumSet,temp_cache,temp_cache+temp_cache_size)){
                     check(!TDirPatcher_isDiffDataChecksumError(&dirPatcher),
                           DIRPATCH_CHECKSUM_DIFFDATA_ERROR,"diffFile checksum");
                     check(hpatch_FALSE,DIRPATCH_CHECKSUMSET_ERROR,"diffFile set checksum");
@@ -1444,19 +1457,6 @@ int hpatch_dir(const char* oldPath,const char* diffFileName,const char* outNewPa
         }
     }
 
-    {//mem cache
-        size_t mustAppendMemSize=0;
-#if (_IS_NEED_SINGLE_STREAM_DIFF)
-        if (dirDiffInfo->isSingleCompressedDiff){
-            mustAppendMemSize+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
-            min_temp_cache_size+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
-        }
-#endif
-        p_temp_mem=getPatchMemCache(isLoadOldAll,patchCacheSize,mustAppendMemSize,
-                                    dirDiffInfo->hdiffInfo.oldDataSize, &temp_cache_size);
-        check(p_temp_mem,HPATCH_MEM_ERROR,"alloc cache memory");
-        temp_cache=p_temp_mem;
-    }
     {//old data
         if (temp_cache_size>=dirDiffInfo->hdiffInfo.oldDataSize+min_temp_cache_size){
             // all old while auto cache by patch; not need open old files at same time
