@@ -87,13 +87,22 @@ namespace hdiff_private{
         inline void getPackedCover() { _getPackedCover(newStream->streamSize,oldStream->streamSize); }
         void packData();
         void unpackData(IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32);
-        inline void map_streams(const hpatch_TStreamInput** pnewData,const hpatch_TStreamInput** poldData){
-                                    assert((*pnewData)->streamSize==newStream->streamSize);
-                                    assert((*poldData)->streamSize==oldStream->streamSize);
-                                    *pnewData=newStream; *poldData=oldStream; }
+        void map_streams(const hpatch_TStreamInput** pnewData,const hpatch_TStreamInput** poldData);
+
+        struct TStreamInputMap:public hpatch_TStreamInput{
+            const hpatch_TStreamInput*  baseStream;
+            std::vector<TPackedCover>&  packedCovers;
+            size_t                      curCoverIndex;
+            const unsigned char*        data; //packed data
+            const unsigned char*        data_end;
+            inline TStreamInputMap(const hpatch_TStreamInput* _baseStream,std::vector<TPackedCover>& _packedCovers)
+                :baseStream(_baseStream),packedCovers(_packedCovers),curCoverIndex(0){}
+        };
     protected:
-        TAutoMem* _packedNewOldMem;
-        bool _isUnpacked;
+        TStreamInputMap _newStreamMap;
+        TStreamInputMap _oldStreamMap;
+        TAutoMem*       _packedNewOldMem;
+        bool            _isUnpacked;
     };
 
     template<class _TMatchBlock>

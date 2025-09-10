@@ -97,7 +97,7 @@ void TMatchBlockMem::getBlockCovers(){
 
 void TMatchBlockStream::getBlockCovers(){
     TOutputCovers covers(blockCovers);
-    const hdiff_TMTSets_s mtsets={threadNum,threadNum,false,false};
+    const hdiff_TMTSets_s mtsets={threadNum,threadNumForStream,false,false};
     get_match_covers_by_block(newStream,oldStream,&covers,matchBlockSize,&mtsets);
 }
 
@@ -161,7 +161,8 @@ TMatchBlockStream::TMatchBlockStream(const hpatch_TStreamInput* _newStream,const
                                      size_t _matchBlockSize,size_t _threadNumForMem,size_t _threadNumForStream)
 :TMatchBlockBase(_matchBlockSize,_threadNumForMem),
  newData(0),newData_end_cur(0),oldData(0),oldData_end_cur(0),newStream(_newStream),oldStream(_oldStream),
- threadNumForStream(_threadNumForStream),_packedNewOldMem(0),_isUnpacked(false){
+ threadNumForStream(_threadNumForStream),_newStreamMap(_newStream,packedCoversForNew),
+ _oldStreamMap(_oldStream,packedCoversForOld),_packedNewOldMem(0),_isUnpacked(false){
     assert(_oldStream);
     _packedNewOldMem=new TAutoMem();
 }
@@ -293,10 +294,71 @@ void TMatchBlockMem::unpackData(IDiffInsertCover* diffi,void* pcovers,size_t cov
 }
 
 void TMatchBlockStream::unpackData(IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32){
-    //todo: unpackDataAsStream(unpackedOldStream,oldData,oldData_end_cur,oldStream,packedCoversForOld);
-    //      unpackDataAsStream(unpackedNewStream,newData,newData_end_cur,newStream,packedCoversForNew);
     _unpackData(diffi,pcovers,coverCount,isCover32);
     _isUnpacked=true;
+}
+    static inline bool _isHitPackedCover(const TPackedCover* pc,hpatch_StreamPos_t readFromPos){
+        return (pc->oldPos<=readFromPos)&(readFromPos<pc->oldPos+pc->length);
+    }
+    typedef TMatchBlockStream::TStreamInputMap TStreamInputMap;
+    static hpatch_BOOL _TStreamInputMap_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
+                                       unsigned char* out_data,unsigned char* out_data_end){
+        TStreamInputMap* self=(TStreamInputMap*)stream->streamImport;
+        //return self->baseStream->read(self->baseStream,readFromPos,out_data,out_data_end); //only for debug test
+        while (out_data<out_data_end) {
+            const TPackedCover* pc=&self->packedCovers[self->curCoverIndex];
+            if (!_isHitPackedCover(pc,readFromPos)){//not hit, research
+                const TPackedCover vc={readFromPos,0,~(hpatch_StreamPos_t)0};
+                const TPackedCover* const pc0=self->packedCovers.data();
+                const TPackedCover* uppc=std::upper_bound(pc0,pc0+self->packedCovers.size(),
+                                                          vc,cover_cmp_by_old_t<TPackedCover>());
+                assert(uppc>pc0);
+                pc=uppc-1;
+                self->curCoverIndex=pc-pc0;
+                if (!_isHitPackedCover(pc,readFromPos)){//can't hit
+                    self->curCoverIndex++;
+                    size_t readLen=out_data_end-out_data;
+                    readLen=(readFromPos+readLen<=uppc->oldPos)?readLen:(size_t)(uppc->oldPos-readFromPos);
+                    memset(out_data,0,readLen);
+                    readFromPos+=readLen;
+                    out_data+=readLen;
+                    continue;
+                }
+            }
+
+            //hit
+            size_t readLen=out_data_end-out_data;
+            readLen=(readFromPos+readLen<=pc->oldPos+pc->length)?readLen:(size_t)(pc->oldPos+pc->length-readFromPos);
+            memcpy(out_data,self->data+pc->newPos+(readFromPos-pc->oldPos),readLen);
+            readFromPos+=readLen;
+            self->curCoverIndex+=(readFromPos==pc->oldPos+pc->length)?1:0;
+            out_data+=readLen;
+        }
+        return hpatch_TRUE;
+    }
+    
+    inline static void unpackDataAsStream(TStreamInputMap* self,unsigned char* data,unsigned char* data_end){
+        self->streamImport=self;
+        self->streamSize=self->baseStream->streamSize;
+        self->read=_TStreamInputMap_read;
+        self->data=data;
+        self->data_end=data_end;
+        //sort packedCovers for serach
+        std::sort(self->packedCovers.begin(),self->packedCovers.end(),cover_cmp_by_old_t<TPackedCover>());
+        TPackedCover pc={0,0,0};
+        if (self->packedCovers.empty()||self->packedCovers[0].oldPos>0)
+            self->packedCovers.insert(self->packedCovers.begin(),pc);
+        pc.oldPos=self->streamSize+1;
+        self->packedCovers.push_back(pc);
+    }
+void TMatchBlockStream::map_streams(const hpatch_TStreamInput** pnewData,const hpatch_TStreamInput** poldData){
+    assert((*pnewData)->streamSize==newStream->streamSize);
+    assert((*poldData)->streamSize==oldStream->streamSize);
+    //*pnewData=newStream; *poldData=oldStream;    return; //only for debug test
+    unpackDataAsStream(&_newStreamMap,newData,newData_end_cur);
+    unpackDataAsStream(&_oldStreamMap,oldData,oldData_end_cur);
+    *pnewData=&_newStreamMap;
+    *poldData=&_oldStreamMap;
 }
 
 void loadOldAndNewStream(TAutoMem& out_mem,const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newStream){

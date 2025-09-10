@@ -1653,7 +1653,7 @@ static hpatch_BOOL _cache_old_load(const hpatch_TStreamInput*oldData,
                                    hpatch_StreamPos_t oldPos,hpatch_StreamPos_t oldPosAllEnd,
                                    _TArrayCovers* arrayCovers,hpatch_size_t maxCachedLen,hpatch_size_t sumCacheLen,
                                    TByte* old_cache,TByte* old_cache_end,TByte* cache_buf_end){
-    const hpatch_size_t kMinSpaceLen   =(1<<20);//skip space of length seekTime*speed (can be smaller for SSD) if time-efficient, otherwise sequential access;
+    const hpatch_size_t kMinSpaceLen   =(1<<18);//skip space of length seekTime*speed (can be smaller for SSD) if time-efficient, otherwise sequential access;
     const hpatch_size_t kAccessPageSize=4096;//disk page-aligned access (affects only speed, but impact is minimal);
     hpatch_BOOL result=hpatch_TRUE;
     hpatch_size_t cur_i=0,i;
