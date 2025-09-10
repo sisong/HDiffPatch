@@ -337,7 +337,7 @@ void create_bsdiff_block(unsigned char* newData,unsigned char* newData_end,
                        out_diff,compressPlugin,isEndsleyBsdiff,kMinSingleMatchScore,isUseBigCacheMatch,0,threadNum);
         return;
     }
-    TCoversOptimMB<TMatchBlock> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize,threadNum);
+    TCoversOptimMB<TMatchBlockMem> coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize,threadNum);
     _create_bsdiff(newData,coversOp.matchBlock->newData_end_cur,newData_end,
                    oldData,coversOp.matchBlock->oldData_end_cur,oldData_end,
                    out_diff,compressPlugin,isEndsleyBsdiff,kMinSingleMatchScore,isUseBigCacheMatch,&coversOp,threadNum);   

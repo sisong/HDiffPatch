@@ -157,6 +157,7 @@ extern "C"
                                    size_t searchBlockSize,size_t kPartPepeatSize);
         hpatch_BOOL (*next_search_block_MT)(ICoverLinesListener* listener,hdiff_TRange* out_newRange);//must thread safe
         hpatch_StreamPos_t (*get_limit_cover_length)(const ICoverLinesListener* listener); //if null, default kDefaultLimitCoverLen 
+        void (*map_streams_befor_serialize)(ICoverLinesListener* listener,const hpatch_TStreamInput** pnewData,const hpatch_TStreamInput** poldData);
     };
 
     struct hdiff_TMTSets_s{ // used by $hdiff -s

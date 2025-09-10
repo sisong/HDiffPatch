@@ -94,7 +94,7 @@ struct _TCompress{
             cmBufPos+=in_dataSize;
         }else{
             checkv((result<=kMaxCompressedSize)
-                 &&(result<=2*kSyncBlockSize)); //for decompress memroy size ctrl
+                 &&(result<=2*kSyncBlockSize)); //for decompress memory size ctrl
             cmBufPos+=result;
         }
         return result;
