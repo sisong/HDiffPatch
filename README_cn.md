@@ -117,9 +117,9 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       一般匹配块越大,内存占用越小,速度越快,但补丁包可能变大。
   -block-fastMatchBlockSize
       必须和-m配合使用;
-      在使用较慢的逐字节匹配之前使用基于块的快速匹配, 默认-block-4k;
+      在使用较慢的逐字节匹配之前使用基于块的快速匹配, 默认-block-1k;
       如果设置为-block-0，意思是关闭基于块的提前匹配；
-      快速块匹配大小fastMatchBlockSize>=4, 推荐256,1k,64k,1m等;
+      快速块匹配大小fastMatchBlockSize>=4, 推荐128,4k,64k等;
       如果新版本和旧版本相同数据比较多,那diff速度就会比较快,并且减少内存占用,
       但有很小的可能补丁包会变大。
   -cache
@@ -146,10 +146,9 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       设置线程数parallelThreadNumber>1时,开启多线程并行模式;
       默认为4;需要占用较多的内存。
   -p-search-searchThreadNumber
-      必须和-s[-matchBlockSize]配合使用;
       默认情况下搜索线程数searchThreadNumber的值和parallelThreadNumber相同;
-      但当matchBlockSize较小时，多线程搜索需要频繁的随机磁盘读取，
-      所以有些时候多线程搜索反而比单线程搜索还慢很多!
+      但当 -s-matchBlockSize 或 -block-fastMatchBlockSize(和-m配合时) 的值太小时，多线程
+      搜索需要频繁的随机磁盘读取，导致速度变慢；这时就需要降低searchThreadNumber搜索线程数! 
       如果设置searchThreadNumber<=1，可以关闭多线程搜索模式。
   -c-compressType[-compressLevel]
       设置补丁数据使用的压缩算法和压缩级别等, 默认不压缩;

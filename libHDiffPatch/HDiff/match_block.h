@@ -29,7 +29,7 @@
 #define hdiff_match_block_h
 #include "diff.h"
 #include <vector>
-static const size_t kDefaultFastMatchBlockSize = 1024*4;
+static const size_t kDefaultFastMatchBlockSize = 1024*1;
 namespace hdiff_private{
     struct TAutoMem;
     
@@ -176,7 +176,7 @@ void create_compressed_diff_block(const hpatch_TStreamInput* newData,//will load
                                   int kMinSingleMatchScore=kMinSingleMatchScore_default,
                                   bool isUseBigCacheMatch=false,
                                   size_t matchBlockSize=kDefaultFastMatchBlockSize,
-                                  size_t threadNum=1);
+                                  size_t threadNumForMem=1,size_t threadNumForStream=1);
 void create_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
                                   unsigned char* oldData,unsigned char* oldData_end,
                                   const hpatch_TStreamOutput* out_diff,
