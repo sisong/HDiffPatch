@@ -25,7 +25,7 @@ hsynz support zstd compressor & run much faster than zsync; also compatible with
 additional, if you have the new file locally & not the old file, but can get a hash certificate file(.hsyni) of the old file,
 you can also create a hpatchz format patch file(usage scenario like [rsync]); see the demo cmdline **hsign_diff** in [hsynz].   
    
-NOTE: *This library does not deal with file metadata, such as file last wirte time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
+NOTE: *This library does not deal with file metadata, such as file last write time, permissions, link file, etc... To this library, a file is just as a stream of bytes; You can extend this library or use other tools.*   
    
 
 [HDiffPatch]: https://github.com/sisong/HDiffPatch
