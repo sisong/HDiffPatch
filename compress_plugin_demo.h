@@ -1212,6 +1212,10 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
                 &&((dict_bits-1)>=_ZSTD_WINDOWLOG_MIN)) {
             --dict_bits;
         }
+#       if (IS_NOTICE_compress_canceled)
+        printf("  (used one zstd dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
+               ((hpatch_StreamPos_t)1)<<dict_bits,in_data->streamSize);
+#       endif
         ret=ZSTD_CCtx_setParameter(s,ZSTD_c_windowLog,dict_bits);
         if (ZSTD_isError(ret)) _compress_error_return("ZSTD_CCtx_setParameter(,ZSTD_c_windowLog)");
         if (plugin->thread_num>1){

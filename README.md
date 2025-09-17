@@ -148,10 +148,10 @@ options:
       DEFAULT -p-4; requires more memory!
   -p-search-searchThreadNumber
       DEFAULT searchThreadNumber same as parallelThreadNumber;
-      but multi-thread search need frequent random disk reads when
-      -s-matchBlockSize or -block-fastMatchBlockSize(run with -m) is too small,
-      causes slowdown; at this time, need to reduce the number of searchThreadNumber!
-      if (searchThreadNumber<=1) then to close multi-thread search mode.
+      old file on HDD hard drives WARNING: multi-thread search need frequent random
+        disk reads when -s-matchBlockSize or -block-fastMatchBlockSize(run with -m),
+        causes slowdown; at this time, need to close(searchThreadNumber<=1) multi-thread
+        search mode or reduce the number of searchThreadNumber!
   -c-compressType[-compressLevel]
       set outDiffFile Compress type, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;

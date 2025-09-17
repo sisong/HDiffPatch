@@ -121,7 +121,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       如果设置为-block-0，意思是关闭基于块的提前匹配；
       快速块匹配大小fastMatchBlockSize>=4, 推荐128,4k,64k等;
       如果新版本和旧版本相同数据比较多,那diff速度就会比较快,并且减少内存占用,
-      但有很小的可能补丁包会变大。
+      但有很小的可能补丁包会稍微变大。
   -cache
       必须和-m配合使用;
       给较慢的匹配开启一个大型缓冲区,来加快匹配速度(不影响补丁大小), 默认不开启;
@@ -147,9 +147,9 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       默认为4;需要占用较多的内存。
   -p-search-searchThreadNumber
       默认情况下搜索线程数searchThreadNumber的值和parallelThreadNumber相同;
-      但当 -s-matchBlockSize 或 -block-fastMatchBlockSize(和-m配合时) 的值太小时，多线程
-      搜索需要频繁的随机磁盘读取，导致速度变慢；这时就需要降低searchThreadNumber搜索线程数! 
-      如果设置searchThreadNumber<=1，可以关闭多线程搜索模式。
+      旧文件在HDD硬盘上时的警告：在使用-s-matchBlockSize 或 -block-fastMatchBlockSize(和-m配合时)时,
+        多线程搜索需要频繁的随机磁盘读取,这可能会导致速度变慢；这时就需要关闭(searchThreadNumber<=1)多
+        线程搜索模式或者降低搜索线程数searchThreadNumber的值!
   -c-compressType[-compressLevel]
       设置补丁数据使用的压缩算法和压缩级别等, 默认不压缩;
       补丁另存时,使用新的压缩参数设置来输出新补丁;
@@ -173,7 +173,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
             警告: lzma和lzma2是不同的压缩编码格式。
         -c-zstd[-{0..22}[-dictBits]]    默认级别 20
             压缩字典比特数dictBits 可以为10到30, 默认为23。
-            支持多线程并行压缩,较快。
+            支持多线程并行压缩,较快(但内存占用会比较大)。
   -C-checksumType
       为文件夹间diff设置数据校验算法, 默认为fadler64;
       支持的校验选项:

@@ -34,14 +34,14 @@ namespace hdiff_private{
     struct TAutoMem;
     
     struct TMatchBlockBase{
-        const size_t   matchBlockSize;
-        const size_t   threadNum;
         typedef hpatch_TCover TPackedCover;
         TMatchBlockBase(size_t _matchBlockSize,size_t _threadNum)
         :matchBlockSize(_matchBlockSize),threadNum(_threadNum){}
     protected:
         void _getPackedCover(hpatch_StreamPos_t newDataSize,hpatch_StreamPos_t oldDataSize);
-        void _unpackData(IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32);
+        void _unpackData(IDiffInsertCover* diffi,void*& pcovers,size_t& coverCount,bool isCover32);
+        const size_t   matchBlockSize;
+        const size_t   threadNum;
         std::vector<hpatch_TCover> blockCovers;
         std::vector<TPackedCover> packedCoversForOld;
         std::vector<TPackedCover> packedCoversForNew;

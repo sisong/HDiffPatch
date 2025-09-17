@@ -44,6 +44,10 @@ namespace hdiff_private {
     
     #define _cover_pos(isNew,pcover) (isNew?(pcover)->newPos:(pcover)->oldPos)
 
+    #define _kMinMoveLen_new    1  // must 1
+    #define _kMinMoveLen_old    16
+    #define kMinMoveLen   (isNew?_kMinMoveLen_new:_kMinMoveLen_old)
+
     template<bool isNew> static 
     void _getPackedCovers(hpatch_StreamPos_t dataSize,const std::vector<hpatch_TCover>& blockCovers,
                           std::vector<TPackedCover>& out_packedCovers){
@@ -57,7 +61,7 @@ namespace hdiff_private {
                 continue;
             }
             hpatch_StreamPos_t moveLen=_cover_pos(isNew,cover)-srcPos;
-            if (moveLen){
+            if (moveLen>=kMinMoveLen){
                 TPackedCover pkcover={srcPos,dst,moveLen};
                 out_packedCovers.push_back(pkcover);
                 dst+=moveLen;
@@ -66,7 +70,7 @@ namespace hdiff_private {
         }
         assert(dataSize>=srcPos);
         hpatch_StreamPos_t moveLen=dataSize-srcPos;
-        if (moveLen){
+        if (moveLen>=kMinMoveLen){
             TPackedCover pkcover={srcPos,dst,moveLen};
             out_packedCovers.push_back(pkcover);
             dst+=moveLen;
@@ -267,7 +271,7 @@ TMatchBlockStream::~TMatchBlockStream(){
         coverCount+=icovers.size(); \
     }
 
-void TMatchBlockBase::_unpackData(IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32){
+void TMatchBlockBase::_unpackData(IDiffInsertCover* diffi,void*& pcovers,size_t& coverCount,bool isCover32){
     std::vector<hpatch_TCover> clipCovers;
     doClipCover<true>(pcovers,coverCount,isCover32,packedCoversForNew,clipCovers);
     _insertCovers(clipCovers);

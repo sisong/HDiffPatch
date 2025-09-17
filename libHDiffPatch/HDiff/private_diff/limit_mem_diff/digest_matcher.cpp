@@ -167,8 +167,10 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,const hpatch_T
                                size_t kMatchBlockSize,const hdiff_TMTSets_s& mtsets)
 :m_oldData(oldData),m_newData(newData),m_isUseLargeSorted(true),m_mtsets(mtsets),
 m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_kMatchBlockSize(0){
-    if (kMatchBlockSize>(oldData->streamSize+1)/2)
-        kMatchBlockSize=(size_t)((oldData->streamSize+1)/2);
+    size_t maxBetterBlockSize=((oldData->streamSize+63)/64+63)/64*64;
+    if (kMatchBlockSize>maxBetterBlockSize)
+        kMatchBlockSize=maxBetterBlockSize;
+
     if (kMatchBlockSize<kMatchBlockSize_min)
         kMatchBlockSize=kMatchBlockSize_min;
     if (oldData->streamSize<kMatchBlockSize) return;
