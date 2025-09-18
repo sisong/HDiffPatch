@@ -7,6 +7,7 @@
 #define _IS_NEED_CMDLINE                0
 #define _IS_NEED_SFX                    0
 #define _IS_NEED_ALL_CompressPlugin     0
+#define _IS_NEED_ALL_ChecksumPlugin     0
 #include "../../hpatchz.c"
 
 #ifdef _CompressPlugin_bz2

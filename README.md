@@ -56,15 +56,16 @@ apply the delta:
 `$ cd <dir>/HDiffPatch`   
 ### Linux or MacOS X ###
 Try:   
-`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0`   
+`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0`   
 bzip2 : if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again; or download & make with libbz2 source code:
 ```
 $ git clone https://github.com/sisong/bzip2.git ../bzip2
-$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 BZIP2=1
+$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0 BZIP2=1
 ```
-if need lzma zstd & md5 ... default support, Try:
+if need lzma zstd & md5 xxh... default support, Try:
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone https://github.com/sisong/xxHash.git ../xxHash
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git ../zlib
@@ -77,6 +78,7 @@ Tip: You can use `$ make -j` to compile in parallel.
 Before you build `builds/vc/HDiffPatch.sln` by [`Visual Studio`](https://visualstudio.microsoft.com), first get the libraries into sibling folders, like so: 
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone https://github.com/sisong/xxHash.git ../xxHash
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
@@ -184,6 +186,8 @@ options:
         -C-crc32
         -C-fadler64             DEFAULT
         -C-md5
+        -C-xxh3                 (need v4.12 patcher)
+        -C-xxh128               recommended (need v4.12 patcher)
   -n-maxOpenFileNumber
       limit Number of open files at same time when stream directory diff;
       maxOpenFileNumber>=16, DEFAULT -n-48, the best limit value by different

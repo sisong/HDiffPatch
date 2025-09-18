@@ -56,15 +56,16 @@ hsynz 支持 zstd 压缩算法并且比 zsync 速度快得多；而且可以兼�
 `$ cd <dir>/HDiffPatch`   
 ### Linux or MacOS X ###
 试试:   
-`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0`   
+`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0`   
 bzip2 : 如果编译失败，显示 `fatal error: bzlib.h: No such file or directory`，请使用系统的包管理器安装libbz2，然后再试一次；或者下载并使用libbz2源代码来编译:
 ```
 $ git clone https://github.com/sisong/bzip2.git ../bzip2
-$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 BZIP2=1
+$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0 BZIP2=1
 ```
-如果需要支持 lzma、zstd 和 md5 等 默认编译设置，试试:    
+如果需要支持 lzma、zstd 和 md5 xxh 等 默认编译设置，试试:    
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone https://github.com/sisong/xxHash.git ../xxHash
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git ../zlib
@@ -77,6 +78,7 @@ $ make
 使用 [`Visual Studio`](https://visualstudio.microsoft.com) 打开 `builds/vc/HDiffPatch.sln` 来编译之前，先将第三方库下载到同级文件夹中，如下所示: 
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone https://github.com/sisong/xxHash.git ../xxHash
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
@@ -181,6 +183,8 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
         -C-crc32
         -C-fadler64             默认
         -C-md5
+        -C-xxh3                 (需要 v4.12版本 patch端)
+        -C-xxh128               推荐 (需要 v4.12版本 patch端)
   -n-maxOpenFileNumber
       为文件夹间的-s模式diff设置最大允许同时打开的文件数;
       maxOpenFileNumber>=16, 默认为48; 合适的限制值可能不同系统下不同。

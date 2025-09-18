@@ -122,6 +122,9 @@
 //===== select needs checksum plugins or change to your plugin=====
 #   define _ChecksumPlugin_crc32    //    32 bit effective  //need zlib
 #   define _ChecksumPlugin_fadler64 // ?  63 bit effective
+#   define _ChecksumPlugin_md5      //   128 bit
+#   define _ChecksumPlugin_xxh3     //    64 bit fast
+#   define _ChecksumPlugin_xxh128   //   128 bit fast
 #endif
 #if (_IS_NEED_ALL_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
@@ -129,10 +132,7 @@
 #   define _ChecksumPlugin_adler64  // ?  30 bit effective
 #   define _ChecksumPlugin_fadler32 // ~  32 bit effective
 #   define _ChecksumPlugin_fadler128// ?  81 bit effective
-#   define _ChecksumPlugin_md5      //   128 bit
 #   define _ChecksumPlugin_blake3   //   256 bit
-#   define _ChecksumPlugin_xxh3     //    64 bit fast
-#   define _ChecksumPlugin_xxh128   //   128 bit fast
 #endif
 
 #include "checksum_plugin_demo.h"
@@ -341,10 +341,10 @@ static void printUsage(){
            "        -C-blake3\n"
 #endif
 #ifdef _ChecksumPlugin_xxh3
-           "        -C-xxh3\n"
+           "        -C-xxh3                 (need v4.12 patcher)\n"
 #endif
 #ifdef _ChecksumPlugin_xxh128
-           "        -C-xxh128\n"
+           "        -C-xxh128               recommended (need v4.12 patcher)\n"
 #endif
            "  -n-maxOpenFileNumber\n"
            "      limit Number of open files at same time when stream directory diff;\n"

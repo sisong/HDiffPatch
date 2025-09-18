@@ -16,6 +16,7 @@
 		0D571A70275CF71A00672D57 /* bsdiff_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A6E275CF71A00672D57 /* bsdiff_wrapper.cpp */; };
 		0D571A72275CF75B00672D57 /* hdiffz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A71275CF75B00672D57 /* hdiffz.cpp */; };
 		0D7FEAB8283124A20029772D /* hpatch_lite.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D7FEAB5283124A20029772D /* hpatch_lite.c */; };
+		0D8721112E7B856C008E97DB /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D8721102E7B856C008E97DB /* md5.c */; };
 		0DA2A8EE292B9880000E86E1 /* vcdiff_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8E9292B9880000E86E1 /* vcdiff_wrapper.cpp */; };
 		0DA2A8EF292B9880000E86E1 /* vcpatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8EB292B9880000E86E1 /* vcpatch_wrapper.c */; };
 		0DA6865F2E536C50002A6651 /* _hpatch_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686542E536A3C002A6651 /* _hpatch_mt.c */; };
@@ -77,6 +78,7 @@
 		0D7FEAB5283124A20029772D /* hpatch_lite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hpatch_lite.c; sourceTree = "<group>"; };
 		0D7FEAB6283124A20029772D /* hpatch_lite_input_cache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hpatch_lite_input_cache.h; sourceTree = "<group>"; };
 		0D7FEAB7283124A20029772D /* hpatch_lite_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hpatch_lite_types.h; sourceTree = "<group>"; };
+		0D8721102E7B856C008E97DB /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
 		0DA2A8E9292B9880000E86E1 /* vcdiff_wrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vcdiff_wrapper.cpp; sourceTree = "<group>"; };
 		0DA2A8EA292B9880000E86E1 /* vcpatch_code_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vcpatch_code_table.h; sourceTree = "<group>"; };
 		0DA2A8EB292B9880000E86E1 /* vcpatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vcpatch_wrapper.c; sourceTree = "<group>"; };
@@ -291,6 +293,7 @@
 				D69EECDA220C49DE001EF085 /* libParallel */,
 				D67D3BD421CBCD5D0050632A /* dirDiffPatch */,
 				D690AB9E1F2079E80089DC57 /* libHDiffPatch */,
+				0D8721102E7B856C008E97DB /* md5.c */,
 				D6E150981F223B2700C2AD3D /* compress_plugin_demo.h */,
 				D6E1509A1F223DC100C2AD3D /* decompress_plugin_demo.h */,
 				D69EECD7220BD149001EF085 /* compress_parallel.h */,
@@ -509,6 +512,7 @@
 				D69EECE0220C49DE001EF085 /* parallel_import_c.c in Sources */,
 				D690ABBC1F2079E80089DC57 /* patch.c in Sources */,
 				D6B240B021E5C21300993A81 /* res_handle_limit.c in Sources */,
+				0D8721112E7B856C008E97DB /* md5.c in Sources */,
 				D690ABB81F2079E80089DC57 /* bytes_rle.cpp in Sources */,
 				D690ABBB1F2079E80089DC57 /* suffix_string.cpp in Sources */,
 				0D571A69275CF68900672D57 /* match_block.cpp in Sources */,
@@ -583,6 +587,8 @@
 					../../../lzma/C/,
 					../../../zlib/,
 					../../../libdeflate/,
+					../../../libmd5/,
+					../../../xxHash/,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = YES;
@@ -644,6 +650,8 @@
 					../../../lzma/C/,
 					../../../zlib/,
 					../../../libdeflate/,
+					../../../libmd5/,
+					../../../xxHash/,
 				);
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;

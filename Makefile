@@ -19,6 +19,7 @@ USE_CRC_EMU := 0
 # 0: not need zstd;  1: compile zstd source code;  2: used -lzstd to link zstd lib;
 ZSTD     := 1
 MD5      := 1
+XXH      := 1
 # used clang?
 CL  	 := 0
 # build with -m32?
@@ -101,6 +102,8 @@ else
 	HPATCH_OBJ += $(MD5_PATH)/md5.o
   endif
 endif
+
+XXH_PATH := ../xxHash
 
 LZMA_PATH := ../lzma/C
 ifeq ($(LZMA),1)
@@ -328,6 +331,10 @@ else
   ifeq ($(MD5),0)
   else
     DEF_FLAGS += -D_ChecksumPlugin_md5 -I$(MD5_PATH)
+  endif
+  ifeq ($(XXH),0)
+  else
+    DEF_FLAGS += -D_ChecksumPlugin_xxh3 -D_ChecksumPlugin_xxh128 -I$(XXH_PATH)
   endif
 endif
 ifeq ($(BSD),0)

@@ -141,6 +141,9 @@
 //===== select needs checksum plugins or change to your plugin=====
 #   define _ChecksumPlugin_crc32    //    32 bit effective  //need zlib
 #   define _ChecksumPlugin_fadler64 // ?  63 bit effective
+#   define _ChecksumPlugin_md5      //   128 bit
+#   define _ChecksumPlugin_xxh3     //    64 bit fast
+#   define _ChecksumPlugin_xxh128   //   128 bit fast
 #endif
 #if (_IS_NEED_ALL_ChecksumPlugin)
 //===== select needs checksum plugins or change to your plugin=====
@@ -148,10 +151,7 @@
 #   define _ChecksumPlugin_adler64  // ?  30 bit effective
 #   define _ChecksumPlugin_fadler32 // ~  32 bit effective
 #   define _ChecksumPlugin_fadler128// ?  81 bit effective
-#   define _ChecksumPlugin_md5      //   128 bit
 #   define _ChecksumPlugin_blake3   //   256 bit
-#   define _ChecksumPlugin_xxh3     //    64 bit fast
-#   define _ChecksumPlugin_xxh128   //   128 bit fast
 #endif
 
 #include "checksum_plugin_demo.h"
@@ -1207,24 +1207,27 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
         double                      progressR;
         unsigned int                progress;
     } hpatch_TProgressStreamOutput;
-    static hpatch_BOOL _progressStreamOutput_write(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
-                                                   const unsigned char* data,const unsigned char* data_end){
-        const char* progressStr="==============================";
-        hpatch_TProgressStreamOutput* self=(hpatch_TProgressStreamOutput*)stream->streamImport;
-        hpatch_BOOL result=self->streamOutput->write(self->streamOutput,writeToPos,data,data_end);
-        if (result){
-            unsigned int progress=(unsigned int)((writeToPos+(size_t)(data_end-data))*self->progressR);
+    static void _progressStreamOutput_updateProgress(hpatch_TProgressStreamOutput* self,hpatch_StreamPos_t curPos){
+        unsigned int progress=(unsigned int)((curPos*self->progressR)*1000+0.5);
+        progress=((progress<1000)&(((curPos<self->base.streamSize))))?progress:1000;
+        if (progress!=self->progress){
+            double time1=clock_s();
             hpatch_BOOL isEnd=(progress==1000);
-            if (progress!=self->progress){
-                double time1=clock_s();
-                if ((time1>=self->time0+1.0/3)||isEnd){
-                    self->progress=progress;
-                    self->time0=time1;
-                    printf("\r  patch progress: [%-30s]  %3.1f%%",progressStr+((1000-progress)*30/1000),progress*0.1);
-                    if (isEnd) printf("\n");
-                }
+            if ((time1>=self->time0+1.0/3)|isEnd){
+                const char* progressStr="=============================="; //strlen==30
+                self->progress=progress;
+                self->time0=time1;
+                printf("\r  patch progress: [%-30s]  %.1f%%%s",
+                       progressStr+((1000-progress)*30/1000),progress*0.1,isEnd?"\n":"");
+                fflush(stdout);
             }
         }
+    }
+    static hpatch_BOOL _progressStreamOutput_write(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
+                                                   const unsigned char* data,const unsigned char* data_end){
+        hpatch_TProgressStreamOutput* self=(hpatch_TProgressStreamOutput*)stream->streamImport;
+        hpatch_BOOL result=self->streamOutput->write(self->streamOutput,writeToPos,data,data_end);
+        if (result) _progressStreamOutput_updateProgress(self,writeToPos+(hpatch_size_t)(data_end-data));
         return result;
     }
 
@@ -1235,7 +1238,8 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
         self->base.write=_progressStreamOutput_write;
         self->streamOutput=streamOutput;
         self->progress=-1;
-        self->progressR=1000.0/(streamOutput->streamSize?streamOutput->streamSize:1);
+        self->progressR=1.0/(streamOutput->streamSize?streamOutput->streamSize:1);
+        _progressStreamOutput_updateProgress(self,0);
         return &self->base;
     }
 #endif //_IS_NEED_PRINT_PROGRESS
