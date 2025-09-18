@@ -110,6 +110,7 @@ ifeq ($(LZMA),1)
   # https://www.7-zip.org  https://github.com/sisong/lzma
   HPATCH_OBJ += $(LZMA_PATH)/LzmaDec.o \
   				$(LZMA_PATH)/Lzma2Dec.o \
+				  $(LZMA_PATH)/7zStream.o \
   				$(LZMA_PATH)/CpuArch.o \
   				$(LZMA_PATH)/Alloc.o
   ifeq ($(ARM64ASM),0)
@@ -139,7 +140,6 @@ else
   else
 	HPATCH_OBJ+=$(LZMA_PATH)/7zCrc.o \
 				$(LZMA_PATH)/7zCrcOpt.o \
-				$(LZMA_PATH)/7zStream.o \
 				$(LZMA_PATH)/Bra.o \
 				$(LZMA_PATH)/Bra86.o \
 				$(LZMA_PATH)/BraIA64.o \
