@@ -1217,11 +1217,16 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
                 const char* progressStr="=============================="; //strlen==30
                 self->progress=progress;
                 self->time0=time1;
-                printf("\r  patch progress: [%-30s]  %.1f%%%s",
+                printf("\r  patch progress: [%-30s]  %.1f%%%s  ",
                        progressStr+((1000-progress)*30/1000),progress*0.1,isEnd?"\n":"");
                 fflush(stdout);
             }
         }
+    }
+    static hpatch_BOOL _progressStreamOutput_read_writed(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
+                                                         unsigned char* out_data,unsigned char* out_data_end){
+        hpatch_TProgressStreamOutput* self=(hpatch_TProgressStreamOutput*)stream->streamImport;
+        return self->streamOutput->read_writed(self->streamOutput,readFromPos,out_data,out_data_end);
     }
     static hpatch_BOOL _progressStreamOutput_write(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t writeToPos,
                                                    const unsigned char* data,const unsigned char* data_end){
@@ -1236,6 +1241,7 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
         self->base.streamImport=self;
         self->base.streamSize=streamOutput->streamSize;
         self->base.write=_progressStreamOutput_write;
+        self->base.read_writed=streamOutput->read_writed?_progressStreamOutput_read_writed:0;
         self->streamOutput=streamOutput;
         self->progress=-1;
         self->progressR=1.0/(streamOutput->streamSize?streamOutput->streamSize:1);
