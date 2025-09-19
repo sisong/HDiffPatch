@@ -269,6 +269,7 @@ void _create_bsdiff(const unsigned char* newData,const unsigned char* cur_newDat
                     const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                     bool isEndsleyBsdiff,int kMinSingleMatchScore,bool isUseBigCacheMatch,
                     ICoverLinesListener* listener,size_t threadNum){
+    _out_diff_info("  serialize %s diffData ...\n",isEndsleyBsdiff?"endsley/bsdiff":"bsdiff4");
     std::vector<hpatch_TCover_sz> covers;
     get_match_covers_by_sstring(newData,cur_newData_end,oldData,cur_oldData_end,covers,
                                 kMinSingleMatchScore,isUseBigCacheMatch,listener,threadNum);

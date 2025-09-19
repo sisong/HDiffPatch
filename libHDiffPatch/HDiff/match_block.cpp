@@ -157,6 +157,7 @@ void TMatchBlockStream::packData(){
     oldData_end_cur=oldData+packedOldSize;
     newData=oldData_end_cur;
     newData_end_cur=newData+packedNewSize;
+    _out_diff_info("  load datas from oldStream & newStream ...\n");
     _check(loadPackData(oldData,oldData_end_cur,oldStream,packedCoversForOld),"loadPackData(oldStream)");
     _check(loadPackData(newData,newData_end_cur,newStream,packedCoversForNew),"loadPackData(newStream)");
 }

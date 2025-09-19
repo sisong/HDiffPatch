@@ -788,6 +788,9 @@ void setRandData(std::vector<TByte>& data){
 
 
 int main(int argc, const char * argv[]){
+#if (_IS_OUT_DIFF_INFO)
+    _hdiff_is_out_diff_info=0;
+#endif
     clock_t time1=clock();
     long errorCount=0;
     errorCount+=testCompress("","c1");

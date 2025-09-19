@@ -47,6 +47,9 @@
 #include <atomic>
 #endif
 using namespace hdiff_private;
+#if (_IS_OUT_DIFF_INFO)
+int _hdiff_is_out_diff_info=1;
+#endif
 
 static const char* kHDiffVersionType  ="HDIFF13";
 static const char* kHDiffSFVersionType="HDIFFSF20";
@@ -882,6 +885,7 @@ static void get_diff(TDiffData& diff,std::vector<TOldCover>& covers,
                      bool isUseBigCacheMatch,ICoverLinesListener* listener,
                      const TSuffixString* sstring,size_t threadNum,
                      bool isCanExtendCover=true){
+    _out_diff_info("  match covers by suffix string ...\n");
     const bool isCover32=sizeof(*covers.data())==sizeof(hpatch_TCover32);
     if (!isCover32)
         assert(sizeof(*covers.data())==sizeof(hpatch_TCover));
@@ -890,14 +894,18 @@ static void get_diff(TDiffData& diff,std::vector<TOldCover>& covers,
     {
         TSuffixString _sstring_default(isUseBigCacheMatch);
         if (sstring==0){
+        _out_diff_info("    create suffix string ...\n");
             _sstring_default.resetSuffixString(diff.oldData,diff.oldData_end,threadNum);
             sstring=&_sstring_default;
         }
+
+        _out_diff_info("    search covers by suffix string ...\n");
         first_search_and_dispose_cover_MT(covers,diff,*sstring,kMinSingleMatchScore,listener,threadNum,isCanExtendCover);
         _limitCoverLenth(covers,maxCoverLen);
         assert_covers_safe(covers,diff.newData_end-diff.newData,diff.oldData_end-diff.oldData);
         if (listener&&listener->search_cover_limit&&
             listener->search_cover_limit(listener,covers.data(),covers.size(),isCover32)){
+            _out_diff_info("    research covers by limit ...\n");
             TDiffResearchCover diffResearchCover(diff,covers,*sstring,kMinSingleMatchScore,
                                     listener->get_max_match_deep?listener->get_max_match_deep(listener):kDefaultMaxMatchDeepForLimit,
                                     isCanExtendCover);
@@ -986,6 +994,7 @@ void create_compressed_diff(const TByte* newData,const TByte* newData_end,
 void serialize_single_compressed_diff(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
                                       bool isZeroSubDiff,const TCovers& covers,const hpatch_TStreamOutput* out_diff,
                                       const hdiff_TCompress* compressPlugin,size_t patchStepMemSize){
+    _out_diff_info("  serialize single compressed diffData ...\n");
     check(patchStepMemSize>=hpatch_kStreamCacheSize);
     if (patchStepMemSize>newStream->streamSize){
         patchStepMemSize=(size_t)newStream->streamSize;
@@ -1243,6 +1252,7 @@ static void serialize_compressed_diff(const hpatch_TStreamInput*  newData,
                                       bool isZeroSubDiff,const TCovers& covers,
                                       const hpatch_TStreamOutput* out_diff,
                                       const hdiff_TCompress* compressPlugin){
+    _out_diff_info("  serialize compressed diffData ...\n");
     std::vector<TByte> rle_ctrlBuf;
     std::vector<TByte> rle_codeBuf;
     {//now rle datas used buf, not used stream

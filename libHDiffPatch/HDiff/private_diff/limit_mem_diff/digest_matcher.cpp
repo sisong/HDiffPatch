@@ -167,6 +167,7 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,const hpatch_T
                                size_t kMatchBlockSize,const hdiff_TMTSets_s& mtsets)
 :m_oldData(oldData),m_newData(newData),m_isUseLargeSorted(true),m_mtsets(mtsets),
 m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_kMatchBlockSize(0){
+    _out_diff_info("  match covers by block ...\n");
     size_t maxBetterBlockSize=((oldData->streamSize+63)/64+63)/64*64;
     if (kMatchBlockSize>maxBetterBlockSize)
         kMatchBlockSize=maxBetterBlockSize;
@@ -193,6 +194,8 @@ m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_
     m_oldMinCacheSize=upperCount(m_kMatchBlockSize+m_backupCacheSize,kMinReadSize)*kMinReadSize;
     assert(m_oldMinCacheSize<=m_oldCacheSize);
     m_mem.realloc((m_newCacheSize+m_oldCacheSize)*getSearchThreadNum());
+    
+    _out_diff_info("    create blocks's match table ...\n");
     getDigests();
 }
 
@@ -734,6 +737,7 @@ static inline void __search_cover_mt(TDigestMatcher* self,hpatch_TOutputCovers* 
 void TDigestMatcher::search_cover(hpatch_TOutputCovers* out_covers){
     if (m_blocks.empty()) return;
     if (m_newData->streamSize<m_kMatchBlockSize) return;
+    _out_diff_info("    search covers by match table ...\n");
 #if (_IS_USED_MULTITHREAD)
     size_t threadNum=getSearchThreadNum();
     if (threadNum>1){

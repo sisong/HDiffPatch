@@ -1356,31 +1356,6 @@ int hdiff_cmd_line(int argc, const char * argv[]){
     }
 }
 
-#define _checkf(value,errorInfo) { if (!(value)) { \
-    LOG_ERR(errorInfo " ERROR!\n"); result=hpatch_FALSE; if (!_isInClear){ goto clear; } } }
-static hpatch_BOOL readFileAll(hdiff_private::TAutoMem& out_mem,const char* fileName){
-    hpatch_BOOL         result=hpatch_TRUE;
-    int                 _isInClear=hpatch_FALSE;
-    size_t              dataSize;
-    hpatch_TFileStreamInput    file;
-    hpatch_TFileStreamInput_init(&file);
-
-    _checkf(hpatch_TFileStreamInput_open(&file,fileName),"readFileAll() file open");
-    dataSize=(size_t)file.base.streamSize;
-    _checkf(dataSize==file.base.streamSize,"readFileAll() file size");
-    try {
-        out_mem.realloc(dataSize);
-    } catch (...) {
-        _checkf(false,"readFileAll() memory alloc");
-    }
-    _checkf(file.base.read(&file.base,0,out_mem.data(),out_mem.data_end()),"readFileAll() file read");
-clear:
-    _isInClear=hpatch_TRUE;
-    _checkf(hpatch_TFileStreamInput_close(&file),"readFileAll() file close");
-    return result;
-}
-
-
 #if (_IS_NEED_VCDIFF)
 static hpatch_BOOL getVcDiffDecompressPlugin(hpatch_TDecompress* out_decompressPlugin,
                                              const hpatch_VcDiffInfo* vcdInfo){
@@ -1457,8 +1432,10 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
     printf("oldDataSize : %" PRIu64 "\nnewDataSize : %" PRIu64 "\n",
            oldData.base.streamSize,newData.base.streamSize);
     if (diffSets.isDoDiff){
-        if (diffSets.isCheckNotEqual)
+        if (diffSets.isCheckNotEqual){
+            _out_diff_info("  load datas of oldFile & newFile for equal check ...\n");
             check(!hdiff_streamDataIsEqual(&oldData.base,&newData.base),HDIFF_OLD_NEW_SAME_ERROR,"oldFile & newFile's datas can't be equal");
+        }
         const hdiff_TMTSets_s mtsets={diffSets.threadNum,diffSets.threadNumSearch_s,false,false};
         check(hpatch_TFileStreamOutput_open(&diffData_out,outDiffFileName,hpatch_kNullStreamPos),
               HDIFF_OPENWRITE_ERROR,"open out diffFile");
@@ -1516,13 +1493,13 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
         }
         const hpatch_StreamPos_t outDiffDataSize=diffData_out.base.streamSize;
         check(hpatch_TFileStreamOutput_close(&diffData_out),HDIFF_FILECLOSE_ERROR,"out diffFile close");
-        printf("diffDataSize: %" PRIu64 "\n",outDiffDataSize);
-        printf("diff    time: %.3f s\n",(clock_s()-diff_time0));
-        printf("  out diff file ok!\n");
+        printf("diffDataSize: %" PRIu64 "\n"
+               "diff    time: %.3f s\n"
+               "  out diff file ok!\n" ,outDiffDataSize,(clock_s()-diff_time0));
     }
     if (diffSets.isDoPatchCheck){
         double patch_time0=clock_s();
-        printf("\nload diffFile for test by patch check:\n");
+        printf("\nload diffFile for patch check:\n");
         check(hpatch_TFileStreamInput_open(&diffData_in,outDiffFileName),HDIFF_OPENREAD_ERROR,"open check diffFile");
         printf("diffDataSize: %" PRIu64 "\n",diffData_in.base.streamSize);
 
@@ -1544,6 +1521,8 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
 #endif
             const char* compressType="";
             if (getCompressedDiffInfo(&diffInfo,&diffData_in.base)){
+                if (!diffSets.isDoDiff)
+                    printf("test compressed diffData!\n");
                 compressType=diffInfo.compressType;
             }else if (getSingleCompressedDiffInfo(&sdiffInfo,&diffData_in.base,0)){
                 compressType=sdiffInfo.compressType;
@@ -1591,8 +1570,8 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
         else
             diffrt=check_compressed_diff(&newData.base,&oldData.base,&diffData_in.base,saved_decompressPlugin);
         check(diffrt,HDIFF_PATCH_ERROR,"patch check diff data");
-        printf("patch   time: %.3f s\n",(clock_s()-patch_time0));
-        printf("  patch check diff data ok!\n");
+        printf("patch   time: %.3f s\n"
+               "  patch check diff data ok!\n",(clock_s()-patch_time0));
     }
 clear:
     _isInClear=hpatch_TRUE;

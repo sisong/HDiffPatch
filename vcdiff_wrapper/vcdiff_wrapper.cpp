@@ -374,6 +374,7 @@ static bool compressVcDiffData(std::vector<hpatch_byte>& out_code,TVcCompress* c
 static void serialize_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                              const TCovers& covers,const hpatch_TStreamOutput* out_diff,
                              const vcdiff_TCompress* compressPlugin,size_t kMaxTargetWindowsSize){
+    _out_diff_info("  serialize VCDIFF diffData ...\n");
     std::vector<hpatch_byte> buf;
     TDiffStream outDiff(out_diff);
     {//head
