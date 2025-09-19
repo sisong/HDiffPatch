@@ -157,7 +157,7 @@ void TMatchBlockStream::packData(){
     oldData_end_cur=oldData+packedOldSize;
     newData=oldData_end_cur;
     newData_end_cur=newData+packedNewSize;
-    _out_diff_info("  load datas from oldStream & newStream ...\n");
+    _out_diff_info("  load datas into memory from old & new ...\n");
     _check(loadPackData(oldData,oldData_end_cur,oldStream,packedCoversForOld),"loadPackData(oldStream)");
     _check(loadPackData(newData,newData_end_cur,newStream,packedCoversForNew),"loadPackData(newStream)");
 }
@@ -365,6 +365,7 @@ void TMatchBlockStream::map_streams(const hpatch_TStreamInput** pnewData,const h
 }
 
 void loadOldAndNewStream(TAutoMem& out_mem,const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newStream){
+    _out_diff_info("  load all datas into memory from old & new ...\n");
     size_t old_size=oldStream?(size_t)oldStream->streamSize:0;
     size_t new_size=(size_t)newStream->streamSize;
     _check(newStream->streamSize==new_size,"loadOldAndNew() streamSize");
