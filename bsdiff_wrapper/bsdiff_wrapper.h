@@ -68,6 +68,6 @@ void create_bsdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStream
                          bool isEndsleyBsdiff=false,int kMinSingleMatchScore=kMinSingleMatchScore_default,
                          bool isUseBigCacheMatch=false,
                          size_t matchBlockSize=kDefaultFastMatchBlockSize,
-                         size_t threadNum=1);
+                         size_t threadNumForMem=1,size_t threadNumForStream=1);
 
 #endif

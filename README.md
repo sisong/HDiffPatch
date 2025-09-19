@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.11.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.12.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -56,15 +56,16 @@ apply the delta:
 `$ cd <dir>/HDiffPatch`   
 ### Linux or MacOS X ###
 Try:   
-`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0`   
+`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0`   
 bzip2 : if the build fails with `fatal error: bzlib.h: No such file or directory`, use your system's package manager to install the libbz2 package and try again; or download & make with libbz2 source code:
 ```
 $ git clone https://github.com/sisong/bzip2.git ../bzip2
-$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 BZIP2=1
+$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0 BZIP2=1
 ```
-if need lzma zstd & md5 ... default support, Try:
+if need lzma zstd & md5 xxh... default support, Try:
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone https://github.com/sisong/xxHash.git ../xxHash
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git ../zlib
@@ -77,6 +78,7 @@ Tip: You can use `$ make -j` to compile in parallel.
 Before you build `builds/vc/HDiffPatch.sln` by [`Visual Studio`](https://visualstudio.microsoft.com), first get the libraries into sibling folders, like so: 
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone https://github.com/sisong/xxHash.git ../xxHash
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
@@ -116,9 +118,9 @@ options:
       matchBlockSize>=4, DEFAULT -s-64, recommended 16,32,48,1k,64k,1m etc...
   -block-fastMatchBlockSize
       must run with -m;
-      set block match befor slow byte-by-byte match, DEFAULT -block-4k;
+      set block match befor slow byte-by-byte match, DEFAULT -block-1k;
       if set -block-0, means don't use block match;
-      fastMatchBlockSize>=4, recommended 256,1k,64k,1m etc...
+      fastMatchBlockSize>=4, recommended 128,4k,64k, etc...
       if newData similar to oldData then diff speed++ & diff memory--,
       but small possibility outDiffFile's size+
   -cache
@@ -129,6 +131,7 @@ options:
   -SD[-stepSize]
       create single compressed diffData, only need one decompress buffer
       when patch, and support step by step patching when step by step downloading!
+        and supports multi-thread patching!
       stepSize>=(1024*4), DEFAULT -SD-256k, recommended 64k,2m etc...
   -BSD
       create diffFile compatible with bsdiff4, unsupport input directory(folder).
@@ -146,11 +149,11 @@ options:
       if parallelThreadNumber>1 then open multi-thread Parallel mode;
       DEFAULT -p-4; requires more memory!
   -p-search-searchThreadNumber
-      must run with -s[-matchBlockSize];
       DEFAULT searchThreadNumber same as parallelThreadNumber;
-      but multi-thread search need frequent random disk reads when matchBlockSize
-      is small, so some times multi-thread maybe much slower than single-thread!
-      if (searchThreadNumber<=1) then to close multi-thread search mode.
+      old file on HDD hard drives WARNING: multi-thread search need frequent random
+        disk reads when -s-matchBlockSize or -block-fastMatchBlockSize(run with -m),
+        causes slowdown; at this time, need to close(searchThreadNumber<=1) multi-thread
+        search mode or reduce the number of searchThreadNumber!
   -c-compressType[-compressLevel]
       set outDiffFile Compress type, DEFAULT uncompress;
       for resave diffFile,recompress diffFile to outDiffFile by new set;
@@ -183,9 +186,11 @@ options:
         -C-crc32
         -C-fadler64             DEFAULT
         -C-md5
+        -C-xxh3                 (need v4.12 patcher)
+        -C-xxh128               recommended (need v4.12 patcher)
   -n-maxOpenFileNumber
       limit Number of open files at same time when stream directory diff;
-      maxOpenFileNumber>=8, DEFAULT -n-48, the best limit value by different
+      maxOpenFileNumber>=16, DEFAULT -n-48, the best limit value by different
         operating system.
   -g#ignorePath[#ignorePath#...]
       set iGnore path list when Directory Diff; ignore path list such as:
@@ -238,8 +243,8 @@ extract SFX: **selfExtractArchive**  (same as: $selfExtractArchive -f {""|".\"} 
   if oldPath is empty input parameter ""
 options:
   -s[-cacheSize]
-      DEFAULT -s-4m; oldPath loaded as Stream;
-      cacheSize can like 262144 or 256k or 512m or 2g etc....
+      DEFAULT -s-8m; oldPath loaded as Stream;
+      cacheSize can like 262144 or 256k or 64m or 512m etc....
       requires (cacheSize + 4*decompress buffer size)+O(1) bytes of memory.
       if diffFile is single compressed diffData(created by hdiffz -SD-stepSize), then requires
         (cacheSize+ stepSize + 1*decompress buffer size)+O(1) bytes of memory;
@@ -255,6 +260,10 @@ options:
         (oldFileSize + 3*decompress buffer size)+O(1) bytes of memory.
       if diffFile is VCDIFF(created by hdiffz -VCD,xdelta3,open-vcdiff), then requires
         (sourceWindowSize+targetWindowSize + 3*decompress buffer size)+O(1) bytes of memory.
+  -p-parallelThreadNumber
+      if parallelThreadNumber>1 then open multi-thread Parallel mode;
+      now only support single compressed diffData(created by hdiffz -SD-stepSize);
+      can set 1..5, DEFAULT -p-1!
   -C-checksumSets
       set Checksum data for directory patch, DEFAULT -C-new-copy;
       checksumSets support (can choose multiple):

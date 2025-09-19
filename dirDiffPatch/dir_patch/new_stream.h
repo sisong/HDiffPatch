@@ -47,8 +47,8 @@ typedef struct hpatch_TSameFilePair{
     size_t  oldIndex;
 } hpatch_TSameFilePair;
 
-//对外模拟成一个输出流;
-//利用samePairList、newRefList等生成新文件和copy文件
+//externally simulates an output stream;
+//Generate new files and copy files using samePairList, newRefList, etc.
 typedef struct hpatch_TNewStream{
     const hpatch_TStreamOutput* stream;
     hpatch_BOOL             isFinish;

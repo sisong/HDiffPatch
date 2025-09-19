@@ -1,5 +1,5 @@
 //compress_detect.h
-//粗略估算数据的可压缩性 for diff.
+// Roughly estimate data compressibility for diff.
 /*
  The MIT License (MIT)
  Copyright (c) 2012-2017 HouSisong
@@ -55,7 +55,7 @@ inline static unsigned _getIntCost(_Int v){
     return _getUIntCost((_UInt)(2*((v>=0)?(_UInt)v:(_UInt)(-v))));
 }
 
-//粗略估算该区域存储成本.
+// Roughly estimate storage cost for this region.
 size_t getRegionRleCost(const unsigned char* d,size_t n,const unsigned char* sub=0,
                         unsigned char* out_nocompress=0,size_t* nocompressSize=0);
 
@@ -69,8 +69,8 @@ private:
     struct TCharConvTable{
         hpatch_uint32_t sum;
         hpatch_uint32_t sum1char[256];
-        hpatch_uint32_t sum2char[256*256];//用相邻字符转换几率来近似估计数据的可压缩性.
-        unsigned char cache[1];//实际大小为kCacheSize,超出该距离的旧数据会被清除.
+        hpatch_uint32_t sum2char[256*256];// Use adjacent character transition probability to approximately estimate data compressibility.
+        unsigned char cache[1];// Actual size is kCacheSize, old data beyond this distance will be cleared.
     };
     TAutoMem        m_mem;
     TCharConvTable* m_table;

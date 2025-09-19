@@ -1,5 +1,5 @@
 //suffix_string.h
-//后缀字符串的一个实现.
+// An implementation of suffix string.
 //
 /*
  The MIT License (MIT)
@@ -91,7 +91,7 @@ public:
     inline size_t SASize()const{ return (size_t)(m_src_end-m_src_begin); }
     void clear();
 
-    inline TInt SA(TInt i)const{//return m_SA[i];//排好序的后缀字符串数组.
+    inline TInt SA(TInt i)const{//return m_SA[i];// Sorted suffix string array.
         if (isUseLargeSA())
             return m_SA_large[i];
         else
@@ -102,7 +102,7 @@ private:
     TSuffixString(const TSuffixString &); //empty
     TSuffixString &operator=(const TSuffixString &); //empty
 private:
-    const TChar*        m_src_begin;//原字符串.
+    const TChar*        m_src_begin;// Original string.
     const TChar*        m_src_end;
     std::vector<TInt32> m_SA_limit;
     std::vector<TInt>   m_SA_large;

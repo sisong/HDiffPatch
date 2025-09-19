@@ -329,7 +329,7 @@ static void __dec_free(void* _, void* address){
             unsigned int shift_bit;
             zlib_inflate_shift_value(&self->d_stream,&shift_v,&shift_bit);
             if (shift_bit>>3) _dec_onDecErr_rt();
-            libdeflate_deflate_decompress_set_state(self->d,(shift_v<<3)|shift_bit);
+            libdeflate_deflate_decompress_set_state(self->d,(uint16_t)((shift_v<<3)|shift_bit));
         }
         assert(self->data_cur==_de_ldef_kDictSize);
         self->code_cur=self->code_buf_size-self->d_stream.avail_in;

@@ -772,7 +772,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         LzmaEncProps_Normalize(&props);
         if (SZ_OK!=LzmaEnc_SetProps(s,&props)) _compress_error_return("LzmaEnc_SetProps()");
 #       if (IS_NOTICE_compress_canceled)
-        printf("  (used one lzma dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
+        printf("    (used one lzma dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
                (hpatch_StreamPos_t)props.dictSize,in_data->streamSize);
 #       endif
         
@@ -853,7 +853,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         Lzma2EncProps_Normalize(&props);
         if (SZ_OK!=Lzma2Enc_SetProps(s,&props)) _compress_error_return("Lzma2Enc_SetProps()");
 #       if (IS_NOTICE_compress_canceled)
-        printf("  (used one lzma2 dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
+        printf("    (used one lzma2 dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
                (hpatch_StreamPos_t)props.lzmaProps.dictSize,in_data->streamSize);
 #       endif
         
@@ -1212,6 +1212,10 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
                 &&((dict_bits-1)>=_ZSTD_WINDOWLOG_MIN)) {
             --dict_bits;
         }
+#       if (IS_NOTICE_compress_canceled)
+        printf("    (used one zstd dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
+               ((hpatch_StreamPos_t)1)<<dict_bits,in_data->streamSize);
+#       endif
         ret=ZSTD_CCtx_setParameter(s,ZSTD_c_windowLog,dict_bits);
         if (ZSTD_isError(ret)) _compress_error_return("ZSTD_CCtx_setParameter(,ZSTD_c_windowLog)");
         if (plugin->thread_num>1){
@@ -1505,7 +1509,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         if (props.dictSize>=in_data->streamSize)
             props.dictSize=(in_data->streamSize>1)?(tuz_size_t)(in_data->streamSize-1):1;
 #       if (IS_NOTICE_compress_canceled)
-        printf("  (used one tinyuz dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
+        printf("    (used one tinyuz dictSize: %" PRIu64 "  (input data: %" PRIu64 "))\n",
                (hpatch_StreamPos_t)props.dictSize,in_data->streamSize);
 #       endif
         return tuz_compress(out_code,in_data,&props);

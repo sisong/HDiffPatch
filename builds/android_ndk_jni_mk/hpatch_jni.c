@@ -15,7 +15,7 @@ extern "C" {
     JNIEXPORT jint
     Java_com_github_sisong_HPatch_patch(JNIEnv* jenv,jobject jobj,
                                         jstring oldFileName,jstring diffFileName,
-                                        jstring outNewFileName,jlong cacheMemory){
+                                        jstring outNewFileName,jlong cacheMemory,jint threadNum){
         const char* cOldFileName   =0;
         const char* cDiffFileName  =0;
         const char* cOutNewFileName=0;
@@ -24,7 +24,7 @@ extern "C" {
         _check_jn2cstr(oldFileName,cOldFileName);
         _check_j2cstr(diffFileName,cDiffFileName);
         _check_j2cstr(outNewFileName,cOutNewFileName);
-        result=hpatchz(cOldFileName,cDiffFileName,cOutNewFileName,(int64_t)cacheMemory);
+        result=hpatchz(cOldFileName,cDiffFileName,cOutNewFileName,(int64_t)cacheMemory,(threadNum>1)?threadNum:1);
     _clear:
         _jrelease_cstr(outNewFileName,cOutNewFileName);
         _jrelease_cstr(diffFileName,cDiffFileName);

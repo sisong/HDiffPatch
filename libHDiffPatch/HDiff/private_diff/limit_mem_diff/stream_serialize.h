@@ -258,40 +258,15 @@ private:
 };
 
 struct TVectorAsStreamOutput:public hpatch_TStreamOutput{
-    explicit TVectorAsStreamOutput(std::vector<unsigned char>& _dst):dst(_dst){
-        this->streamImport=this;
-        this->streamSize=hpatch_kNullStreamPos;
-        this->read_writed=_read;
-        this->write=_write;
-    }
-    static hpatch_BOOL _write(const hpatch_TStreamOutput* stream,
-                            const hpatch_StreamPos_t writeToPos,
-                            const unsigned char* data,const unsigned char* data_end){
-        TVectorAsStreamOutput* self=(TVectorAsStreamOutput*)stream->streamImport;
-        std::vector<unsigned char>& dst=self->dst;
-        size_t writeLen=(size_t)(data_end-data);
-        if (writeToPos>dst.size()) return hpatch_FALSE;
-        if  (dst.size()==writeToPos){
-            dst.insert(dst.end(),data,data_end);
-        }else{
-            if (writeToPos+writeLen!=(size_t)(writeToPos+writeLen)) return hpatch_FALSE;
-            if (dst.size()<writeToPos+writeLen)
-                dst.resize((size_t)(writeToPos+writeLen));
-            memcpy(&dst[(size_t)writeToPos],data,writeLen);
-        }
-        return hpatch_TRUE;
-    }
-    static hpatch_BOOL _read(const struct hpatch_TStreamOutput* stream,hpatch_StreamPos_t readFromPos,
-                             unsigned char* out_data,unsigned char* out_data_end){
-        const TVectorAsStreamOutput* self=(const TVectorAsStreamOutput*)stream->streamImport;
-        const std::vector<unsigned char>& src=self->dst;
-        size_t readLen=out_data_end-out_data;
-        if (readFromPos+readLen>src.size()) return hpatch_FALSE;
-        memcpy(out_data,src.data()+(size_t)readFromPos,readLen);
-        return hpatch_TRUE;
-    }
+    explicit TVectorAsStreamOutput(std::vector<unsigned char>& _dst);
     std::vector<unsigned char>& dst;
 };
+struct TVectorAsStreamInput:public hpatch_TStreamInput{
+    explicit TVectorAsStreamInput(const std::vector<unsigned char>& _src)
+    :src(_src){ mem_as_hStreamInput(this,src.data(),src.data()+src.size()); }
+    const std::vector<unsigned char>& src;
+};
+
 
 
 #define _test_rt(value) { if (!(value)) { LOG_ERR("check "#value" error!\n");  return hpatch_FALSE; } }

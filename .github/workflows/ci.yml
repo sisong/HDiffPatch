@@ -10,15 +10,16 @@ jobs:
       - uses: actions/checkout@v2
       - name: make_slef
         run: |
-          make CC=gcc CXX=g++ ZLIB=0 BSD=0 BZIP2=0 LDEF=0 LZMA=0 ZSTD=0 MD5=0 -j
+          make CC=gcc CXX=g++ ZLIB=0 BSD=0 BZIP2=0 LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0 -j
           make clean
       - name: make_0
         run: |
-          make CC=gcc CXX=g++ DIR_DIFF=0 MT=0 VCD=0 ZLIB=0 BSD=0 BZIP2=0 LDEF=0 LZMA=0 ZSTD=0 MD5=0 -j
+          make CC=gcc CXX=g++ DIR_DIFF=0 MT=0 VCD=0 ZLIB=0 BSD=0 BZIP2=0 LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0 -j
           make clean
       - name: make_all
         run: |
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+          git clone --depth=1 https://github.com/sisong/xxHash.git ../xxHash
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
@@ -37,11 +38,12 @@ jobs:
       - uses: actions/checkout@v2
       - name: make_slefByClang
         run: |
-          make CL=1 ZLIB=0 BSD=0 BZIP2=0 LDEF=0 LZMA=0 ZSTD=0 MD5=0 -j
+          make CL=1 ZLIB=0 BSD=0 BZIP2=0 LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0 -j
           make clean
       - name: make_allByClang
         run: |
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+          git clone --depth=1 https://github.com/sisong/xxHash.git ../xxHash
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2
@@ -58,6 +60,7 @@ jobs:
       - name: initAndClone
         run: |
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+          git clone --depth=1 https://github.com/sisong/xxHash.git ../xxHash
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           git clone --depth=1 https://github.com/sisong/zlib.git ../zlib
@@ -88,7 +91,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: nttld/setup-ndk@v1.5.0
         with:
-          ndk-version: r16b
+          ndk-version: r23c
       - name: buildByAndroidNDK
         run: |
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
@@ -103,7 +106,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: nttld/setup-ndk@v1.5.0
         with:
-          ndk-version: r16b
+          ndk-version: r23c
       - name: buildByAndroidNDK
         run: |
           curl -O http://launchpadlibrarian.net/648013231/libtinfo5_6.4-2_amd64.deb
@@ -126,6 +129,7 @@ jobs:
       - name: initAndClone
         run: |
           git clone --depth=1 https://github.com/sisong/libmd5.git ../libmd5
+          git clone --depth=1 https://github.com/sisong/xxHash.git ../xxHash
           git clone --depth=1 https://github.com/sisong/lzma.git ../lzma
           git clone --depth=1 https://github.com/sisong/zstd.git ../zstd
           git clone --depth=1 https://github.com/sisong/bzip2.git ../bzip2

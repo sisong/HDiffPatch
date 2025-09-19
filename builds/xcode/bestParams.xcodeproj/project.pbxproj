@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		0D7FEAB2283124970029772D /* hpatch_lite.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D7FEAAF283124970029772D /* hpatch_lite.c */; };
 		0DD93B1B28F16B5D0097699C /* parallel_channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0DD93B1728F16B5D0097699C /* parallel_channel.cpp */; };
-		0DD93B1C28F16B5D0097699C /* parallel_import.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0DD93B1928F16B5D0097699C /* parallel_import.cpp */; };
+		0DD93B1C28F16B5D0097699C /* parallel_import_c.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DD93B1928F16B5D0097699C /* parallel_import_c.c */; };
 		80D1B2A4199A40A700F6B3A8 /* diff.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B298199A40A700F6B3A8 /* diff.cpp */; };
 		80D1B2A5199A40A700F6B3A8 /* bytes_rle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B29B199A40A700F6B3A8 /* bytes_rle.cpp */; };
 		80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 80D1B29F199A40A700F6B3A8 /* suffix_string.cpp */; };
@@ -45,7 +45,7 @@
 		0D7FEAB1283124970029772D /* hpatch_lite_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hpatch_lite_types.h; sourceTree = "<group>"; };
 		0DD93B1728F16B5D0097699C /* parallel_channel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_channel.cpp; sourceTree = "<group>"; };
 		0DD93B1828F16B5D0097699C /* parallel_import.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_import.h; sourceTree = "<group>"; };
-		0DD93B1928F16B5D0097699C /* parallel_import.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_import.cpp; sourceTree = "<group>"; };
+		0DD93B1928F16B5D0097699C /* parallel_import_c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = parallel_import_c.c; sourceTree = "<group>"; };
 		0DD93B1A28F16B5D0097699C /* parallel_channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_channel.h; sourceTree = "<group>"; };
 		80D1B298199A40A700F6B3A8 /* diff.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = diff.cpp; sourceTree = "<group>"; };
 		80D1B299199A40A700F6B3A8 /* diff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = diff.h; sourceTree = "<group>"; };
@@ -114,7 +114,7 @@
 			children = (
 				0DD93B1728F16B5D0097699C /* parallel_channel.cpp */,
 				0DD93B1828F16B5D0097699C /* parallel_import.h */,
-				0DD93B1928F16B5D0097699C /* parallel_import.cpp */,
+				0DD93B1928F16B5D0097699C /* parallel_import_c.c */,
 				0DD93B1A28F16B5D0097699C /* parallel_channel.h */,
 			);
 			name = libParallel;
@@ -286,7 +286,7 @@
 				D66166281E189F5A005C570A /* divsufsort64.cpp in Sources */,
 				D68CD9161F469DDB00A61337 /* digest_matcher.cpp in Sources */,
 				0DD93B1B28F16B5D0097699C /* parallel_channel.cpp in Sources */,
-				0DD93B1C28F16B5D0097699C /* parallel_import.cpp in Sources */,
+				0DD93B1C28F16B5D0097699C /* parallel_import_c.c in Sources */,
 				80D1B2A5199A40A700F6B3A8 /* bytes_rle.cpp in Sources */,
 				80D1B2A6199A40A700F6B3A8 /* suffix_string.cpp in Sources */,
 				D66166271E189F5A005C570A /* divsufsort.cpp in Sources */,

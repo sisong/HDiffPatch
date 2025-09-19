@@ -73,10 +73,11 @@ static hpatch_BOOL _dirPatchBegin(IHPatchDirListener* listener,TDirPatcher* dirP
     
 
     static hpatch_BOOL _dirPatch_setIsExecuteFile(IDirPathList* executeList){
+        char _tmpPath[hpatch_kPathMaxSize];
         hpatch_BOOL result=hpatch_TRUE;
         size_t i;
         for (i=0; i<executeList->pathCount; ++i) {
-            const char* executeFileName=executeList->getPathNameByIndex(executeList->import,i);
+            const char* executeFileName=executeList->getPathNameByIndex(executeList->import,i,_tmpPath,_tmpPath+sizeof(_tmpPath));
             if (!hpatch_setIsExecuteFile(executeFileName)){
                 result=hpatch_FALSE;
                 printf("WARNING: can't set Execute tag to new file \"");
@@ -118,6 +119,7 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
     } IDirPathMove;
     
     static hpatch_BOOL _moveNewToOld(IDirPathMove* dirPathMove) {
+        char _tmpPath[hpatch_kPathMaxSize];
         hpatch_BOOL result=hpatch_TRUE;
         IDirPathList*  dstPathList=&dirPathMove->dstPathList;
         IDirPathList*  srcPathList=&dirPathMove->srcPathList;
@@ -126,7 +128,7 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
         //delete dir in dstPathList; //not check
         for (i=dstPathList->pathCount; i>0; --i) {
             size_t dstPathIndex=i-1;
-            const char* dstPath=dstPathList->getPathNameByIndex(dstPathList->import,dstPathIndex);
+            const char* dstPath=dstPathList->getPathNameByIndex(dstPathList->import,dstPathIndex,_tmpPath,_tmpPath+sizeof(_tmpPath));
             if (dstPath==0) continue;
             if (!hpatch_getIsDirName(dstPath)){
                 if (!_tryRemovePath(dstPath)){
@@ -140,7 +142,7 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
         //move all files and dirs in srcDir to dstDir;
         for (i=0; i<srcPathList->pathCount; ++i) {//make dirs to dstDir
             size_t srcPathIndex=i;
-            const char* srcPath=srcPathList->getPathNameByIndex(srcPathList->import,srcPathIndex);
+            const char* srcPath=srcPathList->getPathNameByIndex(srcPathList->import,srcPathIndex,_tmpPath,_tmpPath+sizeof(_tmpPath));
             if (srcPath==0) { result=hpatch_FALSE; continue; }
             if (hpatch_getIsDirName(srcPath)){
                 const char* dstDir=dirPathMove->getDstPathBySrcPath(dirPathMove->importMove,srcPath);
@@ -150,7 +152,7 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
         }
         for (i=srcPathList->pathCount; i>0; --i) {//move files to dstDir and remove dirs in srcDir
             size_t srcPathIndex=i-1;
-            const char* srcPath=srcPathList->getPathNameByIndex(srcPathList->import,srcPathIndex);
+            const char* srcPath=srcPathList->getPathNameByIndex(srcPathList->import,srcPathIndex,_tmpPath,_tmpPath+sizeof(_tmpPath));
             if (srcPath==0) { result=hpatch_FALSE; continue; }
             if (hpatch_getIsDirName(srcPath)){
                 hpatch_removeDir(srcPath);
@@ -171,11 +173,12 @@ static IHPatchDirListener defaultPatchDirlistener={{0,_makeNewDir,_copySameFile,
     }
     
     static hpatch_BOOL deleteAllInPathList(IDirPathList* pathList) {
+        char _tmpPath[hpatch_kPathMaxSize];
         hpatch_BOOL result=hpatch_TRUE;
         size_t i;
         for (i=pathList->pathCount; i>0; --i) {
             size_t pathIndex=i-1;
-            const char* path=pathList->getPathNameByIndex(pathList->import,pathIndex);
+            const char* path=pathList->getPathNameByIndex(pathList->import,pathIndex,_tmpPath,_tmpPath+sizeof(_tmpPath));
             if (!_tryRemovePath(path))
                 result=hpatch_FALSE;
         }
@@ -204,6 +207,8 @@ static hpatch_BOOL _tempDirPatchBegin(IHPatchDirListener* self,TDirPatcher* dirP
 }
     
 static hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPatchSuccess){
+    char _tmpPath0[hpatch_kPathMaxSize];
+    char _tmpPath1[hpatch_kPathMaxSize];
     hpatch_BOOL  result=hpatch_TRUE;
     TDirPatcher* dirPatcher=(TDirPatcher*)self->listenerImport;
     size_t       i;
@@ -217,9 +222,9 @@ static hpatch_BOOL _tempDirPatchFinish(IHPatchDirListener* self,hpatch_BOOL isPa
         for (i=dirPatcher->dirDiffHead.sameFilePairCount; i>0; --i) {
             size_t sameIndex=i-1;
             const char* oldPath;
-            const char* newPath=TDirPatcher_getNewPathBySameIndex(dirPatcher,sameIndex);
+            const char* newPath=TDirPatcher_getNewPathBySameIndex(dirPatcher,sameIndex,_tmpPath0,_tmpPath0+sizeof(_tmpPath0));
             if (newPath==0) { result=hpatch_FALSE; continue; }
-            oldPath=TDirPatcher_getOldPathBySameIndex(dirPatcher,sameIndex);
+            oldPath=TDirPatcher_getOldPathBySameIndex(dirPatcher,sameIndex,_tmpPath1,_tmpPath1+sizeof(_tmpPath1));
             if (oldPath==0) { result=hpatch_FALSE; continue; }
             if (TDirPatcher_oldSameRefCount(dirPatcher,sameIndex)>1){//copy old to new
                 if (!TDirPatcher_copyFile(oldPath,newPath,0,&self->fileError)){

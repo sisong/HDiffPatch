@@ -180,10 +180,13 @@ struct CNewDirOut{
         assert(_newDir._newRootDir==0);
         _dirInfoAlignSize=(size_t)toAlignRangeSize(newSyncInfo->dirInfoSavedSize,kAlignSize);
         assert(_dirInfoAlignSize<=newSyncInfo->newDataSize);
-        _newDir._newRootDir=_tempbuf;
-        _newDir._newRootDir_bufEnd=_newDir._newRootDir+sizeof(_tempbuf);
-        _newDir._newRootDir_end=setDirPath(_newDir._newRootDir,_newDir._newRootDir_bufEnd,outNewDir);
-        if (_newDir._newRootDir_end==0) return false;
+        const size_t _outNewDir_len=strlen(outNewDir);
+        _tempStr.resize(_outNewDir_len+2);
+        char* pathEnd=setDirPath(&_tempStr[0],(&_tempStr[0])+_outNewDir_len+2,outNewDir);
+        assert(pathEnd!=0);
+        _tempStr.resize(pathEnd-_tempStr.data());
+        _newDir._newRootDir=_tempStr.c_str();
+        _newDir._newRootDir_len=_tempStr.size();
 
         _dirInfoBuf=(hpatch_byte*)malloc(_dirInfoAlignSize);
         if (_dirInfoBuf==0) return false;
@@ -210,7 +213,7 @@ struct CNewDirOut{
     }
     bool closeFileHandles(){ return TNewDirOutput_closeNewDirHandles(&_newDir)!=0; }
     bool closeDir(){ return TNewDirOutput_close(&_newDir)!=0; }
-    char   _tempbuf[hpatch_kPathMaxSize];
+    std::string   _tempStr;
     _TNewDirOut_openInfo  _openInfo;
     TNewDirOutput         _newDir;
     hpatch_TStreamOutput  _stream;

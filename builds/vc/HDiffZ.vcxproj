@@ -102,21 +102,21 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;..\..\..\xxHash;$(IncludePath)</IncludePath>
     <ReferencePath>$(ReferencePath)</ReferencePath>
     <OutDir>$(Configuration)\$(Platform)\</OutDir>
     <IntDir>$(Configuration)\$(Platform)\obj\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;..\..\..\xxHash;$(IncludePath)</IncludePath>
     <ReferencePath>$(ReferencePath)</ReferencePath>
     <OutDir>$(Configuration)\$(Platform)\</OutDir>
     <IntDir>$(Configuration)\$(Platform)\obj\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;..\..\..\xxHash;$(IncludePath)</IncludePath>
     <ReferencePath>$(ReferencePath)</ReferencePath>
     <OutDir>$(Configuration)\$(Platform)\</OutDir>
     <IntDir>$(Configuration)\$(Platform)\obj\</IntDir>
@@ -124,7 +124,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;..\..\..\xxHash;$(IncludePath)</IncludePath>
     <ReferencePath>$(ReferencePath)</ReferencePath>
     <OutDir>$(Configuration)\$(Platform)\</OutDir>
     <IntDir>$(Configuration)\$(Platform)\obj\</IntDir>
@@ -132,7 +132,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <LinkIncremental>false</LinkIncremental>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;..\..\..\xxHash;$(IncludePath)</IncludePath>
     <ReferencePath>$(ReferencePath)</ReferencePath>
     <OutDir>$(Configuration)\$(Platform)\</OutDir>
     <IntDir>$(Configuration)\$(Platform)\obj\</IntDir>
@@ -140,7 +140,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;$(IncludePath)</IncludePath>
+    <IncludePath>..\..\..\zlib;..\..\..\bzip2;..\..\..\zstd\lib;..\..\..\zstd\lib\common;..\..\..\zstd\lib\compress;..\..\..\zstd\lib\decompress;..\..\..\lz4\lib;..\..\..\lzma\C;..\..\..\lzham_codec\include;..\..\..\brotli\c\include;..\..\..\libmd5;..\..\..\libdeflate;..\..\..\xxHash;$(IncludePath)</IncludePath>
     <ReferencePath>$(ReferencePath)</ReferencePath>
     <OutDir>$(Configuration)\$(Platform)\</OutDir>
     <IntDir>$(Configuration)\$(Platform)\obj\</IntDir>
@@ -149,7 +149,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/obj/_/_/_/%(RelativeDir)/</ObjectFileName>
@@ -169,7 +169,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/obj/_/_/_/%(RelativeDir)/</ObjectFileName>
@@ -189,7 +189,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <AdditionalOptions>/wd4819 %(AdditionalOptions)</AdditionalOptions>
       <ObjectFileName>$(IntDir)/obj/_/_/_/%(RelativeDir)/</ObjectFileName>
@@ -208,7 +208,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -239,7 +239,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -270,7 +270,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_ChecksumPlugin_md5;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>Default</CompileAs>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -327,9 +327,14 @@
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\limit_mem_diff\stream_serialize.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\suffix_string.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HPatchLite\hpatch_lite.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\hpatch_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_hcache_old_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_hinput_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_houtput_mt.c" />
+    <ClCompile Include="..\..\libHDiffPatch\HPatch\hpatch_mt\_hpatch_mt.c" />
     <ClCompile Include="..\..\libHDiffPatch\HPatch\patch.c" />
     <ClCompile Include="..\..\libParallel\parallel_channel.cpp" />
-    <ClCompile Include="..\..\libParallel\parallel_import.cpp" />
+    <ClCompile Include="..\..\libParallel\parallel_import_c.c" />
     <ClCompile Include="..\..\vcdiff_wrapper\vcdiff_wrapper.cpp" />
     <ClCompile Include="..\..\vcdiff_wrapper\vcpatch_wrapper.c" />
   </ItemGroup>

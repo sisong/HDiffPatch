@@ -37,14 +37,21 @@ extern "C" {
 #endif
 
 #define HDIFFPATCH_VERSION_MAJOR    4
-#define HDIFFPATCH_VERSION_MINOR    11
-#define HDIFFPATCH_VERSION_RELEASE  1
+#define HDIFFPATCH_VERSION_MINOR    12
+#define HDIFFPATCH_VERSION_RELEASE  0
 
 #define _HDIFFPATCH_VERSION          HDIFFPATCH_VERSION_MAJOR.HDIFFPATCH_VERSION_MINOR.HDIFFPATCH_VERSION_RELEASE
 #define _HDIFFPATCH_QUOTE(str) #str
 #define _HDIFFPATCH_EXPAND_AND_QUOTE(str) _HDIFFPATCH_QUOTE(str)
 #define HDIFFPATCH_VERSION_STRING   _HDIFFPATCH_EXPAND_AND_QUOTE(_HDIFFPATCH_VERSION)
 #define HDIFFPATCH_VERSION_NUMBER   ((HDIFFPATCH_VERSION_MAJOR*1000+HDIFFPATCH_VERSION_MINOR)*1000+HDIFFPATCH_VERSION_RELEASE)
+
+#ifndef _IS_USED_MULTITHREAD
+#   define _IS_USED_MULTITHREAD 1
+#endif
+#ifndef _HPATCH_IS_USED_MULTITHREAD
+#   define _HPATCH_IS_USED_MULTITHREAD   _IS_USED_MULTITHREAD
+#endif
 
 #ifndef hpatch_int
     typedef int                 hpatch_int;
@@ -79,7 +86,7 @@ extern "C" {
 #define hpatch_kNullStreamPos   (~(hpatch_StreamPos_t)0)
 
 #ifndef hpatch_BOOL
-    typedef int                 hpatch_BOOL;
+    typedef unsigned int        hpatch_BOOL;
 #endif
 #define     hpatch_FALSE    0
 #define     hpatch_TRUE     ((hpatch_BOOL)(!hpatch_FALSE))
@@ -89,7 +96,7 @@ extern "C" {
 #endif
 
 #if (_HPATCH_IS_USED_errno)
-typedef    int          hpatch_FileError_t;// 0: no error; other: saved errno value;
+typedef    unsigned int hpatch_FileError_t;// 0: no error; other: saved errno value;
 #else
 typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
 #endif
@@ -328,9 +335,9 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
 
     typedef struct sspatch_coversListener_t{
         void*         import;
-        void        (*onStepCoversReset)(struct sspatch_coversListener_t* listener,hpatch_StreamPos_t leaveCoverCount);//can NULL, data(in covers_cache) will invalid
+        void        (*onStepCoversReset)(struct sspatch_coversListener_t* listener,hpatch_StreamPos_t leaveCoverCount);//can NULL, data(in covers_cache) will invalid; if leaveCoverCount==0, step finish 
         void        (*onStepCovers)(struct sspatch_coversListener_t* listener,
-                                    const unsigned char* covers_cache,const unsigned char* covers_cacheEnd);
+                                    const unsigned char* covers_cache,const unsigned char* covers_cacheEnd);//if covers_cache==covers_cacheEnd==0, step finish
     } sspatch_coversListener_t;
     
     typedef struct{

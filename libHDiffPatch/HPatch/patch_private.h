@@ -29,7 +29,7 @@
 #ifndef HPatch_patch_private_h
 #define HPatch_patch_private_h
 
-#include "patch_types.h"
+#include "patch.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -210,6 +210,34 @@ hpatch_inline static
 void TDiffToSingleStream_resetStream(TDiffToSingleStream* self,const hpatch_TStreamInput* diffStream){
     self->diffStream=diffStream; }
 
+static hpatch_force_inline 
+hpatch_StreamPos_t _patch_cache_all_old_needSize(hpatch_StreamPos_t oldDataSize,hpatch_size_t kMinTempCacheSize){
+                                                    return oldDataSize+kMinTempCacheSize+sizeof(hpatch_TStreamInput)+sizeof(hpatch_StreamPos_t); }
+#if (_IS_NEED_CACHE_OLD_ALL)
+static hpatch_force_inline 
+hpatch_BOOL _patch_is_can_cache_all_old(hpatch_StreamPos_t oldDataSize,hpatch_size_t kMinTempCacheSize,hpatch_size_t tempCacheSize){
+                                            return tempCacheSize>=_patch_cache_all_old_needSize(oldDataSize,kMinTempCacheSize); }
+hpatch_BOOL _patch_cache_all_old(const hpatch_TStreamInput** poldData,size_t kMinTempCacheSize,
+                                 hpatch_byte** ptemp_cache,hpatch_byte** ptemp_cache_end,hpatch_BOOL* out_isReadError);// try cache all oldData
+#else
+static hpatch_force_inline 
+hpatch_BOOL _patch_is_can_cache_all_old(hpatch_StreamPos_t oldDataSize,hpatch_size_t kMinTempCacheSize,hpatch_size_t tempCacheSize){
+                                            return hpatch_FALSE; }
+static hpatch_force_inline 
+hpatch_BOOL _patch_cache_all_old(const hpatch_TStreamInput** poldData,size_t kMinTempCacheSize,
+                                 hpatch_byte** ptemp_cache,hpatch_byte** ptemp_cache_end,hpatch_BOOL* out_isReadError){
+                                            *out_isReadError=hpatch_FALSE; return hpatch_FALSE; }
+#endif
+
+#if (_IS_NEED_CACHE_OLD_BY_COVERS)
+
+hpatch_size_t _patch_step_cache_old_canUsedSize(hpatch_size_t stepCoversMemSize,hpatch_size_t kMinTempCacheSize,hpatch_size_t tempCacheSize);
+
+// try cache part of oldData, used by patch_single_stream_diff()
+hpatch_BOOL _patch_step_cache_old(const hpatch_TStreamInput** poldData,hpatch_StreamPos_t newDataSize,size_t stepCoversMemSize,
+                                  size_t kMinTempCacheSize,hpatch_byte** ptemp_cache,hpatch_byte** ptemp_cache_end);
+hpatch_BOOL _patch_step_cache_old_onStepCovers(const hpatch_TStreamInput* self,const unsigned char* covers_cache,const unsigned char* covers_cacheEnd);
+#endif // _IS_NEED_CACHE_OLD_BY_COVERS
 
 #ifdef __cplusplus
 }

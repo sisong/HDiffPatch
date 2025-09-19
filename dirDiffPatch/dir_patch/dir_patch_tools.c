@@ -87,24 +87,22 @@ clear:
     return result;
 }
 
-char* setPath(char* out_path,char* out_pathBufEnd,const char* fileName){
+char* _setPath(char* out_path,char* out_pathBufEnd,const char* fileName,size_t fileNameLen){
     char* result=0; //false
-    size_t strLen=strlen(fileName);
-    checki(strLen+1<=(size_t)(out_pathBufEnd-out_path),"setPath() fileName buf size");
-    memcpy(out_path,fileName,strLen+1);//with '\0'
-    result=out_path+strLen;
+    checki(fileNameLen+1<=(size_t)(out_pathBufEnd-out_path),"_setPath() out_path buf size");
+    memcpy(out_path,fileName,fileNameLen+1);//with '\0'
+    result=out_path+fileNameLen;
 clear:
     return result;
 }
 
-char* setDirPath(char* out_path,char* out_pathBufEnd,const char* dirName){
+char* _setDirPath(char* out_path,char* out_pathBufEnd,const char* dirName,size_t dirNameLen){
     char* result=0; //false
-    size_t strLen=strlen(dirName);
-    hpatch_BOOL isNeedDirSeparator=(strLen>0)&&(dirName[strLen-1]!=kPatch_dirSeparator);
-    checki((strLen+(isNeedDirSeparator?1:0)+1)<=(size_t)(out_pathBufEnd-out_path),
-           "setDirPath() dirName buf size");
-    memcpy(out_path,dirName,strLen);
-    result=out_path+strLen;
+    hpatch_BOOL isNeedDirSeparator=(dirNameLen>0)&&(dirName[dirNameLen-1]!=kPatch_dirSeparator);
+    checki((dirNameLen+(isNeedDirSeparator?1:0)+1)<=(size_t)(out_pathBufEnd-out_path),
+           "_setDirPath() out_path buf size");
+    memcpy(out_path,dirName,dirNameLen);
+    result=out_path+dirNameLen;
     if (isNeedDirSeparator) { *result=kPatch_dirSeparator; ++result; }
     *result='\0'; //C string end
 clear:

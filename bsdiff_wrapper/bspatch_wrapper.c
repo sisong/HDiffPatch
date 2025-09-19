@@ -38,7 +38,7 @@
 #endif
 
 #if (_IS_RUN_MEM_SAFE_CHECK)
-//__RUN_MEM_SAFE_CHECK用来启动内存访问越界检查,用以防御可能被意外或故意损坏的数据.
+// __RUN_MEM_SAFE_CHECK : enables out-of-bounds memory access checking to protect against data that may be accidentally or intentionally corrupted.
 #   define __RUN_MEM_SAFE_CHECK
 #endif
 
@@ -202,8 +202,8 @@ hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
     hpatch_size_t           i;
     hpatch_BOOL  result=hpatch_TRUE;
     hpatch_StreamPos_t  diffPos0;
-    hpatch_TStreamInput  _oldDataCache;
     hpatch_size_t cacheSize;
+    hpatch_BOOL    isReadError=hpatch_FALSE;
     assert(decompressPlugin!=0);
     assert(out_newData!=0);
     assert(out_newData->write!=0);
@@ -218,16 +218,9 @@ hpatch_BOOL bspatch_with_cache(const hpatch_TStreamOutput* out_newData,
     for (i=0;i<sizeof(decompressers)/sizeof(_TDecompressInputStream);++i)
         decompressers[i].decompressHandle=0;
 
+    _patch_cache_all_old(&oldData,_kCacheBsDecCount*hpatch_kStreamCacheSize,&temp_cache,&temp_cache_end,&isReadError);//can cache all old?
+    if (isReadError) return _hpatch_FALSE;
     cacheSize=(temp_cache_end-temp_cache);
-    if (cacheSize>=(oldData->streamSize+_kCacheBsDecCount*hpatch_kStreamCacheSize)){//can cache old?
-        cacheSize=(hpatch_size_t)oldData->streamSize;
-        if (!oldData->read(oldData,0,temp_cache,temp_cache+cacheSize))
-            return _hpatch_FALSE;
-        mem_as_hStreamInput(&_oldDataCache,temp_cache,temp_cache+cacheSize);
-        oldData=&_oldDataCache;
-        temp_cache+=cacheSize;
-        cacheSize=(temp_cache_end-temp_cache);
-    }
     cacheSize=cacheSize/(diffInfo.isEndsleyBsdiff?_kCacheBsDecCount-2:_kCacheBsDecCount);
     if (cacheSize<8) return _hpatch_FALSE;
 

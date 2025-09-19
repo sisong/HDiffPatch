@@ -356,6 +356,17 @@ hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName){
 #endif
 }
 
+hpatch_BOOL hpatch_getIsAtty(hpatch_FileHandle fileHandle){
+#ifdef _WIN32
+    int fno=_fileno(fileHandle);
+    if (fno==-1) return hpatch_FALSE;
+    return (_isatty(fno)!=0);
+#else
+    int fno=fileno(fileHandle);
+    if (fno==-1) return hpatch_FALSE;
+    return (isatty(fno)!=0);
+#endif
+}
 
 #if defined(ANDROID) && (__ANDROID_API__ < 24)
 #include <sys/types.h>
@@ -489,7 +500,8 @@ hpatch_BOOL _import_fileTruncate(hpatch_FileHandle file,hpatch_StreamPos_t new_f
 #endif
 
 #if (_IS_USED_WIN32_UTF8_WAPI)
-static hpatch_FileHandle _import_fileOpen(const char* fileName_utf8,_FileModeType mode_w){
+hpatch_force_inline static
+hpatch_FileHandle __import_fileOpen(const char* fileName_utf8,_FileModeType mode_w){
     wchar_t fileName_w[hpatch_kPathMaxSize];
     int wsize=_utf8FileName_to_w(fileName_utf8,fileName_w,hpatch_kPathMaxSize);
     if (wsize>0)
@@ -498,10 +510,17 @@ static hpatch_FileHandle _import_fileOpen(const char* fileName_utf8,_FileModeTyp
         return 0;
 }
 #else
-hpatch_inline static
-hpatch_FileHandle _import_fileOpen(const char* fileName_utf8,_FileModeType mode){
+hpatch_force_inline static
+hpatch_FileHandle __import_fileOpen(const char* fileName_utf8,_FileModeType mode){
     return fopen(fileName_utf8,mode); }
 #endif
+
+hpatch_force_inline static
+hpatch_FileHandle _import_fileOpen(const char* fileName_utf8,_FileModeType mode){
+    hpatch_FileHandle result=__import_fileOpen(fileName_utf8,mode); 
+    //used default vbuf?  if (result) setvbuf(result,0,_IONBF,0);
+    return result;
+}
 
 static hpatch_FileHandle _import_fileOpenWithSize(const char* fileName_utf8,_FileModeType mode,hpatch_StreamPos_t* out_fileSize){
     hpatch_FileHandle file=0;

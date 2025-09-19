@@ -42,7 +42,7 @@ extern "C" {
 
 
 #if (_IS_NEED_DIR_DIFF_PATCH)
-#   define kMaxOpenFileNumber_limit_min          4
+#   define kMaxOpenFileNumber_limit_min          5
 #   define kMaxOpenFileNumber_default_min       16 //must >= limit_min
 #   define kMaxOpenFileNumber_default_diff      64
 #   define kMaxOpenFileNumber_default_patch     24

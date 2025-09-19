@@ -2,6 +2,20 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
+## [v4.12.0](https://github.com/sisong/HDiffPatch/tree/v4.12.0) - 2025-09-18
+### Added
+* optimize `$hdiffz -m` required memory size when newData similar to oldData;
+* patch_single_stream support pre-read some old data for optimize disk read, when patch with large cache memory;
+* now, opened xxh3 & xxh128 ChecksumPlugin when dir-diff, checksum fast; (NOTE: need v4.12 patcher);
+* cmdline hpatchz support show progress;
+* cmdline hpatchz support multi-thread for single compressed diff (create by $hdiffz -SD);   
+  multi-thread used for I/O & decompress, maybe help when patch;
+### Changed
+* recode C++ multi-thread code to C code base, so remove _IS_USED_CPP11THREAD define.
+* update min NDK version from r16b to r23c; ( android 14 API to 16; remove .so for armeabi )
+* Android .so makefile build support directory patch (default closed, need set DIR=1);
+* when hdiffz test diffFile, all check-patcher run with stream mode(slower than run in memory);
+
 ## [v4.11.1](https://github.com/sisong/HDiffPatch/tree/v4.11.1) - 2025-08-18
 ### Fixed
 * fix a bug when run dir_diff by multi-thread parallel on linux;
@@ -64,6 +78,8 @@ if diffFile created by empty oldPath, then extract with default option `$selfExt
 ### Added
 * add libhsync for diff&patch by sync; see demo [hsynz] (like [zsync])
 * add function create_sync_data(),create_dir_sync_data(),sync_patch(),sync_patch_...(),sync_local_diff(),sync_local_diff_...(),sync_local_patch(),sync_local_patch_...()
+* add xxh3,xxh128,sha256,sha512 ChecksumPlugin; default closed;
+
 
 ## [v4.5.2](https://github.com/sisong/HDiffPatch/tree/v4.5.2) - 2022-12-25
 ### Fixed
@@ -104,6 +120,10 @@ if diffFile created by empty oldPath, then extract with default option `$selfExt
 * cmdline add option "-block", optimize `$hdiffz -m` speed;
 * add function create_bsdiff() & bspatch_with_cache().
 * add function create_single_compressed_diff_block() & create_compressed_diff_block() & create_bsdiff_block().
+
+## [v4.0.4](https://github.com/sisong/HDiffPatch/tree/v4.0.4) - 2021-06-28
+### Added
+* add blake3 ChecksumPlugin; default closed;
 
 ## [v4.0.0](https://github.com/sisong/HDiffPatch/tree/v4.0.0) - 2021-06-14
 ### Added
@@ -154,7 +174,7 @@ if diffFile created by empty oldPath, then extract with default option `$selfExt
 ## [v3.0.0](https://github.com/sisong/HDiffPatch/tree/v3.0.0) - 2019-03-01
 ### Added
 * hdiffz,hpatchz command line support diff&patch between directories(folder);
-* support checksum plugin: crc32ChecksumPlugin,adler32ChecksumPlugin,adler64ChecksumPlugin,fadler32ChecksumPlugin,fadler64ChecksumPlugin,fadler128ChecksumPlugin,md5ChecksumPlugin ;
+* add crc32,adler32,adler64,fadler32,fadler64,fadler128,md5 ChecksumPlugin;
 * lzmaCompressPlugin support parallel compress;
 * add parallel compress plugin: pzlibCompressPlugin,pbz2CompressPlugin,lzma2CompressPlugin
 * command line support SFX(self extract archive);

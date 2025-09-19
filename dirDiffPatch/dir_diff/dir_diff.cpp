@@ -289,6 +289,8 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
               "for update checksum, outDiffStream->read_writed can't null error!");
     }
     kMaxOpenFileNumber-=1; // for outDiffStream
+    const size_t kMaxOpenFileNumber_old=kMaxOpenFileNumber*5/8;
+    const size_t kMaxOpenFileNumber_new=kMaxOpenFileNumber-kMaxOpenFileNumber_old;
     const std::vector<std::string>& oldList=oldManifest.pathList;
     const std::vector<std::string>& newList=newManifest.pathList;
     const bool oldIsDir=isDirName(oldManifest.rootPath);
@@ -327,24 +329,26 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         check(!isEq,"oldPath & newPath's all datas can't be equal");
     }
     std::vector<hpatch_StreamPos_t> newRefSizeList;
-    CFileResHandleLimit resLimit(kMaxOpenFileNumber,oldRefIList.size()+newRefIList.size());
+    CFileResHandleLimit resLimit_old(kMaxOpenFileNumber_old,oldRefIList.size());
+    CFileResHandleLimit resLimit_new(kMaxOpenFileNumber_new,newRefIList.size());
     {
         for (size_t i=0; i<oldRefIList.size(); ++i) {
             size_t fi=oldRefIList[i];
-            resLimit.addRes(oldList[fi],oldSizeList[fi]);
+            resLimit_old.addRes(oldList[fi],oldSizeList[fi]);
         }
         newRefSizeList.resize(newRefIList.size());
         for (size_t i=0; i<newRefIList.size(); ++i) {
             size_t fi=newRefIList[i];
             newRefSizeList[i]=newSizeList[fi];
-            resLimit.addRes(newList[fi],newSizeList[fi]);
+            resLimit_new.addRes(newList[fi],newSizeList[fi]);
         }
     }
-    resLimit.open();
+    resLimit_old.open();
+    resLimit_new.open();
     CRefStream oldRefStream;
     CRefStream newRefStream;
-    oldRefStream.open(resLimit.limit.streamList,oldRefIList.size());
-    newRefStream.open(resLimit.limit.streamList+oldRefIList.size(),newRefIList.size());
+    oldRefStream.open(resLimit_old.limit.streamList,oldRefIList.size());
+    newRefStream.open(resLimit_new.limit.streamList,newRefIList.size());
     
     //checksum
     const size_t checksumByteSize=(checksumPlugin==0)?0:checksumPlugin->checksumByteSize();
@@ -479,52 +483,26 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     //diff data
     listener->runHDiffBegin();
     hpatch_StreamPos_t diffDataSize=0;
-    if (hdiffSets.isDiffInMem){
-        hpatch_StreamPos_t memSize=newRefStream.stream->streamSize+oldRefStream.stream->streamSize;
-        check(memSize==(size_t)memSize,"alloc size overflow error!");
-        TAutoMem  mem((size_t)memSize);
-        TByte* newData=mem.data();
-        TByte* oldData=mem.data()+newRefStream.stream->streamSize;
-        check(newRefStream.stream->read(newRefStream.stream,0,newData,
-                                        newData+newRefStream.stream->streamSize),"read new file error!");
-        check(oldRefStream.stream->read(oldRefStream.stream,0,oldData,
-                                        oldData+oldRefStream.stream->streamSize),"read old file error!");
-        resLimit.close(); //close files
-        if (hdiffSets.isSingleCompressedDiff){
-            TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
-            create_single_compressed_diff_block(newData,newData+newRefStream.stream->streamSize,
-                                                oldData,oldData+oldRefStream.stream->streamSize,
-                                                &ofStream,compressPlugin,(int)hdiffSets.matchScore,
-                                                hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch,
-                                                hdiffSets.matchBlockSize,hdiffSets.threadNum);
-            diffDataSize=ofStream.outSize;
-            if (checksumByteSize>0){
-                assert(outDiffStream->read_writed!=0);
-                diffChecksum.append((const hpatch_TStreamInput*)outDiffStream,
-                                    writeToPos,writeToPos+diffDataSize);
-            }
-        }else{
-            std::vector<TByte> out_diff;
-            create_compressed_diff_block(newData,newData+newRefStream.stream->streamSize,
-                                         oldData,oldData+oldRefStream.stream->streamSize,
-                                         out_diff,compressPlugin,(int)hdiffSets.matchScore,
-                                         hdiffSets.isUseBigCacheMatch,
-                                         hdiffSets.matchBlockSize,hdiffSets.threadNum);
-            diffDataSize=out_diff.size();
-            _pushv(out_diff);
-        }
-    }else{
-        const bool  newAndOldDataIsMTSameRes=true; // NOTE: now resLimit not multi-thread safe 
-        const hdiff_TMTSets_s mtsets={hdiffSets.threadNum,hdiffSets.threadNumSearch_s,false,false,
-                                      newAndOldDataIsMTSameRes};
+    {
+        const hdiff_TMTSets_s mtsets={hdiffSets.threadNum,hdiffSets.threadNumSearch_s,false,false};
         TOffsetStreamOutput ofStream(outDiffStream,writeToPos);
         if (hdiffSets.isSingleCompressedDiff){
-            create_single_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                                 compressPlugin,hdiffSets.matchBlockSize,
-                                                 hdiffSets.patchStepMemSize,&mtsets);
+            if (hdiffSets.isDiffInMem)
+                create_single_compressed_diff_block(newRefStream.stream,oldRefStream.stream,&ofStream,compressPlugin,
+                                                    hdiffSets.matchScore,hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch,
+                                                    hdiffSets.matchBlockSize,hdiffSets.threadNum,hdiffSets.threadNumSearch_s);
+            else
+                create_single_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
+                                                     compressPlugin,hdiffSets.matchBlockSize,
+                                                     hdiffSets.patchStepMemSize,&mtsets);
         }else{
-            create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                          compressPlugin,hdiffSets.matchBlockSize,&mtsets);
+            if (hdiffSets.isDiffInMem)
+                create_compressed_diff_block(newRefStream.stream,oldRefStream.stream,&ofStream,compressPlugin,
+                                             hdiffSets.matchScore,hdiffSets.isUseBigCacheMatch,
+                                             hdiffSets.matchBlockSize,hdiffSets.threadNum,hdiffSets.threadNumSearch_s);
+            else
+                create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
+                                              compressPlugin,hdiffSets.matchBlockSize,&mtsets);
         }
         diffDataSize=ofStream.outSize;
         if (checksumByteSize>0){
@@ -676,7 +654,7 @@ struct CDirPatcher:public TDirPatcher{
 
 bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const TManifest& newManifest,
                    const hpatch_TStreamInput* testDiffData,hpatch_TDecompress* decompressPlugin,
-                   hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber){
+                   hpatch_TChecksum* checksumPlugin,size_t kMaxOpenFileNumber,size_t threadNum){
     bool     result=true;
     assert(kMaxOpenFileNumber>=kMaxOpenFileNumber_limit_min);
     const std::vector<std::string>& oldList=oldManifest.pathList;
@@ -707,19 +685,19 @@ bool check_dirdiff(IDirDiffListener* listener,const TManifest& oldManifest,const
     }
 
     //mem
-    size_t      temp_cache_size=hdiff_kFileIOBufBestSize*4;
+    size_t      temp_cache_size=hdiff_kFileIOBufBestSize*(1+16);
     if (dirDiffInfo->isSingleCompressedDiff)
         temp_cache_size+=(size_t)dirDiffInfo->sdiffInfo.stepMemSize;
     TAutoMem    p_temp_mem(temp_cache_size);
     TByte*      temp_cache=p_temp_mem.data();
 
     if (checksumPlugin)
-        _test(TDirPatcher_checksum(&dirPatcher,&checksumSet));
+        _test(TDirPatcher_checksum(&dirPatcher,&checksumSet,temp_cache,temp_cache+temp_cache_size));
     _test(TDirPatcher_loadDirData(&dirPatcher,decompressPlugin,
                                   oldManifest.rootPath.c_str(),newManifest.rootPath.c_str()));
     _test(TDirPatcher_openOldRefAsStream(&dirPatcher,kMaxOpenFileNumber,&oldStream));
     _test(TDirPatcher_openNewDirAsStream(&dirPatcher,&patchListener,&newStream));
-    _test(TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size));
+    _test(TDirPatcher_patch(&dirPatcher,newStream,oldStream,temp_cache,temp_cache+temp_cache_size,threadNum));
     _test(TDirPatcher_closeNewDirStream(&dirPatcher));
     _test(TDirPatcher_closeOldRefStream(&dirPatcher));
     _test(patchListener.isNewOk());

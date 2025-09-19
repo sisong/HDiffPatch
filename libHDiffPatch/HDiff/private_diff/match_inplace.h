@@ -27,22 +27,14 @@
  */
 #ifndef hdiff_match_inplace_h
 #define hdiff_match_inplace_h
-#include "diff_for_hpatch_lite.h"
+#include "../diff_for_hpatch_lite.h" //diffi API
 
     struct TMatchInplace:public ILiteDiffListener {
         const size_t oldSize;
         const size_t newSize;
         const TInplaceSets inplaceSets;
         explicit TMatchInplace(size_t _oldSize,size_t _newSize,const TInplaceSets& _inplaceSets);
-
-        struct TCover:public hpatch_TCover{
-            inline explicit TCover(){}
-            inline explicit TCover(const hpatch_TCover& c){ oldPos=c.oldPos; newPos=c.newPos; length=c.length; next=0;  }
-            inline explicit TCover(hpatch_StreamPos_t _oldPos,hpatch_StreamPos_t _newPos,hpatch_StreamPos_t _length){ oldPos=_oldPos; newPos=_newPos; length=_length; next=0;  }
-            TCover*     next;
-        };
         std::vector<size_t> _researchIndexList;
-        std::vector<TCover> researchedCovers;
         size_t              researchCount;
         hpatch_StreamPos_t  researchLength;
         hpatch_StreamPos_t  inExtraSafeLength;

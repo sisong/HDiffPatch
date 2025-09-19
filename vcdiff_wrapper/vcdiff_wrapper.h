@@ -90,6 +90,6 @@ void create_vcdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStream
                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
                          bool isUseBigCacheMatch=false,
                          size_t matchBlockSize=kDefaultFastMatchBlockSize,
-                         size_t threadNum=1);
+                         size_t threadNumForMem=1,size_t threadNumForStream=1);
 
 #endif

@@ -27,61 +27,41 @@
 
 #ifndef parallel_import_h
 #define parallel_import_h
-
-//select define one for support parallel
-//#define _IS_USED_PTHREAD       1
-//#define _IS_USED_WIN32THREAD   1
-
-#ifndef _IS_USED_MULTITHREAD
-#   define _IS_USED_MULTITHREAD 1
-#endif
-
-#if ((_IS_USED_PTHREAD>0) || (_IS_USED_WIN32THREAD>0))
-#   //ok have one
-#   define _IS_USED_MULTITHREAD 1
-#else
-#   if (_IS_USED_MULTITHREAD>0)
-#       if ( (!(defined _IS_USED_WIN32THREAD)) && (defined _WIN32) )
-#           define  _IS_USED_WIN32THREAD        1
-#       else
-#           if (!(defined _IS_USED_PTHREAD))
-#               define _IS_USED_PTHREAD     1
-#           endif
-#       endif
-#   endif
-#endif
-
+#include "parallel_import_c.h"
+#include "../libHDiffPatch/HPatch/patch_types.h" //for *inline
 #if (_IS_USED_MULTITHREAD)
+#include <stdexcept>
 
-    //并行临界区锁;
-    typedef void*   HLocker;
-    HLocker     locker_new(void);
-    void        locker_delete(HLocker locker);
-    void        locker_enter(HLocker locker);
-    void        locker_leave(HLocker locker);
-    
-    //同步变量;
-    typedef void*   HCondvar;
-#if (_IS_USED_CPP11THREAD)
-#   define TLockerBox           void  /*  used std::unique_lock<std::mutex>  */
-#   define _TLockerBox_name     std::unique_lock<std::mutex>
-#else
-    typedef struct{
-        HLocker locker;
-    } TLockerBox;
-#endif
-    HCondvar    condvar_new(void);
-    void        condvar_delete(HCondvar cond);
-    void        condvar_wait(HCondvar cond,TLockerBox* lockerBox);
-    void        condvar_signal(HCondvar cond);
-    void        condvar_broadcast(HCondvar cond);
+//cpp version of MT API
+//  if have error, throw std::runtime_error
 
-    void this_thread_yield(void);
+#define _check_fn_throw(value) { \
+    if (!(value)) throw std::runtime_error(#value " run error!"); }
+#define _check_fn_ret_throw(T,value) { T _v=value; if (!_v) throw std::runtime_error(#value " run error!"); return _v; }
 
-    //parallel run
-    typedef void (*TThreadRunCallBackProc)(int threadIndex,void* workData);
-    void  thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
-                          int isUseThisThread,int threadIndexOffset);
+hpatch_force_inline static
+HLocker     locker_new(void)                { _check_fn_ret_throw(HLocker,c_locker_new()); }
+hpatch_force_inline static 
+void        locker_delete(HLocker locker)   { _check_fn_throw(c_locker_delete(locker)); }
+hpatch_force_inline static
+void        locker_enter(HLocker locker)    { _check_fn_throw(c_locker_enter(locker)); }
+hpatch_force_inline static
+void        locker_leave(HLocker locker)    { _check_fn_throw(c_locker_leave(locker)); }
+hpatch_force_inline static
+HCondvar    condvar_new(void)               { _check_fn_ret_throw(HCondvar,c_condvar_new()); }
+hpatch_force_inline static
+void        condvar_delete(HCondvar cond)   { _check_fn_throw(c_condvar_delete(cond)); }
+hpatch_force_inline static
+void        condvar_wait_at(HCondvar cond,HLocker locker) { _check_fn_throw(c_condvar_wait(cond,locker)); }
+hpatch_force_inline static
+void        condvar_signal(HCondvar cond)   { _check_fn_throw(c_condvar_signal(cond)); }
+hpatch_force_inline static
+void        condvar_broadcast(HCondvar cond){ _check_fn_throw(c_condvar_broadcast(cond)); }
+#define     this_thread_yield               c_this_thread_yield
+hpatch_force_inline static
+void        thread_parallel(int threadCount,TThreadRunCallBackProc threadProc,void* workData,
+                            int isUseThisThread,int threadIndexOffset){
+                _check_fn_throw(c_thread_parallel(threadCount,threadProc,workData,isUseThisThread,threadIndexOffset)); }
 
 #endif //_IS_USED_MULTITHREAD
 #endif //parallel_import_h

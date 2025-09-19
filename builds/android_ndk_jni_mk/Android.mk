@@ -4,6 +4,8 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := hpatchz
 
 # args
+# is use multi-thread patch? (threads for I/O & decompress)
+MT    := 0
 ZLIB  := 1
 LZMA  := 1
 ZSTD  := 1
@@ -12,16 +14,66 @@ VCD   := 0
 # if open BSD,must open BZIP2
 BSD   := 0
 BZIP2 := 0
+# is need directory patch?
+DIR   := 0
+ifeq ($(DIR),0)
+  MD5 := 0
+  XXH := 0
+else
+  MD5 := 1
+  XXH := 1
+endif
 
-DEF_FLAGS := -Os -DANDROID_NDK -DNDEBUG -D_LARGEFILE_SOURCE \
-             -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_DEFAULT_CompressPlugin=0
+DEF_FLAGS := -Os -flto -DANDROID_NDK -DNDEBUG -D_LARGEFILE_SOURCE -D_IS_NEED_DEFAULT_CompressPlugin=0 \
+             -D_IS_NEED_CACHE_OLD_BY_COVERS=0 -D_IS_NEED_CACHE_OLD_ALL=1
 LINK_FLAGS:= -llog
 
-HDP_PATH  := $(LOCAL_PATH)/../../
+HDP_PATH  := $(LOCAL_PATH)/../..
 Src_Files := $(HDP_PATH)/builds/android_ndk_jni_mk/hpatch_jni.c \
              $(HDP_PATH)/builds/android_ndk_jni_mk/hpatch.c \
              $(HDP_PATH)/file_for_patch.c \
              $(HDP_PATH)/libHDiffPatch/HPatch/patch.c
+
+ifeq ($(MT),0)
+  DEF_FLAGS += -D_IS_USED_MULTITHREAD=0
+else  
+  DEF_FLAGS += -D_IS_USED_MULTITHREAD=1
+  Src_Files += $(HDP_PATH)/libHDiffPatch/HPatch/hpatch_mt/_hcache_old_mt.c \
+               $(HDP_PATH)/libHDiffPatch/HPatch/hpatch_mt/_hinput_mt.c \
+               $(HDP_PATH)/libHDiffPatch/HPatch/hpatch_mt/_houtput_mt.c \
+               $(HDP_PATH)/libHDiffPatch/HPatch/hpatch_mt/_hpatch_mt.c \
+               $(HDP_PATH)/libHDiffPatch/HPatch/hpatch_mt/hpatch_mt.c \
+               $(HDP_PATH)/libParallel/parallel_import_c.c
+endif
+
+ifeq ($(DIR),0)
+  DEF_FLAGS += -D_IS_NEED_DIR_DIFF_PATCH=0
+else
+  DEF_FLAGS += -D_IS_NEED_DIR_DIFF_PATCH=1 -D_IS_NEED_DEFAULT_ChecksumPlugin=0 -D_ChecksumPlugin_fadler64
+  Src_Files += $(HDP_PATH)/libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/dir_patch.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/dir_patch_tools.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/new_dir_output.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/new_stream.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/ref_stream.c \
+               $(HDP_PATH)/dirDiffPatch/dir_patch/res_handle_limit.c
+
+  ifeq ($(ZLIB),0)
+  else
+    DEF_FLAGS += -D_ChecksumPlugin_crc32
+  endif
+  ifeq ($(MD5),0)
+  else
+    MD5_PATH := $(HDP_PATH)/../libmd5
+    DEF_FLAGS += -D_ChecksumPlugin_md5 -I$(MD5_PATH)
+    Src_Files += $(MD5_PATH)/md5.c
+  endif
+  ifeq ($(XXH),0)
+  else
+    XXH_PATH := $(HDP_PATH)/../xxHash
+    DEF_FLAGS += -D_ChecksumPlugin_xxh3 -D_ChecksumPlugin_xxh128 -I$(XXH_PATH)
+  endif
+endif
 
 ifeq ($(BSD),0)
   DEF_FLAGS += -D_IS_NEED_BSDIFF=0
@@ -34,8 +86,10 @@ ifeq ($(VCD),0)
   DEF_FLAGS += -D_IS_NEED_VCDIFF=0
 else
   DEF_FLAGS += -D_IS_NEED_VCDIFF=1
-  Src_Files += $(HDP_PATH)/vcdiff_wrapper/vcpatch_wrapper.c \
-               $(HDP_PATH)/libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c
+  Src_Files += $(HDP_PATH)/vcdiff_wrapper/vcpatch_wrapper.c
+  ifeq ($(DIR),0)
+    Src_Files +=$(HDP_PATH)/libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.c
+  endif
 endif
 
 ifeq ($(ZLIB),0)
@@ -47,7 +101,7 @@ endif
 ifeq ($(BZIP2),0)
 else
   # http://www.bzip.org  https://github.com/sisong/bzip2
-  BZ2_PATH  :=  $(HDP_PATH)/../bzip2/
+  BZ2_PATH  :=  $(HDP_PATH)/../bzip2
   DEF_FLAGS += -D_CompressPlugin_bz2 -DBZ_NO_STDIO -I$(BZ2_PATH)
   Src_Files +=  $(BZ2_PATH)/blocksort.c \
                 $(BZ2_PATH)/bzlib.c \
@@ -61,7 +115,7 @@ endif
 ifeq ($(LZMA),0)
 else
   # https://github.com/sisong/lzma
-  LZMA_PATH := $(HDP_PATH)/../lzma/C/
+  LZMA_PATH := $(HDP_PATH)/../lzma/C
   DEF_FLAGS += -D_CompressPlugin_lzma -D_CompressPlugin_lzma2 -DZ7_ST -I$(LZMA_PATH)
   ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
     DEF_FLAGS += -DZ7_LZMA_DEC_OPT
@@ -93,7 +147,7 @@ endif
 ifeq ($(ZSTD),0)
 else
   # https://github.com/sisong/zstd
-  ZSTD_PATH  := $(HDP_PATH)/../zstd/lib/
+  ZSTD_PATH  := $(HDP_PATH)/../zstd/lib
   DEF_FLAGS += -D_CompressPlugin_zstd -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/decompress \
 			-DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 -DZSTD_DISABLE_ASM=1 -DZSTDLIB_HIDDEN= \
 			-DZSTDLIB_VISIBLE= -DZDICTLIB_VISIBLE= -DZSTDERRORLIB_VISIBLE= \
@@ -114,7 +168,7 @@ endif
 ifeq ($(BROTLI),0)
 else
   # https://github.com/google/brotli
-  BROTLI_PATH := $(HDP_PATH)/../brotli/c/
+  BROTLI_PATH := $(HDP_PATH)/../brotli/c
   DEF_FLAGS += -D_CompressPlugin_brotli -I$(BROTLI_PATH)/include
   Src_Files +=$(BROTLI_PATH)/common/constants.c \
               $(BROTLI_PATH)/common/context.c \

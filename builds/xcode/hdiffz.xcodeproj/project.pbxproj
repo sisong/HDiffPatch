@@ -16,8 +16,14 @@
 		0D571A70275CF71A00672D57 /* bsdiff_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A6E275CF71A00672D57 /* bsdiff_wrapper.cpp */; };
 		0D571A72275CF75B00672D57 /* hdiffz.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0D571A71275CF75B00672D57 /* hdiffz.cpp */; };
 		0D7FEAB8283124A20029772D /* hpatch_lite.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D7FEAB5283124A20029772D /* hpatch_lite.c */; };
+		0D8721112E7B856C008E97DB /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = 0D8721102E7B856C008E97DB /* md5.c */; };
 		0DA2A8EE292B9880000E86E1 /* vcdiff_wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8E9292B9880000E86E1 /* vcdiff_wrapper.cpp */; };
 		0DA2A8EF292B9880000E86E1 /* vcpatch_wrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA2A8EB292B9880000E86E1 /* vcpatch_wrapper.c */; };
+		0DA6865F2E536C50002A6651 /* _hpatch_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686542E536A3C002A6651 /* _hpatch_mt.c */; };
+		0DA686602E536C50002A6651 /* hpatch_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686562E536A3C002A6651 /* hpatch_mt.c */; };
+		0DA686612E536C50002A6651 /* _houtput_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686572E536A3C002A6651 /* _houtput_mt.c */; };
+		0DA686622E536C50002A6651 /* _hcache_old_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686582E536A3C002A6651 /* _hcache_old_mt.c */; };
+		0DA686632E536C50002A6651 /* _hinput_mt.c in Sources */ = {isa = PBXBuildFile; fileRef = 0DA686592E536A3C002A6651 /* _hinput_mt.c */; };
 		D61DE5472344D16900F6FCCF /* dir_diff_tools.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */; };
 		D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */ = {isa = PBXBuildFile; fileRef = D621352123DC521F00EC4FA4 /* new_dir_output.c */; };
 		D6241AE221DE47D200E2846A /* new_stream.c in Sources */ = {isa = PBXBuildFile; fileRef = D6241AE021DE47D200E2846A /* new_stream.c */; };
@@ -35,7 +41,7 @@
 		D690AEFB1F2097C90089DC57 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D690AEFA1F2097C90089DC57 /* libbz2.tbd */; };
 		D69EECD9220BD8E2001EF085 /* compress_parallel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D69EECD8220BD8E2001EF085 /* compress_parallel.cpp */; };
 		D69EECDF220C49DE001EF085 /* parallel_channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D69EECDB220C49DE001EF085 /* parallel_channel.cpp */; };
-		D69EECE0220C49DE001EF085 /* parallel_import.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D69EECDD220C49DE001EF085 /* parallel_import.cpp */; };
+		D69EECE0220C49DE001EF085 /* parallel_import_c.c in Sources */ = {isa = PBXBuildFile; fileRef = D69EECDD220C49DE001EF085 /* parallel_import_c.c */; };
 		D6B240B021E5C21300993A81 /* res_handle_limit.c in Sources */ = {isa = PBXBuildFile; fileRef = D6B240AE21E5C21300993A81 /* res_handle_limit.c */; };
 		D6BF3A5D21E97A0B00833537 /* file_for_patch.c in Sources */ = {isa = PBXBuildFile; fileRef = D6BF3A5C21E97A0A00833537 /* file_for_patch.c */; };
 		D6C9A98E23CBF37D00AC50F8 /* dir_manifest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D6C9A98C23CBF37D00AC50F8 /* dir_manifest.cpp */; };
@@ -72,11 +78,23 @@
 		0D7FEAB5283124A20029772D /* hpatch_lite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hpatch_lite.c; sourceTree = "<group>"; };
 		0D7FEAB6283124A20029772D /* hpatch_lite_input_cache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hpatch_lite_input_cache.h; sourceTree = "<group>"; };
 		0D7FEAB7283124A20029772D /* hpatch_lite_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hpatch_lite_types.h; sourceTree = "<group>"; };
+		0D8721102E7B856C008E97DB /* md5.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = md5.c; path = ../../../libmd5/md5.c; sourceTree = "<group>"; };
 		0DA2A8E9292B9880000E86E1 /* vcdiff_wrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = vcdiff_wrapper.cpp; sourceTree = "<group>"; };
 		0DA2A8EA292B9880000E86E1 /* vcpatch_code_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vcpatch_code_table.h; sourceTree = "<group>"; };
 		0DA2A8EB292B9880000E86E1 /* vcpatch_wrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = vcpatch_wrapper.c; sourceTree = "<group>"; };
 		0DA2A8EC292B9880000E86E1 /* vcdiff_wrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vcdiff_wrapper.h; sourceTree = "<group>"; };
 		0DA2A8ED292B9880000E86E1 /* vcpatch_wrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vcpatch_wrapper.h; sourceTree = "<group>"; };
+		0DA686542E536A3C002A6651 /* _hpatch_mt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = _hpatch_mt.c; sourceTree = "<group>"; };
+		0DA686552E536A3C002A6651 /* _hinput_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _hinput_mt.h; sourceTree = "<group>"; };
+		0DA686562E536A3C002A6651 /* hpatch_mt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = hpatch_mt.c; sourceTree = "<group>"; };
+		0DA686572E536A3C002A6651 /* _houtput_mt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = _houtput_mt.c; sourceTree = "<group>"; };
+		0DA686582E536A3C002A6651 /* _hcache_old_mt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = _hcache_old_mt.c; sourceTree = "<group>"; };
+		0DA686592E536A3C002A6651 /* _hinput_mt.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = _hinput_mt.c; sourceTree = "<group>"; };
+		0DA6865A2E536A3C002A6651 /* _hpatch_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _hpatch_mt.h; sourceTree = "<group>"; };
+		0DA6865B2E536A3C002A6651 /* _patch_private_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _patch_private_mt.h; sourceTree = "<group>"; };
+		0DA6865C2E536A3C002A6651 /* hpatch_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hpatch_mt.h; sourceTree = "<group>"; };
+		0DA6865D2E536A3C002A6651 /* _houtput_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _houtput_mt.h; sourceTree = "<group>"; };
+		0DA6865E2E536A3C002A6651 /* _hcache_old_mt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _hcache_old_mt.h; sourceTree = "<group>"; };
 		D61DE5252342DE3B00F6FCCF /* _dir_ignore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = _dir_ignore.h; path = ../../_dir_ignore.h; sourceTree = "<group>"; };
 		D61DE52D234391CF00F6FCCF /* dir_diff_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_diff_tools.h; sourceTree = "<group>"; };
 		D61DE5462344D16900F6FCCF /* dir_diff_tools.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dir_diff_tools.cpp; sourceTree = "<group>"; };
@@ -128,7 +146,7 @@
 		D69EECD8220BD8E2001EF085 /* compress_parallel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = compress_parallel.cpp; path = ../../compress_parallel.cpp; sourceTree = "<group>"; };
 		D69EECDB220C49DE001EF085 /* parallel_channel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_channel.cpp; sourceTree = "<group>"; };
 		D69EECDC220C49DE001EF085 /* parallel_import.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_import.h; sourceTree = "<group>"; };
-		D69EECDD220C49DE001EF085 /* parallel_import.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = parallel_import.cpp; sourceTree = "<group>"; };
+		D69EECDD220C49DE001EF085 /* parallel_import_c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = parallel_import_c.c; sourceTree = "<group>"; };
 		D69EECDE220C49DE001EF085 /* parallel_channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parallel_channel.h; sourceTree = "<group>"; };
 		D6B04412221158720015E8CA /* dir_patch_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_patch_types.h; sourceTree = "<group>"; };
 		D6B240AE21E5C21300993A81 /* res_handle_limit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = res_handle_limit.c; sourceTree = "<group>"; };
@@ -204,6 +222,24 @@
 			path = ../../vcdiff_wrapper;
 			sourceTree = "<group>";
 		};
+		0DA686532E536A3C002A6651 /* hpatch_mt */ = {
+			isa = PBXGroup;
+			children = (
+				0DA686542E536A3C002A6651 /* _hpatch_mt.c */,
+				0DA686552E536A3C002A6651 /* _hinput_mt.h */,
+				0DA686562E536A3C002A6651 /* hpatch_mt.c */,
+				0DA686572E536A3C002A6651 /* _houtput_mt.c */,
+				0DA686582E536A3C002A6651 /* _hcache_old_mt.c */,
+				0DA686592E536A3C002A6651 /* _hinput_mt.c */,
+				0DA6865A2E536A3C002A6651 /* _hpatch_mt.h */,
+				0DA6865B2E536A3C002A6651 /* _patch_private_mt.h */,
+				0DA6865C2E536A3C002A6651 /* hpatch_mt.h */,
+				0DA6865D2E536A3C002A6651 /* _houtput_mt.h */,
+				0DA6865E2E536A3C002A6651 /* _hcache_old_mt.h */,
+			);
+			path = hpatch_mt;
+			sourceTree = "<group>";
+		};
 		D67D3BD421CBCD5D0050632A /* dirDiffPatch */ = {
 			isa = PBXGroup;
 			children = (
@@ -257,6 +293,7 @@
 				D69EECDA220C49DE001EF085 /* libParallel */,
 				D67D3BD421CBCD5D0050632A /* dirDiffPatch */,
 				D690AB9E1F2079E80089DC57 /* libHDiffPatch */,
+				0D8721102E7B856C008E97DB /* md5.c */,
 				D6E150981F223B2700C2AD3D /* compress_plugin_demo.h */,
 				D6E1509A1F223DC100C2AD3D /* decompress_plugin_demo.h */,
 				D69EECD7220BD149001EF085 /* compress_parallel.h */,
@@ -343,6 +380,7 @@
 		D690ABB41F2079E80089DC57 /* HPatch */ = {
 			isa = PBXGroup;
 			children = (
+				0DA686532E536A3C002A6651 /* hpatch_mt */,
 				D6BF3A6521EE18BB00833537 /* checksum_plugin.h */,
 				D69A372B21AED4B2000A0A93 /* patch_private.h */,
 				D690ABB51F2079E80089DC57 /* patch.c */,
@@ -371,7 +409,7 @@
 				D69EECDE220C49DE001EF085 /* parallel_channel.h */,
 				D69EECDB220C49DE001EF085 /* parallel_channel.cpp */,
 				D69EECDC220C49DE001EF085 /* parallel_import.h */,
-				D69EECDD220C49DE001EF085 /* parallel_import.cpp */,
+				D69EECDD220C49DE001EF085 /* parallel_import_c.c */,
 			);
 			name = libParallel;
 			path = ../../libParallel;
@@ -450,6 +488,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0DA6865F2E536C50002A6651 /* _hpatch_mt.c in Sources */,
+				0DA686602E536C50002A6651 /* hpatch_mt.c in Sources */,
+				0DA686612E536C50002A6651 /* _houtput_mt.c in Sources */,
+				0DA686622E536C50002A6651 /* _hcache_old_mt.c in Sources */,
+				0DA686632E536C50002A6651 /* _hinput_mt.c in Sources */,
 				D6C9A9AC23D04F3900AC50F8 /* dir_patch_tools.c in Sources */,
 				0D571A70275CF71A00672D57 /* bsdiff_wrapper.cpp in Sources */,
 				D621352323DC521F00EC4FA4 /* new_dir_output.c in Sources */,
@@ -466,9 +509,10 @@
 				D6EE505D1F287234002854A2 /* compress_detect.cpp in Sources */,
 				D6DD68E01F4015A900A1B22B /* digest_matcher.cpp in Sources */,
 				D6241AE221DE47D200E2846A /* new_stream.c in Sources */,
-				D69EECE0220C49DE001EF085 /* parallel_import.cpp in Sources */,
+				D69EECE0220C49DE001EF085 /* parallel_import_c.c in Sources */,
 				D690ABBC1F2079E80089DC57 /* patch.c in Sources */,
 				D6B240B021E5C21300993A81 /* res_handle_limit.c in Sources */,
+				0D8721112E7B856C008E97DB /* md5.c in Sources */,
 				D690ABB81F2079E80089DC57 /* bytes_rle.cpp in Sources */,
 				D690ABBB1F2079E80089DC57 /* suffix_string.cpp in Sources */,
 				0D571A69275CF68900672D57 /* match_block.cpp in Sources */,
@@ -543,6 +587,8 @@
 					../../../lzma/C/,
 					../../../zlib/,
 					../../../libdeflate/,
+					../../../libmd5/,
+					../../../xxHash/,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = YES;
@@ -604,6 +650,8 @@
 					../../../lzma/C/,
 					../../../zlib/,
 					../../../libdeflate/,
+					../../../libmd5/,
+					../../../xxHash/,
 				);
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;

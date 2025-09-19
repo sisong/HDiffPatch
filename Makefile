@@ -19,6 +19,7 @@ USE_CRC_EMU := 0
 # 0: not need zstd;  1: compile zstd source code;  2: used -lzstd to link zstd lib;
 ZSTD     := 1
 MD5      := 1
+XXH      := 1
 # used clang?
 CL  	 := 0
 # build with -m32?
@@ -66,6 +67,16 @@ HPATCH_OBJ := \
     libHDiffPatch/HPatch/patch.o \
     file_for_patch.o
 
+ifeq ($(MT),0)
+else
+  HPATCH_OBJ+=libHDiffPatch/HPatch/hpatch_mt/_hcache_old_mt.o \
+              libHDiffPatch/HPatch/hpatch_mt/_hinput_mt.o \
+              libHDiffPatch/HPatch/hpatch_mt/_houtput_mt.o \
+              libHDiffPatch/HPatch/hpatch_mt/_hpatch_mt.o \
+              libHDiffPatch/HPatch/hpatch_mt/hpatch_mt.o \
+              libParallel/parallel_import_c.o
+endif
+
 ifeq ($(DIR_DIFF),0)
 else
   HPATCH_OBJ += \
@@ -91,6 +102,8 @@ else
 	HPATCH_OBJ += $(MD5_PATH)/md5.o
   endif
 endif
+
+XXH_PATH := ../xxHash
 
 LZMA_PATH := ../lzma/C
 ifeq ($(LZMA),1)
@@ -236,13 +249,12 @@ endif
 ifeq ($(MT),0)
 else
   HDIFF_OBJ += \
-    libParallel/parallel_import.o \
     libParallel/parallel_channel.o \
     compress_parallel.o
 endif
 
 UTEST_OBJ := \
-    libHDiffPatch/HDiff/match_inplace.o \
+    libHDiffPatch/HDiff/private_diff/match_inplace.o \
     libhsync/sync_client/dir_sync_client.o \
     libhsync/sync_client/match_in_old.o \
     libhsync/sync_client/sync_client.o \
@@ -259,6 +271,9 @@ DEF_FLAGS := \
     -D_IS_NEED_DEFAULT_CompressPlugin=0 \
     -D_IS_NEED_ALL_ChecksumPlugin=0 \
     -D_IS_NEED_DEFAULT_ChecksumPlugin=0 
+ifeq ($(OS),Windows_NT) # mingw?
+  DEF_FLAGS += -D_IS_USED_WIN32_UTF8_WAPI=1
+endif
 ifeq ($(ATOMIC_U64),0)
   DEF_FLAGS += -D_IS_NO_ATOMIC_U64=1
 endif
@@ -317,6 +332,10 @@ else
   else
     DEF_FLAGS += -D_ChecksumPlugin_md5 -I$(MD5_PATH)
   endif
+  ifeq ($(XXH),0)
+  else
+    DEF_FLAGS += -D_ChecksumPlugin_xxh3 -D_ChecksumPlugin_xxh128 -I$(XXH_PATH)
+  endif
 endif
 ifeq ($(BSD),0)
 	DEF_FLAGS += -D_IS_NEED_BSDIFF=0
@@ -354,6 +373,7 @@ else
   ifeq ($(ZSTD),1)
     DEF_FLAGS += -DZSTD_HAVE_WEAK_SYMBOLS=0 -DZSTD_TRACE=0 -DZSTD_DISABLE_ASM=1 -DZSTDLIB_HIDDEN= \
                  -DZSTDLIB_VISIBLE= -DZDICTLIB_VISIBLE= -DZSTDERRORLIB_VISIBLE= \
+                 -DZSTD_LIB_DEPRECATED=0 -DZSTD_STRIP_ERROR_STRINGS=1 \
 	               -I$(ZSTD_PATH) -I$(ZSTD_PATH)/common -I$(ZSTD_PATH)/compress -I$(ZSTD_PATH)/decompress
 	endif
 endif
@@ -365,8 +385,7 @@ ifeq ($(MT),0)
 else
   DEF_FLAGS += \
     -DZSTD_MULTITHREAD=1 \
-    -D_IS_USED_MULTITHREAD=1 \
-    -D_IS_USED_PTHREAD=1
+    -D_IS_USED_MULTITHREAD=1
 endif
 
 PATCH_LINK := 

@@ -1,5 +1,5 @@
 # [HDiffPatch]
-[![release](https://img.shields.io/badge/release-v4.11.1-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
+[![release](https://img.shields.io/badge/release-v4.12.0-blue.svg)](https://github.com/sisong/HDiffPatch/releases) 
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/sisong/HDiffPatch/blob/master/LICENSE) 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-blue.svg)](https://github.com/sisong/HDiffPatch/pulls)
 [![+issue Welcome](https://img.shields.io/github/issues-raw/sisong/HDiffPatch?color=green&label=%2Bissue%20welcome)](https://github.com/sisong/HDiffPatch/issues)   
@@ -56,15 +56,16 @@ hsynz 支持 zstd 压缩算法并且比 zsync 速度快得多；而且可以兼�
 `$ cd <dir>/HDiffPatch`   
 ### Linux or MacOS X ###
 试试:   
-`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0`   
+`$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0`   
 bzip2 : 如果编译失败，显示 `fatal error: bzlib.h: No such file or directory`，请使用系统的包管理器安装libbz2，然后再试一次；或者下载并使用libbz2源代码来编译:
 ```
 $ git clone https://github.com/sisong/bzip2.git ../bzip2
-$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 BZIP2=1
+$ make LDEF=0 LZMA=0 ZSTD=0 MD5=0 XXH=0 BZIP2=1
 ```
-如果需要支持 lzma、zstd 和 md5 等 默认编译设置，试试:    
+如果需要支持 lzma、zstd 和 md5 xxh 等 默认编译设置，试试:    
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone https://github.com/sisong/xxHash.git ../xxHash
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git ../zlib
@@ -77,6 +78,7 @@ $ make
 使用 [`Visual Studio`](https://visualstudio.microsoft.com) 打开 `builds/vc/HDiffPatch.sln` 来编译之前，先将第三方库下载到同级文件夹中，如下所示: 
 ```
 $ git clone https://github.com/sisong/libmd5.git ../libmd5
+$ git clone https://github.com/sisong/xxHash.git ../xxHash
 $ git clone https://github.com/sisong/lzma.git ../lzma
 $ git clone https://github.com/sisong/zstd.git ../zstd
 $ git clone https://github.com/sisong/zlib.git   ../zlib
@@ -117,19 +119,19 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       一般匹配块越大,内存占用越小,速度越快,但补丁包可能变大。
   -block-fastMatchBlockSize
       必须和-m配合使用;
-      在使用较慢的逐字节匹配之前使用基于块的快速匹配, 默认-block-4k;
+      在使用较慢的逐字节匹配之前使用基于块的快速匹配, 默认-block-1k;
       如果设置为-block-0，意思是关闭基于块的提前匹配；
-      快速块匹配大小fastMatchBlockSize>=4, 推荐256,1k,64k,1m等;
+      快速块匹配大小fastMatchBlockSize>=4, 推荐128,4k,64k等;
       如果新版本和旧版本相同数据比较多,那diff速度就会比较快,并且减少内存占用,
-      但有很小的可能补丁包会变大。
+      但有很小的可能补丁包会稍微变大。
   -cache
       必须和-m配合使用;
       给较慢的匹配开启一个大型缓冲区,来加快匹配速度(不影响补丁大小), 默认不开启;
       如果新版本和旧版本不相同数据比较多,那diff速度就会比较快;
       该大型缓冲区最大占用O(旧版本文件大小)的内存, 并且需要较多的时间来创建(从而可能降低diff速度)。
   -SD[-stepSize]
-      创建单压缩流的补丁文件, 这样patch时就只需要一个解压缩缓冲区, 并且可以支持边下载边patch;
-      压缩步长stepSize>=(1024*4), 默认为256k, 推荐64k,2m等。
+      创建单压缩流的补丁文件, 这样patch时就只需要一个解压缩缓冲区, 并且可以支持边下载边patch,
+      并支持多线程patch; 压缩步长stepSize>=(1024*4), 默认为256k, 推荐64k,2m等。
   -BSD
       创建一个和bsdiff4兼容的补丁, 不支持参数为文件夹。
       也支持和-SD选项一起运行(不使用其stepSize), 从而创建单压缩流的补丁文件，
@@ -146,11 +148,10 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
       设置线程数parallelThreadNumber>1时,开启多线程并行模式;
       默认为4;需要占用较多的内存。
   -p-search-searchThreadNumber
-      必须和-s[-matchBlockSize]配合使用;
       默认情况下搜索线程数searchThreadNumber的值和parallelThreadNumber相同;
-      但当matchBlockSize较小时，多线程搜索需要频繁的随机磁盘读取，
-      所以有些时候多线程搜索反而比单线程搜索还慢很多!
-      如果设置searchThreadNumber<=1，可以关闭多线程搜索模式。
+      旧文件在HDD硬盘上时的警告：在使用-s-matchBlockSize 或 -block-fastMatchBlockSize(和-m配合时)时,
+        多线程搜索需要频繁的随机磁盘读取,这可能会导致速度变慢；这时就需要关闭(searchThreadNumber<=1)多
+        线程搜索模式或者降低搜索线程数searchThreadNumber的值!
   -c-compressType[-compressLevel]
       设置补丁数据使用的压缩算法和压缩级别等, 默认不压缩;
       补丁另存时,使用新的压缩参数设置来输出新补丁;
@@ -174,7 +175,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
             警告: lzma和lzma2是不同的压缩编码格式。
         -c-zstd[-{0..22}[-dictBits]]    默认级别 20
             压缩字典比特数dictBits 可以为10到30, 默认为23。
-            支持多线程并行压缩,较快。
+            支持多线程并行压缩,较快(但内存占用会比较大)。
   -C-checksumType
       为文件夹间diff设置数据校验算法, 默认为fadler64;
       支持的校验选项:
@@ -182,9 +183,11 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
         -C-crc32
         -C-fadler64             默认
         -C-md5
+        -C-xxh3                 (需要 v4.12版本 patch端)
+        -C-xxh128               推荐 (需要 v4.12版本 patch端)
   -n-maxOpenFileNumber
       为文件夹间的-s模式diff设置最大允许同时打开的文件数;
-      maxOpenFileNumber>=8, 默认为48; 合适的限制值可能不同系统下不同。
+      maxOpenFileNumber>=16, 默认为48; 合适的限制值可能不同系统下不同。
   -g#ignorePath[#ignorePath#...]
       为文件夹间的diff设置忽略路径(路径可能是文件或文件夹); 忽略路径列表的格式如下:
         #.DS_Store#desktop.ini#*thumbs*.db#.git*#.svn/#cache_*/00*11/*.tmp
@@ -237,8 +240,8 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
   oldPath可以为空, 输入参数为 ""
 选项:
   -s[-cacheSize]
-      默认选项,并且默认设置为-s-4m; oldPath所有文件被当作文件流来加载;
-      cacheSize可以设置为262144 或 256k, 512m, 2g等
+      默认选项,并且默认设置为-s-8m; oldPath所有文件被当作文件流来加载;
+      cacheSize可以设置为262144 或 256k, 64m, 512m 等
       需要的内存大小: (cacheSize + 4*解压缩缓冲区)+O(1)
       而如果diffFile是单压缩流的补丁文件(用hdiffz -SD-stepSize所创建)
         那需要的内存大小: (cacheSize+ stepSize + 1*解压缩缓冲区)+O(1);
@@ -254,6 +257,10 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
         那需要的内存大小: (oldFileSize + 3*解压缩缓冲区);
       如果diffFile是VCDIFF格式补丁文件(用hdiffz -VCD、xdelta3、open-vcdiff所创建)
         那需要的内存大小: (源窗口大小+目标窗口大小 + 3*解压缩缓冲区);
+  -p-parallelThreadNumber
+      设置线程数 parallelThreadNumber>1 时,开启多线程并行模式;
+      当前只支持单压缩流的补丁文件(用hdiffz -SD-stepSize所创建);
+      可以设置值 1..5, 默认 -p-1 (即单线程)!
   -C-checksumSets
       为文件夹patch设置校验方式, 默认设置为 -C-new-copy;
       校验设置支持(可以多选):

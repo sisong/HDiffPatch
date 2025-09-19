@@ -40,7 +40,7 @@
 #endif
 
 #if (_IS_RUN_MEM_SAFE_CHECK)
-//__RUN_MEM_SAFE_CHECK用来启动内存访问越界检查,用以防御可能被意外或故意损坏的数据.
+// __RUN_MEM_SAFE_CHECK : enables out-of-bounds memory access checking to protect against data that may be accidentally or intentionally corrupted.
 #   define __RUN_MEM_SAFE_CHECK
 #endif
 
