@@ -186,6 +186,8 @@ hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName);
 
 typedef FILE* hpatch_FileHandle;
 
+hpatch_BOOL hpatch_getIsAtty(hpatch_FileHandle fileHandle); //is device?
+
 typedef struct hpatch_TFileStreamInput{
     hpatch_TStreamInput base;
     hpatch_FileHandle   m_file;

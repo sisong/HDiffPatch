@@ -356,6 +356,17 @@ hpatch_BOOL hpatch_setIsExecuteFile(const char* fileName){
 #endif
 }
 
+hpatch_BOOL hpatch_getIsAtty(hpatch_FileHandle fileHandle){
+#ifdef _WIN32
+    int fno=_fileno(fileHandle);
+    if (fno==-1) return hpatch_FALSE;
+    return (_isatty(fno)!=0);
+#else
+    int fno=fileno(fileHandle);
+    if (fno==-1) return hpatch_FALSE;
+    return (isatty(fno)!=0);
+#endif
+}
 
 #if defined(ANDROID) && (__ANDROID_API__ < 24)
 #include <sys/types.h>

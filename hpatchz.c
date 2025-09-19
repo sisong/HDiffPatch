@@ -30,7 +30,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>  //fprintf
+#include <stdio.h>
 #include "libHDiffPatch/HPatch/patch.h"
 #include "_clock_for_demo.h"
 #include "_atosize.h"
@@ -1217,7 +1217,7 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
                 const char* progressStr="=============================="; //strlen==30
                 self->progress=progress;
                 self->time0=time1;
-                printf("\r  patch progress: [%-30s]  %.1f%%%s  ",
+                printf("\r  patch progress: [%-30s]  %.1f%%  %s",
                        progressStr+((1000-progress)*30/1000),progress*0.1,isEnd?"\n":"");
                 fflush(stdout);
             }
@@ -1236,8 +1236,10 @@ static TByte* getPatchMemCache(hpatch_BOOL isLoadOldAll,size_t patchCacheSize,si
         return result;
     }
 
-    static hpatch_TStreamOutput* _progressStreamInput_wrapper(hpatch_TProgressStreamOutput* self,const hpatch_TStreamOutput* streamOutput){
+    static const hpatch_TStreamOutput* _progressStreamInput_wrapper(hpatch_TProgressStreamOutput* self,const hpatch_TStreamOutput* streamOutput){
         memset(self,0,sizeof(*self));
+        if (!hpatch_getIsAtty(stdout))
+            return streamOutput; //when stdout redirected to a file, not show progress
         self->base.streamImport=self;
         self->base.streamSize=streamOutput->streamSize;
         self->base.write=_progressStreamOutput_write;
@@ -1261,8 +1263,8 @@ int hpatch(const char* oldFileName,const char* diffFileName,const char* outNewFi
     hpatch_TFileStreamOutput    newData;
     hpatch_TFileStreamInput     diffData;
     hpatch_TFileStreamInput     oldData;
-    hpatch_TStreamInput* poldData=&oldData.base;
-    hpatch_TStreamOutput* pnewData=&newData.base;
+    const hpatch_TStreamInput* poldData=&oldData.base;
+    const hpatch_TStreamOutput* pnewData=&newData.base;
     TByte*               temp_cache=0;
     size_t               temp_cache_size;
     int                  patch_result=HPATCH_SUCCESS;
