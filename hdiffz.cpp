@@ -1445,7 +1445,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
             if (diffSets.isBsDiff){
                 if (diffSets.isDiffInMem)
                     create_bsdiff_block(&newData.base,&oldData.base,&diffData_out.base,compressPlugin,
-                                        diffSets.isSingleCompressedDiff,diffSets.matchScore,diffSets.isUseBigCacheMatch,
+                                        diffSets.isSingleCompressedDiff,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch,
                                         diffSets.matchBlockSize,diffSets.threadNum,diffSets.threadNumSearch_s);
                 else
                     create_bsdiff_stream(&newData.base,&oldData.base,&diffData_out.base,
@@ -1459,7 +1459,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
                 _CompressPluginForVcDiff(vcdiffCompressPlugin,compressPlugin);
                 if (diffSets.isDiffInMem)
                     create_vcdiff_block(&newData.base,&oldData.base,&diffData_out.base,vcdiffCompressPlugin,
-                                        diffSets.matchScore,diffSets.isUseBigCacheMatch,
+                                        (int)diffSets.matchScore,diffSets.isUseBigCacheMatch,
                                         diffSets.matchBlockSize,diffSets.threadNum,diffSets.threadNumSearch_s);
                 else
                     create_vcdiff_stream(&newData.base,&oldData.base,&diffData_out.base,
@@ -1469,7 +1469,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
             if (diffSets.isSingleCompressedDiff)
                 if (diffSets.isDiffInMem)
                     create_single_compressed_diff_block(&newData.base,&oldData.base,&diffData_out.base,compressPlugin,
-                                                        diffSets.matchScore,diffSets.patchStepMemSize,diffSets.isUseBigCacheMatch,
+                                                        (int)diffSets.matchScore,diffSets.patchStepMemSize,diffSets.isUseBigCacheMatch,
                                                         diffSets.matchBlockSize,diffSets.threadNum,diffSets.threadNumSearch_s);
                 else
                     create_single_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
@@ -1478,7 +1478,7 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
             else{
                 if (diffSets.isDiffInMem)
                     create_compressed_diff_block(&newData.base,&oldData.base,&diffData_out.base,compressPlugin,
-                                                 diffSets.matchScore,diffSets.isUseBigCacheMatch,
+                                                 (int)diffSets.matchScore,diffSets.isUseBigCacheMatch,
                                                  diffSets.matchBlockSize,diffSets.threadNum,diffSets.threadNumSearch_s);
                 else
                     create_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
@@ -1765,7 +1765,7 @@ struct DirDiffListener:public IDirDiffListener{
         printf("     same file count: %" PRIu64 " (dataSize: %" PRIu64 ")\n",
                (hpatch_StreamPos_t)sameFilePairCount,sameFileSize);
         printf("  ref old file count: %" PRIu64 "\n",(hpatch_StreamPos_t)refOldFileCount);
-        printf(" diff new file count: %" PRIu64 "\n",(hpatch_StreamPos_t)refNewFileCount);
+        printf("  ref new file count: %" PRIu64 "\n",(hpatch_StreamPos_t)refNewFileCount);
         printf("\nrun hdiffz:\n");
         printf("  oldRefSize  : %" PRIu64 "\n",refOldFileSize);
         printf("  newRefSize  : %" PRIu64 " (all newSize: %" PRIu64 ")\n",refNewFileSize,refNewFileSize+sameFileSize);
@@ -1830,6 +1830,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
     TManifest   oldManifest;
     TManifest   newManifest;
     if (isManifest){
+        _out_diff_info("  check old & new's datas by manifest ...\n");
         double check_time0=clock_s();
         try {
             if (!oldPath.empty())// isOldPathInputEmpty
@@ -1839,7 +1840,7 @@ int hdiff_dir(const char* _oldPath,const char* _newPath,const char* outDiffFileN
             check(false,MANIFEST_TEST_ERROR,"check by manifest found an error: "+e.what());
         }
         printf("check manifest time: %.3f s\n",(clock_s()-check_time0));
-        printf("  check path datas by manifest ok!\n\n");
+        printf("  check datas by manifest ok!\n\n");
     }else{
         DirPathIgnoreListener oldDirPathIgnore(ignorePathListBase,ignoreOldPathList);
         DirPathIgnoreListener newDirPathIgnore(ignorePathListBase,ignoreNewPathList);

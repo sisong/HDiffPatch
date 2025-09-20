@@ -34,7 +34,10 @@
 /*- Private Functions -*/
 
 #if (_IS_USED_MULTITHREAD)
-struct mt_data_t{
+#if defined (__cplusplus)
+namespace{
+#endif
+typedef struct mt_data_t{
     CHLocker            locker;
     const sauchar_t*    T;
     sastore_t*          SA;
@@ -43,7 +46,10 @@ struct mt_data_t{
     saidx_t             bufsize;
     saidx_t             n;
     saidx_t             m;
-};
+} mt_data_t;
+#if defined (__cplusplus)
+}//namespace
+#endif
 
 static void _sssort_thread(saint_t* c0,saint_t* c1,saidx_t* j,
                            sastore_t *buf,mt_data_t* mt){

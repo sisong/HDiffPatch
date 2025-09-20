@@ -305,6 +305,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
     
     _getExecuteList(newExecuteList,listener,newList);
     
+    _out_diff_info("  get old & new's file list infos ...\n");
     const bool isCachedHashs=(checksumPlugin!=0)&&(checksumPlugin->checksumType()==cmp_hash_type);
     if (isCachedHashs) checkv(sizeof(cmp_hash_value_t)==checksumPlugin->checksumByteSize());
     std::vector<cmp_hash_value_t> oldHashList;
@@ -326,7 +327,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
             const std::string& oldfile=oldList[newExecuteList[i]];
             isEq=(!isDirName(oldfile))&&(listener->isExecuteFile(oldfile));
         }
-        check(!isEq,"oldPath & newPath's all datas can't be equal");
+        check(!isEq,"old & new's all datas can't be equal");
     }
     std::vector<hpatch_StreamPos_t> newRefSizeList;
     CFileResHandleLimit resLimit_old(kMaxOpenFileNumber_old,oldRefIList.size());
@@ -489,7 +490,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         if (hdiffSets.isSingleCompressedDiff){
             if (hdiffSets.isDiffInMem)
                 create_single_compressed_diff_block(newRefStream.stream,oldRefStream.stream,&ofStream,compressPlugin,
-                                                    hdiffSets.matchScore,hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch,
+                                                    (int)hdiffSets.matchScore,hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch,
                                                     hdiffSets.matchBlockSize,hdiffSets.threadNum,hdiffSets.threadNumSearch_s);
             else
                 create_single_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
@@ -498,7 +499,7 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         }else{
             if (hdiffSets.isDiffInMem)
                 create_compressed_diff_block(newRefStream.stream,oldRefStream.stream,&ofStream,compressPlugin,
-                                             hdiffSets.matchScore,hdiffSets.isUseBigCacheMatch,
+                                             (int)hdiffSets.matchScore,hdiffSets.isUseBigCacheMatch,
                                              hdiffSets.matchBlockSize,hdiffSets.threadNum,hdiffSets.threadNumSearch_s);
             else
                 create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,

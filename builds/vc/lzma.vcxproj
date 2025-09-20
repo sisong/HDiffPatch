@@ -28,7 +28,6 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0849CD0E-1B9B-44EB-8937-A278B6A7E2CF}</ProjectGuid>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <Keyword>ManagedCProj</Keyword>
     <RootNamespace>lzma</RootNamespace>
   </PropertyGroup>
@@ -218,11 +217,6 @@
       </AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\lzma\C\7zCrc.c" />
     <ClCompile Include="..\..\..\lzma\C\7zCrcOpt.c" />

@@ -2,7 +2,7 @@
 
 full changelog at: https://github.com/sisong/HDiffPatch/commits   
 
-## [v4.12.0](https://github.com/sisong/HDiffPatch/tree/v4.12.0) - 2025-09-18
+## [v4.12.0](https://github.com/sisong/HDiffPatch/tree/v4.12.0) - 2025-09-19
 ### Added
 * optimize `$hdiffz -m` required memory size when newData similar to oldData;
 * patch_single_stream support pre-read some old data for optimize disk read, when patch with large cache memory;

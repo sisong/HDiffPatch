@@ -151,8 +151,6 @@ hpatch_BOOL bspatchByClip(_TOutStreamCache* outCache,const hpatch_TStreamInput* 
             _clip_readUInt64(ctrlClip,&coverLen);
             _clip_readUInt64(ctrlClip,&skipNewLen);
             _clip_readUInt64(ctrlClip,&skipOldLen);
-            if ((skipOldLen>>63)!=0)
-                skipOldLen=-(skipOldLen&((((hpatch_uint64_t)1)<<63)-1));
         }
 #ifdef __RUN_MEM_SAFE_CHECK
         if (coverLen>(hpatch_uint64_t)(newDataSize-newPosBack)) return _hpatch_FALSE;
@@ -161,7 +159,7 @@ hpatch_BOOL bspatchByClip(_TOutStreamCache* outCache,const hpatch_TStreamInput* 
 #endif
         if (!_patch_add_old_with_sub(outCache,subClip,oldData,oldPosBack,coverLen,
                                      temp_cache,cache_size)) return _hpatch_FALSE;
-        oldPosBack+=coverLen+skipOldLen;
+        oldPosBack+=((skipOldLen>>63)==0)?(coverLen+skipOldLen):(coverLen-(skipOldLen&((((hpatch_uint64_t)1)<<63)-1)));
         newPosBack+=coverLen;
         if (skipNewLen){
 #ifdef __RUN_MEM_SAFE_CHECK

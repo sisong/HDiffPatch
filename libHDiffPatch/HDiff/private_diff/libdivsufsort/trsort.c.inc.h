@@ -177,14 +177,18 @@ tr_pivot(const sastore_t*ISAd, sastore_t*first, sastore_t*last) {
 
 
 /*---------------------------------------------------------------------------*/
-
-typedef struct _trbudget_t trbudget_t;
-struct _trbudget_t {
+#if defined (__cplusplus)
+namespace{
+#endif
+typedef struct _trbudget_t {
   saidx_t chance;
   saidx_t remain;
   saidx_t incval;
   saidx_t count;
-};
+} trbudget_t;
+#if defined (__cplusplus)
+}//namespace
+#endif
 
 static INLINE
 void

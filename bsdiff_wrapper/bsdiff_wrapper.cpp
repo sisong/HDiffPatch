@@ -122,9 +122,9 @@ namespace hdiff_private{
         hpatch_StreamPos_t curCtrlPos;
         hpatch_StreamPos_t curSubPos;
         hpatch_StreamPos_t curDiffPos;
-        size_t             curCtrlLen;
-        size_t             curSubLen;
-        size_t             curDiffLen;
+        hpatch_StreamPos_t curCtrlLen;
+        hpatch_StreamPos_t curSubLen;
+        hpatch_StreamPos_t curDiffLen;
         TCtrlStream&            ctrlStream;
         TNewDataSubDiffStream&  subStream;
         TNewDataDiffStream&     diffStream;
@@ -150,7 +150,7 @@ namespace hdiff_private{
                 }
                 
                 hpatch_StreamPos_t*  dataPos;
-                size_t*              dataLen;
+                hpatch_StreamPos_t*  dataLen;
                 hpatch_TStreamInput* dataStream;
                 if (curCtrlLen>0){
                     dataPos=&curCtrlPos;
@@ -167,8 +167,7 @@ namespace hdiff_private{
                     dataStream=&diffStream;
                 }
 
-                size_t cLen=(*dataLen);
-                if (cLen>readLen) cLen=readLen;
+                size_t cLen=(readLen<=(*dataLen))?readLen:(size_t)(*dataLen);
                 _check(dataStream->read(dataStream,*dataPos,out_data,out_data+cLen),"TInterlaceStream dataStream->read")
                 out_data+=cLen;
                 readLen-=cLen;

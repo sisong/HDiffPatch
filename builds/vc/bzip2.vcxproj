@@ -28,7 +28,6 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{61FF6ECE-A15B-4BE1-A78B-62DE892AE25C}</ProjectGuid>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <Keyword>ManagedCProj</Keyword>
     <RootNamespace>bzip2</RootNamespace>
   </PropertyGroup>
@@ -214,11 +213,6 @@
       </AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\bzip2\blocksort.c" />
     <ClCompile Include="..\..\..\bzip2\bzlib.c" />

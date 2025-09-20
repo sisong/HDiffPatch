@@ -168,9 +168,9 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,const hpatch_T
 :m_oldData(oldData),m_newData(newData),m_isUseLargeSorted(true),m_mtsets(mtsets),
 m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_kMatchBlockSize(0){
     _out_diff_info("  match covers by block ...\n");
-    size_t maxBetterBlockSize=((oldData->streamSize+63)/64+63)/64*64;
+    hpatch_StreamPos_t maxBetterBlockSize=((oldData->streamSize+63)/64+63)/64*64;
     if (kMatchBlockSize>maxBetterBlockSize)
-        kMatchBlockSize=maxBetterBlockSize;
+        kMatchBlockSize=(size_t)maxBetterBlockSize;
 
     if (kMatchBlockSize<kMatchBlockSize_min)
         kMatchBlockSize=kMatchBlockSize_min;

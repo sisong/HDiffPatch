@@ -2293,15 +2293,15 @@ typedef struct{
 static hpatch_force_inline hpatch_size_t _step_cache_old_sumBufSize(const _step_cache_old_t* self){
                                                 return self->cache_old.cachesEnd-(const hpatch_byte*)self->cache_old.arrayCovers.pCCovers; }
 static hpatch_force_inline hpatch_size_t _step_cache_old_coverBufSize(const _step_cache_old_t* self){
-                                                return arrayCovers_memSize(self->cache_old.arrayCovers.coverCount,self->cache_old.arrayCovers.is32); }
-static hpatch_force_inline hpatch_size_t _step_cache_old_incCoverBufSize(const _step_cache_old_t* self){
+                                                return (hpatch_size_t)arrayCovers_memSize(self->cache_old.arrayCovers.coverCount,self->cache_old.arrayCovers.is32); }
+static hpatch_force_inline hpatch_StreamPos_t _step_cache_old_incCoverBufSize(const _step_cache_old_t* self){
                                                 return arrayCovers_memSize(self->cache_old.arrayCovers.coverCount+1,self->cache_old.arrayCovers.is32); }
 
 
 static hpatch_BOOL _step_cache_old_addCover(_step_cache_old_t* self,const hpatch_TCover* cover){
-    const hpatch_size_t _incCoverBufSize=_step_cache_old_incCoverBufSize(self);
+    const hpatch_StreamPos_t _incCoverBufSize=_step_cache_old_incCoverBufSize(self);
     while (hpatch_TRUE){
-        const hpatch_size_t _addCachedLen=(cover->length<=self->cache_old.maxCachedLen)?cover->length:0;
+        const hpatch_size_t _addCachedLen=(cover->length<=self->cache_old.maxCachedLen)?(hpatch_size_t)cover->length:0;
         if (_incCoverBufSize+self->sumCacheLen+_addCachedLen<=_step_cache_old_sumBufSize(self)){
             self->sumCacheLen+=_addCachedLen;
             _arrayCovers_push_cover(&self->cache_old.arrayCovers,cover);

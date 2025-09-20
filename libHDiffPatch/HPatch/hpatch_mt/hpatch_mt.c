@@ -85,8 +85,8 @@
         return times[0]*curThreads[0]+times[1]*curThreads[1]+times[2]*curThreads[2]+times[3]*curThreads[3];
     }
     
-    static hpatch_uint64_t _distributeThread(disThreads_t disThreads,const hpatch_uint64_t times[6],
-                                           size_t maxThreadNum,hpatchMTSets_t mtsets){
+    static hpatch_uint64_t _distributeThread(disThreads_t disThreads,const hpatch_uint64_t times[5],
+                                             size_t maxThreadNum,hpatchMTSets_t mtsets){
         size_t i;
         hpatch_uint64_t minTime=~(hpatch_uint64_t)0;
         const disThreads_t* disThreadsTab;
@@ -256,7 +256,7 @@ hpatch_mt_manager_t* hpatch_mt_manager_open(const hpatch_TStreamOutput** pout_ne
     if (stepMemSize+kMinTempCacheSize>(hpatch_size_t)(temp_cache_end-temp_cache)) return 0;
     if (!mtsets.readOld_isMT){
         if (_patch_is_can_cache_all_old((*poldData)->streamSize,stepMemSize+kMinTempCacheSize,temp_cache_end-temp_cache)){
-            size_t cacheAllNeedSize=_patch_cache_all_old_needSize((*poldData)->streamSize,0);
+            size_t cacheAllNeedSize=(size_t)_patch_cache_all_old_needSize((*poldData)->streamSize,0);
             temp_cache_end-=cacheAllNeedSize; // patch_single_stream_diff() will load all old data into memory 
         }
     #if (_IS_NEED_CACHE_OLD_BY_COVERS)
