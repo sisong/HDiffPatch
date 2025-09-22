@@ -159,13 +159,12 @@ namespace hdiff_private{
             self->_matchBlock.map_streams(pnewData,poldData);
         }
     };
-    
-    void loadOldAndNewStream(TAutoMem& out_mem,const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newStream);
 
 } //namespace hdiff_private
 
 
 //optimize diff speed by match block
+//   get_match_covers_by_block() got big covers + get_match_covers_by_sstring() got small covers
 //note: newData&oldData in memory will be changed
 //see create_compressed_diff | create_single_compressed_diff
 

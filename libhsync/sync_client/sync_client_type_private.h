@@ -161,10 +161,10 @@ hpatch_inline static unsigned int upper_ilog2(uint64_t v){
 }
     
 hpatch_inline static
-unsigned int getBetterCacheBlockTableBit(uint32_t blockCount){
+unsigned int getBetterCacheBlockTableBit(uint64_t blockCount){
     const unsigned int kMinBit = 8;
     const unsigned int kMaxBit = 23; //for limit cache memory size
-    int result=(int)upper_ilog2((1<<kMinBit)+(uint64_t)blockCount)-2;
+    int result=(int)upper_ilog2((1<<kMinBit)+blockCount)-2;
     result=(result<kMinBit)?kMinBit:result;
     result=(result>kMaxBit)?kMaxBit:result;
     return result;

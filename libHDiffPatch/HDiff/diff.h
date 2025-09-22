@@ -180,10 +180,12 @@ hpatch_StreamPos_t
 
 //same as create?compressed_diff_stream(), but not serialize diffData, only got covers
 void get_match_covers_by_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,const hdiff_TMTSets_s* mtsets);
+                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize=kMatchBlockSize_default,
+                               const hdiff_TMTSets_s* mtsets=0);
 void get_match_covers_by_block(const unsigned char* newData,const unsigned char* newData_end,
                                const unsigned char* oldData,const unsigned char* oldData_end,
-                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize,size_t threadNum);
+                               hpatch_TOutputCovers* out_covers,size_t kMatchBlockSize=kMatchBlockSize_default,
+                               size_t threadNum=1);
 
 //same as create?_diff(), but not serialize diffData, only got covers
 void get_match_covers_by_sstring(const unsigned char* newData,const unsigned char* newData_end,

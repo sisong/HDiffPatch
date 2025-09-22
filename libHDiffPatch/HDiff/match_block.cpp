@@ -364,17 +364,6 @@ void TMatchBlockStream::map_streams(const hpatch_TStreamInput** pnewData,const h
     *poldData=&_oldStreamMap;
 }
 
-void loadOldAndNewStream(TAutoMem& out_mem,const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newStream){
-    _out_diff_info("  load all datas into memory from old & new ...\n");
-    size_t old_size=oldStream?(size_t)oldStream->streamSize:0;
-    size_t new_size=(size_t)newStream->streamSize;
-    _check(newStream->streamSize==new_size,"loadOldAndNew() streamSize");
-    if (old_size) _check(oldStream->streamSize+newStream->streamSize==old_size+new_size,"loadOldAndNew() streamSize");
-    out_mem.realloc(old_size+new_size);
-    if (old_size) _check(oldStream->read(oldStream,0,out_mem.data(),out_mem.data()+old_size),"loadOldAndNew() oldStream->read");
-    _check(newStream->read(newStream,0,out_mem.data()+old_size,out_mem.data()+old_size+new_size),"loadOldAndNew() newStream->read");
-}
-
 } //namespace hdiff_private
 
 using namespace hdiff_private;

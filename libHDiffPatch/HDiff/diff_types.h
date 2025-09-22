@@ -92,6 +92,10 @@ namespace hdiff_private{
         const size_t    coverCount;
         const bool      isCover32;
     };
+
+    struct TAutoMem;
+    void loadOldAndNewStream(TAutoMem& out_mem,const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newStream);
+
 }
 
     //return whether x&y's datas are equal; if read stream fail,thorw std::runtime_error

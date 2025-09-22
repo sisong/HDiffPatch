@@ -233,9 +233,9 @@ private:
 };
 
 template<bool isMT>
-static void _filter_insert(TBloomFilter<adler_hash_t>* filter,const adler_uint_t* begin,const adler_uint_t* end){
+static void _filter_insert(TBloomFilter<adler_uint_t>* filter,const adler_uint_t* begin,const adler_uint_t* end){
     while (begin!=end){
-        adler_hash_t h=adler_to_hash(*begin++);
+        adler_uint_t h=(*begin++);
 #if (_IS_USED_MULTITHREAD)
         if (isMT)
             filter->insert_MT(h);
@@ -245,7 +245,7 @@ static void _filter_insert(TBloomFilter<adler_hash_t>* filter,const adler_uint_t
     }
 }
 
-static void filter_insert_parallel(TBloomFilter<adler_hash_t>& filter,const adler_uint_t* begin,
+static void filter_insert_parallel(TBloomFilter<adler_uint_t>& filter,const adler_uint_t* begin,
                                    const adler_uint_t* end,size_t threadNum){
 #if (_IS_USED_MULTITHREAD)
     const size_t kInsertMinParallelSize=4096;
@@ -629,7 +629,7 @@ template <class TIndex>
 static void tm_search_cover(const adler_uint_t* blocksBase,
                             const TIndex* iblocks,const TIndex* iblocks_end,
                             TOldStreamCache& oldStream,TNewStreamCache& newStream,
-                            const TBloomFilter<adler_hash_t>& filter,
+                            const TBloomFilter<adler_uint_t>& filter,
                             hpatch_TOutputCovers* out_covers,
                             hpatch_StreamPos_t _coverNewOffset,
                             void* _dataLocker) {
@@ -638,7 +638,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,
     TCover  lastCover={0,0,0};
     while (true) {
         adler_uint_t digest=newStream.rollDigest();
-        if (!filter.is_hit(adler_to_hash(digest)))
+        if (!filter.is_hit(digest))
             { if (newStream.roll()) continue; else break; }//finish
         typename TDigest_comp::TDigest digest_value(digest);
         std::pair<const TIndex*,const TIndex*>

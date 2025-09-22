@@ -46,12 +46,12 @@ public:
     inline TBitSet():m_bits(0),m_bitSize(0){}
     inline ~TBitSet(){ clear(0); }
     
-    inline void insert(size_t bitIndex){
+    hpatch_force_inline void insert(size_t bitIndex){
         //assert(bitIndex<m_bitSize);
         m_bits[bitIndex>>kBaseShr] |= ((base_t)1<<(bitIndex&kBaseMask));
     }
 #if (_IS_USED_MULTITHREAD)
-    inline void insert_MT(size_t bitIndex){
+    hpatch_force_inline void insert_MT(size_t bitIndex){
         //assert(bitIndex<m_bitSize);
         ((std::atomic<base_t>*)&m_bits[bitIndex>>kBaseShr])->fetch_or(((base_t)1<<(bitIndex&kBaseMask)));
     }
@@ -90,10 +90,10 @@ private:
 };
 
 
-template <class T>
+template <class T,bool is3layer=true>
 class TBloomFilter{
 public:
-    enum { kZoomMin=3, kZoomBig=32 };
+    enum { kZoomMin=3, kZoomBig=(is3layer?16:8) };
     typedef T value_type;
 
     inline TBloomFilter():m_bitSetMask(0){}
@@ -103,15 +103,15 @@ public:
         m_bitSet.clear(m_bitSetMask+1);
     }
     inline size_t bitSize()const{ return m_bitSet.bitSize(); }
-    inline void insert(T data){
+    hpatch_force_inline void insert(T data){
         m_bitSet.insert(hash0(data));
-        m_bitSet.insert(hash1(data));
+        if (is3layer) m_bitSet.insert(hash1(data));
         m_bitSet.insert(hash2(data));
     }
 #if (_IS_USED_MULTITHREAD)
-    inline void insert_MT(T data){
+    hpatch_force_inline void insert_MT(T data){
         m_bitSet.insert_MT(hash0(data));
-        m_bitSet.insert_MT(hash1(data));
+        if (is3layer) m_bitSet.insert_MT(hash1(data));
         m_bitSet.insert_MT(hash2(data));
     }
 #endif
@@ -120,6 +120,7 @@ public:
     }
 private:
     inline bool _is_hit_1_2(T data)const{
+        if (!is3layer) return m_bitSet.is_hit(hash2(data));
         return m_bitSet.is_hit(hash1(data))
             && m_bitSet.is_hit(hash2(data));
     }
@@ -140,7 +141,7 @@ private:
     hpatch_force_inline size_t hash0(T key)const { return (key^(key>>(sizeof(T)*3-1)))&m_bitSetMask; }
     inline size_t hash1(T key)const { return ((~key)+(key<<(sizeof(T)*2+4)))&m_bitSetMask; }
     inline size_t hash2(T key)const { return (sizeof(T)>4)?_hash2_64(key)&m_bitSetMask:_hash2_32((size_t)key)&m_bitSetMask; }
-    static size_t _hash2_32(size_t key){//from: https://gist.github.com/badboy/6267743
+    inline static size_t _hash2_32(size_t key){//from: https://gist.github.com/badboy/6267743
         const size_t c2=0x27d4eb2d; // a prime or an odd constant
         key = (key ^ 61) ^ (key >> 16);
         key = key + (key << 3);
@@ -149,7 +150,7 @@ private:
         key = key ^ (key >> 15);
         return key;
     }
-    static T _hash2_64(T key){
+    inline static T _hash2_64(T key){
         key = (~key) + (key << 18); // key = (key << 18) - key - 1;
         key = key ^ (key >> 31);
         key = key * 21; // key = (key + (key << 2)) + (key << 4);

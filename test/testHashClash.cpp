@@ -254,8 +254,8 @@ void test_speed(const TByte* data,const TByte* data_end){
     printf("speed: %.1f MB/s\n", speed);
 }
 
-const uint64_t kMaxMapNodeSize=80000000ull; //run test memory ctrl
-const size_t   kRandTestMaxSize=1024*1024*1024;//test rand data size
+const uint64_t kMaxMapNodeSize=(uint64_t)20000000*((sizeof(size_t)==8)?4:1); //run test memory ctrl
+const size_t   kRandTestMaxSize=(size_t)1024*1024*512*((sizeof(size_t)==8)?2:1);//test rand data size
     size_t   kMinHashDataSize=0;
     size_t   kMaxHashDataSize=256;
     size_t   kMinClash=0; //run test max time ctrl

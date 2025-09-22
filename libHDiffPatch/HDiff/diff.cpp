@@ -65,6 +65,26 @@ static const int kMinMatchLen   = kCoverMinMatchLen; //min length for match sear
 static const int kMinMatchScore = 2; //min match benefit threshold for cover search.
 static const hpatch_uint64_t kDefaultLimitCoverLen=((hpatch_uint64_t)1<<30); //<=2GB-1
 
+namespace hdiff_private{
+    void loadOldAndNewStream(TAutoMem& out_mem,const hpatch_TStreamInput* oldStream,hpatch_StreamPos_t oldPos,size_t old_size,
+                             const hpatch_TStreamInput* newStream,hpatch_StreamPos_t newPos,size_t new_size){
+        if (old_size>0) assert(oldPos+old_size<=oldStream->streamSize);
+        assert(newPos+new_size<=newStream->streamSize);
+        if (sizeof(size_t)<sizeof(hpatch_StreamPos_t))
+            check(old_size+new_size==(hpatch_StreamPos_t)old_size+new_size);
+        out_mem.realloc(old_size+new_size);
+        if (old_size) check(oldStream->read(oldStream,oldPos,out_mem.data(),out_mem.data()+old_size));
+        check(newStream->read(newStream,newPos,out_mem.data()+old_size,out_mem.data()+old_size+new_size));
+    }
+    void loadOldAndNewStream(TAutoMem& out_mem,const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newStream){
+        _out_diff_info("  load all datas into memory from old & new ...\n");
+        if (oldStream) check((size_t)oldStream->streamSize==(size_t)oldStream->streamSize);
+        check((size_t)newStream->streamSize==(size_t)newStream->streamSize);
+        loadOldAndNewStream(out_mem, oldStream,0,oldStream?(size_t)oldStream->streamSize:0,
+                            newStream,0,(size_t)newStream->streamSize);
+    }
+}
+
 namespace{
     
     typedef unsigned char TByte;

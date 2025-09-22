@@ -127,9 +127,9 @@ namespace sync_private{
         const uint32_t kMatchBlockCount=kBlockCount-newSyncInfo->samePairCount;
         const size_t needRollHashByteSize=newSyncInfo->savedRollHashByteSize*(newSyncInfo->isSeqMatch?2:1);
         unsigned int kTableBit =getBetterCacheBlockTableBit(kMatchBlockCount);
-        const size_t needRollHashBits=newSyncInfo->savedRollHashBits*(newSyncInfo->isSeqMatch?2:1);
-        if (kTableBit>needRollHashBits) kTableBit=(unsigned int)needRollHashBits;
-        kTableHashShlBit=(int)(needRollHashBits-kTableBit);
+        const uint32_t needRollHashBits=(uint32_t)newSyncInfo->savedRollHashBits*(newSyncInfo->isSeqMatch?2:1);
+        if (kTableBit>needRollHashBits) kTableBit=needRollHashBits;
+        kTableHashShlBit=needRollHashBits-kTableBit;
         _mem_table.realloc((size_t)sizeof(uint32_t)*((1<<kTableBit)+1));
         uint32_t* sorted_newIndexs_table=(uint32_t*)_mem_table.data();
         {
