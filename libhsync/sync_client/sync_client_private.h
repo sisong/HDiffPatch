@@ -207,10 +207,10 @@ namespace sync_private{
                 digestFull_back=digest;
                 digest=f_toSavedPartRollHash(digest,savedRollHashBits);
                 if ((!isSeqMatch)||(_matchedPosBack!=curOldPos)){
-                    if (!filter.is_hit((filter_value_t)digest))
-                        { if (oldData.roll()) continue; else break; }//finish
+                    if (!filter.is_hit((filter_value_t)digest)) goto _do_roll;
                 }
             }else{
+              _do_roll:
                 if (oldData.roll()) continue; else break; //finish
             }
             
@@ -232,8 +232,7 @@ namespace sync_private{
             std::pair<const uint32_t*,const uint32_t*>
             //range=std::equal_range(rd.sorted_newIndexs,rd.sorted_newIndexs+(kBlockCount-rd.newSyncInfo->samePairCount),digest_value,_icomp0);
             range=std::equal_range(ti_pos0,ti_pos1,digest_value,_icomp0);
-            if (range.first==range.second)
-                { if (oldData.roll()) continue; else break; }//finish
+            if (range.first==range.second) goto _do_roll;
 
             bool isMatched=_matchRange(rd.out_newBlockDataInOldPoss,range.first,range.second,oldData,
                                        rd.newSyncInfo,kMinRevSameIndex,_mt);
@@ -244,7 +243,7 @@ namespace sync_private{
                     if (oldData.nextBlock()) { digestFull_back=~oldData.hashValue(); continue; } else break;
                 }//else roll
             }//else roll
-            if (oldData.roll()) continue; else break;
+            goto _do_roll;
         }
     }
 

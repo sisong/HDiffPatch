@@ -26,124 +26,23 @@
  */
 
 #include "digest_matcher.h"
-#include <stdexcept>  //std::runtime_error
-#include <algorithm>  //std::sort,std::equal_range
-#include "../compress_detect.h" //_getUIntCost
-#include "../../../../libParallel/parallel_channel.h"
-#include "../qsort_parallel.h"
-#if (_IS_USED_MULTITHREAD)
-#include <atomic>
-#endif
+#include "digest_match_private_types.h"
 namespace hdiff_private{
 static  const size_t kMinTrustMatchedLength=1024*16;
 static  const size_t kMinMatchedLength = 16;
-static  const size_t kMatchBlockSize_min=4;//sizeof(hpatch_uint32_t);
-static  const size_t kBestReadSize=1024*256; //for sequence read
 static  const size_t kMinReadSize=1024*4;    //for random first read speed
 static  const size_t kMinBackupReadSize=256;
 static  const size_t kBestMatchRange=1024*64;
 static  const size_t kMaxLinkIndexFindCount=64;
-static  const size_t kMinParallelSize=1024*1024*2;
-static  const size_t kBestParallelSize=1024*1024*8;
 
-
-#define readStream(stream,pos,dst,n) { \
-    if (((n)>0)&&(!(stream)->read(stream,pos,dst,dst+(n)))) \
-        throw std::runtime_error("TStreamCache::_resetPos_continue() stream->read() error!"); }
-
-struct TStreamCache{
-    TStreamCache(const hpatch_TStreamInput* _stream,unsigned char* _cache,size_t _cacheSize,void* _locker)
-    :stream(_stream),m_readPos(0),m_readPosEnd(0),m_locker(_locker),
-        cache(_cache),cacheSize(_cacheSize),cachePos(_cacheSize){ }
-    inline hpatch_StreamPos_t streamSize()const{ return stream->streamSize; }
-    inline hpatch_StreamPos_t pos()const { return m_readPosEnd-dataLength(); }
-    hpatch_force_inline const size_t   dataLength()const{ return (size_t)(cacheSize-cachePos); }
-    hpatch_force_inline const unsigned char* data()const { return cache+cachePos; }
-    inline bool resetPos(size_t kBackupCacheSize,hpatch_StreamPos_t streamPos,size_t kMinCacheDataSize){
-        if (_is_hit_cache(kBackupCacheSize,streamPos,kMinCacheDataSize)){
-            cachePos=cacheSize-(size_t)(m_readPosEnd-streamPos);
-            return true; //hit cache
-        }
-        return _resetPos_continue(kBackupCacheSize,streamPos,kMinCacheDataSize);
-    }
-protected:
-    inline bool _is_hit_cache(size_t kBackupCacheSize,hpatch_StreamPos_t streamPos,size_t kMinCacheDataSize){
-        return (streamPos+kMinCacheDataSize<=m_readPosEnd)&&(streamPos>=m_readPos+kBackupCacheSize);
-    }
-    inline unsigned char* cachedData(){ return cache+cacheSize-cachedLength(); }
-    inline const size_t   cachedLength()const{ return (size_t)(m_readPosEnd-m_readPos); }
-    bool _resetPos_continue(size_t kBackupCacheSize,hpatch_StreamPos_t streamPos,size_t kMinCacheDataSize){
-        //stream:[...     |                |                   |                  |                      |      ...]
-        //             readPos (streamPos-kBackupCacheSize) streamPos (streamPos+kMinCacheDataSize) (readPosEnd)
-        //cache:     [    |                                    |                  |                      ]
-        //           0                                   (init cachePos)                              cacheSize
-        hpatch_StreamPos_t streamSize=stream->streamSize;
-        if (streamPos+kMinCacheDataSize>streamSize) return false;
-        hpatch_StreamPos_t readPos=(streamPos>=kBackupCacheSize)?(streamPos-kBackupCacheSize):0;
-        size_t readLen=((streamSize-readPos)>=cacheSize)?cacheSize:(size_t)(streamSize-readPos);
-#if (_IS_USED_MULTITHREAD)
-        if (m_locker){
-            CAutoLocker _autoLocker(m_locker);
-            _resetPos_continue_read(readPos,readLen);
-        }else
-#endif
-        {
-            _resetPos_continue_read(readPos,readLen);
-        }
-        m_readPos=readPos;
-        m_readPosEnd=readPos+readLen;
-        cachePos=cacheSize-(size_t)(m_readPosEnd-streamPos);
-        return true;
-    }
-private:
-    void _resetPos_continue_read(hpatch_StreamPos_t readPos,size_t readLen){
-        unsigned char* dst=cache+cacheSize-readLen;
-        if ((m_readPosEnd>readPos)&&(m_readPos<=readPos)){
-            size_t moveLen=(size_t)(m_readPosEnd-readPos);
-            memmove(dst,cache+cacheSize-moveLen,moveLen);
-            readStream(stream,readPos+moveLen,dst+moveLen,readLen-moveLen);
-        }else if ((m_readPos<readPos+readLen)&&(m_readPosEnd>=readPos+readLen)){
-            size_t moveLen=(size_t)(readPos+readLen-m_readPos);
-            memmove(dst+readLen-moveLen,cachedData(),moveLen);
-            readStream(stream,readPos,dst,readLen-moveLen);
-        }else{
-            readStream(stream,readPos,dst,readLen);
-        }
-    }
-    const hpatch_TStreamInput* stream;
-protected:
-    hpatch_StreamPos_t         m_readPos;
-    hpatch_StreamPos_t         m_readPosEnd;
-    void*                      m_locker;
-    unsigned char*             cache;
-    size_t                     cacheSize;
-    size_t                     cachePos;
-};
-
-template <class T,class Tn>
-inline static T upperCount(T all_size,Tn node_size){ return (all_size+node_size-1)/node_size; }
+typedef TRollHash_fadler64  TMatchRollHash;
+#define hash_uint_t     TMatchRollHash::hash_uint_t
+#define hash_start      TMatchRollHash::hash_start
+#define hash_roll       TMatchRollHash::hash_roll
+typedef tm_TNewStreamCache<TMatchRollHash>  TNewStreamCache;
 
 inline static size_t getBackupSize(size_t kMatchBlockSize) {
     return (kMatchBlockSize>=kMinBackupReadSize)?kMatchBlockSize:kMinBackupReadSize; }
-
-static hpatch_StreamPos_t getBlockCount(size_t kMatchBlockSize,
-                                        hpatch_StreamPos_t streamSize){
-    return upperCount(streamSize,kMatchBlockSize);
-}
-static hpatch_StreamPos_t blockIndexToPos(size_t index,size_t kMatchBlockSize,
-                                          hpatch_StreamPos_t streamSize){
-    hpatch_StreamPos_t pos=(hpatch_StreamPos_t)index * kMatchBlockSize;
-    if (pos+kMatchBlockSize>streamSize)
-        pos=streamSize-kMatchBlockSize;
-    return pos;
-}
-    
-static size_t posToBlockIndex(hpatch_StreamPos_t pos,size_t kMatchBlockSize,size_t blocksSize){
-    size_t result=(size_t)((pos+(kMatchBlockSize>>1))/kMatchBlockSize);
-    if (result>=blocksSize) result=blocksSize-1;
-    return result;
-}
-
 
 TDigestMatcher::~TDigestMatcher(){
 }
@@ -167,15 +66,10 @@ TDigestMatcher::TDigestMatcher(const hpatch_TStreamInput* oldData,const hpatch_T
                                size_t kMatchBlockSize,const hdiff_TMTSets_s& mtsets)
 :m_oldData(oldData),m_newData(newData),m_isUseLargeSorted(true),m_mtsets(mtsets),
 m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_kMatchBlockSize(0){
-    _out_diff_info("  match covers by block ...\n");
-    hpatch_StreamPos_t maxBetterBlockSize=((oldData->streamSize+63)/64+63)/64*64;
-    if (kMatchBlockSize>maxBetterBlockSize)
-        kMatchBlockSize=(size_t)maxBetterBlockSize;
-
-    if (kMatchBlockSize<kMatchBlockSize_min)
-        kMatchBlockSize=kMatchBlockSize_min;
-    if (oldData->streamSize<kMatchBlockSize) return;
+    kMatchBlockSize=limitMatchBlockSize(kMatchBlockSize,oldData->streamSize);
     m_kMatchBlockSize=kMatchBlockSize;
+    if (oldData->streamSize<kMatchBlockSize) return;
+    _out_diff_info("  match covers by block ...\n");
     
     hpatch_StreamPos_t _blockCount=getBlockCount(m_kMatchBlockSize,m_oldData->streamSize);
     m_isUseLargeSorted=(_blockCount>=((hpatch_StreamPos_t)1<<32));
@@ -200,31 +94,31 @@ m_newCacheSize(0),m_oldCacheSize(0),m_oldMinCacheSize(0),m_backupCacheSize(0),m_
 }
 
 struct TIndex_comp{
-    inline TIndex_comp(const adler_uint_t* _blocks,size_t _n,size_t _kMaxDeep)
+    inline TIndex_comp(const hash_uint_t* _blocks,size_t _n,size_t _kMaxDeep)
         :blocks(_blocks),n(_n),kMaxDeep(_kMaxDeep){ }
     template<class TIndex>
     inline bool operator()(TIndex x,TIndex y)const {
-        adler_uint_t xd=blocks[x];
-        adler_uint_t yd=blocks[y];
+        hash_uint_t xd=blocks[x];
+        hash_uint_t yd=blocks[y];
         if (xd!=yd)
             return xd<yd;
         else
             return _cmp(x+1,y+1,n,kMaxDeep,blocks);
     }
 private:
-    const adler_uint_t* blocks;
+    const hash_uint_t* blocks;
     const size_t        n;
     const size_t        kMaxDeep;
     
     template<class TIndex>
     static bool _cmp(TIndex x,TIndex y,size_t n,size_t kMaxDeep,
-                     const adler_uint_t* blocks) {
+                     const hash_uint_t* blocks) {
         if (x!=y) {} else{ return false; }
         size_t deep=n-((x>y)?x:y);
         deep=(deep<=kMaxDeep)?deep:kMaxDeep;
         for (size_t i=0;i<deep;++i){
-            adler_uint_t xd=blocks[x++];
-            adler_uint_t yd=blocks[y++];
+            hash_uint_t xd=blocks[x++];
+            hash_uint_t yd=blocks[y++];
             if (xd!=yd)
                 return xd<yd;
         }
@@ -232,102 +126,31 @@ private:
     }
 };
 
-template<bool isMT>
-static void _filter_insert(TBloomFilter<adler_uint_t>* filter,const adler_uint_t* begin,const adler_uint_t* end){
-    while (begin!=end){
-        adler_uint_t h=(*begin++);
-#if (_IS_USED_MULTITHREAD)
-        if (isMT)
-            filter->insert_MT(h);
-        else
-#endif
-            filter->insert(h);
-    }
-}
-
-static void filter_insert_parallel(TBloomFilter<adler_uint_t>& filter,const adler_uint_t* begin,
-                                   const adler_uint_t* end,size_t threadNum){
-#if (_IS_USED_MULTITHREAD)
-    const size_t kInsertMinParallelSize=4096;
-    const size_t size=end-begin;
-    if ((threadNum>1)&&(size>=kInsertMinParallelSize)) {
-        const size_t maxThreanNum=size/(kInsertMinParallelSize/2);
-        threadNum=(threadNum<=maxThreanNum)?threadNum:maxThreanNum;
-
-        const size_t step=size/threadNum;
-        const size_t threadCount=threadNum-1;
-        std::vector<std::thread> threads(threadCount);
-        for (size_t i=0;i<threadCount;i++,begin+=step)
-            threads[i]=std::thread(_filter_insert<true>,&filter,begin,begin+step);
-        _filter_insert<true>(&filter,begin,end);
-        for (size_t i=0;i<threadCount;i++)
-            threads[i].join();
-    }else
-#endif
-    {
-        _filter_insert<false>(&filter,begin,end);
-    }
-}
-
-
 #define __sort_indexs(TIndex,indexs,comp,m_threadNum) sort_parallel<TIndex,TIndex_comp,1024*8,137> \
                             (indexs.data(),indexs.data()+indexs.size(),comp,m_threadNum)
 
 void TDigestMatcher::getDigests(){
     if (m_blocks.empty()) return;
     
+    getBlocksHash_parallel<TMatchRollHash>(m_oldData,m_blocks.data(),m_kMatchBlockSize,
+                                           m_mem.data(),m_mem.size(),m_mtsets.threadNum);
     const size_t blockCount=m_blocks.size();
-    TStreamCache streamCache(m_oldData,m_mem.data(),m_newCacheSize+m_oldCacheSize,0);
+    m_filter.init(blockCount);
+    filter_insert_parallel(m_filter,m_blocks.data(),m_blocks.data()+blockCount,m_mtsets.threadNum);
+
     for (size_t i=0;i<blockCount;++i) {
-        hpatch_StreamPos_t readPos=blockIndexToPos(i,m_kMatchBlockSize,m_oldData->streamSize);
-        streamCache.resetPos(0,readPos,m_kMatchBlockSize);
-        adler_uint_t adler=adler_start(streamCache.data(),m_kMatchBlockSize);
-        m_blocks[i]=adler;
         if (m_isUseLargeSorted)
             m_sorted_larger[i]=i;
         else
             m_sorted_limit[i]=(uint32_t)i;
     }
-    m_filter.init(blockCount);
-    filter_insert_parallel(m_filter,m_blocks.data(),m_blocks.data()+blockCount,m_mtsets.threadNum);
-
     size_t kMaxCmpDeep= 1 + upperCount(kMinTrustMatchedLength,m_kMatchBlockSize);
     TIndex_comp comp(m_blocks.data(),m_blocks.size(),kMaxCmpDeep);
     if (m_isUseLargeSorted)
-        __sort_indexs(std::vector<size_t>::value_type,m_sorted_larger,comp,m_mtsets.threadNum);
+        __sort_indexs(size_t,m_sorted_larger,comp,m_mtsets.threadNum);
     else
         __sort_indexs(uint32_t,m_sorted_limit,comp,m_mtsets.threadNum);
 }
-
-struct TBlockStreamCache:public TStreamCache{
-    TBlockStreamCache(const hpatch_TStreamInput* _stream,unsigned char* _cache,size_t _cacheSize,
-                      size_t _backupCacheSize, size_t _kMatchBlockSize,void* _locker)
-    :TStreamCache(_stream,_cache,_cacheSize,_locker),
-    backupCacheSize(_backupCacheSize),kMatchBlockSize(_kMatchBlockSize){
-        assert(cacheSize>=(backupCacheSize+kMatchBlockSize)); }
-    inline bool resetPos(hpatch_StreamPos_t streamPos){
-        return TStreamCache::resetPos(backupCacheSize,streamPos,kMatchBlockSize);
-    }
-public:
-    inline bool _loop_backward_cache(size_t skipLen,size_t needDataSize){
-        return TStreamCache::resetPos(0,pos()+skipLen,needDataSize);
-    }
-    size_t forward_equal_length(const TBlockStreamCache& y)const{
-        size_t y_len=(size_t)(y.pos()-y.m_readPos);
-        size_t len=(size_t)(pos()-m_readPos);
-        len=(len<y_len)?len:y_len;
-        const unsigned char* px=data();
-        const unsigned char* py=y.data();
-        size_t i=0;
-        for (;i<len;++i){
-            if (*(--px) != *(--py)) break;
-        }
-        return i;
-    }
-public:
-    const size_t    backupCacheSize;
-    const size_t    kMatchBlockSize;
-};
 
 struct TOldStreamCache:public TBlockStreamCache{
     TOldStreamCache(const hpatch_TStreamInput* _stream,unsigned char* _cache,
@@ -381,63 +204,11 @@ private:
     }
 };
 
-struct TNewStreamCache:public TBlockStreamCache{
-    TNewStreamCache(const hpatch_TStreamInput* _stream,unsigned char* _cache,size_t _cacheSize,
-                    size_t _backupCacheSize,size_t _kMatchBlockSize,void* _locker)
-    :TBlockStreamCache(_stream,_cache,_cacheSize,_backupCacheSize,_kMatchBlockSize,_locker){
-        resetPos(0);
-    }
-    void toBestDataLength(){
-        if (dataLength()*2>=cacheSize) return;
-        bool result=_resetPos_continue(backupCacheSize,pos(),kMatchBlockSize);
-        assert(result);
-    }
-    
-    inline bool resetPos(hpatch_StreamPos_t streamPos){
-        if (!TBlockStreamCache::resetPos(streamPos)) return false;
-        roll_digest=adler_start(data(),kMatchBlockSize);
-        return true;
-    }
-    hpatch_force_inline bool roll(){
-        //warning: after running _loop_backward_cache(),cache roll logic is failure
-        if (dataLength()>kMatchBlockSize){
-            const unsigned char* cur_datas=data();
-            roll_digest=adler_roll(roll_digest,kMatchBlockSize,cur_datas[0],cur_datas[kMatchBlockSize]);
-            ++cachePos;
-            return true;
-        }else{
-            return _resetPos_and_roll(); 
-        }
-    }
-    hpatch_force_inline adler_uint_t rollDigest()const{ return roll_digest; }
-private:
-    adler_uint_t               roll_digest;
-    bool _resetPos_and_roll(){
-        if (!TBlockStreamCache::resetPos(pos()+1)) return false;
-        --cachePos;
-        return roll();
-    }
-};
 
-
-struct TDigest_comp{
-    inline explicit TDigest_comp(const adler_uint_t* _blocks):blocks(_blocks){ }
-    struct TDigest{
-        adler_uint_t value;
-        hpatch_force_inline explicit TDigest(adler_uint_t _value):value(_value){}
-    };
-    template<class TIndex> inline
-    bool operator()(const TIndex& x,const TDigest& y)const { return blocks[x]<y.value; }
-    template<class TIndex> inline
-    bool operator()(const TDigest& x,const TIndex& y)const { return x.value<blocks[y]; }
-    template<class TIndex> inline
-    bool operator()(const TIndex& x, const TIndex& y)const { return blocks[x]<blocks[y]; }
-protected:
-    const adler_uint_t* blocks;
-};
+typedef tm_TDigest_comp<hash_uint_t>    TDigest_comp;
 
 struct TDigest_comp_i:public TDigest_comp{
-    inline TDigest_comp_i(const adler_uint_t* _blocks,size_t _n):TDigest_comp(_blocks),n(_n),i(0){ }
+    inline TDigest_comp_i(const hash_uint_t* _blocks,size_t _n):TDigest_comp(_blocks),n(_n),i(0){ }
     template<class TIndex> inline
     bool operator()(const TIndex& x,const TDigest& y)const { return (x+i<n)?(blocks[x+i]<y.value):true; }
     template<class TIndex> inline
@@ -473,7 +244,7 @@ public:
     }
 
 template <class TIndex>
-static const TIndex* getBestMatchi(const adler_uint_t* blocksBase,size_t blocksSize,
+static const TIndex* getBestMatchi(const hash_uint_t* blocksBase,size_t blocksSize,
                                    const TIndex** _left,const TIndex** _right,
                                    TNewStreamCache& newStream,const TCover& lastCover,
                                    size_t* _digests_eq_n){
@@ -494,7 +265,7 @@ static const TIndex* getBestMatchi(const adler_uint_t* blocksBase,size_t blocksS
         newStream.toBestDataLength();
         const unsigned char* bdata=newStream.data()+kMatchBlockSize;
         for (; (digests_eq_n<max_digests_n)&&(right-left>1);++digests_eq_n,bdata+=kMatchBlockSize){
-            adler_uint_t digest=adler_start(bdata,kMatchBlockSize);
+            hash_uint_t digest=hash_start(bdata,kMatchBlockSize);
             typename TDigest_comp::TDigest digest_value(digest);
             comp_i.i=digests_eq_n;
             std::pair<const TIndex*,const TIndex*> i_range=
@@ -626,10 +397,10 @@ static bool getBestMatch(const TIndex* left,const TIndex* right,const TIndex* be
     }
 
 template <class TIndex>
-static void tm_search_cover(const adler_uint_t* blocksBase,
+static void tm_search_cover(const hash_uint_t* blocksBase,
                             const TIndex* iblocks,const TIndex* iblocks_end,
                             TOldStreamCache& oldStream,TNewStreamCache& newStream,
-                            const TBloomFilter<adler_uint_t>& filter,
+                            const TBloomFilter<hash_uint_t>& filter,
                             hpatch_TOutputCovers* out_covers,
                             hpatch_StreamPos_t _coverNewOffset,
                             void* _dataLocker) {
@@ -637,14 +408,13 @@ static void tm_search_cover(const adler_uint_t* blocksBase,
     TDigest_comp comp(blocksBase);
     TCover  lastCover={0,0,0};
     while (true) {
-        adler_uint_t digest=newStream.rollDigest();
-        if (!filter.is_hit(digest))
-            { if (newStream.roll()) continue; else break; }//finish
-        typename TDigest_comp::TDigest digest_value(digest);
+        if (!filter.is_hit(newStream.rollDigest())){
+          _do_roll:
+            if (newStream.roll()) continue; else break; //finish
+        }
         std::pair<const TIndex*,const TIndex*>
-        range=std::equal_range(iblocks,iblocks_end,digest_value,comp);
-        if (range.first==range.second)
-            { if (newStream.roll()) continue; else break; }//finish
+          range=std::equal_range(iblocks,iblocks_end,typename TDigest_comp::TDigest(newStream.rollDigest()),comp);
+        if (range.first==range.second) goto _do_roll;
         
         hpatch_StreamPos_t newPosNext=newStream.pos()+1;
         size_t digests_eq_n;
@@ -671,7 +441,7 @@ static void tm_search_cover(const adler_uint_t* blocksBase,
             }
         }
         //next
-        if (!newStream.resetPos(newPosNext)) break;//finish
+        if (newStream.resetPos(newPosNext)) continue; else break; //finish
     }
 }
 

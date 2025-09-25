@@ -32,17 +32,8 @@
 #define digest_matcher_h
 #include "bloom_filter.h"
 #include "covers.h"
-#include "adler_roll.h"
 #include "../mem_buf.h"
 namespace hdiff_private{
-
-typedef uint64_t        adler_uint_t;
-#define adler_start     fast_adler64_start
-#define adler_roll      fast_adler64_roll
-
-//typedef uint32_t        adler_uint_t;
-//#define adler_start     fast_adler32_start
-//#define adler_roll      fast_adler32_roll
 
 class TDigestMatcher{
 public:
@@ -55,10 +46,11 @@ private:
     TDigestMatcher(const TDigestMatcher &); //empty
     TDigestMatcher &operator=(const TDigestMatcher &); //empty
 private:
+    typedef hpatch_uint64_t hash_uint_t;
     const hpatch_TStreamInput*  m_oldData;
     const hpatch_TStreamInput*  m_newData;
-    std::vector<adler_uint_t>   m_blocks;
-    TBloomFilter<adler_uint_t>  m_filter;
+    std::vector<hash_uint_t>    m_blocks;
+    TBloomFilter<hash_uint_t>   m_filter;
     std::vector<uint32_t>       m_sorted_limit;
     std::vector<size_t>         m_sorted_larger;
     bool                        m_isUseLargeSorted;
