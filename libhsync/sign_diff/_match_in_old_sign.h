@@ -32,8 +32,8 @@
 #include "_sign_diff_type.h"
 namespace sync_private{
 
-void matchNewDataInOldSign(hpatch_TOutputCovers* out_covers,const hpatch_TStreamInput* newStream,
-                           const TOldDataSyncInfo* oldSyncInfo,int threadNum);
+void get_match_covers_by_sign(const hpatch_TStreamInput* newStream,const TOldDataSyncInfo* oldSyncInfo,
+                              hpatch_TOutputCovers* out_covers,size_t threadNum);
 
 }//namespace sync_private
 #endif

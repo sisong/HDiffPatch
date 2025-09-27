@@ -60,12 +60,12 @@ inline static size_t limitMatchBlockSize(size_t kMatchBlockSize,hpatch_StreamPos
     return (kMatchBlockSize>=kMatchBlockSize_min)?kMatchBlockSize:kMatchBlockSize_min;
 }
 
-inline static hpatch_StreamPos_t blockIndexToPos(size_t index,size_t kMatchBlockSize,hpatch_StreamPos_t streamSize){
-    hpatch_StreamPos_t pos=((hpatch_StreamPos_t)index)*kMatchBlockSize;
+inline static hpatch_StreamPos_t blockIndexToPos(hpatch_StreamPos_t index,size_t kMatchBlockSize,hpatch_StreamPos_t streamSize){
+    hpatch_StreamPos_t pos=index*kMatchBlockSize;
     return (pos+kMatchBlockSize<=streamSize)?pos:streamSize-kMatchBlockSize;
 }
-inline static size_t posToBlockIndex(hpatch_StreamPos_t pos,size_t kMatchBlockSize,size_t blockCount){
-    size_t result=(size_t)((pos+(kMatchBlockSize-1))/kMatchBlockSize);
+inline static hpatch_StreamPos_t posToBlockIndex(hpatch_StreamPos_t pos,size_t kMatchBlockSize,hpatch_StreamPos_t blockCount){
+    hpatch_StreamPos_t result=((pos+(kMatchBlockSize-1))/kMatchBlockSize);
     return (result<blockCount)?result:blockCount-1;
 }
 
@@ -253,7 +253,7 @@ void _getBlocksHash_thread(TBlocksHash_mt* mt,hpatch_byte* pmem,size_t memStep){
             if (readPos+readLen>streamSize){
                 if (readPos>=streamSize) break;
                 if (streamSize>=kMatchBlockSize+readPos){
-                    readLen=streamSize-readPos;
+                    readLen=(size_t)(streamSize-readPos);
                 }else{
                     readLen=kMatchBlockSize;
                     readPos=streamSize-kMatchBlockSize;
@@ -264,7 +264,7 @@ void _getBlocksHash_thread(TBlocksHash_mt* mt,hpatch_byte* pmem,size_t memStep){
                 throw std::runtime_error("_getBlocksHash_thread() streamData->read error!");
         }
         assert(readLen>=kMatchBlockSize);
-        size_t blocki=posToBlockIndex(readPos,kMatchBlockSize,blockCount);
+        size_t blocki=(size_t)posToBlockIndex(readPos,kMatchBlockSize,blockCount);
         const hpatch_byte* pdataEnd=pmem+readLen;
         for (const hpatch_byte* pdata=pmem;pdata<pdataEnd;pdata+=kMatchBlockSize){
             if (pdata+kMatchBlockSize>pdataEnd)
@@ -286,7 +286,7 @@ void getBlocksHash_parallel(const hpatch_TStreamInput* streamData,typename TRoll
     assert(memStep>0);
     hpatch_StreamPos_t workCount=upperCount(streamData->streamSize,memStep);
     if (threadNum>workCount){
-        threadNum=workCount;
+        threadNum=(size_t)workCount;
         memStep=(memSize/threadNum)/kMatchBlockSize*kMatchBlockSize;
     }
     TBlocksHash_mt mt_data={streamData,out_blocks,kMatchBlockSize,(size_t)workCount,0,0};

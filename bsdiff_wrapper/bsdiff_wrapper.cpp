@@ -57,7 +57,7 @@ namespace hdiff_private{
         :curPos(0),curi(0),bufi(0),covers(_covers){
             streamImport=this;
             read=_read;
-            streamSize=(covers.coverCount()-1)*(hpatch_StreamPos_t)(3*8);
+            streamSize=(covers.size()-1)*(hpatch_StreamPos_t)(3*8);
             buf.reserve(hdiff_kFileIOBufBestSize);
         }
     private:
@@ -69,10 +69,9 @@ namespace hdiff_private{
         void _updateBuf(){
             buf.clear();
             bufi=0;
-            while ((curi+1<covers.coverCount())&&((buf.size()+3*8)<=hdiff_kFileIOBufBestSize)){
-                TCover c,cnext;
-                covers.covers(curi++,&c);
-                covers.covers(curi,&cnext);
+            while ((curi+1<covers.size())&&((buf.size()+3*8)<=hdiff_kFileIOBufBestSize)){
+                const TCover& c=covers[curi++];
+                const TCover& cnext=covers[curi];
                 pushUInt64(buf,c.length);
                 pushUInt64(buf,(hpatch_uint64_t)cnext.newPos-(hpatch_uint64_t)(c.newPos+c.length));
                 pushSInt64(buf,(hpatch_uint64_t)cnext.oldPos-(hpatch_uint64_t)(c.oldPos+c.length));
@@ -129,10 +128,9 @@ namespace hdiff_private{
         TNewDataSubDiffStream&  subStream;
         TNewDataDiffStream&     diffStream;
         void _update(){
-            if (curi+1<covers.coverCount()){
-                TCover c,cnext;
-                covers.covers(curi++,&c);
-                covers.covers(curi,&cnext);
+            if (curi+1<covers.size()){
+                const TCover& c=covers[curi++];
+                const TCover& cnext=covers[curi];
                 curCtrlLen=3*8;
                 curDiffLen=cnext.newPos-(c.newPos+c.length);
                 curSubLen=c.length;
@@ -269,7 +267,7 @@ void _create_bsdiff(const unsigned char* newData,const unsigned char* cur_newDat
                     bool isEndsleyBsdiff,int kMinSingleMatchScore,bool isUseBigCacheMatch,
                     ICoverLinesListener* listener,size_t threadNum){
     _out_diff_info("  serialize %s diffData ...\n",isEndsleyBsdiff?"endsley/bsdiff":"bsdiff4");
-    std::vector<hpatch_TCover_sz> covers;
+    std::vector<hpatch_TCover> covers;
     get_match_covers_by_sstring(newData,cur_newData_end,oldData,cur_oldData_end,covers,
                                 kMinSingleMatchScore,isUseBigCacheMatch,listener,threadNum);
 
@@ -281,8 +279,7 @@ void _create_bsdiff(const unsigned char* newData,const unsigned char* cur_newDat
         listener->map_streams_befor_serialize(listener,(const hpatch_TStreamInput **)&newStream,(const hpatch_TStreamInput **)&oldStream);
 
     _to_bsdiff_covers(covers,(size_t)(newStream->streamSize));
-    const TCovers _covers((void*)covers.data(),covers.size(),
-                          sizeof(*covers.data())==sizeof(hpatch_TCover32));
+    const TCovers _covers(covers.data(),covers.size());
     serialize_bsdiff(newStream,oldStream,_covers,out_diff,compressPlugin,isEndsleyBsdiff);
 }
 
@@ -317,13 +314,10 @@ void create_bsdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput*
 void create_bsdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                           const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                           bool isEndsleyBsdiff,size_t kMatchBlockSize,const hdiff_TMTSets_s* mtsets){
-    TCoversBuf covers(newData->streamSize,oldData->streamSize);
-    get_match_covers_by_block(newData,oldData,&covers,kMatchBlockSize,mtsets);
-    if (covers._isCover32)
-        _to_bsdiff_covers(covers.m_covers_limit,(hpatch_uint32_t)newData->streamSize);
-    else
-        _to_bsdiff_covers(covers.m_covers_larger,newData->streamSize);
-    covers.update();
+    TCoversBuf coversBuf;
+    get_match_covers_by_block(newData,oldData,&coversBuf,kMatchBlockSize,mtsets);
+    _to_bsdiff_covers(coversBuf.vec_covers,newData->streamSize);
+    TCovers covers(coversBuf.vec_covers.data(),coversBuf.vec_covers.size());
     serialize_bsdiff(newData,oldData,covers,out_diff,compressPlugin,isEndsleyBsdiff,true);
 }
 

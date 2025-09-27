@@ -175,25 +175,18 @@ TMatchBlockStream::~TMatchBlockStream(){
     if (_packedNewOldMem) delete _packedNewOldMem;
 }
 
-    template<class TCover,bool isNew> static 
-    void _sortCover(TCover* pcovers,size_t coverCount){
-        if (isNew)
-            std::sort(pcovers,pcovers+coverCount,cover_cmp_by_new_t<TCover>());
-        else
-            std::sort(pcovers,pcovers+coverCount,cover_cmp_by_old_t<TCover>());
-    }
     template<bool isNew> static 
-    void sortCover(void* pcovers,size_t coverCount,bool isCover32){
+    void sortCover(hpatch_TCover* pcovers,size_t coverCount){
         if (coverCount==0) return;
-        if (isCover32)
-            _sortCover<hpatch_TCover32,isNew>((hpatch_TCover32*)pcovers,coverCount);
+        if (isNew)
+            std::sort(pcovers,pcovers+coverCount,cover_cmp_by_new_t<hpatch_TCover>());
         else
-            _sortCover<hpatch_TCover,isNew>((hpatch_TCover*)pcovers,coverCount);
+            std::sort(pcovers,pcovers+coverCount,cover_cmp_by_old_t<hpatch_TCover>());
     }
 
 
-    template<class TCover,class TPos,bool isNew> static 
-    void _clipCover(TCover* pcovers,size_t coverCount,
+    template<bool isNew> static 
+    void _clipCover(hpatch_TCover* pcovers,size_t coverCount,
                     const std::vector<TPackedCover>& packedCovers,
                     std::vector<hpatch_TCover>& out_clipCovers){
         if (packedCovers.empty()) return;
@@ -202,7 +195,7 @@ TMatchBlockStream::~TMatchBlockStream(){
         hpatch_StreamPos_t  unpackLen=0;
         const TPackedCover* clipEnd=clipCur+packedCovers.size();
         for (size_t i=0;i<coverCount;++i){
-            TCover& s=pcovers[i];
+            hpatch_TCover& s=pcovers[i];
             hpatch_StreamPos_t sbegin=_cover_pos(isNew,&s);
             while (sbegin>=clipPos){
                 _check(clipCur!=clipEnd,"error clip cover");
@@ -218,15 +211,15 @@ TMatchBlockStream::~TMatchBlockStream(){
             hpatch_StreamPos_t  unpackLeni=unpackLen;
             do{
                 if (sbegin+s.length<=clipPosi){
-                    _cover_pos(isNew,&s)+=(TPos)unpackLeni;
+                    _cover_pos(isNew,&s)+=unpackLeni;
                     break; //ok next cover
                 }
                 hpatch_TCover _c={s.oldPos,s.newPos,clipPosi-sbegin};
-                _cover_pos(isNew,&_c)+=(TPos)unpackLeni;
+                _cover_pos(isNew,&_c)+=unpackLeni;
                 out_clipCovers.push_back(_c);
-                s.oldPos+=(TPos)_c.length;
-                s.newPos+=(TPos)_c.length;
-                s.length-=(TPos)_c.length;
+                s.oldPos+=_c.length;
+                s.newPos+=_c.length;
+                s.length-=_c.length;
                 sbegin=_cover_pos(isNew,&s);
                 while (sbegin>=clipPosi){
                     _check(clipCuri!=clipEnd,"error clip cover");
@@ -241,16 +234,11 @@ TMatchBlockStream::~TMatchBlockStream(){
         }
     }
     template<bool isNew> static 
-    void doClipCover(void* pcovers,size_t coverCount,bool isCover32,
+    void doClipCover(hpatch_TCover* pcovers,size_t coverCount,
                     const std::vector<TPackedCover>& packedCovers,
                     std::vector<hpatch_TCover>& out_clipCovers){
         if (coverCount==0) return;
-        if (isCover32)
-            _clipCover<hpatch_TCover32,hpatch_uint32_t,isNew>(
-                (hpatch_TCover32*)pcovers,coverCount,packedCovers,out_clipCovers);
-        else
-            _clipCover<hpatch_TCover,hpatch_StreamPos_t,isNew>(
-                (hpatch_TCover*)pcovers,coverCount,packedCovers,out_clipCovers);
+        _clipCover<isNew>(pcovers,coverCount,packedCovers,out_clipCovers);
     }
 
     static void doUnpackData(unsigned char* data,unsigned char* data_end,
@@ -268,38 +256,38 @@ TMatchBlockStream::~TMatchBlockStream(){
     }
 
     #define _insertCovers(icovers){ \
-        pcovers=diffi->insertCover(diffi,icovers.data(),icovers.size(),sizeof(*icovers.data())==sizeof(hpatch_TCover32)); \
+        pcovers=diffi->insertCover(diffi,icovers.data(),icovers.size()); \
         coverCount+=icovers.size(); \
     }
 
-void TMatchBlockBase::_unpackData(IDiffInsertCover* diffi,void*& pcovers,size_t& coverCount,bool isCover32){
+void TMatchBlockBase::_unpackData(IDiffInsertCover* diffi,hpatch_TCover*& pcovers,size_t& coverCount){
     std::vector<hpatch_TCover> clipCovers;
-    doClipCover<true>(pcovers,coverCount,isCover32,packedCoversForNew,clipCovers);
+    doClipCover<true>(pcovers,coverCount,packedCoversForNew,clipCovers);
     _insertCovers(clipCovers);
 
-    sortCover<false>(pcovers,coverCount,isCover32);
+    sortCover<false>(pcovers,coverCount);
     clipCovers.clear();
-    doClipCover<false>(pcovers,coverCount,isCover32,packedCoversForOld,clipCovers);
+    doClipCover<false>(pcovers,coverCount,packedCoversForOld,clipCovers);
     _insertCovers(clipCovers);
     _clearV(clipCovers);
     _insertCovers(blockCovers);
     _clearV(blockCovers);
 
-    sortCover<true>(pcovers,coverCount,isCover32);
+    sortCover<true>(pcovers,coverCount);
 }
 
-void TMatchBlockMem::unpackData(IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32){
+void TMatchBlockMem::unpackData(IDiffInsertCover* diffi,hpatch_TCover* pcovers,size_t coverCount){
     doUnpackData(oldData,oldData_end,packedCoversForOld);
     oldData_end_cur=oldData_end;
     doUnpackData(newData,newData_end,packedCoversForNew);
     newData_end_cur=newData_end;
-    _unpackData(diffi,pcovers,coverCount,isCover32);
+    _unpackData(diffi,pcovers,coverCount);
     _clearV(packedCoversForOld);
     _clearV(packedCoversForNew);
 }
 
-void TMatchBlockStream::unpackData(IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32){
-    _unpackData(diffi,pcovers,coverCount,isCover32);
+void TMatchBlockStream::unpackData(IDiffInsertCover* diffi,hpatch_TCover* pcovers,size_t coverCount){
+    _unpackData(diffi,pcovers,coverCount);
     _isUnpacked=true;
 }
     static inline bool _isHitPackedCover(const TPackedCover* pc,hpatch_StreamPos_t readFromPos){

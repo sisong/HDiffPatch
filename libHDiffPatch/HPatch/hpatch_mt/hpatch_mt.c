@@ -186,11 +186,11 @@ hpatchMTSets_t _hpatch_getMTSets(hpatch_StreamPos_t newSize,hpatch_StreamPos_t o
         readOldTime=((oldSize<newInDiffSize?0:oldSize-newInDiffSize)+oldSize/8)/readOldSpeed;
     }
     { // distribute thread
-        size_t   i;
         _define_times5(times);
         disThreads_t disThreads={0,0,0,0};
         hpatch_uint64_t minTime=_distributeThread(disThreads,times,maxThreadNum,mtsets);
 #if (_MT_IS_NEED_LIMIT_SIZE)
+        size_t   i;
         for (i=0;i<4;++i)
             disThreads[i]=(times[i]>(minTime/128))?disThreads[i]:0;
 #endif

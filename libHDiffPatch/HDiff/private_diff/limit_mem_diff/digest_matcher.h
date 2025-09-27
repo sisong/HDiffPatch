@@ -46,7 +46,7 @@ private:
     TDigestMatcher(const TDigestMatcher &); //empty
     TDigestMatcher &operator=(const TDigestMatcher &); //empty
 private:
-    typedef hpatch_uint64_t hash_uint_t;
+    typedef uint64_t hash_uint_t;
     const hpatch_TStreamInput*  m_oldData;
     const hpatch_TStreamInput*  m_newData;
     std::vector<hash_uint_t>    m_blocks;

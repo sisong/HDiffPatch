@@ -202,7 +202,7 @@ static void _rollMatch_mt(int threadIndex,void* workData){
 }
 #endif
 
-static void _matchNewDataInOldSign(_TMatchSDatas& matchDatas,int threadNum){
+static void _matchNewDataInOldSign(_TMatchSDatas& matchDatas,size_t threadNum){
     const TOldDataSyncInfo* oldSyncInfo=matchDatas.oldSyncInfo;
     const uint32_t kBlockCount=(uint32_t)TNewDataSyncInfo_blockCount(oldSyncInfo);
     const uint32_t kMatchBlockCount=kBlockCount-oldSyncInfo->samePairCount;
@@ -225,11 +225,11 @@ static void _matchNewDataInOldSign(_TMatchSDatas& matchDatas,int threadNum){
     matchDatas.kTableHashShlBit=kTableHashShlBit;
 #if (_IS_USED_MULTITHREAD)
     const hpatch_StreamPos_t _bestWorkCount=matchDatas.newStream->streamSize/kBestMTClipSize;
-    threadNum=(_bestWorkCount<=threadNum)?(int)_bestWorkCount:threadNum;
+    threadNum=(_bestWorkCount<=threadNum)?(size_t)_bestWorkCount:threadNum;
     if (threadNum>1){
-        matchDatas.threadNum=threadNum;
+        matchDatas.threadNum=(uint32_t)threadNum;
         TMt mt(matchDatas);
-        checkv(mt.start_threads(threadNum,_rollMatch_mt,&mt,true));
+        checkv(mt.start_threads((uint32_t)threadNum,_rollMatch_mt,&mt,true));
         mt.wait_all_thread_end();
         checkv(!mt.is_on_error());
     }else
@@ -241,8 +241,8 @@ static void _matchNewDataInOldSign(_TMatchSDatas& matchDatas,int threadNum){
 }
 
 
-void matchNewDataInOldSign(hpatch_TOutputCovers* out_covers,const hpatch_TStreamInput* newStream,
-                           const TOldDataSyncInfo* oldSyncInfo,int threadNum){
+void get_match_covers_by_sign(const hpatch_TStreamInput* newStream,const TOldDataSyncInfo* oldSyncInfo,
+                              hpatch_TOutputCovers* out_covers,size_t threadNum){
     checkv(oldSyncInfo->strongChecksumPlugin!=0);
     _TMatchSDatas matchDatas; memset(&matchDatas,0,sizeof(matchDatas));
     matchDatas.out_covers=out_covers;
