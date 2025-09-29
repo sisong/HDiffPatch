@@ -57,7 +57,7 @@ private:
 
 struct TNewDataSubDiffStream:public hpatch_TStreamInput{
     TNewDataSubDiffStream(const hdiff_TStreamInput* _newData,const hdiff_TStreamInput* _oldData,
-                          const TInputCovers& _covers,bool _isOnlySubCover=false,bool _isZeroSubDiff=false);
+                          const TInputCovers& _covers,bool _isOnlySubCover,bool _isExtendedCover);
     inline ~TNewDataSubDiffStream(){ assert(curReadPos==streamSize); }
 private:
     hpatch_StreamPos_t curReadNewPos;
@@ -69,7 +69,7 @@ private:
     const hdiff_TStreamInput* oldData;
     const TInputCovers& covers;
     const bool isOnlySubCover;
-    const bool isZeroSubDiff;
+    const bool isExtendedCover;
     TAutoMem _cache;
     void initRead();
     void readTo(unsigned char* out_data,unsigned char* out_data_end);
@@ -80,7 +80,7 @@ private:
 struct TNewDataSubDiffStream_mem:public TNewDataSubDiffStream{
     TNewDataSubDiffStream_mem(const unsigned char* newData,const unsigned char* newData_end,
                               const unsigned char* oldData,const unsigned char* oldData_end,
-                              const TInputCovers& _covers,bool _isOnlySubCover=false,bool _isZeroSubDiff=false);
+                              const TInputCovers& _covers,bool _isOnlySubCover,bool _isExtendedCover);
 private:
     hdiff_TStreamInput mem_newData;
     hdiff_TStreamInput mem_oldData;
@@ -119,10 +119,10 @@ private:
 
 struct TNewDataSubDiffCoverStream:public hpatch_TStreamInput{
     TNewDataSubDiffCoverStream(const hpatch_TStreamInput* _newStream,
-                               const hpatch_TStreamInput* _oldStream,bool _isZeroSubDiff);
+                               const hpatch_TStreamInput* _oldStream,bool _isExtendedCover);
     void resetCover(const TCover& _cover);
     void resetCoverLen(hpatch_StreamPos_t coverLen);
-    const bool isZeroSubDiff;
+    const bool isExtendedCover;
 private:
     hpatch_StreamPos_t inStreamLen;
     size_t curDataLen;
@@ -166,7 +166,7 @@ private:
 
 struct TStepStream:public hpatch_TStreamInput{
     TStepStream(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                bool isZeroSubDiff,const TInputCovers& covers,size_t patchStepMemSize);
+                const TInputCovers& covers,size_t patchStepMemSize,bool isExtendedCover);
     inline size_t getCoverCount()const{ return endCoverCount; }
     inline size_t getMaxStepMemSize()const{ return endMaxStepMemSize; }
 private:

@@ -43,6 +43,6 @@ void create_hdiff_by_sign(const hpatch_TStreamInput* newData,const TOldDataSyncI
     get_match_covers_by_sign(newData,oldSyncInfo,covers,threadNum);
     hpatch_TStreamInput oldData={0};
     oldData.streamSize=oldSyncInfo->newDataSize;
-    serialize_single_compressed_diff(newData,&oldData,true,covers,
-                                     out_diff,compressPlugin,patchStepMemSize);
+    serialize_single_compressed_diff(newData,&oldData,covers,out_diff,
+                                     compressPlugin,patchStepMemSize,false);
 }

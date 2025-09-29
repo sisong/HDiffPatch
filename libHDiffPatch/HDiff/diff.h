@@ -181,11 +181,11 @@ hpatch_StreamPos_t
 //same as create?compressed_diff_stream(), but not serialize diffData, only got covers
 void get_match_covers_by_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                                std::vector<TCover>& out_covers,size_t kMatchBlockSize=kMatchBlockSize_default,
-                               const hdiff_TMTSets_s* mtsets=0);
+                               const hdiff_TMTSets_s* mtsets=0);//not extendedCover
 void get_match_covers_by_block(const unsigned char* newData,const unsigned char* newData_end,
                                const unsigned char* oldData,const unsigned char* oldData_end,
                                std::vector<TCover>& out_covers,size_t kMatchBlockSize=kMatchBlockSize_default,
-                               size_t threadNum=1);
+                               size_t threadNum=1); //not extendedCover
 
 //same as create?_diff(), but not serialize diffData, only got covers
 void get_match_covers_by_sstring(const unsigned char* newData,const unsigned char* newData_end,
@@ -196,11 +196,11 @@ void get_match_covers_by_sstring(const unsigned char* newData,const unsigned cha
                                  size_t threadNum=1,bool isCanExtendCover=true);
 
 void serialize_single_compressed_diff(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                                      bool isZeroSubDiff,const std::vector<TCover>& covers,const hpatch_TStreamOutput* out_diff,
-                                      const hdiff_TCompress* compressPlugin,size_t patchStepMemSize);
+                                      const std::vector<TCover>& covers,const hpatch_TStreamOutput* out_diff,
+                                      const hdiff_TCompress* compressPlugin,size_t patchStepMemSize,bool isExtendedCover);
 
 void serialize_compressed_diff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                               bool isZeroSubDiff,const std::vector<TCover>& covers,const hpatch_TStreamOutput* out_diff,
-                               const hdiff_TCompress* compressPlugin);
+                               const std::vector<TCover>& covers,const hpatch_TStreamOutput* out_diff,
+                               const hdiff_TCompress* compressPlugin,bool isExtendedCover);
 
 #endif
