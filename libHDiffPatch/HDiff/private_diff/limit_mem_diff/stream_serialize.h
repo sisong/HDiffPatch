@@ -27,7 +27,7 @@
  */
 #ifndef stream_serialize_h
 #define stream_serialize_h
-#include "covers.h"
+#include "../../diff_types.h"
 #include "../pack_uint.h" //for packUInt_fixSize
 #include "../mem_buf.h"
 #include "../bytes_rle.h"
@@ -36,11 +36,11 @@ struct hdiff_TCompress;
 namespace hdiff_private{
 
 struct TCoversStream:public hpatch_TStreamInput{
-    TCoversStream(const TCovers& _covers,hpatch_StreamPos_t cover_buf_size);
+    TCoversStream(const TInputCovers& _covers,hpatch_StreamPos_t cover_buf_size);
     ~TCoversStream();
-    static hpatch_StreamPos_t getDataSize(const TCovers& covers);
+    static hpatch_StreamPos_t getDataSize(const TInputCovers& covers);
 private:
-    const TCovers&              covers;
+    const TInputCovers&         covers;
     TAutoMem                    _code_mem;
     size_t                      curCodePos;
     size_t                      curCodePos_end;
@@ -57,7 +57,7 @@ private:
 
 struct TNewDataSubDiffStream:public hpatch_TStreamInput{
     TNewDataSubDiffStream(const hdiff_TStreamInput* _newData,const hdiff_TStreamInput* _oldData,
-                          const TCovers& _covers,bool _isOnlySubCover=false,bool _isZeroSubDiff=false);
+                          const TInputCovers& _covers,bool _isOnlySubCover=false,bool _isZeroSubDiff=false);
     inline ~TNewDataSubDiffStream(){ assert(curReadPos==streamSize); }
 private:
     hpatch_StreamPos_t curReadNewPos;
@@ -67,7 +67,7 @@ private:
     size_t nextCoveri;
     const hdiff_TStreamInput* newData;
     const hdiff_TStreamInput* oldData;
-    const TCovers& covers;
+    const TInputCovers& covers;
     const bool isOnlySubCover;
     const bool isZeroSubDiff;
     TAutoMem _cache;
@@ -80,28 +80,28 @@ private:
 struct TNewDataSubDiffStream_mem:public TNewDataSubDiffStream{
     TNewDataSubDiffStream_mem(const unsigned char* newData,const unsigned char* newData_end,
                               const unsigned char* oldData,const unsigned char* oldData_end,
-                              const TCovers& _covers,bool _isOnlySubCover=false,bool _isZeroSubDiff=false);
+                              const TInputCovers& _covers,bool _isOnlySubCover=false,bool _isZeroSubDiff=false);
 private:
     hdiff_TStreamInput mem_newData;
     hdiff_TStreamInput mem_oldData;
 };
 
 struct TNewDataDiffStream:public hpatch_TStreamInput{
-    inline TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
+    inline TNewDataDiffStream(const TInputCovers& _covers,const hpatch_TStreamInput* _newData,
                               hpatch_StreamPos_t newDataDiff_size)
             :covers(_covers),newData(_newData) { _init(newDataDiff_size); }
-    inline TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData)
+    inline TNewDataDiffStream(const TInputCovers& _covers,const hpatch_TStreamInput* _newData)
         :covers(_covers),newData(_newData) { _init(getDataSize(_covers,_newData->streamSize)); }
-    inline TNewDataDiffStream(const TCovers& _covers,const hpatch_TStreamInput* _newData,
+    inline TNewDataDiffStream(const TInputCovers& _covers,const hpatch_TStreamInput* _newData,
                               size_t coveri,hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd)
         :covers(_covers),newData(_newData){ _initByRange(coveri,newDataPos,newDataPosEnd); }
-    static hpatch_StreamPos_t getDataSize(const TCovers& covers,hpatch_StreamPos_t newDataSize);
+    static hpatch_StreamPos_t getDataSize(const TInputCovers& covers,hpatch_StreamPos_t newDataSize);
 private:
-    static hpatch_StreamPos_t getDataSizeByRange(const TCovers& covers,size_t coveri,
+    static hpatch_StreamPos_t getDataSizeByRange(const TInputCovers& covers,size_t coveri,
                                                  hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd);
     void _init(hpatch_StreamPos_t newDataDiff_size);
     void _initByRange(size_t coveri,hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd);
-    const TCovers&              covers;
+    const TInputCovers&              covers;
     const hpatch_TStreamInput*  newData;
     hpatch_StreamPos_t          curNewPos;
     hpatch_StreamPos_t          curNewPos_end;
@@ -166,13 +166,13 @@ private:
 
 struct TStepStream:public hpatch_TStreamInput{
     TStepStream(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                bool isZeroSubDiff,const TCovers& covers,size_t patchStepMemSize);
+                bool isZeroSubDiff,const TInputCovers& covers,size_t patchStepMemSize);
     inline size_t getCoverCount()const{ return endCoverCount; }
     inline size_t getMaxStepMemSize()const{ return endMaxStepMemSize; }
 private:
     TNewDataSubDiffCoverStream  subDiff;
     TNewDataDiffStream          newDataDiff;
-    const TCovers&  covers;
+    const TInputCovers& covers;
     const size_t    patchStepMemSize;
     const hpatch_StreamPos_t newDataSize;
     size_t  curCoverCount;

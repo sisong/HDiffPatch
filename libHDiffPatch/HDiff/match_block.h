@@ -39,10 +39,10 @@ namespace hdiff_private{
         :matchBlockSize(_matchBlockSize),threadNum(_threadNum){}
     protected:
         void _getPackedCover(hpatch_StreamPos_t newDataSize,hpatch_StreamPos_t oldDataSize);
-        void _unpackData(IDiffInsertCover* diffi,void*& pcovers,size_t& coverCount,bool isCover32);
+        void _unpackData(IDiffInsertCover* diffi,hpatch_TCover*& pcovers,size_t& coverCount);
         const size_t   matchBlockSize;
         const size_t   threadNum;
-        std::vector<hpatch_TCover> blockCovers;
+        std::vector<TCover> blockCovers;
         std::vector<TPackedCover> packedCoversForOld;
         std::vector<TPackedCover> packedCoversForNew;
     };
@@ -66,7 +66,7 @@ namespace hdiff_private{
         void getBlockCovers();
         inline void getPackedCover() { _getPackedCover(newData_end-newData,oldData_end-oldData); }
         void packData();
-        void unpackData(IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32);
+        void unpackData(IDiffInsertCover* diffi,hpatch_TCover* pcovers,size_t coverCount);
     };
 
     //remove some big match block befor diff, used stream
@@ -86,7 +86,7 @@ namespace hdiff_private{
         void getBlockCovers();
         inline void getPackedCover() { _getPackedCover(newStream->streamSize,oldStream->streamSize); }
         void packData();
-        void unpackData(IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32);
+        void unpackData(IDiffInsertCover* diffi,hpatch_TCover* pcovers,size_t coverCount);
         void map_streams(const hpatch_TStreamInput** pnewData,const hpatch_TStreamInput** poldData);
 
         struct TStreamInputMap:public hpatch_TStreamInput{
@@ -114,13 +114,13 @@ namespace hdiff_private{
         }
         _TMatchBlock* matchBlock;
     protected:
-        static void _insert_cover(ICoverLinesListener* listener,IDiffInsertCover* diffi,void* pcovers,size_t coverCount,
-                                  bool isCover32,hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize){
+        static void _insert_cover(ICoverLinesListener* listener,IDiffInsertCover* diffi,hpatch_TCover* pcovers,size_t coverCount,
+                                  hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize){
             TCoversOptim<_TMatchBlock>* self=(TCoversOptim<_TMatchBlock>*)listener;
             if (self->matchBlock!=0){
                 assert(self->matchBlock->curNewDataSize()==*newSize);
                 assert(self->matchBlock->curOldDataSize()==*oldSize);
-                self->matchBlock->unpackData(diffi,pcovers,coverCount,isCover32);
+                self->matchBlock->unpackData(diffi,pcovers,coverCount);
                 *newSize=self->matchBlock->curNewDataSize();
                 *oldSize=self->matchBlock->curOldDataSize();
             }

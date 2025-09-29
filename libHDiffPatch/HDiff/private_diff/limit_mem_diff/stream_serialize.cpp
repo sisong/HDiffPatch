@@ -78,7 +78,7 @@ hpatch_BOOL TCompressedStream::_write_code(const hpatch_TStreamOutput* stream,hp
 }
 
 
-TCoversStream::TCoversStream(const TCovers& _covers,hpatch_StreamPos_t cover_buf_size)
+TCoversStream::TCoversStream(const TInputCovers& _covers,hpatch_StreamPos_t cover_buf_size)
 :covers(_covers),curCodePos(0),curCodePos_end(0),
 readedCoverCount(0),lastOldEnd(0),lastNewEnd(0),_readFromPos_back(0){
     assert(kCodeBufSize>=hpatch_kMaxPackedUIntBytes*3);
@@ -114,7 +114,7 @@ hpatch_BOOL TCoversStream::_read(const hpatch_TStreamInput* stream,hpatch_Stream
     }
     self->_readFromPos_back=readFromPos+(size_t)(out_data_end-out_data);
     
-    size_t n=self->covers.coverCount();
+    size_t n=self->covers.size();
     while (out_data<out_data_end) {
         size_t curLen=self->curCodePos_end-self->curCodePos;
         if (curLen>0){
@@ -131,8 +131,7 @@ hpatch_BOOL TCoversStream::_read(const hpatch_TStreamInput* stream,hpatch_Stream
             unsigned char* pcode_end=pcode_cur+kCodeBufSize;
             for (;((size_t)(pcode_end-pcode_cur)>=hpatch_kMaxPackedUIntBytes*3)
                  &&(cur_index<n);++cur_index) {
-                TCover cover;
-                self->covers.covers(cur_index,&cover);
+                const TCover& cover=self->covers[cur_index];
                 __private_packCover(hpatch_StreamPos_t,hpatch_packUIntWithTag,hpatch_packUInt,
                                     &pcode_cur,pcode_end,cover,self->lastOldEnd,self->lastNewEnd);
                 self->lastOldEnd=cover.oldPos+cover.length;//! +length
@@ -155,14 +154,13 @@ inline static void _packUInt_size(hpatch_StreamPos_t* curSize,int _, hpatch_Stre
     *curSize+=hpatch_packUIntWithTag_size(uValue,0);
 }
 
-hpatch_StreamPos_t TCoversStream::getDataSize(const TCovers& covers){
-    size_t n=covers.coverCount();
+hpatch_StreamPos_t TCoversStream::getDataSize(const TInputCovers& covers){
+    size_t n=covers.size();
     hpatch_StreamPos_t cover_buf_size=0;
     hpatch_StreamPos_t lastOldEnd=0;
     hpatch_StreamPos_t lastNewEnd=0;
     for (size_t i=0; i<n; ++i) {
-        TCover cover;
-        covers.covers(i,&cover);
+        const TCover& cover=covers[i];
         assert(cover.newPos>=lastNewEnd);
         __private_packCover(hpatch_StreamPos_t,_packUIntWithTag_size,_packUInt_size,
                             &cover_buf_size,0,cover,lastOldEnd,lastNewEnd);
@@ -208,7 +206,7 @@ hpatch_BOOL TNewDataDiffStream::_read(const hpatch_TStreamInput* stream,hpatch_S
     }
     self->_readFromPos_back=readFromPos+(size_t)(out_data_end-out_data);
     
-    size_t n=self->covers.coverCount();
+    size_t n=self->covers.size();
     while (out_data<out_data_end) {
         hpatch_StreamPos_t curLen=self->curNewPos_end-self->curNewPos;
         if (curLen>0){
@@ -226,7 +224,7 @@ hpatch_BOOL TNewDataDiffStream::_read(const hpatch_TStreamInput* stream,hpatch_S
                 curCover.length=0;
                 curCover.oldPos=0;
             }else{
-                self->covers.covers(self->readedCoverCount,&curCover);
+                curCover=self->covers[self->readedCoverCount];
                 ++self->readedCoverCount;
             }
             assert(self->lastNewEnd<=curCover.newPos);
@@ -238,14 +236,13 @@ hpatch_BOOL TNewDataDiffStream::_read(const hpatch_TStreamInput* stream,hpatch_S
     return hpatch_TRUE;
 };
  
-hpatch_StreamPos_t TNewDataDiffStream::getDataSizeByRange(const TCovers& covers,size_t coveri,
+hpatch_StreamPos_t TNewDataDiffStream::getDataSizeByRange(const TInputCovers& covers,size_t coveri,
                                                           hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd){
-    size_t n=covers.coverCount();
+    size_t n=covers.size();
     hpatch_StreamPos_t newDataDiff_size=0;
     hpatch_StreamPos_t lastNewEnd=newDataPos;
     for (size_t i=coveri;i<n;++i) {
-        TCover cover;
-        covers.covers(i,&cover);
+        const TCover& cover=covers[i];
         assert(cover.newPos>=lastNewEnd);
         hpatch_StreamPos_t inc=cover.newPos-lastNewEnd;
         if (lastNewEnd+inc>=newDataPosEnd)
@@ -264,13 +261,12 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSizeByRange(const TCovers& covers,
     return newDataDiff_size;
 }
 
-hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_StreamPos_t newDataSize){
-    size_t n=covers.coverCount();
+hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TInputCovers& covers,hpatch_StreamPos_t newDataSize){
+    size_t n=covers.size();
     hpatch_StreamPos_t newDataDiff_size=0;
     hpatch_StreamPos_t lastNewEnd=0;
     for (size_t i=0; i<n; ++i) {
-        TCover cover;
-        covers.covers(i,&cover);
+        const TCover& cover=covers[i];
         assert(cover.newPos>=lastNewEnd);
         newDataDiff_size+=(hpatch_StreamPos_t)(cover.newPos-lastNewEnd);
         lastNewEnd=cover.newPos+cover.length;
@@ -282,16 +278,15 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TCovers& covers,hpatch_
 
 
 TNewDataSubDiffStream::TNewDataSubDiffStream(const hdiff_TStreamInput* _newData,const hdiff_TStreamInput* _oldData,
-                                             const TCovers& _covers,bool _isOnlySubCover,bool _isZeroSubDiff)
+                                             const TInputCovers& _covers,bool _isOnlySubCover,bool _isZeroSubDiff)
 :newData(_newData),oldData(_oldData),covers(_covers),
   isOnlySubCover(_isOnlySubCover),isZeroSubDiff(_isZeroSubDiff),_cache(kSubDiffCacheSize){
     initRead();
     streamImport=this;
     if (isOnlySubCover){
         streamSize=0;
-        for (size_t i=0;i<covers.coverCount();++i){
-            hpatch_TCover cover;
-            covers.covers(i,&cover);
+        for (size_t i=0;i<covers.size();++i){
+            const hpatch_TCover& cover=covers[i];
             streamSize+=cover.length;
         }
     }else{
@@ -330,9 +325,8 @@ void TNewDataSubDiffStream::readTo(unsigned char* out_data,unsigned char* out_da
     size_t readLen=out_data_end-out_data;
     while (readLen>0){
         if (curDataLen==0){
-            if (nextCoveri<covers.coverCount()){
-                hpatch_TCover cover;
-                covers.covers(nextCoveri,&cover);
+            if (nextCoveri<covers.size()){
+                const hpatch_TCover& cover = covers[nextCoveri];
                 if ((size_t)cover.newPos>curReadNewPos){
                     curDataLen=(size_t)(cover.newPos-curReadNewPos);
                     curReadOldPos=_kNullPos;
@@ -380,7 +374,7 @@ hpatch_BOOL TNewDataSubDiffStream::_read(const struct hpatch_TStreamInput* strea
 
 TNewDataSubDiffStream_mem::TNewDataSubDiffStream_mem(const unsigned char* newData,const unsigned char* newData_end,
                               const unsigned char* oldData,const unsigned char* oldData_end,
-                              const TCovers& _covers,bool _isOnlySubCover,bool _isZeroSubDiff)
+                              const TInputCovers& _covers,bool _isOnlySubCover,bool _isZeroSubDiff)
 :TNewDataSubDiffStream(mem_as_hStreamInput(&mem_newData,newData,newData_end),
                        mem_as_hStreamInput(&mem_oldData,oldData,oldData_end),
                        _covers,_isOnlySubCover,_isZeroSubDiff){}
@@ -473,7 +467,7 @@ hpatch_BOOL TNewDataSubDiffCoverStream::_updateCache(hpatch_StreamPos_t readFrom
 
 
 TStepStream::TStepStream(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                         bool isZeroSubDiff,const TCovers& _covers,size_t _patchStepMemSize)
+                         bool isZeroSubDiff,const TInputCovers& _covers,size_t _patchStepMemSize)
 :subDiff(newStream,oldStream,isZeroSubDiff),newDataDiff(_covers,newStream),
 covers(_covers),patchStepMemSize(_patchStepMemSize),newDataSize(newStream->streamSize),
 readFromPosBack(0),readBufPos(0){
@@ -543,7 +537,7 @@ hpatch_BOOL TStepStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPo
 }
 
 void TStepStream::beginStep(){
-    curCoverCount=covers.coverCount();
+    curCoverCount=covers.size();
     isHaveLeftCover=false;
     isHaveRightCover=false;
     isHaveLastCover=false;
@@ -551,8 +545,7 @@ void TStepStream::beginStep(){
         isHaveLastCover=true;
         setCover(lastCover,0,newDataSize,0);
     }else{
-        TCover back;
-        covers.covers(curCoverCount-1,&back);
+        const TCover& back=covers[curCoverCount-1];
         if (back.newPos+back.length<newDataSize){
             isHaveLastCover=true;
             setCover(lastCover,back.oldPos+back.length,newDataSize,0);
@@ -579,7 +572,7 @@ bool TStepStream::doStep(){
     if (pCurCover==0){
         if (isHaveLeftCover)      { isHaveLeftCover=false;  pCurCover=&leftCover;  }
         else if (isHaveRightCover){ isHaveRightCover=false; pCurCover=&rightCover; }
-        else if (cur_i<covers.coverCount()) { covers.covers(cur_i++,&cover); pCurCover=&cover; }
+        else if (cur_i<covers.size()) { pCurCover=&covers[cur_i++]; }
         else if (isHaveLastCover) { isHaveLastCover=false;  pCurCover=&lastCover;  }
         else if (step_bufCover_size>0){ _last_flush_step(); return true; }
         else { return false; } //end while

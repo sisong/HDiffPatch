@@ -28,22 +28,8 @@
 */
 #include "sign_diff.h"
 #include <stdexcept>
-#include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/covers.h"
-#include "_match_in_old_sign.h"
 using namespace hdiff_private;
 using namespace sync_private;
-
-static void get_match_covers_by_sign(const hpatch_TStreamInput* newData,const TOldDataSyncInfo* oldSyncInfo,
-                                     TCoversBuf* out_covers,size_t threadNum){
-    assert(out_covers->push_cover!=0);
-    matchNewDataInOldSign(out_covers,newData,oldSyncInfo,(int)threadNum);
-}
-
-
-    void serialize_single_compressed_diff(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                                          bool isZeroSubDiff,const TCovers& covers,const hpatch_TStreamOutput* out_diff,
-                                          const hdiff_TCompress* compressPlugin,size_t patchStepMemSize);
-
 void create_hdiff_by_sign(const hpatch_TStreamInput* newData,const TOldDataSyncInfo* oldSyncInfo,
                           const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                           size_t patchStepMemSize,size_t threadNum){
@@ -53,8 +39,8 @@ void create_hdiff_by_sign(const hpatch_TStreamInput* newData,const TOldDataSyncI
         else
             printf("WARNING: This diff file format, requires uncompressed old file when patch!");
     }
-    TCoversBuf covers(newData->streamSize,oldSyncInfo->newDataSize);
-    get_match_covers_by_sign(newData,oldSyncInfo,&covers,threadNum);
+    std::vector<TCover> covers;
+    get_match_covers_by_sign(newData,oldSyncInfo,covers,threadNum);
     hpatch_TStreamInput oldData={0};
     oldData.streamSize=oldSyncInfo->newDataSize;
     serialize_single_compressed_diff(newData,&oldData,true,covers,

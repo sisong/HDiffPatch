@@ -30,10 +30,6 @@
 #ifndef match_in_old_sign_h
 #define match_in_old_sign_h
 #include "_sign_diff_type.h"
-namespace sync_private{
-
-void matchNewDataInOldSign(hpatch_TOutputCovers* out_covers,const hpatch_TStreamInput* newStream,
-                           const TOldDataSyncInfo* oldSyncInfo,int threadNum);
-
-}//namespace sync_private
+void get_match_covers_by_sign(const hpatch_TStreamInput* newStream,const TOldDataSyncInfo* oldSyncInfo,
+                              std::vector<TCover>& out_covers,size_t threadNum);
 #endif

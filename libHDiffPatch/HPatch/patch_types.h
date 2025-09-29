@@ -80,6 +80,13 @@ extern "C" {
     typedef unsigned long long  hpatch_uint64_t;
 #endif
 #endif
+#ifndef hpatch_int64_t
+#ifdef _MSC_VER
+    typedef __int64             hpatch_int64_t;
+#else
+    typedef long long           hpatch_int64_t;
+#endif
+#endif
 #ifndef hpatch_StreamPos_t
     typedef hpatch_uint64_t     hpatch_StreamPos_t; // file size type
 #endif
@@ -272,16 +279,6 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
         hpatch_StreamPos_t newPos;
         hpatch_StreamPos_t length;
     } hpatch_TCover;
-    typedef struct hpatch_TCover32{
-        hpatch_uint32_t oldPos;
-        hpatch_uint32_t newPos;
-        hpatch_uint32_t length;
-    } hpatch_TCover32;
-    typedef struct hpatch_TCover_sz{
-        size_t oldPos;
-        size_t newPos;
-        size_t length;
-    } hpatch_TCover_sz;
 
     //opened input covers
     typedef struct hpatch_TCovers{
@@ -291,12 +288,6 @@ typedef    hpatch_BOOL  hpatch_FileError_t;// 0: no error; other: error;
         hpatch_BOOL                (*is_finish)(const struct hpatch_TCovers* covers);
         hpatch_BOOL                    (*close)(struct hpatch_TCovers* covers);
     } hpatch_TCovers;
-    
-    //output covers
-    typedef struct hpatch_TOutputCovers{
-        hpatch_BOOL (*push_cover)(struct hpatch_TOutputCovers* out_covers,const hpatch_TCover* cover); 
-        void (*collate_covers)(struct hpatch_TOutputCovers* out_covers); // for support search covers by multi-thread
-    } hpatch_TOutputCovers;
     
     typedef struct{
         hpatch_StreamPos_t  newDataSize;

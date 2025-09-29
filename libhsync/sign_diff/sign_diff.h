@@ -29,7 +29,7 @@
 
 #ifndef hsign_diff_h
 #define hsign_diff_h
-#include "_sign_diff_type.h"
+#include "_match_in_old_sign.h"
 
 //create a hdiff data by .hsyni:
 //  newData: new data stream
@@ -40,5 +40,8 @@
 void create_hdiff_by_sign(const hpatch_TStreamInput* newData,const TOldDataSyncInfo* oldSyncInfo,
                           const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin=0,
                           size_t patchStepMemSize=kDefaultPatchStepMemSize,size_t threadNum=1);
+
+void get_match_covers_by_sign(const hpatch_TStreamInput* newStream,const TOldDataSyncInfo* oldSyncInfo,
+                              std::vector<TCover>& out_covers,size_t threadNum);
 
 #endif

@@ -401,7 +401,7 @@ static void tm_search_cover(const hash_uint_t* blocksBase,
                             const TIndex* iblocks,const TIndex* iblocks_end,
                             TOldStreamCache& oldStream,TNewStreamCache& newStream,
                             const TBloomFilter<hash_uint_t>& filter,
-                            hpatch_TOutputCovers* out_covers,
+                            TOutputCovers* out_covers,
                             hpatch_StreamPos_t _coverNewOffset,
                             void* _dataLocker) {
     const size_t blocksSize=iblocks_end-iblocks;
@@ -432,8 +432,7 @@ static void tm_search_cover(const hash_uint_t* blocksBase,
     #if (_IS_USED_MULTITHREAD)
                         CAutoLocker _autoCoverLocker(_dataLocker);
     #endif
-                        if (!out_covers->push_cover(out_covers,&_cover))
-                            throw std::runtime_error("TDigestMatcher::search_cover() push_cover error!");
+                        out_covers->push_cover(_cover);
                     }
                     lastCover=curCover;
                     newPosNext=curCover.newPos+curCover.length;//next
@@ -450,7 +449,7 @@ static void tm_search_cover(const hash_uint_t* blocksBase,
                             oldStream,newStream,m_filter,out_covers,newOffset,dataLocker)
 
 void TDigestMatcher::_search_cover(const hpatch_TStreamInput* newData,hpatch_StreamPos_t newOffset,
-                                   hpatch_TOutputCovers* out_covers,unsigned char* pmem,
+                                   TOutputCovers* out_covers,unsigned char* pmem,
                                    void* oldDataLocker,void* newDataLocker,void* dataLocker){
     TNewStreamCache newStream(newData,pmem,m_newCacheSize,m_backupCacheSize,
                               m_kMatchBlockSize,m_mtsets.newDataIsMTSafe?0:newDataLocker);
@@ -477,7 +476,7 @@ struct mt_data_t{
 };
 #endif
 
-void TDigestMatcher::_search_cover_thread(hpatch_TOutputCovers* out_covers,
+void TDigestMatcher::_search_cover_thread(TOutputCovers* out_covers,
                                           unsigned char* pmem,void* mt_data){
 #if (_IS_USED_MULTITHREAD)
     const size_t kPartPepeatSize=m_kMatchBlockSize-1;
@@ -499,12 +498,12 @@ void TDigestMatcher::_search_cover_thread(hpatch_TOutputCovers* out_covers,
 #endif 
 }
 
-static inline void __search_cover_mt(TDigestMatcher* self,hpatch_TOutputCovers* out_covers,
+static inline void __search_cover_mt(TDigestMatcher* self,TOutputCovers* out_covers,
                                      unsigned char* pmem,void* mt_data){
     self->_search_cover_thread(out_covers,pmem,mt_data);
 }
 
-void TDigestMatcher::search_cover(hpatch_TOutputCovers* out_covers){
+void TDigestMatcher::search_cover(TOutputCovers* out_covers){
     if (m_blocks.empty()) return;
     if (m_newData->streamSize<m_kMatchBlockSize) return;
     _out_diff_info("    search covers by match table ...\n");
@@ -528,7 +527,7 @@ void TDigestMatcher::search_cover(hpatch_TOutputCovers* out_covers){
         __search_cover_mt(this,out_covers,pmem,&mt_data);
         for (size_t i=0;i<threadCount;i++)
             threads[i].join();
-        out_covers->collate_covers(out_covers);
+        out_covers->collate_covers();
     }else
 #endif
     {

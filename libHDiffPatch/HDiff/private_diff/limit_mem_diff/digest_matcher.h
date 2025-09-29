@@ -30,8 +30,8 @@
 
 #ifndef digest_matcher_h
 #define digest_matcher_h
+#include "../../diff_types.h"
 #include "bloom_filter.h"
-#include "covers.h"
 #include "../mem_buf.h"
 namespace hdiff_private{
 
@@ -40,13 +40,13 @@ public:
     //throw std::runtime_error when data->read error or kMatchBlockSize error;
     TDigestMatcher(const hpatch_TStreamInput* oldData,const hpatch_TStreamInput* newData,
                    size_t kMatchBlockSize,const hdiff_TMTSets_s& mtsets);
-    void search_cover(hpatch_TOutputCovers* out_covers);
+    void search_cover(TOutputCovers* out_covers);
     ~TDigestMatcher();
 private:
     TDigestMatcher(const TDigestMatcher &); //empty
     TDigestMatcher &operator=(const TDigestMatcher &); //empty
 private:
-    typedef hpatch_uint64_t hash_uint_t;
+    typedef uint64_t hash_uint_t;
     const hpatch_TStreamInput*  m_oldData;
     const hpatch_TStreamInput*  m_newData;
     std::vector<hash_uint_t>    m_blocks;
@@ -65,10 +65,10 @@ private:
     void getDigests();
     size_t getSearchThreadNum()const;
     void _search_cover(const hpatch_TStreamInput* newData,hpatch_StreamPos_t newOffset,
-                       hpatch_TOutputCovers* out_covers,unsigned char* pmem,
+                       TOutputCovers* out_covers,unsigned char* pmem,
                        void* oldDataLocker=0,void* newDataLocker=0,void* dataLocker=0);
 public: //private for multi-thread
-    void _search_cover_thread(hpatch_TOutputCovers* out_covers,unsigned char* pmem,void* mt_data);
+    void _search_cover_thread(TOutputCovers* out_covers,unsigned char* pmem,void* mt_data);
 };
 
 }//namespace hdiff_private

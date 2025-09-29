@@ -31,6 +31,7 @@
 #include "../HPatch/patch_types.h"
 #include <stdexcept> //std::runtime_error
 #include <utility> //std::pair
+#include <vector>
 
 #ifndef _IS_OUT_DIFF_INFO
 #   define  _IS_OUT_DIFF_INFO   1
@@ -69,29 +70,6 @@ namespace hdiff_private{
     }
 
     static const int kCoverMinMatchLen=5;
-
-
-    // TRefCovers: a tools for diff listener,read TCover array;
-    struct TRefCovers{
-        inline TRefCovers(const void* pcovers_,size_t coverCount_,bool isCover32_)
-        :pcovers(pcovers_),coverCount(coverCount_),isCover32(isCover32_){}
-        inline TRefCovers(const hpatch_TCover* pcovers_,size_t coverCount_)
-        :pcovers(pcovers_),coverCount(coverCount_),isCover32(false){}
-        inline hpatch_TCover operator[](size_t index)const{
-            if (isCover32){
-                const hpatch_TCover32& cover=((const hpatch_TCover32*)pcovers)[index];  
-                hpatch_TCover result={cover.oldPos,cover.newPos,cover.length}; 
-                return result; 
-            }else{
-                return ((const hpatch_TCover*)pcovers)[index]; 
-            }
-        }
-        inline size_t size()const{  return coverCount; }
-    private:
-        const void*     pcovers;
-        const size_t    coverCount;
-        const bool      isCover32;
-    };
 
     struct TAutoMem;
     void loadOldAndNewStream(TAutoMem& out_mem,const hpatch_TStreamInput* oldStream,const hpatch_TStreamInput* newStream);
@@ -150,7 +128,7 @@ extern "C"
                               hpatch_StreamPos_t sameCover_endPosBack,hpatch_StreamPos_t hitPos,hpatch_StreamPos_t hitLen);
     };
     struct IDiffInsertCover{
-        void* (*insertCover)(IDiffInsertCover* diffi,const void* pInsertCovers,size_t insertCoverCount,bool insertIsCover32);
+        hpatch_TCover* (*insertCover)(IDiffInsertCover* diffi,const hpatch_TCover* pInsertCovers,size_t insertCoverCount);
     };
 
     static const int kDefaultMaxMatchDeepForLimit=6;
@@ -160,11 +138,11 @@ extern "C"
     } hdiff_TRange;
 
     struct ICoverLinesListener {
-        bool (*search_cover_limit)(ICoverLinesListener* listener,const void* pcovers,size_t coverCount,bool isCover32);
-        void (*research_cover)(ICoverLinesListener* listener,IDiffResearchCover* diffi,const void* pcovers,size_t coverCount,bool isCover32);
-        void (*insert_cover)(ICoverLinesListener* listener,IDiffInsertCover* diffi,void* pcovers,size_t coverCount,bool isCover32,
+        bool (*search_cover_limit)(ICoverLinesListener* listener,const hpatch_TCover* pcovers,size_t coverCount);
+        void (*research_cover)(ICoverLinesListener* listener,IDiffResearchCover* diffi,const hpatch_TCover* pcovers,size_t coverCount);
+        void (*insert_cover)(ICoverLinesListener* listener,IDiffInsertCover* diffi,hpatch_TCover* pcovers,size_t coverCount,
                              hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
-        void (*search_cover_finish)(ICoverLinesListener* listener,void* pcovers,size_t* pcoverCount,bool isCover32,
+        void (*search_cover_finish)(ICoverLinesListener* listener,hpatch_TCover* pcovers,size_t* pcoverCount,
                                     hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize);
         int (*get_max_match_deep)(const ICoverLinesListener* listener); //if null, default kDefaultMaxMatchDeepForLimit
         // *search_block* for multi-thread parallel match,can null
@@ -183,7 +161,43 @@ extern "C"
     };
 
     static const hdiff_TMTSets_s hdiff_TMTSets_s_kEmpty={1,1,false,false};
-    
+
+
+    typedef hpatch_TCover   TCover;
+    static inline void setCover(TCover& cover,hpatch_StreamPos_t oldPos,hpatch_StreamPos_t newPos,hpatch_StreamPos_t length) {
+                                          cover.oldPos=oldPos; cover.newPos=newPos; cover.length=length; }
+
+    // input covers
+    //  not owner memory, only reference memory
+    struct TInputCovers{
+        const TCover*   _covers;
+        size_t          _coverCount;
+        hpatch_force_inline TInputCovers(const TCover* covers,size_t coverCount)
+            :_covers(covers),_coverCount(coverCount){}
+        hpatch_force_inline TInputCovers(const std::vector<TCover>& covers)
+            :_covers(covers.data()),_coverCount(covers.size()){}
+        hpatch_force_inline size_t size()const{ return _coverCount; }
+        hpatch_force_inline const TCover& operator[](size_t index)const{ return _covers[index]; }
+    };
+
+    void collate_covers(std::vector<TCover>& covers);
+
+    //output covers
+    struct TOutputCovers{
+        hpatch_force_inline void push_cover(const TCover& cover){
+            covers.push_back(cover);
+        }
+        hpatch_force_inline void collate_covers(){ // for support search covers by multi-thread
+            ::collate_covers(covers);
+        }
+        
+        inline TOutputCovers(std::vector<TCover>& _covers,bool isInitClear=true)
+         :covers(_covers){
+            if (isInitClear) covers.clear();
+        }
+    public:
+        std::vector<TCover>& covers;
+    };
 
 #ifdef __cplusplus
 }

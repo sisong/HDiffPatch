@@ -71,7 +71,6 @@
 		D68CD90D1F469DDB00A61337 /* adler_roll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = adler_roll.c; sourceTree = "<group>"; };
 		D68CD90E1F469DDB00A61337 /* adler_roll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = adler_roll.h; sourceTree = "<group>"; };
 		D68CD90F1F469DDB00A61337 /* bloom_filter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bloom_filter.h; sourceTree = "<group>"; };
-		D68CD9101F469DDB00A61337 /* covers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = covers.h; sourceTree = "<group>"; };
 		D68CD9111F469DDB00A61337 /* digest_matcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = digest_matcher.cpp; sourceTree = "<group>"; };
 		D68CD9121F469DDB00A61337 /* digest_matcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = digest_matcher.h; sourceTree = "<group>"; };
 		D68CD9131F469DDB00A61337 /* stream_serialize.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = stream_serialize.cpp; sourceTree = "<group>"; };
@@ -191,7 +190,6 @@
 				D68CD90D1F469DDB00A61337 /* adler_roll.c */,
 				D68CD90E1F469DDB00A61337 /* adler_roll.h */,
 				D68CD90F1F469DDB00A61337 /* bloom_filter.h */,
-				D68CD9101F469DDB00A61337 /* covers.h */,
 				D68CD9111F469DDB00A61337 /* digest_matcher.cpp */,
 				D68CD9121F469DDB00A61337 /* digest_matcher.h */,
 				D68CD9131F469DDB00A61337 /* stream_serialize.cpp */,

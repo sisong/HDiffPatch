@@ -44,15 +44,14 @@ namespace{
     }
 
 //ICoverLinesListener
-static bool _search_cover_limit(ICoverLinesListener* listener,const void* pcovers,size_t coverCount,bool isCover32){
+static bool _search_cover_limit(ICoverLinesListener* listener,const hpatch_TCover* covers,size_t coverCount){
     TMatchInplace* self=(TMatchInplace*)listener;
     const hpatch_StreamPos_t kExtraSafeSize=self->inplaceSets.extraSafeSize;
     std::vector<size_t> researchIndexList;
-    TRefCovers covers(pcovers,coverCount,isCover32);
     hpatch_StreamPos_t researchLength=0;
     hpatch_StreamPos_t inExtraSafeLength=0;
     for (size_t i=0;i<coverCount;++i){
-        hpatch_TCover curCover=covers[i];
+        const hpatch_TCover& curCover=covers[i];
         if (coverInExtraSafeSize(curCover,kExtraSafeSize)){//ok
             inExtraSafeLength+=curCover.length;
         }else{
@@ -88,15 +87,14 @@ static bool _search_cover_limit(ICoverLinesListener* listener,const void* pcover
             *out_leaveLen=front_cover->length;
         }
     };
-static void _research_cover(ICoverLinesListener* listener,IDiffResearchCover* diffi,const void* pcovers,size_t coverCount,bool isCover32){
+static void _research_cover(ICoverLinesListener* listener,IDiffResearchCover* diffi,const hpatch_TCover* covers,size_t coverCount){
     TMatchInplace* self=(TMatchInplace*)listener;
-    TRefCovers covers(pcovers,coverCount,isCover32);
     TDiffSearchCoverListener diffSearchCoverListener(self->inplaceSets.extraSafeSize);
     std::vector<size_t> researchIndexList;
     researchIndexList.swap(self->_researchIndexList);
     for (size_t i=0;i<researchIndexList.size();++i){
         size_t limitCoverIndex=researchIndexList[i];
-        hpatch_TCover cover=covers[limitCoverIndex];
+        const hpatch_TCover& cover=covers[limitCoverIndex];
         diffi->researchCover(diffi,&diffSearchCoverListener,limitCoverIndex,0,0,cover.length);
     }
 }
@@ -105,16 +103,15 @@ static int _get_max_match_deep(const ICoverLinesListener* listener){
     return _kMaxMatchDeepForResearch;
 }
 
-static void _search_cover_finish(ICoverLinesListener* listener,void* pcovers,size_t* pcoverCount,bool isCover32,
+static void _search_cover_finish(ICoverLinesListener* listener,hpatch_TCover* pcovers,size_t* pcoverCount,
                                  hpatch_StreamPos_t* newSize,hpatch_StreamPos_t* oldSize){
     TMatchInplace* self=(TMatchInplace*)listener;
     const hpatch_size_t kExtraSafeSize=self->inplaceSets.extraSafeSize;
 
     //check covers
     hpatch_StreamPos_t minExtraSafeSize=0;
-    TRefCovers _covers(pcovers,*pcoverCount,isCover32);
-    for (size_t i=0;i<_covers.size();++i){
-        hpatch_TCover cover=_covers[i];
+    for (size_t i=0;i<(*pcoverCount);++i){
+        const hpatch_TCover& cover=pcovers[i];
         if (!coverInExtraSafeSize(cover,kExtraSafeSize))
             throw std::runtime_error("TMatchInplace limit cover by extraSafeSize ERROR!");
         if (cover.oldPos<cover.newPos)
