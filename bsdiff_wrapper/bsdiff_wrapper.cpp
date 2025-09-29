@@ -27,7 +27,7 @@
  */
 #include "bsdiff_wrapper.h"
 #include "bspatch_wrapper.h"
-#include "../libHDiffPatch/HDiff/match_block.h"
+#include "../libHDiffPatch/HDiff/private_diff/match_block.h"
 #include "../libHDiffPatch/HDiff/diff.h"
 #include "../libHDiffPatch/HDiff/private_diff/mem_buf.h"
 #include "../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"

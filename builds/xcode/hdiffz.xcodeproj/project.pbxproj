@@ -332,7 +332,6 @@
 		D690AB9F1F2079E80089DC57 /* HDiff */ = {
 			isa = PBXGroup;
 			children = (
-				0D571A68275CF68900672D57 /* match_block.cpp */,
 				D671B71A204983F7002D17A7 /* diff_types.h */,
 				D690ABA01F2079E80089DC57 /* diff.cpp */,
 				D690ABA11F2079E80089DC57 /* diff.h */,
@@ -349,7 +348,7 @@
 				D690ABA41F2079E80089DC57 /* bytes_rle.h */,
 				D690ABA51F2079E80089DC57 /* libdivsufsort */,
 				D690ABB01F2079E80089DC57 /* pack_uint.h */,
-				D690ABB11F2079E80089DC57 /* sais.hxx */,
+				0D571A68275CF68900672D57 /* match_block.cpp */,
 				D690ABB21F2079E80089DC57 /* suffix_string.cpp */,
 				D690ABB31F2079E80089DC57 /* suffix_string.h */,
 				D6EE505B1F287234002854A2 /* compress_detect.cpp */,

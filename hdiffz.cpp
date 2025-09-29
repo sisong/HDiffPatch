@@ -35,7 +35,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "libHDiffPatch/HDiff/diff.h"
-#include "libHDiffPatch/HDiff/match_block.h"
 #include "libHDiffPatch/HPatch/patch.h"
 #include "_clock_for_demo.h"
 #include "_atosize.h"

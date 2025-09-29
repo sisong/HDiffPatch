@@ -222,7 +222,7 @@ HDIFF_OBJ += \
     hdiffz_import_patch.o \
     libHDiffPatch/HPatchLite/hpatch_lite.o \
     libHDiffPatch/HDiff/diff.o \
-    libHDiffPatch/HDiff/match_block.o \
+    libHDiffPatch/HDiff/private_diff/match_block.o \
     libHDiffPatch/HDiff/private_diff/bytes_rle.o \
     libHDiffPatch/HDiff/private_diff/suffix_string.o \
     libHDiffPatch/HDiff/private_diff/compress_detect.o \

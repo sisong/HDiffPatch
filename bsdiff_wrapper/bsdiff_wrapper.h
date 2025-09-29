@@ -54,7 +54,6 @@ bool check_bsdiff(const unsigned char* newData,const unsigned char* newData_end,
                   const unsigned char* diffData,const unsigned char* diffData_end,
                   hpatch_TDecompress* decompressPlugin);
 
-#include "../libHDiffPatch/HDiff/match_block.h"
 
 void create_bsdiff_block(unsigned char* newData,unsigned char* newData_end,
                          unsigned char* oldData,unsigned char* oldData_end,

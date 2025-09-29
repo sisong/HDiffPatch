@@ -316,7 +316,7 @@
     <ClCompile Include="..\..\hdiffz.cpp" />
     <ClCompile Include="..\..\hdiffz_import_patch.c" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\diff.cpp" />
-    <ClCompile Include="..\..\libHDiffPatch\HDiff\match_block.cpp" />
+    <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\match_block.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\bytes_rle.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\compress_detect.cpp" />
     <ClCompile Include="..\..\libHDiffPatch\HDiff\private_diff\libdivsufsort\divsufsort.cpp" />

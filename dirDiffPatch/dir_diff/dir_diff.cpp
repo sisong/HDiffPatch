@@ -33,7 +33,6 @@
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/adler_roll.h"
 #include "../../libHDiffPatch/HDiff/private_diff/limit_mem_diff/stream_serialize.h"
 #include "../../libHDiffPatch/HDiff/diff.h"
-#include "../../libHDiffPatch/HDiff/match_block.h"
 #include "../../libHDiffPatch/HPatch/patch.h"
 #include "../dir_patch/dir_patch.h"
 #include "../dir_patch/dir_patch_private.h"

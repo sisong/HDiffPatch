@@ -76,7 +76,6 @@ bool check_vcdiff(const hpatch_byte* newData,const hpatch_byte* newData_end,
                   const hpatch_byte* diffData,const hpatch_byte* diffData_end,
                   hpatch_TDecompress* decompressPlugin);
 
-#include "../libHDiffPatch/HDiff/match_block.h"
 
 void create_vcdiff_block(hpatch_byte* newData,hpatch_byte* newData_end,
                          hpatch_byte* oldData,hpatch_byte* oldData_end,
