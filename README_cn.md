@@ -47,8 +47,8 @@ hsynz 支持 zstd 压缩算法并且比 zsync 速度快得多；而且可以兼�
 ## 二进制发布包
 [从 release 下载](https://github.com/sisong/HDiffPatch/releases) : 命令行程序分别运行在 Windows、Linux、MacOS操作系统。 .so库文件用于安卓。   
 用命令行创建一个补丁:   
-`$hdiffz -m-6 -SD -c-zstd-21-24 -d oldPath newPath outDiffFile`   
-如果文件非常大，可以试试将 `-m-6` 改为 `-s-64`   
+`$hdiffz -m-4 -SD -c-zstd-21-24 -d oldPath newPath outDiffFile`   
+如果文件非常大，可以试试将 `-m-4` 改为 `-s-64`   
 打补丁:   
 `$hpatchz oldPath diffFile outNewPath`   
 
@@ -110,7 +110,7 @@ $ git clone https://github.com/sisong/bzip2.git  ../bzip2
   -m[-matchScore]
       默认选项; 所有文件都会被加载到内存; 一般生成的补丁文件比较小;
       需要的内存大小:(新版本文件大小+ 旧版本文件大小*5(或*9 当旧版本文件大小>=2GB时))+O(1);
-      匹配分数matchScore>=0,默认为6,二进制数据时推荐设置为0到4,文件数据时推荐4--9等,跟输入
+      匹配分数matchScore>=0,默认为4,二进制数据时推荐设置为0到4,文件数据时推荐4--9等,跟输入
       数据的可压缩性相关,一般输入数据的可压缩性越大,这个值就可以越大。
   -s[-matchBlockSize]
       所有文件当作文件流加载;一般速度比较快;

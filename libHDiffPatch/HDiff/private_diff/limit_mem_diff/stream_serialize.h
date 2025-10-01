@@ -40,7 +40,7 @@ struct TCoversStream:public hpatch_TStreamInput{
     ~TCoversStream();
     static hpatch_StreamPos_t getDataSize(const TInputCovers& covers);
 private:
-    const TInputCovers&         covers;
+    const TInputCovers          covers;
     TAutoMem                    _code_mem;
     size_t                      curCodePos;
     size_t                      curCodePos_end;
@@ -67,9 +67,9 @@ private:
     size_t nextCoveri;
     const hdiff_TStreamInput* newData;
     const hdiff_TStreamInput* oldData;
-    const TInputCovers& covers;
+    const TInputCovers covers;
     const bool isOnlySubCover;
-    const bool isExtendedCover;
+    const bool isExtendCover;
     TAutoMem _cache;
     void initRead();
     void readTo(unsigned char* out_data,unsigned char* out_data_end);
@@ -101,7 +101,7 @@ private:
                                                  hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd);
     void _init(hpatch_StreamPos_t newDataDiff_size);
     void _initByRange(size_t coveri,hpatch_StreamPos_t newDataPos,hpatch_StreamPos_t newDataPosEnd);
-    const TInputCovers&              covers;
+    const TInputCovers          covers;
     const hpatch_TStreamInput*  newData;
     hpatch_StreamPos_t          curNewPos;
     hpatch_StreamPos_t          curNewPos_end;
@@ -122,7 +122,7 @@ struct TNewDataSubDiffCoverStream:public hpatch_TStreamInput{
                                const hpatch_TStreamInput* _oldStream,bool _isExtendedCover);
     void resetCover(const TCover& _cover);
     void resetCoverLen(hpatch_StreamPos_t coverLen);
-    const bool isExtendedCover;
+    const bool isExtendCover;
 private:
     hpatch_StreamPos_t inStreamLen;
     size_t curDataLen;
@@ -166,13 +166,13 @@ private:
 
 struct TStepStream:public hpatch_TStreamInput{
     TStepStream(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                const TInputCovers& covers,size_t patchStepMemSize,bool isExtendedCover);
+                const TInputCovers& covers,size_t patchStepMemSize,bool isExtendCover);
     inline size_t getCoverCount()const{ return endCoverCount; }
     inline size_t getMaxStepMemSize()const{ return endMaxStepMemSize; }
 private:
     TNewDataSubDiffCoverStream  subDiff;
     TNewDataDiffStream          newDataDiff;
-    const TInputCovers& covers;
+    const TInputCovers covers;
     const size_t    patchStepMemSize;
     const hpatch_StreamPos_t newDataSize;
     size_t  curCoverCount;

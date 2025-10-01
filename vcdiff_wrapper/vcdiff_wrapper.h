@@ -56,13 +56,11 @@ void create_vcdiff(const hpatch_byte* newData,const hpatch_byte* newData_end,
                    const hpatch_byte* oldData,const hpatch_byte* oldData_end,
                    const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin=0,
                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                   bool isUseBigCacheMatch=false,ICoverLinesListener* coverLinesListener=0,
-                   size_t threadNum=1);
+                   bool isUseBigCacheMatch=false,size_t threadNum=1);
 void create_vcdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                    const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin,
                    int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                   bool isUseBigCacheMatch=false,ICoverLinesListener* coverLinesListener=0,
-                   size_t threadNum=1);
+                   bool isUseBigCacheMatch=false,size_t threadNum=1);
 
 // create diffFile by stream compatible with VCDIFF
 void create_vcdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
@@ -80,15 +78,13 @@ bool check_vcdiff(const hpatch_byte* newData,const hpatch_byte* newData_end,
 void create_vcdiff_block(hpatch_byte* newData,hpatch_byte* newData_end,
                          hpatch_byte* oldData,hpatch_byte* oldData_end,
                          const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin=0,
+                         size_t fastMatchBlockSize=kDefaultFastMatchBlockSize,
                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                         bool isUseBigCacheMatch=false,
-                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
-                         size_t threadNum=1);
+                         bool isUseBigCacheMatch=false,size_t threadNum=1);
 void create_vcdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                          const hpatch_TStreamOutput* out_diff,const vcdiff_TCompress* compressPlugin=0,
+                         size_t fastMatchBlockSize=kDefaultFastMatchBlockSize,
                          int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                         bool isUseBigCacheMatch=false,
-                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
-                         size_t threadNumForMem=1,size_t threadNumForStream=1);
+                         bool isUseBigCacheMatch=false,const hdiff_TMTSets_s* mtsets=0);
 
 #endif

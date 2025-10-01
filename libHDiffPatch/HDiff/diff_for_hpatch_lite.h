@@ -19,7 +19,7 @@ struct hdiffi_TCompress{
     const hdiff_TCompress* compress;
     hpi_compressType       compress_type;
 };
-const int kLiteMatchScore_default = 6;
+const int kLiteMatchScore_default = 4;
 
 void create_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
                       const hpi_byte* oldData,const hpi_byte* oldData_end,
@@ -38,7 +38,7 @@ bool check_lite_diff(const hpi_byte* newData,const hpi_byte* newData_end,
 typedef struct TInplaceSets{
     size_t      extraSafeSize;          //extra memory for inplace-patch; patch used sum memory size=extraSafeSize+decompressMemSize+cacheSize;
     bool        isCompatibleLiteDiff;   //default is false; if true, diff_data compatible with create_lite_diff() format; if true, diff_data as a new format saved extraSafeSize;
-    bool        isCanExtendCover;       //now always is true
+    bool        isExtendCover;          //now always is true
 } TInplaceSets;
 static inline bool isInplaceASets(const TInplaceSets& sets) { return sets.extraSafeSize==0; }
 static inline bool isInplaceBSets(const TInplaceSets& sets) { return sets.extraSafeSize>0; }

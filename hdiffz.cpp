@@ -165,7 +165,7 @@ static void printUsage(){
            "      DEFAULT; all file load into Memory; best diffFileSize;\n"
            "      requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1)\n"
            "        bytes of memory;\n"
-           "      matchScore>=0, DEFAULT -m-6, recommended bin: 0--4 text: 4--9 etc...\n"
+           "      matchScore>=0, DEFAULT -m-4, recommended bin: 0--4 text: 4--9 etc...\n"
            "  -s[-matchBlockSize]\n"
            "      all file load as Stream; fast;\n"
            "      requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5"
@@ -1444,8 +1444,8 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
             if (diffSets.isBsDiff){
                 if (diffSets.isDiffInMem)
                     create_bsdiff_block(&newData.base,&oldData.base,&diffData_out.base,compressPlugin,
-                                        diffSets.isSingleCompressedDiff,(int)diffSets.matchScore,diffSets.isUseBigCacheMatch,
-                                        diffSets.matchBlockSize,diffSets.threadNum,diffSets.threadNumSearch_s);
+                                        diffSets.isSingleCompressedDiff,diffSets.matchBlockSize,
+                                        (int)diffSets.matchScore,diffSets.isUseBigCacheMatch,&mtsets);
                 else
                     create_bsdiff_stream(&newData.base,&oldData.base,&diffData_out.base,
                                          compressPlugin,diffSets.isSingleCompressedDiff,
@@ -1458,8 +1458,8 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
                 _CompressPluginForVcDiff(vcdiffCompressPlugin,compressPlugin);
                 if (diffSets.isDiffInMem)
                     create_vcdiff_block(&newData.base,&oldData.base,&diffData_out.base,vcdiffCompressPlugin,
-                                        (int)diffSets.matchScore,diffSets.isUseBigCacheMatch,
-                                        diffSets.matchBlockSize,diffSets.threadNum,diffSets.threadNumSearch_s);
+                                        diffSets.matchBlockSize,(int)diffSets.matchScore,
+                                        diffSets.isUseBigCacheMatch,&mtsets);
                 else
                     create_vcdiff_stream(&newData.base,&oldData.base,&diffData_out.base,
                                          vcdiffCompressPlugin,diffSets.matchBlockSize,&mtsets);
@@ -1468,17 +1468,16 @@ static int hdiff_by_stream(const char* oldFileName,const char* newFileName,const
             if (diffSets.isSingleCompressedDiff)
                 if (diffSets.isDiffInMem)
                     create_single_compressed_diff_block(&newData.base,&oldData.base,&diffData_out.base,compressPlugin,
-                                                        (int)diffSets.matchScore,diffSets.patchStepMemSize,diffSets.isUseBigCacheMatch,
-                                                        diffSets.matchBlockSize,diffSets.threadNum,diffSets.threadNumSearch_s);
+                                                        diffSets.patchStepMemSize,diffSets.matchBlockSize,
+                                                        (int)diffSets.matchScore,diffSets.isUseBigCacheMatch,&mtsets);
                 else
-                    create_single_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
-                                                         compressPlugin,diffSets.matchBlockSize,
-                                                         diffSets.patchStepMemSize,&mtsets);
+                    create_single_compressed_diff_stream(&newData.base,&oldData.base,&diffData_out.base,compressPlugin,
+                                                         diffSets.patchStepMemSize,diffSets.matchBlockSize,&mtsets);
             else{
                 if (diffSets.isDiffInMem)
                     create_compressed_diff_block(&newData.base,&oldData.base,&diffData_out.base,compressPlugin,
-                                                 (int)diffSets.matchScore,diffSets.isUseBigCacheMatch,
-                                                 diffSets.matchBlockSize,diffSets.threadNum,diffSets.threadNumSearch_s);
+                                                 diffSets.matchBlockSize,(int)diffSets.matchScore,
+                                                 diffSets.isUseBigCacheMatch,&mtsets);
                 else
                     create_compressed_diff_stream(&newData.base,&oldData.base, &diffData_out.base,
                                                   compressPlugin,diffSets.matchBlockSize,&mtsets);

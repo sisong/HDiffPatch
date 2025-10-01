@@ -632,7 +632,7 @@ long test(const TByte* newData,const TByte* newData_end,
         mem_as_hStreamInput(&newStream,newData,newData_end);
         mem_as_hStreamInput(&oldStream,oldData,oldData_end);
 
-        create_single_compressed_diff_stream(&newStream,&oldStream,&out_diffStream,compressPlugin,1<<4);
+        create_single_compressed_diff_stream(&newStream,&oldStream,&out_diffStream,compressPlugin,kDefaultPatchStepMemSize,1<<4);
         if (out_diffSizes) out_diffSizes[kDiffSs]+=diffData.size();
         struct hpatch_TStreamInput in_diffStream;
         mem_as_hStreamInput(&in_diffStream,diffData.data(),diffData.data()+diffData.size());

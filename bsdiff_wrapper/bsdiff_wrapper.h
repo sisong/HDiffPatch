@@ -34,18 +34,17 @@ void create_bsdiff(const unsigned char* newData,const unsigned char* newData_end
                    const unsigned char* oldData,const unsigned char* oldData_end,
                    const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                    bool isEndsleyBsdiff=false,int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                   bool isUseBigCacheMatch=false,ICoverLinesListener* coverLinesListener=0,
-                   size_t threadNum=1);
+                   bool isUseBigCacheMatch=false,size_t threadNum=1);
 void create_bsdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                    const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
                    bool isEndsleyBsdiff=false,int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                   bool isUseBigCacheMatch=false,ICoverLinesListener* coverLinesListener=0,
-                   size_t threadNum=1);
+                   bool isUseBigCacheMatch=false,size_t threadNum=1);
 
 // create diffFile by stream compatible with bsdiff4
 void create_bsdiff_stream(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                           const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
-                          bool isEndsleyBsdiff=false,size_t kMatchBlockSize=kMatchBlockSize_default,const hdiff_TMTSets_s* mtsets=0);
+                          bool isEndsleyBsdiff=false,size_t kMatchBlockSize=kMatchBlockSize_default,
+                          const hdiff_TMTSets_s* mtsets=0);
 
 bool check_bsdiff(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                   const hpatch_TStreamInput* diffData,hpatch_TDecompress* decompressPlugin);
@@ -58,15 +57,13 @@ bool check_bsdiff(const unsigned char* newData,const unsigned char* newData_end,
 void create_bsdiff_block(unsigned char* newData,unsigned char* newData_end,
                          unsigned char* oldData,unsigned char* oldData_end,
                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
-                         bool isEndsleyBsdiff=false,int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                         bool isUseBigCacheMatch=false,
-                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
-                         size_t threadNum=1);
+                         bool isEndsleyBsdiff=false,size_t fastMatchBlockSize=kDefaultFastMatchBlockSize,
+                         int kMinSingleMatchScore=kMinSingleMatchScore_default,
+                         bool isUseBigCacheMatch=false,size_t threadNum=1);
 void create_bsdiff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
                          const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
-                         bool isEndsleyBsdiff=false,int kMinSingleMatchScore=kMinSingleMatchScore_default,
-                         bool isUseBigCacheMatch=false,
-                         size_t matchBlockSize=kDefaultFastMatchBlockSize,
-                         size_t threadNumForMem=1,size_t threadNumForStream=1);
+                         bool isEndsleyBsdiff=false,size_t fastMatchBlockSize=kDefaultFastMatchBlockSize,
+                         int kMinSingleMatchScore=kMinSingleMatchScore_default,
+                         bool isUseBigCacheMatch=false,const hdiff_TMTSets_s* mtsets=0);
 
 #endif

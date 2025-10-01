@@ -26,8 +26,8 @@
  OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "match_block.h"
-#include "diff.h"
-#include "private_diff/limit_mem_diff/stream_serialize.h" //TAutoMem
+#include "../diff.h"
+#include "mem_buf.h" //TAutoMem
 #include <algorithm>
 #include <stdexcept>  //std::runtime_error
 #define _check(value,info) { if (!(value)) { throw std::runtime_error(info); } }
@@ -78,13 +78,13 @@ namespace hdiff_private {
     }
 
 void TMatchBlockMem::getBlockCovers(){
-    get_match_covers_by_block(newData,newData_end,oldData,oldData_end,
-                              blockCovers,matchBlockSize,threadNum);
+    get_match_covers_by_stream(newData,newData_end,oldData,oldData_end,
+                               blockCovers,matchBlockSize,threadNum);
 }
 
 void TMatchBlockStream::getBlockCovers(){
     const hdiff_TMTSets_s mtsets={threadNum,threadNumForStream,false,false};
-    get_match_covers_by_block(newStream,oldStream,blockCovers,matchBlockSize,&mtsets);
+    get_match_covers_by_stream(newStream,oldStream,blockCovers,matchBlockSize,&mtsets);
 }
 
 void TMatchBlockBase::_getPackedCover(hpatch_StreamPos_t newDataSize,hpatch_StreamPos_t oldDataSize){
@@ -326,7 +326,7 @@ void TMatchBlockStream::unpackData(IDiffInsertCover* diffi,hpatch_TCover* pcover
         pc.oldPos=self->streamSize+1;
         self->packedCovers.push_back(pc);
     }
-void TMatchBlockStream::map_streams(const hpatch_TStreamInput** pnewData,const hpatch_TStreamInput** poldData){
+void TMatchBlockStream::cachedStreams(const hpatch_TStreamInput** pnewData,const hpatch_TStreamInput** poldData){
     //*pnewData=newStream; *poldData=oldStream;    return; //only for debug test
     unpackDataAsStream(&_newStreamMap,newData,newData_end_cur);
     unpackDataAsStream(&_oldStreamMap,oldData,oldData_end_cur);
@@ -335,103 +335,4 @@ void TMatchBlockStream::map_streams(const hpatch_TStreamInput** pnewData,const h
 }
 
 } //namespace hdiff_private
-
-using namespace hdiff_private;
-
-void create_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
-                                  unsigned char* oldData,unsigned char* oldData_end,
-                                  std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin,
-                                  int kMinSingleMatchScore,bool isUseBigCacheMatch,
-                                  size_t matchBlockSize,size_t threadNum){
-    TVectorAsStreamOutput outDiffStream(out_diff);
-    create_compressed_diff_block(newData,newData_end,oldData,oldData_end,
-                                 &outDiffStream,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,matchBlockSize,threadNum);
-}
-void create_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
-                                  unsigned char* oldData,unsigned char* oldData_end,
-                                  const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
-                                  int kMinSingleMatchScore,bool isUseBigCacheMatch,
-                                  size_t matchBlockSize,size_t threadNum){
-    if (matchBlockSize==0){
-        create_compressed_diff(newData,newData_end,oldData,oldData_end,
-                               out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,0,threadNum);
-        return;
-    }
-    TCoversOptimMem coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize,threadNum);
-    create_compressed_diff(coversOp.matchBlock->newData,coversOp.matchBlock->newData_end_cur,
-                           coversOp.matchBlock->oldData,coversOp.matchBlock->oldData_end_cur,
-                           out_diff,compressPlugin,kMinSingleMatchScore,isUseBigCacheMatch,&coversOp,threadNum);
-}
-void create_compressed_diff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                                  const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
-                                  int kMinSingleMatchScore,bool isUseBigCacheMatch,size_t matchBlockSize,
-                                  size_t threadNumForMem,size_t threadNumForStream){
-    if (matchBlockSize==0){
-        TAutoMem oldAndNewData;
-        loadOldAndNewStream(oldAndNewData,oldData,newData);
-        size_t old_size=oldData?(size_t)oldData->streamSize:0;
-        unsigned char* pOldData=oldAndNewData.data();
-        unsigned char* pNewData=pOldData+old_size;
-        create_compressed_diff(pNewData,pNewData+(size_t)newData->streamSize,pOldData,pOldData+old_size,
-                               out_diff,compressPlugin,kMinSingleMatchScore,
-                               isUseBigCacheMatch,0,threadNumForMem);
-        return;
-    }
-    TCoversOptimStream coversOp(newData,oldData,matchBlockSize,threadNumForMem,threadNumForStream);
-    create_compressed_diff(coversOp.matchBlock->newData,coversOp.matchBlock->newData_end_cur,
-                           coversOp.matchBlock->oldData,coversOp.matchBlock->oldData_end_cur,
-                           out_diff,compressPlugin,kMinSingleMatchScore,
-                           isUseBigCacheMatch,&coversOp,threadNumForMem);
-}
-
-
-void create_single_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
-                                         unsigned char* oldData,unsigned char* oldData_end,
-                                         const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
-                                         int kMinSingleMatchScore,size_t patchStepMemSize,
-                                         bool isUseBigCacheMatch,size_t matchBlockSize,size_t threadNum){
-    if (matchBlockSize==0){
-        create_single_compressed_diff(newData,newData_end,oldData,oldData_end,
-                                      out_diff,compressPlugin,kMinSingleMatchScore,
-                                      patchStepMemSize,isUseBigCacheMatch,0,threadNum);
-        return;
-    }
-    TCoversOptimMem coversOp(newData,newData_end,oldData,oldData_end,matchBlockSize,threadNum);
-    create_single_compressed_diff(coversOp.matchBlock->newData,coversOp.matchBlock->newData_end_cur,
-                                  coversOp.matchBlock->oldData,coversOp.matchBlock->oldData_end_cur,
-                                  out_diff,compressPlugin,kMinSingleMatchScore,
-                                  patchStepMemSize,isUseBigCacheMatch,&coversOp,threadNum);                                      
-}
-void create_single_compressed_diff_block(unsigned char* newData,unsigned char* newData_end,
-                                         unsigned char* oldData,unsigned char* oldData_end,
-                                         std::vector<unsigned char>& out_diff,const hdiff_TCompress* compressPlugin,
-                                         int kMinSingleMatchScore,size_t patchStepMemSize,
-                                         bool isUseBigCacheMatch,size_t matchBlockSize,size_t threadNum){
-    TVectorAsStreamOutput outDiffStream(out_diff);
-    create_single_compressed_diff_block(newData,newData_end,oldData,oldData_end,
-                                        &outDiffStream,compressPlugin,kMinSingleMatchScore,
-                                        patchStepMemSize,isUseBigCacheMatch,matchBlockSize,threadNum);
-}
-void create_single_compressed_diff_block(const hpatch_TStreamInput* newData,const hpatch_TStreamInput* oldData,
-                                         const hpatch_TStreamOutput* out_diff,const hdiff_TCompress* compressPlugin,
-                                         int kMinSingleMatchScore,size_t patchStepMemSize,
-                                         bool isUseBigCacheMatch,size_t matchBlockSize,
-                                         size_t threadNumForMem,size_t threadNumForStream){
-    if (matchBlockSize==0){
-        TAutoMem oldAndNewData;
-        loadOldAndNewStream(oldAndNewData,oldData,newData);
-        size_t old_size=oldData?(size_t)oldData->streamSize:0;
-        unsigned char* pOldData=oldAndNewData.data();
-        unsigned char* pNewData=pOldData+old_size;
-        create_single_compressed_diff(pNewData,pNewData+(size_t)newData->streamSize,pOldData,pOldData+old_size,
-                                      out_diff,compressPlugin,kMinSingleMatchScore,
-                                      patchStepMemSize,isUseBigCacheMatch,0,threadNumForMem);
-        return;
-    }
-    TCoversOptimStream coversOp(newData,oldData,matchBlockSize,threadNumForMem,threadNumForStream);
-    create_single_compressed_diff(coversOp.matchBlock->newData,coversOp.matchBlock->newData_end_cur,
-                                  coversOp.matchBlock->oldData,coversOp.matchBlock->oldData_end_cur,
-                                  out_diff,compressPlugin,kMinSingleMatchScore,
-                                  patchStepMemSize,isUseBigCacheMatch,&coversOp,threadNumForMem);
-}
 

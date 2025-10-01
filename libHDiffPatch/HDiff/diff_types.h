@@ -150,7 +150,6 @@ extern "C"
                                    size_t searchBlockSize,size_t kPartPepeatSize);
         hpatch_BOOL (*next_search_block_MT)(ICoverLinesListener* listener,hdiff_TRange* out_newRange);//must thread safe
         hpatch_StreamPos_t (*get_limit_cover_length)(const ICoverLinesListener* listener); //if null, default kDefaultLimitCoverLen 
-        void (*map_streams_befor_serialize)(ICoverLinesListener* listener,const hpatch_TStreamInput** pnewData,const hpatch_TStreamInput** poldData);
     };
 
     struct hdiff_TMTSets_s{ // used by $hdiff -s
@@ -162,6 +161,10 @@ extern "C"
 
     static const hdiff_TMTSets_s hdiff_TMTSets_s_kEmpty={1,1,false,false};
 
+
+#ifdef __cplusplus
+}
+#endif
 
     typedef hpatch_TCover   TCover;
     static inline void setCover(TCover& cover,hpatch_StreamPos_t oldPos,hpatch_StreamPos_t newPos,hpatch_StreamPos_t length) {
@@ -179,6 +182,8 @@ extern "C"
         hpatch_force_inline size_t size()const{ return _coverCount; }
         hpatch_force_inline const TCover& operator[](size_t index)const{ return _covers[index]; }
     };
+    
+    void assert_covers_safe(const TInputCovers& covers,hpatch_StreamPos_t newSize,hpatch_StreamPos_t oldSize);
 
     void collate_covers(std::vector<TCover>& covers);
 
@@ -199,7 +204,13 @@ extern "C"
         std::vector<TCover>& covers;
     };
 
-#ifdef __cplusplus
-}
-#endif
+    struct TCachedNewOldStreams{
+        const hpatch_TStreamInput* newStream;
+        const hpatch_TStreamInput* oldStream;
+        void* import;
+        void (*freeCached)(void* import);
+        hpatch_force_inline TCachedNewOldStreams():newStream(0),oldStream(0),import(0),freeCached(0){}
+        hpatch_force_inline ~TCachedNewOldStreams(){ if (freeCached&&import) freeCached(import); }
+    };
+    
 #endif //HDiff_diff_types_h

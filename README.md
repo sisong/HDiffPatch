@@ -47,8 +47,8 @@ NOTE: *This library does not deal with file metadata, such as file last write ti
 ## Releases/Binaries
 [Download from latest release](https://github.com/sisong/HDiffPatch/releases) : Command line app for Windows, Linux, MacOS; and .so patch lib for Android.   
 use cmdline to create a delta:   
-`$hdiffz -m-6 -SD -c-zstd-21-24 -d oldPath newPath outDiffFile`   
-if file is very large, try changing `-m-6` to `-s-64`   
+`$hdiffz -m-4 -SD -c-zstd-21-24 -d oldPath newPath outDiffFile`   
+if file is very large, try changing `-m-4` to `-s-64`   
 apply the delta:   
 `$hpatchz oldPath diffFile outNewPath`   
 
@@ -111,7 +111,7 @@ options:
       DEFAULT; all file load into Memory; best diffFileSize;
       requires (newFileSize+ oldFileSize*5(or *9 when oldFileSize>=2GB))+O(1)
         bytes of memory;
-      matchScore>=0, DEFAULT -m-6, recommended bin: 0--4 text: 4--9 etc...
+      matchScore>=0, DEFAULT -m-4, recommended bin: 0--4 text: 4--9 etc...
   -s[-matchBlockSize]
       all file load as Stream; fast;
       requires O(oldFileSize*16/matchBlockSize+matchBlockSize*5*parallelThreadNumber)bytes of memory;

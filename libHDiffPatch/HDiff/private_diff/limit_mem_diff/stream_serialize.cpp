@@ -280,7 +280,7 @@ hpatch_StreamPos_t TNewDataDiffStream::getDataSize(const TInputCovers& covers,hp
 TNewDataSubDiffStream::TNewDataSubDiffStream(const hdiff_TStreamInput* _newData,const hdiff_TStreamInput* _oldData,
                                              const TInputCovers& _covers,bool _isOnlySubCover,bool _isExtendedCover)
 :newData(_newData),oldData(_oldData),covers(_covers),
-  isOnlySubCover(_isOnlySubCover),isExtendedCover(_isExtendedCover),_cache(kSubDiffCacheSize){
+  isOnlySubCover(_isOnlySubCover),isExtendCover(_isExtendedCover),_cache(kSubDiffCacheSize){
     initRead();
     streamImport=this;
     if (isOnlySubCover){
@@ -348,7 +348,7 @@ void TNewDataSubDiffStream::readTo(unsigned char* out_data,unsigned char* out_da
         }
         
         size_t len=(size_t)std::min(curDataLen,(hpatch_StreamPos_t)readLen);
-        if ((isExtendedCover)&&(curReadOldPos!=_kNullPos)){
+        if ((isExtendCover)&&(curReadOldPos!=_kNullPos)){
             check(newData->read(newData,curReadNewPos,out_data,out_data+len));
             _subData(out_data,len,oldData,curReadOldPos,_cache.data(),_cache.size());
         }else{
@@ -383,12 +383,12 @@ TNewDataSubDiffStream_mem::TNewDataSubDiffStream_mem(const unsigned char* newDat
 TNewDataSubDiffCoverStream::TNewDataSubDiffCoverStream(const hpatch_TStreamInput* _newStream,
                                                        const hpatch_TStreamInput* _oldStream,
                                                        bool _isExtendedCover)
-:isExtendedCover(_isExtendedCover),newStream(_newStream),oldStream(_oldStream),
+:isExtendCover(_isExtendedCover),newStream(_newStream),oldStream(_oldStream),
 newData(0),oldData(0),_cache(_isExtendedCover?kSubDiffCacheSize*2:0){
     setCover(cover,0,0,0);
     streamImport=this;
     read=_read;
-    if (isExtendedCover){
+    if (isExtendCover){
         newData=_cache.data();
         oldData=_cache.data()+kSubDiffCacheSize;
     }
@@ -422,7 +422,7 @@ void TNewDataSubDiffCoverStream::resetCoverLen(hpatch_StreamPos_t coverLen){
 hpatch_BOOL TNewDataSubDiffCoverStream::_read(const hpatch_TStreamInput* stream,hpatch_StreamPos_t readFromPos,
                                               unsigned char* out_data,unsigned char* out_data_end){
     TNewDataSubDiffCoverStream* self=(TNewDataSubDiffCoverStream*)stream->streamImport;
-    if (!self->isExtendedCover){
+    if (!self->isExtendCover){
         memset(out_data,0,out_data_end-out_data);
         return hpatch_TRUE;
     }
@@ -467,8 +467,8 @@ hpatch_BOOL TNewDataSubDiffCoverStream::_updateCache(hpatch_StreamPos_t readFrom
 
 
 TStepStream::TStepStream(const hpatch_TStreamInput* newStream,const hpatch_TStreamInput* oldStream,
-                         const TInputCovers& _covers,size_t _patchStepMemSize,bool isExtendedCover)
-:subDiff(newStream,oldStream,isExtendedCover),newDataDiff(_covers,newStream),
+                         const TInputCovers& _covers,size_t _patchStepMemSize,bool isExtendCover)
+:subDiff(newStream,oldStream,isExtendCover),newDataDiff(_covers,newStream),
 covers(_covers),patchStepMemSize(_patchStepMemSize),newDataSize(newStream->streamSize),
 readFromPosBack(0),readBufPos(0){
     initStream();
@@ -602,9 +602,9 @@ bool TStepStream::doStep(){
     
     subDiff.resetCover(cover);
     const hpatch_StreamPos_t curMaxNeedSize = step_bufCover_size +
-            (subDiff.isExtendedCover?step_bufRle.maxCodeSize(&subDiff):step_bufRle.maxCodeSizeByZeroLen(subDiff.streamSize));
+            (subDiff.isExtendCover?step_bufRle.maxCodeSize(&subDiff):step_bufRle.maxCodeSizeByZeroLen(subDiff.streamSize));
     if (curMaxNeedSize<=patchStepMemSize){ //append
-        if (!subDiff.isExtendedCover)
+        if (!subDiff.isExtendCover)
             step_bufRle.appendByZeroLen(subDiff.streamSize);
         else
             step_bufRle.append(&subDiff);
@@ -638,7 +638,7 @@ bool TStepStream::doStep(){
                 subDiff.resetCoverLen(clen);
                 check(clen>0); // stepMemSize error
                 const hpatch_StreamPos_t _curMaxNeedSize = step_bufCover_size +
-                    (subDiff.isExtendedCover?step_bufRle.maxCodeSize(&subDiff):step_bufRle.maxCodeSizeByZeroLen(subDiff.streamSize));
+                    (subDiff.isExtendCover?step_bufRle.maxCodeSize(&subDiff):step_bufRle.maxCodeSizeByZeroLen(subDiff.streamSize));
                 if (_curMaxNeedSize<=patchStepMemSize)
                     break;
             }

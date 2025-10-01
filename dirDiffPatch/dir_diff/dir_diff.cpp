@@ -489,17 +489,17 @@ void dir_diff(IDirDiffListener* listener,const TManifest& oldManifest,
         if (hdiffSets.isSingleCompressedDiff){
             if (hdiffSets.isDiffInMem)
                 create_single_compressed_diff_block(newRefStream.stream,oldRefStream.stream,&ofStream,compressPlugin,
-                                                    (int)hdiffSets.matchScore,hdiffSets.patchStepMemSize,hdiffSets.isUseBigCacheMatch,
-                                                    hdiffSets.matchBlockSize,hdiffSets.threadNum,hdiffSets.threadNumSearch_s);
+                                                    hdiffSets.patchStepMemSize,hdiffSets.matchBlockSize,
+                                                    (int)hdiffSets.matchScore,hdiffSets.isUseBigCacheMatch,&mtsets);
             else
                 create_single_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
-                                                     compressPlugin,hdiffSets.matchBlockSize,
-                                                     hdiffSets.patchStepMemSize,&mtsets);
+                                                     compressPlugin,hdiffSets.patchStepMemSize,
+                                                     hdiffSets.matchBlockSize,&mtsets);
         }else{
             if (hdiffSets.isDiffInMem)
                 create_compressed_diff_block(newRefStream.stream,oldRefStream.stream,&ofStream,compressPlugin,
-                                             (int)hdiffSets.matchScore,hdiffSets.isUseBigCacheMatch,
-                                             hdiffSets.matchBlockSize,hdiffSets.threadNum,hdiffSets.threadNumSearch_s);
+                                             hdiffSets.matchBlockSize,(int)hdiffSets.matchScore,
+                                             hdiffSets.isUseBigCacheMatch,&mtsets);
             else
                 create_compressed_diff_stream(newRefStream.stream,oldRefStream.stream,&ofStream,
                                               compressPlugin,hdiffSets.matchBlockSize,&mtsets);
