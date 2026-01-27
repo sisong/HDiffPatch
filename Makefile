@@ -445,6 +445,11 @@ libhdiffpatch.a: $(_ALL_OBJs)
 
 hpatchz: $(HPATCH_OBJ)
 	$(CC) hpatchz.c $(HPATCH_OBJ) $(CFLAGS) $(PATCH_LINK) -o hpatchz
+
+# macOS dylib target for patch only
+libhpatch.dylib: $(HPATCH_OBJ)
+	$(CC) -dynamiclib -install_name @rpath/libhpatch.dylib \
+		$(HPATCH_OBJ) $(CFLAGS) $(PATCH_LINK) -o libhpatch.dylib
 hdiffz: libhdiffpatch.a
 	$(CXX) hdiffz.cpp libhdiffpatch.a $(CXXFLAGS) $(DIFF_LINK) -o hdiffz
 unit_test: libhdiffpatch.a 
