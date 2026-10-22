@@ -919,7 +919,7 @@ int _default_setParallelThreadNumber(hdiff_TCompress* compressPlugin,int threadN
         int             thread_num;     //1..(64?)
     } TCompressPlugin_7zXZ;
     static int _7zXZ_setThreadNumber(hdiff_TCompress* compressPlugin,int threadNum){
-        TCompressPlugin_lzma2* plugin=(TCompressPlugin_lzma2*)compressPlugin;
+        TCompressPlugin_7zXZ* plugin=(TCompressPlugin_7zXZ*)compressPlugin;
         if (threadNum>MTCODER_THREADS_MAX) threadNum=MTCODER_THREADS_MAX;
         plugin->thread_num=threadNum;
         return threadNum;
